@@ -58,7 +58,7 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     return flux
 
-def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
+def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):  # FIXME need rho_pumps!
 
     """
     Parameters
@@ -70,6 +70,8 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
     Vm              Voltage across cell membrane [V]
     p               An instance of Parameters object
 
+    met             A "metabolism" vector containing concentrations of ATP, ADP and Pi
+
 
     Returns
     -------
@@ -79,10 +81,18 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
     deltaGATP_o = p.deltaGATP  # standard free energy of ATP hydrolysis reaction in J/(mol K)
 
-    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
-    cATP = p.cATP  # concentration of ATP in mmol/L
-    cADP = p.cADP  # concentration of ADP in mmol/L
-    cPi = p.cPi  # concentration of Pi in mmol/L
+    if met is None:
+
+        # if metabolism vector not supplied, use singular defaults for concentrations
+        cATP = p.cATP
+        cADP = p.cADP
+        cPi  = p.cPi
+
+    else:
+
+        cATP = met[0]  # concentration of ATP in mmol/L
+        cADP = met[1]  # concentration of ADP in mmol/L
+        cPi = met[2]  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cNao ** 3) * (cKi ** 2)
@@ -110,7 +120,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block):
 
     return f_Na, f_K, -f_Na  # FIXME get rid of this return of extra -f_Na!!
 
-def pumpCaATP(cCai,cCao,Vm,T,p):
+def pumpCaATP(cCai,cCao,Vm,T,p, met = None):
 
     """
     Parameters
@@ -133,10 +143,18 @@ def pumpCaATP(cCai,cCao,Vm,T,p):
 
     deltaGATP_o = p.deltaGATP
 
-    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
-    cATP = p.cATP  # concentration of ATP in mmol/L
-    cADP = p.cADP  # concentration of ADP in mmol/L
-    cPi = p.cPi  # concentration of Pi in mmol/L
+    if met is None:
+
+        # if metabolism vector not supplied, use singular defaults for concentrations
+        cATP = p.cATP
+        cADP = p.cADP
+        cPi  = p.cPi
+
+    else:
+
+        cATP = met[0]  # concentration of ATP in mmol/L
+        cADP = met[1]  # concentration of ADP in mmol/L
+        cPi = met[2]  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * cCao
@@ -181,7 +199,7 @@ def pumpCaER(cCai,cCao,Vm,T,p):  # FIXME this should be replaced and use only pu
 
     return f_Ca
 
-def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
+def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
 
     """
     Parameters
@@ -209,11 +227,18 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
     deltaGATP_o = p.deltaGATP
 
 
+    if met is None:
 
-    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
-    cATP = p.cATP  # concentration of ATP in mmol/L
-    cADP = p.cADP  # concentration of ADP in mmol/L
-    cPi = p.cPi  # concentration of Pi in mmol/L
+        # if metabolism vector not supplied, use singular defaults for concentrations
+        cATP = p.cATP
+        cADP = p.cADP
+        cPi  = p.cPi
+
+    else:
+
+        cATP = met[0]  # concentration of ATP in mmol/L
+        cADP = met[1]  # concentration of ADP in mmol/L
+        cPi = met[2]  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cHo) * (cKi)
@@ -244,14 +269,22 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block):
 
     return f_H, f_K
 
-def pumpVATP(cHi,cHo,Vm,T,p,block):
+def pumpVATP(cHi,cHo,Vm,T,p,block, met = None):
 
     deltaGATP_o = p.deltaGATP
 
-    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
-    cATP = 1.5  # concentration of ATP in mmol/L
-    cADP = 0.2  # concentration of ADP in mmol/L
-    cPi = 0.5  # concentration of Pi in mmol/L
+    if met is None:
+
+        # if metabolism vector not supplied, use singular defaults for concentrations
+        cATP = p.cATP
+        cADP = p.cADP
+        cPi  = p.cPi
+
+    else:
+
+        cATP = met[0]  # concentration of ATP in mmol/L
+        cADP = met[1]  # concentration of ADP in mmol/L
+        cPi = met[2]  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * cHo
@@ -662,7 +695,7 @@ def ghk_calculator(sim, cells, p):
         (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
 
 def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
-                 Km_ATP=1.0):
+                 Km_ATP=1.0, met = None):
 
 
     """
@@ -702,10 +735,18 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
     deltaGATP_o = p.deltaGATP  # standard free energy of ATP hydrolysis reaction in J/(mol K)
 
-    # At the moment the concentrations are fixed as the metabolism module isn't ready yet.
-    cATP = p.cATP  # concentration of ATP in mmol/L
-    cADP = p.cADP  # concentration of ADP in mmol/L
-    cPi = p.cPi  # concentration of Pi in mmol/L
+    if met is None:
+
+        # if metabolism vector not supplied, use singular defaults for concentrations
+        cATP = p.cATP
+        cADP = p.cADP
+        cPi  = p.cPi
+
+    else:
+
+        cATP = met[0]  # concentration of ATP in mmol/L
+        cADP = met[1]  # concentration of ADP in mmol/L
+        cPi = met[2]  # concentration of Pi in mmol/L
 
     if p.sim_ECM is True:
 

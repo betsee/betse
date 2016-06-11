@@ -50,6 +50,39 @@ def read(config_filename: str) -> dict:
     # Return this dictionary.
     return config
 
+
+#FIXME: Fix docstring and code duplicated from above.
+def read_metabo(config_filename: str) -> dict:
+    '''
+    Deserialize the passed YAML-formatted simulation configuration file into a
+    dictionary; then, validate and return this dictionary.
+
+    Parameters
+    ----------
+    config_filename : str
+        Absolute or relative path of the source YAML file to be deserialized.
+
+    Returns
+    ----------
+    dict
+        Dictionary deserialized from this file.
+    '''
+    assert types.is_str_nonempty(config_filename), (
+        types.assert_not_str_nonempty(config_filename, 'Filename'))
+
+    # Dictionary deserialized from this file.
+    config = None
+
+    # Open this filename for reading and read this file into a dictionary.
+    with files.open_for_text_reading(config_filename) as yaml_file:
+        config = yaml.load(yaml_file)
+
+    #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
+    # Validate the contents of this file.
+
+    # Return this dictionary.
+    return config
+
 # ....................{ WRITERS                            }....................
 def write(config_filename: str, config: dict) -> None:
     '''

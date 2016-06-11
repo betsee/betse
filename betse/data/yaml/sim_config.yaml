@@ -647,7 +647,14 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM
 #-----------------------------------------------------------------------------------------------------------------------
+metabolism settings:
 
+  metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
+
+  metabolism config: extra_configs/metabo_config_basic.yaml  # supply a path to the config file containing metabolic sim info
+                                                      # metabo_config_basic.yaml supplies a very basic metabolism model
+                                                      # metabo_config_full.yaml supplies a full metabolism model
+                                                      # these config files are ignored if 'metabolism simulated' is F
 
 #-----------------------------------------------------------------------------------------------------------------------
 # VARIABLE SETTINGS
@@ -675,12 +682,15 @@ variable settings:
 
 
     HKATPase pump: False     # include the HK-ATPase pump in the simulation?
-                             # only works for an ion profile with H+ ions (animal or invertebrate)
+                             # only works for an ion profile with H+ ions (animal)
                              # options True or False (case sensitive)
 
     VATPase pump: False    # include the plasma membrane V-ATPase pump?
-                              # only works for an ion profile with H+ ions (animal or invertebrate)
+                              # only works for an ion profile with H+ ions (animal)
                               # options True or False (case sensitive)
+
+    Na/Ca exchanger: False  # include a sodium/calcium exchanger?
+                            # only works for an ion profile with Ca2+ ions (animal or basic_Ca)
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 

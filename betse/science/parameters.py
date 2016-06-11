@@ -263,7 +263,6 @@ class Parameters(object):
         bool_Naenv = bool(self.config['change Na env']['event happens'])
         bool_Kenv = bool(self.config['change K env']['event happens'])
         bool_Clenv = bool(self.config['change Cl env']['event happens'])
-        # bool_MorphEnv = bool(self.config['change morphogen']['event happens'])   # FIXME deal with this event in new context
         bool_gjblock = bool(self.config['block gap junctions']['event happens'])
         bool_temp =  bool(self.config['change temperature']['event happens'])
         bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
@@ -299,17 +298,6 @@ class Parameters(object):
             multi_Naenv = float(self.config['change Na env']['multiplier'])
             Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
             self.global_options['Na_env'] = Naenv
-
-        # if bool_MorphEnv is False:
-        #     self.global_options['Morph_env'] = 0
-
-        # elif bool_MorphEnv is True: # FIXME THIS WILL NEED TO CHANGE!!!
-        #     on_MorphEnv = float(self.config['change morphogen']['change start'])
-        #     off_MorphEnv = float(self.config['change morphogen']['change finish'])
-        #     rate_MorphEnv = float(self.config['change morphogen']['change rate'])
-        #     conc_MorphEnv = float(self.config['change morphogen']['concentration'])
-        #     MorphEnv = [on_MorphEnv, off_MorphEnv, rate_MorphEnv, conc_MorphEnv]
-        #     self.global_options['Morph_env'] = MorphEnv
 
         if bool_gjblock is False:
             self.global_options['gj_block'] = 0
@@ -504,6 +492,19 @@ class Parameters(object):
 
         self.molecules_config = self.config['biomolecules']
 
+        #---------------------------------------------------------------------------------------------------------------
+        #  METABOLISM
+        #---------------------------------------------------------------------------------------------------------------
+
+        self.metabolism_enabled = self.config['metabolism settings']['metabolism simulated']
+
+        if self.metabolism_enabled:
+
+            self.metabo_config_filename = self.config['metabolism settings']['metabolism config']
+
+        else:
+            self.metabo_config_filename = None
+
         #--------------------------------------------------------------------------------------------------------------
         # VARIABLE SETTINGS
         #--------------------------------------------------------------------------------------------------------------
@@ -588,30 +589,6 @@ class Parameters(object):
 
         # include V-ATPase in the simulation? Yes =1, No = 0
         self.VATPase_dyn = self.config['variable settings']['optional pumps']['VATPase pump']
-
-        # include diffusion of a morphogen (originally called a voltage-sensitive dye)? --------------------------------
-
-        # FIXME ADD IN NEW MOLECULE STUFF HERE
-        # self.voltage_dye = self.config['variable settings']['morphogen properties']['include morphogen']
-        #
-        # self.Dm_Dye = float(self.config['variable settings']['morphogen properties']['Dm'])
-        # self.Do_Dye = float(self.config['variable settings']['morphogen properties']['Do'])
-        # self.z_Dye = float(self.config['variable settings']['morphogen properties']['z'])
-        # self.cDye_to = float(self.config['variable settings']['morphogen properties']['env conc'])
-        # self.cDye_to_cell = float(self.config['variable settings']['morphogen properties']['cell conc'])
-        # self.Dye_target_channel = self.config['variable settings']['morphogen properties']['ion channel target']
-        # self.Dye_Hill_K = float(self.config['variable settings']['morphogen properties']['target Hill coefficient'])
-        # self.Dye_Hill_exp = float(self.config['variable settings']['morphogen properties']['target Hill exponent'])
-        # self.Dye_peak_channel = float(self.config['variable settings']['morphogen properties']['peak channel opening'])
-        # self.Dye_acts_extracell = bool(self.config['variable settings']['morphogen properties']['acts extracellularly'])
-        #
-        # self.pump_Dye = bool(self.config['variable settings']['morphogen properties']['active pumping']['turn on'])
-        # self.pump_Dye_in = bool(self.config['variable settings']['morphogen properties']
-        #                         ['active pumping']['pump to cell'])
-        # self.pump_Dye_alpha = float(self.config['variable settings']['morphogen properties']
-        #                         ['active pumping']['maximum rate'])
-
-        #--------------------------------------------------------------------------------------------------------------
 
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])

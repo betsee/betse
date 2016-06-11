@@ -548,21 +548,9 @@ class Simulator(object):
         self.Dm_scheduled = np.copy(Dm_cellsA)
         self.Dm_scheduled[:] = 0
 
-        # Initialize an array structure that will hold dynamic voltage-gated channel changes to mem permeability:
-        # self.Dm_vg = np.copy(Dm_cellsA)
-        # self.Dm_vg[:] = 0
-
-        # Initialize an array structure the will hold secondary vg channels (e.g. Kir 2.1 and persistent vgNa currents)
-        # self.Dm_vg2 = np.copy(Dm_cellsA)
-        # self.Dm_vg2[:] = 0
-
         # Initialize an array structure that will hold dynamic calcium-gated channel changes to mem perms:
         self.Dm_cag = np.copy(Dm_cellsA)
         self.Dm_cag[:] = 0
-
-        # initialize and array structure for "funny current" of HCN2 and HCN4 channels:
-        # self.Dm_funny = np.copy(Dm_cellsA)
-        # self.Dm_funny[:] = 0
 
         self.Dm_stretch = np.copy(Dm_cellsA)   # array for stretch activated ion channels...
         self.Dm_stretch[:] = 0

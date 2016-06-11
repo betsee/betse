@@ -30,7 +30,7 @@ from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 
 class MasterOfMolecules(object):
 
-    def __init__(self, sim, config_settings, p):
+    def __init__(self, sim, config_substances, p):
 
         """
          Initializes the MasterOfMolecules object.
@@ -40,9 +40,9 @@ class MasterOfMolecules(object):
         p                   An instance of params
         """
 
-        self.init(sim, config_settings, p)
+        self.read_substances(sim, config_substances, p)
 
-    def init(self, sim, config_settings, p):
+    def read_substances(self, sim, config_substances, p):
         """
             Initializes all of the main variables for all molecules included in the simulation.
             'config settings' is typically = p.molecules_config
@@ -51,7 +51,7 @@ class MasterOfMolecules(object):
         # Initialize a list that will keep track of molecule names in the simulation
         self.molecule_names = []
 
-        for mol_dic in config_settings:
+        for mol_dic in config_substances:
             # get each user-defined name-filed in the dictionary:
             name = str(mol_dic['name'])
 
@@ -77,9 +77,16 @@ class MasterOfMolecules(object):
             # factors involving auto-catalytic growth and decay in the cytoplasm
             gad = mol_dic['growth and decay']
 
-            obj.r_production = gad['production rate']
-            obj.r_decay = gad['decay rate']
-            obj.Kgd = gad['Km']
+            if gad != None:
+
+                obj.simple_growth = True
+
+                obj.r_production = gad['production rate']
+                obj.r_decay = gad['decay rate']
+                obj.Kgd = gad['Km']
+
+            else:
+                obj.simple_growth = False
 
             # assign ion channel gating properties
             icg = mol_dic['ion channel gating']
@@ -136,6 +143,46 @@ class MasterOfMolecules(object):
             # initialize concentration at the boundary
             obj.c_bound = obj.c_envo
 
+    def read_reactions(self, config_reactions, p):
+
+        """
+          Read in and initialize parameters for all reactions.
+
+          :param config_options:
+          :return:
+
+          """
+
+        # Initialize a list that will keep track of reaction names in the simulation
+        self.reaction_names = []
+
+        for react_dic in config_reactions:
+            # get each user-defined name-filed in the dictionary:
+            name = str(react_dic['name'])
+
+            # add the name to the name catalogue:
+            self.reaction_names.append(name)
+
+            # add a field to the MasterOfReactions corresponding to Reaction object with that name:
+            setattr(self, name, Reaction())
+
+            # now set the attributes of that Reaction object with the cornucopia of variables:
+
+            # get MasterOfMolecules.name
+            obj = getattr(self, name)
+
+            # assign general properties
+            obj.name = name  # let object know who it is
+
+            # set the main fields of the reaction object
+            obj.reactants_list = react_dic['reagents']
+            obj.products_list = react_dic['products']
+            obj.Km_reactants_list = react_dic['Km reagents']
+            obj.Km_products_list = react_dic['Km products']
+            obj.vmax = react_dic['max rate']
+
+            obj.delta_Go = react_dic['standard free energy']
+
     def init_saving(self, cells, p, plot_type = 'init'):
 
             # init files
@@ -175,6 +222,9 @@ class MasterOfMolecules(object):
             obj.pump(sim, cells, p)
             obj.transport(sim, cells, p)
             obj.updateIntra(sim, cells, p)
+
+            if obj.simple_growth is True:
+                obj.reaction(sim, cells, p)
 
             if p.run_sim is True:
                 obj.gating(sim, cells, p)
@@ -294,6 +344,41 @@ class MasterOfMolecules(object):
                     obj.anim_env(sim, cells, p)
 
 class Molecule(object):
+
+    def __init__(self):
+
+        # Set all fields to None -- these will be dynamically set by MasterOfMolecules
+
+        self.c_cello = None
+        self.c_memo = None
+        self.c_env = None
+        self.z = None
+        self.Dm = None
+        self.Do = None
+        self.c_bound = None
+        self.Kgd = None
+        self.use_pumping = None
+        self.pump_to_cell = None
+        self.pump_max_val = None
+        self.pump_Km = None
+        self.use_gating_ligand = None
+        self.gating_extracell = None
+        self.gating_max_val = None
+        self.gating_Hill_K = None
+        self.gating_Hill_n = None
+        self.gating_ion = None
+        self.r_production = None
+        self.r_decay = None
+        self.change_at_bounds = None
+        self.change_bounds_start = None
+        self.change_bounds_end = None
+        self.change_bounds_rate = None
+        self.change_bounds_target = None
+        self.make_plots = None
+        self.make_ani = None
+        self.plot_autoscale = None
+        self.plot_max = None
+        self.plot_min = None
 
     def transport(self, sim, cells, p):
         """
@@ -583,4 +668,24 @@ class Molecule(object):
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
+
+class Reaction(object):
+
+    def __init__(self):
+
+        # pre-populate the object with fields that will be assigned by MasterOfMolecules
+
+        self.name = None
+        self.reactants_list = None
+        self.products_list = None
+        self.Km_reactants = None
+        self.Km_products = None
+        self.vmax = None
+        self.delta_Go = None
+
+    def compute_reaction(self):
+
+        pass
+
+
 
