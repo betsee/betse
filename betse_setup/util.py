@@ -18,11 +18,13 @@ Utility and convenience functions for BETSE-specific `setuptools` subcommands.
 #die as quickly as possible.
 
 # ....................{ IMPORTS                            }....................
-import importlib, os, platform, pkg_resources, shutil, subprocess, sys, time
+import importlib, os, platform, shutil, subprocess, sys, time
 from distutils.errors import (
     DistutilsExecError, DistutilsFileError, DistutilsModuleError)
 from os import path
+from pkg_resources import Distribution, PathMetadata
 from setuptools import Command
+from setuptools.command.develop import VersionlessRequirement
 
 # ....................{ EXCEPTIONS ~ command               }....................
 def die_unless_command_succeeds(*command_words) -> None:
@@ -771,9 +773,9 @@ def command_entry_points(command: Command):
     #
     # Die, setuptools. Die!
     ei_cmd = command.get_finalized_command('egg_info')
-    distribution = pkg_resources.Distribution(
+    distribution = Distribution(
         ei_cmd.egg_base,
-        pkg_resources.PathMetadata(ei_cmd.egg_base, ei_cmd.egg_info),
+        PathMetadata(ei_cmd.egg_base, ei_cmd.egg_info),
         ei_cmd.egg_name,
         ei_cmd.egg_version,
     )
@@ -782,25 +784,42 @@ def command_entry_points(command: Command):
     yield from package_distribution_entry_points(distribution)
 
 
-def package_distribution_entry_points(distribution: pkg_resources.Distribution):
+def package_distribution_entry_points(
+    distribution: (Distribution, VersionlessRequirement)) -> None:
     '''
-    Generator yielding a 3-tuple detailing each wrapper script installed for the
-    passed `pkg_resources`-specific distribution identifying a top-level Python
-    package.
+    Generator yielding a 3-tuple describing each wrapper script installed for
+    the passed `pkg_resources`-specific distribution identifying a unique
+    top-level Python package.
 
-    This 3-tuple consists of each such script's (in order):
+    Yields
+    ----------
+    For each such script, this generator yields a 3-tuple
+    `(script_basename, ui_type, entry_point)` such that:
 
-    * Script basename (e.g., `betse`). Under:
+    * `script_basename` is this script's basename (e.g., `betse`). Under:
       * Both vanilla and Cygwin Microsoft Windows, this basename is suffixed by
         the `.exe` filetype.
       * All other platforms, this basename has no filetype.
-    * Type string, guaranteed to be either:
+    * `ui_type` is this script's interface type string, guaranteed to be either:
       * `console` if this script is console-specific.
       * `gui` otherwise.
-    * `EntryPoint` object, whose attributes specify the module to be imported
-      and function to be run by such script.
+    * `entry_point` is this script's `EntryPoint` object, whose attributes
+      specify the module to be imported and function to be run by this script.
+
+    Parameters
+    ----------
+    distribution : Distribution, VersionlessRequirement
+        Distribution object identifying the top-level Python package to yield
+        entry points for. Specifically, either:
+        * A `Distribution` object supplied by the `install` or `symlink`
+          subcommands.
+        * A `VersionlessRequirement` object supplied by the `develop`
+          subcommand. As the classname suggests, this object wraps the
+          corresponding `Distribution` object by stripping versioning from this
+          distribution's name (e.g., reducing `foo==1.0` to merely `foo`).
     '''
-    assert isinstance(distribution, pkg_resources.Distribution), (
+    assert isinstance(distribution, (
+        Distribution, VersionlessRequirement)), (
         '"{}" not a setuptools distribution.'.format(distribution))
 
     # For each type of script wrapper...

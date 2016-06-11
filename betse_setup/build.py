@@ -6,12 +6,13 @@
 '''
 BETSE-specific monkey patching of `setuptools`'s `ScriptWriter` class.
 
-Such patching renders such class for use with editable installations of Python
-packages (e.g., via BETSE's `symlink` command). The default `ScriptWriter`
+Such patching improves the usability of this class with respect to editable
+installations packages (e.g., via BETSE's *nix-specific `symlink` subcommand or
+setuptools' general-purpose `develop` subcommand). The default `ScriptWriter`
 implementation writes scripts attempting to import the `setuptools`-installed
-package resources for such packages. Since no such resources are installed for
-editable installations, such scripts *always* fail and hence are suitable *only*
-for use with user-specific venvs.
+package resources for these packages. Since no such resources are installed for
+editable installations, these scripts _always_ fail and hence are suitable
+_only_ for use in user-specific venvs.
 
 Such patching corrects this deficiency, albeit at a minor cost of ignoring the
 package resources provided by Python packages installed in the customary way.
@@ -39,7 +40,7 @@ def is_module_root(module_name: str) -> bool:
 
     If this module is _not_ importable via the standard
     `importlib.find_loader()` mechanism (e.g., the OS X-specific `PyObjCTools`
-    package), this module may also be imported as an additional side effect.
+    package), this function may import this module as a side effect.
     """
     assert isinstance(module_name, str), (
         '"{{}}" not a string.'.format(module_name))
@@ -59,10 +60,7 @@ def is_module_root(module_name: str) -> bool:
         except ImportError:
             return False
 
-# If this script is imported by another module rather than run directly,
-# noop by printing a non-fatal warning and then returning. While this script
-# should *NEVER* be imported, contemptible edge cases do happen.
-# Else, this script is run directly. Let's do this.
+# If this script is run directly, do so.
 if __name__ == '__main__':
     # If the root parent package of this entry module is unimportable, raise a
     # human-readable exception. For inscrutable reasons, testing for whether
@@ -82,10 +80,9 @@ if __name__ == '__main__':
     # For debugging purposes, print the absolute path of this module.
     #print('{entry_module}: ' + entry_module.__file__)
     {entry_func_code}
-# If this script is imported by another module rather than run directly,
-# noop by printing a non-fatal warning and then returning. While this script
-# should *NEVER* be imported, contemptible edge cases do happen.
-# Else, this script is run directly. Let's do this.
+# Else, this script is imported by another module rather than run directly. In
+# this erroneous case, noop by printing a non-fatal warning and then returning.
+# While this script should *NEVER* be imported, edge cases do happen.
 else:
     print('WARNING: Entry point imported rather than run.', file=sys.stderr)
 '''
@@ -94,9 +91,9 @@ Script template to be formatted by `ScriptWriterSimple.get_script_args()`.
 '''
 
 SCRIPT_ENTRY_FUNC_SUBTEMPLATE = '''
-    # If this module requires an entry function to be run, call such function.
-    # For POSIX compliance, the value returned by this function (ideally a
-    # single-byte integer) will be propagated back to the calling shell as this
+    # If this module requires an entry function to be run, call this function.
+    # For POSIX compliance, propagate the value returned by this function
+    # (ideally a single-byte integer) back to the calling process as this
     # script's exit status.
     sys.exit(entry_module.{entry_func}())
 '''
@@ -115,14 +112,14 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     Add commands building distribution entry points to the passed dictionary of
     `setuptools` options.
     '''
-    assert isinstance(setup_options, dict),\
-        '"{}" not a dictionary.'.format(setup_options)
+    assert isinstance(setup_options, dict), (
+        '"{}" not a dictionary.'.format(setup_options))
 
     # If neither of the class functions monkey-patched below exist, setuptools
     # is either broken or an unsupported newer version. In either case, an
     # exception is raised.
-    if not hasattr(ScriptWriter, 'get_args') and\
-       not hasattr(ScriptWriter, 'get_script_args'):
+    if (not hasattr(ScriptWriter, 'get_args') and
+        not hasattr(ScriptWriter, 'get_script_args')):
         raise DistutilsClassError('Class "setuptools.command.easy_install.ScriptWriter" functions get_args() and get_script_args() not found. The current version of setuptools is either broken (unlikely) or unsupported (likely).')
 
     # Monkey-patch the following class functions:
@@ -161,22 +158,22 @@ def _get_args(
 ):
     '''
     Yield `write_script()` argument tuples for the passed distribution's **entry
-    points** (i.e., platform-specific executables running such distribution).
+    points** (i.e., platform-specific executables running this distribution).
 
     This function monkey-patches the `ScriptWriter.get_args()` class function.
     '''
-    # Default such shebang line if unpassed.
+    # Default this shebang line if unpassed.
     if script_shebang is None:
         script_shebang = cls.get_header()
 
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
-    assert isinstance(script_shebang, str),\
-        '"{}" not a string.'.format(script_shebang)
+    assert isinstance(script_shebang, str), (
+        '"{}" not a string.'.format(script_shebang))
     #print('In BETSE ScriptWriter.get_args()!')
 
     # For each entry point...
-    for script_basename, script_type, entry_point in\
-        util.package_distribution_entry_points(distribution):
+    for script_basename, script_type, entry_point in (
+        util.package_distribution_entry_points(distribution)):
         # Script code calling the main function in this entry module to be
         # called if any or the empty string otherwise.
         if len(entry_point.attrs):
@@ -207,6 +204,7 @@ def _get_args(
             script_type, script_basename, script_shebang, script_code):
             yield script_tuple
 
+
 @classmethod
 def _get_script_args(
     cls: type,
@@ -216,23 +214,23 @@ def _get_script_args(
 ):
     '''
     Yield `write_script()` argument tuples for the passed distribution's **entry
-    points** (i.e., platform-specific executables running such distribution).
+    points** (i.e., platform-specific executables running this distribution).
 
     This function monkey-patches the deprecated
     `ScriptWriter.get_script_args()` class function.
     '''
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
-    print('In BETSE ScriptWriter.get_script_args()!')
+    # print('In BETSE ScriptWriter.get_script_args()!')
 
     # Platform-specific entry point writer.
     #
-    # If the newer ScriptWriter.best() class function exists, obtain such
+    # If the newer ScriptWriter.best() class function exists, obtain this
     # writer by calling this function.
     script_writer = None
     if hasattr(ScriptWriter, 'best'):
         script_writer = (
             WindowsScriptWriter if is_windows_vanilla else ScriptWriter).best()
-    # Else, obtain such writer by calling the older ScriptWriter.get_writer()
+    # Else, obtain this writer by calling the older ScriptWriter.get_writer()
     # class function.
     else:
         script_writer = cls.get_writer(is_windows_vanilla)
@@ -252,5 +250,6 @@ def _get_script_header(cls: type, *args, **kwargs):
     `setuptools.command.easy_install.get_script_header()` function under older
     versions of setuptools.
     '''
+
     from setuptools.command.easy_install import get_script_header
     return get_script_header(*args, **kwargs)
