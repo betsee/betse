@@ -36,7 +36,7 @@ class MasterOfMetabolism(object):
 
         pass
 
-    def read_config(self, sim, p):
+    def read_config(self, sim, cells, p):
 
         if p.metabolism_enabled:
 
@@ -55,7 +55,7 @@ class MasterOfMetabolism(object):
             self.core = MasterOfMolecules(sim, substances_config, p)
 
             # initialize the reactions of metabolism:
-            self.core.read_reactions(reactions_config, p)
+            self.core.read_reactions(reactions_config, sim, cells, p)
 
 
 

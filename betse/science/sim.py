@@ -275,7 +275,6 @@ class Simulator(object):
                     setattr(self, str_mems, np.zeros(self.mdl))
                     vars(self)[str_mems][:] = p.cell_concs[name]
 
-
                     # environmental concentration for the ion
                     str_env = 'c' + name + '_env'
 

@@ -645,6 +645,18 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       min val: 0.0                    # if autoscale is False, min value to use for plot
 
 #-----------------------------------------------------------------------------------------------------------------------
+#   CHEMICAL REACTIONS
+#-----------------------------------------------------------------------------------------------------------------------
+
+reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
+
+reactions:                   # user-defined reactions, betweeen biomolecules defined above, and/or the simulation ions
+                             # 'Na', 'K', 'Cl', 'P', 'M', 'H'  (note the ion must be present in your profile for the
+                             # reaction to work, otherwise it is ignored.
+
+  - name: NaCa_exchanger      # give the reaction a unique name of your choice
+
+#-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM
 #-----------------------------------------------------------------------------------------------------------------------
 metabolism settings:

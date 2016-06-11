@@ -21,9 +21,13 @@ from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
 import matplotlib.pyplot as plt
-from betse.exceptions import BetseExceptionParameters, BetseExceptionSimulation
+from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
+
+
+# FIXME we will need methods to update mitochondria concs and Vmit, as well as ER concs and Vmit defined
+# in both MasterOfMolecules and Molecule...perhaps 'update_organelle()'
 
 class MasterOfMolecules(object):
 
@@ -47,13 +51,16 @@ class MasterOfMolecules(object):
         """
         # Initialize a list that will keep track of molecule names in the simulation
         self.molecule_names = []
+        # Initialize a list that keeps track of molecule index
+        self.molecule_index = []
 
-        for mol_dic in config_substances:
+        for q, mol_dic in enumerate(config_substances):
             # get each user-defined name-filed in the dictionary:
             name = str(mol_dic['name'])
 
             # add the name to the name catalogue:
             self.molecule_names.append(name)
+            self.molecule_index.append(q)
 
             # add a field to the MasterOfMolecules corresponding to Molecule object with that name
             setattr(self, name, Molecule())
@@ -70,6 +77,9 @@ class MasterOfMolecules(object):
             obj.z = mol_dic['z']  # charge (oxidation state)
             obj.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
             obj.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
+
+            obj.c_mito = mol_dic.get('mit conc',None)  # initialized to None if optional fields not present
+            obj.c_ero = mol_dic.get('er conc', None)
 
             # factors involving auto-catalytic growth and decay in the cytoplasm
             gad = mol_dic['growth and decay']
@@ -131,6 +141,16 @@ class MasterOfMolecules(object):
             obj.c_cells = np.ones(sim.cdl)*obj.c_cello
             obj.c_mems = np.ones(sim.mdl) * obj.c_cello
 
+            # if there is an initial concentration for mitochondria, define a conc vector for it:
+            if obj.c_mito is not None:
+
+                obj.c_mit = np.ones(sim.cdl)*obj.c_mito
+
+            # if there is an initial concentration for endo retic, define a conc vector for it:
+            if obj.c_ero is not None:
+
+                obj.c_er = np.ones(sim.cdl)*obj.c_ero
+
             # initialize concentration in the environment:
             if p.sim_ECM is False:
                 obj.c_env = np.ones(sim.mdl) * obj.c_envo
@@ -140,7 +160,7 @@ class MasterOfMolecules(object):
             # initialize concentration at the boundary
             obj.c_bound = obj.c_envo
 
-    def read_reactions(self, config_reactions, p):
+    def read_reactions(self, config_reactions, sim, cells, p):
 
         """
           Read in and initialize parameters for all reactions.
@@ -153,12 +173,16 @@ class MasterOfMolecules(object):
         # Initialize a list that will keep track of reaction names in the simulation
         self.reaction_names = []
 
-        for react_dic in config_reactions:
+        # Initialize a list that keeps the index of the reaction:
+        self.reaction_index = []
+
+        for q, react_dic in enumerate(config_reactions):
             # get each user-defined name-filed in the dictionary:
             name = str(react_dic['name'])
 
             # add the name to the name catalogue:
             self.reaction_names.append(name)
+            self.reaction_index.append(q)
 
             # add a field to the MasterOfReactions corresponding to Reaction object with that name:
             setattr(self, name, Reaction())
@@ -184,52 +208,517 @@ class MasterOfMolecules(object):
 
             obj.delta_Go = react_dic['standard free energy']
 
+            if obj.delta_Go == 'None':
+                obj.delta_Go = None     # make the field a proper None variable
+
             obj.transfer_membrane = react_dic['transmembrane transfer']
 
             if obj.transfer_membrane != 'None':
-                self.transfer_V_type = obj.transfer_membrane[0]
-                self.transfer_direction = obj.transfer_membrane[1]
+                obj.transfer_V_type = obj.transfer_membrane[0]
+                obj.transfer_direction = obj.transfer_membrane[1]
 
             else:
                 obj.transfer_membrane = None
 
             # now we want to load the right concentration data arrays for reactants into the Reaction object:
+
+            # find out which items (if any) are to be transferred across the membrane -- these are items that occur in
+            # both the reactants and the products names list:
+            name_set_products = set(obj.products_list)
+            name_set_reactants = set(obj.reactants_list)
+            # list of substances moved from one side of the membrane to the other
+            obj.transfers_list = list(name_set_products & name_set_reactants)
+
+            # Case 1: no transfer across the membrane -- these are in-cytoplasm reactions -------------------------------
             for i, reactant_name in enumerate(obj.reactants_list):
 
-                try:
-                    obj_reactant = getattr(self,reactant_name)
-                    c_react = obj_reactant.c_cells
-                    obj.c_reactants.append(c_react)
+                if reactant_name not in obj.transfers_list: # if we're not dealing with a trans-membrane transfer:
+
+                    label = 'i' + reactant_name
+                    ion_check = getattr(sim, label, None)
+
+                    if ion_check is None:
+
+                        try:
+                            obj_reactant = getattr(self,reactant_name)
+                            c_react = obj_reactant.c_cells
+                            obj.c_reactants.append(c_react)
+
+                        except:
+
+                            raise BetseExceptionParameters('Name of reactant is not a defined chemical, or is not'
+                                                           'an ion currently included in the ion profile being used.'
+                                                           'Please check biomolecule definitions and ion profile'
+                                                           'settings of your config(s) and try again.')
+
+                    else:
+                        # define the reactant as the ion concentration from the cell concentrations object in sim:
+                        # FIXME we need to make sure this is a link, so that the sim concentration will be updated
+                        obj.c_reactants.append(sim.cc_cells[ion_check])
 
                     # add the index of the reaction to the list so we can access modifiers like reaction coefficients
                     # and Km values at a later point:
                     obj.inds_react.append(i)
 
-                except:
-
-                    raise BetseExceptionParameters('Name of reactant not a defined chemical.'
-                                                   'Please check biomolecule definitions '
-                                                   'and try again.')
-
             # Now load the right concentration data arrays for products into the Reaction object:
-
             for j, product_name in enumerate(obj.products_list):
 
-                try:
-                    obj_product = getattr(self, product_name)
-                    c_prod = obj_product.c_cells
-                    obj.c_products.append(c_prod)
+                if product_name not in obj.transfers_list:
+
+                    # see if the name is an ion defined in sim:
+                    label = 'i' + product_name
+                    ion_check = getattr(sim, label, None)
+
+                    if ion_check is None:
+
+                        try:
+                            obj_product = getattr(self, product_name)
+                            c_prod = obj_product.c_cells
+                            obj.c_products.append(c_prod)
+
+                        except:
+
+                            raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
+                                                           'an ion currently included in the ion profile being used.'
+                                                           'Please check biomolecule definitions and ion profile'
+                                                           'settings of your config(s) and try again.')
+
+                    else:
+                        # define the reactant as the ion concentration from the cell concentrations object in sim:
+                # FIXME we need to make sure this is a link, so that the sim concentration will be auto-updated here
+                        obj.c_products.append(sim.cc_cells[ion_check])
 
                     # add the index of the reaction to the list so we can access modifiers like reaction coefficients
                     # and Km values at a later point:
                     obj.inds_prod.append(j)
 
-                except:
+            # case 2: transfer occurs across a membrane ----------------------------------------------------------------
+            if obj.transfer_membrane is not None:
 
-                    raise BetseExceptionParameters('Name of product not a defined chemical.'
-                                                   'Please check biomolecule definitions '
-                                                   'and try again.')
+                if obj.transfer_V_type == 'Vmem':  # case 2a: transfer across cell plasma membrane
 
+                    obj.V = sim.vm # link voltage to the membrane voltage
+
+                    if obj.transfer_direction == 'in': # direction into cell
+
+                        for i, reactant_name in enumerate(obj.reactants_list):
+
+                            if reactant_name in obj.transfers_list:
+
+                                label = 'i' + reactant_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_reactant = getattr(self, reactant_name)
+                                        c_react = obj_reactant.c_env
+                                        obj.c_reactants.append(c_react)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of reactant is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    if p.sim_ECM: # get the env concentration from the xy grid to cell centres:
+                                        c_env = sim.cc_env[ion_check][cells.map_cell2ecm]
+
+                                    else: # average the env concentrations to the cell centres
+                                        c_env = np.dot(cells.M_sum_mems, sim.cc_env[ion_check])/cells.num_mems
+
+                                    obj.c_reactants.append(c_env)
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_react.append(i)
+
+                            # Now load the right concentration data arrays for products into the Reaction object:
+
+                        for j, product_name in enumerate(obj.products_list):
+
+                            if product_name in obj.transfers_list:
+
+                                # see if the name is an ion defined in sim:
+                                label = 'i' + product_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_product = getattr(self, product_name)
+                                        c_prod = obj_product.c_cells
+                                        obj.c_products.append(c_prod)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of product is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this is a link, so that the sim concentration will be auto-updated here
+                                    obj.c_products.append(sim.cc_cells[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_prod.append(j)
+
+                    elif obj.transfer_direction == 'out': # directio into environment
+
+                        for i, reactant_name in enumerate(obj.reactants_list):
+
+                            if reactant_name in obj.transfers_list:
+
+                                label = 'i' + reactant_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_reactant = getattr(self, reactant_name)
+                                        c_react = obj_reactant.c_cells
+                                        obj.c_reactants.append(c_react)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of reactant is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this is a link, so that the sim concentration will be updated
+                                    obj.c_reactants.append(sim.cc_cells[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_react.append(i)
+
+                            # Now load the right concentration data arrays for products into the Reaction object:
+
+                        for j, product_name in enumerate(obj.products_list):
+
+                            if product_name in obj.transfers_list:
+
+                                # see if the name is an ion defined in sim:
+                                label = 'i' + product_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_product = getattr(self, product_name)
+                                        c_prod = obj_product.c_env
+                                        obj.c_products.append(c_prod)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of product is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    if p.sim_ECM: # get the env concentration from the xy grid to cell centres:
+                                        c_env = sim.cc_env[ion_check][cells.map_cell2ecm]
+
+                                    else: # average the env concentrations to the cell centres
+                                        c_env = np.dot(cells.M_sum_mems, sim.cc_env[ion_check])/cells.num_mems
+
+                                    obj.c_products.append(c_env)
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_prod.append(j)
+
+                elif obj.tranfer_V_type == 'Vmit':  # case 2b: transfer across mitochondrial membrane
+
+                    # FIXME need to think about how organelle voltages will be handled
+                    obj.V = getattr(sim, 'vmit', None) # try and get a mitochondrial voltage to link
+
+                    if obj.transfer_direction == 'in':  # direction into mitochondria
+
+                        for i, reactant_name in enumerate(obj.reactants_list):
+
+                            if reactant_name in obj.transfers_list:
+
+                                label = 'i' + reactant_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_reactant = getattr(self, reactant_name)
+                                        c_react = obj_reactant.c_cells
+                                        obj.c_reactants.append(c_react)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of reactant is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this is a link, so that the sim concentration will be updated
+                                    obj.c_reactants.append(sim.cc_cells[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_react.append(i)
+
+                            # Now load the right concentration data arrays for products into the Reaction object:
+
+                        for j, product_name in enumerate(obj.products_list):
+
+                            if product_name in obj.transfers_list:
+
+                                # see if the name is an ion defined in sim:
+                                label = 'i' + product_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_product = getattr(self, product_name)
+                                        c_prod = obj_product.c_mit
+                                        obj.c_products.append(c_prod)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of product is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                   # FIXME we need to make sure cc_mit exists...somehow...
+                                    obj.c_products.append(sim.cc_mit[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_prod.append(j)
+
+                    elif obj.transfer_direction == 'out': # direction out to cytoplasm
+
+                        for i, reactant_name in enumerate(obj.reactants_list):
+
+                            if reactant_name in obj.transfers_list:
+
+                                label = 'i' + reactant_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_reactant = getattr(self, reactant_name)
+                                        c_react = obj_reactant.c_mit
+                                        obj.c_reactants.append(c_react)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of reactant is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this is a link, so that the sim concentration will be updated
+                                    obj.c_reactants.append(sim.cc_mit[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_react.append(i)
+
+                            # Now load the right concentration data arrays for products into the Reaction object:
+
+                        for j, product_name in enumerate(obj.products_list):
+
+                            if product_name in obj.transfers_list:
+
+                                # see if the name is an ion defined in sim:
+                                label = 'i' + product_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_product = getattr(self, product_name)
+                                        c_prod = obj_product.c_cells
+                                        obj.c_products.append(c_prod)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of product is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+
+                                    obj.c_products.append(sim.cc_cells[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_prod.append(j)
+
+                elif obj.tranfer_V_type == 'Ver':  # case 2b: transfer across endoplasmic reticulum (ER) membrane
+
+                    # FIXME need to think about how organelle voltages will be handled
+                    obj.V = getattr(sim, 'ver', None)  # try and get an er voltage to link-to
+
+                    if obj.transfer_direction == 'in':  # direction into ER
+
+                        for i, reactant_name in enumerate(obj.reactants_list):
+
+                            if reactant_name in obj.transfers_list:
+
+                                label = 'i' + reactant_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_reactant = getattr(self, reactant_name)
+                                        c_react = obj_reactant.c_cells
+                                        obj.c_reactants.append(c_react)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of reactant is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this is a link, so that the sim concentration will be updated
+                                    obj.c_reactants.append(sim.cc_cells[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_react.append(i)
+
+                            # Now load the right concentration data arrays for products into the Reaction object:
+
+                        for j, product_name in enumerate(obj.products_list):
+
+                            if product_name in obj.transfers_list:
+
+                                # see if the name is an ion defined in sim:
+                                label = 'i' + product_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_product = getattr(self, product_name)
+                                        c_prod = obj_product.c_er
+                                        obj.c_products.append(c_prod)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of product is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this concentration exists, somehow!
+                                    obj.c_products.append(sim.cc_er[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_prod.append(j)
+
+                    elif obj.transfer_direction == 'out': # direction out to cytoplasm
+
+                        for i, reactant_name in enumerate(obj.reactants_list):
+
+                            if reactant_name in obj.transfers_list:
+
+                                label = 'i' + reactant_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_reactant = getattr(self, reactant_name)
+                                        c_react = obj_reactant.c_er
+                                        obj.c_reactants.append(c_react)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of reactant is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this concentration exists...somehow...
+                                    obj.c_reactants.append(sim.cc_er[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_react.append(i)
+
+                            # Now load the right concentration data arrays for products into the Reaction object:
+
+                        for j, product_name in enumerate(obj.products_list):
+
+                            if product_name in obj.transfers_list:
+
+                                # see if the name is an ion defined in sim:
+                                label = 'i' + product_name
+                                ion_check = getattr(sim, label, None)
+
+                                if ion_check is None:
+
+                                    try:
+                                        obj_product = getattr(self, product_name)
+                                        c_prod = obj_product.c_cells
+                                        obj.c_products.append(c_prod)
+
+                                    except:
+
+                                        raise BetseExceptionParameters(
+                                            'Name of product is not a defined chemical, or is not'
+                                            'an ion currently included in the ion profile being used.'
+                                            'Please check biomolecule definitions and ion profile'
+                                            'settings of your config(s) and try again.')
+
+                                else:
+                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
+                                    # FIXME we need to make sure this is a link, so that the sim concentration will be auto-updated here
+                                    obj.c_products.append(sim.cc_cells[ion_check])
+
+                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
+                                # and Km values at a later point:
+                                obj.inds_prod.append(j)
 
     def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'Molecules'):
 
@@ -743,7 +1232,63 @@ class Reaction(object):
 
     def compute_reaction(self, sim, cells, p):
 
-        pass
+
+        # if the reaction has no transmembrane transfer ---------------------------------------------------------------
+        if self.transfer_membrane is None:
+
+            # if the reaction is reversible, calculate the reaction quotient Q
+            if self.delta_Go is not None:
+
+                pass
+
+            else:
+
+                Q  = 0
+
+
+
+                pass
+
+
+            # calculate the Michaelis-Menten based (MM) reaction rate coefficient
+
+            # First, scale concentrations of reactants and products to their respective Km coefficients:
+
+            # Next, calculate the MM rate coefficient:
+
+            # final degree of change, returned for use elsewhere:
+            deltaC = 1
+
+        else: # if there is a transmembrane transfer -------------------------------------------------------------------
+
+            # calculate the electrical contribution to reaction free energy, Qe:
+            Qe = 1
+
+            # if the reaction is reversible, calculate the reaction quotient Q
+            if self.delta_Go is not None:
+
+                Q = 1
+
+            else:
+
+                Q = 0
+
+                pass
+
+            # calculate the Michaelis-Menten based (MM) reaction rate coefficient
+
+            # First, scale concentrations of reactants and products to their respective Km coefficients:
+
+            # Next, calculate the MM rate coefficient:
+
+            # final degree of change, returned for use elsewhere:
+            deltaC = 1
+
+
+        return deltaC
+
+
+
 
 
 
