@@ -34,9 +34,9 @@ class MasterOfMetabolism(object):
 
     def __init__(self, sim, cells, p):
 
-        pass
+        self.read_metabo_config(sim, cells, p)
 
-    def read_config(self, sim, cells, p):
+    def read_metabo_config(self, sim, cells, p):  # can this be implemented in MasterofMolecules instead? To cut down on classes?
 
         if p.metabolism_enabled:
 

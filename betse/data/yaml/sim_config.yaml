@@ -648,13 +648,23 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
 #   CHEMICAL REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
 
-reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
+#reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
+#
+#reactions:                   # user-defined reactions, betweeen biomolecules defined above, and/or the simulation ions
+#                             # 'Na', 'K', 'Cl', 'P', 'M', 'H'  (note the ion must be present in your profile for the
+#                             # reaction to work, otherwise it is ignored.
+#
+#  - name: produce_ATP         # unique identifier for the reaction
+#    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+#    reactants: ['ADP', 'Pi']   # list of reagents; must be from set of names defined for biomolecules in above
+#    reactant multipliers: [1,1]  # reaction coefficients for reagents, in same order as reagent definition
+#    Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
+#    products: ['ATP']         # list of products; must be from set of names defined for biomolecules in above
+#    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+#    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+#    max rate: 1.0e-3          # maximum rate of the reaction
+#    standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 
-reactions:                   # user-defined reactions, betweeen biomolecules defined above, and/or the simulation ions
-                             # 'Na', 'K', 'Cl', 'P', 'M', 'H'  (note the ion must be present in your profile for the
-                             # reaction to work, otherwise it is ignored.
-
-  - name: NaCa_exchanger      # give the reaction a unique name of your choice
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM

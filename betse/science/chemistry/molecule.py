@@ -220,34 +220,7 @@ class MasterOfMolecules(object):
             else:
                 obj.delta_Go = float(obj.delta_Go)
 
-            obj.transfer_membrane = react_dic['transmembrane transfer']
-
-            if obj.transfer_membrane != 'None':
-                obj.transfer_V_type = obj.transfer_membrane[0]
-                obj.transfer_direction = obj.transfer_membrane[1]
-
-            else:
-                obj.transfer_membrane = None
-
             # now we want to load the right concentration data arrays for reactants into the Reaction object:
-
-            # find out which items (if any) are to be transferred across the membrane -- these are items that occur in
-            # both the reactants and the products names list:
-            name_set_products = set(obj.products_list)
-            name_set_reactants = set(obj.reactants_list)
-            # list of substances moved from one side of the membrane to the other
-            obj.transfers_list = list(name_set_products & name_set_reactants)
-
-            # store indices of items that are transferred across the membrane from products and reactants lists:--------
-            if len(obj.transfers_list) > 0:
-
-                for name in obj.transfers_list:
-
-                    ind_react = obj.reactants_list.index(name)
-                    ind_prod = obj.products_list.index(name)
-
-                    obj.transfered_react_inds.append(ind_react)
-                    obj.transfered_prod_inds.append(ind_prod)
 
             # set the reaction states by harvesting the appropriate concentration data:
             self.prime_reactions(obj, sim, cells, p)
@@ -273,170 +246,6 @@ class MasterOfMolecules(object):
 
                     self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
 
-            # case 2: transfer occurs across a membrane ----------------------------------------------------------------
-            if obj.transfer_membrane is not None:
-
-                if obj.transfer_V_type == 'Vmem':  # case 2a: transfer across cell plasma membrane
-
-                    obj.V = sim.vm # link voltage to the membrane voltage
-
-                    if obj.transfer_direction == 'in': # direction into cell
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_env', 'cc_env')
-
-                            # Now load the right concentration data arrays for products into the Reaction object:
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
-
-                    elif obj.transfer_direction == 'out': # directio into environment
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
-
-                            # Now load the right concentration data arrays for products into the Reaction object:
-
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_env', 'cc_env')
-
-                elif obj.tranfer_V_type == 'Vmit':  # case 2b: transfer across mitochondrial membrane
-
-                    # FIXME need to think about how organelle voltages will be handled
-                    obj.V = getattr(sim, 'vmit', None) # try and get a mitochondrial voltage to link
-
-                    if obj.transfer_direction == 'in':  # direction into mitochondria
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
-
-                            # Now load the right concentration data arrays for products into the Reaction object:
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
-
-                    elif obj.transfer_direction == 'out': # direction out to cytoplasm
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_mit', 'cc_mit')
-
-                            # Now load the right concentration data arrays for products into the Reaction object:
-
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
-
-                elif obj.tranfer_V_type == 'Ver':  # case 2b: transfer across endoplasmic reticulum (ER) membrane
-
-                    # FIXME need to think about how organelle voltages will be handled
-                    obj.V = getattr(sim, 'ver', None)  # try and get an er voltage to link-to
-
-                    if obj.transfer_direction == 'in':  # direction into ER
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
-
-                            # Now load the right concentration data arrays for products into the Reaction object:
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_er', 'cc_er')
-
-                    elif obj.transfer_direction == 'out': # direction out to cytoplasm
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                label = 'i' + reactant_name
-                                ion_check = getattr(sim, label, None)
-
-                                if ion_check is None:
-
-                                    try:
-                                        obj_reactant = getattr(self, reactant_name)
-                                        c_react = obj_reactant.c_er
-                                        obj.c_reactants.append(c_react)
-                                        obj.z_reactants.append(obj_reactant.z)
-
-                                    except:
-
-                                        raise BetseExceptionParameters(
-                                            'Name of reactant is not a defined chemical, or is not'
-                                            'an ion currently included in the ion profile being used.'
-                                            'Please check biomolecule definitions and ion profile'
-                                            'settings of your config(s) and try again.')
-
-                                else:
-                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
-                                    # FIXME we need to make sure this concentration exists...somehow...
-                                    obj.c_reactants.append(sim.cc_er[ion_check])
-                                    obj.c_reactants.append(sim.zs[ion_check])
-
-                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
-                                # and Km values at a later point:
-                                obj.inds_react.append(i)
-
-                            # Now load the right concentration data arrays for products into the Reaction object:
-
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                # see if the name is an ion defined in sim:
-                                label = 'i' + product_name
-                                ion_check = getattr(sim, label, None)
-
-                                if ion_check is None:
-
-                                    try:
-                                        obj_product = getattr(self, product_name)
-                                        c_prod = obj_product.c_cells
-                                        obj.c_products.append(c_prod)
-                                        obj.z_products.append(obj_product.z)
-
-                                    except:
-
-                                        raise BetseExceptionParameters(
-                                            'Name of product is not a defined chemical, or is not'
-                                            'an ion currently included in the ion profile being used.'
-                                            'Please check biomolecule definitions and ion profile'
-                                            'settings of your config(s) and try again.')
-
-                                else:
-                                    # define the reactant as the ion concentration from the cell concentrations object in sim:
-                                    # FIXME we need to make sure this is a link, so that the sim concentration will be auto-updated here
-                                    obj.c_products.append(sim.cc_cells[ion_check])
-                                    obj.z_products.append(sim.zs[ion_check])
-
-                                # add the index of the reaction to the list so we can access modifiers like reaction coefficients
-                                # and Km values at a later point:
-                                obj.inds_prod.append(j)
 
         elif obj.reaction_zone == 'mitochondria':
 
@@ -454,48 +263,9 @@ class MasterOfMolecules(object):
 
                     self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
 
-            # case 2: transfer occurs across a membrane ----------------------------------------------------------------
-            if obj.transfer_membrane is not None:
-
-                if obj.tranfer_V_type == 'Vmit':  # case 2b: transfer across mitochondrial membrane
-
-                    # FIXME need to think about how organelle voltages will be handled
-                    obj.V = getattr(sim, 'vmit', None)  # try and get a mitochondrial voltage to link
-
-                    if obj.transfer_direction == 'in':  # direction into mitochondria
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
-
-                                # Now load the right concentration data arrays for products into the Reaction object:
-
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
-
-                    elif obj.transfer_direction == 'out':  # direction out to cytoplasm
-
-                        for i, reactant_name in enumerate(obj.reactants_list):
-
-                            if reactant_name in obj.transfers_list:
-
-                                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_mit', 'cc_mit')
-
-                                # Now load the right concentration data arrays for products into the Reaction object:
-
-                        for j, product_name in enumerate(obj.products_list):
-
-                            if product_name in obj.transfers_list:
-
-                                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
-
         else:
             raise BetseExceptionParameters("You have requested a reaction zone that does not exist."
+                                           "Valid options include: 'cell' and 'mitochondria'."
                                            "Please check your config(s) settings defining reactions"
                                            " and try again. ")
 
@@ -686,53 +456,45 @@ class MasterOfMolecules(object):
 
     def assign_new_concentrations(self, obj, delta_c, new_reactants, new_products, sim, cells, p):
 
-        # FIXME need to convert delta_c into a flux to update volumes properly for transmem transfers...!!!
-        # if we're not transfering across any membranes; staying in same reaction zone:
-        if obj.transfer_membrane is None:
+        for i, react_name in enumerate(obj.reactants_list):
 
-            for i, react_name in enumerate(obj.reactants_list):
+            if obj.reactant_source_object[i] == id(self):
 
-                if obj.reactant_source_object[i] == id(self):
+                source_obj = getattr(self, react_name)
 
-                    source_obj = getattr(self, react_name)
+                setattr(source_obj, obj.reactant_source_type[i], new_reactants[i])
 
-                    setattr(source_obj, obj.reactant_source_type[i], new_reactants[i])
+                print('assigning new reactant field to MasterOfMolecules: ', react_name)
 
-                    print('assigning new reactant field to MasterOfMolecules: ', react_name)
+            elif obj.reactant_source_object[i] == id(sim):
 
-                elif obj.reactant_source_object[i] == id(sim):
+                source_obj = getattr(sim, obj.reactant_source_type[i])
+                ion_label = 'i' + react_name
+                ion_type = getattr(sim, ion_label)
 
-                    source_obj = getattr(sim, obj.reactant_source_type[i])
-                    ion_label = 'i' + react_name
+                source_obj[ion_type] = new_reactants[i]
+
+                print('assigning new reaction field to sim: ', react_name)
+
+        for j, prod_name in enumerate(obj.products_list):
+
+                if obj.product_source_object[j] == id(self):
+
+                    source_obj = getattr(self, prod_name)
+
+                    setattr(source_obj, obj.product_source_type[j], new_products[j])
+
+                    print('assigning new product field to MasterOfMolecules: ', prod_name)
+
+                elif obj.product_source_object[j] == id(sim):
+
+                    source_obj = getattr(sim, obj.product_source_type[j])
+                    ion_label = 'i' + prod_name
                     ion_type = getattr(sim, ion_label)
 
-                    source_obj[ion_type] = new_reactants[i]
+                    source_obj[ion_type] = new_products[j]
 
-                    print('assigning new reaction field to sim: ', react_name)
-
-            for j, prod_name in enumerate(obj.products_list):
-
-                    if obj.product_source_object[j] == id(self):
-
-                        source_obj = getattr(self, prod_name)
-
-                        setattr(source_obj, obj.product_source_type[j], new_products[j])
-
-                        print('assigning new product field to MasterOfMolecules: ', prod_name)
-
-                    elif obj.product_source_object[j] == id(sim):
-
-                        source_obj = getattr(sim, obj.product_source_type[j])
-                        ion_label = 'i' + prod_name
-                        ion_type = getattr(sim, ion_label)
-
-                        source_obj[ion_type] = new_products[j]
-
-                        print('assigning new product field to sim: ', prod_name)
-
-        else:
-
-            print("transfer membrane is true, but nothing is worked up yet. Pass on it.")
+                    print('assigning new product field to sim: ', prod_name)
 
     def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'Molecules'):
 
@@ -1252,12 +1014,8 @@ class Reaction(object):
         self.Km_products_list = None
         self.vmax = None
         self.delta_Go = None
-        self.transfer_membrane = None
-        self.transfer_V_type = None
-        self.transfer_direction = None
 
         self.reaction_zone = None
-        self.V = None
 
         self.c_reactants = []  # concentrations of reactions, defined on cell-centres
         self.z_reactants = []  # charge of reactants
@@ -1265,8 +1023,6 @@ class Reaction(object):
         self.c_products = []  # concentrations of reactions, defined on cell-centres
         self.z_products = []  # charge of products
         self.inds_prod = []  # indices to each reactant, to keep their order
-        self.transfered_react_inds = []  # indices of reactants transferred across a membrane
-        self.transfered_prod_inds = []
 
         self.product_source_object = []  # object from which product concentrations come from
         self.product_source_type = []    # type of product concentrations sourced from object
@@ -1286,11 +1042,6 @@ class Reaction(object):
             Q_deno_list = []
             Q_numo_list = []
 
-            # if reaction involves a trans-membrane transfer, init two arrays
-            if self.transfer_membrane is not None:
-                Qe_prod_list = []
-                Qe_react_list = []
-
             for i, prod in enumerate(self.c_products):
                 # calculate a factor in the backwards rate term:
                 coeff = self.products_coeff[i]
@@ -1298,16 +1049,6 @@ class Reaction(object):
                 cs = (prod / Km) ** coeff
                 term = cs / (1 + cs)
                 backwards_term.append(term)
-
-                if self.transfer_membrane is not None and i in self.transfered_prod_inds:
-
-                    if self.transfer_direction is 'in':
-
-                        Qe_prod_list.append(self.z_products[i]*p.F*self.V)
-
-                    elif self.transfer_direction is 'out':
-
-                        Qe_prod_list.append(0)
 
                 # calculate a factor in the reaction quotient numerator term:
                 ci = prod**coeff
@@ -1323,31 +1064,12 @@ class Reaction(object):
                 cj = react**coeff
                 Q_deno_list.append(cj)
 
-                if self.transfer_membrane is not None and j in self.transfered_react_inds:
-
-                    if self.transfer_direction is 'in':
-
-                        Qe_react_list.append(0)
-
-                    elif self.transfer_direction is 'out':
-
-                        Qe_react_list.append(self.z_reactants[j] * p.F * self.V)
-
             # get the numerator and denomenator of the reaction quotient:
             Q_deno = np.prod(Q_deno_list, axis=0)
             Q_numo = np.prod(Q_numo_list, axis=0)
 
             # finally, *the* reaction quotient:
             Q = Q_numo/Q_deno
-
-            # if the reaction involves a transfer across a membrane, alter Keqm appropriately:
-            if self.transfer_membrane is not None:
-                Qe_react = np.sum(Qe_react_list, axis = 0)
-                Qe_prod = np.sum(Qe_prod_list, axis = 0)
-
-                Qe = Qe_prod - Qe_react
-
-                Keqm = np.exp(-(self.delta_Go + Qe)/(p.R*sim.T))  # FIXME check this
 
         else:
 
@@ -1380,11 +1102,11 @@ class Reaction(object):
         # update concentrations:
         for a, c_react in enumerate(self.c_reactants):
 
-            self.c_reactants[a] = self.c_reactants[a] - deltaC
+            self.c_reactants[a] = c_react - deltaC
 
         for b, c_prod in enumerate(self.c_products):
 
-            self.c_products[b] = self.c_products[b] + deltaC
+            self.c_products[b] = c_prod + deltaC
 
         return deltaC, self.c_reactants, self.c_products
 
