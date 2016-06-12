@@ -39,7 +39,7 @@
 
 init file saving:
 
-    directory: betse_test/INITS         # directory to load/save init run
+    directory: betse_1/INITS         # directory to load/save init run
 
     file: init_1.betse        # filename to load/save init run
 
@@ -47,14 +47,14 @@ init file saving:
 
 sim file saving:
 
-    directory: betse_test/SIMS # directory to load/save sim run
+    directory: betse_1/SIMS # directory to load/save sim run
 
     file: sim_1.betse    # filename to load/save sim run
 
 results file saving:
 
-    init directory: betse_test/results_init_1  # directory to load/save data, plots, and animations for init
-    sim directory: betse_test/results_sim_1  # directory to load/save data, plots, and animations for sim
+    init directory: betse_1/results_init_1  # directory to load/save data, plots, and animations for init
+    sim directory: betse_1/results_sim_1  # directory to load/save data, plots, and animations for sim
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -139,7 +139,7 @@ general options:
 
 world options:
 
-  world size: 250e-6      # dimension of the square world space [m]
+  world size: 200e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1000e-6 m
 
@@ -244,7 +244,7 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/circle/mini_spot.png }
+              bitmap: { file: geo/circle/spot.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
@@ -616,10 +616,7 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
     z: 1               # charge (oxidation state)
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 0.0         # initial concentration in the cytoplasm [mmol/L]
-    growth and decay:
-      production rate: 0.0    # rate at which molecule is produced in the cytoplasm
-      decay rate: 0.0          # rate at which molecule is consumed in the cytoplasm
-      Km: 1.0e-3                  # Half-maximum value for growth and decay [mmol/L]
+    growth and decay: None
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -648,22 +645,23 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
 #   CHEMICAL REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
 
-#reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
-#
-#reactions:                   # user-defined reactions, betweeen biomolecules defined above, and/or the simulation ions
-#                             # 'Na', 'K', 'Cl', 'P', 'M', 'H'  (note the ion must be present in your profile for the
-#                             # reaction to work, otherwise it is ignored.
-#
-#  - name: produce_ATP         # unique identifier for the reaction
-#    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
-#    reactants: ['ADP', 'Pi']   # list of reagents; must be from set of names defined for biomolecules in above
-#    reactant multipliers: [1,1]  # reaction coefficients for reagents, in same order as reagent definition
-#    Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
-#    products: ['ATP']         # list of products; must be from set of names defined for biomolecules in above
-#    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
-#    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
-#    max rate: 1.0e-3          # maximum rate of the reaction
-#    standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
+
+reactions:                   # user-defined reactions, betweeen biomolecules defined above, and/or the simulation ions
+                             # 'Na', 'K', 'Cl', 'P', 'M', 'H'  (note the ion must be present in your profile for the
+                             # reaction to work, otherwise it is ignored.
+
+  - name: produce_Activator         # unique identifier for the reaction
+
+    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['Inhibitor', 'Dye']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1,1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Activator']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 1.0e-5          # maximum rate of the reaction
+    standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 
 
 #-----------------------------------------------------------------------------------------------------------------------

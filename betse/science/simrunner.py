@@ -315,10 +315,10 @@ class SimRunner(object):
         sim.baseInit_all(cells, p)
         sim.time = MoM.time
 
-        MoM.core.init_saving(cells, p, plot_type = 'init')
-        MoM.core.export_all_data(sim, cells, p)
-        MoM.core.plot(sim, cells, p)
-        MoM.core.anim(sim, cells, p)
+        MoM.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='Metabolism')
+        MoM.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
+        MoM.core.plot(sim, cells, p, message = 'for metabolic molecules...')
+        MoM.core.anim(sim, cells, p, message = 'for metabolic molecules...')
 
         if p.turn_all_plots_off is False:
             plt.show()

@@ -624,7 +624,12 @@ class Simulator(object):
 
         # create and initialize the auxiliary-molecules handler for this simulation:
         if p.molecules_enabled: # FIXME: we want this to read reactions from config, if they're enabled!
+
             self.molecules = MasterOfMolecules(self,p.molecules_config,p)
+
+            if p.reactions_enabled:
+
+                self.molecules.read_reactions(p.reactions_config, self, cells, p)
 
         else:
             self.molecules = None
@@ -640,9 +645,13 @@ class Simulator(object):
             self.metabo.read_metabo_config(self, cells, p)
 
             # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
-            self.met_concs = {'ATP': self.metabo.core.ATP.c_mems,
-                              'ADP': self.metabo.core.ADP.c_mems,
-                              'Pi': self.metabo.core.Pi.c_mems}
+            self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
+                              'cADP': self.metabo.core.ADP.c_mems,
+                              'cPi': self.metabo.core.Pi.c_mems}
+
+            # self.met_conc = MetabolicConcentrations(self.metabo.core)
+
+
 
         else:
             self.metabo = None
@@ -802,6 +811,7 @@ class Simulator(object):
                     self.T,
                     p,
                     self.NaKATP_block,
+                    met = self.met_concs
                 )
 
             else:
@@ -815,11 +825,20 @@ class Simulator(object):
                             self.T,
                             p,
                             self.NaKATP_block,
+                            met = self.met_concs
                         )
 
             # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
             self.fluxes_mem[self.iNa] = self.rho_pump * fNa_NaK
             self.fluxes_mem[self.iK] = self.rho_pump * fK_NaK
+
+            if p.metabolism_enabled:
+                # update ATP concentrations after pump action:
+                self.metabo.update_ATP(fNa_NaK, self, cells, p)
+
+                self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
+                    'cADP': self.metabo.core.ADP.c_mems,
+                    'cPi': self.metabo.core.Pi.c_mems}
 
             # update the concentrations of Na and K in cells and environment:
             self.cc_mems[self.iNa][:],  self.cc_env[self.iNa][:] =  stb.update_Co(self, self.cc_mems[self.iNa][:],
@@ -918,30 +937,14 @@ class Simulator(object):
 
                 self.molecules.run_loop(t, self,cells,p)
 
+                if p.reactions_enabled:
+
+                    self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
+
             if p.metabolism_enabled:
 
                 self.metabo.core.run_loop_reactions(t, self, self.metabo.core, cells, p)
                 self.metabo.core.run_loop(t, self, cells, p)
-
-            # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
-            # if p.voltage_dye == 1:
-            #
-            #     if p.pump_Dye is True:
-            #
-            #         self.cDye_mems, self.cDye_env, fx = stb.molecule_pump(self, self.cDye_mems, self.cDye_env,
-            #                                                         cells, p, Df=p.Do_Dye, z=p.z_Dye,
-            #                                                         pump_into_cell=p.pump_Dye_in,
-            #                                                         alpha_max=p.pump_Dye_alpha, Km_X=1.0e-3,
-            #                                                         Km_ATP=1.0)
-            #
-            #     self.cDye_mems, self.cDye_env, _, _, _, _ = stb.molecule_mover(self,self.cDye_mems,
-            #                                                         self.cDye_env,cells, p, z=p.z_Dye, Dm = p.Dm_Dye,
-            #                                                         Do = p.Do_Dye, c_bound = self.c_dye_bound,
-            #                                                         ignoreECM = True)
-            #
-            #     # update concentrations intracellularly:
-            #     self.cDye_mems, self.cDye_cells, _ = \
-            #         stb.update_intra(self, cells, self.cDye_mems, self.cDye_cells, p.Do_Dye, p.z_Dye, p)
 
             # dynamic noise handling-----------------------------------------------------------------------------------
 
@@ -1596,7 +1599,7 @@ class Simulator(object):
                 f_H2, f_K2 = stb.pumpHKATP(self.cc_mems[self.iH][cells.mem_to_cells],
                     self.cc_env[self.iH][cells.map_mem2ecm],
                     self.cc_mems[self.iK][cells.mem_to_cells], self.cc_env[self.iK][cells.map_mem2ecm],
-                    self.vm, self.T, p, self.HKATP_block)
+                    self.vm, self.T, p, self.HKATP_block, met = self.met_concs)
 
                 # modify fluxes by any uneven redistribution of pump location:
                 f_H2 = self.rho_pump * f_H2
@@ -1612,11 +1615,19 @@ class Simulator(object):
 
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
                 f_H2, f_K2 = stb.pumpHKATP(self.cc_mems[self.iH],self.cc_env[self.iH],self.cc_mems[self.iK],
-                    self.cc_env[self.iK],self.vm,self.T,p,self.HKATP_block)
+                    self.cc_env[self.iK],self.vm,self.T,p,self.HKATP_block, met = self.met_concs)
 
                 # store fluxes for this pump:
-                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H2[cells.mem_to_cells]
-                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + self.rho_pump * f_K2[cells.mem_to_cells]
+                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H2
+                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + self.rho_pump * f_K2
+
+            if p.metabolism_enabled:
+                # update ATP concentrations after pump action:
+                self.metabo.update_ATP(f_H2, self, cells, p)
+
+                self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
+                    'cADP': self.metabo.core.ADP.c_mems,
+                    'cPi': self.metabo.core.Pi.c_mems}
 
             # update the concentration in cells (assume environment steady and constant supply of ions)
             # update bicarbonate instead of H+, assuming buffer action holds:
@@ -1669,7 +1680,7 @@ class Simulator(object):
 
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
                 f_H3 = stb.pumpVATP(self.cc_mems[self.iH][cells.mem_to_cells], self.cc_env[self.iH][cells.map_mem2ecm],
-                    self.vm, self.T, p, self.VATP_block)
+                    self.vm, self.T, p, self.VATP_block, met = self.met_concs)
 
                 # modify flux by any uneven redistribution of pump location:
                 f_H3 = self.rho_pump * f_H3
@@ -1679,12 +1690,22 @@ class Simulator(object):
             else:
 
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
-                f_H3 = stb.pumpVATP(self.cc_mems[self.iH],self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block)
+                f_H3 = stb.pumpVATP(self.cc_mems[self.iH],self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block,
+                                    met = self.met_concs)
+
                 self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3[cells.mem_to_cells]
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_mems[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_mems[self.iM][:],
                 self.cc_env[self.iM][:], -f_H3, cells, p)
+
+            if p.metabolism_enabled:
+                # update ATP concentrations after pump action:
+                self.metabo.update_ATP(f_H3, self, cells, p)
+
+                self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
+                    'cADP': self.metabo.core.ADP.c_mems,
+                    'cPi': self.metabo.core.Pi.c_mems}
 
             # Calculate the new pH and H+ concentration:
              # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1712,7 +1733,7 @@ class Simulator(object):
 
             f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa][cells.mem_to_cells],
                 self.cc_env[self.iCa][cells.map_mem2ecm],
-                self.vm, self.T, p)
+                self.vm, self.T, p, met = self.met_concs)
 
             f_CaATP = self.rho_pump * f_CaATP
 
@@ -1723,10 +1744,19 @@ class Simulator(object):
 
             # run Ca-ATPase
 
-            f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa], self.cc_env[self.iCa], self.vm, self.T, p)
+            f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa], self.cc_env[self.iCa], self.vm, self.T, p,
+                          met = self.met_concs)
 
             # store the transmembrane flux for this ion
-            self.fluxes_mem[self.iCa] = self.rho_pump*f_CaATP[cells.mem_to_cells]
+            self.fluxes_mem[self.iCa] = self.rho_pump*f_CaATP
+
+        if p.metabolism_enabled:
+            # update ATP concentrations after pump action:
+            self.metabo.update_ATP(f_CaATP, self, cells, p)
+
+            self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
+                'cADP': self.metabo.core.ADP.c_mems,
+                'cPi': self.metabo.core.Pi.c_mems}
 
         # update calcium concentrations in cell and ecm:
         self.cc_mems[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_mems[self.iCa][:],
@@ -1752,8 +1782,7 @@ class Simulator(object):
                 self.cc_mems[self.iCa],
                 self.v_er,
                 self.T,
-                p,
-            )
+                p)
 
 
             # electrodiffusion of ions between cell and endoplasmic reticulum
@@ -2371,6 +2400,31 @@ class Simulator(object):
 #         # assume auto-mixing of environmental concentrations:
 #         self.cc_env[ion_i][:] = c_env.mean()
 
+# FIXME SESS' FIASCO of WUNDERLUST BEGINS hERE---------------------------------
 
+# FIXME SESS' FIASCO of WunderLOUST BEGINS hERE----------------------------------
+
+# Example usage:
+#
+# self.met_conc = MetabolicConcentrations(self.metabo.core)
+# self.met_conc.cATP
+
+class MetabolicConcentrations(object):
+    def __init__(self, molecule):
+        self._molecule = molecule
+
+    @property
+    def cATP(self):
+        return self._molecule.ATP.c_mems
+
+    @property
+    def cADP(self):
+        return self._molecule.ADP.c_mems
+
+    @property
+    def cPi(self):
+        return self._molecule.Pi.c_mems
+
+# FIXME SESS' FIASCO of WunderLOUST ENDS hERE----------------------------------
 
 

@@ -90,9 +90,9 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):  # FIXME need rho_pu
 
     else:
 
-        cATP = met[0]  # concentration of ATP in mmol/L
-        cADP = met[1]  # concentration of ADP in mmol/L
-        cPi = met[2]  # concentration of Pi in mmol/L
+        cATP = met['cATP']  # concentration of ATP in mmol/L
+        cADP = met['cADP']  # concentration of ADP in mmol/L
+        cPi = met['cPi']  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cNao ** 3) * (cKi ** 2)
@@ -111,8 +111,8 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):  # FIXME need rho_pu
     alpha = block * p.alpha_NaK * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
-    numo_E = ((cNai/p.KmNK_Na)) * ((cKo/p.KmNK_K)) * (cATP/p.KmNK_ATP)
-    denomo_E = (1 + (cNai/p.KmNK_Na))*(1+(cKo/p.KmNK_K))*(1+(cATP/p.KmNK_ATP))
+    numo_E = ((cNai/p.KmNK_Na)**3) * ((cKo/p.KmNK_K)**2) * (cATP/p.KmNK_ATP)
+    denomo_E = (1 + (cNai/p.KmNK_Na)**3)*(1+(cKo/p.KmNK_K)**2)*(1+(cATP/p.KmNK_ATP))
 
     f_Na = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
@@ -152,9 +152,9 @@ def pumpCaATP(cCai,cCao,Vm,T,p, met = None):
 
     else:
 
-        cATP = met[0]  # concentration of ATP in mmol/L
-        cADP = met[1]  # concentration of ADP in mmol/L
-        cPi = met[2]  # concentration of Pi in mmol/L
+        cATP = met['cATP']  # concentration of ATP in mmol/L
+        cADP = met['cADP']  # concentration of ADP in mmol/L
+        cPi = met['cPi']  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * cCao
@@ -236,9 +236,9 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
 
     else:
 
-        cATP = met[0]  # concentration of ATP in mmol/L
-        cADP = met[1]  # concentration of ADP in mmol/L
-        cPi = met[2]  # concentration of Pi in mmol/L
+        cATP = met['cATP']  # concentration of ATP in mmol/L
+        cADP = met['cADP']  # concentration of ADP in mmol/L
+        cPi = met['cPi']  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cHo) * (cKi)
@@ -282,9 +282,9 @@ def pumpVATP(cHi,cHo,Vm,T,p,block, met = None):
 
     else:
 
-        cATP = met[0]  # concentration of ATP in mmol/L
-        cADP = met[1]  # concentration of ADP in mmol/L
-        cPi = met[2]  # concentration of Pi in mmol/L
+        cATP = met['cATP']  # concentration of ATP in mmol/L
+        cADP = met['cADP']  # concentration of ADP in mmol/L
+        cPi = met['cPi']  # concentration of Pi in mmol/L
 
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * cHo
@@ -744,9 +744,9 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
     else:
 
-        cATP = met[0]  # concentration of ATP in mmol/L
-        cADP = met[1]  # concentration of ADP in mmol/L
-        cPi = met[2]  # concentration of Pi in mmol/L
+        cATP = met['cATP']  # concentration of ATP in mmol/L
+        cADP = met['cADP']  # concentration of ADP in mmol/L
+        cPi = met['cPi']  # concentration of Pi in mmol/L
 
     if p.sim_ECM is True:
 

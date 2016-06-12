@@ -394,6 +394,18 @@ class MasterOfMolecules(object):
                 obj.gating(sim, cells, p)
                 obj.update_boundary(t, p)
 
+    def updateInside(self, sim, cells, p):
+        """
+        Runs the main simulation loop steps for each of the molecules included in the simulation.
+
+        """
+
+        # get the name of the specific substance:
+        for name in self.molecule_names:
+
+            obj = getattr(self, name)
+            obj.updateIntra(sim, cells, p)
+
     def run_loop_reactions(self, t, sim, sim_metabo, cells, p):
 
         # get the object corresponding to the specific reaction:
@@ -602,11 +614,20 @@ class Molecule(object):
 
         if self.use_pumping:
 
-            self.c_mems, self.c_env, _ = stb.molecule_pump(sim, self.c_mems, self.c_env,
+            if p.metabolism_enabled:
+                met_vect = sim.met_concs
+            else:
+                met_vect = None
+
+            self.c_mems, self.c_env, flux = stb.molecule_pump(sim, self.c_mems, self.c_env,
                                                                  cells, p, Df=self.Do, z=self.z,
                                                                  pump_into_cell=self.pump_to_cell,
                                                                  alpha_max=self.pump_max_val, Km_X=self.pump_Km,
-                                                                 Km_ATP=1.0)
+                                                                 Km_ATP=1.0, met = met_vect)
+            if p.metabolism_enabled:
+                # update ATP concentrations after pump action:
+                sim.metabo.update_ATP(flux, sim, cells, p)
+
 
     def gating(self, sim, cells, p):
         """

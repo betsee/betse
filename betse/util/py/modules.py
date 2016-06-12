@@ -86,7 +86,7 @@ def die_unless_module(
 def is_module(module_name: str) -> bool:
     '''
     `True` only if the module with the passed fully-qualified name is importable
-    by the active Python interpreter.
+    under the active Python interpreter.
 
     If this module is a **submodule** (i.e., contains a `.` character), all
     parent modules of this module will be imported as a side effect of this

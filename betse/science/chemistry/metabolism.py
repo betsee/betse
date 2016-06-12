@@ -22,6 +22,7 @@ from betse.util.io.log import logs
 from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.config import sim_config
 from betse.exceptions import BetseExceptionParameters
+from betse.science import sim_toolbox as stb
 
 class MasterOfMetabolism(object):
 
@@ -82,7 +83,8 @@ class MasterOfMetabolism(object):
 
         for t in tt:
 
-            self.core.run_loop_reactions(t, sim, cells, p)
+            self.core.run_loop_reactions(t, sim, self.core, cells, p)
+            self.core.run_loop(t, sim, cells, p)
 
             if t in tsamples:
 
@@ -99,7 +101,7 @@ class MasterOfMetabolism(object):
 
         logs.log_info('-------------------Simulation Complete!-----------------------')
 
-    def update_ATP(self, deltac, sim, cells, p):
+    def update_ATP(self, flux, sim, cells, p):
 
         """
         Update ATP, ADP and Pi concentrations using a
@@ -110,25 +112,24 @@ class MasterOfMetabolism(object):
 
         """
 
-        if len(deltac) == sim.mdl:
+        cATP = self.core.ATP.c_mems
+        cADP = self.core.ADP.c_mems
+        cPi = self.core.Pi.c_mems
 
-            cATP = self.core.ATP.c_mems
-            cADP = self.core.ADP.c_mems
-            cPi = self.core.Pi.c_mems
+        # flux_ave = np.dot(cells.M_sum_mems, flux)/cells.num_mems
 
-            self.core.ATP.c_mems = cATP + deltac
-            self.core.ADP.c_mems = cADP - deltac
-            self.core.Pi.c_mems = cPi - deltac
+        deltac = ((flux*cells.mem_sa)/cells.mem_vol)*p.dt
 
-        elif len(deltac) == sim.cdl:
+        self.core.ATP.c_mems = cATP + deltac
+        self.core.ADP.c_mems = cADP - deltac
+        self.core.Pi.c_mems = cPi - deltac
 
-            cATP = self.core.ATP.c_cells
-            cADP = self.core.ADP.c_cells
-            cPi = self.core.Pi.c_cells
+        # self.core.updateInside(sim, cells, p)
 
-            self.core.ATP.c_cells = cATP + deltac
-            self.core.ADP.c_cells = cADP - deltac
-            self.core.Pi.c_cells = cPi - deltac
+        # self.core.ATP.c_mems = stb.no_negs(self.core.ATP.c_mems)
+        # self.core.ADP.c_mems =  stb.no_negs(self.core.ADP.c_mems)
+        # self.core.Pi.c_mems = stb.no_negs(self.core.Pi.c_mems)
+
 
 
 
