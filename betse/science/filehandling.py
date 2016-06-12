@@ -14,12 +14,7 @@ from scipy import interpolate as interp
 #3.4 in BETSE. See also:
 #    https://docs.python.org/3/library/pickle.html#data-stream-format
 
-#FIXME: For orthogonality, this function should probably be refactored to accept
-#the same objects in the same order returned by the save functions below: e.g.,
-#
-#    def saveSim(savePath, sim, cells, p):
-#       with open(savePath, 'wb') as f:
-#           pickle.dump((sim, cells, p), f)
+
 def saveSim(savePath, datadump):
     with open(savePath, 'wb') as f:
         pickle.dump(datadump, f)

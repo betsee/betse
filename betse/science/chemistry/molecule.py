@@ -235,16 +235,13 @@ class MasterOfMolecules(object):
             # Case 1: no transfer across the membrane -- these are in-cytoplasm reactions -------------------------------
             for i, reactant_name in enumerate(obj.reactants_list):
 
-                if reactant_name not in obj.transfers_list: # if we're not dealing with a trans-membrane transfer:
-
-                    self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
+                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
 
             # Now load the right concentration data arrays for products into the Reaction object:
             for j, product_name in enumerate(obj.products_list):
 
-                if product_name not in obj.transfers_list:
 
-                    self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
+                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
 
 
         elif obj.reaction_zone == 'mitochondria':
@@ -252,16 +249,12 @@ class MasterOfMolecules(object):
             # Case 1: no transfer across the membrane -- these are in-cytoplasm reactions -------------------------------
             for i, reactant_name in enumerate(obj.reactants_list):
 
-                if reactant_name not in obj.transfers_list:  # if we're not dealing with a trans-membrane transfer:
-
-                    self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_mit', 'cc_mit')
+                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_mit', 'cc_mit')
 
             # Now load the right concentration data arrays for products into the Reaction object:
             for j, product_name in enumerate(obj.products_list):
 
-                if product_name not in obj.transfers_list:
-
-                    self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
+                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
 
         else:
             raise BetseExceptionParameters("You have requested a reaction zone that does not exist."
@@ -464,8 +457,6 @@ class MasterOfMolecules(object):
 
                 setattr(source_obj, obj.reactant_source_type[i], new_reactants[i])
 
-                print('assigning new reactant field to MasterOfMolecules: ', react_name)
-
             elif obj.reactant_source_object[i] == id(sim):
 
                 source_obj = getattr(sim, obj.reactant_source_type[i])
@@ -473,8 +464,6 @@ class MasterOfMolecules(object):
                 ion_type = getattr(sim, ion_label)
 
                 source_obj[ion_type] = new_reactants[i]
-
-                print('assigning new reaction field to sim: ', react_name)
 
         for j, prod_name in enumerate(obj.products_list):
 
@@ -484,8 +473,6 @@ class MasterOfMolecules(object):
 
                     setattr(source_obj, obj.product_source_type[j], new_products[j])
 
-                    print('assigning new product field to MasterOfMolecules: ', prod_name)
-
                 elif obj.product_source_object[j] == id(sim):
 
                     source_obj = getattr(sim, obj.product_source_type[j])
@@ -493,8 +480,6 @@ class MasterOfMolecules(object):
                     ion_type = getattr(sim, ion_label)
 
                     source_obj[ion_type] = new_products[j]
-
-                    print('assigning new product field to sim: ', prod_name)
 
     def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'Molecules'):
 
@@ -543,7 +528,7 @@ class MasterOfMolecules(object):
                 obj.gating(sim, cells, p)
                 obj.update_boundary(t, p)
 
-    def run_loop_reactions(self, sim, cells, p):
+    def run_loop_reactions(self, t, sim, cells, p):
 
         # get the object corresponding to the specific reaction:
         for i, name in enumerate(self.reaction_names):
@@ -559,6 +544,8 @@ class MasterOfMolecules(object):
 
             # re-assign new concentrations to the Reaction object:
             self.quick_prime_reactions(sim, cells, p)
+
+        self.run_loop(t, sim, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -865,6 +852,8 @@ class Molecule(object):
         time = np.asarray(sim.time)
         ccell = np.asarray(ccell)
         cenv = np.asarray(cenv)
+
+
 
         dataM = np.column_stack((time, ccell, cenv))
 

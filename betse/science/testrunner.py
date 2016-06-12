@@ -12,11 +12,18 @@ if __name__ == '__main__':
     ignition.init()
 
     # Simulation specified by the default configuration file.
+    # sim_runner = SimRunner(
+    #     config_filename = pathtree.CONFIG_DEFAULT_FILENAME)
+
+    # print(pathtree.CONFIG_DEFAULT_FILENAME)
+
     sim_runner = SimRunner(
-        config_filename = pathtree.CONFIG_DEFAULT_FILENAME)
+        config_filename = '/home/pietakio/Documents/BETSE_Study/Metabolism/test_metabo.yaml')
 
     # Run such simulation.
-    sim_runner.initialize()
+    # sim_runner.initialize()
+    sim_runner.sim_reactions()
+    # sim_runner.plot_reactions()
 
 
 

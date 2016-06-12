@@ -498,12 +498,7 @@ class Parameters(object):
 
         self.metabolism_enabled = self.config['metabolism settings']['metabolism simulated']
 
-        if self.metabolism_enabled:
-
-            self.metabo_config_filename = self.config['metabolism settings']['metabolism config']
-
-        else:
-            self.metabo_config_filename = None
+        self.metabo_config_filename = self.config['metabolism settings']['metabolism config']
 
         #--------------------------------------------------------------------------------------------------------------
         # VARIABLE SETTINGS

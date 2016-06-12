@@ -196,7 +196,9 @@ class Simulator(object):
         self.P_cells = np.zeros(self.cdl)  # initialize pressure in cells
 
         self.v_cell = np.zeros(self.mdl)  # initialize intracellular voltage
+        self.v_cell_ave = np.zeros(self.cdl) # initialize averaged v__cell
         self.vm = np.zeros(self.mdl)     # initialize vmem
+
 
         if p.sim_ECM is True:  # special items specific to simulation of extracellular spaces only:
 
@@ -2172,7 +2174,7 @@ class Simulator(object):
         '''
 
 
-        # Human-readable type and maximum number of steps of the current run.
+        # type and maximum number of steps of the current run.
         if p.run_sim is False:
             figure_type_label = 'Initializing'
             loop_type_label = 'initialization'
@@ -2188,8 +2190,6 @@ class Simulator(object):
         # Time-steps vector appropriate for the current run.
         tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
 
-        #FIXME: Refactor into a for loop calling the range() builtin. Sunsets!
-        # Resample this vector to save data at substantially fewer times.
         tsamples = set()
         i = 0
         while i < len(tt) - p.t_resample:

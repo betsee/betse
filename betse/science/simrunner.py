@@ -21,6 +21,7 @@ from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io.log import logs
 from betse.util.path import files, paths
+from betse.science.chemistry.metabolism import MasterOfMetabolism
 
 
 class SimRunner(object):
@@ -238,6 +239,91 @@ class SimRunner(object):
             p = Parameters(config_filename=self._config_filename)
             plot_all(cells, sim, p, plot_type='sim')
             plt.show()
+
+    def sim_reactions(self):
+
+        '''
+            Test run a biochemical reaction network (without bioelectrics) and save it to the
+            initialization cache.
+            '''
+
+        logs.log_info(
+            'Testing metabolic reaction network indicated in configuration file "{}".'.format(
+                self._config_basename))
+
+        start_time = time.time()  # get a start value for timing the simulation
+
+        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+        p.run_sim = False
+
+        # cells, _ = fh.loadSim(cells.savedWorld)
+        cells = Cells(p)  # create an instance of world
+
+        if files.is_file(cells.savedWorld):
+            cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            logs.log_info('Cell cluster loaded.')
+
+            # check to ensure compatibility between original and present sim files:
+            self.check_congruency(p_old, p)
+
+        else:
+            logs.log_info("Ooops! No such cell cluster file found to load!")
+
+            if p.autoInit is True:
+                logs.log_info(
+                    'Automatically seeding cell cluster from config file settings...')
+                self.makeWorld()  # create an instance of world
+                logs.log_info(
+                    'Now using cell cluster to run initialization.')
+                cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
+
+            else:
+                raise BetseExceptionSimulation(
+                    "Run terminated due to missing seed.\n"
+                    "Please run 'betse seed' to try again.")
+
+        sim = Simulator(p)  # create an instance of Simulator
+
+        # Initialize simulation data structures
+        sim.baseInit_all(cells, p)
+
+        # create an instance of master of metabolism
+        MoM = MasterOfMetabolism(p)
+
+        # initialize it:
+        MoM.read_metabo_config(sim, cells, p)
+
+        logs.log_info("Running metabolic reaction network test simulation...")
+
+        MoM.run_core_sim(sim, cells, p)
+
+        logs.log_info(
+            'This metabolic network test took {} seconds to complete.'.format(
+                round(time.time() - start_time, 2)))
+
+
+    def plot_reactions(self):
+
+        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+
+        MoM = MasterOfMetabolism(p)
+
+        MoM, cells, _ = fh.loadSim(MoM.savedMoM)
+
+        sim = Simulator(p)  # create an instance of Simulator
+        # Initialize simulation data structures
+        sim.baseInit_all(cells, p)
+        sim.time = MoM.time
+
+        MoM.core.init_saving(cells, p, plot_type = 'init')
+        MoM.core.export_all_data(sim, cells, p)
+        MoM.core.plot(sim, cells, p)
+        MoM.core.anim(sim, cells, p)
+
+        if p.turn_all_plots_off is False:
+            plt.show()
+
 
     def plotInit(self):
         '''
