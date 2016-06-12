@@ -208,14 +208,17 @@ class MasterOfMolecules(object):
             obj.products_list = react_dic['products']
             obj.products_coeff = react_dic['product multipliers']
 
-            obj.Km_reactants_list = react_dic['Km reagents']
+            obj.Km_reactants_list = react_dic['Km reactants']
             obj.Km_products_list = react_dic['Km products']
-            obj.vmax = react_dic['max rate']
+            obj.vmax = float(react_dic['max rate'])
 
             obj.delta_Go = react_dic['standard free energy']
 
             if obj.delta_Go == 'None':
                 obj.delta_Go = None     # make the field a proper None variable
+
+            else:
+                obj.delta_Go = float(obj.delta_Go)
 
             obj.transfer_membrane = react_dic['transmembrane transfer']
 
@@ -519,6 +522,9 @@ class MasterOfMolecules(object):
                 obj.c_reactants.append(c_react)
                 obj.z_reactants.append(obj_reactant.z)
 
+                obj.reactant_source_object.append(id(self))
+                obj.reactant_source_type.append(reactant_type_self)
+
             except KeyError:
 
                 raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
@@ -527,8 +533,11 @@ class MasterOfMolecules(object):
                                                'settings of your config(s) and try again.')
 
         else:
-            # define the reactant as the ion concentration from the cell concentrations object in sim:
 
+            obj.reactant_source_object.append(id(sim))
+            obj.reactant_source_type.append(reactant_type_sim)
+
+            # define the reactant as the ion concentration from the cell concentrations object in sim:
             sim_conco = getattr(sim, reactant_type_sim)
 
             if reactant_type_sim == 'cc_env':
@@ -566,6 +575,9 @@ class MasterOfMolecules(object):
                 obj.c_products.append(c_prod)
                 obj.z_products.append(obj_product.z)
 
+                obj.product_source_object.append(id(self))
+                obj.product_source_type.append(product_type_self)
+
             except KeyError:
 
                 raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
@@ -574,8 +586,11 @@ class MasterOfMolecules(object):
                                                'settings of your config(s) and try again.')
 
         else:
-            # define the reactant as the ion concentration from the cell concentrations object in sim:
 
+            obj.product_source_object.append(id(sim))
+            obj.product_source_type.append(product_type_sim)
+
+            # define the reactant as the ion concentration from the cell concentrations object in sim:
             sim_conco = getattr(sim, product_type_sim)
 
             if product_type_sim == 'cc_env':
@@ -595,6 +610,129 @@ class MasterOfMolecules(object):
         # add the index of the reaction to the list so we can access modifiers like reaction coefficients
         # and Km values at a later point:
         obj.inds_prod.append(j)
+
+    def quick_prime_reactions(self, sim, cells, p):
+
+        for reaction_name in self.reaction_names:
+
+            obj_reaction = getattr(self, reaction_name)
+
+            # clear the reaction and product concentration lists:
+            obj_reaction.c_reactants = []
+            obj_reaction.c_products = []
+
+            for i, react_name in enumerate(obj_reaction.reactants_list):
+
+                if obj_reaction.reactant_source_object[i] == id(self):
+
+                    molecule = getattr(self, react_name)
+
+                    c_react = getattr(molecule, obj_reaction.reactant_source_type[i])
+                    obj_reaction.c_reactants.append(c_react)
+
+                elif obj_reaction.reactant_source_object[i] == id(sim):
+
+                    ion_array = getattr(sim, obj_reaction.reactant_source_type[i])
+                    ion_label = 'i' + react_name
+                    ion_type = getattr(sim, ion_label)
+                    c_reacto = ion_array[ion_type]
+
+                    if obj_reaction.reactant_source_type[i] == 'cc_env':
+
+                        if p.sim_ECM:
+
+                            c_react = c_reacto[cells.map_cell2ecm]
+
+                        else:
+                            c_react = np.dot(cells.M_sum_mems, c_reacto)/cells.num_mems
+
+                    else:
+
+                        c_react = c_reacto
+
+                    obj_reaction.c_reactants.append(c_react)
+
+
+            for j, prod_name in enumerate(obj_reaction.products_list):
+
+                if obj_reaction.product_source_object[j] == id(self):
+
+                    molecule = getattr(self, prod_name)
+
+                    c_prod = getattr(molecule, obj_reaction.product_source_type[j])
+                    obj_reaction.c_products.append(c_prod)
+
+                elif obj_reaction.product_source_object[j] == id(sim):
+
+                    ion_array = getattr(sim, obj_reaction.product_source_type[j])
+                    ion_label = 'i' + prod_name
+                    ion_type = getattr(sim, ion_label)
+                    c_prodo = ion_array[ion_type]
+
+                    if obj_reaction.product_source_type[j] == 'cc_env':
+
+                        if p.sim_ECM:
+
+                            c_prod = c_prodo[cells.map_cell2ecm]
+
+                        else:
+                            c_prod = np.dot(cells.M_sum_mems, c_prodo) / cells.num_mems
+
+                    else:
+
+                        c_prod = c_prodo
+
+                    obj_reaction.c_products.append(c_prod)
+
+    def assign_new_concentrations(self, obj, delta_c, new_reactants, new_products, sim, cells, p):
+
+        # FIXME need to convert delta_c into a flux to update volumes properly for transmem transfers...!!!
+        # if we're not transfering across any membranes; staying in same reaction zone:
+        if obj.transfer_membrane is None:
+
+            for i, react_name in enumerate(obj.reactants_list):
+
+                if obj.reactant_source_object[i] == id(self):
+
+                    source_obj = getattr(self, react_name)
+
+                    setattr(source_obj, obj.reactant_source_type[i], new_reactants[i])
+
+                    print('assigning new reactant field to MasterOfMolecules: ', react_name)
+
+                elif obj.reactant_source_object[i] == id(sim):
+
+                    source_obj = getattr(sim, obj.reactant_source_type[i])
+                    ion_label = 'i' + react_name
+                    ion_type = getattr(sim, ion_label)
+
+                    source_obj[ion_type] = new_reactants[i]
+
+                    print('assigning new reaction field to sim: ', react_name)
+
+            for j, prod_name in enumerate(obj.products_list):
+
+                    if obj.product_source_object[j] == id(self):
+
+                        source_obj = getattr(self, prod_name)
+
+                        setattr(source_obj, obj.product_source_type[j], new_products[j])
+
+                        print('assigning new product field to MasterOfMolecules: ', prod_name)
+
+                    elif obj.product_source_object[j] == id(sim):
+
+                        source_obj = getattr(sim, obj.product_source_type[j])
+                        ion_label = 'i' + prod_name
+                        ion_type = getattr(sim, ion_label)
+
+                        source_obj[ion_type] = new_products[j]
+
+                        print('assigning new product field to sim: ', prod_name)
+
+        else:
+
+            print("transfer membrane is true, but nothing is worked up yet. Pass on it.")
 
     def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'Molecules'):
 
@@ -642,6 +780,23 @@ class MasterOfMolecules(object):
             if p.run_sim is True:
                 obj.gating(sim, cells, p)
                 obj.update_boundary(t, p)
+
+    def run_loop_reactions(self, sim, cells, p):
+
+        # get the object corresponding to the specific reaction:
+        for i, name in enumerate(self.reaction_names):
+
+            # get the Reaction object:
+            obj = getattr(self, name)
+
+            # compute the new reactants and products
+            delta_c, new_reactants, new_products = obj.compute_reaction(sim, cells, p)
+
+            # assign new concentrations to the Molecules or sim fields:
+            self.assign_new_concentrations(obj, delta_c, new_reactants, new_products, sim, cells, p)
+
+            # re-assign new concentrations to the Reaction object:
+            self.quick_prime_reactions(sim, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -1113,6 +1268,11 @@ class Reaction(object):
         self.transfered_react_inds = []  # indices of reactants transferred across a membrane
         self.transfered_prod_inds = []
 
+        self.product_source_object = []  # object from which product concentrations come from
+        self.product_source_type = []    # type of product concentrations sourced from object
+        self.reactant_source_object = []  # object from which reactants concentrations come from
+        self.reactant_source_type = []  # type of reactant concentrations sourced from object
+
     def compute_reaction(self, sim, cells, p):
 
         # if reaction is reversible, calculate reaction quotient Q, the equilibrium constant, and backwards rate
@@ -1217,7 +1377,16 @@ class Reaction(object):
         # final degree of change, returned for use elsewhere:
         deltaC = reaction_rate*p.dt
 
-        return deltaC
+        # update concentrations:
+        for a, c_react in enumerate(self.c_reactants):
+
+            self.c_reactants[a] = self.c_reactants[a] - deltaC
+
+        for b, c_prod in enumerate(self.c_products):
+
+            self.c_products[b] = self.c_products[b] + deltaC
+
+        return deltaC, self.c_reactants, self.c_products
 
 
 
