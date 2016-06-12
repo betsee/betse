@@ -228,12 +228,9 @@ class MasterOfMolecules(object):
             # now we want to load the right concentration data arrays for reactants into the Reaction object:
 
             # set the reaction states by harvesting the appropriate concentration data:
-            self.prime_reactions(obj, sim, cells, p)
+            # self.prime_reactions(obj, sim, cells, p)
 
     def prime_reactions(self, obj, sim, cells, p):
-
-        # Get into some nasty stuff as we'll define multiple cases for reading in different kinds of concentration
-        # arrays: --------------------------------------------------------------------------------------------------
 
         if obj.reaction_zone == 'cell':
 
@@ -244,7 +241,6 @@ class MasterOfMolecules(object):
 
             # Now load the right concentration data arrays for products into the Reaction object:
             for j, product_name in enumerate(obj.products_list):
-
 
                 self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
 
@@ -284,51 +280,19 @@ class MasterOfMolecules(object):
 
         if ion_check is None:
 
-            try:
-                obj_reactant = getattr(self, reactant_name)
-                c_react = getattr(obj_reactant, reactant_type_self)
-                obj.c_reactants.append(c_react)
-                obj.z_reactants.append(obj_reactant.z)
-
-                obj.reactant_source_object.append(id(self))
-                obj.reactant_source_type.append(reactant_type_self)
-
-            except KeyError:
-
-                raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
-                                               'an ion currently included in the ion profile being used.'
-                                               'Please check biomolecule definitions and ion profile'
-                                               'settings of your config(s) and try again.')
+            obj.reactant_source_object.append(id(self))
+            obj.reactant_source_type.append(reactant_type_self)
 
         else:
 
             obj.reactant_source_object.append(id(sim))
             obj.reactant_source_type.append(reactant_type_sim)
 
-            # define the reactant as the ion concentration from the cell concentrations object in sim:
-            sim_conco = getattr(sim, reactant_type_sim)
-
-            if reactant_type_sim == 'cc_env':
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                if p.sim_ECM:  # get the env concentration from the xy grid to cell centres:
-                    sim_conc = sim_conco[ion_check][cells.map_cell2ecm]
-
-                else:  # average the env concentrations to the cell centres
-                    sim_conc = np.dot(cells.M_sum_mems, sim_conco[ion_check]) / cells.num_mems
-
-            else:
-                sim_conc = sim_conco[ion_check]
-
-            obj.c_reactants.append(sim_conc)
-            obj.z_reactants.append(sim.zs[ion_check])
-
         # add the index of the reaction to the list so we can access modifiers like reaction coefficients
         # and Km values at a later point:
         obj.inds_react.append(i)
 
     def set_prod_concs(self, obj, sim, cells, p, product_name, j, product_type_self, product_type_sim):
-
-        # FIXME put in a clause for c_mit or cc_mit undefined!
 
         # Now load the right concentration data arrays for products into the Reaction object:
         # see if the name is an ion defined in sim:
@@ -337,120 +301,17 @@ class MasterOfMolecules(object):
 
         if ion_check is None:
 
-            try:
-                obj_product = getattr(self, product_name)
-                c_prod = getattr(obj_product, product_type_self)
-                obj.c_products.append(c_prod)
-                obj.z_products.append(obj_product.z)
-
-                obj.product_source_object.append(id(self))
-                obj.product_source_type.append(product_type_self)
-
-            except KeyError:
-
-                raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
-                                               'an ion currently included in the ion profile being used.'
-                                               'Please check biomolecule definitions and ion profile'
-                                               'settings of your config(s) and try again.')
+            obj.product_source_object.append(id(self))
+            obj.product_source_type.append(product_type_self)
 
         else:
 
             obj.product_source_object.append(id(sim))
             obj.product_source_type.append(product_type_sim)
 
-            # define the reactant as the ion concentration from the cell concentrations object in sim:
-            sim_conco = getattr(sim, product_type_sim)
-
-            if product_type_sim == 'cc_env':
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                if p.sim_ECM:  # get the env concentration from the xy grid to cell centres:
-                    sim_conc = sim_conco[ion_check][cells.map_cell2ecm]
-
-                else:  # average the env concentrations to the cell centres
-                    sim_conc = np.dot(cells.M_sum_mems, sim_conco[ion_check]) / cells.num_mems
-
-            else:
-                sim_conc = sim_conco[ion_check]
-
-            obj.c_products.append(sim_conc)
-            obj.z_products.append(sim.zs[ion_check])
-
         # add the index of the reaction to the list so we can access modifiers like reaction coefficients
         # and Km values at a later point:
         obj.inds_prod.append(j)
-
-    def quick_prime_reactions(self, sim, cells, p):
-
-        for reaction_name in self.reaction_names:
-
-            obj_reaction = getattr(self, reaction_name)
-
-            # clear the reaction and product concentration lists:
-            obj_reaction.c_reactants = []
-            obj_reaction.c_products = []
-
-            for i, react_name in enumerate(obj_reaction.reactants_list):
-
-                if obj_reaction.reactant_source_object[i] == id(self):
-
-                    molecule = getattr(self, react_name)
-
-                    c_react = getattr(molecule, obj_reaction.reactant_source_type[i])
-                    obj_reaction.c_reactants.append(c_react)
-
-                elif obj_reaction.reactant_source_object[i] == id(sim):
-
-                    ion_array = getattr(sim, obj_reaction.reactant_source_type[i])
-                    ion_label = 'i' + react_name
-                    ion_type = getattr(sim, ion_label)
-                    c_reacto = ion_array[ion_type]
-
-                    if obj_reaction.reactant_source_type[i] == 'cc_env':
-
-                        if p.sim_ECM:
-
-                            c_react = c_reacto[cells.map_cell2ecm]
-
-                        else:
-                            c_react = np.dot(cells.M_sum_mems, c_reacto)/cells.num_mems
-
-                    else:
-
-                        c_react = c_reacto
-
-                    obj_reaction.c_reactants.append(c_react)
-
-
-            for j, prod_name in enumerate(obj_reaction.products_list):
-
-                if obj_reaction.product_source_object[j] == id(self):
-
-                    molecule = getattr(self, prod_name)
-
-                    c_prod = getattr(molecule, obj_reaction.product_source_type[j])
-                    obj_reaction.c_products.append(c_prod)
-
-                elif obj_reaction.product_source_object[j] == id(sim):
-
-                    ion_array = getattr(sim, obj_reaction.product_source_type[j])
-                    ion_label = 'i' + prod_name
-                    ion_type = getattr(sim, ion_label)
-                    c_prodo = ion_array[ion_type]
-
-                    if obj_reaction.product_source_type[j] == 'cc_env':
-
-                        if p.sim_ECM:
-
-                            c_prod = c_prodo[cells.map_cell2ecm]
-
-                        else:
-                            c_prod = np.dot(cells.M_sum_mems, c_prodo) / cells.num_mems
-
-                    else:
-
-                        c_prod = c_prodo
-
-                    obj_reaction.c_products.append(c_prod)
 
     def assign_new_concentrations(self, obj, delta_c, new_reactants, new_products, sim, cells, p):
 
@@ -533,7 +394,7 @@ class MasterOfMolecules(object):
                 obj.gating(sim, cells, p)
                 obj.update_boundary(t, p)
 
-    def run_loop_reactions(self, t, sim, cells, p):
+    def run_loop_reactions(self, t, sim, sim_metabo, cells, p):
 
         # get the object corresponding to the specific reaction:
         for i, name in enumerate(self.reaction_names):
@@ -542,13 +403,7 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             # compute the new reactants and products
-            delta_c, new_reactants, new_products = obj.compute_reaction(sim, cells, p)
-
-            # assign new concentrations to the Molecules or sim fields:
-            self.assign_new_concentrations(obj, delta_c, new_reactants, new_products, sim, cells, p)
-
-            # re-assign new concentrations to the Reaction object:
-            self.quick_prime_reactions(sim, cells, p)
+            delta_c = obj.compute_reaction(sim, sim_metabo, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -1021,7 +876,142 @@ class Reaction(object):
         self.reactant_source_object = []  # object from which reactants concentrations come from
         self.reactant_source_type = []  # type of reactant concentrations sourced from object
 
-    def compute_reaction(self, sim, cells, p):
+    def get_reactants(self, sim, sim_metabo, reactant_type_self, reactant_type_sim):
+
+        """
+        Get updated concentrations direct from sources for chemical reaction's reactants.
+
+        sim:                    An instance of simulator
+        sim_metabo:             Sim instance of reaction block (sim.metabo or sim.reacto for general reactions)
+        reactant_type_self:     Data type to retrieve: c_cells, c_mems, c_mit
+        reactant_type_sim:      Data typpe to retrieve: cc_cells, cc_mems, cc_mit
+
+        """
+
+        self.c_reactants = []
+
+        for reactant_name in self.reactants_list:
+
+            label = 'i' + reactant_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                try:
+                    obj_reactant = getattr(sim_metabo, reactant_name)
+                    c_react = getattr(obj_reactant, reactant_type_self)
+                    self.c_reactants.append(c_react)
+
+                except KeyError:
+
+                    raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
+                                                   'an ion currently included in the ion profile being used.'
+                                                   'Please check biomolecule definitions and ion profile'
+                                                   'settings of your config(s) and try again.')
+
+            else:
+
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conco = getattr(sim, reactant_type_sim)
+
+                sim_conc = sim_conco[ion_check]
+
+                self.c_reactants.append(sim_conc)
+
+    def get_products(self, sim, sim_metabo, product_type_self, product_type_sim):
+
+        """
+        Get updated concentrations direct from sources for chemical reaction's products.
+
+        sim:                    An instance of simulator
+        sim_metabo:             Sim instance of reaction block (sim.metabo or sim.reacto for general reactions)
+        product_type_self:     Data type to retrieve: c_cells, c_mems, c_mit
+        product_type_sim:      Data typpe to retrieve: cc_cells, cc_mems, cc_mit
+
+        """
+
+        self.c_products = []
+
+        for product_name in self.products_list:
+
+            label = 'i' + product_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                try:
+                    obj_prod = getattr(sim_metabo, product_name)
+                    c_prod = getattr(obj_prod, product_type_self)
+                    self.c_products.append(c_prod)
+
+                except KeyError:
+
+                    raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
+                                                   'an ion currently included in the ion profile being used.'
+                                                   'Please check biomolecule definitions and ion profile'
+                                                   'settings of your config(s) and try again.')
+
+            else:
+
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conco = getattr(sim, product_type_sim)
+
+                sim_conc = sim_conco[ion_check]
+
+                self.c_products.append(sim_conc)
+
+    def set_reactant_c(self, deltac, sim, sim_metabo, reactant_type_self, reactant_type_sim):
+
+        for i, reactant_name in enumerate(self.reactants_list):
+
+            conc = self.c_reactants[i] - deltac*self.reactants_coeff[i]
+
+            label = 'i' + reactant_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                obj_reactant = getattr(sim_metabo, reactant_name)
+                setattr(obj_reactant, reactant_type_self, conc)
+
+            else:
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conc = getattr(sim, reactant_type_sim)
+
+                sim_conc[ion_check] = conc
+
+    def set_product_c(self, deltac, sim, sim_metabo, product_type_self, product_type_sim):
+
+        for i, product_name in enumerate(self.products_list):
+
+            conc = self.c_products[i] + deltac*self.products_coeff[i]
+
+            label = 'i' + product_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                obj_reactant = getattr(sim_metabo, product_name)
+                setattr(obj_reactant, product_type_self, conc)
+
+            else:
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conc = getattr(sim, product_type_sim)
+
+                sim_conc[ion_check] = conc
+
+    def compute_reaction(self, sim, sim_metabo, cells, p):
+
+        # get up-to-date concentration data for the reaction:
+        if self.reaction_zone == 'cell':
+
+            self.get_reactants(sim, sim_metabo, 'c_cells', 'cc_cells')
+            self.get_products(sim, sim_metabo, 'c_cells', 'cc_cells')
+
+        elif self.reaction_zone == 'mitochondria':
+
+            self.get_reactants(sim, sim_metabo, 'c_mit', 'cc_mit')
+            self.get_products(sim, sim_metabo, 'c_mit', 'cc_mit')
 
         # if reaction is reversible, calculate reaction quotient Q, the equilibrium constant, and backwards rate
         if self.delta_Go is not None:
@@ -1088,19 +1078,20 @@ class Reaction(object):
 
         reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
 
-        # final degree of change, returned for use elsewhere:
+        # final degree of change, returned for use elsewhere (?):
         deltaC = reaction_rate*p.dt
 
-        # update concentrations:
-        for a, c_react in enumerate(self.c_reactants):
+        if self.reaction_zone == 'cell':
 
-            self.c_reactants[a] = c_react - deltaC
+            self.set_reactant_c(deltaC, sim, sim_metabo,'c_cells', 'cc_cells')
+            self.set_product_c(deltaC, sim, sim_metabo, 'c_cells', 'cc_cells')
 
-        for b, c_prod in enumerate(self.c_products):
+        if self.reaction_zone == 'mitochondria':
 
-            self.c_products[b] = c_prod + deltaC
+            self.set_reactant_c(deltaC, sim, sim_metabo,'c_mit', 'cc_mit')
+            self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
 
-        return deltaC, self.c_reactants, self.c_products
+        return deltaC
 
 
 

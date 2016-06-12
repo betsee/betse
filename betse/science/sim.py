@@ -920,7 +920,7 @@ class Simulator(object):
 
             if p.metabolism_enabled:
 
-                self.metabo.core.run_loop_reactions(t, self, cells, p)
+                self.metabo.core.run_loop_reactions(t, self, self.metabo.core, cells, p)
                 self.metabo.core.run_loop(t, self, cells, p)
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
