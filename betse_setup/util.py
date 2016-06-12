@@ -5,17 +5,29 @@
 
 '''
 Utility and convenience functions for BETSE-specific `setuptools` subcommands.
-'''
 
-#FIXME: We *NEED* to stop shoving everything into the this submodule and instead
-#simply import from existing "betse.util" subpackages and submodules. This is
-#guaranteed to be safe, as no such subpackage or submodule imports a third-party
-#dependency at the top-level. The only catch, of course, is that we'll need to
-#setup the default logging configuration. Why? Because "betse.util" subpackages
-#and submodules attempt to perform logging. Shouldn't be terribly arduous.
-#
-#The overwhelming majority of this submodule *NOT* specific to setuptools should
-#die as quickly as possible.
+Design
+----------
+This method intentionally duplicates existing utility functions provided by the
+`betse.util` subpackage. While duplication breaks DRY ("Don't Repeat Yourself")
+and hence is typically harmful, there exist valid reasons to do so here. Namely,
+`betse.util` functionality:
+
+* Assumes logging to be configured. Setuptools, however, assumes logging to
+  _not_ be configured -- and certainly provides no assistance in doing so.
+* Raises BETSE-specific exceptions rooted at the BETSE-specific `BetseException`
+  superclass. Setuptools subcommands, on the other hand, are expected to only
+  raise distutils-specific exceptions rooted at the distutils-specific
+  `DistutilsError` superclass.
+* Could theoretically import third-party dependencies unavailable at setuptools
+  subcommand time (e.g., due to the `install` or `develop` subcommands _not_
+  having been run yet). While no `betse.util` submodules should do so, the grim
+  possibility cannot be discounted.
+
+Since duplicating these functions here is no significant maintenance burden
+_and_ since attempting to reuse these functions here would introduce spurious
+side effects, we adopt the former approach.
+'''
 
 # ....................{ IMPORTS                            }....................
 import importlib, os, platform, shutil, subprocess, sys, time
@@ -102,6 +114,27 @@ def die_unless_pathable(command_basename: str, exception_message: str = None):
         raise DistutilsExecError(exception_message)
 
 # ....................{ EXCEPTIONS ~ path                  }....................
+def die_unless_basename(pathname: str, exception_message: str = None) -> None:
+    '''
+    Raise an exception unless the passed path is a **basename** (i.e., contains
+    no platform-specific directory separator characters).
+    '''
+
+    # If this path is not a basename, fail.
+    if not is_basename(pathname):
+        # If no such message was passed, default this message.
+        if not exception_message:
+            exception_message = (
+                'Pathname "{}" not a basename '
+                '(i.e., either empty or '
+                'contains a directory separator).'.format(pathname))
+        assert isinstance(exception_message, str), (
+            '"{}" not a string.'.format(exception_message))
+
+        # Raise this exception.
+        raise DistutilsFileError(exception_message)
+
+
 def die_unless_dir_or_not_found(
     pathname: str, exception_message: str = None) -> None:
     '''
@@ -133,23 +166,24 @@ def die_unless_file_or_not_found(
     pathname: str, exception_message: str = None) -> None:
     '''
     Raise an exception unless the passed path is either an existing non-special
-    file *or* does not exist (e.g., if such path is an existing directory).
+    file _or_ does not exist (e.g., if such path is an existing directory).
     '''
-    # If such path exists and is *NOT* an existing non-special file, fail.
+
+    # If this path exists and is *NOT* an existing non-special file, fail.
     if is_path(pathname) and not is_file(pathname):
-        # If no such message was passed, default such message.
+        # If no such message was passed, default this message.
         if not exception_message:
             if is_dir(pathname):
-                exception_message =\
-                    'File "{}" already an existing directory.'.format(pathname)
+                exception_message = (
+                    'File "{}" already an existing directory.'.format(pathname))
             elif is_symlink(pathname):
-                exception_message =\
+                exception_message = (
                     'File "{}" already an existing symbolic link.'.format(
-                        pathname)
+                        pathname))
             else:
                 exception_message = 'Path "{}" not a file.'.format(pathname)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
+        assert isinstance(exception_message, str), (
+            '"{}" not a string.'.format(exception_message))
 
         # Raise this exception.
         raise DistutilsFileError(exception_message)
@@ -159,13 +193,14 @@ def die_unless_path(pathname: str, exception_message: str = None) -> None:
     '''
     Raise an exception unless the passed path exists.
     '''
-    # If such path is not found, fail.
+
+    # If this path is not found, fail.
     if not is_path(pathname):
-        # If no such message was passed, default such message.
+        # If no such message was passed, default this message.
         if not exception_message:
             exception_message = 'Path "{}" not found.'.format(pathname)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
+        assert isinstance(exception_message, str), (
+            '"{}" not a string.'.format(exception_message))
 
         # Raise this exception.
         raise DistutilsFileError(exception_message)
@@ -175,13 +210,14 @@ def die_unless_dir(dirname: str, exception_message: str = None) -> None:
     '''
     Raise an exception unless the passed directory exists.
     '''
-    # If such dir is not found, fail.
+
+    # If this directory is not found, fail.
     if not is_dir(dirname):
         # If no such message was passed, default such message.
         if not exception_message:
             exception_message = 'Directory "{}" not found.'.format(dirname)
-        assert isinstance(exception_message, str),\
-            '"{}" not a string.'.format(exception_message)
+        assert isinstance(exception_message, str), (
+            '"{}" not a string.'.format(exception_message))
 
         # Raise this exception. Since there exists no
         # "DistutilsDirError" class, the next best thing is raised.
@@ -192,6 +228,7 @@ def die_unless_file(filename: str, exception_message: str = None) -> None:
     '''
     Raise an exception unless the passed non-special file exists.
     '''
+
     # If such file is not found, fail.
     if not is_file(filename):
         # If no such message was passed, default such message.
@@ -286,26 +323,38 @@ def is_os_windows_vanilla() -> bool:
     return sys.platform == 'win32'
 
 # ....................{ TESTERS ~ path                     }....................
-def is_path(pathname: str) -> bool:
+def is_basename(pathname: str) -> bool:
     '''
-    `True` if the passed path exists.
+    `True` only if the passed path is a **basename** (i.e., is a non-empty
+    string containing no platform-specific directory separator characters).
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+
+    return len(pathname) and pathname != path.basename(pathname)
+
+
+def is_path(pathname: str) -> bool:
+    '''
+    `True` only if the passed path exists.
+    '''
+    assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+
     return path.exists(pathname)
 
 
 def is_dir(pathname: str) -> bool:
     '''
-    `True` if the passed directory exists.
+    `True` only if the passed directory exists.
     '''
     assert isinstance(pathname, str), '"{}" not a string.'.format(pathname)
+
     return path.isdir(pathname)
 
 
 def is_file(pathname: str) -> bool:
     '''
-    `True` if the passed path is an existing non-directory file exists *after*
-    following symbolic links.
+    `True` only if the passed path is an existing non-directory file exists
+    *after* following symbolic links.
 
     Versus `path.isfile()`
     ----------
@@ -340,7 +389,7 @@ def is_symlink(filename: str) -> bool:
 def is_pathable(command_basename: str) -> bool:
     '''
     `True` only if the external command with the passed basename exists (i.e.,
-    is that of an executable file in the current `${PATH}`).
+    is an executable file in the current `${PATH}`).
     '''
 
     # Sanitize this command basename.
@@ -352,7 +401,7 @@ def is_pathable(command_basename: str) -> bool:
 # ....................{ TESTERS ~ module                   }....................
 def is_module(module_name: str) -> bool:
     '''
-    `True` if the module with the passed fully-qualified name is importable
+    `True` only if the module with the passed fully-qualified name is importable
     under the active Python interpreter.
 
     If this module is a **submodule** (i.e., contains a `.` character), all
@@ -488,31 +537,28 @@ def sanitize_command_basename(command_basename: str) -> str:
     Convert the passed platform-agnostic command basename (e.g., `pytest`) into
     a platform-specific command basename (e.g., `pytest.exe`).
 
-    Under:
+    If the passed basename contains a directory separator and hence is _not_ a
+    basename, an exception is raised. Else, under:
 
-    * Windows, the passed basename is returned appended by `.exe`. To avoid
-      confusion with non-Windows executables in the current `${PATH}` when
-      running under Wine emulation, only Windows executables are accepted when
-      running under Windows.
+    * Windows, the passed basename is appended by `.exe`. To avoid confusion
+      with non-Windows executables in the current `${PATH}` when running under
+      Wine emulation, only Windows executables are accepted when running under
+      Windows.
     * All other platforms, the passed basename is returned as is.
-
-    Additionally, if the passed basename contains a directory separator and
-    hence is _not_ a basename, an exception is raised.
     '''
     assert isinstance(command_basename, str), (
         '"{}" not a string.'.format(command_basename))
     assert len(command_basename), 'Command basename empty.'
 
-    # If this pathname is *NOT* a basename, this pathname erroneously contains a
-    # directory separator. In this case, fail.
-    if command_basename != path.basename(command_basename):
-        raise DistutilsExecError(
-            '"{}" contains a directory separator.'.format(command_basename))
+    # If this pathname is *NOT* a basename, raise an exception.
+    die_unless_basename(command_basename)
 
-    if is_os_windows():
-        # If this basename has no filetype, suffix this basename by ".exe".
-        if get_path_filetype(command_basename) is None:
-            return command_basename + '.exe'
+    # If this is Windows *AND* this basename has no filetype, suffix this
+    # basename by ".exe".
+    if is_os_windows() and get_path_filetype(command_basename) is None:
+        # print('command basename "{}" filetype; {}'.format(
+        #     command_basename, get_path_filetype(command_basename)))
+        return command_basename + '.exe'
 
     # Else, return this basename as is.
     return command_basename
@@ -769,7 +815,7 @@ def command_entry_points(command: Command):
     #
     # It should be noted that all commands have an attribute "distribution".
     # Naturally, this is a setuptools-specific distribution that has literally
-    # *NOTHING* to do with the "pkg_resources"-specific distribution.
+    # *NOTHING* to do with pkg_resources-style distributions.
     #
     # Die, setuptools. Die!
     ei_cmd = command.get_finalized_command('egg_info')
@@ -796,10 +842,11 @@ def package_distribution_entry_points(
     For each such script, this generator yields a 3-tuple
     `(script_basename, ui_type, entry_point)` such that:
 
-    * `script_basename` is this script's basename (e.g., `betse`). Under:
-      * Both vanilla and Cygwin Microsoft Windows, this basename is suffixed by
-        the `.exe` filetype.
-      * All other platforms, this basename has no filetype.
+    * `script_basename` is this script's basename (e.g., `betse`). To simplify
+      integration with the downstream setuptools API (e.g., the
+      `setuptools.command.easy_install.ScriptWriter.get_script_args()` method),
+      this basename is typically _not_ suffixed by a platform-specific filetype
+      (e.g., `.exe` under vanilla or Cygwin Microsoft Windows).
     * `ui_type` is this script's interface type string, guaranteed to be either:
       * `console` if this script is console-specific.
       * `gui` otherwise.
@@ -829,8 +876,9 @@ def package_distribution_entry_points(
         # For each script of this type...
         for script_basename, entry_point in (
             distribution.get_entry_map(script_type_group).items()):
-            # Sanitize this script's basename.
-            script_basename = sanitize_command_basename(script_basename)
-
-            # Yield this 3-tuple.
+            # Yield this 3-tuple. To simplify integration with the downstream
+            # setuptools API, do *NOT* sanitize this script's basename by
+            # calling sanitize_command_basename(). Since that API already
+            # implicitly suffixes this basename by ".exe", doing so here would
+            # erroneously result in this basename being suffixed by ".exe.exe".
             yield script_basename, script_type, entry_point

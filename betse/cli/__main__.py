@@ -4,12 +4,14 @@
 # See "LICENSE" for further details.
 
 '''
-Main entry point of `betse`'s command line interface (CLI).
+Main entry point of BETSE's command line interface (CLI).
 
-This module is a thin wrapper intended to be imported only from the command line
-(e.g., via `python -m betse`). This module is _not_ imported by `setuptools`'s
-`entry_points` facility and hence is _not_ imported by external scripts
-managed by `setuptools` (e.g., `betse`).
+This submodule is a thin wrapper intended to be:
+
+* Indirectly imported and run from external entry point scripts installed by
+  setuptools (e.g., the `betse` command).
+* Directly imported and run from the command line (e.g., via
+  `python -m betse.cli`).
 '''
 
 # ....................{ IMPORTS                            }....................

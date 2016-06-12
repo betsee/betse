@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-`betse`'s command line interface (CLI).
+BETSE's command line interface (CLI).
 '''
 
 #FIXME: The "~/.betse/cache" directory grows fairly large fairly quickly. It'd

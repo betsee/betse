@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-`betse`'s `setuptools`-based makefile.
+BETSE's `setuptools`-based makefile.
 '''
 
 #FIXME; Add "pyside-uic" integration. This is feasible as demonstrated by the
@@ -40,10 +40,6 @@
 #    interpreter."
 #
 #See also: https://stackoverflow.com/a/10097543/2809027
-#FIXME: Relatedly, we *NEED* to stop shoving everything into the
-#"betse_setup.util" submodule and instead simply import from existing
-#"betse.util" subpackages and submodules. This is guaranteed to be safe, as no
-#such subpackage or submodule imports a third-party dependency at the top-level.
 
 # Import all constants defined by "betse.metadata" into the current namespace
 # *BEFORE* subsequent logic possibly depending on the the version of the active
@@ -107,8 +103,10 @@ setup_options = {
     ],
 
     # ..................{ COMMAND                            }..................
-    # Custom commands specific to this makefile called in the customary way
-    # (e.g., "sudo python3 setup.py symlink").
+    # Set of all custom setuptools subcommands specific to this makefile (e.g.,
+    # "sudo python3 setup.py symlink"), defaulting to the empty set. Each
+    # subsequent call to the add_setup_commands() function iteratively performed
+    # below adds one or more such subcommands to this set.
     'cmdclass': {},
 
     # ..................{ PATH                               }..................
@@ -118,26 +116,29 @@ setup_options = {
         'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.__main__:main',],
         # 'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.clicli:main',],
 
-        #FIXME: Create "betse.gui.guicli".
+        #FIXME: After creating a BETSE GUI, uncomment the following logic.
         # GUI-specific scripts.
-        'gui_scripts':  [SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',],
+        #'gui_scripts':  [SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',],
     },
 
     # List of all Python packages (i.e., directories containing zero or more
     # Python modules) to be installed. Currently, this includes the "betse"
-    # package and all subpackages of such package excluding:
+    # package and all subpackages of this package excluding:
     #
-    # * "betse.test" and all subpackages of such package, providing unit tests
-    #   *NOT* intended to be installed with betse.
-    # * "setup", providing setuptools-specific packages.
-    # * "test", providing ad-hoc tests intended for developer use only.
+    # * "betse_test" and all subpackages of this package, providing
+    #   test-specific functionality *NOT* intended to be installed with BETSE.
+    # * "betse_setup" and all subpackages of this package, providing
+    #   setuptools-specific functionality required only for BETSE installation.
+    # * "freeze", providing PyInstaller-specific functionality required only for
+    #   BETSE freezing (i.e., conversion into an executable binary).
+    # * "old", providing obsolete code to be shortly put to pasture.
     'packages': setuptools.find_packages(
         exclude = [
             # 'betse.data', 'betse.data.*',
-            'betse.test', 'betse.test.*',
-            'setup',
-            'test',
-            'ui',
+            'betse_test', 'betse_test.*',
+            'betse_setup', 'betse_setup.*',
+            'freeze',
+            'old',
         ],
     ),
 
@@ -174,16 +175,15 @@ setup_options = {
     # employed by everyone. Setuptools, your death is coming.
     'include_package_data': True,
 
-    # Install to uncompressed directories rather than compressed archives.
+    # Install to an uncompressed directory rather than a compressed archive.
     #
     # While nothing technically precludes the latter, doing so substantially
-    # complicates runtime access of data files compressed into such archives.
-    # Specifically, doing so complicates usage of the
-    # pkg_resources.resource_filename() function by requiring runtime
-    # decompression of such archive's contents to a temporary directory and
-    # removal of such contents at program exit. There is no guarantee that such
-    # removal will actually be run (e.g., due to preemptive SIGKILLs), implying
-    # such approach to be inherently fragile and hardly worth the effort.
+    # complicates runtime access of data files compressed into this archive
+    # (e.g., with the pkg_resources.resource_filename() function). How so? By
+    # decompressing this archive's contents into a temporary directory on
+    # program startup and removing these contents on program shutdown. Since
+    # there exists no guarantee this removal will actually be performed (e.g.,
+    # due to preemptive SIGKILLs), compressed archives are inherently fragile.
     'zip_safe': False,
 
     # ..................{ DEPENDENCY                         }..................
