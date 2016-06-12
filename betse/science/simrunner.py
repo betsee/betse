@@ -302,7 +302,6 @@ class SimRunner(object):
             'This metabolic network test took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
-
     def plot_reactions(self):
 
         p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
@@ -323,7 +322,6 @@ class SimRunner(object):
 
         if p.turn_all_plots_off is False:
             plt.show()
-
 
     def plotInit(self):
         '''
@@ -351,6 +349,13 @@ class SimRunner(object):
             sim.molecules.export_all_data(sim, cells, p)
             sim.molecules.plot(sim, cells, p)
             sim.molecules.anim(sim, cells, p)
+
+        if p.metabolism_enabled and sim.metabo is not None:
+
+            sim.metabo.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
+            sim.metabo.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
+            sim.metabo.core.plot(sim, cells, p, message = 'for metabolic molecules...')
+            sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
 
         if p.turn_all_plots_off is False:
             plt.show()
@@ -384,6 +389,13 @@ class SimRunner(object):
             sim.molecules.export_all_data(sim, cells, p)
             sim.molecules.plot(sim, cells, p)
             sim.molecules.anim(sim, cells, p)
+
+        if p.metabolism_enabled and sim.metabo is not None:
+
+            sim.metabo.core.init_saving(cells, p, plot_type='sim')
+            sim.metabo.core.export_all_data(sim, cells, p)
+            sim.metabo.core.plot(sim, cells, p)
+            sim.metabo.core.anim(sim, cells, p)
 
         if p.turn_all_plots_off is False:
             plt.show()

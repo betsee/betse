@@ -14,21 +14,14 @@ and plot.
 
 """
 
-import copy
 import os
 import os.path
-import time
 import numpy as np
 from betse.science import filehandling as fh
-from betse.science import toolbox as tb
-from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
-import matplotlib.pyplot as plt
-from betse.exceptions import BetseExceptionParameters, BetseExceptionSimulation
-from betse.science.plot import plot as viz
-from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
-from betse.science.chemistry.molecule import MasterOfMolecules, Molecule
+from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.config import sim_config
+from betse.exceptions import BetseExceptionParameters
 
 class MasterOfMetabolism(object):
 
@@ -60,6 +53,13 @@ class MasterOfMetabolism(object):
 
         # initialize the reactions of metabolism:
         self.core.read_reactions(reactions_config, sim, cells, p)
+
+        # test to make sure the metabolic simulation includes core components:
+        if self.core.ATP is None or self.core.ADP is None or self.core.Pi is None:
+
+            raise BetseExceptionParameters("Metabolic simulation does not contain key substances."
+                                           "Define 'ATP', 'ADP' and 'Pi' biomolecules in your "
+                                           "metabolism configuration file and try again.")
 
     def run_core_sim(self, sim, cells, p):
 
@@ -98,6 +98,37 @@ class MasterOfMetabolism(object):
         logs.log_info(message)
 
         logs.log_info('-------------------Simulation Complete!-----------------------')
+
+    def update_ATP(self, deltac, sim, cells, p):
+
+        """
+        Update ATP, ADP and Pi concentrations using a
+        concentration change defined on membranes or cell
+        centres.
+
+        deltac:        Concentration change [mol/m3], - consumes ATP; array must be of length sim.cdl or sim.mdl
+
+        """
+
+        if len(deltac) == sim.mdl:
+
+            cATP = self.core.ATP.c_mems
+            cADP = self.core.ADP.c_mems
+            cPi = self.core.Pi.c_mems
+
+            self.core.ATP.c_mems = cATP + deltac
+            self.core.ADP.c_mems = cADP - deltac
+            self.core.Pi.c_mems = cPi - deltac
+
+        elif len(deltac) == sim.cdl:
+
+            cATP = self.core.ATP.c_cells
+            cADP = self.core.ADP.c_cells
+            cPi = self.core.Pi.c_cells
+
+            self.core.ATP.c_cells = cATP + deltac
+            self.core.ADP.c_cells = cADP - deltac
+            self.core.Pi.c_cells = cPi - deltac
 
 
 

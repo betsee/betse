@@ -42,6 +42,11 @@ class MasterOfMolecules(object):
         config_settings     List of dictionaries storing key settings (p.molecules_config)
         p                   An instance of params
         """
+        # all metabolic simulations require ATP, ADP and Pi. Initialize these fields to None so that we can test
+        # for their pressence in metabolic sims:
+        self.ATP = None
+        self.ADP = None
+        self.Pi = None
 
         self.read_substances(sim, config_substances, p)
 
@@ -545,8 +550,6 @@ class MasterOfMolecules(object):
             # re-assign new concentrations to the Reaction object:
             self.quick_prime_reactions(sim, cells, p)
 
-        self.run_loop(t, sim, cells, p)
-
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
         # get the name of the specific substance:
@@ -600,7 +603,7 @@ class MasterOfMolecules(object):
             logs.log_info('Final average concentration of ' + str(name) + ' in the environment: ' +
                                           str(np.round(1.0e3*obj.c_env.mean(), 4)) + ' umol/L')
 
-    def export_all_data(self, sim, cells, p):
+    def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
         """
 
@@ -608,20 +611,20 @@ class MasterOfMolecules(object):
         (plot cell defined in params) as a function of time.
 
         """
-        logs.log_info('Exporting raw data for auxiliary molecules...')
+        logs.log_info('Exporting raw data for ' + message)
         # get the name of the specific substance:
         for name in self.molecule_names:
             obj = getattr(self, name)
 
             obj.export_data(sim, cells, p, self.resultsPath)
 
-    def plot(self, sim, cells, p):
+    def plot(self, sim, cells, p, message = 'for auxiliary molecules...'):
         """
         Creates plots for each molecule included in the simulation.
 
         """
 
-        logs.log_info('Plotting data for auxiliary molecules...')
+        logs.log_info('Plotting 1D and 2D data for ' + message)
 
         # get the name of the specific substance:
         for name in self.molecule_names:
@@ -639,13 +642,13 @@ class MasterOfMolecules(object):
 
                 obj.plot_env(sim, cells, p, self.imagePath)
 
-    def anim(self, sim, cells, p):
+    def anim(self, sim, cells, p, message = 'for auxilary molecules...'):
         """
         Animates 2D data for each molecule in the simulation.
 
         """
 
-        logs.log_info('Animating data for auxiliary molecules...')
+        logs.log_info('Animating data for ' + message)
         # get the name of the specific substance:
         for name in self.molecule_names:
             obj = getattr(self, name)

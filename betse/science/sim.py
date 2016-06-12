@@ -26,6 +26,7 @@ from betse.science.physics.deform import (
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
 from betse.science.chemistry.molecule import MasterOfMolecules
+from betse.science.chemistry.metabolism import  MasterOfMetabolism
 
 class Simulator(object):
     '''
@@ -622,11 +623,30 @@ class Simulator(object):
         # -----auxiliary molecules initialization -------------------------
 
         # create and initialize the auxiliary-molecules handler for this simulation:
-        if p.molecules_enabled:
+        if p.molecules_enabled: # FIXME: we want this to read reactions from config, if they're enabled!
             self.molecules = MasterOfMolecules(self,p.molecules_config,p)
 
         else:
             self.molecules = None
+
+        #-----metabolism initialization -----------------------------------
+        if p.metabolism_enabled:
+
+            logs.log_info("Initializing metabolism...")
+
+            # create an instance of the metabolism simulator
+            self.metabo = MasterOfMetabolism(p)
+            # read in the configuration settings for the metabolism simulator:
+            self.metabo.read_metabo_config(self, cells, p)
+
+            # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
+            self.met_concs = {'ATP': self.metabo.core.ATP.c_mems,
+                              'ADP': self.metabo.core.ADP.c_mems,
+                              'Pi': self.metabo.core.Pi.c_mems}
+
+        else:
+            self.metabo = None
+            self.met_concs = None
 
 
         # FIXME IP3 will be a special keyword substance user-defined in MasterOfMolecules
@@ -894,9 +914,14 @@ class Simulator(object):
 
 
             # update the molecules handler:
-            if p.molecules_enabled:
+            if p.molecules_enabled:   # FIXME -- we want to have this run reactions from config, if reactions are specified
 
                 self.molecules.run_loop(t, self,cells,p)
+
+            if p.metabolism_enabled:
+
+                self.metabo.core.run_loop_reactions(t, self, cells, p)
+                self.metabo.core.run_loop(t, self, cells, p)
 
             # if p.voltage_dye=1 electrodiffuse voltage sensitive dye between cell and environment
             # if p.voltage_dye == 1:
@@ -1116,6 +1141,10 @@ class Simulator(object):
 
             self.molecules.clear_cache()
 
+        if p.metabolism_enabled:
+
+            self.metabo.core.clear_cache()
+
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             self.cIP3_time = []    # retains IP3 concentration as a function of time
 
@@ -1247,6 +1276,10 @@ class Simulator(object):
 
             self.molecules.write_data(self, p)
 
+        if p.metabolism_enabled:
+
+            self.metabo.core.write_data(self, p)
+
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
             self.cc_er_time.append(np.copy(self.cc_er[:]))
 
@@ -1327,6 +1360,10 @@ class Simulator(object):
 
             self.molecules.report(self, p)
 
+        if p.metabolism_enabled:
+
+            self.metabo.core.report(self, p)
+
         if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
             IP3_env_final = np.mean(self.cIP3_env)
             IP3_cell_final = np.mean(self.cIP3)
@@ -1370,6 +1407,12 @@ class Simulator(object):
         logs.log_info('Force-induced cell deformation: ' + str(p.deformation))
         logs.log_info('Osmotic pressure: ' + str(p.deform_osmo))
         logs.log_info('Electrostatic pressure: ' + str(p.deform_electro))
+
+        if p.molecules_enabled:
+            logs.log_info("Auxiliary molecules are enabled from 'biochemistry' section of main config file.")
+
+        if p.metabolism_enabled:
+            logs.log_info('Metabolism is being simulated using file: ' + p.metabo_config_filename)
 
     # ................{ CORE DOERS & GETTERS }...............................................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
