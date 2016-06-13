@@ -230,7 +230,18 @@ def is_exception(obj: object) -> bool:
 
     return isinstance(obj, Exception)
 
+# ....................{ TESTERS ~ lib : argparse           }....................
+def is_arg_parser(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an argument parser.
+    '''
+
+    # Avoid importing third-party packages at the top level.
+    from argparse import ArgumentParser
+    return isinstance(obj, ArgumentParser)
+
 # ....................{ TESTERS ~ lib : matplotlib         }....................
+#FIXME: Rename "_matplotlib_" everywhere below to merely "_mpl_".
 def is_matplotlib_collection(obj: object) -> bool:
     '''
     `True` only if the passed object is a Matplotlib collection.
@@ -294,6 +305,7 @@ def is_matplotlib_trimesh(obj: object) -> bool:
     return isinstance(obj, TriMesh)
 
 # ....................{ TESTERS ~ lib : numpy              }....................
+#FIXME: Rename to is_np_array().
 def is_numpy_array(obj: object) -> bool:
     '''
     `True` only if the passed object is a **Numpy array or matrix** (i.e.,
@@ -512,6 +524,13 @@ def assert_not_exception(obj: object) -> str:
     String asserting the passed object to _not_ be an exception.
     '''
     return '"{}" not an exception.'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ lib : matplotlib       }....................
+def assert_not_arg_parser(obj: object) -> bool:
+    '''
+    String asserting the passed object to _not_ be an argument parser.
+    '''
+    return '"{}" not an argument parser.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ lib : matplotlib       }....................
 def assert_not_matplotlib_collection(obj: object) -> bool:

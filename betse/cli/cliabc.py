@@ -6,6 +6,7 @@
 '''
 Abstract command line interface (CLI).
 '''
+
 #FIXME: Support the following additional "--profile-type=" options:
 #
 #* "line", profiling in a line- rather than call-based manner. Sadly, Python
@@ -33,7 +34,7 @@ from betse.util.command.args import HelpFormatterParagraph
 from betse.util.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
-from betse.util.type import strs, types
+from betse.util.type import types
 from enum import Enum
 
 # ....................{ ENUMS                              }....................
@@ -74,8 +75,6 @@ class CLIABC(metaclass=ABCMeta):
         `_profile_type` is `ProfileType.CALL` _or_ ignored otherwise.
     _profile_type : ProfileType
         Type of profiling to be performed if any.
-    _script_basename : str
-        Basename of the current process (e.g., `betse`).
 
     Attributes (of `_args`)
     ----------
@@ -102,28 +101,10 @@ class CLIABC(metaclass=ABCMeta):
     def __init__(self):
         super().__init__()
 
-        # Since the basename of the current process is *ALWAYS* available,
-        # initialize this basename here for simplicity.
-        self._script_basename = commands.get_current_basename()
-
-        # If the active Python interpreter is interpreting a block of arbitrary
-        # runtime code passed to this interpreter on the command line via
-        # Python's "-c" option (e.g., due to being imported and called as a
-        # py.test-based test), this basename is "-c". Convert this non-human-
-        # readable string into a human-readable string.
-        if self._script_basename == '-c':
-            self._script_basename = metadata.SCRIPT_NAME_CLI
-
-        # Initialize these keyword arguments.
-        self._arg_parser_kwargs = {
-            # Wrap non-indented lines in help and description text as paragraphs
-            # while preserving indented lines in such text as is.
-            'formatter_class': HelpFormatterParagraph,
-        }
-
-        # For safety, initialize all remaining attributes to "None".
+        # For safety, nullify all remaining attributes.
         self._arg_list = None
         self._arg_parser = None
+        self._arg_parser_kwargs = None
         self._args = None
         self._profile_filename = None
         self._profile_type = None
@@ -233,8 +214,8 @@ class CLIABC(metaclass=ABCMeta):
         * Parses all arguments with such parser.
         '''
 
-        # Configure argument parsing.
-        self._init_arg_parser_top()
+        # Create and configure all argument parsers.
+        self._init_arg_parsers()
 
         # Parse unnamed string arguments into named, typed arguments.
         self._args = self._arg_parser.parse_args(self._arg_list)
@@ -243,40 +224,57 @@ class CLIABC(metaclass=ABCMeta):
         self._parse_options_top()
 
 
+    def _init_arg_parsers(self) -> None:
+        '''
+        Create and configure all argument parsers, including both the top-level
+        argument parser and all subparsers of that parser.
+        '''
+
+        # Create and classify the top-level argument parser.
+        self._init_arg_parser_top()
+
+        # Configure top-level options globally applicable to *ALL* subcommands.
+        self._config_options_top()
+
+        # Configure subclass-specific argument parsing.
+        self._config_arg_parsing()
+
+
     def _init_arg_parser_top(self) -> None:
         '''
         Create and classify the top-level argument parser.
         '''
 
+        # Initialize these keyword arguments.
+        self._arg_parser_kwargs = {
+            # Wrap non-indented lines in help and description text as paragraphs
+            # while preserving indented lines in such text as is.
+            'formatter_class': HelpFormatterParagraph,
+        }
+
         # Dictionary of keyword arguments initializing the core argument parser.
-        arg_parser_kwargs = {
+        arg_parser_top_kwargs = {
             # Script name.
-            'prog': self._script_basename,
+            'prog': commands.get_current_basename(),
 
             # Script description.
             'description': metadata.DESCRIPTION,
         }
 
         # Update this dictionary with preinitialized arguments.
-        arg_parser_kwargs.update(self._arg_parser_kwargs)
+        arg_parser_top_kwargs.update(self._arg_parser_kwargs)
 
         # Update this dictionary with subclass-specific arguments.
-        arg_parser_kwargs.update(self._get_arg_parser_top_kwargs())
+        arg_parser_top_kwargs.update(self._get_arg_parser_top_kwargs())
 
         # Core argument parser.
-        self._arg_parser = ArgumentParser(**arg_parser_kwargs)
-
-        # Configure top-level options globally applicable to *ALL* subcommands.
-        self._config_options_top()
-
-        # Perform subclass-specific argument parsing configuration.
-        self._config_arg_parsing()
+        self._arg_parser = ArgumentParser(**arg_parser_top_kwargs)
 
     # ..................{ ARGS ~ options                     }..................
     def _config_options_top(self) -> None:
         '''
         Configure argument parsing for top-level options globally applicable to
-        _all_ subcommands.
+        _all_ CLI subcommands.
         '''
 
         # Default values for top-level options configured below, deferred until
@@ -301,20 +299,20 @@ class CLIABC(metaclass=ABCMeta):
 
         # Program version specifier.
         program_version = '{} {}'.format(
-            self._script_basename, metadata.__version__)
+            commands.get_current_basename(), metadata.__version__)
 
         # Configure top-level options globally applicable to *ALL* subcommands.
         self._arg_parser.add_argument(
             '-v', '--verbose',
             dest='is_verbose',
             action='store_true',
-            help=self._format_help(help.OPTION_VERBOSE),
+            help=help.expand(help.OPTION_VERBOSE),
         )
         self._arg_parser.add_argument(
             '-V', '--version',
             action='version',
             version=program_version,
-            help=self._format_help(help.OPTION_VERSION),
+            help=help.expand(help.OPTION_VERSION),
         )
         self._arg_parser.add_argument(
             '--log-type',
@@ -322,7 +320,7 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             choices=log_types,
             default=log_type_default,
-            help=self._format_help(
+            help=help.expand(
                 help.OPTION_LOG_TYPE, default=log_type_default),
         )
         self._arg_parser.add_argument(
@@ -330,7 +328,7 @@ class CLIABC(metaclass=ABCMeta):
             dest='log_filename',
             action='store',
             default=log_filename_default,
-            help=self._format_help(
+            help=help.expand(
                 help.OPTION_LOG_FILE, default=log_filename_default),
         )
         self._arg_parser.add_argument(
@@ -339,7 +337,7 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             choices=profile_types,
             default=profile_type_default,
-            help=self._format_help(
+            help=help.expand(
                 help.OPTION_PROFILE_TYPE, default=profile_type_default),
         )
         self._arg_parser.add_argument(
@@ -347,7 +345,7 @@ class CLIABC(metaclass=ABCMeta):
             dest='profile_filename',
             action='store',
             default=profile_filename_default,
-            help=self._format_help(
+            help=help.expand(
                 help.OPTION_PROFILE_FILE, default=profile_filename_default),
         )
 
@@ -408,29 +406,6 @@ class CLIABC(metaclass=ABCMeta):
             logs.log_debug('Profiling calls to "{}".'.format(
                 self._profile_filename))
 
-    # ..................{ UTILITIES                          }..................
-    def _format_help(self, text: str, **kwargs) -> str:
-        '''
-        Interpolate the passed keyword arguments into the passed help string
-        template, stripping all prefixing and suffixing whitespace from this
-        template..
-
-        For convenience, the following default keyword arguments are
-        unconditionally interpolated into this template:
-
-        * `{script_basename}`, expanding to the basename of the current script
-          (e.g., `betse`).
-        * `{program_name}`, expanding to this script's human-readable name
-          (e.g., `BETSE`).
-        '''
-        assert types.is_str(text), types.assert_not_str(text)
-
-        return strs.remove_presuffix_whitespace(text.format(
-            program_name=metadata.NAME,
-            script_basename=self._script_basename,
-            **kwargs
-        ))
-
     # ..................{ SUBCLASS ~ mandatory               }..................
     # The following methods *MUST* be implemented by subclasses.
 
@@ -447,7 +422,7 @@ class CLIABC(metaclass=ABCMeta):
     def _get_arg_parser_top_kwargs(self):
         '''
         Get a subclass-specific dictionary of keyword arguments to be passed to
-        the top-level argument parser.
+        the top-level argument parser constructor.
         '''
         return {}
 

@@ -36,7 +36,6 @@ from distutils.errors import (
 from os import path
 from pkg_resources import Distribution, PathMetadata
 from setuptools import Command
-from setuptools.command.develop import VersionlessRequirement
 
 # ....................{ EXCEPTIONS ~ command               }....................
 def die_unless_command_succeeds(*command_words) -> None:
@@ -831,7 +830,7 @@ def command_entry_points(command: Command):
 
 
 def package_distribution_entry_points(
-    distribution: (Distribution, VersionlessRequirement)) -> None:
+    distribution: '(Distribution, VersionlessRequirement)') -> None:
     '''
     Generator yielding a 3-tuple describing each wrapper script installed for
     the passed `pkg_resources`-specific distribution identifying a unique
@@ -865,9 +864,11 @@ def package_distribution_entry_points(
           corresponding `Distribution` object by stripping versioning from this
           distribution's name (e.g., reducing `foo==1.0` to merely `foo`).
     '''
-    assert isinstance(distribution, (
-        Distribution, VersionlessRequirement)), (
-        '"{}" not a setuptools distribution.'.format(distribution))
+    # Do *NOT* bother attempting to assert the passed distribution to be an
+    # instance of either the "Distribution" or "VersionlessRequirement" classes.
+    # While the former is guaranteed to exist under all setuptools version, the
+    # latter is *NOT*. Instead, only assert this distribution to be non-None.
+    assert distribution is not None, 'Setuptools distribution expected.'
 
     # For each type of script wrapper...
     for script_type in 'console', 'gui':

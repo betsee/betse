@@ -13,10 +13,10 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 
 # ....................{ IMPORTS                            }....................
 import errno, os, shutil
-from os import path
 from betse.exceptions import BetseExceptionPath
 from betse.util.io.log import logs
 from betse.util.type import types
+from os import path
 
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames) -> None:
@@ -78,8 +78,8 @@ def is_path(pathname: str) -> bool:
     If such path is an existing **broken symbolic link** (i.e., a symbolic link
     whose target no longer exists), this function still returns True.
     '''
-    assert types.is_str_nonempty(pathname),\
-        types.assert_not_str_nonempty(pathname, 'Pathname')
+    assert types.is_str_nonempty(pathname), (
+        types.assert_not_str_nonempty(pathname, 'Pathname'))
 
     # Call path.lexists() rather than path.exists(), as the latter returns False
     # for dangling symbolic links -- which is entirely irrelevant to most
