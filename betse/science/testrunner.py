@@ -22,8 +22,8 @@ if __name__ == '__main__':
 
     # Run such simulation.
     # sim_runner.initialize()
-    sim_runner.sim_reactions()
-    # sim_runner.plot_reactions()
+    # sim_runner.sim_reactions()
+    sim_runner.plot_reactions()
 
 
 

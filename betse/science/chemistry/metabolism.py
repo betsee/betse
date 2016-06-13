@@ -44,6 +44,9 @@ class MasterOfMetabolism(object):
         # read the config file into a dictionary:
         self.config_dic = sim_config.read_metabo(self.configPath)
 
+        # determine if mitochondria are enabled:
+        self.mit_enabled = self.config_dic['enable mitochondria']
+
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']
         reactions_config = self.config_dic['reactions']

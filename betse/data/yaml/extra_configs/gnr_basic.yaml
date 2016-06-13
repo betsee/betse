@@ -1,0 +1,61 @@
+%YAML 1.1
+---
+# The BETSE basic gene regulatory network configuration file, which takes a coarse view of a GNR set-up.
+
+# A Note on YAML
+# ----------
+# This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
+# [L]anguage) standard. YAML is a human-readable data serialization format
+# useful for configuration files -- like this one. For details, please see
+# https://en.wikipedia.org/wiki/YAML.
+
+#-----------------------------------------------------------------------------------------------------------------------
+# GENE REGULATORY NETWORK DEFINITION
+#-----------------------------------------------------------------------------------------------------------------------
+# Mini-simulations of biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
+# in the environment. Also can be produced/consumed in the cytoplasm, act as gating ligand for a specific channel,
+# be actively pumped in or out of cells, changed at the boundary, or plotted/animated at the end of the simulation.
+
+biomolecules:  # specify the properties of any number of auxillary chemicals
+
+  # example of a biomolecule as gating ligand that depolarizes the membranes
+
+  - name: 'Activator'    # give the substance a unique identifier of your choice.
+
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 1               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 1.0e-6    # initial concentration in the cytoplasm [mmol/L]
+    growth and decay:
+      production rate: 1.0e-5    # rate at which molecule is produced in the cytoplasm
+      decay rate: 1.0e-6          # rate at which molecule is consumed in the cytoplasm
+      Km: 1.0e-3                  # Half-maximum value for growth and decay [mmol/L]
+      activators: None
+      Km activators: None
+      inhibitors: None
+      Km inhibitors: None
+    ion channel gating:
+      ion channel target: Na    # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
+      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: True        # acts via extracellular (True) or intracellular (False) concentration?
+    active pumping:                     # use ATP driven pumps to actively move morphogen?
+      turn on: False                     # turn pumping on?
+      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
+      uses ATP: False      # uses ATP or facilitated transport?
+    change at bounds:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L

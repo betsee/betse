@@ -810,14 +810,14 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
         f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     # update cell and environmental concentrations
-    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p)
+    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = True)
 
     # next electrodiffuse concentrations around the cell interior:
     # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
 
     # ensure that there are no negative values
-    cX_cell_1 = no_negs(cX_cell_1)
-    cX_env_1 = no_negs(cX_env_1)
+    # cX_cell_1 = no_negs(cX_cell_1)
+    # cX_env_1 = no_negs(cX_env_1)
 
     if p.sim_ECM is True:
         # cX_env_1_temp = gaussian_filter(cX_env_1.reshape(cells.X.shape), p.smooth_level)
@@ -931,16 +931,17 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
         f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     # update cell and environmental concentrations
-    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p)
+    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM= True)
 
     # next electrodiffuse concentrations around the cell interior:
     # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
 
     # ensure that there are no negative values
-    cX_cell_1 = no_negs(cX_cell_1)
-    cX_env_1 = no_negs(cX_env_1)
+    # cX_cell_1 = no_negs(cX_cell_1)
+    # cX_env_1 = no_negs(cX_env_1)
 
     if p.sim_ECM is True:
+
         pass
 
     else:

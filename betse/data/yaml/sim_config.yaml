@@ -526,7 +526,7 @@ block VATP pump:
   change rate: 2.0         # rate of change [s]
 
 #-----------------------------------------------------------------------------------------------------------------------
-# BIOCHEMISTRY
+# CUSTOM BIOMOLECULES
 #-----------------------------------------------------------------------------------------------------------------------
 # Mini-simulations of biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
 # in the environment. Also can be produced/consumed in the cytoplasm, act as gating ligand for a specific channel,
@@ -549,6 +549,10 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       production rate: 1.0e-5    # rate at which molecule is produced in the cytoplasm
       decay rate: 1.0e-6          # rate at which molecule is consumed in the cytoplasm
       Km: 1.0e-3                  # Half-maximum value for growth and decay [mmol/L]
+      activators: None
+      Km activators: None
+      inhibitors: None
+      Km inhibitors: None
     ion channel gating:
       ion channel target: Na    # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -586,6 +590,10 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       production rate: 1.0e-5    # rate at which molecule is produced in the cytoplasm
       decay rate: 1.0e-6          # rate at which molecule is consumed in the cytoplasm
       Km: 1.0e-3                  # Half-maximum value for growth and decay [mmol/L]
+      activators: None
+      Km activators: None
+      inhibitors: None
+      Km inhibitors: None
     ion channel gating:
       ion channel target: K       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -645,7 +653,7 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       min val: 0.0                    # if autoscale is False, min value to use for plot
 
 #-----------------------------------------------------------------------------------------------------------------------
-#   CHEMICAL REACTIONS
+#  CUSTOM CHEMICAL REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
 
 reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
@@ -656,7 +664,6 @@ reactions:                   # user-defined reactions, betweeen biomolecules def
 
   - name: produce_Activator         # unique identifier for the reaction
 
-    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['Inhibitor', 'Dye']   # list of reagents; must be from set of names defined for biomolecules in above
     reactant multipliers: [1,1]  # reaction coefficients for reagents, in same order as reagent definition
     Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
@@ -664,7 +671,36 @@ reactions:                   # user-defined reactions, betweeen biomolecules def
     product multipliers: [1]   # reaction coefficients for products, in same order as product definition
     Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
     max rate: 1.0e-5          # maximum rate of the reaction
-    standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates irreversible reaction
+    reaction activators: None   # additional substance increasing activity of reaction
+    activator Km: None          # Km of additional substances in same order as above
+    reaction inhibitors: None   # link to defined substances or ions inhibiting reaction activitiy
+    inhibitor Km: None          # Km of inhibitors
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM TRANSPORTERS
+#-----------------------------------------------------------------------------------------------------------------------
+transporters enabled: True
+
+transporters:
+
+  - name: NaCa_exchanger         # unique identifier for the transporter
+
+    reactants: ['Ca', 'Na']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1,3]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Ca', 'Na']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 3]   # reaction coefficients for products, in same order as product definition
+    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: ['Ca']   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: ['Na']     # items of reaction moved into cell during forwards reaction
+    max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+    activator Km: None
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -678,6 +714,15 @@ metabolism settings:
                                                       # metabo_config_basic.yaml supplies a very basic metabolism model
                                                       # metabo_config_full.yaml supplies a full metabolism model
                                                       # these config files are ignored if 'metabolism simulated' is F
+#-----------------------------------------------------------------------------------------------------------------------
+# GENE REGULATORY NETWORK
+#-----------------------------------------------------------------------------------------------------------------------
+gene regulatory network settings:
+
+  gene regulatory network simulated: False
+
+  gene regulatory network config: extra_configs/gnr_basic.yaml
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 # VARIABLE SETTINGS
