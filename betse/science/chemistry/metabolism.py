@@ -64,6 +64,14 @@ class MasterOfMetabolism(object):
 
     def run_core_sim(self, sim, cells, p):
 
+        # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
+
+        sim.metabo = self
+
+        sim.met_concs = {'cATP': self.core.ATP.c_mems,
+            'cADP': self.core.ADP.c_mems,
+            'cPi': self.core.Pi.c_mems}
+
         # specify a time vector
         loop_time_step_max = p.init_tsteps
         # Maximum number of seconds simulated by the current run.

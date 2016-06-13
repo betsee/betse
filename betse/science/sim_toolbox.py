@@ -830,6 +830,125 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
     return cX_cell_1, cX_env_1, f_X
 
+def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell=False, alpha_max=1.0e-8,
+        Km_X=1.0, Keq=1.0):
+
+
+    """
+    Defines a generic facillitated transporter that can be used to move
+    a general molecule (such as glucose).
+
+    ATP is not used for the transporter
+
+    Works on the basic premise of enzymatic pumps defined elsewhere:
+
+    pump_out is True:
+
+    cX_cell  -------> cX_env
+
+    pump_out is False:
+
+    cX_env   <------- cX_cell
+
+    Parameters
+    -------------
+    cX_cell_o           Concentration of X in the cell         [mol/m3]
+    cX_env_o            Concentration of X in the environment  [mol/m3]
+    cells               Instance of cells
+    p                   Instance of parameters
+    z                   Charge of X
+    pump_out            Is pumping out of cell (pump_out = True) or into cell (pump_out = False)?
+    alpha_max           Maximum rate constant of pump reaction [mol/s]
+    Km_X                Michaelis-Mentin 1/2 saturation value for X [mol/m3]
+
+    Returns
+    ------------
+    cX_cell_1     Updated concentration of X in cells
+    cX_env_1      Updated concentration of X in environment
+    f_X           Flux of X (into the cell +)
+
+    """
+
+    if p.sim_ECM is True:
+
+        cX_env = cX_env_o[cells.map_mem2ecm]
+
+        cX_cell = cX_cell_o[:]
+
+    else:
+        cX_env = cX_env_o[:]
+        cX_cell = cX_cell_o[:]
+
+    if pump_into_cell is False:
+
+        # active pumping of molecule from cell and into environment:
+        # calculate the reaction coefficient Q:
+        Qnumo = cX_env
+        Qdenomo = cX_cell
+
+        # ensure no chance of dividing by zero:
+        inds_Z = (Qdenomo == 0.0).nonzero()
+        Qdenomo[inds_Z] = 1.0e-15
+
+        Q = Qnumo / Qdenomo
+
+        # modify equilibrium constant by membrane voltage if ion is charged:
+        Keq = Keq*np.exp((z * p.F * sim.vm) / (p.R * sim.T))
+
+        # calculate the reaction rate coefficient
+        alpha = alpha_max * (1 - (Q / Keq))
+
+        # calculate the enzyme coefficient:
+        numo_E = (cX_cell / Km_X)
+        denomo_E = (1 + (cX_cell / Km_X))
+
+        f_X = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
+
+
+    else:
+
+        # active pumping of molecule from environment and into cell:
+        # calculate the reaction coefficient Q:
+        Qnumo = cX_cell
+        Qdenomo = cX_env
+
+        # ensure no chance of dividing by zero:
+        inds_Z = (Qdenomo == 0.0).nonzero()
+        Qdenomo[inds_Z] = 1.0e-15
+
+        Q = Qnumo / Qdenomo
+
+        # modify equilibrium constant by membrane voltage if ion is charged:
+        Keq = Keq*np.exp(-(z * p.F * sim.vm) / (p.R * sim.T))
+
+        # calculate the reaction rate coefficient
+        alpha = alpha_max * (1 - (Q / Keq))
+
+        # calculate the enzyme coefficient:
+        numo_E = (cX_env / Km_X)
+        denomo_E = (1 + (cX_env / Km_X))
+
+        f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
+
+    # update cell and environmental concentrations
+    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p)
+
+    # next electrodiffuse concentrations around the cell interior:
+    # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
+
+    # ensure that there are no negative values
+    cX_cell_1 = no_negs(cX_cell_1)
+    cX_env_1 = no_negs(cX_env_1)
+
+    if p.sim_ECM is True:
+        pass
+
+    else:
+        cX_env_1_temp = cX_env_1.mean()
+        cX_env_1[:] = cX_env_1_temp
+
+    return cX_cell_1, cX_env_1, f_X
+
 def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6, ignoreECM = False):
     """
     Transports a generic molecule across the membrane,

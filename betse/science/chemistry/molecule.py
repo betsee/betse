@@ -127,6 +127,7 @@ class MasterOfMolecules(object):
             obj.pump_to_cell = ap['pump to cell']
             obj.pump_max_val = ap['maximum rate']
             obj.pump_Km = ap['pump Km']
+            obj.pumps_use_ATP = ap['uses ATP']
 
             # assign boundary change event properties
             cab = mol_dic['change at bounds']
@@ -545,6 +546,7 @@ class Molecule(object):
         self.c_bound = None
         self.Kgd = None
         self.use_pumping = None
+        self.pumps_use_ATP = None
         self.pump_to_cell = None
         self.pump_max_val = None
         self.pump_Km = None
@@ -614,19 +616,31 @@ class Molecule(object):
 
         if self.use_pumping:
 
-            if p.metabolism_enabled:
-                met_vect = sim.met_concs
-            else:
-                met_vect = None
+            if self.pumps_use_ATP:
 
-            self.c_mems, self.c_env, flux = stb.molecule_pump(sim, self.c_mems, self.c_env,
-                                                                 cells, p, Df=self.Do, z=self.z,
-                                                                 pump_into_cell=self.pump_to_cell,
-                                                                 alpha_max=self.pump_max_val, Km_X=self.pump_Km,
-                                                                 Km_ATP=1.0, met = met_vect)
-            if p.metabolism_enabled:
-                # update ATP concentrations after pump action:
-                sim.metabo.update_ATP(flux, sim, cells, p)
+                if p.metabolism_enabled:
+                    met_vect = sim.met_concs
+                else:
+                    met_vect = None
+
+                self.c_mems, self.c_env, flux = stb.molecule_pump(sim, self.c_mems, self.c_env,
+                                                                     cells, p, Df=self.Do, z=self.z,
+                                                                     pump_into_cell=self.pump_to_cell,
+                                                                     alpha_max=self.pump_max_val, Km_X=self.pump_Km,
+                                                                     Km_ATP=1.0, met = met_vect)
+                if p.metabolism_enabled:
+                    # update ATP concentrations after pump action:
+                    sim.metabo.update_ATP(flux, sim, cells, p)
+
+            else:
+
+                self.c_mems, self.c_env, flux = stb.molecule_transporter(sim, self.c_mems, self.c_env,
+                    cells, p, Df=self.Do, z=self.z,
+                    pump_into_cell=self.pump_to_cell,
+                    alpha_max=self.pump_max_val, Km_X=self.pump_Km,
+                    Keq= 1.0)
+
+
 
 
     def gating(self, sim, cells, p):
