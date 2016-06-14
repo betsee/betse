@@ -7,13 +7,9 @@
 BETSE's command line interface (CLI).
 '''
 
-#FIXME: The "~/.betse/cache" directory grows fairly large fairly quickly. It'd
-#be great to emit non-fatal warnings if its size exceeds some reasonable
-#threshold (e.g., 1MB).
-
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser
-from betse.cli import help, info
+from betse.cli import clihelp, info
 from betse.cli.cliabc import CLIABC
 from betse.util.io.log import logs
 from betse.util.path import files, paths
@@ -47,7 +43,7 @@ class CLICLI(CLIABC):
     def _get_arg_parser_top_kwargs(self):
         # Keyword arguments passed to the top-level argument parser constructor.
         return {
-            'epilog': help.SUBCOMMANDS_SUFFIX,
+            'epilog': clihelp.SUBCOMMANDS_SUFFIX,
         }
 
 
@@ -61,7 +57,7 @@ class CLICLI(CLIABC):
             title='subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=help.expand(help.SUBCOMMANDS_PREFIX),
+            description=clihelp.expand(clihelp.SUBCOMMANDS_PREFIX),
         )
 
         # Dictionary mapping from top-level subcommand name to the argument
@@ -69,19 +65,22 @@ class CLICLI(CLIABC):
         subcommand_name_to_subparser = {}
 
         # For each top-level subcommand...
-        for subcommand_help in help.SUBCOMMANDS:
-            # If this subcommand accepts a configuration filename, configure
-            # this subcommand's argument subparser accordingly.
-            if subcommand_help.is_passed_yaml:
-                arg_subparser = self._add_arg_subparser_yaml
-            # Else, configure this subparser to accept no passed arguments.
-            else:
-                arg_subparser = self._add_arg_subparser
+        for subcommand in clihelp.SUBCOMMANDS:
+            #FIXME: Refactor this logic as follows:
+            #
+            #* The local "subcommand_name_to_subparser" dicitonary should be
+            #  replaced by performing the following in the body of this loop:
+            #  * If a global "help.SUBCOMMANDS_{subcommand.name}" dictionary
+            #    exists, non-recursively loop over that dictionary in the same
+            #    manner as well. Hence, this generalizes support of subcommand
+            #    subcommands. Nice!
+            #* Likewise, if a "self._arg_parser_{subcommand.name}" instance
+            #  variable exists, set that variable to this parser. Such logic
+            #  should, arguably, be performed by _add_subcommand().
 
-            # Create, configure, and map this subparser.
-            subcommand_name_to_subparser[subcommand_help.name] = arg_subparser(
-                self._arg_subparsers_top,
-                **subcommand_help.get_arg_parser_kwargs())
+            # Add an argument subparser parsing this subcommand.
+            subcommand_name_to_subparser[subcommand.name] = self._add_subcommand(
+                subcommand=subcommand, arg_subparsers=self._arg_subparsers_top)
 
         # Configure arg parsing for subcommands of the "plot" subcommand.
         self._arg_parser_plot = subcommand_name_to_subparser['plot']
@@ -96,7 +95,7 @@ class CLICLI(CLIABC):
         #FIXME: Refactor into iteration resembling that performed by the
         #_config_arg_parsing() method.
 
-        # Collection of all subcommands of this subcommand.
+        # Collection of all subcommands of the "plot" subcommand.
         self._arg_subparsers_plot = self._arg_parser_plot.add_subparsers(
             # Name of the attribute storing the passed subcommand name.
             dest='subcommand_name_plot',
@@ -105,58 +104,47 @@ class CLICLI(CLIABC):
             title='plot subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=help.expand(help.SUBCOMMANDS_PREFIX),
-        )
-        self._add_arg_subparser_plot_yaml(
-            name='seed',
-            help='plot the seeded cell cluster defined by a config file',
-            description=help.expand(help.SUBCOMMAND_PLOT_SEED),
-        )
-        self._add_arg_subparser_plot_yaml(
-            name='init',
-            help='plot the initted cell cluster defined by a config file',
-            description=help.expand(help.SUBCOMMAND_PLOT_INIT),
-        )
-        self._add_arg_subparser_plot_yaml(
-            name='sim',
-            help='plot the simulated cell cluster defined by a config file',
-            description=help.expand(help.SUBCOMMAND_PLOT_SIM),
+            description=clihelp.expand(clihelp.SUBCOMMANDS_PREFIX),
         )
 
-    # ..................{ SUBPARSER ~ plot                   }..................
-    #FIXME: Terrible. Make this absurdity go away, please.
-    def _add_arg_subparser_plot_yaml(self, *args, **kwargs) -> (
-        ArgumentParser):
+        # For each subcommand of the "plot" subcommand...
+        for subcommand in clihelp.SUBCOMMANDS_PLOT:
+            # Add an argument subparser parsing this subcommand.
+            self._add_subcommand(
+                subcommand=subcommand, arg_subparsers=self._arg_subparsers_plot)
+
+    # ..................{ SUBCOMMANDS                        }..................
+    def _add_subcommand(
+        self,
+        subcommand: 'CLISubcommand',
+        arg_subparsers: '_SubParsersAction',
+        *args, **kwargs
+    ) -> ArgumentParser:
         '''
-        Create a new argument subparser requiring a configuration filename, add
-        this subparser to the subparser parsing the `plot` subcommand, and
+        Create a new **argument subparser** (i.e., an `argparse`-specific object
+        parsing command-line arguments) for the passed subcommand, add this
+        subparser to the passed collection of **argument subparsers** (i.e.,
+        another `argparse`-specific object cotaining multiple subparsers), and
         return this subparser.
 
-        All positional and keyword arguments are passed as is to this
-        subparser's `__init__()` method.
+        This subparser will be configured to:
 
-        Returns
-        ----------
-        ArgumentParser
-            New `plot` argument subparser requiring a configuration filename.
-        '''
-        return self._add_arg_subparser_yaml(
-            self._arg_subparsers_plot, *args, **kwargs)
-
-    # ..................{ SUBPARSER                          }..................
-    def _add_arg_subparser_yaml(
-        self, arg_subparsers: ArgumentParser, *args, **kwargs) -> (
-        ArgumentParser):
-        '''
-        Create a new argument subparser requiring a configuration filename, add
-        this subparser to the passed set of argument subparsers, and return this
-        subparser.
+        * If this subcommand accepts a configuration filename, require such an
+          argument be passed.
+        * Else, require no arguments be passed.
 
         Parameters
         ----------
-        arg_subparsers : ArgumentParser
-            Set of argument subparsers, typically corresponding to a top-level
-            subcommand (e.g., `plot`).
+        subcommand: CLISubcommand
+            Subcommand to be added.
+        arg_subparsers : _SubParsersAction
+            Collection of sibling subcommand argument parsers to which the
+            subcommand argument parser created by this method is added. This
+            collection is owned either by:
+            * A top-level subcommand (e.g., `plot`), in which case the
+              subcommand created by this method is a child of that subcommand.
+            * No subcommand, in which case the subcommand created by this method
+              is a top-level subcommand.
 
         All remaining positional and keyword arguments are passed as is to this
         subparser's `__init__()` method.
@@ -164,43 +152,37 @@ class CLICLI(CLIABC):
         Returns
         ----------
         ArgumentParser
-            New argument subparser requiring a configuration filename.
+            Subcommand argument parser created by this method.
         '''
+        # To preserve privacy encapsulation, assert the passed subparsers
+        # collection to be non-None rather than an instance of the private
+        # "_SubParsersAction" class.
+        assert types.is_cli_subcommand(subcommand), (
+            types.assert_not_cli_subcommand(subcommand))
+        assert types.is_nonnone(arg_subparsers), (
+            types.assert_not_nonnone('Argument subparsers'))
 
-        # Create this subparser.
-        arg_subparser = self._add_arg_subparser(
-            arg_subparsers, *args, **kwargs)
+        # Extend the passed dictionary of keyword arguments with (in any order):
+        #
+        # * The dictionary of globally applicable keyword arguments.
+        # * The dictionary of subcommand-specific keyword arguments.
+        kwargs.update(self._arg_parser_kwargs)
+        kwargs.update(subcommand.get_arg_parser_kwargs())
 
-        # Configure this subparser to require a passed configuration file.
-        arg_subparser.add_argument(
-            'config_filename',
-            metavar='CONFIG_FILE',
-            help='simulation configuration file',
-        )
+        # Subcommand argument subparser added to this collection.
+        arg_subparser = arg_subparsers.add_parser(*args, **kwargs)
+
+        # If this subcommand requires a configuration file, configure this
+        # subparser accordingly.
+        if subcommand.is_passed_yaml:
+            arg_subparser.add_argument(
+                'config_filename',
+                metavar='CONFIG_FILE',
+                help='simulation configuration file',
+            )
 
         # Return this subparser.
         return arg_subparser
-
-
-    def _add_arg_subparser(
-        self, arg_subparsers, *args, **kwargs) -> ArgumentParser:
-        '''
-        Create a new **argument subparser** (i.e., an `argparse`-specific object
-        responsible for parsing a single command-line argument), add this
-        subparser to the passed set of **argument subparsers** (i.e., another
-        `argparse`-specific object cotaining multiple subparsers), and return
-        this subparser.
-
-        All remaining positional and keyword arguments are passed as is to this
-        subparser's `__init__()` method.
-        '''
-
-        # Extend the passed dictionary of keyword arguments with the dictionary
-        # of preinitialized keyword arguments.
-        kwargs.update(self._arg_parser_kwargs)
-
-        # Add such subparser.
-        return arg_subparsers.add_parser(*args, **kwargs)
 
     # ..................{ SUPERCLASS ~ cli                   }..................
     def _do(self) -> None:
@@ -275,7 +257,7 @@ class CLICLI(CLIABC):
         Run the `config` subcommand.
         '''
 
-        # This module's importation imports dependencies and is hence delayed.
+        # Avoid importing modules importing dependencies at the top level.
         from betse.science.config import sim_config
         sim_config.write_default(self._args.config_filename)
 
@@ -284,6 +266,7 @@ class CLICLI(CLIABC):
         '''
         Run the `seed` subcommand.
         '''
+
         self._get_sim_runner().makeWorld()
 
 
@@ -291,6 +274,7 @@ class CLICLI(CLIABC):
         '''
         Run the `init` subcommand.
         '''
+
         self._get_sim_runner().initialize()
 
 
@@ -298,6 +282,7 @@ class CLICLI(CLIABC):
         '''
         Run the `sim` subcommand.
         '''
+
         self._get_sim_runner().simulate()
 
 
@@ -323,6 +308,7 @@ class CLICLI(CLIABC):
         '''
         Run the `plot` subcommand's `seed` subcommand.
         '''
+
         self._get_sim_runner().plotWorld()
 
 
@@ -330,6 +316,7 @@ class CLICLI(CLIABC):
         '''
         Run the `plot` subcommand's `init` subcommand.
         '''
+
         self._get_sim_runner().plotInit()
 
 
@@ -337,16 +324,17 @@ class CLICLI(CLIABC):
         '''
         Run the `plot` subcommand's `sim` subcommand.
         '''
+
         self._get_sim_runner().plotSim()
 
     # ..................{ GETTERS                            }..................
     def _get_sim_runner(self):
         '''
-        Get a new simulation runner configured with sane defaults.
+        BETSE simulation runner preconfigured with sane defaults.
         '''
-        # Import from "betse.science" in a just-in-time manner. Why? This
-        # importation imports heavy-weight dependencies and hence is slow.
+
+        # Avoid importing modules importing dependencies at the top level.
         from betse.science.simrunner import SimRunner
 
-        # Get such runner.
+        # Return this runner.
         return SimRunner(config_filename = self._args.config_filename)

@@ -31,51 +31,34 @@ def trim(obj: object) -> str:
     '''
 
     # Maximum length of the string to be returned, defined to be the customary
-    # line length of 80 characters less output indentation of 4 characters.
+    # line length of 80 characters minus:
+    #
+    # * Default output indentation of 4 characters.
     MAX_LEN = 76
 
-    # Uncompiled regular expression grouping zero or more trailing delimiters.
-    # For usability, the expression *ALWAYS* captures exactly one group.
-    LAST_DELIMETERS_REGEX = r'.*?([\])}>\'"]*)$'
-
-    # Uncompiled regular expression grouping zero or more leading characters
-    # preceding a newline *AND* zero or more trailing delimiters.
-    PRENEWLINE_CHARS_LAST_DELIMITERS_REGEX = r'^(.*?)\n{}'.format(
-        LAST_DELIMETERS_REGEX)
+    # Uncompiled regular expression grouping zero or more non-newline leading
+    # characters preceding this maximum length *AND* zero or more trailing
+    # delimiters.
+    PRE_MAX_CHARS_LAST_DELIMITERS_REGEX = (
+        r'^([^\n]{0,' + str(MAX_LEN) + r'}).*?([\])}>\'"]*)$')
 
     # String describing the passed object. For debuggability, the verbose
     # (albeit less human-readable) output of repr() is preferred to the terse
     # (albeit more human-readable) output of str().
     obj_synopsis = repr(obj)
 
-    # If this string contains one or more newlines, replace the substring in
-    # this string from the first newline to the string end (excluding any
-    # optional trailing delimiters) with an ellipses.
-    if '\n' in obj_synopsis:
+    # If this synopsis either exceeds this maximum length *OR* contains a
+    # newline, replace the substring of this synopsis from whichever of the
+    # first character following this maximum length or the first newline occurs
+    # first to the string end (excluding any # optional trailing delimiters)
+    # with a single ellipses.
+    if len(obj_synopsis) > MAX_LEN or '\n' in obj_synopsis:
         obj_synopsis = re.sub(
-            PRENEWLINE_CHARS_LAST_DELIMITERS_REGEX,
+            PRE_MAX_CHARS_LAST_DELIMITERS_REGEX,
             r'\1...\2',
             obj_synopsis,
             flags=re.DOTALL
         )
-
-    # If this string still exceeds the maximum, replace this string again.
-    if len(obj_synopsis) > MAX_LEN:
-        # Optional trailing delimiters if any.
-        last_delimiters = re.match(
-            LAST_DELIMETERS_REGEX, flags=re.DOTALL).groups()[0]
-        last_delimiters_len = len(last_delimiters)
-
-        # If these delimiters exist, remove them from this string.
-        if last_delimiters_len:
-            obj_synopsis = obj_synopsis[-last_delimiters_len:]
-
-        # Truncate this string to the first leading characters less the length
-        # of these delimiters, which will be reappended below.
-        obj_synopsis = obj_synopsis[:MAX_LEN - last_delimiters_len]
-
-        # Reappend these delimiters.
-        obj_synopsis += last_delimiters
 
     # Return this synopsis.
     return obj_synopsis
@@ -96,6 +79,12 @@ def is_char(obj: object) -> bool:
     '''
     return is_str(obj) and len(obj) == 1
 
+
+def is_nonnone(obj: object) -> bool:
+    '''
+    `True` only if the passed object is _not_ `None`.
+    '''
+    return obj is not None
 
 # ....................{ TESTERS ~ callable                 }....................
 def is_callable(obj: object) -> bool:
@@ -230,6 +219,61 @@ def is_exception(obj: object) -> bool:
 
     return isinstance(obj, Exception)
 
+# ....................{ TESTERS ~ betse : cli              }....................
+def is_cli_subcommand(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an instance of the BETSE-specific
+    `CLISubcommand` class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.cli.clihelp import CLISubcommand
+    return isinstance(obj, CLISubcommand)
+
+# ....................{ TESTERS ~ betse : science          }....................
+def is_cells(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an instance of the BETSE-specific
+    `Cells` class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.science.cells import Cells
+    return isinstance(obj, Cells)
+
+
+def is_parameters(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an instance of the BETSE-specific
+    `Parameters` class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.science.parameters import Parameters
+    return isinstance(obj, Parameters)
+
+
+def is_simulator(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an instance of the BETSE-specific
+    `Simulator` class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.science.sim import Simulator
+    return isinstance(obj, Simulator)
+
+
+def is_tissue_picker(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an instance of the BETSE-specific
+    `TissuePicker` class.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.science.tissue.picker import TissuePicker
+    return isinstance(obj, TissuePicker)
+
 # ....................{ TESTERS ~ lib : argparse           }....................
 def is_arg_parser(obj: object) -> bool:
     '''
@@ -360,46 +404,6 @@ def is_numeric(obj: object) -> bool:
     '''
     return isinstance(obj, (int, float))
 
-# ....................{ TESTERS ~ science                  }....................
-def is_cells(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an instance of the BETSE-specific
-    `Cells` class.
-    '''
-    # Avoid circular import dependencies.
-    from betse.science.cells import Cells
-    return isinstance(obj, Cells)
-
-
-def is_parameters(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an instance of the BETSE-specific
-    `Parameters` class.
-    '''
-    # Avoid circular import dependencies.
-    from betse.science.parameters import Parameters
-    return isinstance(obj, Parameters)
-
-
-def is_simulator(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an instance of the BETSE-specific
-    `Simulator` class.
-    '''
-    # Avoid circular import dependencies.
-    from betse.science.sim import Simulator
-    return isinstance(obj, Simulator)
-
-
-def is_tissue_picker(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an instance of the BETSE-specific
-    `TissuePicker` class.
-    '''
-    # Avoid circular import dependencies.
-    from betse.science.tissue.picker import TissuePicker
-    return isinstance(obj, TissuePicker)
-
 # ....................{ TESTERS ~ str                      }....................
 def is_str(obj: object) -> bool:
     '''
@@ -449,6 +453,14 @@ def assert_not_char(obj: object) -> str:
     '''
     return '"{}" not a character (i.e., string of length 1).'.format(trim(obj))
 
+
+def assert_not_nonnone(label: str) -> str:
+    '''
+    String asserting an arbitrary object labeled by the passed human-readable
+    name to be `None`.
+    '''
+    return '{} is "None".'.format(label.capitalize())
+
 # ....................{ TESTERS ~ callable                 }....................
 def assert_not_callable(obj: object) -> bool:
     '''
@@ -482,8 +494,8 @@ def assert_not_iterable_nonstr(obj: object) -> str:
 
 def assert_not_iterable_nonstr_nonempty(obj: object, label: str) -> str:
     '''
-    String asserting the passed object categorized by the passed human-readable
-    label to _not_ be a nonempty non-string iterable.
+    String asserting the passed object labeled by the passed human-readable
+    name to _not_ be a nonempty non-string iterable.
     '''
     return assert_not_iterable_nonstr(obj) if not is_iterable_nonstr(
         obj) else '{} empty.'.format(label.capitalize())
@@ -498,8 +510,8 @@ def assert_not_sequence_nonstr(obj: object) -> str:
 
 def assert_not_sequence_nonstr_nonempty(obj: object, label: str) -> str:
     '''
-    String asserting the passed object categorized by the passed human-readable
-    label to _not_ be a nonempty non-string sequence.
+    String asserting the passed object labeled by the passed human-readable
+    name to _not_ be a nonempty non-string sequence.
     '''
     return assert_not_sequence_nonstr(obj) if not is_sequence_nonstr(
         obj) else '{} empty.'.format(label.capitalize())
@@ -525,7 +537,47 @@ def assert_not_exception(obj: object) -> str:
     '''
     return '"{}" not an exception.'.format(trim(obj))
 
-# ....................{ ASSERTERS ~ lib : matplotlib       }....................
+# ....................{ ASSERTERS ~ betse : cli            }....................
+def assert_not_cli_subcommand(obj: object) -> bool:
+    '''
+    String asserting the passed object is an instance of the BETSE-specific
+    `CLISubcommand` class.
+    '''
+    return '"{}" not a CLI subcommand.'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ betse : science        }....................
+def assert_not_cells(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an instance of the BETSE-
+    specific `Cells` class.
+    '''
+    return '"{}" not a "Cells" instance.'.format(trim(obj))
+
+
+def assert_not_parameters(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an instance of the BETSE-
+    specific `Parameters` class.
+    '''
+    return '"{}" not a "Parameters" instance.'.format(trim(obj))
+
+
+def assert_not_simulator(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an instance of the BETSE-
+    specific `Simulator` class.
+    '''
+    return '"{}" not a "Simulator" instance.'.format(trim(obj))
+
+
+def assert_not_tissue_picker(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be an instance of the BETSE-
+    specific `TissuePicker` class.
+    '''
+    return '"{}" not a "TissuePicker" instance.'.format(trim(obj))
+
+# ....................{ ASSERTERS ~ lib : argparse         }....................
 def assert_not_arg_parser(obj: object) -> bool:
     '''
     String asserting the passed object to _not_ be an argument parser.
@@ -619,38 +671,6 @@ def assert_not_numeric(obj: object) -> str:
     return '"{}" not numeric (i.e., neither an integer nor float).'.format(
         trim(obj))
 
-# ....................{ ASSERTERS ~ science                }....................
-def assert_not_cells(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `Cells` class.
-    '''
-    return '"{}" not a "Cells" instance.'.format(trim(obj))
-
-
-def assert_not_parameters(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `Parameters` class.
-    '''
-    return '"{}" not a "Parameters" instance.'.format(trim(obj))
-
-
-def assert_not_simulator(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `Simulator` class.
-    '''
-    return '"{}" not a "Simulator" instance.'.format(trim(obj))
-
-
-def assert_not_tissue_picker(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `TissuePicker` class.
-    '''
-    return '"{}" not a "TissuePicker" instance.'.format(trim(obj))
-
 # ....................{ ASSERTERS ~ str                    }....................
 def assert_not_str(obj: object) -> str:
     '''
@@ -670,8 +690,8 @@ def assert_not_str_or_none(obj: object) -> str:
 
 def assert_not_str_nonempty(obj: object, label: str) -> str:
     '''
-    String asserting the passed object categorized by the passed human-readable
-    label to _not_ be a nonempty string.
+    String asserting the passed object labeled by the passed human-readable
+    name to _not_ be a nonempty string.
     '''
 
     if not is_str(obj):
@@ -682,8 +702,8 @@ def assert_not_str_nonempty(obj: object, label: str) -> str:
 
 def assert_not_str_nonempty_or_none(obj: object, label: str) -> str:
     '''
-    String asserting the passed object categorized by the passed human-readable
-    label to be neither a nonempty string _nor_ `None`.
+    String asserting the passed object labeled by the passed human-readable
+    name to be neither a nonempty string _nor_ `None`.
     '''
 
     if not is_str_or_none(obj):

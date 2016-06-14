@@ -9,6 +9,10 @@ Help strings printed by `betse`'s command line interface (CLI).
 
 #FIXME: Rename this submodule to "clihelp", as this module's name conflicts with
 #that of the help() builtin.
+#FIXME: Shift all "subcommand"-specific classes and globals into a new
+#"betse.cli.subcommand" module. On doing so:
+#
+#* Rename the "CLISubcommand" class to merely "CLISubcommand".
 
 # ....................{ IMPORTS                            }....................
 from betse import metadata
@@ -39,7 +43,7 @@ def expand(text: str, **kwargs) -> str:
     ))
 
 # ....................{ CLASSES                            }....................
-class CLIHelpSubcommand(object):
+class CLISubcommand(object):
     '''
     Collection of all human-readable help strings for one CLI subcommand.
 
@@ -192,9 +196,9 @@ Help string template for the **program epilog** (i.e., string printed after
 *all* other text in top-level help output).
 '''
 
-# ....................{ DICTS                              }....................
+# ....................{ SUBCOMMANDS                        }....................
 SUBCOMMANDS = (
-    CLIHelpSubcommand(
+    CLISubcommand(
         name='config',
         synopsis='create a new {program_name} simulation configuration',
         description='''
@@ -210,7 +214,7 @@ containing this file.
     ),
 
 
-    CLIHelpSubcommand(
+    CLISubcommand(
         name='seed',
         synopsis='create the cell cluster defined by a config file',
         description='''
@@ -221,7 +225,7 @@ will be saved to output files defined by this configuration.
     ),
 
 
-    CLIHelpSubcommand(
+    CLISubcommand(
         name='init',
         synopsis='init the seeded cell cluster defined by a config file',
         description='''
@@ -235,7 +239,7 @@ configuration.
     ),
 
 
-    CLIHelpSubcommand(
+    CLISubcommand(
         name='sim',
         synopsis='simulate the initted cell cluster defined by a config file',
         description='''
@@ -248,7 +252,7 @@ from input files defined by this configuration.
     ),
 
 
-    CLIHelpSubcommand(
+    CLISubcommand(
         name='plot',
         synopsis='plot previously seeded, initted, or simulated simulations',
         description='''
@@ -262,7 +266,7 @@ directory:
     ),
 
 
-    CLIHelpSubcommand(
+    CLISubcommand(
         name='info',
         synopsis='show information about {program_name} and the current system',
         description='''
@@ -287,7 +291,7 @@ Print informational metadata in ":"-delimited key-value format, including:
     ),
 
 
-    CLIHelpSubcommand(
+    CLISubcommand(
         name='try',
         synopsis='create, init, simulate, and plot a sample simulation',
         description='''
@@ -309,7 +313,7 @@ Equivalently, this subcommand is shorthand for the following:
     ),
 )
 '''
-Tuple of `CLIHelpSubcommand` instances describing each top-level subcommand.
+Tuple of `CLISubcommand` instances describing top-level subcommands.
 
 **Order is significant.** The order in which these instances are listed defines
 the order in which the `betse --help` command synopsizes these subcommands.
@@ -317,35 +321,52 @@ Moreover, top-level subcommands _not_ listed here will _not_ be parsed by
 argument subparsers and hence will be effectively ignored.
 '''
 
-# ....................{ TEMPLATES ~ subcommand : plot      }....................
-SUBCOMMAND_PLOT_SEED = '''
+# ....................{ SUBCOMMANDS                        }....................
+SUBCOMMANDS_PLOT = (
+    CLISubcommand(
+        name='seed',
+        synopsis='plot the seeded cell cluster defined by a config file',
+        description='''
 Plot the previously seeded cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously seeded cell cluster will be loaded from input files
 defined by this configuration.
-'''
-'''
-Help string template for the `plot` subcommand's `seed` subcommand.
-'''
+''',
+        is_passed_yaml=True,
+    ),
 
 
-SUBCOMMAND_PLOT_INIT = '''
+    CLISubcommand(
+        name='init',
+        synopsis='plot the initted cell cluster defined by a config file',
+        description='''
 Plot the previously initialized cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously initialized cell cluster will be loaded from input files
 defined by this configuration.
-'''
-'''
-Help string template for the `plot` subcommand's `init` subcommand.
-'''
+''',
+        is_passed_yaml=True,
+    ),
 
 
-SUBCOMMAND_PLOT_SIM = '''
+    CLISubcommand(
+        name='sim',
+        synopsis='plot the simulated cell cluster defined by a config file',
+        description='''
 Plot the previously simulated cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously simulated cell cluster will be loaded from input files
 defined by this configuration.
+''',
+        is_passed_yaml=True,
+    ),
+)
 '''
-'''
-Help string template for the `plot` subcommand's `sim` subcommand.
+Tuple of `CLISubcommand` instances describing subcommands of the `plot`
+subcommand.
+
+See Also
+----------
+SUBCOMMANDS
+    Further details on tuple structure and significance.
 '''

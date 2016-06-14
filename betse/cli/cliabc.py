@@ -28,7 +28,7 @@ import cProfile, sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
-from betse.cli import help, info
+from betse.cli import clihelp, info
 from betse.util.command import commands
 from betse.util.command.args import HelpFormatterParagraph
 from betse.util.command.exits import SUCCESS, FAILURE_DEFAULT
@@ -64,9 +64,12 @@ class CLIABC(metaclass=ABCMeta):
     _arg_parser : ArgumentParser
         `argparse`-specific parser of command-line arguments.
     _arg_parser_kwargs : dict
-        Dictionary of keyword arguments which which to initialize
-        `ArgumentParser` instances, suitable for passing to both the
-        `ArgumentParser.__init__()` and `ArgumentParser.add_parser()` methods.
+        Dictionary of keyword arguments which which to create argument parsers,
+        suitable for passing to both the `ArgumentParser.__init__()` and
+        `ArgumentParser.add_parser()` methods. Since the `argparse` API provides
+        multiple methods rather than a single method for creating argument
+        parsers, this versatile dictionary is preferred over a monolithic
+        factory-based approach (e.g., a `_make_arg_parser()` method).
     _args : argparse.Namespace
         `argparse`-specific object of all passed command-line arguments. See
         "Attributes (_args)" below for further details.
@@ -306,13 +309,13 @@ class CLIABC(metaclass=ABCMeta):
             '-v', '--verbose',
             dest='is_verbose',
             action='store_true',
-            help=help.expand(help.OPTION_VERBOSE),
+            help=clihelp.expand(clihelp.OPTION_VERBOSE),
         )
         self._arg_parser.add_argument(
             '-V', '--version',
             action='version',
             version=program_version,
-            help=help.expand(help.OPTION_VERSION),
+            help=clihelp.expand(clihelp.OPTION_VERSION),
         )
         self._arg_parser.add_argument(
             '--log-type',
@@ -320,16 +323,16 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             choices=log_types,
             default=log_type_default,
-            help=help.expand(
-                help.OPTION_LOG_TYPE, default=log_type_default),
+            help=clihelp.expand(
+                clihelp.OPTION_LOG_TYPE, default=log_type_default),
         )
         self._arg_parser.add_argument(
             '--log-file',
             dest='log_filename',
             action='store',
             default=log_filename_default,
-            help=help.expand(
-                help.OPTION_LOG_FILE, default=log_filename_default),
+            help=clihelp.expand(
+                clihelp.OPTION_LOG_FILE, default=log_filename_default),
         )
         self._arg_parser.add_argument(
             '--profile-type',
@@ -337,16 +340,16 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             choices=profile_types,
             default=profile_type_default,
-            help=help.expand(
-                help.OPTION_PROFILE_TYPE, default=profile_type_default),
+            help=clihelp.expand(
+                clihelp.OPTION_PROFILE_TYPE, default=profile_type_default),
         )
         self._arg_parser.add_argument(
             '--profile-file',
             dest='profile_filename',
             action='store',
             default=profile_filename_default,
-            help=help.expand(
-                help.OPTION_PROFILE_FILE, default=profile_filename_default),
+            help=clihelp.expand(
+                clihelp.OPTION_PROFILE_FILE, default=profile_filename_default),
         )
 
 

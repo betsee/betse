@@ -49,6 +49,10 @@ High-level application initialization common to both the CLI and GUI.
 #
 #    http://deeplearning.net/software/theano/introduction.html
 
+#FIXME: The "~/.betse" directory grows fairly large fairly quickly. It'd be
+#great to emit non-fatal warnings if its size exceeds some reasonable threshold
+#(e.g., 1MB).
+
 # ....................{ IMPORTS                            }....................
 
 # ....................{ GLOBALS                            }....................
