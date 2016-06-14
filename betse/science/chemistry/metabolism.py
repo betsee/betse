@@ -85,6 +85,8 @@ class MasterOfMetabolism(object):
             'cADP': self.core.ADP.c_mems,
             'cPi': self.core.Pi.c_mems}
 
+        sim.vm = -50e-3*np.ones(sim.mdl)
+
         # specify a time vector
         loop_time_step_max = p.init_tsteps
         # Maximum number of seconds simulated by the current run.

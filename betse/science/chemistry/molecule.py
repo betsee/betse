@@ -1698,7 +1698,7 @@ class Transporter(object):
                 echem_terms.append(in_term)
 
         echem_terms = np.asarray(echem_terms)
-        vmem_term = np.sum(echem_terms)
+        vmem_term = np.sum(echem_terms, axis = 0)
 
         # modification factor for the equilibrium constant due to transfer of charged item across
         #  transmembrane voltage:
@@ -1780,9 +1780,14 @@ class Transporter(object):
         reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
 
         # get net effect of any activators or inhibitors of the reaction:
+
+
+
         activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.transporter_activators_list,
             self.transporter_activators_Km, self.transporter_activators_n, self.transporter_inhibitors_list,
             self.transporter_inhibitors_Km, self.transporter_inhibitors_n, reaction_zone=self.reaction_zone)
+
+
 
         deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
 
@@ -1795,8 +1800,6 @@ class Transporter(object):
 
         self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p)
         self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p)
-
-
 
         return deltaC
 
@@ -1824,20 +1827,20 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
     """
 
     if reaction_zone == 'cell':
-        type_self = 'c_cells'
-        type_sim = 'cc_cells'
+        type_self = 'c_mems'
+        type_sim = 'cc_mems'
 
     elif reaction_zone == 'mitochondria':
 
         type_self = 'c_mit'
         type_sim = 'cc_mit'
 
-    if a_list != None:  # if user specified activators for growth/decay
+    # initialize a blank list
+    activator_terms = []
+
+    if a_list is not None and len(a_list) > 0:  # if user specified activators for growth/decay
 
         # get reaction zone for data type:
-
-        # initialize a blank list
-        activator_terms = []
 
         # get the activator concentration for the substance, and
         # create a term based on Hill form:
@@ -1868,7 +1871,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
             Km_act = Km_a_list[i]
             n_act = n_a_list[i]
 
-            cs = (c_act / Km_act) ** n_act
+            cs = (c_act / Km_act)**n_act
 
             act_term = cs / (1 + cs)
 
@@ -1877,18 +1880,20 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
         activator_terms = np.asarray(activator_terms)
 
         # calculate the net effect of all activator terms:
-        activator_alpha = np.prod(activator_terms)
+        activator_alpha = np.prod(activator_terms, axis=0)
+
 
     else:
 
         activator_alpha = 1
 
-    if i_list != None:  # if user specified inhibitors for growth/decay
 
-        # initialize a blank list
-        inhibitor_terms = []
+    # initialize a blank list
+    inhibitor_terms = []
 
-        # get the activator concentration for the substance, and
+    if i_list is not None and len(i_list) > 0:  # if user specified inhibitors for growth/decay
+
+        # get the inhibitor concentration for the substance, and
         # create a term based on Hill form:
         for j, inhibitor_name in enumerate(i_list):
 
@@ -1926,10 +1931,11 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
         inhibitor_terms = np.asarray(inhibitor_terms)
 
         # calculate the net effect of all activator terms:
-        inhibitor_alpha = np.prod(inhibitor_terms)
+        inhibitor_alpha = np.prod(inhibitor_terms, axis = 0)
 
     else:
         inhibitor_alpha = 1
+
 
     return activator_alpha, inhibitor_alpha
 
