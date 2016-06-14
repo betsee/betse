@@ -29,7 +29,7 @@ from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 # FIXME we will need methods to update mitochondria concs and Vmit, as well as ER concs and Vmit defined
 # in both MasterOfMolecules and Molecule...perhaps 'update_organelle()'
 
-# FIXME we will need another reactions field and read-in case for whether reaction occurs in cell or in mitochondria
+# FIXME see if we need rates of all reactions...
 
 class MasterOfMolecules(object):
 
@@ -90,7 +90,7 @@ class MasterOfMolecules(object):
             obj.c_ero = mol_dic.get('er conc', None)
 
             # factors involving auto-catalytic growth and decay in the cytoplasm
-            gad = mol_dic['growth and decay']
+            gad = mol_dic.get('growth and decay', None)
 
             if gad != 'None':
 
@@ -99,11 +99,14 @@ class MasterOfMolecules(object):
                 obj.r_production = gad['production rate']
                 obj.r_decay = gad['decay rate']
                 obj.Kgd = gad['Km']
+                obj.n_production = gad['n']
 
                 obj.growth_activators_list = gad['activators']
                 obj.growth_activators_Km = gad['Km activators']
+                obj.growth_activators_n = gad['Km activators']
                 obj.growth_inhibitors_list = gad['inhibitors']
                 obj.growth_inhibitors_Km = gad['Km inhibitors']
+                obj.growth_inhibitors_n = gad['Km inhibitors']
 
             else:
                 obj.simple_growth = False
@@ -233,8 +236,10 @@ class MasterOfMolecules(object):
 
             obj.reaction_activators_list = react_dic.get('reaction activators', None)
             obj.reaction_activators_Km = react_dic.get('activator Km', None)
+            obj.reaction_activators_n = react_dic.get('activator n', None)
             obj.reaction_inhibitors_list = react_dic.get('reaction inhibitors', None)
             obj.reaction_inhibitors_Km = react_dic.get('inhibitor Km', None)
+            obj.reaction_inhibitors_n = react_dic.get('inhibitor n', None)
 
             # now we want to load the right concentration data arrays for reactants into the Reaction object:
 
@@ -244,9 +249,9 @@ class MasterOfMolecules(object):
     def read_transporters(self, config_transporters, sim, cells, p):
 
         """
-            Read in and initialize parameters for all user-defined reactions.
+            Read in and initialize parameters for all user-defined transporters.
 
-            config_options:  dictionary containing BETSE reaction template fields
+            config_options:  dictionary containing BETSE transporter template fields
 
             """
 
@@ -304,8 +309,10 @@ class MasterOfMolecules(object):
 
             obj.transporter_activators_list = trans_dic.get('transporter activators', None)
             obj.transporter_activators_Km = trans_dic.get('activator Km', None)
+            obj.transporter_activators_n = trans_dic.get('activator n', None)
             obj.transporter_inhibitors_list = trans_dic.get('transporter inhibitors', None)
             obj.transporter_inhibitors_Km = trans_dic.get('inhibitor Km', None)
+            obj.transporter_inhibitors_n = trans_dic.get('inhibitor n', None)
 
             # now we want to load the right concentration data arrays for reactants into the Reaction object:
 
@@ -313,6 +320,8 @@ class MasterOfMolecules(object):
             # self.check_reactions(obj, sim, cells, p)
 
     def check_reactions(self, obj, sim, cells, p):
+
+        # FIXME complete this
 
         if obj.reaction_zone == 'cell':
 
@@ -470,7 +479,7 @@ class MasterOfMolecules(object):
             obj.updateIntra(sim, cells, p)
 
             if obj.simple_growth is True:
-                obj.reaction(sim, cells, p)
+                obj.growth_and_decay(self, sim, cells, p)
 
             if p.run_sim is True:
                 obj.gating(sim, cells, p)
@@ -497,7 +506,18 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             # compute the new reactants and products
-            delta_c = obj.compute_reaction(sim, sim_metabo, cells, p)
+            rate = obj.compute_reaction(sim, sim_metabo, cells, p)
+
+    def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
+
+        # get the object corresponding to the specific transporter:
+        for i, name in enumerate(self.transporter_names):
+
+            # get the Reaction object:
+            obj = getattr(self, name)
+
+            # compute the new reactants and products
+            rate = obj.compute_reaction(sim, sim_metabo, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -637,8 +657,7 @@ class Molecule(object):
         self.gating_Hill_K = None
         self.gating_Hill_n = None
         self.gating_ion = None
-        self.r_production = None
-        self.r_decay = None
+
         self.change_at_bounds = None
         self.change_bounds_start = None
         self.change_bounds_end = None
@@ -650,10 +669,16 @@ class Molecule(object):
         self.plot_max = None
         self.plot_min = None
 
+        self.r_production = None
+        self.r_decay = None
+        self.n_production = None
+
         self.growth_activators_list = None
         self.growth_activators_Km = None
+        self.growth_activators_n = None
         self.growth_inhibitors_list = None
         self.growth_inhibitors_Km = None
+        self.growth_inhibitors_n = None
 
     def transport(self, sim, cells, p):
         """
@@ -747,23 +772,22 @@ class Molecule(object):
 
                 sim.Dm_morpho[self.gating_ion] = sim.rho_channel*sim.Dm_mod_dye[cells.map_mem2ecm]
 
-    def reaction(self, sim, cells, p):
+    def growth_and_decay(self, super_self, sim, cells, p):
         """
         Grows and/or decays the molecule concentration in the cell cytosol using a simple rate equation
         representing saturating autocatalytic production/decay via Michaelis-Menten kinetics.
 
         """
+
         cc = self.c_cells/self.Kgd
 
-        delta_cells = self.r_production*(cc/(1 + cc)) - self.r_decay*(cc/(1 + cc))
+        activator_alpha, inhibitor_alpha = get_influencers(sim, super_self, self.growth_activators_list,
+            self.growth_activators_Km, self.growth_activators_n, self.growth_inhibitors_list,
+            self.growth_inhibitors_Km, self.growth_inhibitors_n, reaction_zone='cell')
+
+        delta_cells = self.r_production*inhibitor_alpha*activator_alpha*(cc / (1 + cc)) - self.r_decay * cc
 
         self.c_cells = self.c_cells + delta_cells*p.dt
-
-        # FIXME add in activator and inhibitor here
-        # self.growth_activators_list and self.growth_activators_Km
-        # self.growth_inhibitors_list and self.growth_inhibitors_Km
-
-        # FIXME may need to have Hill function capabilities?
 
         # make sure the concs inside the cell are evenly mixed after production/decay:
         self.updateIntra(sim, cells, p)
@@ -1001,9 +1025,10 @@ class Reaction(object):
         # activator and inhibitors of the reaction
         self.reaction_activators_list = None
         self.reaction_activators_Km = None
+        self.reaction_activators_n = None
         self.reaction_inhibitors_list = None
         self.reaction_inhibitors_Km = None
-
+        self.reaction_inhibitors_n = None
 
     def get_reactants(self, sim, sim_metabo, reactant_type_self, reactant_type_sim):
 
@@ -1131,9 +1156,6 @@ class Reaction(object):
 
     def compute_reaction(self, sim, sim_metabo, cells, p):
 
-        # FIXME add in activators and inhibitors from
-        # self.reaction_activators_list and self.reaction_activators_Km
-        # self.reaction_inhibitors_list and self.reaction_activators_Km
 
         # get up-to-date concentration data for the reaction:
         if self.reaction_zone == 'cell':
@@ -1211,8 +1233,14 @@ class Reaction(object):
 
         reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
 
+        # get net effect of any activators or inhibitors of the reaction:
+        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.reaction_activators_list,
+            self.reaction_activators_Km, self.reaction_activators_n, self.reaction_inhibitors_list,
+            self.reaction_inhibitors_Km, self.reaction_inhibitors_n, reaction_zone=self.reaction_zone)
+
         # final degree of change, returned for use elsewhere (?):
-        deltaC = reaction_rate*p.dt
+        flux = activator_alpha*inhibitor_alpha*reaction_rate
+        deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
 
         if self.reaction_zone == 'cell':
 
@@ -1224,7 +1252,7 @@ class Reaction(object):
             self.set_reactant_c(deltaC, sim, sim_metabo,'c_mit', 'cc_mit')
             self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
 
-        return deltaC
+        return flux
 
 class Transporter(object):
 
@@ -1259,12 +1287,13 @@ class Transporter(object):
         # activator and inhibitors of the reaction
         self.transporter_activators_list = None
         self.transporter_activators_Km = None
+        self.transporter_activators_n = None
         self.transporter_inhibitors_list = None
         self.transporter_inhibitors_Km = None
+        self.transporter_inhibitors_n = None
 
         self.transport_out_list = None
         self.transport_in_list = None
-
 
     def get_reactants(self, sim, sim_metabo, reactant_type_self, reactant_type_sim):
 
@@ -1392,69 +1421,108 @@ class Transporter(object):
 
     def compute_reaction(self, sim, sim_metabo, cells, p):
 
-        # FIXME add in activators and inhibitors from
-        # self.transporter_activators_list and self.transporter_activators_Km
-        # self.transporter_inhibitors_list and self.transporter_inhibitors_Km
-
-        # FIXME change reaction to include Vm or Vmit for
-        # self.transport_out_list and self.transport_in_list
-
-        # get up-to-date concentration data for the reaction:
         if self.reaction_zone == 'cell':
+            type_self_out = 'c_env'
+            type_sim_out = 'cc_env'
 
-            self.get_reactants(sim, sim_metabo, 'c_cells', 'cc_cells')
-            self.get_products(sim, sim_metabo, 'c_cells', 'cc_cells')
+            type_self_in = 'c_cells'
+            type_sim_in = 'cc_cells'
+
+            type_self = 'c_cells'
+            type_sim = 'cc_cells'
 
         elif self.reaction_zone == 'mitochondria':
+            type_self_out = 'c_cells'
+            type_sim_out = 'cc_cells'
 
-            self.get_reactants(sim, sim_metabo, 'c_mit', 'cc_mit')
-            self.get_products(sim, sim_metabo, 'c_mit', 'cc_mit')
+            type_self_in = 'c_mit'
+            type_sim_in = 'cc_mit'
 
-        # if reaction is reversible, calculate reaction quotient Q, the equilibrium constant, and backwards rate
-        if self.delta_Go is not None:
+            type_self = 'c_mit'
+            type_sim = 'cc_mit'
 
-            # define the reaction equilibrium coefficient:
-            Keqm = np.exp(-self.delta_Go/(p.R*sim.T))
+        echem_terms = []
 
-            # calculate the MM rate coefficient for the backwards reaction direction and Q:
-            backwards_term = []
-            Q_deno_list = []
-            Q_numo_list = []
+        if self.transport_out_list != None:
 
-            for i, prod in enumerate(self.c_products):
-                # calculate a factor in the backwards rate term:
-                coeff = self.products_coeff[i]
-                Km = self.Km_products_list[i]
-                cs = (prod / Km) ** coeff
-                term = cs / (1 + cs)
-                backwards_term.append(term)
+            for out_name in self.transport_out_list:
 
-                # calculate a factor in the reaction quotient numerator term:
-                ci = prod**coeff
-                Q_numo_list.append(ci)
+                z_out, _ = get_conc(sim, sim_metabo, out_name, type_self_out, type_sim_out, cells, p)
 
-            backwards_term = np.asarray(backwards_term)
+                ind = self.reactants_list.index(out_name)
+                coeff = self.reactants_coeff[ind]
 
-            backwards_rate = self.vmax * np.prod(backwards_term, axis=0)
+                # get the electrochemical potential term for this reagent
+                # it's negative because it starts inside the cell
+                out_term = -z_out*coeff*sim.vm*p.F
 
-            for j, react in enumerate(self.c_reactants):
-                # calculate a factor in the reaction quotient denominator term:
-                coeff = self.reactants_coeff[j]
-                cj = react**coeff
-                Q_deno_list.append(cj)
+                echem_terms.append(out_term)
 
-            # get the numerator and denomenator of the reaction quotient:
-            Q_deno = np.prod(Q_deno_list, axis=0)
-            Q_numo = np.prod(Q_numo_list, axis=0)
 
-            # finally, *the* reaction quotient:
-            Q = Q_numo/Q_deno
+        if self.transport_in_list != None:
 
-        else:
+            for in_name in self.transport_in_list:
 
-            Q  = 0
-            backwards_rate = 0
-            Keqm = 1
+                z_in, _ = get_conc(sim, sim_metabo, in_name, type_self_in, type_sim_in, cells, p)
+
+                ind = self.products_list.index(in_name)
+                coeff = self.products_coeff[ind]
+
+                # get the electrochemical potential term for this reagent
+                # it's positive because it ends inside the cell
+                in_term = z_in*coeff*sim.vm*p.F
+
+                echem_terms.append(in_term)
+
+        echem_terms = np.asarray(echem_terms)
+        vmem_term = np.sum(echem_terms)
+
+        # modification factor for the equilibrium constant due to transfer of charged item across
+        #  transmembrane voltage:
+
+        Kmod = np.exp(-vmem_term/(p.R*sim.T))
+
+        # get up-to-date concentration data for the reaction:
+
+        self.get_reactants(sim, sim_metabo, type_self, type_sim)
+        self.get_products(sim, sim_metabo, type_self, type_sim)
+
+        # define the reaction equilibrium coefficient:
+        Keqm = np.exp(-self.delta_Go/(p.R*sim.T))*Kmod
+
+        # calculate the MM rate coefficient for the backwards reaction direction and Q:
+        backwards_term = []
+        Q_deno_list = []
+        Q_numo_list = []
+
+        for i, prod in enumerate(self.c_products):
+            # calculate a factor in the backwards rate term:
+            coeff = self.products_coeff[i]
+            Km = self.Km_products_list[i]
+            cs = (prod / Km) ** coeff
+            term = cs / (1 + cs)
+            backwards_term.append(term)
+
+            # calculate a factor in the reaction quotient numerator term:
+            ci = prod**coeff
+            Q_numo_list.append(ci)
+
+        backwards_term = np.asarray(backwards_term)
+
+        backwards_rate = self.vmax * np.prod(backwards_term, axis=0)
+
+        for j, react in enumerate(self.c_reactants):
+            # calculate a factor in the reaction quotient denominator term:
+            coeff = self.reactants_coeff[j]
+            cj = react**coeff
+            Q_deno_list.append(cj)
+
+        # get the numerator and denomenator of the reaction quotient:
+        Q_deno = np.prod(Q_deno_list, axis=0)
+        Q_numo = np.prod(Q_numo_list, axis=0)
+
+        # finally, *the* reaction quotient:
+        Q = Q_numo/Q_deno
 
         # Next, calculate the MM rate coefficient for the forward reaction direction:
         forward_term = []
@@ -1475,20 +1543,190 @@ class Transporter(object):
 
         reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
 
+        # get net effect of any activators or inhibitors of the reaction:
+        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.transporter_activators_list,
+            self.transporter_activators_Km, self.transporter_activators_n, self.transporter_inhibitors_list,
+            self.transporter_inhibitors_Km, self.transporter_inhibitors_n, reaction_zone=self.reaction_zone)
+
+        flux = activator_alpha*inhibitor_alpha*reaction_rate
         # final degree of change, returned for use elsewhere (?):
-        deltaC = reaction_rate*p.dt
+        deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
 
-        if self.reaction_zone == 'cell':
+        self.set_reactant_c(deltaC, sim, sim_metabo,type_self, type_sim)
+        self.set_product_c(deltaC, sim, sim_metabo, type_self, type_sim)
 
-            self.set_reactant_c(deltaC, sim, sim_metabo,'c_cells', 'cc_cells')
-            self.set_product_c(deltaC, sim, sim_metabo, 'c_cells', 'cc_cells')
+        return flux
 
-        if self.reaction_zone == 'mitochondria':
+def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+                    n_i_list, reaction_zone='cell'):
+    """
+    Get coefficients representing the net effect of all activators and inhibitors on a particular reaction.
 
-            self.set_reactant_c(deltaC, sim, sim_metabo,'c_mit', 'cc_mit')
-            self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
+    Parameters
+    ------------
+    sim                 Instance of BETSE simulator
+    sim_metabo:         Instance of MasterOfMetabolism
+    a_list:             activator names list
+    Km_a_list:          activator half-max constants
+    n_a_list:           activator Hill exponents
+    i_list:             inhibitor names list
+    Km_i_list:          inhibitor half-max constants
+    n_i_list:           inhibitor Hill exponents
+    reaction_zone:      Reaction occurring in 'cell' or 'mitochondria'
 
-        return deltaC
+    Returns
+    ------------
+    activator_alpha         Coefficient of net effect of activators
+    inhibitor_alpha         Coefficient of net effect of inhibitors
+    """
+
+    if reaction_zone == 'cell':
+        type_self = 'c_cells'
+        type_sim = 'cc_cells'
+
+    elif reaction_zone == 'mitochondria':
+
+        type_self = 'c_mit'
+        type_sim = 'cc_mit'
+
+    if a_list != None:  # if user specified activators for growth/decay
+
+        # get reaction zone for data type:
+
+        # initialize a blank list
+        activator_terms = []
+
+        # get the activator concentration for the substance, and
+        # create a term based on Hill form:
+        for i, activator_name in enumerate(a_list):
+
+            label = 'i' + activator_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                try:
+                    obj_activator = getattr(sim_metabo, activator_name)
+                    c_act = getattr(obj_activator, type_self)
+
+                except KeyError:
+
+                    raise BetseExceptionParameters('Name of reaction activator is not a defined chemical, '
+                                                   'or is not an ion currently included in the ion profile '
+                                                   'being used.'
+                                                   'Please check biomolecule definitions and ion profile'
+                                                   'settings of your config(s) and try again.')
+
+            else:
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conco = getattr(sim, type_sim)
+                c_act = sim_conco[ion_check]
+
+            Km_act = Km_a_list[i]
+            n_act = n_a_list[i]
+
+            cs = (c_act / Km_act) ** n_act
+
+            act_term = cs / (1 + cs)
+
+            activator_terms.append(act_term)
+
+        activator_terms = np.asarray(activator_terms)
+
+        # calculate the net effect of all activator terms:
+        activator_alpha = np.prod(activator_terms)
+
+    else:
+
+        activator_alpha = 1
+
+    if i_list != None:  # if user specified inhibitors for growth/decay
+
+        # initialize a blank list
+        inhibitor_terms = []
+
+        # get the activator concentration for the substance, and
+        # create a term based on Hill form:
+        for j, inhibitor_name in enumerate(i_list):
+
+            label = 'i' + inhibitor_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                try:
+                    obj_inhibitor = getattr(sim_metabo, inhibitor_name)
+                    c_inh = getattr(obj_inhibitor, type_self)
+
+                except KeyError:
+
+                    raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                                                   'or is not an ion currently included in the ion profile '
+                                                   'being used.'
+                                                   'Please check biomolecule definitions and ion profile'
+                                                   'settings of your config(s) and try again.')
+
+            else:
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conco = getattr(sim, type_sim)
+                c_inh = sim_conco[ion_check]
+
+            Km_inh = Km_i_list[j]
+            n_inh = n_i_list[j]
+
+            cs = (c_inh / Km_inh) ** n_inh
+
+            inh_term = 1 / (1 + cs)
+
+            inhibitor_terms.append(inh_term)
+
+        inhibitor_terms = np.asarray(inhibitor_terms)
+
+        # calculate the net effect of all activator terms:
+        inhibitor_alpha = np.prod(inhibitor_terms)
+
+    else:
+        inhibitor_alpha = 1
+
+    return activator_alpha, inhibitor_alpha
+
+def get_conc(sim, sim_metabo, name, type_self, type_sim, cells, p):
+
+    label = 'i' + name
+    ion_check = getattr(sim, label, None)
+
+    if ion_check is None:
+
+        try:
+            obj = getattr(sim_metabo, name)
+            c = getattr(obj, type_self)
+            z = obj.z
+
+        except KeyError:
+
+            raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                                           'or is not an ion currently included in the ion profile '
+                                           'being used.'
+                                           'Please check biomolecule definitions and ion profile'
+                                           'settings of your config(s) and try again.')
+
+    else:
+        # define the reactant as the ion concentration from the cell concentrations object in sim:
+        sim_conco = getattr(sim, type_sim)
+        c = sim_conco[ion_check]
+        z = sim.zs[ion_check]
+
+        if type_sim == 'cc_env':
+
+            if p.sim_ECM:
+                c = c[cells.map_cell2ecm]
+
+            else:
+                c = np.dot(cells.M_sum_mems, c)/cells.num_mems
+
+    return c, z
+
+
 
 
 

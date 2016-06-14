@@ -486,20 +486,25 @@ class Parameters(object):
             self.Ca_dyn_options['CICR'] = cicr
 
         #--------------------------------------------------------------------------------------------------------------
-        #  BIOCHEMISTRY
+        #  CUSTOM BIOCHEMISTRY
         #--------------------------------------------------------------------------------------------------------------
         self.molecules_enabled = self.config['biomolecules enabled']
 
         self.molecules_config = self.config['biomolecules']
 
         #--------------------------------------------------------------------------------------------------------------
-        #  REACTIONS
+        #  CUSTOM REACTIONS
         #--------------------------------------------------------------------------------------------------------------
         self.reactions_enabled = self.config['reactions enabled']
 
         self.reactions_config = self.config['reactions']
 
+        #--------------------------------------------------------------------------------------------------------------
+        #  CUSTOM TRANSPORTERS
+        #--------------------------------------------------------------------------------------------------------------
+        self.transporters_enabled = self.config['transporters enabled']
 
+        self.transporters_config = self.config['transporters']
 
         #---------------------------------------------------------------------------------------------------------------
         #  METABOLISM
@@ -508,6 +513,14 @@ class Parameters(object):
         self.metabolism_enabled = self.config['metabolism settings']['metabolism simulated']
 
         self.metabo_config_filename = self.config['metabolism settings']['metabolism config']
+
+        #---------------------------------------------------------------------------------------------------------------
+        #  GENE REGULATORY NETWORKS
+        #---------------------------------------------------------------------------------------------------------------
+
+        self.grn_enabled = self.config['gene regulatory network settings']['gene regulatory network simulated']
+
+        self.grn_config_filename = self.config['gene regulatory network settings']['gene regulatory network config']
 
         #--------------------------------------------------------------------------------------------------------------
         # VARIABLE SETTINGS

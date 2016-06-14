@@ -32,7 +32,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 1.5             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None     # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -66,7 +65,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
     cell conc: 0.1    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -99,7 +97,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
     cell conc: 0.1    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration

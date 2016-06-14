@@ -623,13 +623,17 @@ class Simulator(object):
         # -----auxiliary molecules initialization -------------------------
 
         # create and initialize the auxiliary-molecules handler for this simulation:
-        if p.molecules_enabled: # FIXME: we want this to read reactions from config, if they're enabled!
+        if p.molecules_enabled:
 
             self.molecules = MasterOfMolecules(self,p.molecules_config,p)
 
             if p.reactions_enabled:
 
                 self.molecules.read_reactions(p.reactions_config, self, cells, p)
+
+            if p.transporters_enabled:
+
+                self.molecules.read_transporters(p.transporters_config, self, cells, p)
 
         else:
             self.molecules = None
@@ -933,17 +937,25 @@ class Simulator(object):
 
 
             # update the molecules handler:
-            if p.molecules_enabled:   # FIXME -- we want to have this run reactions from config, if reactions are specified
-
-                self.molecules.run_loop(t, self,cells,p)
+            if p.molecules_enabled:
 
                 if p.reactions_enabled:
 
                     self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
 
+                if p.transporters_endabled:
+
+                    self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
+
+                self.molecules.run_loop(t, self, cells, p)
+
             if p.metabolism_enabled:
 
                 self.metabo.core.run_loop_reactions(t, self, self.metabo.core, cells, p)
+
+                if self.metabo.transporters is not None:
+                    self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
+
                 self.metabo.core.run_loop(t, self, cells, p)
 
             # dynamic noise handling-----------------------------------------------------------------------------------
@@ -1237,13 +1249,6 @@ class Simulator(object):
         if p.deform_osmo is True:
             self.osmo_P_delta_time.append(self.osmo_P_delta[:])
 
-        # if p.deform_electro is True:
-        #     self.F_electro_time.append(self.F_electro[:])
-        #     self.F_electro_x_time.append(self.F_electro_x[:])
-        #     self.F_electro_y_time.append(self.F_electro_y[:])
-        #
-        #     self.P_electro_time.append(self.P_electro[:])
-
         if p.deformation is True and p.run_sim is True:
 
             # make a copy of cells to apply deformation to:
@@ -1251,10 +1256,6 @@ class Simulator(object):
             implement_deform_timestep(self,self.cellso, t, p)
             self.dx_cell_time.append(self.d_cells_x[:])
             self.dy_cell_time.append(self.d_cells_y[:])
-
-        # else:
-        #     self.cellso = cells
-
 
         if p.fluid_flow is True and p.run_sim is True:
             self.u_cells_x_time.append(self.u_cells_x[:])

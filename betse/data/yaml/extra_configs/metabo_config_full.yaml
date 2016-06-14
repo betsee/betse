@@ -33,7 +33,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 1.436     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 1.5             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None     # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -67,7 +66,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
     cell conc: 0.163    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -100,7 +98,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
     cell conc: 0.163    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -133,7 +130,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
     cell conc: 0.935    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 1.34             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -166,7 +162,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
     cell conc: 0.409    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.005             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -199,7 +194,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 5.0         # initial concentration in the environment [mmol/L]
     cell conc: 4.655    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -232,7 +226,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.0         # initial concentration in the environment [mmol/L]
     cell conc: 0.098    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -265,7 +258,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.0         # initial concentration in the environment [mmol/L]
     cell conc: 0.0165    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -298,7 +290,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.0         # initial concentration in the environment [mmol/L]
     cell conc: 0.0131    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -331,7 +322,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.005         # initial concentration in the environment [mmol/L]
     cell conc: 0.111    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -365,7 +355,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.033         # initial concentration in the environment [mmol/L]
     cell conc: 3.335    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -398,7 +387,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.0         # initial concentration in the environment [mmol/L]
     cell conc: 0.20    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.50             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -431,7 +419,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.0         # initial concentration in the environment [mmol/L]
     cell conc: 0.50    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 1.50             # initial concentration in the mitochondria [mmol/L]
-    growth and decay: None   # we use more sophisticated growth/decay than this field permits
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -464,20 +451,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
 
 reactions:
 
-#  - name: produce_ATP         # unique identifier for the reaction
-#
-#    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
-#    reactants: ['ADP', 'Pi']   # list of reagents; must be from set of names defined for biomolecules in above
-#    reactant multipliers: [1,1]  # reaction coefficients for reagents, in same order as reagent definition
-#    Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
-#    products: ['ATP']         # list of products; must be from set of names defined for biomolecules in above
-#    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
-#    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
-#    max rate: 5.0e-2          # maximum rate of the reaction
-#    standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-
-
-  - name: consume_ATP              # unique identifier for the reaction
+  - name: consume_ATP              # background metabolic rate, not including pump activity
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['ATP']              # list of reagents; must be from set of names defined for biomolecules in above
@@ -489,7 +463,7 @@ reactions:
     max rate: 5.0e-3                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 
-  - name: hexokinase              # unique identifier for the reaction
+  - name: hexokinase              # hexokinase enzyme reaction
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['Gluc','ATP']              # list of reagents; must be from set of names defined for biomolecules in above
@@ -501,7 +475,7 @@ reactions:
     max rate: 1.0                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 
-  - name: phospho-glucose-isomerase              # unique identifier for the reaction
+  - name: phospho-glucose-isomerase              # phosphoglucoseisomerase enzyme reaction
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['G6P']              # list of reagents; must be from set of names defined for biomolecules in above
@@ -513,7 +487,7 @@ reactions:
     max rate: 15.0                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: 1.67e3   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 
-  - name: phospho-fructose-kinase   # unique identifier for the reaction
+  - name: phospho-fructo-kinase   # phosphofructokinase enzyme reaction
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['F6P', 'ATP']              # list of reagents; must be from set of names defined for biomolecules in above
@@ -524,8 +498,11 @@ reactions:
     Km products: [5.0, 5.0, 5.0]        # list of half-max coefficients for reagents, in same order as reagents list
     max rate: 20.0                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    reaction inhibitors: ['ATP']   # link to defined substances or ions inhibiting reaction activitiy
+    inhibitor Km: [1.75]          # Km of inhibitors
+    inhibitor n: [4]     # Hill exponent of inhibitor equation
 
-  - name: glycolysis-2         # second-stage of glycolysis
+  - name: glycolysis-2         # second-stage of glycolysis reaction
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['BP', 'ADP', 'Pi', 'NAD']              # list of reagents; must be from set of names defined for biomolecules in above
@@ -552,7 +529,7 @@ reactions:
 
   #---MITOCHONDRIA REACTIONS--------------------------------------------------------------------------------------------
 
-  - name: pyruvate-dehydrogenase         # lactate dehydrogenase enzyme
+  - name: pyruvate-dehydrogenase         # pyruvate dehydrogenase enzyme
 
     reaction zone: mitochondria     # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['Pyr', 'NAD', 'coA']              # list of reagents; must be from set of names defined for biomolecules in above

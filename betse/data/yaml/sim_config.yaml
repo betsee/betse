@@ -545,14 +545,6 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
     z: 1               # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 1.0e-6    # initial concentration in the cytoplasm [mmol/L]
-    growth and decay:
-      production rate: 1.0e-5    # rate at which molecule is produced in the cytoplasm
-      decay rate: 1.0e-6          # rate at which molecule is consumed in the cytoplasm
-      Km: 1.0e-3                  # Half-maximum value for growth and decay [mmol/L]
-      activators: None
-      Km activators: None
-      inhibitors: None
-      Km inhibitors: None
     ion channel gating:
       ion channel target: Na    # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -586,14 +578,6 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
     z: -1               # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 1.0e-6    # initial concentration in the cytoplasm [mmol/L]
-    growth and decay:
-      production rate: 1.0e-5    # rate at which molecule is produced in the cytoplasm
-      decay rate: 1.0e-6          # rate at which molecule is consumed in the cytoplasm
-      Km: 1.0e-3                  # Half-maximum value for growth and decay [mmol/L]
-      activators: None
-      Km activators: None
-      inhibitors: None
-      Km inhibitors: None
     ion channel gating:
       ion channel target: K       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -626,7 +610,6 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
     z: 1               # charge (oxidation state)
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 0.0         # initial concentration in the cytoplasm [mmol/L]
-    growth and decay: None
     ion channel gating:
       ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -674,13 +657,15 @@ reactions:                   # user-defined reactions, betweeen biomolecules def
     standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates irreversible reaction
     reaction activators: None   # additional substance increasing activity of reaction
     activator Km: None          # Km of additional substances in same order as above
+    activator n: None
     reaction inhibitors: None   # link to defined substances or ions inhibiting reaction activitiy
     inhibitor Km: None          # Km of inhibitors
+    inhibitor n: None
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
 #-----------------------------------------------------------------------------------------------------------------------
-transporters enabled: True
+transporters enabled: False   # FIXME do an example transporter for ions in the default simulation
 
 transporters:
 
@@ -696,7 +681,6 @@ transporters:
     transfered into cell: ['Na']     # items of reaction moved into cell during forwards reaction
     max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-
     transporter activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
     transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
@@ -721,7 +705,7 @@ gene regulatory network settings:
 
   gene regulatory network simulated: False
 
-  gene regulatory network config: extra_configs/gnr_basic.yaml
+  gene regulatory network config: extra_configs/grn_basic.yaml
 
 
 #-----------------------------------------------------------------------------------------------------------------------

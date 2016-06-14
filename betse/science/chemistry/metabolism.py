@@ -22,7 +22,8 @@ from betse.util.io.log import logs
 from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.config import sim_config
 from betse.exceptions import BetseExceptionParameters
-from betse.science import sim_toolbox as stb
+
+# FIXME we now need a MasterOfGenes for GRN handling
 
 class MasterOfMetabolism(object):
 
@@ -50,6 +51,7 @@ class MasterOfMetabolism(object):
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']
         reactions_config = self.config_dic['reactions']
+        transporters_config = self.config_dic.get('transporters', None)
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
@@ -57,6 +59,13 @@ class MasterOfMetabolism(object):
 
         # initialize the reactions of metabolism:
         self.core.read_reactions(reactions_config, sim, cells, p)
+
+        # initialize transporters, if defined:
+        if transporters_config is not None:
+            self.core.read_transporters(transporters_config, sim, cells, p)
+
+        else:
+            self.transporters = None
 
         # test to make sure the metabolic simulation includes core components:
         if self.core.ATP is None or self.core.ADP is None or self.core.Pi is None:
@@ -95,6 +104,10 @@ class MasterOfMetabolism(object):
         for t in tt:
 
             self.core.run_loop_reactions(t, sim, self.core, cells, p)
+
+            if self.transporters is not None:
+                self.core.run_loop_transporters(t, sim, self.core, cells, p)
+
             self.core.run_loop(t, sim, cells, p)
 
             if t in tsamples:
@@ -127,8 +140,6 @@ class MasterOfMetabolism(object):
         cADP = self.core.ADP.c_mems
         cPi = self.core.Pi.c_mems
 
-        # flux_ave = np.dot(cells.M_sum_mems, flux)/cells.num_mems
-
         deltac = ((flux*cells.mem_sa)/cells.mem_vol)*p.dt
 
         self.core.ATP.c_mems = cATP + deltac
@@ -137,9 +148,6 @@ class MasterOfMetabolism(object):
 
         # self.core.updateInside(sim, cells, p)
 
-        # self.core.ATP.c_mems = stb.no_negs(self.core.ATP.c_mems)
-        # self.core.ADP.c_mems =  stb.no_negs(self.core.ADP.c_mems)
-        # self.core.Pi.c_mems = stb.no_negs(self.core.Pi.c_mems)
 
 
 
