@@ -63,9 +63,10 @@ class MasterOfMetabolism(object):
         # initialize transporters, if defined:
         if transporters_config is not None:
             self.core.read_transporters(transporters_config, sim, cells, p)
+            self.transporters = True
 
         else:
-            self.transporters = None
+            self.transporters = False
 
         # test to make sure the metabolic simulation includes core components:
         if self.core.ATP is None or self.core.ADP is None or self.core.Pi is None:
@@ -105,7 +106,7 @@ class MasterOfMetabolism(object):
 
             self.core.run_loop_reactions(t, sim, self.core, cells, p)
 
-            if self.transporters is not None:
+            if self.transporters:
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)
 
             self.core.run_loop(t, sim, cells, p)

@@ -686,6 +686,13 @@ transporters:
     transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
 
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM CHANNELS
+#-----------------------------------------------------------------------------------------------------------------------
+custom channels enabled: False   # FIXME implement this in parameters and in molecule and in sim
+
+channels:
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM
@@ -694,7 +701,7 @@ metabolism settings:
 
   metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
 
-  metabolism config: extra_configs/metabo_config_basic.yaml  # supply a path to the config file containing metabolic sim info
+  metabolism config: extra_configs/metabo_test.yaml  # supply a path to the config file containing metabolic sim info
                                                       # metabo_config_basic.yaml supplies a very basic metabolism model
                                                       # metabo_config_full.yaml supplies a full metabolism model
                                                       # these config files are ignored if 'metabolism simulated' is F
