@@ -623,19 +623,18 @@ class MasterOfMolecules(object):
 
             ax_all1D.plot(sim.time, c_cells, linewidth = 2.0, label=name)
 
-        legend = ax_all1D.legend(loc = 'upper left', shadow = False, frameon = False)
+        legend = ax_all1D.legend(loc = 'upper right', shadow = False, frameon = False)
 
         ax_all1D.set_xlabel('Time [s]')
         ax_all1D.set_ylabel('Concentration [mmol/L]')
         ax_all1D.set_title('Concentration of all substances in cell ' + str(p.plot_cell))
 
         if p.autosave is True:
-            savename = self.imagePath + 'AllCellConcentrations_' + '.png'
+            savename = self.imagePath + 'AllCellConcentrations' + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
-
 
     def anim(self, sim, cells, p, message = 'for auxilary molecules...'):
         """
@@ -807,12 +806,14 @@ class Molecule(object):
 
         cc = self.c_cells/self.Kgd
 
-        activator_alpha, inhibitor_alpha = get_influencers(sim, super_self, self.growth_activators_list,
+        activator_alpha, inhibitor_alpha = get_influencers_grn(sim, super_self, self.growth_activators_list,
             self.growth_activators_Km, self.growth_activators_n, self.growth_inhibitors_list,
             self.growth_inhibitors_Km, self.growth_inhibitors_n, reaction_zone='cell')
 
-        delta_cells = self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
+        # delta_cells = tb.RK4(lambda cc: self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc)
+        # self.c_cells = self.c_cells + delta_cells(self.c_cells,p.dt)
 
+        delta_cells = self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
         self.c_cells = self.c_cells + delta_cells*p.dt
 
         # make sure the concs inside the cell are evenly mixed after production/decay:
@@ -1986,38 +1987,178 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 
     return activator_alpha, inhibitor_alpha
 
-def get_conc(sim, sim_metabo, name, type_self, type_sim, cells, p):
+def get_influencers_grn(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+        n_i_list, reaction_zone='cell'):
 
-    label = 'i' + name
-    ion_check = getattr(sim, label, None)
 
-    if ion_check is None:
+    """
+    Get coefficients representing the net effect of all activators and inhibitors on a particular reaction.
 
-        try:
-            obj = getattr(sim_metabo, name)
-            c = getattr(obj, type_self)
-            z = obj.z
+    Parameters
+    ------------
+    sim                 Instance of BETSE simulator
+    sim_metabo:         Instance of MasterOfMetabolism
+    a_list:             activator names list
+    Km_a_list:          activator half-max constants
+    n_a_list:           activator Hill exponents
+    i_list:             inhibitor names list
+    Km_i_list:          inhibitor half-max constants
+    n_i_list:           inhibitor Hill exponents
+    reaction_zone:      Reaction occurring in 'cell' or 'mitochondria'
 
-        except KeyError:
+    Returns
+    ------------
+    activator_alpha         Coefficient of net effect of activators
+    inhibitor_alpha         Coefficient of net effect of inhibitors
+    """
 
-            raise BetseExceptionParameters('Name of substance is not a defined chemical, '
-                                           'or is not an ion currently included in the ion profile '
-                                           'being used.'
-                                           'Please check biomolecule definitions and ion profile'
-                                           'settings of your config(s) and try again.')
+    if reaction_zone == 'cell':
+        type_self = 'c_cells'
+        type_sim = 'cc_cells'
+
+    if reaction_zone == 'mems':
+        type_self = 'c_mems'
+        type_sim = 'cc_mems'
+
+    elif reaction_zone == 'mitochondria':
+
+        type_self = 'c_mit'
+        type_sim = 'cc_mit'
+
+    # initialize a blank list
+    activator_terms = []
+
+    if a_list is not None and a_list != 'None' and len(a_list) > 0:  # if user specified activators for growth/decay
+
+        # get reaction zone for data type:
+
+        # get the activator concentration for the substance, and
+        # create a term based on Hill form:
+        for i, activator_name in enumerate(a_list):
+
+            label = 'i' + activator_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                try:
+                    obj_activator = getattr(sim_metabo, activator_name)
+                    c_act = getattr(obj_activator, type_self)
+
+                except KeyError:
+
+                    raise BetseExceptionParameters('Name of reaction activator is not a defined chemical, '
+                                                   'or is not an ion currently included in the ion profile '
+                                                   'being used.'
+                                                   'Please check biomolecule definitions and ion profile'
+                                                   'settings of your config(s) and try again.')
+
+            else:
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conco = getattr(sim, type_sim)
+                c_act = sim_conco[ion_check]
+
+            Km_act = Km_a_list[i]
+            n_act = n_a_list[i]
+
+            cs = (c_act * Km_act) ** n_act
+
+            act_term = cs / (1 + cs)
+
+            activator_terms.append(act_term)
+
+        activator_terms = np.asarray(activator_terms)
+
+        # calculate the net effect of all activator terms:
+        activator_alpha = np.prod(activator_terms, axis=0)
+
 
     else:
-        # define the reactant as the ion concentration from the cell concentrations object in sim:
-        sim_conco = getattr(sim, type_sim)
-        c = sim_conco[ion_check]
-        z = sim.zs[ion_check]
 
-    if type_self == 'c_env' or type_sim == 'cc_env':
+        activator_alpha = 1
 
-        if p.sim_ECM:
-            c = c[cells.map_mem2ecm]
+    # initialize a blank list
+    inhibitor_terms = []
 
-    return z, c
+    if i_list is not None and i_list != 'None' and len(i_list) > 0:  # if user specified inhibitors for growth/decay
+
+        # get the inhibitor concentration for the substance, and
+        # create a term based on Hill form:
+        for j, inhibitor_name in enumerate(i_list):
+
+            label = 'i' + inhibitor_name
+            ion_check = getattr(sim, label, None)
+
+            if ion_check is None:
+
+                try:
+                    obj_inhibitor = getattr(sim_metabo, inhibitor_name)
+                    c_inh = getattr(obj_inhibitor, type_self)
+
+                except KeyError:
+
+                    raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                                                   'or is not an ion currently included in the ion profile '
+                                                   'being used.'
+                                                   'Please check biomolecule definitions and ion profile'
+                                                   'settings of your config(s) and try again.')
+
+            else:
+                # define the reactant as the ion concentration from the cell concentrations object in sim:
+                sim_conco = getattr(sim, type_sim)
+                c_inh = sim_conco[ion_check]
+
+            Km_inh = Km_i_list[j]
+            n_inh = n_i_list[j]
+
+            cs = (c_inh * Km_inh) ** n_inh
+
+            inh_term = 1 / (1 + cs)
+
+            inhibitor_terms.append(inh_term)
+
+        inhibitor_terms = np.asarray(inhibitor_terms)
+
+        # calculate the net effect of all activator terms:
+        inhibitor_alpha = np.prod(inhibitor_terms, axis=0)
+
+    else:
+        inhibitor_alpha = 1
+
+    return activator_alpha, inhibitor_alpha
+
+def get_conc(sim, sim_metabo, name, type_self, type_sim, cells, p):
+
+        label = 'i' + name
+        ion_check = getattr(sim, label, None)
+
+        if ion_check is None:
+
+            try:
+                obj = getattr(sim_metabo, name)
+                c = getattr(obj, type_self)
+                z = obj.z
+
+            except KeyError:
+
+                raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                                               'or is not an ion currently included in the ion profile '
+                                               'being used.'
+                                               'Please check biomolecule definitions and ion profile'
+                                               'settings of your config(s) and try again.')
+
+        else:
+            # define the reactant as the ion concentration from the cell concentrations object in sim:
+            sim_conco = getattr(sim, type_sim)
+            c = sim_conco[ion_check]
+            z = sim.zs[ion_check]
+
+        if type_self == 'c_env' or type_sim == 'cc_env':
+
+            if p.sim_ECM:
+                c = c[cells.map_mem2ecm]
+
+        return z, c
 
 
 
