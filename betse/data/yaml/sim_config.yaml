@@ -712,7 +712,7 @@ gene regulatory network settings:
 
   gene regulatory network simulated: False
 
-  gene regulatory network config: extra_configs/grn_basic.yaml
+  gene regulatory network config: extra_configs/grn_switch.yaml
 
 
 #-----------------------------------------------------------------------------------------------------------------------

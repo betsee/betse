@@ -102,48 +102,73 @@ class MasterOfMolecules(object):
                 obj.n_production = gad['n']
 
                 obj.growth_activators_list = gad['activators']
+                obj.growth_activators_k = gad['k activators']
                 obj.growth_activators_Km = gad['Km activators']
-                obj.growth_activators_n = gad['Km activators']
+
+                obj.growth_activators_n = gad['k activators']
                 obj.growth_inhibitors_list = gad['inhibitors']
+                obj.growth_inhibitors_k = gad['k inhibitors']
                 obj.growth_inhibitors_Km = gad['Km inhibitors']
-                obj.growth_inhibitors_n = gad['Km inhibitors']
+                obj.growth_inhibitors_n = gad['k inhibitors']
 
             else:
                 obj.simple_growth = False
 
             # assign ion channel gating properties
-            icg = mol_dic['ion channel gating']
+            icg = mol_dic.get('ion channel gating', None)
 
-            gating_ion_o = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
+            if icg is not None:
 
-            if gating_ion_o != 'None':
-                obj.use_gating_ligand = True
-                self.gating_ion = sim.get_ion(gating_ion_o)
+                obj.ion_channel_gating = True
+
+                gating_ion_o = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
+
+                if gating_ion_o != 'None':
+                    obj.use_gating_ligand = True
+                    self.gating_ion = sim.get_ion(gating_ion_o)
+
+                else:
+                    obj.use_gating_ligand = False
+                    self.gating_ion = []
+
+                obj.gating_Hill_K = icg['target Hill coefficient']
+                obj.gating_Hill_n = icg['target Hill exponent']
+                obj.gating_max_val = icg['peak channel opening']
+                obj.gating_extracell = icg['acts extracellularly']
 
             else:
-                obj.use_gating_ligand = False
-                self.gating_ion = []
 
-            obj.gating_Hill_K = icg['target Hill coefficient']
-            obj.gating_Hill_n = icg['target Hill exponent']
-            obj.gating_max_val = icg['peak channel opening']
-            obj.gating_extracell = icg['acts extracellularly']
+                obj.ion_channel_gating = False
 
             # assign active pumping properties
-            ap = mol_dic['active pumping']
-            obj.use_pumping = ap['turn on']
-            obj.pump_to_cell = ap['pump to cell']
-            obj.pump_max_val = ap['maximum rate']
-            obj.pump_Km = ap['pump Km']
-            obj.pumps_use_ATP = ap['uses ATP']
+            ap = mol_dic.get('active pumping', None)
+
+            if ap is not None:
+
+                obj.active_pumping = True
+                obj.use_pumping = ap['turn on']
+                obj.pump_to_cell = ap['pump to cell']
+                obj.pump_max_val = ap['maximum rate']
+                obj.pump_Km = ap['pump Km']
+                obj.pumps_use_ATP = ap['uses ATP']
+
+            else:
+                obj.active_pumping = False
+
 
             # assign boundary change event properties
-            cab = mol_dic['change at bounds']
-            obj.change_at_bounds = cab['event happens']
-            obj.change_bounds_start = cab['change start']
-            obj.change_bounds_end = cab['change finish']
-            obj.change_bounds_rate = cab['change rate']
-            obj.change_bounds_target = cab['concentration']
+            cab = mol_dic.get('change at bounds', None)
+
+            if cab is not None:
+                obj.change_bounds = True
+                obj.change_at_bounds = cab['event happens']
+                obj.change_bounds_start = cab['change start']
+                obj.change_bounds_end = cab['change finish']
+                obj.change_bounds_rate = cab['change rate']
+                obj.change_bounds_target = cab['concentration']
+
+            else:
+                obj.change_bounds = False
 
             # assign plotting properties
             pd = mol_dic['plotting']
@@ -474,16 +499,28 @@ class MasterOfMolecules(object):
 
             obj = getattr(self,name)
 
-            obj.pump(sim, cells, p)
-            obj.transport(sim, cells, p)
-            obj.updateIntra(sim, cells, p)
+            # if pumping is enabled:
+            if obj.active_pumping:
+                obj.pump(sim, cells, p)
 
+            # update the production-decay regulatory network (if defined):
             if obj.simple_growth is True:
                 obj.growth_and_decay(self, sim, cells, p)
 
             if p.run_sim is True:
-                obj.gating(sim, cells, p)
-                obj.update_boundary(t, p)
+                # use the substance as a gating ligand (if desired)
+                if obj.ion_channel_gating:
+                    obj.gating(sim, cells, p)
+
+                # update the global boundary (if desired)
+                if obj.change_bounds:
+                    obj.update_boundary(t, p)
+
+            # transport the molecule through gap junctions and environment:
+            obj.transport(sim, cells, p)
+
+            # update the substance on the inside of the cell:
+            obj.updateIntra(sim, cells, p)
 
     def updateInside(self, sim, cells, p):
         """
@@ -699,9 +736,11 @@ class Molecule(object):
         self.n_production = None
 
         self.growth_activators_list = None
+        self.growth_activators_k = None
         self.growth_activators_Km = None
         self.growth_activators_n = None
         self.growth_inhibitors_list = None
+        self.growth_inhibitors_k = None
         self.growth_inhibitors_Km = None
         self.growth_inhibitors_n = None
 
@@ -807,17 +846,24 @@ class Molecule(object):
         cc = self.c_cells/self.Kgd
 
         activator_alpha, inhibitor_alpha = get_influencers_grn(sim, super_self, self.growth_activators_list,
-            self.growth_activators_Km, self.growth_activators_n, self.growth_inhibitors_list,
-            self.growth_inhibitors_Km, self.growth_inhibitors_n, reaction_zone='cell')
+            self.growth_activators_k, self.growth_activators_Km, self.growth_activators_n,
+            self.growth_inhibitors_list, self.growth_inhibitors_k, self.growth_inhibitors_Km,
+            self.growth_inhibitors_n, reaction_zone='cell')
 
+
+        # RK4 method (appears identical to faster Euler method)
         # delta_cells = tb.RK4(lambda cc: self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc)
-        # self.c_cells = self.c_cells + delta_cells(self.c_cells,p.dt)
+        # c_change = delta_cells(self.c_cells, p.dt)
+        # self.c_cells = self.c_cells + c_change
+        # self.c_mems = self.c_mems + c_change[cells.mem_to_cells]
 
         delta_cells = self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
         self.c_cells = self.c_cells + delta_cells*p.dt
 
+        self.c_mems = self.c_mems + delta_cells[cells.mem_to_cells]*p.dt
+
         # make sure the concs inside the cell are evenly mixed after production/decay:
-        self.updateIntra(sim, cells, p)
+        # self.updateIntra(sim, cells, p)
 
     def remove_cells(self, target_inds_cell, target_inds_mem, sim, cells, p):
         """
@@ -1987,7 +2033,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 
     return activator_alpha, inhibitor_alpha
 
-def get_influencers_grn(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+def get_influencers_grn(sim, sim_metabo, a_list, k_a_list, Km_a_list, n_a_list, i_list, k_i_list, Km_i_list,
         n_i_list, reaction_zone='cell'):
 
 
@@ -2058,10 +2104,11 @@ def get_influencers_grn(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km
                 sim_conco = getattr(sim, type_sim)
                 c_act = sim_conco[ion_check]
 
+            k_act = k_a_list[i]
             Km_act = Km_a_list[i]
             n_act = n_a_list[i]
 
-            cs = (c_act * Km_act) ** n_act
+            cs = ((c_act*k_act)/Km_act) ** n_act
 
             act_term = cs / (1 + cs)
 
@@ -2108,10 +2155,11 @@ def get_influencers_grn(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km
                 sim_conco = getattr(sim, type_sim)
                 c_inh = sim_conco[ion_check]
 
+            k_inh = k_i_list[j]
             Km_inh = Km_i_list[j]
             n_inh = n_i_list[j]
 
-            cs = (c_inh * Km_inh) ** n_inh
+            cs = ((c_inh*k_inh)/Km_inh) ** n_inh
 
             inh_term = 1 / (1 + cs)
 
