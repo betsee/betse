@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.organelles.mitochondria import Mito
 
 
 # FIXME we will need methods to update mitochondria concs and Vmit, as well as ER concs and Vmit defined
@@ -33,7 +34,7 @@ from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 
 class MasterOfMolecules(object):
 
-    def __init__(self, sim, config_substances, p):
+    def __init__(self, sim, cells, config_substances, p, mit_enabled = False):
 
         """
          Initializes the MasterOfMolecules object.
@@ -48,9 +49,12 @@ class MasterOfMolecules(object):
         self.ADP = None
         self.Pi = None
 
-        self.read_substances(sim, config_substances, p)
+        # set the key controlling presence of mitochondria:
+        self.mit_enabled = mit_enabled
 
-    def read_substances(self, sim, config_substances, p):
+        self.read_substances(sim, cells, config_substances, p)
+
+    def read_substances(self, sim, cells, config_substances, p):
         """
             Initializes all of the main variables for all molecules included in the simulation.
 
@@ -184,9 +188,12 @@ class MasterOfMolecules(object):
             obj.c_mems = np.ones(sim.mdl) * obj.c_cello
 
             # if there is an initial concentration for mitochondria, define a conc vector for it:
-            if obj.c_mito is not None:
+            if obj.c_mito is not None and self.mit_enabled:
 
                 obj.c_mit = np.ones(sim.cdl)*obj.c_mito
+
+            elif self.mit_enabled and obj.c_mito is None:
+                obj.c_mit = np.zeros(sim.cdl)
 
             # if there is an initial concentration for endo retic, define a conc vector for it:
             if obj.c_ero is not None:
@@ -201,6 +208,14 @@ class MasterOfMolecules(object):
 
             # initialize concentration at the boundary
             obj.c_bound = obj.c_envo
+
+            # if mitochondria are enabled:
+            if self.mit_enabled:
+
+                self.mit = Mito(sim, cells, p)
+
+            else:
+                self.mit = None
 
     def read_reactions(self, config_reactions, sim, cells, p):
 
@@ -335,52 +350,12 @@ class MasterOfMolecules(object):
             obj.transporter_activators_list = trans_dic.get('transporter activators', None)
             obj.transporter_activators_Km = trans_dic.get('activator Km', None)
             obj.transporter_activators_n = trans_dic.get('activator n', None)
+
             obj.transporter_inhibitors_list = trans_dic.get('transporter inhibitors', None)
             obj.transporter_inhibitors_Km = trans_dic.get('inhibitor Km', None)
             obj.transporter_inhibitors_n = trans_dic.get('inhibitor n', None)
 
-            # now we want to load the right concentration data arrays for reactants into the Reaction object:
-
-            # check the reaction states to make sure all reagents/products are named biomolecules or ions:
-            # self.check_reactions(obj, sim, cells, p)
-
-    def check_reactions(self, obj, sim, cells, p):
-
-        # FIXME complete this
-
-        if obj.reaction_zone == 'cell':
-
-            # Case 1: no transfer across the membrane -- these are in-cytoplasm reactions -------------------------------
-            for i, reactant_name in enumerate(obj.reactants_list):
-
-                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
-
-            # Now load the right concentration data arrays for products into the Reaction object:
-            for j, product_name in enumerate(obj.products_list):
-
-                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
-
-
-        elif obj.reaction_zone == 'mitochondria':
-
-            # Case 1: no transfer across the membrane -- these are in-cytoplasm reactions -------------------------------
-            for i, reactant_name in enumerate(obj.reactants_list):
-
-                self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_mit', 'cc_mit')
-
-            # Now load the right concentration data arrays for products into the Reaction object:
-            for j, product_name in enumerate(obj.products_list):
-
-                self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
-
-        else:
-            raise BetseExceptionParameters("You have requested a reaction zone that does not exist."
-                                           "Valid options include: 'cell' and 'mitochondria'."
-                                           "Please check your config(s) settings defining reactions"
-                                           " and try again. ")
-
-    def set_react_concs(self, obj, sim, cells, p, reactant_name, i, reactant_type_self, reactant_type_sim):
-        # FIXME put in a clause for c_mit or cc_mit undefined!
+    def set_react_sources(self, obj, sim, cells, p, reactant_name, i, reactant_type_self, reactant_type_sim):
 
         """
 
@@ -408,7 +383,7 @@ class MasterOfMolecules(object):
         # and Km values at a later point:
         obj.inds_react.append(i)
 
-    def set_prod_concs(self, obj, sim, cells, p, product_name, j, product_type_self, product_type_sim):
+    def set_prod_sources(self, obj, sim, cells, p, product_name, j, product_type_self, product_type_sim):
 
         # Now load the right concentration data arrays for products into the Reaction object:
         # see if the name is an ion defined in sim:
@@ -428,40 +403,6 @@ class MasterOfMolecules(object):
         # add the index of the reaction to the list so we can access modifiers like reaction coefficients
         # and Km values at a later point:
         obj.inds_prod.append(j)
-
-    def assign_new_concentrations(self, obj, delta_c, new_reactants, new_products, sim, cells, p):
-
-        for i, react_name in enumerate(obj.reactants_list):
-
-            if obj.reactant_source_object[i] == id(self):
-
-                source_obj = getattr(self, react_name)
-
-                setattr(source_obj, obj.reactant_source_type[i], new_reactants[i])
-
-            elif obj.reactant_source_object[i] == id(sim):
-
-                source_obj = getattr(sim, obj.reactant_source_type[i])
-                ion_label = 'i' + react_name
-                ion_type = getattr(sim, ion_label)
-
-                source_obj[ion_type] = new_reactants[i]
-
-        for j, prod_name in enumerate(obj.products_list):
-
-                if obj.product_source_object[j] == id(self):
-
-                    source_obj = getattr(self, prod_name)
-
-                    setattr(source_obj, obj.product_source_type[j], new_products[j])
-
-                elif obj.product_source_object[j] == id(sim):
-
-                    source_obj = getattr(sim, obj.product_source_type[j])
-                    ion_label = 'i' + prod_name
-                    ion_type = getattr(sim, ion_label)
-
-                    source_obj[ion_type] = new_products[j]
 
     def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'Molecules'):
 
@@ -494,6 +435,8 @@ class MasterOfMolecules(object):
 
         """
 
+
+         # FIXME run mit update
         # get the name of the specific substance:
         for name in self.molecule_names:
 
@@ -521,6 +464,10 @@ class MasterOfMolecules(object):
 
             # update the substance on the inside of the cell:
             obj.updateIntra(sim, cells, p)
+
+        if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
+
+            self.mit.update(sim, cells, p)
 
     def updateInside(self, sim, cells, p):
         """
@@ -570,6 +517,8 @@ class MasterOfMolecules(object):
 
         """
 
+        # fixme for mit
+
         # get the name of the specific substance:
         for name in self.molecule_names:
             obj = getattr(self, name)
@@ -583,6 +532,8 @@ class MasterOfMolecules(object):
         Writes concentration data from a time-step to time-storage vectors.
 
         """
+
+        # fixme for mit
 
         # get the name of the specific substance:
         for name in self.molecule_names:
@@ -598,16 +549,21 @@ class MasterOfMolecules(object):
 
         """
 
-        # get the name of the specific substance:
         for name in self.molecule_names:
 
             obj = getattr(self, name)
+
+            if self.mit_enabled:
+
+                logs.log_info('Final average concentration of ' + str(name) + ' in the mitochondria: ' +
+                          str(np.round(1.0e3 * obj.c_mit.mean(), 4)) + ' umol/L')
 
             logs.log_info('Final average concentration of ' + str(name) + ' in the cell: ' +
                                            str(np.round(1.0e3*obj.c_cells.mean(), 4)) + ' umol/L')
 
             logs.log_info('Final average concentration of ' + str(name) + ' in the environment: ' +
                                           str(np.round(1.0e3*obj.c_env.mean(), 4)) + ' umol/L')
+
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
@@ -872,6 +828,8 @@ class Molecule(object):
 
         """
 
+        # Fixme remove mit
+
         # remove cells from the cell concentration list:
         ccells2 = np.delete(self.c_cells, target_inds_cell)
         # reassign the new data vector to the object:
@@ -930,9 +888,7 @@ class Molecule(object):
         ccell = np.asarray(ccell)
         cenv = np.asarray(cenv)
 
-
-
-        dataM = np.column_stack((time, ccell, cenv))
+        dataM = np.column_stack((time, ccell, cenv))   # FIXME add in possibility for mit
 
         np.savetxt(saveData, dataM, delimiter=',', header=headr)
 
@@ -942,6 +898,8 @@ class Molecule(object):
         as a function of simulation time.
 
         """
+
+        # FIXME plot mit
 
         c_cells = [1.0e3*arr[p.plot_cell] for arr in self.c_cells_time]
         fig = plt.figure()
@@ -963,6 +921,8 @@ class Molecule(object):
         Create 2D plot of cell concentrations.
 
         """
+
+        # FIXME plot mit
 
         fig, ax, cb = viz.plotPrettyPolyData(self.c_mems*1e3,
             sim, cells, p,
@@ -989,6 +949,8 @@ class Molecule(object):
         Create 2D plot of environmental concentration.
 
         """
+
+        # FIXME plot mit
 
         fig = plt.figure()
         ax = plt.subplot(111)
@@ -1306,7 +1268,7 @@ class Reaction(object):
 
         reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
 
-        if self.reaction_zone == 'cells':
+        if self.reaction_zone == 'cell':
 
             tag = 'mems'
 
@@ -1490,7 +1452,7 @@ class Transporter(object):
 
                 elif type_tag == 'c_mit':
 
-                    deltaC = deltaMoles / cells.mit_vol
+                    deltaC = deltaMoles / sim_metabo.mit.mit_vol
 
                     conc = self.c_reactants[i] - deltaC * self.reactants_coeff[i]
 
@@ -1499,8 +1461,11 @@ class Transporter(object):
 
                     if ion_check is None:
 
+                        # print('setting mitochondria reactant')
                         obj_reactant = getattr(sim_metabo, reactant_name)
                         setattr(obj_reactant, 'c_mit', conc)
+                        # print('obj_reactant')
+                        # print('-----------')
 
                     else:
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
@@ -1577,7 +1542,6 @@ class Transporter(object):
                         sim_conc[ion_check] = conco[:]
 
     def set_product_c(self, deltaMoles, sim, sim_metabo, product_tags, cells, p):
-        # FIXME set_reactant_c and set_product_c must take into account transfer between environment and cell!
 
         for i, product_name in enumerate(self.products_list):
 
@@ -1607,7 +1571,7 @@ class Transporter(object):
 
                 elif type_tag == 'c_mit':
 
-                    deltaC = deltaMoles / cells.mit_vol
+                    deltaC = deltaMoles / sim_metabo.mit.mit_vol
 
                     conc = self.c_products[i] + deltaC * self.products_coeff[i]
 
@@ -1705,6 +1669,8 @@ class Transporter(object):
             type_self = 'c_mems'
             type_sim = 'cc_mems'
 
+            vmem = sim.vm   # get the transmembrane voltage for this category
+
         elif self.reaction_zone == 'mitochondria':
             type_self_out = 'c_cells'
             type_sim_out = 'cc_cells'
@@ -1714,6 +1680,8 @@ class Transporter(object):
 
             type_self = 'c_mit'
             type_sim = 'cc_mit'
+
+            vmem = sim_metabo.mit.Vmit  # get the transmembrane voltage for this category
 
         echem_terms = []
         c_reactants_trans = []   # substances transferred across membrane -- start state concs
@@ -1746,7 +1714,7 @@ class Transporter(object):
 
                 # get the electrochemical potential term for this reagent
                 # it's negative because it starts inside the cell
-                out_term = -z_out*coeff*sim.vm*p.F
+                out_term = -z_out*coeff*vmem*p.F
 
                 echem_terms.append(out_term)
 
@@ -1774,7 +1742,7 @@ class Transporter(object):
 
                 # get the electrochemical potential term for this reagent
                 # it's positive because it ends inside the cell
-                in_term = z_in*coeff*sim.vm*p.F
+                in_term = z_in*coeff*vmem*p.F
 
                 echem_terms.append(in_term)
 
@@ -1862,7 +1830,7 @@ class Transporter(object):
 
         # get net effect of any activators or inhibitors of the reaction:
 
-        if self.reaction_zone == 'cells':
+        if self.reaction_zone == 'cell':
 
             tag = 'mems'
 
@@ -1871,12 +1839,9 @@ class Transporter(object):
             tag = 'mitochondria'
 
 
-
-
         activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.transporter_activators_list,
             self.transporter_activators_Km, self.transporter_activators_n, self.transporter_inhibitors_list,
             self.transporter_inhibitors_Km, self.transporter_inhibitors_n, reaction_zone=tag)
-
 
 
         deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
@@ -1886,7 +1851,7 @@ class Transporter(object):
             deltaMoles = deltaC*cells.mem_vol
 
         elif self.reaction_zone == 'mitochondria':
-            deltaMoles = deltaC*cells.mit_vol
+            deltaMoles = deltaC*sim_metabo.mit.mit_vol
 
         self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p)
         self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p)
@@ -2207,6 +2172,78 @@ def get_conc(sim, sim_metabo, name, type_self, type_sim, cells, p):
                 c = c[cells.map_mem2ecm]
 
         return z, c
+
+
+#------------------------------------------------------------------------------------------------------------------
+# WASTELANDS
+#------------------------------------------------------------------------------------------------------------------
+# def assign_new_concentrations(self, obj, delta_c, new_reactants, new_products, sim, cells, p):
+#
+#     for i, react_name in enumerate(obj.reactants_list):
+#
+#         if obj.reactant_source_object[i] == id(self):
+#
+#             source_obj = getattr(self, react_name)
+#
+#             setattr(source_obj, obj.reactant_source_type[i], new_reactants[i])
+#
+#         elif obj.reactant_source_object[i] == id(sim):
+#
+#             source_obj = getattr(sim, obj.reactant_source_type[i])
+#             ion_label = 'i' + react_name
+#             ion_type = getattr(sim, ion_label)
+#
+#             source_obj[ion_type] = new_reactants[i]
+#
+#     for j, prod_name in enumerate(obj.products_list):
+#
+#             if obj.product_source_object[j] == id(self):
+#
+#                 source_obj = getattr(self, prod_name)
+#
+#                 setattr(source_obj, obj.product_source_type[j], new_products[j])
+#
+#             elif obj.product_source_object[j] == id(sim):
+#
+#                 source_obj = getattr(sim, obj.product_source_type[j])
+#                 ion_label = 'i' + prod_name
+#                 ion_type = getattr(sim, ion_label)
+#
+#                 source_obj[ion_type] = new_products[j]
+
+# def check_reactions(self, obj, sim, cells, p):
+
+#
+#     if obj.reaction_zone == 'cell':
+#
+#         # Case 1: no transfer across the membrane -- these are in-cytoplasm reactions -------------------------------
+#         for i, reactant_name in enumerate(obj.reactants_list):
+#
+#             self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_cells', 'cc_cells')
+#
+#         # Now load the right concentration data arrays for products into the Reaction object:
+#         for j, product_name in enumerate(obj.products_list):
+#
+#             self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_cells', 'cc_cells')
+#
+#
+#     elif obj.reaction_zone == 'mitochondria':
+#
+#         # Case 1: no transfer across the membrane -- these are in-cytoplasm reactions -------------------------------
+#         for i, reactant_name in enumerate(obj.reactants_list):
+#
+#             self.set_react_concs(obj, sim, cells, p, reactant_name, i, 'c_mit', 'cc_mit')
+#
+#         # Now load the right concentration data arrays for products into the Reaction object:
+#         for j, product_name in enumerate(obj.products_list):
+#
+#             self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
+#
+#     else:
+#         raise BetseExceptionParameters("You have requested a reaction zone that does not exist."
+#                                        "Valid options include: 'cell' and 'mitochondria'."
+#                                        "Please check your config(s) settings defining reactions"
+#                                        " and try again. ")
 
 
 

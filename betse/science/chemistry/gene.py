@@ -47,7 +47,7 @@ class MasterOfGenes(object):
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
-        self.core = MasterOfMolecules(sim, substances_config, p)
+        self.core = MasterOfMolecules(sim, cells, substances_config, p)
 
         if reactions_config is not None:
             # initialize the reactions of metabolism:

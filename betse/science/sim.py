@@ -559,6 +559,9 @@ class Simulator(object):
         self.Dm_morpho = np.copy(Dm_cellsA)
         self.Dm_morpho[:] = 0
 
+        self.Dm_custom = np.copy(Dm_cellsA)  # array for customized ion channels
+        self.Dm_custom[:] = 0
+
         self.P_mod = np.copy(self.P_cells[:])
         self.P_base = np.copy(self.P_cells[:])
 
@@ -617,7 +620,7 @@ class Simulator(object):
         # create and initialize the auxiliary-molecules handler for this simulation:
         if p.molecules_enabled:
 
-            self.molecules = MasterOfMolecules(self,p.molecules_config,p)
+            self.molecules = MasterOfMolecules(self, cells, p.molecules_config,p)
 
             if p.reactions_enabled:
 
@@ -2349,22 +2352,22 @@ class Simulator(object):
 # self.met_conc = MetabolicConcentrations(self.metabo.core)
 # self.met_conc.cATP
 
-class MetabolicConcentrations(object):
-    def __init__(self, molecule):
-        self._molecule = molecule
+# class MetabolicConcentrations(object):
+#     def __init__(self, molecule):
+#         self._molecule = molecule
+#
+#     @property
+#     def cATP(self):
+#         return self._molecule.ATP.c_mems
+#
+#     @property
+#     def cADP(self):
+#         return self._molecule.ADP.c_mems
+#
+#     @property
+#     def cPi(self):
+#         return self._molecule.Pi.c_mems
 
-    @property
-    def cATP(self):
-        return self._molecule.ATP.c_mems
 
-    @property
-    def cADP(self):
-        return self._molecule.ADP.c_mems
-
-    @property
-    def cPi(self):
-        return self._molecule.Pi.c_mems
-
-# FIXME SESS' FIASCO of WunderLOUST ENDS hERE----------------------------------
 
 

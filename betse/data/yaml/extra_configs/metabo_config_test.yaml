@@ -1,0 +1,216 @@
+%YAML 1.1
+---
+# The BETSE lumped glycolysis metabolism configuration file, which takes a medium-course view of cell metabolism by
+# considering glycolysis as a single reaction that is regulated by activators (AMP) and inhibitors (ATP). It includes
+# models of glucose transporters, including GLUT4, which is activated by extracellular insulin.
+# All metabolism related config files must contain biomolecules with the name 'ATP', 'ADP', and 'Pi',
+# otherwise, the level of complexity/detail can be high or low.
+
+# A Note on YAML
+# ----------
+# This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
+# [L]anguage) standard. YAML is a human-readable data serialization format
+# useful for configuration files -- like this one. For details, please see
+# https://en.wikipedia.org/wiki/YAML.
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  BASIC METABOLIC FEATURES
+#-----------------------------------------------------------------------------------------------------------------------
+
+enable mitochondria: True
+
+#-----------------------------------------------------------------------------------------------------------------------
+#  MOLECULES of METABOLISM
+#-----------------------------------------------------------------------------------------------------------------------
+
+biomolecules:  # specify the properties of all molecules participating in metabolism
+
+  - name: 'ATP'    # adenosine tri-phosphate
+
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -2               # charge (oxidation state)
+    env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
+    cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    ion channel gating:
+      ion channel target: None            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
+      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: False        # acts via extracellular (True) or intracellular (False) concentration?
+    active pumping:                     # use ATP driven pumps to actively move morphogen?
+      turn on: False                     # turn pumping on?
+      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
+      uses ATP: False      # uses ATP or facilitated transport?
+    change at bounds:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+  # example of a biomolecule as a gating ligand that hyperpolarizes the membranes
+
+  - name: 'ADP'    # adenosine di-phosphate
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
+    cell conc: 0.1    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 1.5             # initial concentration in the mitochondria [mmol/L]
+    ion channel gating:
+      ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
+      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: True         # acts via extracellular (True) or intracellular (False) concentration?
+    active pumping:                     # use ATP driven pumps to actively move morphogen?
+      turn on: False                     # turn pumping on?
+      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
+      uses ATP: False      # uses ATP or facilitated transport?
+    change at bounds:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'Pi'    # inorganic phosphate (H2PO4-)
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
+    cell conc: 0.1    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 1.5             # initial concentration in the mitochondria [mmol/L]
+    ion channel gating:
+      ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
+      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: True         # acts via extracellular (True) or intracellular (False) concentration?
+    active pumping:                     # use ATP driven pumps to actively move morphogen?
+      turn on: False                     # turn pumping on?
+      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
+      uses ATP: False      # uses ATP or facilitated transport?
+    change at bounds:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'Pyr'           # Pyruvate
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: -1               # charge (oxidation state)
+    env conc: 0.0         # initial concentration in the environment [mmol/L]
+    cell conc: 1.0    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    ion channel gating:
+      ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
+      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: True         # acts via extracellular (True) or intracellular (False) concentration?
+    active pumping:                     # use ATP driven pumps to actively move morphogen?
+      turn on: False                     # turn pumping on?
+      pump to cell: False       # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-7              # maximum rate constant of pumping [mol/s]
+      pump Km: 1.5       # Michaelis-Menten coefficient for molecule in pump reaction
+      uses ATP: False      # uses ATP or facilitated transport?
+    change at bounds:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: False        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+#   REACTIONS of METABOLISM
+#-----------------------------------------------------------------------------------------------------------------------
+
+reactions:
+
+  - name: consume_ATP              # unique identifier for the reaction
+
+    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['ATP']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [1.0]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['ADP', 'Pi']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
+    Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 5.0e-3                # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+  - name: produce_ATP              # unique identifier for the reaction
+
+    reaction zone: mitochondria        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reactants: ['ADP', 'Pi']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1, 1]      # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.1, 0.1]             # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['ATP']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 1.0                # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM TRANSPORTERS
+#-----------------------------------------------------------------------------------------------------------------------
+#transporters:
+#
+## FIXME implement this
+#
+#  - name: MCT         # unique identifier for the transporter
+#
+#    reactants: ['Pyr']   # list of reagents; must be from set of names defined for biomolecules in above
+#    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
+#    Km reactants: [0.1]   # list of half-max coefficients for reagents, in same order as reagents list
+#    products: ['Pyr']         # list of products; must be from set of names defined for biomolecules in above
+#    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+#    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+#    transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
+#    transfered into cell: ['Pyr']     # items of reaction moved into cell during forwards reaction
+#    max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
+#    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+#    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+#    activator Km: None
+#    activator n: None
+#    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+#    inhibitor Km: None
+#    activator n: None
+

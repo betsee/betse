@@ -861,7 +861,6 @@ class TissueHandler(object):
 
             self.stretchChannel(sim,cells,p,t)
 
-
     def stretchChannel(self,sim,cells,p,t):
 
         dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
@@ -980,6 +979,7 @@ class TissueHandler(object):
             sim.Dm_cag + \
             sim.Dm_morpho + \
             sim.Dm_stretch +\
+            sim.Dm_custom +\
             sim.Dm_base
 
         sim.P_cells = sim.P_mod + sim.P_base
@@ -1111,6 +1111,7 @@ def removeCells(
         'Dm_er_base',
         'Dm_er_CICR',
         'Dm_stretch',
+        'Dm_custom',
         'D_gj',
     ]
 
