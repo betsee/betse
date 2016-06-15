@@ -17,10 +17,7 @@ import numpy as np
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
-import matplotlib.pyplot as plt
-from betse.exceptions import BetseExceptionParameters
-from betse.science.plot import plot as viz
-from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
+
 import copy
 
 class Mito(object):
@@ -44,27 +41,79 @@ class Mito(object):
         self.Dm_mit_base = copy.deepcopy(self.Dm_mit)  # copies of Dm for ion channel dynamics
         self.Dm_channels = copy.deepcopy(self.Dm_mit)
 
+        self.zmit = copy.deepcopy(sim.cc_cells)
+
+        for i, arr in enumerate(self.zmit):
+            arr[:] = sim.zs[i]
 
     def get_v(self, sim, p):
 
-        self.Q = stb.get_charge(sim.cc_mit, sim.zs, self.mit_vol, p)
+        self.Q = stb.get_charge(sim.cc_mit, self.zmit, self.mit_vol, p)
         self.Vmit = (1/self.cm_mit)*self.Q
 
-    def update(self, sim, cells, p): # FIXME electroflux between cell and env for all ions, get_v
+    def update(self, sim, cells, p):
 
+        self.channels(sim, cells, p)
 
-        # self.channels(sim, cells, p)
+        for i in sim.movingIons:
 
-        # flux = stb.electroflux()
-        # update with flux
+            f_ED = stb.electroflux(sim.cc_cells[i], sim.cc_mit[i], self.Dm_mit[i], p.tm, sim.zs[i],
+                self.Vmit, sim.T, p, rho=1)
 
-        # self.get_v(sim, p)
+            # update with flux
+            sim.cc_cells[i] = sim.cc_cells[i] - f_ED*(self.mit_sa/cells.cell_vol)*p.dt
+            sim.cc_mit[i] = sim.cc_mit[i] + f_ED*(self.mit_sa/self.mit_vol)*p.dt
 
-        pass
+        self.get_v(sim, p)
 
     def channels(self, sim, cells, p):
 
         pass   # FIXME finish this
+
+    def remove_mits(self, sim, target_inds_cell):
+
+        # remove cells from the mit voltage list:
+        vmit2 = np.delete(self.Vmit, target_inds_cell)
+        # reassign the new data vector to the object:
+        self.Vmit = vmit2
+
+        mitv2 = np.delete(self.mit_vol, target_inds_cell)
+        self.mit_vol = mitv2
+
+        mitca2 = np.delete(self.mit_sa, target_inds_cell)
+        self.mit_sa = mitca2
+
+        Q2 = np.delete(self.Q, target_inds_cell)
+        self.Q = Q2
+
+        cm2 = np.delete(self.cm_mit, target_inds_cell)
+        self.cm_mit = cm2
+
+        for i, arr in enumerate(sim.cc_mit):
+
+            # remove cells from the mit ion array in sim:
+            arr2 = np.delete(arr, target_inds_cell)
+            sim.cc_mit[i] = arr2
+
+        for i, arr in enumerate(self.Dm_mit):
+
+            arr2 = np.delete(arr, target_inds_cell)
+            self.Dm_mit[i] = arr2
+
+        for i, arr in enumerate(self.Dm_mit_base):
+
+            arr2 = np.delete(arr, target_inds_cell)
+            self.Dm_mit_base[i] = arr2
+
+        for i, arr in enumerate(self.Dm_channels):
+
+            arr2 = np.delete(arr, target_inds_cell)
+            self.Dm_channels[i] = arr2
+
+        for i, arr in enumerate(self.zmit):
+
+            arr2 = np.delete(arr, target_inds_cell)
+            self.zmit[i] = arr2
 
 
 

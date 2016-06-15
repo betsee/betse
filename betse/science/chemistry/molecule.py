@@ -27,10 +27,7 @@ from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 
 
-# FIXME we will need methods to update mitochondria concs and Vmit, as well as ER concs and Vmit defined
-# in both MasterOfMolecules and Molecule...perhaps 'update_organelle()'
-
-# FIXME see if we need rates of all reactions...
+# FIXME see if we need rates of all reactions stored in time vectors...
 
 class MasterOfMolecules(object):
 
@@ -209,13 +206,18 @@ class MasterOfMolecules(object):
             # initialize concentration at the boundary
             obj.c_bound = obj.c_envo
 
-            # if mitochondria are enabled:
             if self.mit_enabled:
-
-                self.mit = Mito(sim, cells, p)
-
+                obj.mit_enabled = True
             else:
-                self.mit = None
+                obj.mit_enabled = False
+
+        # if mitochondria are enabled:
+        if self.mit_enabled:
+
+            self.mit = Mito(sim, cells, p)
+
+        else:
+            self.mit = None
 
     def read_reactions(self, config_reactions, sim, cells, p):
 
@@ -435,8 +437,6 @@ class MasterOfMolecules(object):
 
         """
 
-
-         # FIXME run mit update
         # get the name of the specific substance:
         for name in self.molecule_names:
 
@@ -511,13 +511,15 @@ class MasterOfMolecules(object):
 
             obj.remove_cells(target_inds_cell, target_inds_mem, sim, cells, p)
 
+        if self.mit_enabled:
+
+            self.mit.remove_mits(target_inds_cell)
+
     def clear_cache(self):
         """
         Initializes or clears the time-storage vectors at the begining of init and sim runs.
 
         """
-
-        # fixme for mit
 
         # get the name of the specific substance:
         for name in self.molecule_names:
@@ -527,13 +529,17 @@ class MasterOfMolecules(object):
             obj.c_cells_time = []
             obj.c_env_time = []
 
+            if self.mit_enabled:
+                obj.c_mit_time = []
+
+        if self.mit_enabled:
+            self.vmit_time = []
+
     def write_data(self, sim, p):
         """
         Writes concentration data from a time-step to time-storage vectors.
 
         """
-
-        # fixme for mit
 
         # get the name of the specific substance:
         for name in self.molecule_names:
@@ -542,6 +548,12 @@ class MasterOfMolecules(object):
             obj.c_mems_time.append(obj.c_mems)
             obj.c_cells_time.append(obj.c_cells)
             obj.c_env_time.append(obj.c_env)
+
+            if self.mit_enabled:
+                obj.c_mit_time.append(obj.c_mit)
+
+        if self.mit_enabled:
+            self.vmit_time.append(self.mit.Vmit[:])
 
     def report(self, sim, p):
         """
@@ -564,6 +576,8 @@ class MasterOfMolecules(object):
             logs.log_info('Final average concentration of ' + str(name) + ' in the environment: ' +
                                           str(np.round(1.0e3*obj.c_env.mean(), 4)) + ' umol/L')
 
+        if self.mit_enabled:
+            logs.log_info('Final average Vmit: ' + str(np.round(1.0e3*self.mit.Vmit.mean(), 4)) + ' mV')
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
@@ -579,6 +593,10 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             obj.export_data(sim, cells, p, self.resultsPath)
+
+        if self.mit_enabled:
+            # FIXME we should save vmit to a file?
+            pass
 
     def plot(self, sim, cells, p, message = 'for auxiliary molecules...'):
         """
@@ -604,7 +622,7 @@ class MasterOfMolecules(object):
 
                 obj.plot_env(sim, cells, p, self.imagePath)
 
-
+        #------------------------------------------------------------------------------------------
         data_all1D = []
         fig_all1D = plt.figure()
         ax_all1D = plt.subplot(111)
@@ -629,7 +647,47 @@ class MasterOfMolecules(object):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    def anim(self, sim, cells, p, message = 'for auxilary molecules...'):
+        #------------------------------------------------------------------------------------------
+        if self.mit_enabled:
+
+            # 1 D plot of mitochondrial voltage--------------------------------------------------------
+            vmit = [1e3*arr[p.plot_cell] for arr in self.vmit_time]
+
+            figVmit = plt.figure()
+            axVmit = plt.subplot(111)
+
+            axVmit.plot(sim.time, vmit)
+
+            axVmit.set_xlabel('Time [s]')
+            axVmit.set_ylabel('Vmit [mV]')
+            axVmit.set_title('Mitochondrial transmembrane voltage in cell: ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'Vmit_cell' + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            # 2D plot of mitochondrial voltage ---------------------------------------------------
+
+            fig, ax, cb = viz.plotPolyData(sim, cells, p,
+                zdata=self.mit.Vmit*1e3, number_cells=p.enumerate_cells, clrmap=p.default_cm)
+
+            ax.set_title('Final Mitochondrial Transmembrane Voltage')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+            cb.set_label('Vmit [mV]')
+
+            if p.autosave is True:
+                savename = self.imagePath + '2DVmit.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+
+    def anim(self, sim, cells, p, message = 'for auxiliary molecules...'):
         """
         Animates 2D data for each molecule in the simulation.
 
@@ -828,8 +886,6 @@ class Molecule(object):
 
         """
 
-        # Fixme remove mit
-
         # remove cells from the cell concentration list:
         ccells2 = np.delete(self.c_cells, target_inds_cell)
         # reassign the new data vector to the object:
@@ -839,6 +895,12 @@ class Molecule(object):
         cmems2 = np.delete(self.c_mems, target_inds_mem)
         # reassign the new data vector to the object:
         self.c_mems = cmems2
+
+        if self.mit_enabled:
+            # remove cells from the cell concentration list:
+            cmit2 = np.delete(self.c_mit, target_inds_cell)
+            # reassign the new data vector to the object:
+            self.c_mit = cmit2
 
     def update_boundary(self, t, p):
         """
@@ -884,11 +946,23 @@ class Molecule(object):
 
         headr = headr + 'Env_Conc_' + self.name + '_mmol/L' + ','
 
+        if self.mit_enabled:
+
+            cmit = [arr[ci] for arr in self.c_mit_time]
+
+            headr = headr + 'Mit_Conc_' + self.name + '_mmol/L' + ','
+
+            cmit = np.asarray(cmit)
+
         time = np.asarray(sim.time)
         ccell = np.asarray(ccell)
         cenv = np.asarray(cenv)
 
-        dataM = np.column_stack((time, ccell, cenv))   # FIXME add in possibility for mit
+        if self.mit_enabled is False:
+            dataM = np.column_stack((time, ccell, cenv))
+
+        else:
+            dataM = np.column_stack((time, ccell, cenv, cmit))
 
         np.savetxt(saveData, dataM, delimiter=',', header=headr)
 
@@ -898,8 +972,6 @@ class Molecule(object):
         as a function of simulation time.
 
         """
-
-        # FIXME plot mit
 
         c_cells = [1.0e3*arr[p.plot_cell] for arr in self.c_cells_time]
         fig = plt.figure()
@@ -916,13 +988,28 @@ class Molecule(object):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+        if self.mit_enabled:
+
+            c_mit = [1.0e3*arr[p.plot_cell] for arr in self.c_mit_time]
+            fig = plt.figure()
+            ax = plt.subplot(111)
+            ax.plot(sim.time, c_mit)
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Concentration [umol/L]')
+            ax.set_title('Mitochondrial concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = saveImagePath + 'MitConcentration_' + self.name + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
     def plot_cells(self, sim, cells, p, saveImagePath):
         """
         Create 2D plot of cell concentrations.
 
         """
-
-        # FIXME plot mit
 
         fig, ax, cb = viz.plotPrettyPolyData(self.c_mems*1e3,
             sim, cells, p,
@@ -938,11 +1025,33 @@ class Molecule(object):
         cb.set_label('Concentration umol/L')
 
         if p.autosave is True:
-            savename = saveImagePath + 'cell_conc_' + self.name + '.png'
+            savename = saveImagePath + '2Dcell_conc_' + self.name + '.png'
             plt.savefig(savename,format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
+        # mitochondrial plots
+        if self.mit_enabled:
+
+            fig, ax, cb = viz.plotPolyData(sim, cells, p, zdata=self.c_mit*1e3,
+                number_cells=p.enumerate_cells,
+                clrAutoscale=self.plot_autoscale,
+                clrMin=self.plot_min,
+                clrMax=self.plot_max,
+                clrmap=p.default_cm)
+
+            ax.set_title('Final ' + self.name + ' Concentration in Mitochondria')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+            cb.set_label('Concentration umol/L')
+
+            if p.autosave is True:
+                savename = saveImagePath + '2D_mit_conc_' + self.name + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
 
     def plot_env(self, sim, cells, p, saveImagePath):
         """
@@ -950,7 +1059,6 @@ class Molecule(object):
 
         """
 
-        # FIXME plot mit
 
         fig = plt.figure()
         ax = plt.subplot(111)
@@ -980,7 +1088,7 @@ class Molecule(object):
         cb.set_label('Concentration umol/L')
 
         if p.autosave is True:
-            savename = saveImagePath + 'env_conc_' + self.name + '.png'
+            savename = saveImagePath + '2Denv_conc_' + self.name + '.png'
             plt.savefig(savename,format='png',dpi = 300.0, transparent=True)
 
         if p.turn_all_plots_off is False:

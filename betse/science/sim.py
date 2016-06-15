@@ -1757,8 +1757,6 @@ class Simulator(object):
 
             pass
 
-
-
     def update_gj(self,cells,p,t,i):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
