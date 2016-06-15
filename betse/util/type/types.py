@@ -7,6 +7,10 @@
 Low-level **type testers** (i.e., functions testing the types of passed
 objects).
 '''
+
+#FIXME: Refactor all assertion statements performing callable type checking
+#throughout this codebase into uses of the new @type_check decorator.
+
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies
@@ -16,11 +20,127 @@ objects).
 # third-party packages.)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import re
+import inspect, re
 from collections.abc import Container, Iterable, Mapping, Sequence
 from enum import Enum, EnumMeta
+from inspect import Parameter
 
-# ....................{ FORMATTER                          }....................
+# ....................{ GLOBALS                            }....................
+_PARAMETER_KIND_IGNORED = {
+    Parameter.POSITIONAL_ONLY, Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD,
+}
+'''
+Set of all `inspect.Parameter.kind` constants to be ignored during annotation-
+based type checking in the `@type_check` decorator.
+
+This includes:
+
+* Constants specific to variadic parameters (e.g., `*args`, `**kwargs`).
+  Variadic parameters cannot be annotated and hence cannot be type checked.
+* Constants specific to positional-only parameters, which apply to non-pure-
+  Python callables (e.g., defined by C extensions). The `@type_check` decorator
+  applies _only_ to pure-Python callables, which provide no syntactic means for
+  specifying positional-only parameters.
+'''
+
+# ....................{ DECORATORS                         }....................
+#FIXME: Type check return types as well via
+#"inspect.signature().return_annotation".
+
+# If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
+# *NOT* passed to this interpreter), enable type checking.
+if __debug__:
+    def type_check(func: callable) -> callable:
+        '''
+        Decorate the passed **callable** (e.g., function, method) to validate
+        both all annotated parameters passed to this callable _and_ the
+        annotated value returned by this callable if any.
+
+        This decorator performs rudimentary type checking based on Python 3.x
+        function annotations, as advised by PEP 484 ("Type Hints"). If
+        optimizations are enabled by the active Python interpreter (e.g., due to
+        option `-O` passed to this interpreter), this decorator is a noop.
+        '''
+
+        # Raw string of assert statements performing type checking for this
+        # callable. For runtime efficiency, this string is dynamically
+        # interpolated into the definition of _func_type_checked() below.
+        #
+        # While there exist numerous alternatives (e.g., appending to a list or
+        # bytearray before joining the elements of that iterable into a string),
+        # these alternatives are either slower (as in the case of a list) or
+        # substantially more cumbersome (as in the case of a bytearray). Since
+        # string concatenation is explicitly optimized under CPython, the
+        # simplest approach is interestingly the most ideal.
+        func_preamble = ''
+
+        # "inspect.Signature" instance encapsulating this callable's signature.
+        func_sig = inspect.signature(func)
+
+        # For the name of each parameter passed to this callable and the
+        # "inspect.Parameter" instance encapsulating this parameter (in the
+        # passed order)...
+        for func_arg_index, func_arg in enumerate(func_sig.parameters.values()):
+            # If this parameter is both annotated and non-ignorable for purposes
+            # of type checking, type check this parameter.
+            if (func_arg.annotation is not Parameter.empty and
+                func_arg.kind not in _PARAMETER_KIND_IGNORED):
+                # Type of this parameter.
+                func_arg_type = func_arg.annotation
+
+                # If this annotation is *NOT* a type, raise an exception.
+                assert is_class(func_arg_type), assert_not_class(func_arg_type)
+
+                # If this parameter is keyword-only, type-check this parameter
+                # by direct lookup into the variadic "**kwargs" dictionary.
+                if func_arg.kind is Parameter.KEYWORD_ONLY:
+                    func_preamble += '''
+    assert isinstance(kwargs[{arg_name!r}], {arg_type}), (
+        'Keyword parameter {arg_name}={{}} not of type "{{}}".'.format(
+            trim(kwargs[{arg_name!r}]), {arg_type}))
+'''.format(arg_name=func_arg.name, arg_type=func_arg_type)
+                # Else if this parameter may be either positional or keyword,
+                # type-check this parameter by lookup (in order):
+                #
+                # * In the variadic "**kwargs" dictionary by name.
+                # * In the variadic "*args"* tuple by index.
+                elif func_arg.kind is Parameter.POSITIONAL_OR_KEYWORD:
+                    func_preamble += '''
+    assert isinstance(kwargs[{arg_name!r}] if {arg_name!r} in kwargs else args[{arg_index}]), {arg_type}), (
+        'Parameter {arg_name}={{}} not of type "{{}}".'.format(
+            trim(kwargs[{arg_name!r}] if {arg_name!r} in kwargs else args[{arg_index}]), {arg_type}))
+'''.format(
+    arg_index=func_arg_index, arg_name=func_arg.name, arg_type=func_arg_type)
+                # Else, this parameter is an unsupported
+                else:
+                    raise TypeError(
+                        'Parameter "{!r}" kind {} unsupported.'.format(
+                            func_arg, func_arg.kind))
+
+        # Function wrapping the passed callable with type checking.
+        _func_type_checked = None      # stifle IDE error checking!
+        func_definition = '''
+def _func_type_checked(*args, **kwargs):
+{}
+    return func(*args, **kwargs)
+'''.format(func_preamble)
+
+        # Dynamically define this wrapper as a closure of this decorator.
+        exec(func_definition, globals(), locals())
+
+        # Define this wrapper's docstring to be the original docstring.
+        _func_type_checked.__doc__ = func.__doc__
+
+        # Return this wrapper.
+        return _func_type_checked
+
+# Else, the active Python interpreter is optimized. In this case, disable type
+# checking by reducing this decorator to the identity decorator.
+else:
+    def type_check(func: callable) -> callable:
+        return func
+
+# ....................{ FORMATTERS                         }....................
 # This string-centric function is defined in this module rather than in the
 # arguably more appropriate "strs" module to drastically simplify assertion
 # handlers defined below.
@@ -78,6 +198,13 @@ def is_char(obj: object) -> bool:
     1).
     '''
     return is_str(obj) and len(obj) == 1
+
+
+def is_class(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a class.
+    '''
+    return isinstance(obj, type)
 
 
 def is_nonnone(obj: object) -> bool:
@@ -452,6 +579,13 @@ def assert_not_char(obj: object) -> str:
     String asserting the passed object to _not_ be character.
     '''
     return '"{}" not a character (i.e., string of length 1).'.format(trim(obj))
+
+
+def assert_not_class(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a class.
+    '''
+    return '"{}" not a class.'.format(trim(obj))
 
 
 def assert_not_nonnone(label: str) -> str:

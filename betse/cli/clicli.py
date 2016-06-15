@@ -199,8 +199,12 @@ class CLICLI(CLIABC):
 
         # Else, a subcommand was passed.
         #
+        # Sanitized name of this subcommand.
+        subcommand_name_top = clihelp.sanitize_subcommand_name(
+            self._args.subcommand_name_top)
+
         # Name of the method running this subcommand.
-        subcommand_method_name = '_do_' + self._args.subcommand_name_top
+        subcommand_method_name = '_do_' + subcommand_name_top
 
         # Method running this subcommand. If this method does *NOT* exist,
         # getattr() will raise a non-human-readable exception. Usually, that
@@ -286,6 +290,22 @@ class CLICLI(CLIABC):
         self._get_sim_runner().simulate()
 
 
+    def _do_sim_brn(self) -> None:
+        '''
+        Run the `sim-brn` subcommand.
+        '''
+
+        self._get_sim_runner().sim_brn()
+
+
+    def _do_sim_grn(self) -> None:
+        '''
+        Run the `sim-grn` subcommand.
+        '''
+
+        self._get_sim_runner().sim_grn()
+
+
     def _do_plot(self) -> None:
         '''
         Run the `plot` subcommand.
@@ -299,7 +319,9 @@ class CLICLI(CLIABC):
             return
 
         # Run this subcommand's passed subcommand. See _run() for details.
-        subcommand_method_name = '_do_plot_' + self._args.subcommand_name_plot
+        subcommand_name_plot = clihelp.sanitize_subcommand_name(
+            self._args.subcommand_name_plot)
+        subcommand_method_name = '_do_plot_' + subcommand_name_plot
         subcommand_method = getattr(self, subcommand_method_name)
         subcommand_method()
 
@@ -326,6 +348,22 @@ class CLICLI(CLIABC):
         '''
 
         self._get_sim_runner().plotSim()
+
+
+    def _do_plot_sim_brn(self) -> None:
+        '''
+        Run the `plot` subcommand's `sim-brn` subcommand.
+        '''
+
+        self._get_sim_runner().plot_brn()
+
+
+    def _do_plot_sim_grn(self) -> None:
+        '''
+        Run the `plot` subcommand's `sim-grn` subcommand.
+        '''
+
+        self._get_sim_runner().plot_grn()
 
     # ..................{ GETTERS                            }..................
     def _get_sim_runner(self):

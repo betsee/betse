@@ -20,6 +20,23 @@ from betse.util.command import commands
 from betse.util.type import strs, types
 
 # ....................{ FUNCTIONS                          }....................
+#FIXME: Rename to merely sanitize_name() after shifting into a new
+#"clisubcommand" module.
+def sanitize_subcommand_name(subcommand_name: str) -> str:
+    '''
+    Sanitize the passed subcommand name (e.g., from `sim-gnr` to `sim_gnr`).
+
+    Specifically, this utility function:
+
+    * Replaces all hyphens in this name with underscores, as method names
+        are generated from subcommand names but cannot contain hyphens.
+    '''
+    assert types.is_str_nonempty(subcommand_name), (
+        types.assert_not_str_nonempty(subcommand_name, 'Subcommand name'))
+
+    return subcommand_name.replace('-', '_')
+
+
 def expand(text: str, **kwargs) -> str:
     '''
     Interpolate the passed keyword arguments into the passed help string
@@ -200,7 +217,7 @@ Help string template for the **program epilog** (i.e., string printed after
 SUBCOMMANDS = (
     CLISubcommand(
         name='config',
-        synopsis='create a new {program_name} simulation configuration',
+        synopsis='create a default config file for {program_name} simulations',
         description='''
 Write a default tissue simulation configuration to the passed output file. While
 not strictly necessary, this file should have filetype ".yaml" . If this file
@@ -216,7 +233,7 @@ containing this file.
 
     CLISubcommand(
         name='seed',
-        synopsis='create the cell cluster defined by a config file',
+        synopsis='seed a new cell cluster for a config file',
         description='''
 Create the cell cluster defined by the passed configuration file. The results
 will be saved to output files defined by this configuration.
@@ -227,7 +244,7 @@ will be saved to output files defined by this configuration.
 
     CLISubcommand(
         name='init',
-        synopsis='init the seeded cell cluster defined by a config file',
+        synopsis='initialize a seeded cell cluster for a config file',
         description='''
 Initialize (i.e., calculate steady-state concentrations for) the previously
 created cell cluster defined by the passed configuration file. Initialization
@@ -241,7 +258,7 @@ configuration.
 
     CLISubcommand(
         name='sim',
-        synopsis='simulate the initted cell cluster defined by a config file',
+        synopsis='simulate an initialized cell cluster for a config file',
         description='''
 Simulate the previously initialized cell cluster defined by the passed
 configuration file. Simulation results will be saved to output files defined by
@@ -252,9 +269,35 @@ from input files defined by this configuration.
     ),
 
 
+    #FIXME: Define help strings, please.
+    CLISubcommand(
+        name='sim-brn',
+        synopsis='simulate a biochemical reaction network for a config file',
+        description='''
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!                                  UNDEFINED                                 !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+''',
+        is_passed_yaml=True,
+    ),
+
+
+    #FIXME: Define help strings, please.
+    CLISubcommand(
+        name='sim-grn',
+        synopsis='simulate a gene regulatory network for a config file',
+        description='''
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!                                  UNDEFINED                                 !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+''',
+        is_passed_yaml=True,
+    ),
+
+
     CLISubcommand(
         name='plot',
-        synopsis='plot previously seeded, initted, or simulated simulations',
+        synopsis='plot a seeded, initialized, or simulated simulation',
         description='''
 Run the passed plotting subcommand. For example, to plot the previous
 simulation defined by a configuration file "my_sim.yaml" in the current
@@ -325,7 +368,7 @@ argument subparsers and hence will be effectively ignored.
 SUBCOMMANDS_PLOT = (
     CLISubcommand(
         name='seed',
-        synopsis='plot the seeded cell cluster defined by a config file',
+        synopsis='plot a seeded cell cluster for a config file',
         description='''
 Plot the previously seeded cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
@@ -338,7 +381,7 @@ defined by this configuration.
 
     CLISubcommand(
         name='init',
-        synopsis='plot the initted cell cluster defined by a config file',
+        synopsis='plot an initialized cell cluster for a config file',
         description='''
 Plot the previously initialized cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
@@ -351,12 +394,38 @@ defined by this configuration.
 
     CLISubcommand(
         name='sim',
-        synopsis='plot the simulated cell cluster defined by a config file',
+        synopsis='plot a simulated cell cluster for a config file',
         description='''
 Plot the previously simulated cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously simulated cell cluster will be loaded from input files
 defined by this configuration.
+''',
+        is_passed_yaml=True,
+    ),
+
+
+    #FIXME: Define help strings, please.
+    CLISubcommand(
+        name='sim-brn',
+        synopsis='plot a simulated biochemical reaction network for a config file',
+        description='''
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!                                  UNDEFINED                                 !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+''',
+        is_passed_yaml=True,
+    ),
+
+
+    #FIXME: Define help strings, please.
+    CLISubcommand(
+        name='sim-grn',
+        synopsis='plot a simulated gene regulatory network for a config file',
+        description='''
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!                                  UNDEFINED                                 !!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ''',
         is_passed_yaml=True,
     ),
