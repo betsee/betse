@@ -23,7 +23,6 @@ from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.config import sim_config
 from betse.exceptions import BetseExceptionParameters
 
-# FIXME we now need a MasterOfGenes for GRN handling
 
 class MasterOfMetabolism(object):
 

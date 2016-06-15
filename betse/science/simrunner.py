@@ -22,6 +22,7 @@ from betse.science.tissue.handler import TissueHandler
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.science.chemistry.metabolism import MasterOfMetabolism
+from betse.science.chemistry.gene import MasterOfGenes
 
 
 class SimRunner(object):
@@ -240,15 +241,15 @@ class SimRunner(object):
             plot_all(cells, sim, p, plot_type='sim')
             plt.show()
 
-    def sim_reactions(self):
+    def sim_brn(self):
 
         '''
-            Test run a biochemical reaction network (without bioelectrics) and save it to the
+            Test run a bioenergetics reaction network (without bioelectrics) and save it to the
             initialization cache.
             '''
 
         logs.log_info(
-            'Testing metabolic reaction network indicated in configuration file "{}".'.format(
+            'Testing bioenergetics reaction network indicated in configuration file "{}".'.format(
                 self._config_basename))
 
         start_time = time.time()  # get a start value for timing the simulation
@@ -302,7 +303,7 @@ class SimRunner(object):
             'This metabolic network test took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
-    def plot_reactions(self):
+    def plot_brn(self):
 
         p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
 
@@ -319,6 +320,89 @@ class SimRunner(object):
         MoM.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
         MoM.core.plot(sim, cells, p, message = 'for metabolic molecules...')
         MoM.core.anim(sim, cells, p, message = 'for metabolic molecules...')
+
+        if p.turn_all_plots_off is False:
+            plt.show()
+
+    def sim_grn(self):
+
+        '''
+            Test run a gene regulatory network (without bioelectrics) and save it to the
+            initialization cache.
+            '''
+
+        logs.log_info(
+            'Testing gene regulatory network indicated in configuration file "{}".'.format(
+                self._config_basename))
+
+        start_time = time.time()  # get a start value for timing the simulation
+
+        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+        p.run_sim = False
+
+        # cells, _ = fh.loadSim(cells.savedWorld)
+        cells = Cells(p)  # create an instance of world
+
+        if files.is_file(cells.savedWorld):
+            cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            logs.log_info('Cell cluster loaded.')
+
+            # check to ensure compatibility between original and present sim files:
+            self.check_congruency(p_old, p)
+
+        else:
+            logs.log_info("Ooops! No such cell cluster file found to load!")
+
+            if p.autoInit is True:
+                logs.log_info(
+                    'Automatically seeding cell cluster from config file settings...')
+                self.makeWorld()  # create an instance of world
+                logs.log_info(
+                    'Now using cell cluster to run initialization.')
+                cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
+
+            else:
+                raise BetseExceptionSimulation(
+                    "Run terminated due to missing seed.\n"
+                    "Please run 'betse seed' to try again.")
+
+        sim = Simulator(p)  # create an instance of Simulator
+
+        # Initialize simulation data structures
+        sim.baseInit_all(cells, p)
+
+        # create an instance of master of metabolism
+        MoG = MasterOfGenes(p)
+
+        # initialize it:
+        MoG.read_gene_config(sim, cells, p)
+
+        logs.log_info("Running gene regulatory network test simulation...")
+
+        MoG.run_core_sim(sim, cells, p)
+
+        logs.log_info(
+            'This gene regulatory network test took {} seconds to complete.'.format(
+                round(time.time() - start_time, 2)))
+
+    def plot_grn(self):
+
+        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+
+        MoG = MasterOfGenes(p)
+
+        MoG, cells, _ = fh.loadSim(MoG.savedMoG)
+
+        sim = Simulator(p)  # create an instance of Simulator
+        # Initialize simulation data structures
+        sim.baseInit_all(cells, p)
+        sim.time = MoG.time
+
+        MoG.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='GRN')
+        MoG.core.export_all_data(sim, cells, p, message = 'for gene products...')
+        MoG.core.plot(sim, cells, p, message = 'for gene products...')
+        MoG.core.anim(sim, cells, p, message = 'for gene products...')
 
         if p.turn_all_plots_off is False:
             plt.show()

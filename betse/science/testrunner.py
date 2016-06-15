@@ -18,12 +18,12 @@ if __name__ == '__main__':
     # print(pathtree.CONFIG_DEFAULT_FILENAME)
 
     sim_runner = SimRunner(
-        config_filename = '/home/pietakio/Documents/BETSE_Study/Metabolism/test_metabo.yaml')
+        config_filename = '/home/pietakio/Documents/BETSE_Study/GRN/test_gene.yaml')
 
     # Run such simulation.
     # sim_runner.initialize()
-    # sim_runner.sim_reactions()
-    # sim_runner.plot_reactions()
+    sim_runner.sim_grn()
+    # sim_runner.plot_grn()
 
 
 

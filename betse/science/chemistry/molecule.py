@@ -611,6 +611,32 @@ class MasterOfMolecules(object):
 
                 obj.plot_env(sim, cells, p, self.imagePath)
 
+
+        data_all1D = []
+        fig_all1D = plt.figure()
+        ax_all1D = plt.subplot(111)
+
+        for name in self.molecule_names:
+            obj = getattr(self, name)
+
+            c_cells = [arr[p.plot_cell] for arr in obj.c_cells_time]
+
+            ax_all1D.plot(sim.time, c_cells, linewidth = 2.0, label=name)
+
+        legend = ax_all1D.legend(loc = 'upper left', shadow = False, frameon = False)
+
+        ax_all1D.set_xlabel('Time [s]')
+        ax_all1D.set_ylabel('Concentration [mmol/L]')
+        ax_all1D.set_title('Concentration of all substances in cell ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'AllCellConcentrations_' + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+
     def anim(self, sim, cells, p, message = 'for auxilary molecules...'):
         """
         Animates 2D data for each molecule in the simulation.
@@ -785,7 +811,7 @@ class Molecule(object):
             self.growth_activators_Km, self.growth_activators_n, self.growth_inhibitors_list,
             self.growth_inhibitors_Km, self.growth_inhibitors_n, reaction_zone='cell')
 
-        delta_cells = self.r_production*inhibitor_alpha*activator_alpha*(cc / (1 + cc)) - self.r_decay * cc
+        delta_cells = self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
 
         self.c_cells = self.c_cells + delta_cells*p.dt
 
@@ -1233,10 +1259,18 @@ class Reaction(object):
 
         reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
 
+        if self.reaction_zone == 'cells':
+
+            tag = 'mems'
+
+        elif self.reaction_zone == 'mitochondria':
+
+            tag = 'mitochondria'
+
         # get net effect of any activators or inhibitors of the reaction:
         activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.reaction_activators_list,
             self.reaction_activators_Km, self.reaction_activators_n, self.reaction_inhibitors_list,
-            self.reaction_inhibitors_Km, self.reaction_inhibitors_n, reaction_zone=self.reaction_zone)
+            self.reaction_inhibitors_Km, self.reaction_inhibitors_n, reaction_zone=tag)
 
         # final degree of change, returned for use elsewhere (?):
         flux = activator_alpha*inhibitor_alpha*reaction_rate
@@ -1781,11 +1815,20 @@ class Transporter(object):
 
         # get net effect of any activators or inhibitors of the reaction:
 
+        if self.reaction_zone == 'cells':
+
+            tag = 'mems'
+
+        elif self.reaction_zone == 'mitochondria':
+
+            tag = 'mitochondria'
+
+
 
 
         activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.transporter_activators_list,
             self.transporter_activators_Km, self.transporter_activators_n, self.transporter_inhibitors_list,
-            self.transporter_inhibitors_Km, self.transporter_inhibitors_n, reaction_zone=self.reaction_zone)
+            self.transporter_inhibitors_Km, self.transporter_inhibitors_n, reaction_zone=tag)
 
 
 
@@ -1827,6 +1870,10 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
     """
 
     if reaction_zone == 'cell':
+        type_self = 'c_cells'
+        type_sim = 'cc_cells'
+
+    if reaction_zone == 'mems':
         type_self = 'c_mems'
         type_sim = 'cc_mems'
 
@@ -1838,7 +1885,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
     # initialize a blank list
     activator_terms = []
 
-    if a_list is not None and len(a_list) > 0:  # if user specified activators for growth/decay
+    if a_list is not None and a_list != 'None' and len(a_list) > 0:  # if user specified activators for growth/decay
 
         # get reaction zone for data type:
 
@@ -1891,7 +1938,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
     # initialize a blank list
     inhibitor_terms = []
 
-    if i_list is not None and len(i_list) > 0:  # if user specified inhibitors for growth/decay
+    if i_list is not None and i_list != 'None' and len(i_list) > 0:  # if user specified inhibitors for growth/decay
 
         # get the inhibitor concentration for the substance, and
         # create a term based on Hill form:
