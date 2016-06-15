@@ -273,32 +273,6 @@ class TissueHandler(object):
 
         #----------------------------------------------
 
-        if p.scheduled_options['IP3'] != 0:
-            self.t_onIP3 = p.scheduled_options['IP3'][0]
-            self.t_offIP3 = p.scheduled_options['IP3'][1]
-            self.t_changeIP3 = p.scheduled_options['IP3'][2]
-            self.rate_IP3 = p.scheduled_options['IP3'][3]
-            self.apply_IP3 = p.scheduled_options['IP3'][4]
-            self.function_IP3 = p.scheduled_options['IP3'][5]
-
-            self.targets_IP3 = []
-            for profile in self.apply_IP3:
-                targets = self.cell_target_inds[profile]
-                self.targets_IP3.append(targets)
-
-            self.targets_IP3 = [
-                item for sublist in self.targets_IP3 for item in sublist]
-
-            self.scalar_IP3 = 1
-            self.dyna_IP3 = lambda t: 1
-
-            # call a special toolbox function to change membrane permeability: spatial grads
-            # 'gradient_x', 'gradient_y', 'gradient_r'
-            if self.function_IP3 != 'None':
-                self.scalar_IP3, self.dyna_IP3 = getattr(mod, self.function_IP3)(self.targets_IP3,cells, p)
-
-        #----------------------------------------------
-
         if p.scheduled_options['pressure'] != 0:
 
             self.t_onP = p.scheduled_options['pressure'][0]
@@ -620,49 +594,6 @@ class TissueHandler(object):
             self.target_mask_NaStretch = np.zeros(self.data_length)
             self.target_mask_NaStretch[self.targets_NaStretch] = 1
 
-        # calcium dynamics
-        if p.Ca_dyn_options['CICR'] != 0:
-            self.stateER = np.zeros(len(cells.cell_i))   # state of ER membrane Ca permeability
-
-            self.maxDmCaER = p.Ca_dyn_options['CICR'][0][0]
-            self.topCa = p.Ca_dyn_options['CICR'][0][1]
-            self.bottomCa =  p.Ca_dyn_options['CICR'][0][2]
-
-            if len(p.Ca_dyn_options['CICR'][1])!=0:
-                self.midCaR = p.Ca_dyn_options['CICR'][1][0]
-                self.widthCaR = p.Ca_dyn_options['CICR'][1][1]
-
-            if len(p.Ca_dyn_options['CICR'][2])!=0:
-                self.KhmIP3 = p.Ca_dyn_options['CICR'][2][0]
-                self.n_IP3 = p.Ca_dyn_options['CICR'][2][1]
-
-            self.apply_Ca = p.Ca_dyn_options['CICR'][3]
-
-            #FIXME: The following five lines appear to be reducible to just:
-            #
-            # self.targets_Ca = list(itertools.chain.from_iterable(
-            #     self.cell_target_inds[profile]
-            #     for profile in self.apply_Ca))
-            #
-            #If that's a bit too much Python magic, you can also just replace
-            #append() by extend() and remove the final list comprehension:
-            #
-            # self.targets_Ca = []
-            # for profile in self.apply_Ca:
-            #     self.targets_Ca.extend(self.cell_target_inds[profile])
-            #
-            #This probably applies everywhere above as well. Shimmy up, Jimbo!
-            self.targets_Ca = []
-            for profile in self.apply_Ca:
-                targets = self.cell_target_inds[profile]
-                self.targets_Ca.append(targets)
-            self.targets_Ca = [item for sublist in self.targets_Ca for item in sublist]
-
-            self.targets_Ca = np.asarray(self.targets_Ca)
-
-            self.target_mask_Ca = np.zeros(len(cells.cell_i))
-            self.target_mask_Ca[self.targets_Ca] = 1
-
     def _sim_events_global(self, sim, cells, p, t):
         '''
         Apply all **global scheduled interventions** (i.e., events globally
@@ -752,11 +683,6 @@ class TissueHandler(object):
                           tb.pulse(t,self.t_on_Camem,self.t_off_Camem,self.t_change_Camem)
 
             sim.Dm_scheduled[sim.iCa][self.targets_Camem] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
-
-        if p.scheduled_options['IP3'] != 0:
-            sim.cIP3[self.targets_IP3] = sim.cIP3[self.targets_IP3] + \
-                                         self.scalar_IP3*self.dyna_IP3(t)*self.rate_IP3*tb.pulse(t,self.t_onIP3,
-                                         self.t_offIP3,self.t_changeIP3)
 
         if p.scheduled_options['pressure'] != 0:
 
@@ -935,9 +861,6 @@ class TissueHandler(object):
 
             self.stretchChannel(sim,cells,p,t)
 
-        if p.Ca_dyn_options['CICR'] != 0 and p.ions_dict['Ca'] != 0:
-
-            self.calciumDynamics(sim,cells,p)
 
     def stretchChannel(self,sim,cells,p,t):
 
@@ -949,25 +872,6 @@ class TissueHandler(object):
                 self.NaStretch_halfmax,self.NaStretch_n)
 
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
-
-    def calciumDynamics(self,sim,cells,p):
-
-        if p.Ca_dyn_options['CICR'] != 0:
-
-            if len(p.Ca_dyn_options['CICR'][1])==0:
-                term_Ca_reg = 1.0
-
-            else:
-                term_Ca_reg = (np.exp(-((sim.cc_mems[sim.iCa]-self.midCaR)**2)/((2*self.widthCaR)**2)))
-
-            if len(p.Ca_dyn_options['CICR'][2]) == 0:
-                term_IP3_reg = 1.0
-
-            else:
-                term_IP3_reg = tb.hill(sim.cIP3,self.KhmIP3,self.n_IP3)
-
-            sim.Dm_er_CICR[0] = self.maxDmCaER*term_IP3_reg*term_Ca_reg
-            sim.Dm_er = sim.Dm_er_CICR + sim.Dm_er_base
 
     def tissueProfiles(self, sim, cells, p):
         '''

@@ -1079,27 +1079,6 @@ def exportData(cells,sim,p):
 
     cc_cell = np.asarray(cc_cell)
 
-    #-----optional concentrations--------------------------------------
-
-    if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
-        IP3_time = [arr[ci] for arr in sim.cIP3_time]
-        IP3_time = np.asarray(IP3_time)
-        headr = headr + ',' + 'cell_cIP3_mmol/L'
-
-    else:
-        IP3_time = np.zeros(len(sim.time))
-        headr = headr + ',' + 'cell_cIP3_mmol/L'
-
-
-    if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-        Ca_er = [arr[0][ci] for arr in sim.cc_er_time]
-        Ca_er = np.asarray(Ca_er)
-        headr = headr + ',' + 'ER_Ca2+_mmol/L'
-    else:
-        Ca_er = np.zeros(len(sim.time))
-        headr = headr + ',' + 'CaER_mmol/L'
-
     #----------membrane permeabilities---------------------------------------
 
     # create the header starting with membrane permeabilities
@@ -1145,16 +1124,6 @@ def exportData(cells,sim,p):
 
     headr = headr + ',' + 'OsmoP_Pa'
 
-    # electrostatic pressure -----------------------------------
-    # if p.deform_electro is True:
-    #
-    #     p_electro = [arr[p.plot_cell] for arr in sim.P_electro_time]
-    #
-    # else:
-    #     p_electro = np.zeros(len(sim.time))
-    #
-    # headr = headr + ',' + 'ElectroP_Pa'
-
     # total deformation ---------------------------------------
     if p.deformation is True and sim.run_sim is True:
 
@@ -1180,7 +1149,7 @@ def exportData(cells,sim,p):
     fft_data_o = np.fft.rfft(cell_data)
     fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
 
-    dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T,IP3_time,Ca_er,dd_cell.T,
+    dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T, dd_cell.T,
                              p_hydro,p_osmo,disp))
 
     headr2 = 'frequency_Hz'

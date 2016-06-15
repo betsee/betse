@@ -154,7 +154,6 @@ class Parameters(object):
         bool_Kmem = bool(self.config['change K mem']['event happens'])
         bool_Clmem = bool(self.config['change Cl mem']['event happens'])
         bool_Camem = bool(self.config['change Ca mem']['event happens'])
-        bool_ip3 = bool(self.config['produce IP3']['event happens'])
         bool_press = bool(self.config['apply pressure']['event happens'])
         bool_ecmj = bool(self.config['break ecm junctions']['event happens'])
 
@@ -206,19 +205,6 @@ class Parameters(object):
             function = self.config['change Ca mem']['modulator function']
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
-
-        if bool_ip3 is False:
-            self.scheduled_options['IP3'] = 0
-        elif bool_ip3 is True:
-            on_ip3 = float(self.config['produce IP3']['change start'])
-            off_ip3 = float(self.config['produce IP3']['change finish'])
-            rate_ip3 = float(self.config['produce IP3']['change rate'])
-            multi_ip3 = float(self.config['produce IP3']['multiplier'])
-            apply_ip3 = self.config['produce IP3']['apply to']
-            function = self.config['produce IP3']['modulator function']
-            ip3 = [on_ip3, off_ip3, rate_ip3, multi_ip3, apply_ip3,function]
-
-            self.scheduled_options['IP3'] = ip3
 
         if bool_press is False:
             self.scheduled_options['pressure'] = 0
@@ -441,50 +427,6 @@ class Parameters(object):
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
         self.Ca_dyn = self.config['Ca dynamics']['turn on']
 
-        cdp = self.config['calcium dynamics parameters']
-
-        bool_CICR = bool(self.config['Ca dynamics']['turn on'])
-        bool_calReg = bool(self.config['Ca dynamics']['include']['calcium regulation'])
-        bool_frequMod = False  # FIXME temporarily disabled
-
-        camid = float(cdp['CICR Ca peak'])
-        cawidth = float(cdp['CICR Ca width'])
-
-        self.Ca_dyn_options = {}
-
-        if bool_CICR is False:
-
-            self.Ca_dyn_options['CICR'] = 0
-
-        elif bool_CICR is True:
-
-            ERmax = float(cdp['ER max'])
-            ERburst = float(cdp['ER burst'])
-            ERclose = float(cdp['ER close'])
-
-            ERstore_dyn = [ERmax,ERburst,ERclose]   # base dynamics of endoplasmic reticulum Ca2+ store.
-
-            IP3_Khalf = float(cdp['IP3 K half'])
-            IP3_hilln = float(cdp['IP3 hill n'])
-
-            ip3_reg = [IP3_Khalf,IP3_hilln]   #  IP3 half-max, Hill coefficient
-
-            if bool_calReg is False:
-                ca_reg = []   # central concentration for Ca-act-Ca release [Ca mid, Ca width]
-            elif bool_calReg is True:
-                ca_reg = [camid, cawidth]
-
-            if bool_frequMod is False:
-                self.FMmod = 0              # frequency modulate ER response to IP3? 1 = yes, 0 = no
-            elif bool_frequMod is True:
-                self.FMmod = 1
-                self.ip3FM = float(cdp['IP3 frequency modulation level'])
-
-            apply_CICR = self.config['Ca dynamics']['apply to']
-
-            cicr = [ERstore_dyn,ca_reg,ip3_reg,apply_CICR]
-            self.Ca_dyn_options['CICR'] = cicr
-
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM BIOCHEMISTRY
         #--------------------------------------------------------------------------------------------------------------
@@ -706,16 +648,6 @@ class Parameters(object):
         self.pH_min_clr = float(ro['pH 2D']['min val'])
         self.pH_max_clr = float(ro['pH 2D']['max val'])
 
-        self.plot_ip32d = ro['IP3 2D']['plot IP3']               # 2d plot of final cIP3 ?
-        self.autoscale_IP3 = ro['IP3 2D']['autoscale colorbar']
-        self.IP3_min_clr = float(ro['IP3 2D']['min val'])
-        self.IP3_max_clr = float(ro['IP3 2D']['max val'])
-
-        self.plot_dye2d = ro['Morpho 2D']['plot Morpho']               # 2d plot of voltage sensitive dye in cell collective?
-        self.autoscale_Dye = ro['Morpho 2D']['autoscale colorbar']
-        self.Dye_min_clr = float(ro['Morpho 2D']['min val'])
-        self.Dye_max_clr = float(ro['Morpho 2D']['max val'])
-
         self.plot_vcell2d = ro['Vcell 2D']['plot Vcell']
         self.autoscale_vcell = ro['Vcell 2D']['autoscale colorbar']
         self.vcell_min_clr = float(ro['Vcell 2D']['min val'])
@@ -778,16 +710,6 @@ class Parameters(object):
         self.autoscale_pH_ani = ro['pH Ani']['autoscale colorbar']
         self.pH_ani_min_clr = float(ro['pH Ani']['min val'])
         self.pH_ani_max_clr = float(ro['pH Ani']['max val'])
-
-        self.ani_ip32d = ro['IP3 Ani']['animate IP3']               # 2d animation of cIP3 with time?
-        self.autoscale_IP3_ani = ro['IP3 Ani']['autoscale colorbar']
-        self.IP3_ani_min_clr = float(ro['IP3 Ani']['min val'])
-        self.IP3_ani_max_clr = float(ro['IP3 Ani']['max val'])
-
-        self.ani_dye2d = ro['Morpho Ani']['animate Morpho']               # 2d animation of voltage sensitive dye with time?
-        self.autoscale_Dye_ani = ro['Morpho Ani']['autoscale colorbar']
-        self.Dye_ani_min_clr = float(ro['Morpho Ani']['min val'])
-        self.Dye_ani_max_clr = float(ro['Morpho Ani']['max val'])
 
         self.ani_vmgj2d = ro['Vmem GJ Ani']['animate Vmem with gj']     # 2d animation of vmem with superimposed gj network
         self.autoscale_Vgj_ani = ro['Vmem GJ Ani']['autoscale colorbar']
@@ -923,16 +845,6 @@ class Parameters(object):
         self.KmAS_H = 6.6e-3
         self.KmAS_P = 2.0
         self.KmAS_ATP = 0.1
-
-         # Calcium dynamics parameters
-        self.ER_vol = float(cdp['ER_vol'])   # volume of endoplasmic reticulum as a fraction of cell volume
-        self.ER_sa = float(cdp['ER_sa'])     # surface area of endoplasmic reticulum as a fraction of cell surface area
-
-        self.Dm_IP3 = float(cdp['Dm_IP3'])   # membrane diffusion constant of IP3
-        self.Do_IP3 = float(cdp['Do_IP3'])    # IP3 free diffusion constant [m2/s]
-        self.z_IP3 = float(cdp['z_IP3'])        # charge valence of IP3
-        self.cIP3_to = float(cdp['cIP3_to'])     # initial value of IP3 in all cells
-        self.cIP3_to_env = float(cdp['cIP3_to_env'])  # initial value of IP3 in environment
 
         # self.simulate_TEP = iu['simulate TEP']
 

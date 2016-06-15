@@ -541,9 +541,7 @@ class Simulator(object):
 
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
-        Dm_cellsER = np.copy(self.Dm_er)
 
-        # if tb.emptyDict(p.scheduled_options) is False or tb.emptyDict(p.vg_options) is False or p.Ca_dyn is True:
         self.Dm_base = np.copy(Dm_cellsA) # make a copy that will serve as the unaffected values base
 
         # if tb.emptyDict(p.scheduled_options) is False:
@@ -556,13 +554,6 @@ class Simulator(object):
 
         self.Dm_stretch = np.copy(Dm_cellsA)   # array for stretch activated ion channels...
         self.Dm_stretch[:] = 0
-
-        self.Dm_er_base = np.copy(Dm_cellsER)
-
-        self.Dm_er_CICR = np.copy(Dm_cellsER)
-        self.Dm_er_CICR[:] = 0
-
-        self.dcc_ER = []
 
         self.Dm_morpho = np.copy(Dm_cellsA)
         self.Dm_morpho[:] = 0
@@ -656,37 +647,10 @@ class Simulator(object):
             # self.met_conc = MetabolicConcentrations(self.metabo.core)
 
 
-
         else:
             self.metabo = None
             self.met_concs = None
 
-
-        # FIXME IP3 will be a special keyword substance user-defined in MasterOfMolecules
-
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
-            self.cIP3_mems = np.zeros(self.mdl)  # initialize a vector to hold IP3 concentrations
-            self.cIP3_mems[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
-
-            self.cIP3_cells = np.zeros(self.cdl)  # initialize a vector to hold IP3 concentrations
-            self.cIP3_cells[:] = p.cIP3_to                 # set the initial concentration of IP3 from params file
-
-            self.IP3_flux_x_gj = np.zeros(len(cells.nn_i))
-            self.IP3_flux_y_gj = np.zeros(len(cells.nn_i))
-            self.IP3_flux_mem = np.zeros(len(cells.mem_i))
-
-            if p.sim_ECM is True:
-
-                self.cIP3_env = np.zeros(self.edl)
-                self.cIP3_env[:] = p.cIP3_to_env
-
-                self.cIP3_flux_env_x = np.zeros(self.edl)
-                self.cIP3_flux_env_y = np.zeros(self.edl)
-
-            elif p.sim_ECM is False:
-                self.cIP3_env = np.zeros(self.mdl)     # initialize IP3 concentration of the environment
-                self.cIP3_env[:] = p.cIP3_to_env
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
         if p.deform_osmo is True:
@@ -768,7 +732,8 @@ class Simulator(object):
         self.vm_to = np.copy(self.vm)  # create a copy of the original voltage
 
         if p.Ca_dyn is True:
-            self.cc_er_to = np.copy(self.cc_er)
+            pass
+
 
         # Display and/or save an animation during solving and calculate:
         #
@@ -793,9 +758,9 @@ class Simulator(object):
             self.vm_to = np.copy(self.vm)  # reassign the history-saving vm
 
             if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-                self.dcc_ER = (self.cc_er - self.cc_er_to) / p.dt
 
-                self.cc_er_to = np.copy(self.cc_er)
+                pass
+
 
             # Calculate the values of scheduled and dynamic quantities (e.g.
             # ion channel multipliers).
@@ -921,19 +886,6 @@ class Simulator(object):
 
             if p.ions_dict['H'] == 1:
                 self.acid_handler(cells, p)
-
-            if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-
-                self.cIP3_mems, self.cIP3_env, _, _, _, _ = stb.molecule_mover(self, self.cIP3_mems,
-                    self.cIP3_env, cells, p, p.z_IP3, p.Dm_IP3,
-                    p.Do_IP3, 0)
-
-                # update concentrations intracellularly:
-                self.cIP3_mems, self.cIP3_cells, _ = \
-                    stb.update_intra(self, cells, self.cIP3_mems[:],
-                        self.cIP3_cells[:],
-                        p.Do_IP3,
-                        p.z_IP3, p)
 
 
             # update the molecules handler:
@@ -1160,16 +1112,13 @@ class Simulator(object):
 
             self.metabo.core.clear_cache()
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-            self.cIP3_time = []    # retains IP3 concentration as a function of time
-
         if p.sim_eosmosis is True:
             self.rho_channel_time = []
             self.rho_pump_time = []
 
         if p.Ca_dyn is True:
-            self.cc_er_time = []
-            self.cc_er_to = np.copy(self.cc_er[:])
+            pass
+
 
         if p.sim_ECM is True:
 
@@ -1177,14 +1126,9 @@ class Simulator(object):
             self.fluxes_env_x = np.zeros(self.fluxes_env_x.shape)
             self.fluxes_env_y = np.zeros(self.fluxes_env_y.shape)
 
-
             self.venv_time = []
 
             self.charge_env_time = []
-
-            self.cc_er_time = []   # retains er concentrations as a function of time
-            self.cIP3_time = []    # retains cellular ip3 concentrations as a function of time
-            self.cIP3_env_time = []
 
             self.efield_ecm_x_time = []   # matrices storing smooth electric field in ecm
             self.efield_ecm_y_time = []
@@ -1273,9 +1217,6 @@ class Simulator(object):
 
         self.time.append(t)
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-            self.cIP3_time.append(self.cIP3_mems[:])
-
         if p.molecules_enabled:
 
             self.molecules.write_data(self, p)
@@ -1285,7 +1226,8 @@ class Simulator(object):
             self.metabo.core.write_data(self, p)
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-            self.cc_er_time.append(np.copy(self.cc_er[:]))
+
+            pass
 
         if p.sim_ECM is True:
 
@@ -1368,18 +1310,10 @@ class Simulator(object):
 
             self.metabo.core.report(self, p)
 
-        if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
-            IP3_env_final = np.mean(self.cIP3_env)
-            IP3_cell_final = np.mean(self.cIP3)
-            logs.log_info('Final IP3 concentration in the environment: ' + str(np.round(IP3_env_final, 6)) + ' mmol/L')
-            logs.log_info('Final average IP3 concentration in cells: ' + str(np.round(IP3_cell_final, 6)) + ' mmol/L')
-
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
-            endconc_er = np.round(np.mean(self.cc_er[0]),6)
-            label = self.ionlabel[self.iCa]
-            concmess = 'Final average ER concentration of'+ ' '+ label + ': '
-            logs.log_info(concmess + str(endconc_er) + ' mmol/L')
+            pass
+
 
         # if p.voltage_dye ==1:
         #     dye_env_final = np.mean(self.cDye_env)
@@ -1773,49 +1707,11 @@ class Simulator(object):
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V(cells, p)
 
-        if p.Ca_dyn == 1:  # do endoplasmic reticulum handling  # FIXME not right!
+        if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
+
+            pass
 
 
-            # run Ca-ATPase pump to the endoplasmic reticulum:
-
-            f_Ca_ER_pump = stb.pumpCaER(
-                self.cc_er[0],
-                self.cc_mems[self.iCa],
-                self.v_er,
-                self.T,
-                p)
-
-
-            # electrodiffusion of ions between cell and endoplasmic reticulum
-            f_Ca_ER = \
-                stb.electroflux(self.cc_mems[self.iCa], self.cc_er[0], self.Dm_er[0], p.tm, self.z_er[0],
-                    self.v_er, self.T, p)
-
-            # Electrodiffusion of charge compensation anion
-            f_M_ER = \
-                stb.electroflux(self.cc_mems[self.iM], self.cc_er[1], self.Dm_er[1], p.tm, self.z_er[1],
-                    self.v_er, self.T, p)
-
-            f_calcium = f_Ca_ER + f_Ca_ER_pump
-
-            # update calcium concentrations in the ER and cell:
-            self.cc_er[0] = self.cc_er[0] + f_calcium * ((cells.cell_sa) / (p.ER_vol * cells.cell_vol)) * p.dt
-
-            self.cc_mems[self.iCa] = self.cc_mems[self.iCa] - f_calcium * (
-                cells.cell_sa / cells.cell_vol) * p.dt
-
-            # update anion concentration in the ER and cell:
-            self.cc_er[1] = self.cc_er[1] + f_M_ER * ((cells.cell_sa) / (p.ER_vol * cells.cell_vol)) * p.dt
-            self.cc_mems[self.iM] = self.cc_mems[self.iM] - f_M_ER * (cells.cell_sa / cells.cell_vol) * p.dt
-
-            # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V(cells, p)
-
-            # get the charge in the endoplasmic reticulum
-            q_er = stb.get_charge(self.cc_er, self.z_array_er, p.ER_vol * cells.cell_vol, p)
-
-            # get the voltage across the endoplasmic reticulum
-            self.v_er = stb.get_volt(q_er, p.ER_sa * cells.cell_sa, p)
 
     def update_gj(self,cells,p,t,i):
 

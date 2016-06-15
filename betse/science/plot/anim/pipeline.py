@@ -57,48 +57,6 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if not p.createAnimations:
        return
 
-    # If animating IP3 calcium dynamics, do so.
-    if p.ani_ip32d is True and p.Ca_dyn is True:
-        AnimCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=np.array(sim.cIP3_time) * 1000,
-            type='IP3',
-            figure_title='IP3 concentration',
-            colorbar_title='Concentration [umol/L]',
-            is_color_autoscaled=p.autoscale_IP3_ani,
-            color_min=p.IP3_ani_min_clr,
-            color_max=p.IP3_ani_max_clr,
-        )
-
-    # # If animating voltage-sensitive dye concentration, do so.
-    # if p.ani_dye2d is True and p.voltage_dye is True:
-    #     # Cell voltage-sensitive dye concentration as a function of time.
-    #     cell_morphogen_time_series = np.array(sim.cDye_time) * 1000
-    #
-    #     AnimCellsTimeSeries(
-    #         sim=sim, cells=cells, p=p,
-    #         time_series=cell_morphogen_time_series,
-    #         type='Morph_cell',
-    #         figure_title='Cellular Morphogen Concentration',
-    #         colorbar_title='Concentration [umol/L]',
-    #         is_color_autoscaled=p.autoscale_Dye_ani,
-    #         color_min=p.Dye_ani_min_clr,
-    #         color_max=p.Dye_ani_max_clr,
-    #     )
-    #
-    #     if p.sim_ECM is True:
-    #         AnimMorphogenTimeSeries(
-    #             sim=sim, cells=cells, p=p,
-    #             cell_time_series=cell_morphogen_time_series,
-    #             env_time_series=np.array(sim.cDye_env_time)*1000,
-    #             type='Morph_all',
-    #             figure_title='Total Morphogen Concentration',
-    #             colorbar_title='Concentration [umol/L]',
-    #             is_color_autoscaled=p.autoscale_Dye_ani,
-    #             color_min=p.Dye_ani_min_clr,
-    #             color_max=p.Dye_ani_max_clr,
-    #         )
-
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1:
         AnimCellsTimeSeries(

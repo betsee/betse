@@ -322,15 +322,6 @@ change Ca mem:       # Change the membrane permeability to Ca2+
     modulator function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['all']     # name(s) of the tissue profile(s) to apply intervention to
 
-produce IP3:        # Schedule cell production of IP3
-    event happens: False              # turn the event on (True) or off (False)
-    change start: 1                   # time to start IP3 production [s]
-    change finish: 4                 # time to end IP3 production [s]
-    change rate: 1                    # rate of production ramp-up time [s]
-    multiplier: 1e-3                  # maximum rate of production [mol/(s*m3)]
-    modulator function: None              # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-    apply to: ['wound']     # name(s) of the tissue profile(s) to apply intervention to
-
 apply pressure:                       # Schedule application of mechanical pressure
     event happens: False              # turn the event on (True) or off (False)
     change start: 1                   # time to start pressure application [s]
@@ -455,13 +446,7 @@ voltage gated Ca2+:            # voltage gated calcium channel
 
 # FIXME Ca dynamics is a work in progress -- currently not working!
 Ca dynamics:                   # include full calcium dynamics in the situation?
-    turn on: False               # this creates an endoplasmic reticulum (ER) in each cell and
-    apply to: ['all']          # IP3-mediated calcium release from the ER
-                                # note this only works for an ion profile with Ca2+ ions
-
-    include:
-
-        calcium regulation: False             # let the IP3 receptor be co-regulated by Ca2+ levels?
+    turn on: True               # this creates an endoplasmic reticulum (ER) in each cell
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GLOBAL INTERVENTIONS
@@ -945,20 +930,6 @@ results options:
       max val: 8                 # maximum colorbar value in pH units
       min val: 6                    # minimum colorbar value pH units
   
-    IP3 2D:
-      plot IP3: True               # 2d plot of final cIP3 ?
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 100                  # maximum colorbar value in umol/L
-      min val: 0                    # minimum colorbar value, in umol/L
-  
-    Morpho 2D:
-      plot Morpho: True            # 2D plot of voltage sensitive dye in the
-                                   # cell cluster? Ignored unless
-                                   # "include morphogen" is also True.
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 1.0e-4              # maximum colorbar value in umol/L
-      min val: 0                   # minimum colorbar value in umol/L
-  
     Vcell 2D:
       plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
       autoscale colorbar: True       # autoscale colorbar to min max of data set?
@@ -1036,20 +1007,6 @@ results options:
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 8               # maximum colorbar value in nmol/L
         min val: 6                   # minimum colorbar vlue in nmol/L
-
-    IP3 Ani:
-        animate IP3: True            # 2d animation of cIP3 with time?
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 100                 # maximum colorbar value in umol/L
-        min val: 0                   # minimum colorbar value in umol/L
-
-    Morpho Ani:
-        animate Morpho: True         # Plot a 2D animation of voltage sensitive
-                                     # dye in the cell cluster? Ignored unless
-                                     # "include morphogen" is also True.
-        autoscale colorbar: True     # autoscale colorbar to min max of data set?
-        max val: 1.5e-3              # maximum colorbar value in umol/L
-        min val: 0                   # minimum colorbar value in umol/L
 
     Vmem GJ Ani:
         animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
@@ -1174,33 +1131,6 @@ gated ion channel options:   # changing these will alter network dynamics -- but
         max Dmem Na: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
         hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as strain)
         hill n: 3                   # Hill function coefficient
-
-
-calcium dynamics parameters:
-
-    IP3 frequency modulation level: 0.8     # How strongly does IP3 induce frequency modulation
-                                            # of Ca2+ oscillations ?
-                                            # Range 0 to 0.9, higher more effect
-
-    ER max: 2.5e-15             # Maximum diffusion coefficient of open ER channel [m2/s]
-    ER burst: 0.5               # ER Ca2+ level at which ER opens [mmol/L]
-    ER close: 0.25               # ER Ca2+ level at which ER closes [mmol/L]
-
-    IP3 K half: 1e-3        # Concentration of IP3 at which ER Ca channel is half closed [mmol/L]
-                            # Based on a Hill function.
-    IP3 hill n: 3.4         # Hill function n coefficient
-
-    CICR Ca peak: 500.0e-6      # Ca induced Ca release peak emission with cytosolic calcium [mmol/L]
-    CICR Ca width: 80.0e-6      # Ca induced Ca release width of Ca-regulated emission curve [mmol/L]
-
-    ER_vol:  0.1               # volume of endoplasmic reticulum as a fraction of cell volume
-    ER_sa:  1.0                # surface area of endoplasmic reticulum as a fraction of cell surface area
-
-    Dm_IP3: 1.0e-12             # membrane diffusion constant of IP3 [m2/s]
-    Do_IP3: 1.0e-9              # IP3 free diffusion constant [m2/s]
-    z_IP3: -3                   # charge (oxidation state) of IP3
-    cIP3_to: 1e-3               # initial value of IP3 in all cells [mmol/L]
-    cIP3_to_env: 1e-3           # initial value of IP3 in environment [mmol/L]
 
 
 internal parameters:
