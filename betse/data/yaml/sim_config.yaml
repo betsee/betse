@@ -446,7 +446,7 @@ voltage gated Ca2+:            # voltage gated calcium channel
 
 # FIXME Ca dynamics is a work in progress -- currently not working!
 Ca dynamics:                   # include full calcium dynamics in the situation?
-    turn on: True               # this creates an endoplasmic reticulum (ER) in each cell
+    turn on: False               # this creates an endoplasmic reticulum (ER) in each cell
 
 # ----------------------------------------------------------------------------------------------------------------------
 # GLOBAL INTERVENTIONS

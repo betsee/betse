@@ -441,6 +441,13 @@ class SimRunner(object):
             sim.metabo.core.plot(sim, cells, p, message = 'for metabolic molecules...')
             sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
 
+        if p.grn_enabled and sim.grn is not None:
+
+            sim.grn.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
+            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
+
         if p.turn_all_plots_off is False:
             plt.show()
 
@@ -480,6 +487,13 @@ class SimRunner(object):
             sim.metabo.core.export_all_data(sim, cells, p)
             sim.metabo.core.plot(sim, cells, p)
             sim.metabo.core.anim(sim, cells, p)
+
+        if p.grn_enabled and sim.grn is not None:
+
+            sim.grn.core.init_saving(cells, p, plot_type='sim', nested_folder_name='GRN')
+            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
 
         if p.turn_all_plots_off is False:
             plt.show()

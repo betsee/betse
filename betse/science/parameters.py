@@ -1171,7 +1171,6 @@ class Parameters(object):
             raise BetseExceptionParameters("Oops! Looks like you've supplied an unavailable name for the ion profile "
                                                "under General Options of the config file. Please try again.")
 
-
     def set_time_profile(self,time_profile):
         """
         Calculates simulation timestep number and resampling time steps for
@@ -1201,7 +1200,6 @@ class Parameters(object):
             self.t_resample = self.resample/self.dt
             self.method = 0
 
-
     def _init_tissue_and_cut_profiles(self) -> None:
         '''
         Parse tissue and cut profile-specific parameters from the current YAML
@@ -1225,7 +1223,6 @@ class Parameters(object):
                     # Convert from 0-based list indices to 1-based z order.
                     z_order=i + 1,
                 )
-
 
 def bal_charge(concentrations, zs):
     """

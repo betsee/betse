@@ -18,7 +18,6 @@ from betse.science import filehandling as fh
 from betse.util.io.log import logs
 from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.config import sim_config
-from betse.exceptions import BetseExceptionParameters
 
 
 class MasterOfGenes(object):

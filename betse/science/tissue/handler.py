@@ -1199,6 +1199,16 @@ def removeCells(
 
         sim.molecules.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
+    if p.metabolism_enabled:
+
+        sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+    if p.grn_enabled:
+
+        sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+
+
 
 #-------------------------------Fix-up cell world ----------------------------------------------------------------------
     new_cell_centres = []

@@ -27,6 +27,7 @@ from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
 from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
+from betse.science.chemistry.gene import MasterOfGenes
 
 class Simulator(object):
     '''
@@ -644,12 +645,22 @@ class Simulator(object):
                               'cADP': self.metabo.core.ADP.c_mems,
                               'cPi': self.metabo.core.Pi.c_mems}
 
-            # self.met_conc = MetabolicConcentrations(self.metabo.core)
-
-
         else:
             self.metabo = None
             self.met_concs = None
+
+        #-----gene regulatory network initialization-------------------------
+        if p.grn_enabled:
+
+            logs.log_info("Initializing gene regulatory network...")
+
+            # create an instance of the metabolism simulator
+            self.grn = MasterOfGenes(p)
+            # read in the configuration settings for the metabolism simulator:
+            self.grn.read_genes_config(self, cells, p)
+
+        else:
+            self.grn = None
 
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
@@ -809,6 +820,7 @@ class Simulator(object):
                     'cADP': self.metabo.core.ADP.c_mems,
                     'cPi': self.metabo.core.Pi.c_mems}
 
+
             # update the concentrations of Na and K in cells and environment:
             self.cc_mems[self.iNa][:],  self.cc_env[self.iNa][:] =  stb.update_Co(self, self.cc_mems[self.iNa][:],
                                                                         self.cc_env[self.iNa][:],fNa_NaK, cells, p)
@@ -888,7 +900,7 @@ class Simulator(object):
                 self.acid_handler(cells, p)
 
 
-            # update the molecules handler:
+            # update the molecules handler-----------------------------------------------------------------
             if p.molecules_enabled:
 
                 if p.reactions_enabled:
@@ -901,14 +913,30 @@ class Simulator(object):
 
                 self.molecules.run_loop(t, self, cells, p)
 
+            # update metabolic handler----------------------------------------------------------------------
+
             if p.metabolism_enabled:
 
                 self.metabo.core.run_loop_reactions(t, self, self.metabo.core, cells, p)
 
-                if self.metabo.transporters is not None:
+                if self.metabo.transporters:
                     self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
 
                 self.metabo.core.run_loop(t, self, cells, p)
+
+            # update gene regulatory network handler--------------------------------------------------------
+
+            if p.grn_enabled:
+
+                if self.grn.reactions:
+                    self.grn.core.run_loop_reactions(t, self, self.grn.core, cells, p)
+
+                if self.grn.transporters:
+                    self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
+
+                # update the main gene regulatory network:
+                self.grn.core.run_loop(t, self, self.grn.core, cells, p)
+
 
             # dynamic noise handling-----------------------------------------------------------------------------------
 
@@ -1112,6 +1140,10 @@ class Simulator(object):
 
             self.metabo.core.clear_cache()
 
+        if p.grn_enabled:
+
+            self.grn.core.clear_cache()
+
         if p.sim_eosmosis is True:
             self.rho_channel_time = []
             self.rho_pump_time = []
@@ -1225,6 +1257,10 @@ class Simulator(object):
 
             self.metabo.core.write_data(self, p)
 
+        if p.grn_enabled:
+
+            self.grn.core.write_data(self, p)
+
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
 
             pass
@@ -1310,6 +1346,10 @@ class Simulator(object):
 
             self.metabo.core.report(self, p)
 
+        if p.grn_enabled:
+
+            self.grn.core.report(self, p)
+
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
             pass
@@ -1351,6 +1391,9 @@ class Simulator(object):
 
         if p.metabolism_enabled:
             logs.log_info('Metabolism is being simulated using file: ' + p.metabo_config_filename)
+
+        if p.grn_enabled:
+            logs.log_info('A gene regulatory network is being simulated using file: ' + p.grn_config_filename)
 
     # ................{ CORE DOERS & GETTERS }...............................................
     def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
