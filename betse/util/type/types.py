@@ -23,7 +23,7 @@ objects).
 import inspect, re
 from collections.abc import Container, Iterable, Mapping, Sequence
 from enum import Enum, EnumMeta
-from inspect import Parameter
+from inspect import Parameter, Signature
 
 # ....................{ GLOBALS                            }....................
 _PARAMETER_KIND_IGNORED = {
@@ -44,9 +44,6 @@ This includes:
 '''
 
 # ....................{ DECORATORS                         }....................
-#FIXME: Type check return types as well via
-#"inspect.signature().return_annotation".
-
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
 # *NOT* passed to this interpreter), enable type checking.
 if __debug__:
@@ -57,22 +54,48 @@ if __debug__:
         annotated value returned by this callable if any.
 
         This decorator performs rudimentary type checking based on Python 3.x
-        function annotations, as advised by PEP 484 ("Type Hints"). If
-        optimizations are enabled by the active Python interpreter (e.g., due to
-        option `-O` passed to this interpreter), this decorator is a noop.
+        function annotations, as officially documented by PEP 484 ("Type
+        Hints"). While PEP 484 supports arbitrarily complex type composition,
+        this decorator requires _all_ parameter and return value annotations to
+        be either built-in types (e.g., `int`, `str`) _or_ user-defined classes.
+
+        If optimizations are enabled by the active Python interpreter (e.g., due
+        to option `-O` passed to this interpreter), this decorator is a noop.
+
+        Raises
+        ----------
+        TypeError
+            If either:
+            * Any parameter or return value annotation is a non-type.
+            * The kind of any parameter is unrecognized. This should _never_
+              happen, assuming no significant changes to Python semantics.
         '''
 
-        # Raw string of assert statements performing type checking for this
-        # callable. For runtime efficiency, this string is dynamically
-        # interpolated into the definition of _func_type_checked() below.
+        # Raw string of Python statements comprising the body of this wrapper,
+        # including (in order):
+        #
+        # 1. A private "__funkadelic" parameter initialized to this callable.
+        #    Ideally, the "func" parameter passed to this decorator would be
+        #    accessible as a closure-style local to this wrapper. For unknown
+        #    reasons (presumably, a subtle bug in the exec() builtin), this is
+        #    not the case. Instead, a closure-style local must be simulated by
+        #    passing the "func" parameter to this function at function
+        #    definition time as the default value of this private parameter. To
+        #    ensure this default is *NOT* overwritten by a function accepting a
+        #    parameter of the same name, this edge case is tested for below.
+        # 2. Assert statements type checking parameters passed to this callable.
+        # 3. A call to this callable.
+        # 4. An assert statement type checking the value returned by this
+        #    callable.
         #
         # While there exist numerous alternatives (e.g., appending to a list or
         # bytearray before joining the elements of that iterable into a string),
-        # these alternatives are either slower (as in the case of a list) or
-        # substantially more cumbersome (as in the case of a bytearray). Since
-        # string concatenation is explicitly optimized under CPython, the
-        # simplest approach is interestingly the most ideal.
-        func_preamble = ''
+        # these alternatives are either slower (as in the case of a list, due to
+        # the high up-front cost of list construction) or substantially more
+        # cumbersome (as in the case of a bytearray). Since string concatenation
+        # is heavily optimized by the official CPython interpreter, the simplest
+        # approach is (curiously) the most ideal.
+        func_body = 'def func_type_checked(*args, __funkadelic=func, **kwargs):'
 
         # "inspect.Signature" instance encapsulating this callable's signature.
         func_sig = inspect.signature(func)
@@ -81,6 +104,14 @@ if __debug__:
         # "inspect.Parameter" instance encapsulating this parameter (in the
         # passed order)...
         for func_arg_index, func_arg in enumerate(func_sig.parameters.values()):
+            # If this callable redefines the private "__funkadelic" parameter
+            # initialized to a default value by this wrapper, raise an
+            # exception. Permitting this unlikely edge case would permit
+            # unsuspecting users to "accidentally" override this default.
+            if func_arg.name == '__funkadelic':
+                raise TypeError(
+                    'Parameter __funkadelic reserved for use by @type_check.')
+
             # If this parameter is both annotated and non-ignorable for purposes
             # of type checking, type check this parameter.
             if (func_arg.annotation is not Parameter.empty and
@@ -88,51 +119,102 @@ if __debug__:
                 # Type of this parameter.
                 func_arg_type = func_arg.annotation
 
-                # If this annotation is *NOT* a type, raise an exception.
-                assert is_class(func_arg_type), assert_not_class(func_arg_type)
+                # Python expression expanding to the value of this parameter.
+                func_arg_value_expr = None
+
+                # If this type is *NOT* a new-style class, raise an exception.
+                if not is_class_new(func_arg_type):
+                    raise TypeError(
+                        'Parameter {} type {} not a new-style class.'.format(
+                            func_arg.name, func_arg_type))
+
+                # Reduce this type to its name, for subsequent interpolation.
+                # Note that the "__name__" attribute is only available for
+                # new-style classes.
+                func_arg_type = func_arg_type.__name__
 
                 # If this parameter is keyword-only, type-check this parameter
                 # by direct lookup into the variadic "**kwargs" dictionary.
                 if func_arg.kind is Parameter.KEYWORD_ONLY:
-                    func_preamble += '''
-    assert isinstance(kwargs[{arg_name!r}], {arg_type}), (
-        'Keyword parameter {arg_name}={{}} not of type "{{}}".'.format(
-            trim(kwargs[{arg_name!r}]), {arg_type}))
-'''.format(arg_name=func_arg.name, arg_type=func_arg_type)
+                    func_arg_value_expr = 'kwargs[{!r}]'.format(func_arg.name)
                 # Else if this parameter may be either positional or keyword,
                 # type-check this parameter by lookup (in order):
                 #
                 # * In the variadic "**kwargs" dictionary by name.
                 # * In the variadic "*args"* tuple by index.
                 elif func_arg.kind is Parameter.POSITIONAL_OR_KEYWORD:
-                    func_preamble += '''
-    assert isinstance(kwargs[{arg_name!r}] if {arg_name!r} in kwargs else args[{arg_index}]), {arg_type}), (
-        'Parameter {arg_name}={{}} not of type "{{}}".'.format(
-            trim(kwargs[{arg_name!r}] if {arg_name!r} in kwargs else args[{arg_index}]), {arg_type}))
-'''.format(
-    arg_index=func_arg_index, arg_name=func_arg.name, arg_type=func_arg_type)
+                    func_arg_value_expr = (
+                        'kwargs[{arg_name!r}] '
+                        'if {arg_name!r} in kwargs '
+                        'else args[{arg_index}]'.format(
+                            arg_name=func_arg.name, arg_index=func_arg_index))
                 # Else, this parameter is an unsupported
                 else:
                     raise TypeError(
-                        'Parameter "{!r}" kind {} unsupported.'.format(
-                            func_arg, func_arg.kind))
+                        'Parameter {} kind {} unsupported.'.format(
+                            func_arg.name, func_arg.kind))
 
-        # Function wrapping the passed callable with type checking.
-        _func_type_checked = None      # stifle IDE error checking!
-        func_definition = '''
-def _func_type_checked(*args, **kwargs):
-{}
-    return func(*args, **kwargs)
-'''.format(func_preamble)
+                # Type-check this parameter.
+                func_body += '''
+    assert isinstance({arg_value_expr}, {arg_type}), (
+        'Parameter {arg_name}={{}} not of type {{}}.'.format(
+            trim({arg_value_expr}), {arg_type}))
+'''.format(
+    arg_value_expr=func_arg_value_expr,
+    arg_name=func_arg.name,
+    arg_type=func_arg_type)
 
-        # Dynamically define this wrapper as a closure of this decorator.
-        exec(func_definition, globals(), locals())
+        # If this callable's return value is annotated...
+        if func_sig.return_annotation is not Signature.empty:
+            # Type of this return value.
+            func_return_type = func_sig.return_annotation
 
-        # Define this wrapper's docstring to be the original docstring.
-        _func_type_checked.__doc__ = func.__doc__
+            # If this type is *NOT* a new-style class, raise an exception.
+            if not is_class_new(func_return_type):
+                raise TypeError(
+                    'Return type {} not a new-style class.'.format(
+                        func_return_type))
+
+            # Reduce this type to its name, for subsequent interpolation.
+            func_return_type = func_return_type.__name__
+            # print('func_return_type: ' + func_return_type)
+
+            # Call this callable, type check the returned value, and return this
+            # value from this wrapper.
+            func_body += '''
+    return_value = __funkadelic(*args, **kwargs)
+    assert isinstance(return_value, {return_type}), (
+        'Return value {{}} not of type {{}}.'.format(
+            trim(return_value), {return_type}))
+    return return_value
+'''.format(return_type=func_return_type)
+        # Else, call this callable and return this value from this wrapper.
+        else:
+            func_body += '''
+    return __funkadelic(*args, **kwargs)
+'''
+
+        # Dictionary mapping from local attribute name to value. For efficiency,
+        # only those local attributes explicitly required in the body of this
+        # wrapper are copied from the current namespace. (See below.)
+        local_attrs = {'func': func}
+
+        # Dynamically define this wrapper as a closure of this decorator. For
+        # obscure and presumably uninteresting reasons, Python fails to locally
+        # declare this closure when the locals() dictionary is passed; to
+        # capture this closure, a local dictionary must be passed instead.
+        # print('\nfunc: {}'.format(func_body))
+        exec(func_body, globals(), local_attrs)
+
+        # This wrapper.
+        func_type_checked = local_attrs['func_type_checked']
+
+        # Set this wrapper's docstring to this callable's docstring.
+        func_type_checked.__doc__ = func.__doc__
+        func_type_checked._func = func
 
         # Return this wrapper.
-        return _func_type_checked
+        return func_type_checked
 
 # Else, the active Python interpreter is optimized. In this case, disable type
 # checking by reducing this decorator to the identity decorator.
@@ -200,13 +282,6 @@ def is_char(obj: object) -> bool:
     return is_str(obj) and len(obj) == 1
 
 
-def is_class(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a class.
-    '''
-    return isinstance(obj, type)
-
-
 def is_nonnone(obj: object) -> bool:
     '''
     `True` only if the passed object is _not_ `None`.
@@ -219,7 +294,27 @@ def is_callable(obj: object) -> bool:
     `True` only if the passed object is **callable** (e.g., function, method,
     class defining the special `__call__()` method).
     '''
+
     return callable(obj)
+
+# ....................{ TESTERS ~ class                    }....................
+def is_class(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a class.
+    '''
+
+    return isinstance(obj, type)
+
+
+
+def is_class_new(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a new-style class.
+    '''
+
+    # The "__name__" attribute is defined only by new-style classes and hence
+    # serves as a useful means of distinguishing new- from old-style classes.
+    return is_class(obj) and hasattr(obj, '__name__')
 
 # ....................{ TESTERS ~ collection               }....................
 def is_mapping(obj: object) -> bool:
