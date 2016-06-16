@@ -215,7 +215,6 @@ class MasterOfMolecules(object):
         if self.mit_enabled:
 
             self.mit = Mito(sim, cells, p)
-
         else:
             self.mit = None
 
@@ -469,6 +468,69 @@ class MasterOfMolecules(object):
 
             self.mit.update(sim, cells, p)
 
+        # manage pH in cells, environment and mitochondria:
+        self.pH_handling(sim, cells, p)
+
+    def pH_handling(self, sim, cells, p):
+        """
+        Molecules may contain dissolved carbon dioxide as a substance,
+        and reactions/transporters may act on H+ levels via bicarbonate
+        (M-). Therefore, update pH in cells, environment, and
+        if enabled, mitochondria.
+
+        """
+
+
+        if 'CO2' in self.molecule_names:
+
+            if p.ions_dict['H'] == 1:
+
+                # if the simulation contains sim.cHM_mems, use it and update it!
+                sim.cHM_mems = self.CO2.c_cells
+                sim.cHM_env = self.CO2.c_env
+
+                # update the cH and pH fields of sim with potentially new value of sim.iM
+                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(self.CO2.c_cells, sim.cc_cells[sim.iM])
+                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(self.CO2.c_env, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(self.CO2.c_mit, sim.cc_mit[sim.iM])
+
+            elif p.ions_dict['H'] != 1:
+
+                # update the cH and pH fields of sim with potentially new value of M ion:
+                _, sim.pH_cell = stb.bicarbonate_buffer(self.CO2.c_cells, sim.cc_cells[sim.iM])
+                _, sim.pH_env = stb.bicarbonate_buffer(self.CO2.c_env, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    _, sim.pH_mit = stb.bicarbonate_buffer(self.CO2.c_mit, sim.cc_mit[sim.iM])
+
+        else: # if we're not using CO2 in the simulator, use the default p.CO2*0.03
+
+            CO2 = p.CO2*0.03 # get the default concentration of CO2
+
+            if p.ions_dict['H'] == 1:
+
+                # update the cH and pH fields of sim with potentially new value of sim.iM
+                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
+                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+
+            elif p.ions_dict['H'] != 1:
+
+                # update the cH and pH fields of sim with potentially new value of sim.iM
+                _, sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
+                _, sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    _, sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+
     def updateInside(self, sim, cells, p):
         """
         Runs the main simulation loop steps for each of the molecules included in the simulation.
@@ -534,6 +596,10 @@ class MasterOfMolecules(object):
 
         if self.mit_enabled:
             self.vmit_time = []
+            self.pH_mit_time = []
+
+        self.pH_cells_time = []
+        self.pH_env_time = []
 
     def write_data(self, sim, p):
         """
@@ -552,8 +618,14 @@ class MasterOfMolecules(object):
             if self.mit_enabled:
                 obj.c_mit_time.append(obj.c_mit)
 
+
         if self.mit_enabled:
             self.vmit_time.append(self.mit.Vmit[:])
+            self.pH_mit_time.append(sim.pH_mit)
+
+        self.pH_cells_time.append(sim.pH_cell)
+        self.pH_env_time.append(sim.pH_env)
+
 
     def report(self, sim, p):
         """
@@ -567,7 +639,7 @@ class MasterOfMolecules(object):
 
             if self.mit_enabled:
 
-                logs.log_info('Final average concentration of ' + str(name) + ' in the mitochondria: ' +
+                logs.log_info('Average concentration of ' + str(name) + ' in the mitochondria: ' +
                           str(np.round(1.0e3 * obj.c_mit.mean(), 4)) + ' umol/L')
 
             logs.log_info('Average concentration of ' + str(name) + ' in the cell: ' +
@@ -578,6 +650,12 @@ class MasterOfMolecules(object):
 
         if self.mit_enabled:
             logs.log_info('Average Vmit: ' + str(np.round(1.0e3*self.mit.Vmit.mean(), 4)) + ' mV')
+        #     logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
+        #
+        # if p.ions_dict['H'] != 1:
+        #     logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
+        #     logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
+
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
@@ -595,7 +673,7 @@ class MasterOfMolecules(object):
             obj.export_data(sim, cells, p, self.resultsPath)
 
         if self.mit_enabled:
-            # FIXME we should save vmit to a file?
+            # FIXME we should also save vmit to a file? and pH and vm?
             pass
 
     def plot(self, sim, cells, p, message = 'for auxiliary molecules...'):
@@ -685,7 +763,41 @@ class MasterOfMolecules(object):
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
+        #------pH plot------------------------------------------------------------------------------
 
+        # 1 D plot of pH in cell, env and mit ------------------------------------------------------
+        pHcell = [arr[p.plot_cell] for arr in self.pH_cells_time]
+
+        if p.sim_ECM:
+            pHenv = [arr[cells.map_cell2ecm][p.plot_cell] for arr in self.pH_env_time]
+
+        else:
+            avPh = [np.dot(cells.M_sum_mems, arr)/cells.num_mems for arr in self.pH_env_time]
+            pHenv = [arr[p.plot_cell] for arr in avPh]
+
+        if self.mit_enabled:
+            pHmit = [arr[p.plot_cell] for arr in self.pH_mit_time]
+
+        else:
+            pHmit = np.zeros(len(sim.time))
+
+        figpH = plt.figure()
+        axpH = plt.subplot(111)
+
+        axpH.plot(sim.time, pHcell, label = 'cell')
+        axpH.plot(sim.time, pHmit, label='mitochondria')
+        axpH.plot(sim.time, pHenv, label='env')
+
+        axpH.set_xlabel('Time [s]')
+        axpH.set_ylabel('pH')
+        axpH.set_title('pH in/near cell : ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'pH' + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
 
     def anim(self, sim, cells, p, message = 'for auxiliary molecules...'):
         """

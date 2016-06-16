@@ -622,7 +622,7 @@ def no_negs(data):
 
     return data
 
-def bicarbonate_buffer(cH, cCO2, cHCO3, p):
+def bicarbonate_buffer(cCO2, cHCO3):
     """
     This most amazing buffer handles influx of H+,
     HCO3-, H2CO3 (from dissolved carbon dioxide) to
@@ -637,17 +637,20 @@ def bicarbonate_buffer(cH, cCO2, cHCO3, p):
 
     """
 
-    Q = (cH*cHCO3)/(cCO2)
+    pH = 6.1 + np.log10(cHCO3/cCO2)
 
-    v_ph = p.vm_ph*(cCO2/(1+cCO2))*(1 - (Q/p.Keqm_ph))
+    cH = 10**(-pH)*1e3
+    # Q = (cH*cHCO3)/(cCO2)
+    #
+    # v_ph = p.vm_ph*(cCO2/(1+cCO2))*(1 - (Q/p.Keqm_ph))
+    #
+    # cCO2 = cCO2 - v_ph*p.dt
+    # cHCO3 = cHCO3 + v_ph*p.dt
+    # cH = cH + v_ph*p.dt
+    #
+    # pH = -np.log10(cH*1e-3)
 
-    cCO2 = cCO2 - v_ph*p.dt
-    cHCO3 = cHCO3 + v_ph*p.dt
-    cH = cH + v_ph*p.dt
-
-    pH = -np.log10(cH*1e-3)
-
-    return cH, cCO2, cHCO3, pH
+    return cH, pH
 
 def ghk_calculator(sim, cells, p):
     """

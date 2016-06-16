@@ -914,6 +914,8 @@ class Simulator(object):
 
                     self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
 
+            # FIXME add in custon channel?
+
                 self.molecules.run_loop(t, self, cells, p)
 
             # update metabolic handler----------------------------------------------------------------------
@@ -1558,17 +1560,9 @@ class Simulator(object):
 
 
         # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-        self.cc_mems[self.iH], _, self.cc_mems[self.iM], self.pH_cell = stb.bicarbonate_buffer(
-                                                                                        self.cc_mems[self.iH],
-                                                                                        self.cHM_mems,
-                                                                                        self.cc_mems[self.iM],
-                                                                                        p)
+        self.cc_mems[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems, self.cc_mems[self.iM])
 
-        self.cc_env[self.iH], _, self.cc_env[self.iM], self.pH_env = stb.bicarbonate_buffer(
-                                                                                            self.cc_env[self.iH],
-                                                                                            self.cHM_env,
-                                                                                            self.cc_env[self.iM],
-                                                                                            p)
+        self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V(cells,p)
@@ -1625,18 +1619,9 @@ class Simulator(object):
 
             # Calculate the new pH and H+ concentrations:
             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-            self.cc_mems[self.iH], _, self.cc_mems[
-                self.iM], self.pH_cell = stb.bicarbonate_buffer(
-                self.cc_mems[self.iH],
-                self.cHM_mems,
-                self.cc_mems[self.iM],
-                p)
+            self.cc_mems[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems,self.cc_mems[self.iM])
 
-            self.cc_env[self.iH], _, self.cc_env[self.iM], self.pH_env = stb.bicarbonate_buffer(
-                self.cc_env[self.iH],
-                self.cHM_env,
-                self.cc_env[self.iM],
-                p)
+            self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env,self.cc_env[self.iM])
 
             # update concentrations intracellularly:
             self.cc_mems[self.iH][:], self.cc_cells[self.iH][:], _ = \
@@ -1691,17 +1676,9 @@ class Simulator(object):
             # Calculate the new pH and H+ concentration:
              # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
 
-            self.cc_mems[self.iH], _, self.cc_mems[self.iM], self.pH_cell = stb.bicarbonate_buffer(
-                 self.cc_mems[self.iH],
-                 self.cHM_mems,
-                 self.cc_mems[self.iM],
-                 p)
+            self.cc_mems[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems, self.cc_mems[self.iM])
 
-            self.cc_env[self.iH], _, self.cc_env[self.iM], self.pH_env = stb.bicarbonate_buffer(
-                 self.cc_env[self.iH],
-                 self.cHM_env,
-                 self.cc_env[self.iM],
-                 p)
+            self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells,p)
