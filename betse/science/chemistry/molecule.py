@@ -27,7 +27,7 @@ from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 
 
-# FIXME see if we need rates of all reactions stored in time vectors...
+# FIXME see if we need rates of all reactions stored in time vectors...?
 
 class MasterOfMolecules(object):
 
@@ -463,7 +463,7 @@ class MasterOfMolecules(object):
             obj.transport(sim, cells, p)
 
             # update the substance on the inside of the cell:
-            obj.updateIntra(sim, cells, p)
+            obj.updateIntra(sim, self, cells, p)
 
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
 
@@ -479,7 +479,7 @@ class MasterOfMolecules(object):
         for name in self.molecule_names:
 
             obj = getattr(self, name)
-            obj.updateIntra(sim, cells, p)
+            obj.updateIntra(sim, self, cells, p)
 
     def run_loop_reactions(self, t, sim, sim_metabo, cells, p):
 
@@ -570,14 +570,14 @@ class MasterOfMolecules(object):
                 logs.log_info('Final average concentration of ' + str(name) + ' in the mitochondria: ' +
                           str(np.round(1.0e3 * obj.c_mit.mean(), 4)) + ' umol/L')
 
-            logs.log_info('Final average concentration of ' + str(name) + ' in the cell: ' +
+            logs.log_info('Average concentration of ' + str(name) + ' in the cell: ' +
                                            str(np.round(1.0e3*obj.c_cells.mean(), 4)) + ' umol/L')
 
-            logs.log_info('Final average concentration of ' + str(name) + ' in the environment: ' +
+            logs.log_info('Average concentration of ' + str(name) + ' in the environment: ' +
                                           str(np.round(1.0e3*obj.c_env.mean(), 4)) + ' umol/L')
 
         if self.mit_enabled:
-            logs.log_info('Final average Vmit: ' + str(np.round(1.0e3*self.mit.Vmit.mean(), 4)) + ' mV')
+            logs.log_info('Average Vmit: ' + str(np.round(1.0e3*self.mit.Vmit.mean(), 4)) + ' mV')
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
@@ -780,9 +780,18 @@ class Molecule(object):
         """
         self.c_mems, self.c_env = stb.update_Co(sim, self.c_mems, self.c_cells, flux, cells, p, ignoreECM=True)
 
-    def updateIntra(self, sim, cells, p):
+    def updateIntra(self, sim, sim_metabo, cells, p):
 
         self.c_mems, self.c_cells, _ = stb.update_intra(sim, cells, self.c_mems, self.c_cells, self.Do, self.z, p)
+
+        if self.mit_enabled:
+
+            f_ED = stb.electroflux(self.c_cells, self.c_mit, self.Dm, p.tm, self.z,
+                sim_metabo.mit.Vmit, sim.T, p, rho=1)
+
+            # update with flux
+            self.c_cells = self.c_cells - f_ED*(sim_metabo.mit.mit_sa/cells.cell_vol)*p.dt
+            self.c_mit = self.c_mit + f_ED*(sim_metabo.mit.mit_sa/sim_metabo.mit.mit_vol)*p.dt
 
     def pump(self, sim, cells, p):
 
@@ -1840,8 +1849,8 @@ class Transporter(object):
                 c_products_trans.append(c_in)
                 prod_transfer_tag.append(type_self_in)
 
-                ind_r = self.products_list.index(in_name)
-                coeff = self.products_coeff[ind_r]
+                ind_r = self.reactants_list.index(in_name)
+                coeff = self.reactants_coeff[ind_r]
 
                 ind_p = self.products_list.index(in_name)
 
@@ -1867,18 +1876,25 @@ class Transporter(object):
         self.get_reactants(sim, sim_metabo, type_self, type_sim)
         self.get_products(sim, sim_metabo, type_self, type_sim)
 
-        self.reactant_transfer_tag = ['c_cell' for x in range(0, len(self.c_reactants))]
-        self.product_transfer_tag = ['c_cell' for x in range(0, len(self.c_products))]
+        if self.reaction_zone == 'cell':
 
-        for ind_r in trans_react_index:
+            self.reactant_transfer_tag = ['c_cell' for x in range(0, len(self.c_reactants))]
+            self.product_transfer_tag = ['c_cell' for x in range(0, len(self.c_products))]
 
-            self.c_reactants[ind_r] = c_reactants_trans[ind_r]
-            self.reactant_transfer_tag[ind_r] = react_transfer_tag[ind_r]
+        elif self.reaction_zone == 'mitochondria':
+
+            self.reactant_transfer_tag = ['c_mit' for x in range(0, len(self.c_reactants))]
+            self.product_transfer_tag = ['c_mit' for x in range(0, len(self.c_products))]
+
+        for i, ind_r in enumerate(trans_react_index):
+
+            self.c_reactants[ind_r] = c_reactants_trans[i]
+            self.reactant_transfer_tag[ind_r] = react_transfer_tag[i]
 
 
-        for ind_p in trans_prod_index:
-            self.c_products[ind_p] = c_products_trans[ind_p]
-            self.product_transfer_tag[ind_p] = prod_transfer_tag[ind_p]
+        for j, ind_p in enumerate(trans_prod_index):
+            self.c_products[ind_p] = c_products_trans[j]
+            self.product_transfer_tag[ind_p] = prod_transfer_tag[j]
 
         # define the reaction equilibrium coefficient:
         Keqm = np.exp(-self.delta_Go/(p.R*sim.T))*Kmod
