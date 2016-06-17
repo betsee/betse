@@ -51,6 +51,8 @@ class MasterOfMolecules(object):
 
         self.read_substances(sim, cells, config_substances, p)
 
+        self.ave_cell_vol = cells.cell_vol.mean()  # average cell volume
+
     def read_substances(self, sim, cells, config_substances, p):
         """
             Initializes all of the main variables for all molecules included in the simulation.
@@ -552,7 +554,7 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             # compute the new reactants and products
-            rate = obj.compute_reaction(sim, sim_metabo, cells, p)
+            obj.rate = obj.compute_reaction(sim, sim_metabo, cells, p)
 
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
 
@@ -563,7 +565,7 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             # compute the new reactants and products
-            rate = obj.compute_reaction(sim, sim_metabo, cells, p)
+            obj.rate = obj.compute_reaction(sim, sim_metabo, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -626,7 +628,6 @@ class MasterOfMolecules(object):
         self.pH_cells_time.append(sim.pH_cell)
         self.pH_env_time.append(sim.pH_env)
 
-
     def report(self, sim, p):
         """
         At the end of the simulation, tell user about mean, final concentrations of each molecule.
@@ -650,12 +651,22 @@ class MasterOfMolecules(object):
 
         if self.mit_enabled:
             logs.log_info('Average Vmit: ' + str(np.round(1.0e3*self.mit.Vmit.mean(), 4)) + ' mV')
+
+            if 'ETC' in self.transporter_names:
+
+                rate =  3600*1e15*self.ave_cell_vol*self.ETC.rate.mean()
+
+                if 'ETC_ROS' in self.transporter_names:
+                    rate = rate + 2*3600 * 1e15 * self.ave_cell_vol * self.ETC_ROS.rate.mean()
+
+                logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
+
+
         #     logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
         #
         # if p.ions_dict['H'] != 1:
         #     logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
         #     logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
-
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
@@ -878,9 +889,16 @@ class Molecule(object):
 
         """
 
-        self.c_mems, self.c_env, _, _, _, _ = stb.molecule_mover(sim, self.c_mems,
-                                                                self.c_env, cells, p, z=self.z, Dm = self.Dm,
-                                                                Do = self.Do, c_bound = self.c_bound,
+
+
+        self.c_mems, self.c_env, _, _, _, _ = stb.molecule_mover(sim,
+                                                                self.c_mems,
+                                                                self.c_env,
+                                                                cells, p,
+                                                                z=self.z,
+                                                                Dm = self.Dm,
+                                                                Do = self.Do,
+                                                                c_bound = self.c_bound,
                                                                 ignoreECM = True)
 
     def updateC(self, flux, sim, cells, p):
@@ -898,7 +916,9 @@ class Molecule(object):
 
         if self.mit_enabled:
 
-            f_ED = stb.electroflux(self.c_cells, self.c_mit, self.Dm, p.tm, self.z,
+            IdCM = np.ones(sim.cdl)
+
+            f_ED = stb.electroflux(self.c_cells, self.c_mit, self.Dm*IdCM, p.tm*IdCM, self.z*IdCM,
                 sim_metabo.mit.Vmit, sim.T, p, rho=1)
 
             # update with flux
@@ -1679,6 +1699,26 @@ class Transporter(object):
 
                         sim_conc[ion_check] = conc
 
+                elif type_tag == 'c_cells':
+
+                    deltaC = deltaMoles / cells.cell_vol
+
+                    conc = self.c_reactants[i] - deltaC * self.reactants_coeff[i]
+
+                    label = 'i' + reactant_name
+                    ion_check = getattr(sim, label, None)
+
+                    if ion_check is None:
+
+                        obj_reactant = getattr(sim_metabo, reactant_name)
+                        setattr(obj_reactant, 'c_cells', conc)
+
+                    else:
+                        # define the reactant as the ion concentration from the cell concentrations object in sim:
+                        sim_conc = getattr(sim, 'cc_cells')
+
+                        sim_conc[ion_check] = conc
+
                 elif type_tag == 'c_mit':
 
                     deltaC = deltaMoles / sim_metabo.mit.mit_vol
@@ -1699,7 +1739,6 @@ class Transporter(object):
                     else:
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
                         sim_conc = getattr(sim, 'cc_mit')
-
                         sim_conc[ion_check] = conc
 
             elif type_tag == 'c_env':
@@ -1795,6 +1834,26 @@ class Transporter(object):
                     else:
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
                         sim_conc = getattr(sim, 'cc_mems')
+
+                        sim_conc[ion_check] = conc
+
+                if type_tag == 'c_cells':
+
+                    deltaC = deltaMoles / cells.cell_vol
+
+                    conc = self.c_products[i] + deltaC * self.products_coeff[i]
+
+                    label = 'i' + product_name
+                    ion_check = getattr(sim, label, None)
+
+                    if ion_check is None:
+
+                        obj_product = getattr(sim_metabo, product_name)
+                        setattr(obj_product, 'c_cells', conc)
+
+                    else:
+                        # define the reactant as the ion concentration from the cell concentrations object in sim:
+                        sim_conc = getattr(sim, 'cc_cells')
 
                         sim_conc[ion_check] = conc
 
@@ -1990,8 +2049,8 @@ class Transporter(object):
 
         if self.reaction_zone == 'cell':
 
-            self.reactant_transfer_tag = ['c_cell' for x in range(0, len(self.c_reactants))]
-            self.product_transfer_tag = ['c_cell' for x in range(0, len(self.c_products))]
+            self.reactant_transfer_tag = ['c_mems' for x in range(0, len(self.c_reactants))]
+            self.product_transfer_tag = ['c_mems' for x in range(0, len(self.c_products))]
 
         elif self.reaction_zone == 'mitochondria':
 
@@ -2003,8 +2062,8 @@ class Transporter(object):
             self.c_reactants[ind_r] = c_reactants_trans[i]
             self.reactant_transfer_tag[ind_r] = react_transfer_tag[i]
 
-
         for j, ind_p in enumerate(trans_prod_index):
+
             self.c_products[ind_p] = c_products_trans[j]
             self.product_transfer_tag[ind_p] = prod_transfer_tag[j]
 
@@ -2088,6 +2147,12 @@ class Transporter(object):
 
         elif self.reaction_zone == 'mitochondria':
             deltaMoles = deltaC*sim_metabo.mit.mit_vol
+
+        # print(self.name)
+        # print("delta moles", deltaMoles.mean())
+        # print("REACTANT transfer tags", self.reactant_transfer_tag)
+        # print("PRODUCT transfer tags", self.product_transfer_tag)
+        # print('------------------------------------------------')
 
         self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p)
         self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p)

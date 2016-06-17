@@ -44,6 +44,18 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     """
 
+    # # modify the diffusion constant by the membrane density
+    # Dc = rho*Dc
+    #
+    # alpha = (zc*vBA*p.F)/(p.R*T)
+    #
+    # exp_alpha = np.exp(-alpha)
+    #
+    # deno = 1 - exp_alpha + 1e-15  # calculate the denominator with small term in case it's equal to zero
+    #
+    # # calculate the flux for those elements:
+    # flux = -((Dc*alpha)/d)*((cB - cA*exp_alpha)/deno)
+
     # modify the diffusion constant by the membrane density
     Dc = rho*Dc
 
@@ -51,10 +63,24 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     exp_alpha = np.exp(-alpha)
 
-    deno = 1 - exp_alpha + 1e-15  # calculate the denominator with small term in case it's equal to zero
+    deno = 1 - exp_alpha   # calculate the denominator for the electrodiffusion equation,..
 
-    # calculate the flux for those elements:
-    flux = -((Dc*alpha)/d)*((cB - cA*exp_alpha)/deno)
+    izero = (deno==0).nonzero()     # get the indices of the zero and non-zero elements of the denominator
+    inotzero = (deno!=0).nonzero()
+
+    # initialize data matrices to the same shape as input data
+    flux = np.zeros(deno.shape)
+
+    if len(deno[izero]):   # if there's anything in the izero array:
+         # calculate the flux for those elements as standard diffusion [mol/m2s]:
+        flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
+
+    if len(deno[inotzero]):   # if there's any indices in the inotzero array:
+
+        # calculate the flux for those elements:
+        flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
+                        cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
+
 
     return flux
 
@@ -992,7 +1018,9 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     # Transmembrane: electrodiffuse molecule X between cell and extracellular space------------------------------
 
-    f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm, z, sim.vm, sim.T, p)
+    IdM = np.ones(sim.mdl)
+
+    f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm*IdM, z*IdM, sim.vm, sim.T, p)
 
     # update concentrations due to electrodiffusion:
 
