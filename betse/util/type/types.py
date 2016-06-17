@@ -57,7 +57,10 @@ if __debug__:
         function annotations, as officially documented by PEP 484 ("Type
         Hints"). While PEP 484 supports arbitrarily complex type composition,
         this decorator requires _all_ parameter and return value annotations to
-        be either built-in types (e.g., `int`, `str`) _or_ user-defined classes.
+        be either:
+
+        * Classes (e.g., `int`, `OrderedDict`).
+        * Tuples of classes (e.g., `(int, OrderedDict)`).
 
         If optimizations are enabled by the active Python interpreter (e.g., due
         to option `-O` passed to this interpreter), this decorator is a noop.
@@ -100,6 +103,9 @@ if __debug__:
         # "inspect.Signature" instance encapsulating this callable's signature.
         func_sig = inspect.signature(func)
 
+        # Human-readable name of this function for use in exceptions.
+        func_name = func.__name__ + '()'
+
         # For the name of each parameter passed to this callable and the
         # "inspect.Parameter" instance encapsulating this parameter (in the
         # passed order)...
@@ -117,26 +123,32 @@ if __debug__:
             if (func_arg.annotation is not Parameter.empty and
                 func_arg.kind not in _PARAMETER_KIND_IGNORED):
                 # Type of this parameter.
-                func_arg_type = func_arg.annotation
+                func_arg_type = _get_annotation_type(
+                    annotation=func_arg.annotation,
+                    label='{} parameter {} type'.format(
+                        func_name, func_arg.name))
 
-                # Python expression expanding to the value of this parameter.
+                # String whose contents evaluate to the current value of this
+                # parameter passed to the currently decorated function call.
                 func_arg_value_expr = None
 
-                # If this type is *NOT* a new-style class, raise an exception.
-                if not is_class_new(func_arg_type):
-                    raise TypeError(
-                        'Parameter {} type {} not a new-style class.'.format(
-                            func_arg.name, func_arg_type))
-
-                # Reduce this type to its name, for subsequent interpolation.
-                # Note that the "__name__" attribute is only available for
-                # new-style classes.
-                func_arg_type = func_arg_type.__name__
+                # String whose contents evaluate to either:
+                #
+                # * If this parameter is passed to the currently decorated
+                #   function call, the value of this parameter.
+                # * Else, "True". This prevents this parameter from being type
+                #   checked, ensuring that the subsequent call to this function
+                #   will fail with the typical human-readable Python exception
+                #   for unexpected parameters.
+                func_arg_value_expr = None
 
                 # If this parameter is keyword-only, type-check this parameter
                 # by direct lookup into the variadic "**kwargs" dictionary.
                 if func_arg.kind is Parameter.KEYWORD_ONLY:
-                    func_arg_value_expr = 'kwargs[{!r}]'.format(func_arg.name)
+                    func_arg_value_expr = (
+                        'kwargs[{arg_name!r}] '
+                        'if {arg_name!r} in kwargs '
+                        'else True'.format(arg_name=func_arg.name))
                 # Else if this parameter may be either positional or keyword,
                 # type-check this parameter by lookup (in order):
                 #
@@ -144,9 +156,9 @@ if __debug__:
                 # * In the variadic "*args"* tuple by index.
                 elif func_arg.kind is Parameter.POSITIONAL_OR_KEYWORD:
                     func_arg_value_expr = (
-                        'kwargs[{arg_name!r}] '
-                        'if {arg_name!r} in kwargs '
-                        'else args[{arg_index}]'.format(
+                        'kwargs[{arg_name!r}] if {arg_name!r} in kwargs '
+                        'else args[{arg_index}] if {arg_index} < len(args) '
+                        'else True'.format(
                             arg_name=func_arg.name, arg_index=func_arg_index))
                 # Else, this parameter is an unsupported
                 else:
@@ -157,9 +169,10 @@ if __debug__:
                 # Type-check this parameter.
                 func_body += '''
     assert isinstance({arg_value_expr}, {arg_type}), (
-        'Parameter {arg_name}={{}} not of type {{}}.'.format(
-            trim({arg_value_expr}), {arg_type}))
+        '{func_name} parameter {arg_name}={{}} not a {arg_type}'.format(
+            trim({arg_value_expr})))
 '''.format(
+    func_name=func_name,
     arg_value_expr=func_arg_value_expr,
     arg_name=func_arg.name,
     arg_type=func_arg_type)
@@ -167,27 +180,19 @@ if __debug__:
         # If this callable's return value is annotated...
         if func_sig.return_annotation is not Signature.empty:
             # Type of this return value.
-            func_return_type = func_sig.return_annotation
-
-            # If this type is *NOT* a new-style class, raise an exception.
-            if not is_class_new(func_return_type):
-                raise TypeError(
-                    'Return type {} not a new-style class.'.format(
-                        func_return_type))
-
-            # Reduce this type to its name, for subsequent interpolation.
-            func_return_type = func_return_type.__name__
-            # print('func_return_type: ' + func_return_type)
+            func_return_type = _get_annotation_type(
+                annotation=func_sig.return_annotation,
+                label='{} return type'.format(func_name))
 
             # Call this callable, type check the returned value, and return this
             # value from this wrapper.
             func_body += '''
     return_value = __funkadelic(*args, **kwargs)
     assert isinstance(return_value, {return_type}), (
-        'Return value {{}} not of type {{}}.'.format(
-            trim(return_value), {return_type}))
+        '{func_name} return value {{}} not a {return_type}'.format(
+            trim(return_value)))
     return return_value
-'''.format(return_type=func_return_type)
+'''.format(func_name=func_name, return_type=func_return_type)
         # Else, call this callable and return this value from this wrapper.
         else:
             func_body += '''
@@ -203,7 +208,7 @@ if __debug__:
         # obscure and presumably uninteresting reasons, Python fails to locally
         # declare this closure when the locals() dictionary is passed; to
         # capture this closure, a local dictionary must be passed instead.
-        # print('\nfunc: {}'.format(func_body))
+        # print('\n{} wrapper: {}'.format(func_name, func_body))
         exec(func_body, globals(), local_attrs)
 
         # This wrapper.
@@ -221,6 +226,64 @@ if __debug__:
 else:
     def type_check(func: callable) -> callable:
         return func
+
+
+def _get_annotation_type(annotation, label):
+    '''
+    Get the type encapsulated by the passed function annotation.
+
+    If this annotation is:
+
+    * A new-style class, this function returns the name of this class.
+    * A tuple of new-style classes, this function returns this a string whose
+      contents evaluate to a tuple of the names of these classes.
+    * Else, an exception is raised.
+
+    Parameters
+    ----------
+    annotation : object
+        Annotation to be inspected.
+    label : str
+        Human-readable label associated with this annotation, interpolated into
+        exceptions raised by this function.
+
+    Returns
+    ----------
+    object
+        Type encapsulated by this annotation.
+    '''
+
+    #FIXME: Assert the passed object to actually be an annotation.
+
+    # If this annotation is a new-style class, return the name of this class.
+    # Note that the "__name__" attribute is unavailable in old-style classes.
+    if is_class_new(annotation):
+        return annotation.__name__
+
+    # Else if this annotation is a tuple...
+    if isinstance(annotation, tuple):
+        # String whose contents evaluate to a tuple of the names of all
+        # new-style classes in this tuple (in the same order).
+        class_names = '('
+
+        # For each member of this tuple...
+        for member in annotation:
+            # If this is a new-style class, append the name of this class.
+            if is_class_new(member):
+                class_names += member.__name__ + ', '
+            # Else, raise an exception.
+            else:
+                raise TypeError(
+                    '{} tuple member {} not a new-style class'.format(
+                        label, member))
+
+        # Return this string.
+        return class_names + ')'
+
+    # Else, raise an exception.
+    raise TypeError(
+        '{} {} neither a new-style class nor '
+        'tuple of such classes'.format(label, annotation))
 
 # ....................{ FORMATTERS                         }....................
 # This string-centric function is defined in this module rather than in the

@@ -21,7 +21,7 @@ def test_type_check_noop() -> None:
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Type check a function with no function annotations.
+    # Unannotated function to be type checked.
     @type_check
     def khorne(gork, mork):
         return gork + mork
@@ -33,14 +33,14 @@ def test_type_check_noop() -> None:
 # ....................{ TESTS ~ pass                       }....................
 def test_type_check_pass_keyword_and_positional() -> None:
     '''
-    Test type checking for a function passed both annotated positional and
-    keyword parameters.
+    Test type checking for a function successfully passed both annotated
+    positional and keyword parameters.
     '''
 
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Type check a function.
+    # Function to be type checked.
     @type_check
     def slaanesh(daemonette: str, keeper_of_secrets: str) -> str:
         return daemonette + keeper_of_secrets
@@ -54,14 +54,14 @@ def test_type_check_pass_keyword_and_positional() -> None:
 
 def test_type_check_pass_keyword_only() -> None:
     '''
-    Test type checking for a function passed annotated **keyword-only
-    parameters** (i.e., parameters following an `*` or `*args` parameter).
+    Test type checking for a function successfully passed an annotated
+    keyword-only parameter following an `*` or `*args` parameter.
     '''
 
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Type check a function.
+    # Function to be type checked.
     @type_check
     def changer_of_ways(sky_shark: str, *, chaos_spawn: str) -> str:
         return sky_shark + chaos_spawn
@@ -72,8 +72,29 @@ def test_type_check_pass_keyword_only() -> None:
         'Screamers', chaos_spawn="Mith'an'driarkh") == (
         "ScreamersMith'an'driarkh")
 
+
+def test_type_check_pass_tuple() -> None:
+    '''
+    Test type checking for a function successfully passed a parameter annotated
+    as a tuple.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Function to be type checked.
+    @type_check
+    def genestealer(tyranid: str, hive_fleet: (str, int)) -> str:
+        return tyranid + str(hive_fleet)
+
+    # Call this function with each of the two types listed in the above tuple.
+    assert genestealer(
+        'Norn-Queen', hive_fleet='Behemoth') == 'Norn-QueenBehemoth'
+    assert genestealer(
+        'Carnifex', hive_fleet=0xDEADBEEF) == 'Carnifex3735928559'
+
 # ....................{ TESTS ~ fail                       }....................
-def test_type_check_fail_param() -> None:
+def test_type_check_fail_param_type() -> None:
     '''
     Test type checking for an annotated function call failing a parameter type
     check.
@@ -82,9 +103,9 @@ def test_type_check_fail_param() -> None:
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Type check a function.
+    # Invalidly annotated function to be type checked.
     @type_check
-    def eldar(isha: str, asuryan: str) -> str:
+    def eldar(isha: str, asuryan: (str, int)) -> str:
         return isha + asuryan
 
     # Call this function with an invalid type and assert the expected exception.
@@ -92,7 +113,7 @@ def test_type_check_fail_param() -> None:
         eldar('Mother of the Eldar', 100.100)
 
 
-def test_type_check_fail_return() -> None:
+def test_type_check_fail_return_type() -> None:
     '''
     Test type checking for an annotated function call failing a return type
     check.
@@ -101,7 +122,7 @@ def test_type_check_fail_return() -> None:
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Type check a function returning an invalid type.
+    # Invalidly annotated function to be type checked.
     @type_check
     def necron(star_god: str, old_one: str) -> str:
         return 60e6
