@@ -23,6 +23,7 @@ objects).
 import inspect, re
 from collections.abc import Container, Iterable, Mapping, Sequence
 from enum import Enum, EnumMeta
+from functools import wraps
 from inspect import Parameter, Signature
 
 # ....................{ GLOBALS                            }....................
@@ -77,19 +78,21 @@ if __debug__:
         # Raw string of Python statements comprising the body of this wrapper,
         # including (in order):
         #
-        # 1. A private "__funkadelic" parameter initialized to this callable.
-        #    Ideally, the "func" parameter passed to this decorator would be
-        #    accessible as a closure-style local to this wrapper. For unknown
-        #    reasons (presumably, a subtle bug in the exec() builtin), this is
-        #    not the case. Instead, a closure-style local must be simulated by
-        #    passing the "func" parameter to this function at function
-        #    definition time as the default value of this private parameter. To
-        #    ensure this default is *NOT* overwritten by a function accepting a
-        #    parameter of the same name, this edge case is tested for below.
-        # 2. Assert statements type checking parameters passed to this callable.
-        # 3. A call to this callable.
-        # 4. An assert statement type checking the value returned by this
-        #    callable.
+        # * A "@wraps" decorator propagating the name, docstring, and other
+        #   identifying metadata of the original function to this wrapper.
+        # * A private "__funkadelic" parameter initialized to this function.
+        #   In theory, the "func" parameter passed to this decorator should be
+        #   accessible as a closure-style local in this wrapper. For unknown
+        #   reasons (presumably, a subtle bug in the exec() builtin), this is
+        #   not the case. Instead, a closure-style local must be simulated by
+        #   passing the "func" parameter to this function at function
+        #   definition time as the default value of an arbitrary parameter. To
+        #   ensure this default is *NOT* overwritten by a function accepting a
+        #   parameter of the same name, this edge case is tested for below.
+        # * Assert statements type checking parameters passed to this callable.
+        # * A call to this callable.
+        # * An assert statement type checking the value returned by this
+        #   callable.
         #
         # While there exist numerous alternatives (e.g., appending to a list or
         # bytearray before joining the elements of that iterable into a string),
@@ -98,7 +101,10 @@ if __debug__:
         # cumbersome (as in the case of a bytearray). Since string concatenation
         # is heavily optimized by the official CPython interpreter, the simplest
         # approach is (curiously) the most ideal.
-        func_body = 'def func_type_checked(*args, __funkadelic=func, **kwargs):'
+        func_body = '''
+@wraps(func)
+def func_type_checked(*args, __funkadelic=func, **kwargs):
+'''
 
         # "inspect.Signature" instance encapsulating this callable's signature.
         func_sig = inspect.signature(func)
@@ -128,37 +134,55 @@ if __debug__:
                     label='{} parameter {} type'.format(
                         func_name, func_arg.name))
 
-                # String whose contents evaluate to the current value of this
-                # parameter passed to the currently decorated function call.
-                func_arg_value_expr = None
-
                 # String whose contents evaluate to either:
                 #
-                # * If this parameter is passed to the currently decorated
-                #   function call, the value of this parameter.
+                # * If this parameter is passed as a keyword to the current
+                #   function call, a type-check of the value of this parameter
+                #   looked up by keyword name.
+                # * If this parameter is positionally passed to the current
+                #   function call, a type-check of the value of this parameter
+                #   looked up by argument index.
                 # * Else, "True". This prevents this parameter from being type
                 #   checked, ensuring that the subsequent call to this function
                 #   will fail with the typical human-readable Python exception
                 #   for unexpected parameters.
+                func_arg_check_expr = None
+
+                # String whose contents evaluate to the current value of this
+                # parameter passed to the currently decorated function call.
                 func_arg_value_expr = None
 
                 # If this parameter is keyword-only, type-check this parameter
                 # by direct lookup into the variadic "**kwargs" dictionary.
                 if func_arg.kind is Parameter.KEYWORD_ONLY:
-                    func_arg_value_expr = (
-                        'kwargs[{arg_name!r}] '
-                        'if {arg_name!r} in kwargs '
-                        'else True'.format(arg_name=func_arg.name))
+                    func_arg_check_expr = (
+                        '{arg_name!r} in kwargs and not '
+                        'isinstance(kwargs[{arg_name!r}], {arg_type})'.format(
+                            arg_name=func_arg.name,
+                            arg_type=func_arg_type,
+                        ))
+                    func_arg_value_expr = 'kwargs[{!r}]'.format(func_arg.name)
                 # Else if this parameter may be either positional or keyword,
                 # type-check this parameter by lookup (in order):
                 #
                 # * In the variadic "**kwargs" dictionary by name.
                 # * In the variadic "*args"* tuple by index.
                 elif func_arg.kind is Parameter.POSITIONAL_OR_KEYWORD:
+                    func_arg_check_expr = (
+                        'not ('
+                            'isinstance(kwargs[{arg_name!r}], {arg_type}) '
+                                'if {arg_name!r} in kwargs else '
+                            'isinstance(args[{arg_index}], {arg_type}) '
+                                'if {arg_index} < len(args) else '
+                            'True'
+                        ')'.format(
+                            arg_name=func_arg.name,
+                            arg_index=func_arg_index,
+                            arg_type=func_arg_type,
+                        ))
                     func_arg_value_expr = (
-                        'kwargs[{arg_name!r}] if {arg_name!r} in kwargs '
-                        'else args[{arg_index}] if {arg_index} < len(args) '
-                        'else True'.format(
+                        'kwargs[{arg_name!r}] if {arg_name!r} in kwargs else '
+                        'args[{arg_index}]'.format(
                             arg_name=func_arg.name, arg_index=func_arg_index))
                 # Else, this parameter is an unsupported
                 else:
@@ -168,14 +192,17 @@ if __debug__:
 
                 # Type-check this parameter.
                 func_body += '''
-    assert isinstance({arg_value_expr}, {arg_type}), (
-        '{func_name} parameter {arg_name}={{}} not a {arg_type}'.format(
-            trim({arg_value_expr})))
+    if {arg_check_expr}:
+        raise TypeError(
+            '{func_name} parameter {arg_name}={{}} not a {arg_type}'.format(
+                trim({arg_value_expr})))
 '''.format(
-    func_name=func_name,
-    arg_value_expr=func_arg_value_expr,
-    arg_name=func_arg.name,
-    arg_type=func_arg_type)
+                    func_name=func_name,
+                    arg_check_expr=func_arg_check_expr,
+                    arg_value_expr=func_arg_value_expr,
+                    arg_name=func_arg.name,
+                    arg_type=func_arg_type,
+                )
 
         # If this callable's return value is annotated...
         if func_sig.return_annotation is not Signature.empty:
@@ -188,9 +215,10 @@ if __debug__:
             # value from this wrapper.
             func_body += '''
     return_value = __funkadelic(*args, **kwargs)
-    assert isinstance(return_value, {return_type}), (
-        '{func_name} return value {{}} not a {return_type}'.format(
-            trim(return_value)))
+    if not isinstance(return_value, {return_type}):
+        raise TypeError(
+            '{func_name} return value {{}} not a {return_type}'.format(
+                trim(return_value)))
     return return_value
 '''.format(func_name=func_name, return_type=func_return_type)
         # Else, call this callable and return this value from this wrapper.
@@ -214,10 +242,6 @@ if __debug__:
         # This wrapper.
         func_type_checked = local_attrs['func_type_checked']
 
-        # Set this wrapper's docstring to this callable's docstring.
-        func_type_checked.__doc__ = func.__doc__
-        func_type_checked._func = func
-
         # Return this wrapper.
         return func_type_checked
 
@@ -228,14 +252,14 @@ else:
         return func
 
 
-def _get_annotation_type(annotation, label):
+def _get_annotation_type(annotation: object, label: str) -> str:
     '''
-    Get the type encapsulated by the passed function annotation.
+    Get a string describing the passed function annotation's type.
 
     If this annotation is:
 
-    * A new-style class, this function returns the name of this class.
-    * A tuple of new-style classes, this function returns this a string whose
+    * A new-style class, this function returns the string name of this class.
+    * A tuple of new-style classes, this function returns a string whose
       contents evaluate to a tuple of the names of these classes.
     * Else, an exception is raised.
 
@@ -249,10 +273,9 @@ def _get_annotation_type(annotation, label):
 
     Returns
     ----------
-    object
-        Type encapsulated by this annotation.
+    str
+        String describing the type encapsulated by this annotation.
     '''
-
     #FIXME: Assert the passed object to actually be an annotation.
 
     # If this annotation is a new-style class, return the name of this class.

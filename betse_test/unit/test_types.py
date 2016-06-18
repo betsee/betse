@@ -94,6 +94,34 @@ def test_type_check_pass_tuple() -> None:
         'Carnifex', hive_fleet=0xDEADBEEF) == 'Carnifex3735928559'
 
 # ....................{ TESTS ~ fail                       }....................
+def test_type_check_fail_keyword_unknown() -> None:
+    '''
+    Test type checking for an annotated function call passed an unrecognized
+    keyword parameter.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Annotated function to be type checked.
+    @type_check
+    def tau(kroot: str, vespid: str) -> str:
+        return kroot + vespid
+
+    # Call this function with an unrecognized keyword parameter and assert the
+    # expected exception.
+    with pytest.raises(TypeError) as exception:
+        tau(kroot='Greater Good', nicassar='Dhow')
+
+    # For readability, this should be a "TypeError" synopsizing the exact issue
+    # raised by the Python interpreter on calling the original function rather
+    # than a "TypeError" failing to synopsize the exact issue raised by the
+    # wrapper type-checking the original function. Since the function
+    # annotations defined above guarantee that the exception message of the
+    # latter will be suffixed by "not a str", ensure this is *NOT* the case.
+    assert not str(exception.value).endswith('not a str')
+
+# ....................{ TESTS ~ fail : type                }....................
 def test_type_check_fail_param_type() -> None:
     '''
     Test type checking for an annotated function call failing a parameter type
@@ -103,13 +131,13 @@ def test_type_check_fail_param_type() -> None:
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Invalidly annotated function to be type checked.
+    # Annotated function to be type checked.
     @type_check
     def eldar(isha: str, asuryan: (str, int)) -> str:
         return isha + asuryan
 
     # Call this function with an invalid type and assert the expected exception.
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         eldar('Mother of the Eldar', 100.100)
 
 
@@ -122,17 +150,17 @@ def test_type_check_fail_return_type() -> None:
     # Import this decorator.
     from betse.util.type.types import type_check
 
-    # Invalidly annotated function to be type checked.
+    # Annotated function to be type checked.
     @type_check
     def necron(star_god: str, old_one: str) -> str:
         return 60e6
 
     # Call this function and assert the expected exception.
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         necron("C'tan", 'Elder Thing')
 
-# ....................{ TESTS ~ bad                        }....................
-def test_type_check_bad_param() -> None:
+# ....................{ TESTS ~ fail : annotation          }....................
+def test_type_check_fail_annotation_param() -> None:
     '''
     Test type checking for a function with an unsupported parameter annotation.
     '''
@@ -148,7 +176,7 @@ def test_type_check_bad_param() -> None:
             return nurgling + great_unclean_one
 
 
-def test_type_check_bad_return() -> None:
+def test_type_check_fail_annotation_return() -> None:
     '''
     Test type checking for a function with an unsupported return annotation.
     '''
