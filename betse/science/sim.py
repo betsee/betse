@@ -857,15 +857,17 @@ class Simulator(object):
 
             for i in self.movingIons:
 
+                IdM = np.ones(self.mdl)
+
                 if p.sim_ECM is True:
 
                     f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_mems[i],
-                        self.Dm_cells[i], p.tm, self.zs[i], self.vm, self.T, p,
+                        self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
                         rho=self.rho_channel)
 
                 else:
 
-                    f_ED = stb.electroflux(self.cc_env[i],self.cc_mems[i],self.Dm_cells[i],p.tm,self.zs[i],
+                    f_ED = stb.electroflux(self.cc_env[i],self.cc_mems[i],self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
                                     self.vm,self.T,p,rho=self.rho_channel)
 
 
@@ -1529,6 +1531,8 @@ class Simulator(object):
 
     def acid_handler(self,cells,p):
 
+        IdM = np.ones(self.mdl)
+
         # electrofuse the H+ ion between the cytoplasm and the environment
         if p.sim_ECM is True:
 
@@ -1537,8 +1541,8 @@ class Simulator(object):
                 self.cc_env[self.iH][cells.map_mem2ecm],
                 self.cc_mems[self.iH][cells.mem_to_cells],
                 self.Dm_cells[self.iH],
-                p.tm,
-                self.zs[self.iH],
+                IdM*p.tm,
+                IdM*self.zs[self.iH],
                 self.vm,
                 self.T,
                 p,
@@ -1549,8 +1553,8 @@ class Simulator(object):
 
         else:
 
-            f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],p.tm,
-                self.zs[self.iH],self.vm,self.T,p)
+            f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],IdM*p.tm,
+                IdM*self.zs[self.iH],self.vm,self.T,p)
 
             self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
 
