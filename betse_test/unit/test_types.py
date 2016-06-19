@@ -30,10 +30,10 @@ def test_type_check_noop() -> None:
     assert khorne('WAAAGH!', '!HGAAAW') == 'WAAAGH!!HGAAAW'
 
 
-# ....................{ TESTS ~ pass                       }....................
-def test_type_check_pass_keyword_and_positional() -> None:
+# ....................{ TESTS ~ pass : param               }....................
+def test_type_check_pass_param_keyword_and_positional() -> None:
     '''
-    Test type checking for a function successfully passed both annotated
+    Test type checking for a function call successfully passed both annotated
     positional and keyword parameters.
     '''
 
@@ -52,9 +52,9 @@ def test_type_check_pass_keyword_and_positional() -> None:
         "Seeker of DecadenceN'Kari")
 
 
-def test_type_check_pass_keyword_only() -> None:
+def test_type_check_pass_param_keyword_only() -> None:
     '''
-    Test type checking for a function successfully passed an annotated
+    Test type checking for a function call successfully passed an annotated
     keyword-only parameter following an `*` or `*args` parameter.
     '''
 
@@ -73,10 +73,10 @@ def test_type_check_pass_keyword_only() -> None:
         "ScreamersMith'an'driarkh")
 
 
-def test_type_check_pass_tuple() -> None:
+def test_type_check_pass_param_tuple() -> None:
     '''
-    Test type checking for a function successfully passed a parameter annotated
-    as a tuple.
+    Test type checking for a function call successfully passed a parameter
+    annotated as a tuple.
     '''
 
     # Import this decorator.
@@ -92,6 +92,49 @@ def test_type_check_pass_tuple() -> None:
         'Norn-Queen', hive_fleet='Behemoth') == 'Norn-QueenBehemoth'
     assert genestealer(
         'Carnifex', hive_fleet=0xDEADBEEF) == 'Carnifex3735928559'
+
+
+def test_type_check_pass_param_custom() -> None:
+    '''
+    Test type checking for a function call successfully passed a parameter
+    annotated as a user-defined rather than builtin type.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # User-defined type.
+    class CustomTestStr(str):
+        pass
+
+    # Function to be type checked.
+    @type_check
+    def hrud(gugann: str, delphic_plague: CustomTestStr) -> str:
+        return gugann + delphic_plague
+
+    # Call this function with each of the two types listed in the above tuple.
+    assert hrud(
+        'Troglydium hruddi', delphic_plague=CustomTestStr('Delphic Sink')) == (
+        'Troglydium hruddiDelphic Sink')
+
+# ....................{ TESTS ~ pass : return              }....................
+def test_type_check_pass_return_none() -> None:
+    '''
+    Test type checking for a function call successfully returning `None` and
+    annotated as such.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Function to be type checked.
+    @type_check
+    def xenos(interex: str, diasporex: str) -> None:
+        interex + diasporex
+
+    # Call this function and assert no value to be returned.
+    assert xenos(
+        'Luna Wolves', diasporex='Iron Hands Legion') is None
 
 # ....................{ TESTS ~ fail                       }....................
 def test_type_check_fail_keyword_unknown() -> None:
@@ -120,6 +163,23 @@ def test_type_check_fail_keyword_unknown() -> None:
     # annotations defined above guarantee that the exception message of the
     # latter will be suffixed by "not a str", ensure this is *NOT* the case.
     assert not str(exception.value).endswith('not a str')
+
+
+def test_type_check_fail_param_name() -> None:
+    '''
+    Test type checking for a function accepting a parameter name reserved for
+    use by the `@type_check` decorator.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Define a function accepting a reserved parameter name and assert the
+    # expected exception.
+    with pytest.raises(NameError):
+        @type_check
+        def jokaero(weaponsmith: str, __beartype_func: str) -> str:
+            return weaponsmith + __beartype_func
 
 # ....................{ TESTS ~ fail : type                }....................
 def test_type_check_fail_param_type() -> None:

@@ -4,25 +4,17 @@
 # See "LICENSE" for further details.
 
 '''
-Help strings printed by `betse`'s command line interface (CLI).
+Metadata describing subcommands accepted by BETSE's command line interface
+(CLI).
 '''
 
-#FIXME: Rename this submodule to "clihelp", as this module's name conflicts with
-#that of the help() builtin.
-#FIXME: Shift all "subcommand"-specific classes and globals into a new
-#"betse.cli.subcommand" module. On doing so:
-#
-#* Rename the "CLISubcommand" class to merely "CLISubcommand".
-
 # ....................{ IMPORTS                            }....................
-from betse import metadata
-from betse.util.command import commands
-from betse.util.type import strs, types
+from betse.cli.cliabc import expand_help
+from betse.util.type.types import type_check
 
 # ....................{ FUNCTIONS                          }....................
-#FIXME: Rename to merely sanitize_name() after shifting into a new
-#"clisubcommand" module.
-def sanitize_subcommand_name(subcommand_name: str) -> str:
+@type_check
+def sanitize_name(subcommand_name: str) -> str:
     '''
     Sanitize the passed subcommand name (e.g., from `sim-gnr` to `sim_gnr`).
 
@@ -31,38 +23,18 @@ def sanitize_subcommand_name(subcommand_name: str) -> str:
     * Replaces all hyphens in this name with underscores, as method names
         are generated from subcommand names but cannot contain hyphens.
     '''
-    assert types.is_str_nonempty(subcommand_name), (
-        types.assert_not_str_nonempty(subcommand_name, 'Subcommand name'))
 
     return subcommand_name.replace('-', '_')
-
-
-def expand(text: str, **kwargs) -> str:
-    '''
-    Interpolate the passed keyword arguments into the passed help string
-    template, stripping all prefixing and suffixing whitespace from this
-    template.
-
-    For convenience, the following default keyword arguments are
-    unconditionally interpolated into this template:
-
-    * `{script_basename}`, expanding to the basename of the current script
-        (e.g., `betse`).
-    * `{program_name}`, expanding to this script's human-readable name
-        (e.g., `BETSE`).
-    '''
-    assert types.is_str(text), types.assert_not_str(text)
-
-    return strs.remove_presuffix_whitespace(text.format(
-        program_name=metadata.NAME,
-        script_basename=commands.get_current_basename(),
-        **kwargs
-    ))
 
 # ....................{ CLASSES                            }....................
 class CLISubcommand(object):
     '''
-    Collection of all human-readable help strings for one CLI subcommand.
+    Metadata encapsulating a **CLI subcommand** (i.e., a name passed to the
+    external `betse` command identifying an action to be performed).
+
+    This metadata encapsulates all human-readable help strings for this
+    subcommand as well as additional options and arguments accepted by this
+    subcommand.
 
     Attributes
     ----------
@@ -77,6 +49,7 @@ class CLISubcommand(object):
         `False` if this subcommand accepts no passed arguments.
     '''
 
+    @type_check
     def __init__(
         self,
         name: str,
@@ -106,20 +79,12 @@ class CLISubcommand(object):
             `True` if this subcommand only accepts a configuration filename _or_
             `False` if this subcommand accepts no passed arguments.
         '''
-        assert types.is_str_nonempty(name), (
-            types.assert_not_str_nonempty(name, 'Subcommand name'))
-        assert types.is_str_nonempty(synopsis), (
-            types.assert_not_str_nonempty(synopsis, 'Subcommand synopsis'))
-        assert types.is_str_nonempty(description), (
-            types.assert_not_str_nonempty(description, 'Subcommand description'))
-        assert types.is_bool(is_passed_yaml), (
-            types.assert_not_bool(is_passed_yaml))
 
         # Classify these parameters, expanding all default keywords in the
         # human-readable parameters.
         self.name = name
-        self.synopsis = expand(synopsis)
-        self.description = expand(description)
+        self.synopsis = expand_help(synopsis)
+        self.description = expand_help(description)
         self.is_passed_yaml = is_passed_yaml
 
 
@@ -134,61 +99,6 @@ class CLISubcommand(object):
             'help': self.synopsis,
             'description': self.description,
         }
-
-# ....................{ TEMPLATES ~ OPTIONS                }....................
-#FIXME: Refactor these string globals into a single dictionary mapping from
-#option name to help string. The current approach is *MUCH* too heavyweight.
-
-OPTION_VERSION = '''
-print program version and exit
-'''
-'''
-Help string template synopsizing the `--version` option.
-'''
-
-
-OPTION_VERBOSE = '''
-print low-level debugging messages
-'''
-'''
-Help string template synopsizing the `--verbose` option.
-'''
-
-
-OPTION_LOG_TYPE = '''
-type of logging to perform (defaults to "{default}"):
-;* "none", logging to stdout and stderr
-;* "file", logging to the "--log-file" file
-'''
-'''
-Help string template synopsizing the `--log-type` option.
-'''
-
-
-OPTION_LOG_FILE = '''
-file to log to if "--log-type" is "file" (defaults to "{default}")
-'''
-'''
-Help string template synopsizing the `--log-file` option.
-'''
-
-
-OPTION_PROFILE_TYPE = '''
-type of profiling to perform (defaults to "{default}"):
-;* "none", disabling profiling
-;* "call", profiling method and function calls
-'''
-'''
-Help string template synopsizing the `--profile-type` option.
-'''
-
-
-OPTION_PROFILE_FILE = '''
-file to profile to if "--profile-type" is "call" (defaults to "{default}")
-'''
-'''
-Help string template synopsizing the `--profile-file` option.
-'''
 
 # ....................{ TEMPLATES ~ subcommands            }....................
 SUBCOMMANDS_PREFIX = '''
@@ -269,27 +179,35 @@ from input files defined by this configuration.
     ),
 
 
-    #FIXME: Define help strings, please.
     CLISubcommand(
         name='sim-brn',
         synopsis='simulate a biochemical reaction network for a config file',
         description='''
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!                                  UNDEFINED                                 !!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Simulate a biochemical reaction network (BRN) for the previously initialized
+cell cluster defined by the passed configuration file, whose "metabolism config"
+option specifies the path of the configuration file defining this network.  All
+other simulation features and options will be ignored.
+
+Simulation results will be saved to output files defined by this configuration,
+while the previously initialized cell cluster will be loaded from input files
+defined by this configuration.
 ''',
         is_passed_yaml=True,
     ),
 
 
-    #FIXME: Define help strings, please.
     CLISubcommand(
         name='sim-grn',
         synopsis='simulate a gene regulatory network for a config file',
         description='''
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!                                  UNDEFINED                                 !!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Simulate a gene regulatory network (GRN) for the previously initialized cell
+cluster defined by the passed configuration file, whose "gene regulatory network
+config" option specifies the path of the configuration file defining this
+network. All other simulation features and options will be ignored.
+
+Simulation results will be saved to output files defined by this configuration,
+while the previously initialized cell cluster will be loaded from input files
+defined by this configuration.
 ''',
         is_passed_yaml=True,
     ),
@@ -405,27 +323,27 @@ defined by this configuration.
     ),
 
 
-    #FIXME: Define help strings, please.
     CLISubcommand(
         name='sim-brn',
         synopsis='plot a simulated biochemical reaction network for a config file',
         description='''
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!                                  UNDEFINED                                 !!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Plot the previously simulated biochemical reaction network (BRN) defined by the
+passed configuration file. Plot results will be saved to output files defined by
+this configuration, while the previously simulated cell cluster will be loaded
+from input files defined by this configuration.
 ''',
         is_passed_yaml=True,
     ),
 
 
-    #FIXME: Define help strings, please.
     CLISubcommand(
         name='sim-grn',
         synopsis='plot a simulated gene regulatory network for a config file',
         description='''
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!                                  UNDEFINED                                 !!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Plot the previously simulated gene regulatory network (BRN) defined by the
+passed configuration file. Plot results will be saved to output files defined by
+this configuration, while the previously simulated cell cluster will be loaded
+from input files defined by this configuration.
 ''',
         is_passed_yaml=True,
     ),

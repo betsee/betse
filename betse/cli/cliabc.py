@@ -28,13 +28,14 @@ import cProfile, sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
-from betse.cli import clihelp, info
+from betse.cli import info, clioption
 from betse.util.command import commands
 from betse.util.command.args import HelpFormatterParagraph
 from betse.util.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
-from betse.util.type import types
+from betse.util.type import types, strs
+from betse.util.type.types import type_check
 from enum import Enum
 
 # ....................{ ENUMS                              }....................
@@ -50,6 +51,29 @@ NONE : enum
 CALL : enum
     Enumeration member profiling method and function calls.
 '''
+
+# ....................{ UTILITIES                          }....................
+@type_check
+def expand_help(text: str, **kwargs) -> str:
+    '''
+    Interpolate the passed keyword arguments into the passed help string
+    template, stripping all prefixing and suffixing whitespace from this
+    template.
+
+    For convenience, the following default keyword arguments are unconditionally
+    interpolated into this template:
+
+    * `{script_basename}`, expanding to the basename of the current script
+        (e.g., `betse`).
+    * `{program_name}`, expanding to this script's human-readable name
+        (e.g., `BETSE`).
+    '''
+
+    return strs.remove_presuffix_whitespace(text.format(
+        program_name=metadata.NAME,
+        script_basename=commands.get_current_basename(),
+        **kwargs
+    ))
 
 # ....................{ CLASSES                            }....................
 class CLIABC(metaclass=ABCMeta):
@@ -309,13 +333,13 @@ class CLIABC(metaclass=ABCMeta):
             '-v', '--verbose',
             dest='is_verbose',
             action='store_true',
-            help=clihelp.expand(clihelp.OPTION_VERBOSE),
+            help=expand_help(clioption.OPTION_VERBOSE),
         )
         self._arg_parser.add_argument(
             '-V', '--version',
             action='version',
             version=program_version,
-            help=clihelp.expand(clihelp.OPTION_VERSION),
+            help=expand_help(clioption.OPTION_VERSION),
         )
         self._arg_parser.add_argument(
             '--log-type',
@@ -323,16 +347,16 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             choices=log_types,
             default=log_type_default,
-            help=clihelp.expand(
-                clihelp.OPTION_LOG_TYPE, default=log_type_default),
+            help=expand_help(
+                clioption.OPTION_LOG_TYPE, default=log_type_default),
         )
         self._arg_parser.add_argument(
             '--log-file',
             dest='log_filename',
             action='store',
             default=log_filename_default,
-            help=clihelp.expand(
-                clihelp.OPTION_LOG_FILE, default=log_filename_default),
+            help=expand_help(
+                clioption.OPTION_LOG_FILE, default=log_filename_default),
         )
         self._arg_parser.add_argument(
             '--profile-type',
@@ -340,16 +364,16 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             choices=profile_types,
             default=profile_type_default,
-            help=clihelp.expand(
-                clihelp.OPTION_PROFILE_TYPE, default=profile_type_default),
+            help=expand_help(
+                clioption.OPTION_PROFILE_TYPE, default=profile_type_default),
         )
         self._arg_parser.add_argument(
             '--profile-file',
             dest='profile_filename',
             action='store',
             default=profile_filename_default,
-            help=clihelp.expand(
-                clihelp.OPTION_PROFILE_FILE, default=profile_filename_default),
+            help=expand_help(
+                clioption.OPTION_PROFILE_FILE, default=profile_filename_default),
         )
 
 

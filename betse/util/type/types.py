@@ -27,6 +27,13 @@ from functools import wraps
 from inspect import Parameter, Signature
 
 # ....................{ GLOBALS                            }....................
+_PARAMETER_RESERVED_NAMES = {
+    '__beartype_func', '__beartype_param_types', '__beartype_return_type'
+}
+'''
+Set of all parameter names reserved for use by the `@type_check` decorator.
+'''
+
 _PARAMETER_KIND_IGNORED = {
     Parameter.POSITIONAL_ONLY, Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD,
 }
@@ -42,6 +49,24 @@ This includes:
   Python callables (e.g., defined by C extensions). The `@type_check` decorator
   applies _only_ to pure-Python callables, which provide no syntactic means for
   specifying positional-only parameters.
+'''
+
+
+_RETURN_ANNOTATION_IGNORED = {Signature.empty, None}
+'''
+Set of all annotations for return values to be ignored during annotation-
+based type checking in the `@type_check` decorator.
+
+This includes:
+
+* `Signature.empty`, signifying a callable whose return value is _not_
+  annotated.
+* `None`, signifying a callable returning no value. By convention, callables
+  returning no value are typically annotated to return `None`. Technically,
+  callables whose return values are annotated as `None` _could_ be explicitly
+  checked to return `None` rather than a none-`None` value. Since return values
+  are safely ignorable by callers, however, there appears to be little
+  real-world utility in enforcing this constraint.
 '''
 
 # ....................{ DECORATORS                         }....................
@@ -68,12 +93,18 @@ if __debug__:
 
         Raises
         ----------
+        NameError
+            If any parameter has the reserved name `__funkadelic`.
         TypeError
             If either:
-            * Any parameter or return value annotation is a non-type.
+            * Any parameter or return value annotation is neither:
+              * A type.
+              * A tuple of types.
             * The kind of any parameter is unrecognized. This should _never_
               happen, assuming no significant changes to Python semantics.
         '''
+
+        #FIXME: Revise all reference to "__funkadelic" below.
 
         # Raw string of Python statements comprising the body of this wrapper,
         # including (in order):
@@ -102,9 +133,27 @@ if __debug__:
         # is heavily optimized by the official CPython interpreter, the simplest
         # approach is (curiously) the most ideal.
         func_body = '''
-@wraps(func)
-def func_type_checked(*args, __funkadelic=func, **kwargs):
+@wraps(__beartype_func)
+def func_type_checked(
+    *args,
+    __beartype_func=__beartype_func,
+    __beartype_arg_types=__beartype_arg_types,
+    __beartype_kwarg_types=__beartype_kwarg_types,
+    __beartype_return_type=__beartype_return_type,
+    **kwargs):
 '''
+
+        # List mapping each parameter's index to that parameter's type if type
+        # checking that parameter positionally or None otherwise.
+        func_arg_types = []
+
+        # Dictionary mapping each parameter's name to that parameter's type if
+        # type checking that parameter as a keyword or None otherwise.
+        func_kwarg_types = {}
+
+        # Type of the return value if type checking this value or None
+        # otherwise.
+        func_return_type = None
 
         # "inspect.Signature" instance encapsulating this callable's signature.
         func_sig = inspect.signature(func)
@@ -112,28 +161,43 @@ def func_type_checked(*args, __funkadelic=func, **kwargs):
         # Human-readable name of this function for use in exceptions.
         func_name = func.__name__ + '()'
 
+        #FIXME: Document us up. See local variable comments below.
+        def _get_arg_type_check(
+            arg: Parameter,
+            type_expr: str,
+            value_expr: str,
+            check_expr: str,
+        ) -> str:
+            return '''
+    {arg_check_expr}:
+        raise TypeError(
+            '{func_name} argeter {arg_name}={{}} not a {{!r}}'.format(
+                trim({arg_value_expr}), {arg_type_expr}))
+'''.format(
+                func_name=func_name,
+                arg_name=arg.name,
+                arg_type_expr=type_expr,
+                arg_value_expr=value_expr,
+                arg_check_expr=check_expr,
+            )
+
         # For the name of each parameter passed to this callable and the
         # "inspect.Parameter" instance encapsulating this parameter (in the
         # passed order)...
         for func_arg_index, func_arg in enumerate(func_sig.parameters.values()):
-            # If this callable redefines the private "__funkadelic" parameter
-            # initialized to a default value by this wrapper, raise an
-            # exception. Permitting this unlikely edge case would permit
-            # unsuspecting users to "accidentally" override this default.
-            if func_arg.name == '__funkadelic':
-                raise TypeError(
-                    'Parameter __funkadelic reserved for use by @type_check.')
+            # If this callable redefines a parameter initialized to a default
+            # value by this wrapper, raise an exception. Permitting this
+            # unlikely edge case would permit unsuspecting users to
+            # "accidentally" override these defaults.
+            if func_arg.name in _PARAMETER_RESERVED_NAMES:
+                raise NameError(
+                    'Parameter {} reserved for use by @type_check.'.format(
+                        func_arg.name))
 
             # If this parameter is both annotated and non-ignorable for purposes
             # of type checking, type check this parameter.
             if (func_arg.annotation is not Parameter.empty and
                 func_arg.kind not in _PARAMETER_KIND_IGNORED):
-                # Type of this parameter.
-                func_arg_type = _get_annotation_type(
-                    annotation=func_arg.annotation,
-                    label='{} parameter {} type'.format(
-                        func_name, func_arg.name))
-
                 # String whose contents evaluate to either:
                 #
                 # * If this parameter is passed as a keyword to the current
@@ -146,91 +210,90 @@ def func_type_checked(*args, __funkadelic=func, **kwargs):
                 #   checked, ensuring that the subsequent call to this function
                 #   will fail with the typical human-readable Python exception
                 #   for unexpected parameters.
-                func_arg_check_expr = None
+                # func_arg_check_expr = None
 
                 # String whose contents evaluate to the current value of this
                 # parameter passed to the currently decorated function call.
-                func_arg_value_expr = None
+                # func_arg_value_expr = None
 
-                # If this parameter is keyword-only, type-check this parameter
-                # by direct lookup into the variadic "**kwargs" dictionary.
-                if func_arg.kind is Parameter.KEYWORD_ONLY:
-                    func_arg_check_expr = (
-                        '{arg_name!r} in kwargs and not '
-                        'isinstance(kwargs[{arg_name!r}], {arg_type})'.format(
-                            arg_name=func_arg.name,
-                            arg_type=func_arg_type,
-                        ))
-                    func_arg_value_expr = 'kwargs[{!r}]'.format(func_arg.name)
-                # Else if this parameter may be either positional or keyword,
-                # type-check this parameter by lookup (in order):
+                # All parameters may be passed as keywords. Due to the
+                # existence of keyword-only parameters (i.e., parameters
+                # following an "*" or "*args" parameter), however, all
+                # parameters may *NOT* necessarily be passed positionally.
                 #
-                # * In the variadic "**kwargs" dictionary by name.
-                # * In the variadic "*args"* tuple by index.
-                elif func_arg.kind is Parameter.POSITIONAL_OR_KEYWORD:
-                    func_arg_check_expr = (
-                        'not ('
-                            'isinstance(kwargs[{arg_name!r}], {arg_type}) '
-                                'if {arg_name!r} in kwargs else '
-                            'isinstance(args[{arg_index}], {arg_type}) '
-                                'if {arg_index} < len(args) else '
-                            'True'
-                        ')'.format(
-                            arg_name=func_arg.name,
-                            arg_index=func_arg_index,
-                            arg_type=func_arg_type,
-                        ))
-                    func_arg_value_expr = (
-                        'kwargs[{arg_name!r}] if {arg_name!r} in kwargs else '
-                        'args[{arg_index}]'.format(
-                            arg_name=func_arg.name, arg_index=func_arg_index))
-                # Else, this parameter is an unsupported
-                else:
-                    raise TypeError(
-                        'Parameter {} kind {} unsupported.'.format(
-                            func_arg.name, func_arg.kind))
+                # If this parameter is passed as a keyword, type check this
+                # parameter by lookup in the variadic "**kwargs" dictionary.
 
-                # Type-check this parameter.
-                func_body += '''
-    if {arg_check_expr}:
-        raise TypeError(
-            '{func_name} parameter {arg_name}={{}} not a {arg_type}'.format(
-                trim({arg_value_expr})))
-'''.format(
-                    func_name=func_name,
-                    arg_check_expr=func_arg_check_expr,
-                    arg_value_expr=func_arg_value_expr,
-                    arg_name=func_arg.name,
-                    arg_type=func_arg_type,
+                # Type of this parameter for lookup by keyword.
+                func_kwarg_types[func_arg.name] = _check_annotation(
+                    annotation=func_arg.annotation,
+                    label='{} parameter {} type'.format(
+                        func_name, func_arg.name))
+
+                # Type check this parameter when passed as a keyword.
+                func_body += _get_arg_type_check(
+                    arg=func_arg,
+                    type_expr='__beartype_kwarg_types[{!r}]'.format(
+                        func_arg.name),
+                    value_expr='kwargs[{!r}]'.format(func_arg.name),
+                    check_expr=(
+                        'if {0!r} in kwargs and not isinstance(kwargs[{0!r}], '
+                        '__beartype_kwarg_types[{0!r}])'.format(
+                                func_arg.name)),
                 )
 
-        # If this callable's return value is annotated...
-        if func_sig.return_annotation is not Signature.empty:
+                # If this parameter is *NOT* keyword-only, this parameter may
+                # passed positionally. If this is the case, type check this
+                # parameter by index into the variadic "*args"* tuple.
+                if func_arg.kind is Parameter.POSITIONAL_OR_KEYWORD:
+                    # Type of this parameter for lookup by index.
+                    func_arg_types.append(func_arg.annotation)
+
+                    # Type check this parameter when passed positionally.
+                    func_body += _get_arg_type_check(
+                        arg=func_arg,
+                        type_expr='__beartype_arg_types[{}]'.format(
+                            func_arg_index),
+                        value_expr='args[{!r}]'.format(func_arg_index),
+                        check_expr=(
+                            'elif {0} < len(args) and not isinstance('
+                            'args[{0}], __beartype_arg_types[{0}])'.format(
+                                func_arg_index)),
+                    )
+
+        # If this callable's return value is both annotated and non-ignorable
+        # for purposes of type checking, type check this value.
+        if func_sig.return_annotation not in _RETURN_ANNOTATION_IGNORED:
             # Type of this return value.
-            func_return_type = _get_annotation_type(
+            func_return_type = _check_annotation(
                 annotation=func_sig.return_annotation,
                 label='{} return type'.format(func_name))
 
             # Call this callable, type check the returned value, and return this
             # value from this wrapper.
             func_body += '''
-    return_value = __funkadelic(*args, **kwargs)
-    if not isinstance(return_value, {return_type}):
+    return_value = __beartype_func(*args, **kwargs)
+    if not isinstance(return_value, __beartype_return_type):
         raise TypeError(
-            '{func_name} return value {{}} not a {return_type}'.format(
-                trim(return_value)))
+            '{func_name} return value {{}} not a {{!r}}'.format(
+                trim(return_value), __beartype_return_type))
     return return_value
-'''.format(func_name=func_name, return_type=func_return_type)
+'''.format(func_name=func_name)
         # Else, call this callable and return this value from this wrapper.
         else:
             func_body += '''
-    return __funkadelic(*args, **kwargs)
+    return __beartype_func(*args, **kwargs)
 '''
 
         # Dictionary mapping from local attribute name to value. For efficiency,
         # only those local attributes explicitly required in the body of this
         # wrapper are copied from the current namespace. (See below.)
-        local_attrs = {'func': func}
+        local_attrs = {
+            '__beartype_func': func,
+            '__beartype_arg_types': func_arg_types,
+            '__beartype_kwarg_types': func_kwarg_types,
+            '__beartype_return_type': func_return_type,
+        }
 
         # Dynamically define this wrapper as a closure of this decorator. For
         # obscure and presumably uninteresting reasons, Python fails to locally
@@ -252,7 +315,8 @@ else:
         return func
 
 
-def _get_annotation_type(annotation: object, label: str) -> str:
+#FIXME: Revise docstring. This function no longer returns raw strings.
+def _check_annotation(annotation: object, label: str) -> object:
     '''
     Get a string describing the passed function annotation's type.
 
@@ -278,35 +342,25 @@ def _get_annotation_type(annotation: object, label: str) -> str:
     '''
     #FIXME: Assert the passed object to actually be an annotation.
 
-    # If this annotation is a new-style class, return the name of this class.
-    # Note that the "__name__" attribute is unavailable in old-style classes.
-    if is_class_new(annotation):
-        return annotation.__name__
+    #FIXME: Revise commentary, please.
 
-    # Else if this annotation is a tuple...
+    # If this annotation is a tuple...
     if isinstance(annotation, tuple):
-        # String whose contents evaluate to a tuple of the names of all
-        # new-style classes in this tuple (in the same order).
-        class_names = '('
-
         # For each member of this tuple...
         for member in annotation:
-            # If this is a new-style class, append the name of this class.
-            if is_class_new(member):
-                class_names += member.__name__ + ', '
-            # Else, raise an exception.
-            else:
+            # If this member is *NOT* a new-style class, raise an exception.
+            if not is_class_new(member):
                 raise TypeError(
                     '{} tuple member {} not a new-style class'.format(
                         label, member))
+    # Else if this annotation is *NOT* a new-style class, raise an exception.
+    elif not is_class_new(annotation):
+        raise TypeError(
+            '{} {} neither a new-style class nor '
+            'tuple of such classes'.format(label, annotation))
 
-        # Return this string.
-        return class_names + ')'
-
-    # Else, raise an exception.
-    raise TypeError(
-        '{} {} neither a new-style class nor '
-        'tuple of such classes'.format(label, annotation))
+    # Return this annotation as is.
+    return annotation
 
 # ....................{ FORMATTERS                         }....................
 # This string-centric function is defined in this module rather than in the
@@ -535,7 +589,7 @@ def is_cli_subcommand(obj: object) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.cli.clihelp import CLISubcommand
+    from betse.cli.subcommand import CLISubcommand
     return isinstance(obj, CLISubcommand)
 
 # ....................{ TESTERS ~ betse : science          }....................
