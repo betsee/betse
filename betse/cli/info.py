@@ -63,7 +63,6 @@ def output_info() -> None:
     from betse.lib import libs
     from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.util.os import kernels
-    from betse.util.command import exits
 
     # Dictionary of human-readable labels to dictionaries of all
     # human-readable keys and values categorized by such labels. All such
@@ -78,8 +77,6 @@ def output_info() -> None:
             ('dot directory',  pathtree.DOT_DIRNAME),
             ('data directory', pathtree.DATA_DIRNAME),
             ('default config file', pathtree.CONFIG_DEFAULT_FILENAME),
-            ('default config geometry directory',
-             pathtree.DATA_GEOMETRY_DIRNAME),
         ))),
 
         # Logging metadata.
@@ -99,7 +96,7 @@ def output_info() -> None:
         ('os', oses.get_metadata()),
     ))
 
-    # String buffer formatting such information.
+    # String buffer formatting this information.
     info_buffer = StringIO()
 
     # True if this is the first label to be output.

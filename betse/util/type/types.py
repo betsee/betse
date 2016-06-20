@@ -104,7 +104,8 @@ if __debug__:
               happen, assuming no significant changes to Python semantics.
         '''
 
-        #FIXME: Revise all reference to "__funkadelic" below.
+        #FIXME: In reflection, we probably *SHOULD* use "StringIO" here. Maybe?
+        #FIXME: Revise all references to "__funkadelic" below.
 
         # Raw string of Python statements comprising the body of this wrapper,
         # including (in order):

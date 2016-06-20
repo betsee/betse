@@ -119,6 +119,17 @@ def write(config_filename: str, config: dict) -> None:
         yaml_file.write(config_dump)
 
 # ....................{ WRITERS ~ default                  }....................
+#FIXME: Refactor this function as follows (in order):
+#
+#* Create a new "betse.science.config.default" submodule.
+#* Shift this and all related private functions of this submodule into that
+#  submodule.
+#* Rename this function to merely write() and likewise for all other functions
+#  moved into that submodule.
+#* Refactor this function to internally create and return a "SimConfigWrapper"
+#  instance. Since this function is only called once elsewhere in the codebase,
+#  this should be relatively simple. Do so now, however, before matters become
+#  more... entangled.
 def write_default(config_filename: str) -> None:
     '''
     Write a default YAML simulation configuration to the file with the passed
@@ -183,22 +194,22 @@ def _write_default_dir(config_filename: str) -> None:
     # Create this directory if needed.
     dirs.make_unless_dir(target_dirname)
 
-    #FIXME: Unused. Remove me, maybe.
-    # Copy the source channel library to this directory.
-    # files.copy(pathtree.DATA_CHANNELS_YAML_FILENAME, target_dirname)
+    # For the absolute path of each source subdirectory containing assets
+    # required by this file...
+    for source_asset_dirname in pathtree.DATA_DEFAULT_ASSET_DIRNAMES:
+        # Absolute path of the corresponding target subdirectory.
+        target_asset_dirname = paths.join(
+            target_dirname, paths.get_basename(source_asset_dirname))
 
-    # Absolute path of the target geometry subdirectory to be created below.
-    target_geometry_dirname = paths.join(
-        target_dirname, paths.get_basename(pathtree.DATA_GEOMETRY_DIRNAME))
-
-    # If this directory already exists, log a non-fatal warning.
-    if dirs.is_dir(target_geometry_dirname):
-        logs.log_warning(
-            'Ignoring existing subdirectory "{}".'.format(
-                target_geometry_dirname))
-    # Else, copy the source geometry subdirectory to this directory.
-    else:
-        dirs.copy(pathtree.DATA_GEOMETRY_DIRNAME, target_geometry_dirname)
+        # If this subdirectory already exists, log a non-fatal warning.
+        if dirs.is_dir(target_asset_dirname):
+            logs.log_warning(
+                'Ignoring existing subdirectory "{}".'.format(
+                    target_asset_dirname))
+        # Else, recursively copy the entirety of this source subdirectory into
+        # this target subdirectory.
+        else:
+            dirs.copy(source_asset_dirname, target_asset_dirname)
 
 
 def _write_default_file(config_filename: str) -> None:

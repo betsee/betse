@@ -65,21 +65,31 @@ DATA_YAML_DIRNAME = None   # initialized below
 '''
 Absolute path of BETSE's YAML data directory.
 
-Such directory contains YAML configuration files and all ancillary files
-referenced within the former.
+This directory contains:
+
+* The YAML-formatted configuration file defining a simulation configuration.
+* All assets referenced in and hence required by this file.
 '''
 
 
-DATA_GEOMETRY_DIRNAME = None   # initialized below
+DATA_DEFAULT_ASSET_DIRNAMES = None   # initialized below
 '''
-Absolute path of the application-wide geometry data directory.
+Tuple of the absolute paths of all assets referenced in and hence required by
+BETSE's default application-wide configuration file.
 
-This directory contains sample images intended to be used as input geometries in
-tissue simulation configuration files. Each image defines a cell cluster shape
-typically corresponding to some species (e.g., planaria) or organ (e.g., heart),
-complete with internal cellular structure and exterior cellular boundary. Each
-spatial subdivision of this shape is then associated with a real-world tissue
-profile in the configuration file(s) referencing this image.
+This includes directories containing (in no particular order):
+
+* YAML-formatted configuration files defining finer-grained configuration
+  parameters, including:
+  * The biochemical reaction network (BRN) to be simulated, if any.
+  * The gene regulatory network (GRN) to be simulated, if any.
+* Ancillary media files, including:
+  * Sample images intended to be used as input geometries in tissue simulation
+    configuration files. Each image defines a cell cluster shape typically
+    corresponding to some species (e.g., planaria) or organ (e.g., heart),
+    complete with internal cellular structure and exterior cellular boundary.
+    Each spatial subdivision of this shape is then associated with a real-world
+    tissue profile in the configuration file(s) referencing this image.
 '''
 
 # ....................{ CONSTANTS ~ file                   }....................
@@ -197,12 +207,17 @@ def _init_pathnames_sub() -> None:
 
     # Declare these constants to be globals, permitting modification below.
     global\
-        DATA_GEOMETRY_DIRNAME,\
-        LOG_DEFAULT_FILENAME, PROFILE_DEFAULT_FILENAME, CONFIG_DEFAULT_FILENAME
+        LOG_DEFAULT_FILENAME,\
+        PROFILE_DEFAULT_FILENAME,\
+        CONFIG_DEFAULT_FILENAME,\
+        DATA_DEFAULT_ASSET_DIRNAMES
 
     # Initialize the absolute paths of data subdirectories.
     DATA_YAML_DIRNAME = paths.join(DATA_DIRNAME, 'yaml')
-    DATA_GEOMETRY_DIRNAME = paths.join(DATA_YAML_DIRNAME, 'geo')
+    DATA_DEFAULT_ASSET_DIRNAMES = (
+        paths.join(DATA_YAML_DIRNAME, 'geo'),
+        paths.join(DATA_YAML_DIRNAME, 'extra_configs'),
+    )
 
     # Initialize the absolute paths of data files.
     CONFIG_DEFAULT_FILENAME = paths.join(DATA_YAML_DIRNAME, 'sim_config.yaml')
@@ -220,7 +235,7 @@ def _test_pathnames() -> None:
     '''
 
     # Ensure all requisite paths exist.
-    dirs.die_unless_dir(DATA_DIRNAME, DATA_GEOMETRY_DIRNAME)
+    dirs.die_unless_dir(DATA_DIRNAME, *DATA_DEFAULT_ASSET_DIRNAMES)
     files.die_unless_file(CONFIG_DEFAULT_FILENAME)
 
     # Create BETSE's top-level dot directory if not found.

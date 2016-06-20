@@ -72,6 +72,9 @@ class SimConfigWrapper(object):
         self._config = sim_config.read(filename)
 
 
+    #FIXME: Eliminate this method in favour of the existing
+    #sim_config.write_default() function *AFTER* refactoring that method as
+    #documented in that submodule.
     @classmethod
     def wrap_new_default(cls, filename: str) -> None:
         '''

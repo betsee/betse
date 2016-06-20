@@ -17,7 +17,9 @@ feature sets and edge cases.
 from betse.science.config.wrapper import SimConfigWrapper
 from betse.util.path import dirs
 from betse.util.type import strs, types
+from betse.util.type.types import type_check
 from betse_test.util import requests
+from py._path.local import LocalPath
 
 # ....................{ CLASSES                            }....................
 class SimTestState(object):
@@ -37,7 +39,7 @@ class SimTestState(object):
         may be desynchronized from those of this file. For efficiency, callers
         may modify this dictionary to suite test requirements _before_
         reserializing this dictionary back to this file.
-    config_filepath : py.path.local
+    config_filepath : LocalPath
         Absolute path of a temporary simulation configuration file specific to
         the parent fixture as a `py.path.local` instance, defining an
         object-oriented superset of the non-object-oriented `os.path` module.
@@ -49,7 +51,8 @@ class SimTestState(object):
     '''
 
 
-    def __init__(self, config_filepath: 'py.path.local') -> None:
+    @type_check
+    def __init__(self, config_filepath: LocalPath) -> None:
         '''
         Initialize this simulation configuration context.
 
@@ -59,13 +62,11 @@ class SimTestState(object):
 
         Parameters
         ----------
-        config_filepath : py.path.local
+        config_filepath : LocalPath
             Absolute path to which this method copies BETSE's default simulation
-            configuration file. If this file already exists, an exception is
-            raised.
+            configuration file as a `py.path.local` instance. If this file
+            already exists, an exception is raised.
         '''
-        assert types.is_py_path_local(config_filepath), (
-            types.assert_not_py_path_local(config_filepath))
 
         # Classify the passed parameters. While the "self.config" object
         # classified below provides this filename as a low-level string, this
@@ -113,6 +114,8 @@ class SimTestState(object):
 # Doing so would require this fixture to have function scope. Since parent
 # fixtures have session scope, however, py.test prohibits the latter from
 # requesting the former. Ergo, this is a utility function instead.
+#
+# Test suite insanity prevails.
 def make(
     request: '_pytest.python.FixtureRequest',
     tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',

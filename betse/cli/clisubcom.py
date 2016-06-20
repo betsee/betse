@@ -26,7 +26,7 @@ def sanitize_name(subcommand_name: str) -> str:
 
     return subcommand_name.replace('-', '_')
 
-# ....................{ CLASSES                            }....................
+# ....................{ SUPERCLASSES                       }....................
 class CLISubcommand(object):
     '''
     Metadata encapsulating a **CLI subcommand** (i.e., a name passed to the
@@ -52,15 +52,17 @@ class CLISubcommand(object):
     @type_check
     def __init__(
         self,
+        # For readability, force all following parameters to be passed as
+        # keywords rather than positionally.
         name: str,
         synopsis: str,
         description: str,
-        is_passed_yaml: bool,
+        is_passed_yaml: bool
     ) -> None:
         '''
         Describe this CLI subcommand.
 
-        Params
+        Parameters
         ----------
         name : str
             Machine-readable name of this CLI subcommand (e.g., `plot`),
@@ -100,6 +102,81 @@ class CLISubcommand(object):
             'description': self.description,
         }
 
+# ....................{ SUBCLASSES                         }....................
+class CLISubcommandNoArg(CLISubcommand):
+    '''
+    Metadata encapsulating a CLI subcommand accepting _no_ passed arguments.
+
+    This `CLISubcommand` subclass is purely a convenience coercing the
+    `is_passed_yaml` instance attribute to `False` on instantiation.
+    '''
+
+    def __init__(self, **kwargs) -> None:
+        '''
+        Describe this CLI subcommand.
+
+        This method coerces the passed `is_passed_yaml` parameter if any to
+        `False` _and_ passes all other parameters as is to the superclass
+        `CLISubcommand.__init__()` constructor.
+        '''
+
+        # Coercively disable the passed "is_passed_yaml" parameter if any.
+        kwargs['is_passed_yaml'] = False
+
+        # Pass all other parameters as is to the superclass constructor.
+        super().__init__(**kwargs)
+
+
+class CLISubcommandParent(CLISubcommand):
+    '''
+    Metadata encapsulating a CLI subcommand that is itself the parent of one or
+    more CLI subcommands and hence accepts _only_ the name of a child subcommand
+    as a passed argument.
+
+    This `CLISubcommand` subclass is purely a convenience coercing the
+    `is_passed_yaml` instance attribute to `False` on instantiation.
+    '''
+
+    def __init__(self, **kwargs) -> None:
+        '''
+        Describe this CLI subcommand.
+
+        This method coerces the passed `is_passed_yaml` parameter if any to
+        `False` _and_ passes all other parameters as is to the superclass
+        `CLISubcommand.__init__()` constructor.
+        '''
+
+        # Coercively disable the passed "is_passed_yaml" parameter if any.
+        kwargs['is_passed_yaml'] = False
+
+        # Pass all other parameters as is to the superclass constructor.
+        super().__init__(**kwargs)
+
+
+class CLISubcommandYAMLOnly(CLISubcommand):
+    '''
+    Metadata encapsulating a CLI subcommand accepting _only_ a configuration
+    filename as a passed argument.
+
+    This `CLISubcommand` subclass is purely a convenience coercing the
+    `is_passed_yaml` instance attribute to `True` on instantiation.
+    '''
+
+    def __init__(self, **kwargs) -> None:
+        '''
+        Describe this CLI subcommand.
+
+        This method coerces the passed `is_passed_yaml` parameter if any to
+        `True` _and_ passes all other parameters as is to the superclass
+        `CLISubcommand.__init__()` constructor.
+        '''
+
+        # Coercively enable the passed "is_passed_yaml" parameter if any.
+        kwargs['is_passed_yaml'] = True
+
+        # Pass all other parameters as is to the superclass constructor.
+        super().__init__(**kwargs)
+
 # ....................{ TEMPLATES ~ subcommands            }....................
 SUBCOMMANDS_PREFIX = '''
 Exactly one of the following subcommands must be passed:
@@ -125,7 +202,7 @@ Help string template for the **program epilog** (i.e., string printed after
 
 # ....................{ SUBCOMMANDS                        }....................
 SUBCOMMANDS = (
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='config',
         synopsis='create a default config file for {program_name} simulations',
         description='''
@@ -136,23 +213,19 @@ already exists, an error will be printed.
 You may edit this file at any time. By default, this file instructs
 {program_name} to save simulation results (e.g., plots) to the directory
 containing this file.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='seed',
         synopsis='seed a new cell cluster for a config file',
         description='''
 Create the cell cluster defined by the passed configuration file. The results
 will be saved to output files defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='init',
         synopsis='initialize a seeded cell cluster for a config file',
         description='''
@@ -161,12 +234,10 @@ created cell cluster defined by the passed configuration file. Initialization
 results will be saved to output files defined by this configuration, while the
 previously created cell cluster will be loaded from input files defined by this
 configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='sim',
         synopsis='simulate an initialized cell cluster for a config file',
         description='''
@@ -174,12 +245,10 @@ Simulate the previously initialized cell cluster defined by the passed
 configuration file. Simulation results will be saved to output files defined by
 this configuration, while the previously initialized cell cluster will be loaded
 from input files defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='sim-brn',
         synopsis='simulate a biochemical reaction network for a config file',
         description='''
@@ -191,12 +260,10 @@ other simulation features and options will be ignored.
 Simulation results will be saved to output files defined by this configuration,
 while the previously initialized cell cluster will be loaded from input files
 defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='sim-grn',
         synopsis='simulate a gene regulatory network for a config file',
         description='''
@@ -208,12 +275,10 @@ network. All other simulation features and options will be ignored.
 Simulation results will be saved to output files defined by this configuration,
 while the previously initialized cell cluster will be loaded from input files
 defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandParent(
         name='plot',
         synopsis='plot a seeded, initialized, or simulated simulation',
         description='''
@@ -222,12 +287,10 @@ simulation defined by a configuration file "my_sim.yaml" in the current
 directory:
 
 ;    betse plot sim my_sim.yaml
-''',
-        is_passed_yaml=False,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandNoArg(
         name='info',
         synopsis='show information about {program_name} and the current system',
         description='''
@@ -247,12 +310,10 @@ Print informational metadata in ":"-delimited key-value format, including:
   * {program_name}'s log file (i.e., the user-specific file to which all runtime
     messages are appended, including low-level debug statements, non-fatal
     warnings, and fatal errors).
-''',
-        is_passed_yaml=False,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandNoArg(
         name='try',
         synopsis='create, init, simulate, and plot a sample simulation',
         description='''
@@ -269,9 +330,7 @@ Equivalently, this subcommand is shorthand for the following:
 ;    betse init     sample_sim/sample_sim.yaml
 ;    betse sim      sample_sim/sample_sim.yaml
 ;    betse plot sim sample_sim/sample_sim.yaml
-''',
-        is_passed_yaml=False,
-    ),
+''',),
 )
 '''
 Tuple of `CLISubcommand` instances describing top-level subcommands.
@@ -284,7 +343,7 @@ argument subparsers and hence will be effectively ignored.
 
 # ....................{ SUBCOMMANDS                        }....................
 SUBCOMMANDS_PLOT = (
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='seed',
         synopsis='plot a seeded cell cluster for a config file',
         description='''
@@ -292,12 +351,10 @@ Plot the previously seeded cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously seeded cell cluster will be loaded from input files
 defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='init',
         synopsis='plot an initialized cell cluster for a config file',
         description='''
@@ -305,12 +362,10 @@ Plot the previously initialized cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously initialized cell cluster will be loaded from input files
 defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='sim',
         synopsis='plot a simulated cell cluster for a config file',
         description='''
@@ -318,12 +373,10 @@ Plot the previously simulated cell cluster defined by the passed configuration
 file. Plot results will be saved to output files defined by this configuration,
 while the previously simulated cell cluster will be loaded from input files
 defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='sim-brn',
         synopsis='plot a simulated biochemical reaction network for a config file',
         description='''
@@ -331,12 +384,10 @@ Plot the previously simulated biochemical reaction network (BRN) defined by the
 passed configuration file. Plot results will be saved to output files defined by
 this configuration, while the previously simulated cell cluster will be loaded
 from input files defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 
 
-    CLISubcommand(
+    CLISubcommandYAMLOnly(
         name='sim-grn',
         synopsis='plot a simulated gene regulatory network for a config file',
         description='''
@@ -344,9 +395,7 @@ Plot the previously simulated gene regulatory network (BRN) defined by the
 passed configuration file. Plot results will be saved to output files defined by
 this configuration, while the previously simulated cell cluster will be loaded
 from input files defined by this configuration.
-''',
-        is_passed_yaml=True,
-    ),
+''',),
 )
 '''
 Tuple of `CLISubcommand` instances describing subcommands of the `plot`

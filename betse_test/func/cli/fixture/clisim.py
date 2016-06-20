@@ -52,14 +52,6 @@ list of the `_CLI_SIM_SUBCOMMANDS_ARGS` global, identifying the parameters
 accepted by the `betse_cli_sim` fixture.
 '''
 
-
-# @fixture
-# def betse_cli_sim(
-#     betse_cli: 'CLITester',
-#     request: '_pytest.python.FixtureRequest',
-# ) -> CLITesterPreArged:
-#     return lambda: print('ok')
-
 # ....................{ FIXTURES                           }....................
 # To force these fixtures to return new objects for all parent fixtures and
 # tests, these fixtures is declared to have default scope (i.e., test).

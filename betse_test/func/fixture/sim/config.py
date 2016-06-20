@@ -62,7 +62,7 @@ def betse_sim_config_default(
         For further details on return type and method of construction.
     '''
 
-    # # Test-specific object encapsulating this simulation configuration file.
+    # Test-specific object encapsulating this simulation configuration file.
     sim_state = configapi.make(request, tmpdir_factory)
 
     # Write the default configuration to disk with only the requisite
