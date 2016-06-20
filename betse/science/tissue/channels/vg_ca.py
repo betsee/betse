@@ -86,7 +86,7 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
 
         # the cube power in the vgNa expression is rather difficult mathematically, but necessary
         # clip the unreasonably high portions of the Na+ flux, so as not to overload the system:
-        self.clip_flux(delta_Q, threshold=1.0e-3)
+        self.clip_flux(delta_Q, threshold=p.flux_threshold)
 
         self.update_charge(sim.iCa, delta_Q, dyna.targets_vgCa, sim, cells, p)
 
@@ -129,15 +129,15 @@ class Ca_L(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Ca_L')
 
-        self.vrev = 80     # reversal voltage used in model [mV]
+        self.vrev = 131.0     # reversal voltage used in model [mV]
         Texpt = 36.0    # temperature of the model in degrees C
         simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0  # FIXME implement this!
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_Ca = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        dyna.h_Ca = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
+        dyna.m_Ca = 1.0000 / (1 + np.exp((V - -30.000) / -6))
+        dyna.h_Ca = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 2
@@ -152,10 +152,17 @@ class Ca_L(VgCaABC):
 
         """
 
-        self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
-        self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-        self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
+        # self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
+        # self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
+        # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
+        # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
+
+        V = V + 10
+        self._mInf = 1.0000 / (1 + np.exp((V - -30.000) / -6))
+        self._mTau = (5.0000 + 20.0000 / (1 + np.exp((V - -25.000) / 5)))
+        self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
+        self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
+        V = V - 10
 
 
 class Ca_T(VgCaABC):

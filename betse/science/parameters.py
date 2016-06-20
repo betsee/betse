@@ -341,7 +341,6 @@ class Parameters(object):
         # self.gated_targets = self.config['ion channel target cells']
 
 
-        bool_vgCa = bool(self.config['voltage gated Ca2+']['turn on'])
         bool_cagK = bool(self.config['calcium gated K+']['turn on'])
         bool_stretch = bool(self.config['stretch gated Na+']['turn on'])
 
@@ -355,6 +354,9 @@ class Parameters(object):
         opCa = self.config['voltage gated Ca2+']
         opcK = self.config['gated ion channel options']['calcium gated K']
         opStretch = self.config['gated ion channel options']['stretch gated Na']
+
+        self.flux_threshold = self.config['gated ion channel options']['flux threshold']
+
 
         # voltage gated sodium:
         self.vgNa_bool = opNa['turn on']

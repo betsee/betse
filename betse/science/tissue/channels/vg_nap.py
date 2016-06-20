@@ -84,7 +84,7 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
         delta_Q = -(dyna.maxDmNaP * P * (V - self.vrev))
 
-        self.clip_flux(delta_Q, threshold=1.0e-3)
+        self.clip_flux(delta_Q, threshold=p.flux_threshold)
 
         self.update_charge(sim.iNa, delta_Q, dyna.targets_vgNaP, sim, cells, p)
 

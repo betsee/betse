@@ -913,7 +913,7 @@ class Simulator(object):
 
                     self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
 
-                if p.transporters_endabled:
+                if p.transporters_enabled:
 
                     self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
 

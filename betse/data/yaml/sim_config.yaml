@@ -1112,13 +1112,15 @@ results options:
 
 gated ion channel options:   # changing these will alter network dynamics -- but do so with caution!
 
-    voltage gated Ca:
+    flux threshold: 1.0e-4     # flux cut off maximum
 
-        max Dmem Ca: 1.0e-15        # maximum Ca2+ membrane diffusion coefficient channel open [m2/s]
-        activation v: -40e-3        # voltage threshold above which vgK is activated [V]
-        inactivation v: 30e-3       # voltage threshold above which vgCa is inactivated [V]
-        inactivation Ca: 5.0e-3     # level of cytosolic Ca2+ above which vgCa is inactivated [mmol/L]
-        reactivation Ca: 200e-6     # level of cytosolic Ca2+ below which vgCa is un-inactivated [mmol/L]
+#    voltage gated Ca:
+#
+#        max Dmem Ca: 1.0e-15        # maximum Ca2+ membrane diffusion coefficient channel open [m2/s]
+#        activation v: -40e-3        # voltage threshold above which vgK is activated [V]
+#        inactivation v: 30e-3       # voltage threshold above which vgCa is inactivated [V]
+#        inactivation Ca: 5.0e-3     # level of cytosolic Ca2+ above which vgCa is inactivated [mmol/L]
+#        reactivation Ca: 200e-6     # level of cytosolic Ca2+ below which vgCa is un-inactivated [mmol/L]
 
     calcium gated K:
 
