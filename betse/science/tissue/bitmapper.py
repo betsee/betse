@@ -73,6 +73,8 @@ class BitMapper(object):
         # Load this bitmap as a flattened (i.e., grayscale) Numpy array.
         bitmap = misc.imread(bitmap_matcher.filename, flatten=1)
 
+        # bitmap = np.asarray(bitmap, dtype=np.int)
+
         if bitmap.shape[0] != bitmap.shape[1]:
             raise BetseExceptionSimulation(
                 'Bitmap "{}" dimensions non-square '
@@ -80,7 +82,7 @@ class BitMapper(object):
                     bitmap_matcher.filename))
 
         # find the black pixels (a really basic threshholding!)
-        point_inds = (bitmap == 0).nonzero()
+        point_inds = (bitmap != 255).nonzero()
 
         # define a new matrix the same shape as the image and set values to 0 or 1:
         self.msize = bitmap.shape[0]

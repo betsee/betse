@@ -200,8 +200,8 @@ tissue profile definition:
               Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
               Dm_K: 15.0e-18   # K+ membrane diffusion constant [m2/s]
               Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
-              Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-16    # H+ membrane diffusion constant [m2/s]
+              Dm_Ca: 1.0e-19   # Ca2+ membrane diffusion constant [m2/s]
+              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
               Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
               Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
@@ -237,8 +237,8 @@ tissue profile definition:
               Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
               Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
               Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
-              Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-16    # H+ membrane diffusion constant [m2/s]
+              Dm_Ca: 1.0e-19   # Ca2+ membrane diffusion constant [m2/s]
+              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
               Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
               Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
@@ -259,8 +259,8 @@ tissue profile definition:
               Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
               Dm_K: 150.0e-18  # K+ membrane diffusion constant [m2/s]
               Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
-              Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-16    # H+ membrane diffusion constant [m2/s]
+              Dm_Ca: 1.0e-19   # Ca2+ membrane diffusion constant [m2/s]
+              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
               Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
               Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
@@ -714,8 +714,8 @@ variable settings:
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
       Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
       Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
-      Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
-      Dm_H: 1.0e-16        # H+ membrane diffusion constant [m2/s]
+      Dm_Ca: 1.0e-19       # Ca2+ membrane diffusion constant [m2/s]
+      Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
       Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
 
@@ -1140,7 +1140,7 @@ internal parameters:
   Do_Na:  1.33e-9       # free diffusion constant sodium [m2/s]
   Do_K:  1.96e-9        # free diffusion constant potassium [m2/s]
   Do_Cl:  2.03e-9       # free diffusion constant chloride [m2/s]
-  Do_Ca:  1.0e-11        # free diffusion constant calcium [m2/s]
+  Do_Ca:  1.0e-10        # free diffusion constant calcium [m2/s]
   Do_H:  2.5e-9         # free diffusion constant hydrogen [m2/s]
   Do_M:  1.0e-9         # free diffusion constant mystery anchor ion [m2/s]
   Do_P:  5.0e-10        # free diffusion constant protein [m2/s]
@@ -1149,7 +1149,7 @@ internal parameters:
 
   alpha_NaK:  2.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
-  alpha_Ca:  5.0e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  1.0e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
   alpha_HK:  1.0e-5    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 

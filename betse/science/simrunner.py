@@ -523,14 +523,9 @@ class SimRunner(object):
         else:
             raise BetseExceptionSimulation("Ooops! No such cell cluster file found to load!")
 
-        if p.sim_ECM is False:
-            sim.baseInit_all(cells,p)
-            dyna = TissueHandler(sim,cells,p)
-            dyna.tissueProfiles(sim,cells,p)
-        else:
-            sim.baseInit_all(cells,p)
-            dyna = TissueHandler(sim,cells,p)
-            dyna.tissueProfiles(sim,cells,p)
+        sim.baseInit_all(cells,p)
+        dyna = TissueHandler(sim,cells,p)
+        dyna.tissueProfiles(sim,cells,p)
 
         if p.autosave is True:
 

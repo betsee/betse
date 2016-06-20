@@ -14,6 +14,7 @@ from scipy import interpolate
 from betse.exceptions import BetseExceptionParameters
 from betse.util.path import dirs
 from betse.util.type import types
+from betse.util.io.log import logs
 
 
 def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
@@ -929,22 +930,31 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
     if len(dyna.tissue_profile_names):
         for i, name in enumerate(dyna.tissue_profile_names):
             cell_inds = dyna.cell_target_inds[name]
-            points = np.multiply(cells.cell_verts[cell_inds], p.um)
 
-            z = np.zeros(len(points))
-            z[:] = i + 1
+            if len(cell_inds):
 
-            col_dic[name] = PolyCollection(
-                points, array=z, cmap=clrmap, edgecolors='none')
-            col_dic[name].set_clim(0, len(dyna.tissue_profile_names))
+                points = np.multiply(cells.cell_verts[cell_inds], p.um)
 
-            # col_dic[name].set_alpha(0.8)
-            col_dic[name].set_zorder(p.profiles[name]['z order'])
-            ax.add_collection(col_dic[name])
+                z = np.zeros(len(points))
+                z[:] = i + 1
 
-            # Add this profile name to the colour legend.
-            cb_ticks.append(i+1)
-            cb_tick_labels.append(name)
+                col_dic[name] = PolyCollection(
+                    points, array=z, cmap=clrmap, edgecolors='none')
+                col_dic[name].set_clim(0, len(dyna.tissue_profile_names))
+
+                # col_dic[name].set_alpha(0.8)
+                col_dic[name].set_zorder(p.profiles[name]['z order'])
+                ax.add_collection(col_dic[name])
+
+                # Add this profile name to the colour legend.
+                cb_ticks.append(i+1)
+                cb_tick_labels.append(name)
+
+            else:
+
+                logs.log_warning("No cells tagged for profile " + name)
+
+
 
     #FIXME: Refactor into a new ActionCut.plot() method. Beans and fragrance!
     if p.plot_cutlines and p.scheduled_options['cuts'] is not None:

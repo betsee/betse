@@ -57,6 +57,9 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
     # flux = -((Dc*alpha)/d)*((cB - cA*exp_alpha)/deno)
 
     # modify the diffusion constant by the membrane density
+    # print("cB", cB.mean(), cB.max(), cB.min())
+
+
     Dc = rho*Dc
 
     alpha = (zc*vBA*p.F)/(p.R*T)
@@ -76,6 +79,8 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
         flux[izero] = -(Dc[izero]/d[izero])*(cB[izero] - cA[izero])
 
     if len(deno[inotzero]):   # if there's any indices in the inotzero array:
+
+
 
         # calculate the flux for those elements:
         flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -

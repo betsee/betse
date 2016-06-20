@@ -106,13 +106,6 @@ class TissueHandler(object):
             self.t_change_Naenv = p.global_options['Na_env'][2]
             self.mem_mult_Naenv = p.global_options['Na_env'][3]
 
-        # if p.global_options['Morph_env'] != 0:
-        #
-        #     self.t_on_MorphEnv = p.global_options['Morph_env'][0]
-        #     self.t_off_MorphEnv = p.global_options['Morph_env'][1]
-        #     self.t_change_MorphEnv = p.global_options['Morph_env'][2]
-        #     self.conc_MorphEnv = p.global_options['Morph_env'][3]
-
         if p.global_options['T_change'] != 0:
 
             self.tonT = p.global_options['T_change'][0]
@@ -898,15 +891,6 @@ class TissueHandler(object):
                 dmem_list = profile['diffusion constants']
 
                 self.tissue_profile_names.append(profile_name)
-
-                #FIXME: Somewhat ambiguous attribute names. Ideally:
-                #
-                #* "tissue_target_inds" should probably be renamed to something
-                #  like "cell_inds_sans_ecm".
-                #* "cell_target_inds" should probably be renamed to something
-                #  like "cell_inds_with_ecm".
-                #
-                #Burning oil of hubris by the dawn's yearning pangs of joy!
 
                 self.tissue_target_inds[profile_name] = (
                     profile_picker.get_cell_indices(cells, p, ignoreECM=False))

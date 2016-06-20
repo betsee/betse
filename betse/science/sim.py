@@ -94,7 +94,7 @@ class Simulator(object):
 
     '''
 
-    def __init__(self, p: 'Parameters'):
+    def __init__(self, p):
 
         #FIXME: Define all other instance attributes as well.
         # For safety, defined subsequently accessed instance attributes.
@@ -429,7 +429,7 @@ class Simulator(object):
             self.D_gj.append(DgjH)
             self.D_free.append(p.Do_H)
 
-            self.fluxes_gj.append(self.flx_gj)
+            self.fluxes_gj.append(self.flx_gj_i)
             self.fluxes_mem.append(self.flx_mem_i)
 
             if p.sim_ECM is True:
@@ -508,7 +508,7 @@ class Simulator(object):
 
         self.cc_cells = np.asarray(self.cc_cells)
 
-    def init_tissue(self, cells: 'Cells', p: 'Parameters') -> None:
+    def init_tissue(self, cells, p):
         '''
         Prepares data structures pertaining to tissue profiles, dynamic
         activity, and optional methods such as electroosmotic fluid,
@@ -725,7 +725,7 @@ class Simulator(object):
         # Initialize all user-specified interventions and dynamic channels.
         self.dyna.runAllInit(self,cells,p)
 
-    def run_sim_core(self, cells: 'Cells', p: 'Parameters') -> None:
+    def run_sim_core(self, cells, p):
         '''
         Runs and saves the current simulation phase (e.g. init or sim phases)
 
@@ -902,6 +902,7 @@ class Simulator(object):
                 self.ca_handler(cells, p)
 
             if p.ions_dict['H'] == 1:
+
                 self.acid_handler(cells, p)
 
 
@@ -1403,7 +1404,7 @@ class Simulator(object):
             logs.log_info('A gene regulatory network is being simulated using file: ' + p.grn_config_filename)
 
     # ................{ CORE DOERS & GETTERS }...............................................
-    def get_Vall(self, cells, p) -> (np.ndarray, np.ndarray, np.ndarray):
+    def get_Vall(self, cells, p):
         """
         Calculates transmembrane voltage (Vmem) and voltages inside the cell
         and extracellular space, assuming the cell is a capacitor consisting of
@@ -1720,19 +1721,19 @@ class Simulator(object):
                 'cADP': self.metabo.core.ADP.c_mems,
                 'cPi': self.metabo.core.Pi.c_mems}
 
-        # update calcium concentrations in cell and ecm:
+        # # update calcium concentrations in cell and ecm:
         self.cc_mems[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_mems[self.iCa][:],
             self.cc_env[self.iCa][:], f_CaATP, cells, p)
-
-        # update concentrations intracellularly:
-        self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
-            stb.update_intra(self, cells, self.cc_mems[self.iCa][:],
-                self.cc_cells[self.iCa][:],
-                self.D_free[self.iCa],
-                self.zs[self.iCa], p)
-
-        # recalculate the net, unbalanced charge and voltage in each cell:
-        self.update_V(cells, p)
+        #
+        # # update concentrations intracellularly:
+        # self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
+        #     stb.update_intra(self, cells, self.cc_mems[self.iCa][:],
+        #         self.cc_cells[self.iCa][:],
+        #         self.D_free[self.iCa],
+        #         self.zs[self.iCa], p)
+        #
+        # # recalculate the net, unbalanced charge and voltage in each cell:
+        # self.update_V(cells, p)
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
 
@@ -2151,7 +2152,7 @@ class Simulator(object):
 
     # ..................{ PLOTTERS                           }..................
 
-    def _plot_loop(self, cells: 'Cells', p: 'Parameters') -> (np.ndarray, set):
+    def _plot_loop(self, cells, p):
         '''
         Display and/or save an animation during solving if requested _and_
         calculate data common to solving both with and without extracellular
@@ -2187,7 +2188,9 @@ class Simulator(object):
         tsamples = set()
         i = 0
         while i < len(tt) - p.t_resample:
+
             i += p.t_resample
+            i = int(i)
             tsamples.add(tt[i])
 
         # Log this run.
@@ -2218,7 +2221,7 @@ class Simulator(object):
 
         return tt, tsamples
 
-    def _replot_loop(self, p: 'Parameters') -> None:
+    def _replot_loop(self, p):
         '''
         Update the currently displayed and/or saved animation during solving
         with the results of the most recently solved time step, if requested.
@@ -2229,7 +2232,7 @@ class Simulator(object):
         if p.plot_while_solving:
             self._anim_cells_while_solving.plot_frame(frame_number=-1)
 
-    def _deplot_loop(self) -> None:
+    def _deplot_loop(self):
         '''
         Explicitly close the previously displayed and/or saved animation if
         any _or_ noop otherwise.
