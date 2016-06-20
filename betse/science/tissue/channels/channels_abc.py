@@ -106,7 +106,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
         # recalculate the net, unbalanced charge and voltage in each cell:
         sim.update_V(cells, p)
 
-    def clip_flux(self, delta_Q, threshold = 1.0e-4):
+    def clip_flux(self, delta_Q, threshold = 1.0e-3):
         """
         Clips flux so that it remains within stable limits of the BETSE model
         for a reasonable time step.

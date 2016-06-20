@@ -86,7 +86,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
         delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
 
-        self.clip_flux(delta_Q, threshold=1.0e-4)
+        self.clip_flux(delta_Q, threshold=1.0e-3)
 
         self.update_charge(sim.iK, delta_Q, dyna.targets_vgK, sim, cells, p)
 

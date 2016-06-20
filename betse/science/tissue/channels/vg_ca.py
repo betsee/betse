@@ -86,7 +86,7 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
 
         # the cube power in the vgNa expression is rather difficult mathematically, but necessary
         # clip the unreasonably high portions of the Na+ flux, so as not to overload the system:
-        self.clip_flux(delta_Q, threshold=1.0e-4)
+        self.clip_flux(delta_Q, threshold=1.0e-3)
 
         self.update_charge(sim.iCa, delta_Q, dyna.targets_vgCa, sim, cells, p)
 
