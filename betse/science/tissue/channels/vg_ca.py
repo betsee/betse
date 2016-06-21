@@ -90,6 +90,9 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
 
         self.update_charge(sim.iCa, delta_Q, dyna.targets_vgCa, sim, cells, p)
 
+        # assume slight permeability to sodium
+        # self.update_charge(sim.iNa, 5.0e-3*delta_Q, dyna.targets_vgCa, sim, cells, p)
+
 
     @abstractmethod
     def _init_state(self, V, dyna, sim, p):

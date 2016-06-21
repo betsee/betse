@@ -142,4 +142,10 @@ class BetseExceptionSimulation(BetseException):
     '''
     pass
 
-# --------------------( WASTELANDS                         )--------------------
+
+class BetseExceptionSimulationInstability(BetseExceptionSimulation):
+    '''
+    Simulation-specific exception connoting the current simulation to have
+    gone computationally unstable.
+    '''
+    pass

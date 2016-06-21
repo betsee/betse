@@ -11,6 +11,7 @@ import numpy as np
 from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
+from betse.exceptions import BetseExceptionSimulationInstability
 from betse.util.io.log import logs
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
@@ -748,311 +749,321 @@ class Simulator(object):
         if p.Ca_dyn is True:
             pass
 
-
         # Display and/or save an animation during solving and calculate:
         #
         # * "tt", a time-steps vector appropriate for the current run.
         # * "tsamples", that vector resampled to save data at fewer times.
         tt, tsamples = self._plot_loop(self.cellso, p)
 
+        #--------------
+
+        # Exception raised if this simulation goes unstable, permitting us to safely
+        # handle this instability (e.g., by saving simulation results).
+        exception_instability = None
+
         do_once = True  # a variable to time the loop only once
 
-        for t in tt:  # run through the loop
+        try:
+            for t in tt:  # run through the loop
+                # start the timer to approximate time for the simulation
+                if do_once is True:
+                    loop_measure = time.time()
 
-            # start the timer to approximate time for the simulation
-            if do_once is True:
-                loop_measure = time.time()
+                # Reinitialize flux storage device.
+                self.fluxes_mem.fill(0)
 
-            # Reinitialize flux storage device.
-            self.fluxes_mem.fill(0)
+                # Calculate the change in the voltage derivative.
+                self.dvm = (self.vm - self.vm_to) / p.dt
 
-            # Calculate the change in the voltage derivative.
-            self.dvm = (self.vm - self.vm_to) / p.dt
+                self.vm_to = np.copy(self.vm)  # reassign the history-saving vm
 
-            self.vm_to = np.copy(self.vm)  # reassign the history-saving vm
+                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
-            if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-
-                pass
-
-
-            # Calculate the values of scheduled and dynamic quantities (e.g.
-            # ion channel multipliers).
-            if p.run_sim is True:
-                self.dyna.runAllDynamics(self, cells, p, t)
-
-            # -----------------PUMPS-------------------------------------------------------------------------------------
-
-            if p.sim_ECM is True:
-                # run the Na-K-ATPase pump:
-                fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                    self.cc_mems[self.iNa],
-                    self.cc_env[self.iNa][cells.map_mem2ecm],
-                    self.cc_mems[self.iK],
-                    self.cc_env[self.iK][cells.map_mem2ecm],
-                    self.vm,
-                    self.T,
-                    p,
-                    self.NaKATP_block,
-                    met = self.met_concs
-                )
-
-            else:
-
-                fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                            self.cc_mems[self.iNa],
-                            self.cc_env[self.iNa],
-                            self.cc_mems[self.iK],
-                            self.cc_env[self.iK],
-                            self.vm,
-                            self.T,
-                            p,
-                            self.NaKATP_block,
-                            met = self.met_concs
-                        )
-
-            # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
-            self.fluxes_mem[self.iNa] = self.rho_pump * fNa_NaK
-            self.fluxes_mem[self.iK] = self.rho_pump * fK_NaK
-
-            if p.metabolism_enabled:
-                # update ATP concentrations after pump action:
-                self.metabo.update_ATP(fNa_NaK, self, cells, p)
-
-                self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
-                    'cADP': self.metabo.core.ADP.c_mems,
-                    'cPi': self.metabo.core.Pi.c_mems}
+                    pass
 
 
-            # update the concentrations of Na and K in cells and environment:
-            self.cc_mems[self.iNa][:],  self.cc_env[self.iNa][:] =  stb.update_Co(self, self.cc_mems[self.iNa][:],
-                                                                        self.cc_env[self.iNa][:],fNa_NaK, cells, p)
+                # Calculate the values of scheduled and dynamic quantities (e.g.
+                # ion channel multipliers).
+                if p.run_sim is True:
+                    self.dyna.runAllDynamics(self, cells, p, t)
 
-            self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
-                self.cc_env[self.iK][:], fK_NaK, cells, p)
-
-            # update the concentrations intra-cellularly:
-            self.cc_mems[self.iNa][:],  self.cc_cells[self.iNa][:], _ = \
-                stb.update_intra(self, cells, self.cc_mems[self.iNa][:],
-                                 self.cc_cells[self.iNa][:],
-                                 self.D_free[self.iNa],
-                                 self.zs[self.iNa], p)
-
-            self.cc_mems[self.iK][:],  self.cc_cells[self.iK][:], _ = \
-                stb.update_intra(self, cells, self.cc_mems[self.iK][:],
-                                 self.cc_cells[self.iK][:],
-                                 self.D_free[self.iK],
-                                 self.zs[self.iK], p)
-
-
-            # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V(cells, p)
-
-
-            # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
-
-            # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
-
-            shuffle(self.movingIons)
-
-            for i in self.movingIons:
-
-                IdM = np.ones(self.mdl)
+                # -----------------PUMPS-------------------------------------------------------------------------------------
 
                 if p.sim_ECM is True:
-
-                    f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_mems[i],
-                        self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
-                        rho=self.rho_channel)
+                    # run the Na-K-ATPase pump:
+                    fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
+                        self.cc_mems[self.iNa],
+                        self.cc_env[self.iNa][cells.map_mem2ecm],
+                        self.cc_mems[self.iK],
+                        self.cc_env[self.iK][cells.map_mem2ecm],
+                        self.vm,
+                        self.T,
+                        p,
+                        self.NaKATP_block,
+                        met = self.met_concs
+                    )
 
                 else:
 
-                    f_ED = stb.electroflux(self.cc_env[i],self.cc_mems[i],self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
-                                    self.vm,self.T,p,rho=self.rho_channel)
+                    fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
+                                self.cc_mems[self.iNa],
+                                self.cc_env[self.iNa],
+                                self.cc_mems[self.iK],
+                                self.cc_env[self.iK],
+                                self.vm,
+                                self.T,
+                                p,
+                                self.NaKATP_block,
+                                met = self.met_concs
+                            )
+
+                # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
+                self.fluxes_mem[self.iNa] = self.rho_pump * fNa_NaK
+                self.fluxes_mem[self.iK] = self.rho_pump * fK_NaK
+
+                if p.metabolism_enabled:
+                    # update ATP concentrations after pump action:
+                    self.metabo.update_ATP(fNa_NaK, self, cells, p)
+
+                    self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
+                        'cADP': self.metabo.core.ADP.c_mems,
+                        'cPi': self.metabo.core.Pi.c_mems}
 
 
-                self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
+                # update the concentrations of Na and K in cells and environment:
+                self.cc_mems[self.iNa][:],  self.cc_env[self.iNa][:] =  stb.update_Co(self, self.cc_mems[self.iNa][:],
+                                                                            self.cc_env[self.iNa][:],fNa_NaK, cells, p)
 
-                # update ion concentrations in cell and ecm:
+                self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
+                    self.cc_env[self.iK][:], fK_NaK, cells, p)
 
-                self.cc_mems[i][:], self.cc_env[i][:] = stb.update_Co(self, self.cc_mems[i][:],
-                    self.cc_env[i][:], f_ED, cells, p)
+                # update the concentrations intra-cellularly:
+                self.cc_mems[self.iNa][:],  self.cc_cells[self.iNa][:], _ = \
+                    stb.update_intra(self, cells, self.cc_mems[self.iNa][:],
+                                     self.cc_cells[self.iNa][:],
+                                     self.D_free[self.iNa],
+                                     self.zs[self.iNa], p)
 
-                # update the ion concentration intra-cellularly:
-                self.cc_mems[i][:], self.cc_cells[i][:], _ = \
-                    stb.update_intra(self, cells, self.cc_mems[i][:],
-                        self.cc_cells[i][:],
-                        self.D_free[i],
-                        self.zs[i], p)
+                self.cc_mems[self.iK][:],  self.cc_cells[self.iK][:], _ = \
+                    stb.update_intra(self, cells, self.cc_mems[self.iK][:],
+                                     self.cc_cells[self.iK][:],
+                                     self.D_free[self.iK],
+                                     self.zs[self.iK], p)
 
-                # update flux between cells due to gap junctions
-                self.update_gj(cells, p, t, i)
-
-                if p.sim_ECM:
-                    #update concentrations in the extracellular spaces:
-                    self.update_ecm(cells, p, t, i)
-
-            # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V(cells, p)
-
-            # ----transport and handling of special ions---------------------------------------------------------------
-
-            if p.ions_dict['Ca'] == 1:
-
-                self.ca_handler(cells, p)
-
-            if p.ions_dict['H'] == 1:
-
-                self.acid_handler(cells, p)
-
-
-            # update the molecules handler-----------------------------------------------------------------
-            if p.molecules_enabled:
-
-                if p.reactions_enabled:
-
-                    self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
-
-                if p.transporters_enabled:
-
-                    self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
-
-            # FIXME add in custon channel?
-
-                self.molecules.run_loop(t, self, cells, p)
-
-            # update metabolic handler----------------------------------------------------------------------
-
-            if p.metabolism_enabled:
-
-                self.metabo.core.run_loop_reactions(t, self, self.metabo.core, cells, p)
-
-                if self.metabo.transporters:
-                    self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
-
-                self.metabo.core.run_loop(t, self, cells, p)
-
-            # update gene regulatory network handler--------------------------------------------------------
-
-            if p.grn_enabled:
-
-                if self.grn.reactions:
-                    self.grn.core.run_loop_reactions(t, self, self.grn.core, cells, p)
-
-                if self.grn.transporters:
-                    self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
-
-                # update the main gene regulatory network:
-                self.grn.core.run_loop(t, self, self.grn.core, cells, p)
-
-
-            # dynamic noise handling-----------------------------------------------------------------------------------
-
-            if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
-
-                # add a random walk on protein concentration to generate dynamic noise:
-                self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
-
-                # update the concentration of P in cells and environment:
-                self.cc_mems[self.iP][:], self.cc_env[self.iP][:] = stb.update_Co(self, self.cc_mems[self.iP][:],
-                    self.cc_env[self.iP][:], self.protein_noise_flux, cells, p)
-
-                # update intracellularly:
-                self.cc_mems[self.iP][:], self.cc_cells[self.iP][:], _ = \
-                    stb.update_intra(self, cells, self.cc_mems[self.iP][:],
-                        self.cc_cells[self.iP][:],
-                        self.D_free[self.iP],
-                        self.zs[self.iP], p)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 self.update_V(cells, p)
 
-            #-----forces, fields, and flow-----------------------------------------------------------------------------
 
-            # main update of voltage in cells:
-            # self.update_V(cells, p)  # Main update
+                # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
 
-            self.get_Efield(cells, p)  # FIXME update to also get a v_cell gradient
+                # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
 
-            # get average charge in cell and store in time vector:
-            rho_cells_ave = np.dot(cells.M_sum_mems, self.rho_cells*cells.mem_vol)/cells.cell_vol
-            self.charge_cells_time.append(rho_cells_ave)
+                shuffle(self.movingIons)
 
-            if p.sim_ECM:
+                for i in self.movingIons:
 
-                # if p.smooth_level > 0.0:
-                #     # smooth the charge out as a derivative will be taken on it:
-                #     rho_env_sm = gaussian_filter(self.rho_env[:].reshape(cells.X.shape),p.smooth_level).ravel()
-                #
-                # else:
-                #     rho_env_sm = self.rho_env[:]
+                    IdM = np.ones(self.mdl)
 
-                rho_env_sm = self.rho_env[:]
+                    if p.sim_ECM is True:
 
-                # as flux is done in terms of env-grid squares, correct the volume density of charge:
-                rho_env_sm = (cells.true_ecm_vol/cells.ecm_vol)*rho_env_sm
+                        f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_mems[i],
+                            self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
+                            rho=self.rho_channel)
 
-                self.charge_env_time.append(rho_env_sm)
+                    else:
 
-            # get the currents
-            get_current(self, cells, p)
+                        f_ED = stb.electroflux(self.cc_env[i],self.cc_mems[i],self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
+                                        self.vm,self.T,p,rho=self.rho_channel)
 
-            # get forces from any hydrostatic (self.P_Cells) pressure:
-            getHydroF(self,cells, p)
 
-            # calculate specific forces and pressures:
+                    self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
-            if p.deform_osmo is True:
-                osmotic_P(self,cells, p)
+                    # update ion concentrations in cell and ecm:
 
-            if p.deform_electro is True:
-                electro_F(self,cells, p)
+                    self.cc_mems[i][:], self.cc_env[i][:] = stb.update_Co(self, self.cc_mems[i][:],
+                        self.cc_env[i][:], f_ED, cells, p)
 
-            if p.fluid_flow is True and p.run_sim is True:
+                    # update the ion concentration intra-cellularly:
+                    self.cc_mems[i][:], self.cc_cells[i][:], _ = \
+                        stb.update_intra(self, cells, self.cc_mems[i][:],
+                            self.cc_cells[i][:],
+                            self.D_free[i],
+                            self.zs[i], p)
 
-                self.run_sim = True
+                    # update flux between cells due to gap junctions
+                    self.update_gj(cells, p, t, i)
 
-                getFlow(self,cells, p)
+                    if p.sim_ECM:
+                        #update concentrations in the extracellular spaces:
+                        self.update_ecm(cells, p, t, i)
 
-            # if desired, electroosmosis of membrane channels
-            if p.sim_eosmosis is True and p.run_sim is True:
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                    self.update_V(cells, p)
 
-                self.run_sim = True
+                # ----transport and handling of special ions---------------------------------------------------------------
 
-                eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
+                if p.ions_dict['Ca'] == 1:
 
-            if p.deformation is True and p.run_sim is True:
+                    self.ca_handler(cells, p)
 
-                self.run_sim = True
+                if p.ions_dict['H'] == 1:
 
-                if p.td_deform is False:
+                    self.acid_handler(cells, p)
 
-                    getDeformation(self,cells, t, p)
 
-                elif p.td_deform is True:
+                # update the molecules handler-----------------------------------------------------------------
+                if p.molecules_enabled:
 
-                    timeDeform(self,cells, t, p)
+                    if p.reactions_enabled:
 
-            stb.check_v(self.vm)
+                        self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
 
-            # ---------time sampling and data storage---------------------------------------------------
-            if t in tsamples:
+                    if p.transporters_enabled:
 
-                self.write2storage(t, cells, p)  # write data to time storage vectors
+                        self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
 
-                # Update the currently displayed and/or saved animation.
-                self._replot_loop(p)
+                # FIXME add in custon channel?
 
-            # Get time for loop and estimate total time for simulation.
-            if do_once is True:
-                loop_time = time.time() - loop_measure
+                    self.molecules.run_loop(t, self, cells, p)
 
-                if p.run_sim is True:
-                    time_estimate = round(loop_time * p.sim_tsteps, 2)
-                else:
-                    time_estimate = round(loop_time * p.init_tsteps, 2)
-                logs.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
-                do_once = False
+                # update metabolic handler----------------------------------------------------------------------
+
+                if p.metabolism_enabled:
+
+                    self.metabo.core.run_loop_reactions(t, self, self.metabo.core, cells, p)
+
+                    if self.metabo.transporters:
+                        self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
+
+                    self.metabo.core.run_loop(t, self, cells, p)
+
+                # update gene regulatory network handler--------------------------------------------------------
+
+                if p.grn_enabled:
+
+                    if self.grn.reactions:
+                        self.grn.core.run_loop_reactions(t, self, self.grn.core, cells, p)
+
+                    if self.grn.transporters:
+                        self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
+
+                    # update the main gene regulatory network:
+                    self.grn.core.run_loop(t, self, self.grn.core, cells, p)
+
+
+                # dynamic noise handling-----------------------------------------------------------------------------------
+
+                if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
+
+                    # add a random walk on protein concentration to generate dynamic noise:
+                    self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
+
+                    # update the concentration of P in cells and environment:
+                    self.cc_mems[self.iP][:], self.cc_env[self.iP][:] = stb.update_Co(self, self.cc_mems[self.iP][:],
+                        self.cc_env[self.iP][:], self.protein_noise_flux, cells, p)
+
+                    # update intracellularly:
+                    self.cc_mems[self.iP][:], self.cc_cells[self.iP][:], _ = \
+                        stb.update_intra(self, cells, self.cc_mems[self.iP][:],
+                            self.cc_cells[self.iP][:],
+                            self.D_free[self.iP],
+                            self.zs[self.iP], p)
+
+                    # recalculate the net, unbalanced charge and voltage in each cell:
+                    self.update_V(cells, p)
+
+                #-----forces, fields, and flow-----------------------------------------------------------------------------
+
+                # main update of voltage in cells:
+                # self.update_V(cells, p)  # Main update
+
+                self.get_Efield(cells, p)  # FIXME update to also get a v_cell gradient
+
+                # get average charge in cell and store in time vector:
+                rho_cells_ave = np.dot(cells.M_sum_mems, self.rho_cells*cells.mem_vol)/cells.cell_vol
+                self.charge_cells_time.append(rho_cells_ave)
+
+                if p.sim_ECM:
+
+                    # if p.smooth_level > 0.0:
+                    #     # smooth the charge out as a derivative will be taken on it:
+                    #     rho_env_sm = gaussian_filter(self.rho_env[:].reshape(cells.X.shape),p.smooth_level).ravel()
+                    #
+                    # else:
+                    #     rho_env_sm = self.rho_env[:]
+
+                    rho_env_sm = self.rho_env[:]
+
+                    # as flux is done in terms of env-grid squares, correct the volume density of charge:
+                    rho_env_sm = (cells.true_ecm_vol/cells.ecm_vol)*rho_env_sm
+
+                    self.charge_env_time.append(rho_env_sm)
+
+                # get the currents
+                get_current(self, cells, p)
+
+                # get forces from any hydrostatic (self.P_Cells) pressure:
+                getHydroF(self,cells, p)
+
+                # calculate specific forces and pressures:
+
+                if p.deform_osmo is True:
+                    osmotic_P(self,cells, p)
+
+                if p.deform_electro is True:
+                    electro_F(self,cells, p)
+
+                if p.fluid_flow is True and p.run_sim is True:
+
+                    self.run_sim = True
+
+                    getFlow(self,cells, p)
+
+                # if desired, electroosmosis of membrane channels
+                if p.sim_eosmosis is True and p.run_sim is True:
+
+                    self.run_sim = True
+
+                    eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
+
+                if p.deformation is True and p.run_sim is True:
+
+                    self.run_sim = True
+
+                    if p.td_deform is False:
+
+                        getDeformation(self,cells, t, p)
+
+                    elif p.td_deform is True:
+
+                        timeDeform(self,cells, t, p)
+
+                stb.check_v(self.vm)
+
+                # ---------time sampling and data storage---------------------------------------------------
+                if t in tsamples:
+
+                    self.write2storage(t, cells, p)  # write data to time storage vectors
+
+                    # Update the currently displayed and/or saved animation.
+                    self._replot_loop(p)
+
+                # Get time for loop and estimate total time for simulation.
+                if do_once is True:
+                    loop_time = time.time() - loop_measure
+
+                    if p.run_sim is True:
+                        time_estimate = round(loop_time * p.sim_tsteps, 2)
+                    else:
+                        time_estimate = round(loop_time * p.init_tsteps, 2)
+                    logs.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
+                    do_once = False
+        except BetseExceptionSimulationInstability as exception:
+            exception_instability = exception
+
+
+        #--------------
 
         # Find embedded functions that can't be pickled...
         fh.safe_pickle(self, p)
@@ -1066,7 +1077,15 @@ class Simulator(object):
         self.save_and_report(cells, p)
 
         plt.close()
-        logs.log_info('Simulation completed successfully.')
+
+        # If the simulation did not go unstable, inform the user of success.
+        if exception_instability is None:
+            logs.log_info('Simulation completed successfully.')
+        # Else, inform the user of this instability and re-raise the previously raised
+        # exception to preserve the exact cause of this instability.
+        else:
+            logs.log_error('Simulation unstable.')
+            raise exception_instability
 
     #.................{  INITIALIZERS & FINALIZERS  }............................................
     def clear_storage(self, cells, p):
