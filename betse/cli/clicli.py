@@ -257,8 +257,8 @@ class CLICLI(CLIABC):
         '''
 
         # Avoid importing modules importing dependencies at the top level.
-        from betse.science.config import sim_config
-        sim_config.write_default(self._args.config_filename)
+        from betse.science.config import default
+        default.write(self._args.config_filename)
 
 
     def _do_seed(self) -> None:

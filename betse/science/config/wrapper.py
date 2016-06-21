@@ -13,11 +13,11 @@ dictionaries deserialized from disk.
 
 # ....................{ IMPORTS                            }....................
 # import yaml
-# from betse import pathtree
+import betse.science.config.default
 from betse.science.config import sim_config
 from betse.util.path import files, paths
-# from betse.util.type import types
 # from betse.util.io.log import logs
+# from betse.util.type import types
 
 # ....................{ CLASSES                            }....................
 class SimConfigWrapper(object):
@@ -73,7 +73,7 @@ class SimConfigWrapper(object):
 
 
     #FIXME: Eliminate this method in favour of the existing
-    #sim_config.write_default() function *AFTER* refactoring that method as
+    #sim_config.write() function *AFTER* refactoring that method as
     #documented in that submodule.
     @classmethod
     def wrap_new_default(cls, filename: str) -> None:
@@ -108,7 +108,7 @@ class SimConfigWrapper(object):
         '''
 
         # Create this YAML file.
-        sim_config.write_default(filename)
+        betse.science.config.default.write(filename)
 
         # Create and return an instance of this class wrapping this file.
         return cls(filename=filename)
