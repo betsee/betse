@@ -106,6 +106,14 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if p.exportData is True:
         viz.exportData(cells, sim, p)
 
+    if p.exportData2D is True:
+
+        for i, t in enumerate(sim.time):
+
+            simdata = 1.0e3*sim.vm_ave_time[i]
+
+            viz.export2dData(i, simdata, cells, p)
+
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
     #-------------------------------------------------------------------------------------------------------------------

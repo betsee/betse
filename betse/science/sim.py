@@ -832,10 +832,11 @@ class Simulator(object):
 
                 # update the concentrations of Na and K in cells and environment:
                 self.cc_mems[self.iNa][:],  self.cc_env[self.iNa][:] =  stb.update_Co(self, self.cc_mems[self.iNa][:],
-                                                                            self.cc_env[self.iNa][:],fNa_NaK, cells, p)
+                                                                            self.cc_env[self.iNa][:],fNa_NaK, cells, p,
+                                                                            ignoreECM = False)
 
                 self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
-                    self.cc_env[self.iK][:], fK_NaK, cells, p)
+                    self.cc_env[self.iK][:], fK_NaK, cells, p, ignoreECM = False)
 
                 # update the concentrations intra-cellularly:
                 self.cc_mems[self.iNa][:],  self.cc_cells[self.iNa][:], _ = \
@@ -882,7 +883,7 @@ class Simulator(object):
                     # update ion concentrations in cell and ecm:
 
                     self.cc_mems[i][:], self.cc_env[i][:] = stb.update_Co(self, self.cc_mems[i][:],
-                        self.cc_env[i][:], f_ED, cells, p)
+                        self.cc_env[i][:], f_ED, cells, p, ignoreECM = False)
 
                     # update the ion concentration intra-cellularly:
                     self.cc_mems[i][:], self.cc_cells[i][:], _ = \
@@ -961,7 +962,7 @@ class Simulator(object):
 
                     # update the concentration of P in cells and environment:
                     self.cc_mems[self.iP][:], self.cc_env[self.iP][:] = stb.update_Co(self, self.cc_mems[self.iP][:],
-                        self.cc_env[self.iP][:], self.protein_noise_flux, cells, p)
+                        self.cc_env[self.iP][:], self.protein_noise_flux, cells, p, ignoreECM = False)
 
                     # update intracellularly:
                     self.cc_mems[self.iP][:], self.cc_cells[self.iP][:], _ = \
@@ -1580,7 +1581,7 @@ class Simulator(object):
 
         # update H+ in cells and environment, first in absence of bicarbonate buffering:
         self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
-            self.cc_env[self.iH][:], f_H1, cells, p)
+            self.cc_env[self.iH][:], f_H1, cells, p, ignoreECM = False)
 
 
         # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1634,11 +1635,11 @@ class Simulator(object):
             # calculate the update to K+ in the cell and environment:
 
             self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
-                self.cc_env[self.iK][:], f_K2, cells, p)
+                self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = False)
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_mems[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_mems[self.iM][:],
-                self.cc_env[self.iM][:], -f_H2, cells, p)
+                self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = False)
 
 
             # Calculate the new pH and H+ concentrations:
@@ -1687,7 +1688,7 @@ class Simulator(object):
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_mems[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_mems[self.iM][:],
-                self.cc_env[self.iM][:], -f_H3, cells, p)
+                self.cc_env[self.iM][:], -f_H3, cells, p, ignoreECM= False)
 
             if p.metabolism_enabled:
                 # update ATP concentrations after pump action:
@@ -1742,17 +1743,17 @@ class Simulator(object):
 
         # # update calcium concentrations in cell and ecm:
         self.cc_mems[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_mems[self.iCa][:],
-            self.cc_env[self.iCa][:], f_CaATP, cells, p)
-        #
-        # # update concentrations intracellularly:
-        # self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
-        #     stb.update_intra(self, cells, self.cc_mems[self.iCa][:],
-        #         self.cc_cells[self.iCa][:],
-        #         self.D_free[self.iCa],
-        #         self.zs[self.iCa], p)
-        #
-        # # recalculate the net, unbalanced charge and voltage in each cell:
-        # self.update_V(cells, p)
+            self.cc_env[self.iCa][:], f_CaATP, cells, p, ignoreECM = False)
+
+        # update concentrations intracellularly:
+        self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
+            stb.update_intra(self, cells, self.cc_mems[self.iCa][:],
+                self.cc_cells[self.iCa][:],
+                self.D_free[self.iCa],
+                self.zs[self.iCa], p)
+
+        # recalculate the net, unbalanced charge and voltage in each cell:
+        self.update_V(cells, p)
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
 

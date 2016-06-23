@@ -1170,20 +1170,24 @@ def exportData(cells,sim,p):
     np.savetxt(savedData,dataM,delimiter = ',',header = headr)
     np.savetxt(savedData_FFT,dataFFT,delimiter = ',',header = headr2)
 
-def export2dData(simdata,cells,p):
+def export2dData(i, simdata,cells,p):
 
     if p.plot_type == 'sim':
-        results_path = p.sim_results
+        results_path =  p.sim_results
 
     elif p.plot_type == 'init':
-        results_path = p.sim_results
+        results_path = p.init_results
 
-    os.makedirs(results_path, exist_ok=True)
-    savedData_2d = os.path.join(results_path, 'Exported2DData.csv')
+    filename = 'Vmem2D_' + str(i) + '.csv'
 
+    filepath = os.path.join(results_path, 'Vmem2D_TextExport')
 
-    dataM = simdata
-    np.savetxt(savedData_2d,dataM,delimiter=',')
+    os.makedirs(filepath, exist_ok=True)
+    savedData_2d = os.path.join(filepath, filename)
+
+    dataM = np.column_stack((p.um*cells.cell_centres[:,0], p.um*cells.cell_centres[:,1], simdata))
+    hdr = 'x [um], y [um], Vmem [mV]'
+    np.savetxt(savedData_2d,dataM,delimiter=',', header = hdr)
 
 def I_overlay(sim,cells,p,ax,plotIecm = False):
     """

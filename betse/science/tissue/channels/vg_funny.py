@@ -78,7 +78,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         P = (dyna.m_Fun ** self._mpower) * (dyna.h_Fun ** self._hpower)
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
+        delta_Q = - (dyna.maxDmFun*P*(V - self.vrev))
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

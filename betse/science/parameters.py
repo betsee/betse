@@ -778,7 +778,9 @@ class Parameters(object):
         self.saveAnimations = ro['save animations']['frames']['enabled']    # save all animations as png sequences
         # self.saveMovie = ro['save animations']['movie file']    # save all animations as png sequences
 
-        self.exportData = ro['export data to file']        # export all stored data for the plot_cell to a csv text file
+        self.exportData = ro['export data to file']     # export all stored data for the plot_cell to a csv text file
+
+        self.exportData2D = ro.get('export 2D data to file', False)
 
         self.clip = 20e-6
 

@@ -145,6 +145,8 @@ class Kir2p1(VgKirABC):
         self._mpower = 1
         self._hpower = 2
 
+        self.rectification = -1
+
 
     def _calculate_state(self, V, dyna, sim, p):
         """

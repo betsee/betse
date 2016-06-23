@@ -139,6 +139,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):  # FIXME need rho_pu
 
     # calculate the reaction rate coefficient
     alpha = block * p.alpha_NaK * (1 - (Q / Keq))
+    # alpha = block * p.alpha_NaK
 
     # calculate the enzyme coefficient:
     numo_E = ((cNai/p.KmNK_Na)**3) * ((cKo/p.KmNK_K)**2) * (cATP/p.KmNK_ATP)
@@ -201,12 +202,23 @@ def pumpCaATP(cCai,cCao,Vm,T,p, met = None):
 
     # calculate the reaction rate coefficient
     alpha = p.alpha_Ca * (1 - (Q / Keq))
+    # alpha = p.alpha_Ca
 
-    # calculate the enzyme coefficient:
+    # calculate the enzyme coefficient for forward reaction:
     numo_E = (cCai/p.KmCa_Ca) * (cATP/p.KmCa_ATP)
     denomo_E = (1 + (cCai/p.KmCa_Ca)) * (1+ (cATP/p.KmCa_ATP))
 
-    f_Ca = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
+    frwd = numo_E/denomo_E
+
+    # calculate the enzyme coefficient for backward reaction:
+    numo_Eb = (cCao/p.KmCa_Ca)
+    denomo_Eb = (1 + (cCao/p.KmCa_Ca))
+
+    bkwrd = numo_Eb/denomo_Eb
+
+    f_Ca = -p.alpha_Ca*(frwd - (Q/Keq)*bkwrd)  # flux as [mol/m2s]
+
+    # print(f_Ca.min(), f_Ca.max())
 
     return f_Ca
 

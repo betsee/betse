@@ -78,6 +78,8 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_Ca ** self._mpower) * (dyna.h_Ca ** self._hpower)
 
+
+
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the original Hodgkin Huxley equation.
 
@@ -132,7 +134,7 @@ class Ca_L(VgCaABC):
 
         logs.log_info('You are using the vgCa channel type: Ca_L')
 
-        self.vrev = 131.0     # reversal voltage used in model [mV]
+        self.vrev = 50.0     # reversal voltage used in model [mV]
         Texpt = 36.0    # temperature of the model in degrees C
         simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
