@@ -29,7 +29,6 @@ def test_type_check_noop() -> None:
     # Call this function and assert the expected return value.
     assert khorne('WAAAGH!', '!HGAAAW') == 'WAAAGH!!HGAAAW'
 
-
 # ....................{ TESTS ~ pass : param               }....................
 def test_type_check_pass_param_keyword_and_positional() -> None:
     '''
@@ -88,10 +87,8 @@ def test_type_check_pass_param_tuple() -> None:
         return tyranid + str(hive_fleet)
 
     # Call this function with each of the two types listed in the above tuple.
-    assert genestealer(
-        'Norn-Queen', hive_fleet='Behemoth') == 'Norn-QueenBehemoth'
-    assert genestealer(
-        'Carnifex', hive_fleet=0xDEADBEEF) == 'Carnifex3735928559'
+    assert genestealer('Norn-Queen', 'Behemoth') == 'Norn-QueenBehemoth'
+    assert genestealer('Carnifex', 0xDEADBEEF) == 'Carnifex3735928559'
 
 
 def test_type_check_pass_param_custom() -> None:

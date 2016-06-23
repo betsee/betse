@@ -26,7 +26,32 @@ from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
 
-# ....................{ GLOBALS                            }....................
+# ....................{ TUPLES                             }....................
+SEQUENCE = None
+'''
+Tuple of all container base classes conforming to (but _not_ necessarily
+subclassing) the canonical `collections.abc.Sequence` API.
+
+Sequences are iterables supporting efficient element access via integer
+indices. Most sequences implement the abstract base class
+`collections.abc.Sequence`, including the concrete `str` string class. All
+sequences define the special `__getitem__()` and `__len__()` methods, amongst
+numerous others.
+
+While all sequences are iterables, not all iterables are sequences. Generally
+speaking, sequences correspond to the proper subset of iterables whose elements
+are ordered. `dict` and `OrderedDict` are the canonical examples. `dict`
+implements `collections.Iterable` but _not_ `collections.Sequence`, due to
+_not_ supporting integer index-based lookup; `OrderedDict` implements both, due
+to supporting such lookup.
+
+For generality, this tuple contains classes matching both pure-Python sequences
+_and_ non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
+subclass `collections.abc.Sequence` despite implementing the entirety of that
+that API.
+'''
+
+# ....................{ SETS : private                     }....................
 _PARAMETER_KIND_IGNORED = {
     Parameter.POSITIONAL_ONLY, Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD,
 }
@@ -61,6 +86,29 @@ This includes:
   are safely ignorable by callers, however, there appears to be little
   real-world utility in enforcing this constraint.
 '''
+
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Initialize module constants (e.g., `SEQUENCE`).
+
+    These constants are typically:
+
+    * Tuples of types declared by third-party packages and hence _not_ safely
+      importable at the top level of this module.
+    * Imported to type hint callables (e.g., functions, methods) defined
+      elsewhere in the codebase.
+    '''
+
+    # Avoid importing third-party packages at the top level.
+    from numpy import ndarray
+
+    # Declare these constants to be globals, permitting modification below.
+    global SEQUENCE
+
+    # Tuple of all container base classes conforming to (but *NOT* necessarily
+    # subclassing) the canonical "collections.abc.Sequence" API.
+    SEQUENCE = (Sequence, ndarray)
 
 # ....................{ DECORATORS                         }....................
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
@@ -193,18 +241,15 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                         func_arg_index)
 
                     func_body += '''
-    if {arg_name!r} in kwargs:
-        if not isinstance({arg_value_key_expr}, {arg_type_expr}):
+    if not (
+        isinstance({arg_value_pos_expr}, {arg_type_expr})
+        if {arg_index} < len(args) else
+        isinstance({arg_value_key_expr}, {arg_type_expr})
+        if {arg_name!r} in kwargs else True):
             raise TypeError(
-                '{func_name} keyword parameter '
-                '{arg_name}={{}} not a {{!r}}'.format(
-                trim({arg_value_key_expr}), {arg_type_expr}))
-    elif {arg_index} < len(args) and not isinstance(
-        {arg_value_pos_expr}, {arg_type_expr}):
-        raise TypeError(
-            '{func_name} positional parameter '
-            '{arg_name}={{}} not a {{!r}}'.format(
-                trim({arg_value_pos_expr}), {arg_type_expr}))
+                '{func_name} parameter {arg_name}={{}} not of {{!r}}'.format(
+                trim({arg_value_pos_expr} if {arg_index} < len(args) else {arg_value_key_expr}),
+                {arg_type_expr}))
 '''.format(
                     func_name=func_name,
                     arg_name=func_arg.name,
@@ -233,7 +278,7 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
     return_value = __beartype_func(*args, **kwargs)
     if not isinstance(return_value, {return_type}):
         raise TypeError(
-            '{func_name} return value {{}} not a {{!r}}'.format(
+            '{func_name} return value {{}} not of {{!r}}'.format(
                 trim(return_value), {return_type}))
     return return_value
 '''.format(func_name=func_name, return_type=func_return_type_expr)

@@ -85,7 +85,7 @@ def init() -> None:
     exceptions.
     '''
 
-    # If this function has already been called, return silently.
+    # If this function has already been called, noop.
     global _IS_IGNITED
     if     _IS_IGNITED:
         return
@@ -95,11 +95,15 @@ def init() -> None:
     from betse.lib import libs
     from betse.util.io.log import logconfig
     from betse.util.py import pys
+    from betse.util.type import types
 
     # Enable the default logging configuration for the current Python process
     # *BEFORE* performing any validation, thus logging any exceptions raised by
     # this validation.
     logconfig.init()
+
+    # Declare types used to type hint callables in the codebase.
+    types.init()
 
     # Validate core directories and files required at program startup.
     pathtree.init()

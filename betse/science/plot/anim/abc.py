@@ -6,6 +6,9 @@
 Abstract base classes of all Matplotlib-based animation classes.
 '''
 
+#FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean and
+#animation-specific configuration options), appear to be broken. Panic station!
+
 #FIXME: We should probably animate non-blockingly (e.g., by passing
 #"block=False" to the plt.show() command. To do so, however, we'll probably have
 #to implement an analogue to Matplotlib's "_pylab_helper.Gcf" global-like static
@@ -42,12 +45,8 @@ Abstract base classes of all Matplotlib-based animation classes.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
-from abc import abstractmethod
-
 import numpy as np
-from matplotlib import pyplot
-from matplotlib.animation import FuncAnimation
-
+from abc import abstractmethod
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.lib.matplotlib.matplotlibs import mpl_config
@@ -55,10 +54,10 @@ from betse.science.plot.abc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
+from betse.util.type.types import type_check, SEQUENCE
+from matplotlib import pyplot
+from matplotlib.animation import FuncAnimation
 from scipy import interpolate
-
-#FIXME: Shift these functions into our superclass.
-from betse.science.plot.plot import (env_stream, cell_stream)
 
 # ....................{ BASE                               }....................
 class AnimCells(PlotCells):
@@ -126,20 +125,15 @@ class AnimCells(PlotCells):
     '''
 
     # ..................{ LIFECYCLE                          }..................
+    @type_check
     def __init__(
         self,
-
-        #FIXME: I'm not terribly happy with defaulting these parameters here.
-        #Ideally, we should define a new "AnimCellsAfterSolving" subclass simply
-        #passing these defaults to this method as normal parameters. After doing
-        #so, eliminate these defaults, forcing these parameters to be passed.
-        save_dir_parent_basename: str = 'anim',
-
-        is_current_overlayable: bool = False,
+        save_dir_parent_basename: str,
+        is_current_overlayable: bool,
 
         #FIXME: For orthogonality, rename to "is_current_overlay_gj_only" and
         #the corresponding instance attributes similarly.
-        is_overlaying_current_gj_only: bool = None,
+        is_overlaying_current_gj_only = None,
         is_ecm_required: bool = False,
         *args, **kwargs
     ) -> None:
@@ -151,7 +145,7 @@ class AnimCells(PlotCells):
         save_dir_parent_basename : str
             Basename of the parent directory of the subdirectory to which this
             animation's frames will be saved when requested by the current
-            simulation configuration. Defaults to a suitably generic basename.
+            simulation configuration.
         is_current_overlayable : bool
             `True` if overlaying either electric current or concentration flux
             streamlines on this animation when requested by the current
@@ -159,8 +153,7 @@ class AnimCells(PlotCells):
             `p.calc_J` parameters) _or_ `False` otherwise. All subclasses except
             those already plotting streamlines (e.g., by calling the superclass
             `_plot_stream()` method) should unconditionally enable this boolean.
-            Defaults to `False`.
-        is_overlaying_current_gj_only : bool
+        is_overlaying_current_gj_only : optional[bool]
             `True` if only overlaying intracellular current _or_ `False` if
             overlaying both intra- and extracellular current. Ignored if current
             is _not_ being overlayed at all (i.e., if `_is_overlaying_current`
@@ -169,17 +162,11 @@ class AnimCells(PlotCells):
                intracellular and extracellular current is to be animated.
             * `True` if either extracellular spaces are disabled _or_ are
                enabled but only intracellular current is to be animated.
-        is_ecm_required : bool
+        is_ecm_required : optional[bool]
             `True` if this animation is specific to extracellular spaces or
             `False` otherwise. If `True` and extracellular spaces are currently
             disabled, an exception is raised. Defaults to `False`.
         '''
-        assert types.is_str(save_dir_parent_basename), (
-            types.assert_not_str(save_dir_parent_basename))
-        assert types.is_bool(is_current_overlayable), (
-            types.assert_not_bool(is_current_overlayable))
-        assert types.is_bool(is_ecm_required), (
-            types.assert_not_bool(is_ecm_required))
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(*args, **kwargs)
@@ -252,6 +239,7 @@ class AnimCells(PlotCells):
             self._init_current_density()
 
 
+    @type_check
     def _init_saving(
         self,
         save_dir_parent_basename: str,
@@ -267,8 +255,6 @@ class AnimCells(PlotCells):
             animation's frames will be saved when requested by the current
             simulation configuration. Defaults to a suitably generic basename.
         '''
-        assert types.is_str(save_dir_parent_basename), (
-            types.assert_not_str(save_dir_parent_basename))
 
         # Ensure that the passed directory and file basenames are actually
         # basenames and hence contain no directory separators.
@@ -377,8 +363,10 @@ class AnimCells(PlotCells):
         '''
         `True` only if interactively displaying this animation.
 
-        This boolean is orthogonal to `_is_saving`, which may also be `True`.
+        This property is orthogonal to the `_is_saving` property, whose value
+        may concurrently also be `True`.
         '''
+
         return not self._p.turn_all_plots_off
 
 
@@ -394,9 +382,11 @@ class AnimCells(PlotCells):
 
         This boolean is orthogonal to `_is_showing`, which may also be `True`.
         '''
+
         return self._p.saveAnimations
 
     # ..................{ ANIMATORS                          }..................
+    @type_check
     def _animate(
         self,
         frame_count: int,
@@ -417,7 +407,6 @@ class AnimCells(PlotCells):
         All remaining parameters will be passed to the superclass `__prep()`
         method as is.
         '''
-        assert types.is_int(frame_count), types.assert_not_int(frame_count)
 
         # Prepare for plotting immediately *BEFORE* plotting the first frame.
         self._prep_figure(*args, **kwargs)
@@ -501,6 +490,7 @@ class AnimCells(PlotCells):
 
     # ..................{ PLOTTERS                           }..................
     #FIXME: Rename "frame_number" to "time_step".
+    @type_check
     def plot_frame(self, frame_number: int) -> None:
         '''
         Iterate this animation to the next frame.
@@ -524,7 +514,7 @@ class AnimCells(PlotCells):
         frame_number : int
             0-based index of the frame to be plotted.
         '''
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+
         # loggers.log_info(
         #     'Updating animation "{}" frame number {}...'.format(
         #         self._type,
@@ -588,42 +578,32 @@ class AnimCells(PlotCells):
 
         # Time series of all current density X and Y components.
         if self._is_overlaying_current_gj_only is True:
-
             I_grid_x_time = []
             I_grid_y_time = []
 
-            # need to interpolate data from cell centres to the xy-grid:
+            # Interpolate data from cell centres to the xy-grid.
             cell_centres = (
                 self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
-
             cell_grid = (self._cells.X, self._cells.Y)
 
-            for i in range(0,len(self._sim.I_cell_x_time)):
-
-                I_gj_x = interpolate.griddata(
+            for i in range(0, len(self._sim.I_cell_x_time)):
+                I_gj_x = self._cells.maskECM * interpolate.griddata(
                     cell_centres,
                     self._sim.I_cell_x_time[i],
                     cell_grid,
                     fill_value=0,
                     method=self._p.interp_type,
                 )
-
-                I_gj_x = self._cells.maskECM*I_gj_x
-
                 I_grid_x_time.append(I_gj_x)
 
-                I_gj_y = interpolate.griddata(
+                I_gj_y = self._cells.maskECM * interpolate.griddata(
                     cell_centres,
                     self._sim.I_cell_y_time[i],
                     cell_grid,
                     fill_value=0,
                     method=self._p.interp_type,
                 )
-
-                I_gj_y = self._cells.maskECM * I_gj_y
-
                 I_grid_y_time.append(I_gj_y)
-
 
             self._current_density_x_time_series = I_grid_x_time
             self._current_density_y_time_series = I_grid_y_time
@@ -632,8 +612,8 @@ class AnimCells(PlotCells):
             self._current_density_x_time_series = self._sim.I_tot_x_time
             self._current_density_y_time_series = self._sim.I_tot_y_time
 
-        # Time series of all current density magnitudes (i.e., `Jmag_M`).
-        # here is where we multiply by 100 to obtain current density in units of uA/cm2
+        # Time series of all current density magnitudes (i.e., `Jmag_M`),
+        # multiplying by 100 to obtain current density in units of uA/cm2.
         self._current_density_magnitude_time_series = 100*np.sqrt(
             np.asarray(self._current_density_x_time_series) ** 2 +
             np.asarray(self._current_density_y_time_series) ** 2) + 1e-15
@@ -666,7 +646,7 @@ class AnimCells(PlotCells):
             #     self._current_density_y_time_series[-1],
             #     self._axes, self._cells, self._p)
 
-
+    @type_check
     def _replot_current_density(self, frame_number: int) -> None:
         '''
         Overlay the passed frame of this subclass' animation with a streamplot
@@ -677,7 +657,6 @@ class AnimCells(PlotCells):
         frame_number : int
             0-based index of the frame to be plotted.
         '''
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
 
         # Current density magnitudes for this frame.
         Jmag_M = self._current_density_magnitude_time_series[frame_number]
@@ -691,35 +670,61 @@ class AnimCells(PlotCells):
         )
 
 # ....................{ SUBCLASSES                         }....................
-class AnimField(AnimCells):
+#FIXME: Refactor as follows:
+#
+#* Rename the existing "anim" submodule of this subpackage to "after".
+#* Define a new "while" submodule of this subpackage.
+#* Shift this and the following subclasses to the "after" submodule.
+#* Shift the "AnimCellsWhileSolving" subclass to the "while" submodule.
+class AnimCellsAfterSolving(AnimCells):
+    '''
+    Out-of-place animation of an arbitrary membrane-centric time series (e.g.,
+    cell Vmem as a function of time), plotted over the cell cluster _after_
+    rather than _during_ simulation modelling.
+    '''
+
+    @type_check
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Pass all parameters *NOT* listed above to our superclass.
+        super().__init__(
+            # Save out-of-place animations to a different parent directory than
+            # that to which in-place animations are saved.
+            save_dir_parent_basename='anim',
+            *args, **kwargs
+        )
+
+
+class AnimField(AnimCellsAfterSolving):
     '''
     Abstract base class of all animations of electric field strength plotted on
     the current cell cluster.
 
     Attributes
     ----------
-    _magnitude_time_series : list
+    _magnitude_time_series : SEQUENCE
         Electric field magnitudes as a function of time.
     _mesh_plot : matplotlib.image.AxesImage
         Meshplot of the current or prior frame's electric field magnitude.
     _stream_plot : matplotlib.streamplot.StreamplotSet
         Streamplot of the current or prior frame's electric field.
-    _x_time_series : list
+    _x_time_series : SEQUENCE
         Electric field X components as a function of time.
-    _y_time_series : list
+    _y_time_series : SEQUENCE
         Electric field Y components as a function of time.
-    _unit_x_time_series : list
+    _unit_x_time_series : SEQUENCE
         Electric field X unit components as a function of time. The resulting
         electric field vectors are **unit vectors** (i.e., have magnitude 1).
-    _unit_y_time_series : list
+    _unit_y_time_series : SEQUENCE
         Electric field Y unit components as a function of time. The resulting
         electric field vectors are **unit vectors** (i.e., have magnitude 1).
     '''
 
+    @type_check
     def __init__(
         self,
-        x_time_series: list,
-        y_time_series: list,
+        x_time_series: SEQUENCE,
+        y_time_series: SEQUENCE,
         *args, **kwargs
     ) -> None:
         '''
@@ -727,22 +732,22 @@ class AnimField(AnimCells):
 
         Parameters
         ----------
-        x_time_series : list
-            List of all electric field strength X components indexed by
-            simulation time.
-        y_time_series : list
-            List of all electric field strength Y components indexed by
-            simulation time.
+        x_time_series : SEQUENCE
+            Sequence (e.g., list, numpy array) of all electric field strength X
+            components indexed by simulation time.
+        y_time_series : SEQUENCE
+            Sequence (e.g., list, numpy array) of all electric field strength Y
+            components indexed by simulation time.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(x_time_series), (
-            types.assert_not_sequence_nonstr(x_time_series))
-        assert types.is_sequence_nonstr(y_time_series), (
-            types.assert_not_sequence_nonstr(y_time_series))
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            # Since this class already plots a streamplot, prevent the
+            # superclass from plotting another streamplot as an overlay.
+            is_current_overlayable=False,
+            *args, **kwargs)
 
         # Classify all remaining parameters.
         self._x_time_series = x_time_series
@@ -757,7 +762,7 @@ class AnimField(AnimCells):
         self._colormap = self._p.background_cm
 
 
-class AnimVelocity(AnimCells):
+class AnimVelocity(AnimCellsAfterSolving):
     '''
     Abstract base class of all animations of a velocity flow plotted on the
     current cell cluster.
@@ -766,7 +771,11 @@ class AnimVelocity(AnimCells):
     def __init__(self, *args, **kwargs) -> None:
 
         # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(*args, **kwargs)
+        super().__init__(
+            # Since this class already plots a streamplot, prevent the
+            # superclass from plotting another streamplot as an overlay.
+            is_current_overlayable=False,
+            *args, **kwargs)
 
         # Prefer an alternative colormap.
         self._colormap = self._p.background_cm

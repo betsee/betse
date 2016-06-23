@@ -15,6 +15,8 @@ import os, re, shutil, tempfile
 from betse.exceptions import BetseExceptionFile
 from betse.util.io.log import logs
 from betse.util.type import types
+from betse.util.type.types import type_check
+from collections.abc import Sequence
 from os import path
 
 # ....................{ EXCEPTIONS ~ unless                }....................
@@ -141,7 +143,7 @@ def copy(filename_source: str, filename_target: str) -> None:
     from betse.util.path import dirs, paths
 
     # Log this copy.
-    logs.log_info(
+    logs.log_debug(
         'Copying file "%s" to "%s".', filename_source, filename_target)
 
     # Raise an exception unless the source file exists.
@@ -168,7 +170,7 @@ def remove(filename: str) -> None:
         types.assert_not_str_nonempty(filename, 'filename'))
 
     # Log this removal.
-    logs.log_info('Removing file "%s".', filename)
+    logs.log_debug('Removing file "%s".', filename)
 
     # Raise an exception unless such this exists.
     die_unless_file(filename)
@@ -195,7 +197,7 @@ def remove_if_found(filename: str) -> None:
     # performed. Since this is largely ignorable, the worst case is an
     # extraneous log message.
     if is_file(filename):
-        logs.log_info('Removing file "%s".', filename)
+        logs.log_debug('Removing file "%s".', filename)
 
     # Remove this file atomically. To avoid race conditions with other
     # processes, do *NOT* embed this operation in an explicit test for file
@@ -339,14 +341,16 @@ def substitute_substrings_inplace(
     `substitute_substrings()`
         For further details.
     '''
+
     substitute_substrings(
         filename, filename, substitutions, **kwargs)
 
 
+@type_check
 def substitute_substrings(
     filename_source: str,
     filename_target: str,
-    substitutions,
+    substitutions: Sequence,
     **kwargs
 ) -> None:
     '''
@@ -377,19 +381,12 @@ def substitute_substrings(
         Absolute path of the source filename to be read.
     filename_target : str
         Absolute path of the target filename to be written.
-    substitutions : sequence_nonstring
+    substitutions : Sequence
         Non-string sequence (e.g., list, tuple) of non-string sequences of
         length 2 (i.e., pairs), whose first element is a regular expression and
         whose second element is the substitution to be performed for all
         substrings in the source file matching that regular expression.
     '''
-    assert types.is_str_nonempty(filename_source), (
-        types.assert_not_str_nonempty(filename_source, 'source filename'))
-    assert types.is_str_nonempty(filename_target), (
-        types.assert_not_str_nonempty(filename_target, 'target filename'))
-    assert types.is_sequence_nonstr_nonempty(substitutions), (
-        types.assert_not_sequence_nonstr_nonempty(
-            substitutions, 'regular expression substitution pairs'))
 
     # Log this substitution.
     if filename_source == filename_target:
