@@ -1,7 +1,7 @@
 %YAML 1.1
 ---
-# The BETSE glycolysis metabolism configuration file, which takes a simplified view of glycolysis.
-# Levels and rates described by this model should be consistent with red blood cells (erythrocytes)
+# The BETSE metabolism configuration file, which combines glycolysis and oxydative phosphorylation.
+# Levels and rates described by this model should be consistent with mammalian cells.
 # All metabolism related config files must contain biomolecules with the name 'ATP', 'ADP', and 'Pi',
 # otherwise, the level of complexity/detail can be high or low.
 
@@ -16,7 +16,7 @@
 #  BASIC METABOLIC FEATURES
 #-----------------------------------------------------------------------------------------------------------------------
 
-enable mitochondria: False
+enable mitochondria: True
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  MOLECULES of METABOLISM

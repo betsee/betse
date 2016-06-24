@@ -29,8 +29,6 @@ from matplotlib import colors
 from matplotlib import cm
 
 
-# FIXME see if we need rates of all reactions stored in time vectors...?
-
 class MasterOfMolecules(object):
 
     def __init__(self, sim, cells, config_substances, p, mit_enabled = False):
@@ -59,13 +57,6 @@ class MasterOfMolecules(object):
         self.transporter_names = []
 
         self.plot_cmap = 'viridis'
-
-        # # set up the color vector (for plotting complex line graphs)
-        # maxlen = 2*len(self.transporter_names)
-        #
-        # lineplots_cm = plt.get_cmap('rainbow')
-        # cNorm = colors.Normalize(vmin=0, vmax=10)
-        # self.scalarMap = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
 
 
     def read_substances(self, sim, cells, config_substances, p):
@@ -680,13 +671,13 @@ class MasterOfMolecules(object):
             if self.mit_enabled:
 
                 logs.log_info('Average concentration of ' + str(name) + ' in the mitochondria: ' +
-                          str(np.round(1.0e3 * obj.c_mit.mean(), 4)) + ' umol/L')
+                          str(np.round(obj.c_mit.mean(), 4)) + ' mmol/L')
 
             logs.log_info('Average concentration of ' + str(name) + ' in the cell: ' +
-                                           str(np.round(1.0e3*obj.c_cells.mean(), 4)) + ' umol/L')
+                                           str(np.round(obj.c_cells.mean(), 4)) + ' mmol/L')
 
-            logs.log_info('Average concentration of ' + str(name) + ' in the environment: ' +
-                                          str(np.round(1.0e3*obj.c_env.mean(), 4)) + ' umol/L')
+            # logs.log_info('Average concentration of ' + str(name) + ' in the environment: ' +
+            #                               str(np.round(obj.c_env.mean(), 4)) + ' mmol/L')
 
         if self.mit_enabled:
             logs.log_info('Average Vmit: ' + str(np.round(1.0e3*self.mit.Vmit.mean(), 4)) + ' mV')
@@ -928,6 +919,16 @@ class MasterOfMolecules(object):
 
         if len(self.reaction_names):
 
+            # create a suite of single reaction line plots:
+            for i, name in enumerate(self.reaction_names):
+                # get the reaction object field
+                obj = getattr(self, name)
+
+                # make a 1D plot of this reaction rate:
+                obj.plot_1D(sim, cells, p, self.imagePath)
+
+            # now create the "everything" plot and export data to file:
+
             react_dataM = []
             react_header = 'Time [s], '
 
@@ -945,6 +946,7 @@ class MasterOfMolecules(object):
             c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
 
             for i, name in enumerate(self.reaction_names):
+                # get the reaction object field
                 obj = getattr(self, name)
 
                 r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
@@ -1334,12 +1336,12 @@ class Molecule(object):
 
         """
 
-        c_cells = [1.0e3*arr[p.plot_cell] for arr in self.c_cells_time]
+        c_cells = [arr[p.plot_cell] for arr in self.c_cells_time]
         fig = plt.figure()
         ax = plt.subplot(111)
         ax.plot(sim.time, c_cells)
         ax.set_xlabel('Time [s]')
-        ax.set_ylabel('Concentration [umol/L]')
+        ax.set_ylabel('Concentration [mmol/L]')
         ax.set_title('Concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
 
         if p.autosave is True:
@@ -1351,12 +1353,12 @@ class Molecule(object):
 
         if self.mit_enabled:
 
-            c_mit = [1.0e3*arr[p.plot_cell] for arr in self.c_mit_time]
+            c_mit = [arr[p.plot_cell] for arr in self.c_mit_time]
             fig = plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, c_mit)
             ax.set_xlabel('Time [s]')
-            ax.set_ylabel('Concentration [umol/L]')
+            ax.set_ylabel('Concentration [mmol/L]')
             ax.set_title('Mitochondrial concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
 
             if p.autosave is True:
@@ -1372,7 +1374,7 @@ class Molecule(object):
 
         """
 
-        fig, ax, cb = viz.plotPrettyPolyData(self.c_mems*1e3,
+        fig, ax, cb = viz.plotPrettyPolyData(self.c_mems,
             sim, cells, p,
             number_cells=p.enumerate_cells,
             clrAutoscale=self.plot_autoscale,
@@ -1383,7 +1385,7 @@ class Molecule(object):
         ax.set_title('Final ' + self.name + ' Concentration in Cells')
         ax.set_xlabel('Spatial distance [um]')
         ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Concentration umol/L')
+        cb.set_label('Concentration mmol/L')
 
         if p.autosave is True:
             savename = saveImagePath + '2Dcell_conc_' + self.name + '.png'
@@ -1395,7 +1397,7 @@ class Molecule(object):
         # mitochondrial plots
         if self.mit_enabled:
 
-            fig, ax, cb = viz.plotPolyData(sim, cells, p, zdata=self.c_mit*1e3,
+            fig, ax, cb = viz.plotPolyData(sim, cells, p, zdata=self.c_mit,
                 number_cells=p.enumerate_cells,
                 clrAutoscale=self.plot_autoscale,
                 clrMin=self.plot_min,
@@ -1405,7 +1407,7 @@ class Molecule(object):
             ax.set_title('Final ' + self.name + ' Concentration in Mitochondria')
             ax.set_xlabel('Spatial distance [um]')
             ax.set_ylabel('Spatial distance [um]')
-            cb.set_label('Concentration umol/L')
+            cb.set_label('Concentration mmol/L')
 
             if p.autosave is True:
                 savename = saveImagePath + '2D_mit_conc_' + self.name + '.png'
@@ -1424,7 +1426,7 @@ class Molecule(object):
         fig = plt.figure()
         ax = plt.subplot(111)
 
-        dyeEnv = (self.c_env*1e3).reshape(cells.X.shape)
+        dyeEnv = (self.c_env).reshape(cells.X.shape)
 
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
@@ -1446,7 +1448,7 @@ class Molecule(object):
         ax.set_title('Final ' + self.name + ' Concentration in Environment')
         ax.set_xlabel('Spatial distance [um]')
         ax.set_ylabel('Spatial distance [um]')
-        cb.set_label('Concentration umol/L')
+        cb.set_label('Concentration mmol/L')
 
         if p.autosave is True:
             savename = saveImagePath + '2Denv_conc_' + self.name + '.png'
@@ -1462,10 +1464,10 @@ class Molecule(object):
 
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[1e3*arr for arr in self.c_mems_time],
+            time_series=[arr for arr in self.c_mems_time],
             label=self.name + '_cells',
             figure_title='Cytosolic ' + self.name,
-            colorbar_title='Concentration [umol/L]',
+            colorbar_title='Concentration [mmol/L]',
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
@@ -1476,13 +1478,13 @@ class Molecule(object):
         """
 
         env_time_series = [
-            env.reshape(cells.X.shape)*1e3 for env in self.c_env_time]
+            env.reshape(cells.X.shape) for env in self.c_env_time]
         AnimEnvTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=env_time_series,
             label=self.name + '_env',
             figure_title='Environmental ' + self.name,
-            colorbar_title='Concentration [umol/L]',
+            colorbar_title='Concentration [mmol/L]',
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
@@ -1730,7 +1732,7 @@ class Reaction(object):
 
         if self.reaction_zone == 'cell':
 
-            tag = 'mems'
+            tag = 'cell'
 
         elif self.reaction_zone == 'mitochondria':
 
@@ -1756,6 +1758,24 @@ class Reaction(object):
             self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
 
         return flux
+
+    def plot_1D(self, sim, cells, p, saveImagePath):
+
+        r_rate = [arr[p.plot_cell] for arr in self.rate_time]
+        fig = plt.figure()
+        ax = plt.subplot(111)
+        ax.plot(sim.time, r_rate)
+        ax.set_xlabel('Time [s]')
+        ax.set_ylabel('Rate [mM/s]')
+        ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = saveImagePath + 'ReactionRate_' + self.name + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
 
 class Transporter(object):
 

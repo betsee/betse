@@ -688,7 +688,7 @@ metabolism settings:
 
   metabolism config: extra_configs/metabo_config_test.yaml  # supply a path to the config file containing metabolic sim info
                                                       # metabo_config_basic.yaml supplies a very basic metabolism model
-                                                      # metabo_config_glycolysis.yaml supplies a full metabolism model
+                                                      # metabo_config_glycolysis_full.yaml supplies a full metabolism model
                                                       # these config files are ignored if 'metabolism simulated' is F
 #-----------------------------------------------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK
