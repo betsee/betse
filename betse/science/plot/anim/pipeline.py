@@ -62,7 +62,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=[1e6*arr[sim.iCa] for arr in sim.cc_time],
-            type='Ca',
+            label='Ca',
             figure_title='Cytosolic Ca2+',
             colorbar_title='Concentration [nmol/L]',
             is_color_autoscaled=p.autoscale_Ca_ani,
@@ -74,7 +74,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=[-np.log10(1.0e-3*arr[sim.iH]) for arr in sim.cc_time],
-            type='pH',
+            label='pH',
             figure_title='Cytosolic pH',
             colorbar_title='pH',
             is_color_autoscaled=p.autoscale_Ca_ani,
@@ -92,7 +92,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             time_series=vmplt,
             scaling_series=scale_v,
             is_ecm_ignored=False,
-            type='Vmem',
+            label='Vmem',
             figure_title='Transmembrane Voltage',
             colorbar_title='Voltage [mV]',
             is_color_autoscaled=p.autoscale_Vmem_ani,
@@ -109,7 +109,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             sim=sim, cells=cells, p=p,
             cell_time_series= vmplt,
             gapjunc_time_series=sim.gjopen_time,
-            type='Vmem_gj',
+            label='Vmem_gj',
             figure_title='Gap Junction State over Vmem',
             colorbar_title='Voltage [mV]',
             is_color_autoscaled=p.autoscale_Vgj_ani,
@@ -121,7 +121,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=[1000*arr for arr in sim.vcell_time],
-            type='vcell',
+            label='vcell',
 
             figure_title='Cell voltage',
             colorbar_title='Voltage [mV]',
@@ -136,7 +136,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimCurrent(
             sim=sim, cells=cells, p=p,
             is_overlaying_current_gj_only=True,
-            type='current_gj',
+            label='current_gj',
             figure_title='Intracellular Current',
             colorbar_title='Current Density [uA/cm2]',
             is_color_autoscaled=p.autoscale_I_ani,
@@ -149,7 +149,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             AnimCurrent(
                 sim=sim, cells=cells, p=p,
                 is_overlaying_current_gj_only=False,
-                type='current_ecm',
+                label='current_ecm',
                 figure_title='Extracellular Current',
                 colorbar_title='Current Density [uA/cm2]',
                 is_color_autoscaled=p.autoscale_I_ani,
@@ -163,7 +163,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             sim=sim, cells=cells, p=p,
             x_time_series=sim.efield_gj_x_time,
             y_time_series=sim.efield_gj_y_time,
-            type='Efield_gj',
+            label='Efield_gj',
             figure_title='Intracellular E Field',
             colorbar_title='Electric Field [V/m]',
             is_color_autoscaled=p.autoscale_Efield_ani,
@@ -177,7 +177,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 sim=sim, cells=cells, p=p,
                 x_time_series=sim.efield_ecm_x_time,
                 y_time_series=sim.efield_ecm_y_time,
-                type='Efield_ecm',
+                label='Efield_ecm',
                 figure_title='Extracellular E Field',
                 colorbar_title='Electric Field [V/m]',
                 is_color_autoscaled=p.autoscale_Efield_ani,
@@ -189,7 +189,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=sim.P_cells_time,
-            type='Pcell',
+            label='Pcell',
             figure_title='Hydrostatic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
             is_color_autoscaled=p.autoscale_Pcell_ani,
@@ -201,7 +201,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=sim.osmo_P_delta_time,
-            type='OsmoP',
+            label='OsmoP',
             figure_title='Osmotic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
             is_color_autoscaled=p.autoscale_Pcell_ani,
@@ -217,7 +217,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 sim=sim, cells=cells, p=p,
                 x_time_series=[(1/p.um)*arr for arr in sim.F_hydro_x_time],
                 y_time_series=[(1/p.um)*arr for arr in sim.F_hydro_y_time],
-                type='HydroFfield',
+                label='HydroFfield',
                 figure_title='Hydrostatic Body Force',
                 colorbar_title='Force [N/cm3]',
                 is_color_autoscaled=p.autoscale_force_ani,
@@ -233,7 +233,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimEnvTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=venv_time_series,
-            type='Venv',
+            label='Venv',
             figure_title='Environmental Voltage',
             colorbar_title='Voltage [V]',
             is_color_autoscaled=p.autoscale_venv_ani,
@@ -272,7 +272,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         # Always animate the gap junction fluid velocity.
         AnimVelocityIntracellular(
             sim=sim, cells=cells, p=p,
-            type='Velocity_gj',
+            label='Velocity_gj',
             figure_title='Intracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [nm/s]',
             is_color_autoscaled=p.autoscale_Velocity_ani,
@@ -284,7 +284,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         if p.sim_ECM is True:
             AnimVelocityExtracellular(
                 sim=sim, cells=cells, p=p,
-                type='Velocity_ecm',
+                label='Velocity_ecm',
                 figure_title='Extracellular Fluid Velocity',
                 colorbar_title='Fluid Velocity [nm/s]',
                 is_color_autoscaled=p.autoscale_Velocity_ani,
@@ -308,7 +308,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         #     AnimDeformTimeSeries(
         #         sim=sim, cells=cells, p=p,
         #         cell_time_series=displacement_time_series,
-        #         type='Deform_dxdy',
+        #         label='Deform_dxdy',
         #         figure_title='Displacement Field and Deformation',
         #         colorbar_title='Displacement [um]',
         #         is_color_autoscaled=p.autoscale_Deformation_ani,
@@ -320,7 +320,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         #     AnimDeformTimeSeries(
         #         sim=sim, cells=cells, p=p,
         #         cell_time_series=_get_vmem_time_series(sim, p),
-        #         type='Deform_Vmem',
+        #         label='Deform_Vmem',
         #         figure_title='Cell Vmem and Deformation',
         #         colorbar_title='Voltage [mV]',
         #         is_color_autoscaled=p.autoscale_Deformation_ani,
@@ -334,7 +334,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimMembraneTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=sim.rho_pump_time,
-            type='rhoPump',
+            label='rhoPump',
             figure_title='Pump Density Factor',
             colorbar_title='mol fraction/m2',
             is_color_autoscaled=p.autoscale_mem_ani,

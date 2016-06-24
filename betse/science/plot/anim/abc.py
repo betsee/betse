@@ -8,6 +8,79 @@ Abstract base classes of all Matplotlib-based animation classes.
 
 #FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean and
 #animation-specific configuration options), appear to be broken. Panic station!
+#FIXME: Actually, the current approach to implementing animation overlays is
+#fundamentally flawed. We currently attempt to provide a crude form of plot
+#composition (i.e., merging two or more types of plots together into a single
+#plot) by adding new booleans to the "AnimCells" base class (e.g.,
+#"is_current_overlayable") -- a fundamentally unwieldy and ultimately unworkable
+#approach. By definition, you cannot provide true composability frow within a
+#single class hierarchy. Instead, we need to split the specific process of
+#plotting different types of artists (e.g., mesh plots, stream plots) from the
+#general process of animating and saving frames and plots as follows:
+#
+#* Define a new "betse.science.plot.anim.plotter" submodule.
+#* Define a new "CellsPlotterABC" abstract base class in this submodule. Plotter
+#  classes encapsulate the plotting of a single type of plot (e.g., Vmem-style
+#  cell cluster meshplot, electrical current streamplot). While they may
+#  internally cache one or more time series required for this plotting, they do
+#  *NOT* contain the axes, figure, plot, or animation currently being plotted.
+#  Since these Matplotlib artists are shared between multiple plotters, the
+#  existing "PlotCells" and "AnimCells" base classes retain ownership of these
+#  artists.
+#* Define the following abstract methods in "CellsPlotterABC":
+#  * An init() method. Subclasses *MUST* redefine this method to initialize this
+#    plotter instance (e.g., by internally caching one or more time series).
+#  * A plot() method presumably accepting the index of the frame to be plotted.
+#    Subclasses *MUST* redefine this method to plot the time series data for
+#    this frame into the current plot or animation figure. To avoid circular
+#    references (and hence unallocated figures), it wouldn't necessarily be a
+#    bad idea to repass all objects required for plotting to each
+#    CellsPlotterABC.plot() call rather than to the CellsPlotterABC.__init__()
+#    constructor. Food for pleasant thought, anyway.
+#  * *UHM.* Wait. There would clearly be *NO* circular references here, so
+#    passing objects to CellsPlotterABC.__init__() once rather than repeatedly
+#    to CellsPlotterABC.plot() probably makes the most sense. We absolutely
+#    *MUST*, however, avoid passing the current "AnimCells" instance to
+#    CellsPlotterABC.__init__(). Passing that instance to
+#    CellsPlotterABC.plot(), however, should both be safe and desirable, as
+#    doing so would then permit plotters to access relevant data on the current
+#    animation (e.g., "AnimCells.time_step" providing the current frame number).
+#* Add a new "plotters" parameter to the AnimCells.__init__() constructor,
+#  classified as a new "AnimCells._plotters" instance variable. This parameter
+#  and variable *MUST* be a list of "CellsPlotterABC" instances. The order of
+#  plotters in this list defines the order in which these plotters are drawn and
+#  hence overlaid one another (i.e., z-order).
+#* Refactor AnimCells.__init__() or a method called by that method to iterate
+#  over "self._plotters" and initialize each such plotter by calling
+#  plotter.init().
+#* Refactor AnimCells.plot_frame() or a related method to iterate over
+#  "self._plotters" and draw each such plotter by calling plotter.draw().
+#* Refactor all subclasses of "AnimCells" into one or more subclasses of
+#  "CellsPlotterABC" instead, which may then be instantiated and composed
+#  together into a new "plotters" list passed to CellsPlotterABC.__init__(). For
+#  example:
+#  * Split the existing "AnimGapJuncTimeSeries" subclass into:
+#    * A new "CellsPlotterGapJunc" subclass plotting *ONLY* the gap junction
+#      open state as a "LineCollection" overlay. This plotter subclass would
+#      probably only be used for this specific purpose.
+#    * A new "CellsPlotterTimeSeries" subclass plotting *ONLY* an arbitrary
+#      time series for the cell cluster as a mesh plot underlay. Clearly, this
+#      plotter subclass would be extensively reused elsewhere as well.
+#* Replace all current overlay functionality in "AnimCells" with "plotters".
+#* Refactor the configuration file from the current hard-coded non-composable
+#  approach to a dynamic list-based approach permitting zero or more
+#  user-defined animations, each consisting of one or more stock BETSE-defined
+#  plotters, to be defined. Users would then be able to construct arbitrarily
+#  simple or complex animations as required.
+#
+#So, yes. It's quite a bit of work. But it's absolutely essential as well,
+#particularly for implementing a general-purpose BETSE GUI.
+
+#FIXME: Squelch PIL debug messages: e.g., as emitted by
+#https://github.com/python-pillow/Pillow/blob/master/PIL/PngImagePlugin.py
+#
+#We probably want to unconditionally squelch all loggers retrieved for
+#submodules of the root "PIL" package. Let's see to it, please!
 
 #FIXME: We should probably animate non-blockingly (e.g., by passing
 #"block=False" to the plt.show() command. To do so, however, we'll probably have
@@ -53,13 +126,13 @@ from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.plot.abc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
-from betse.util.type import types
-from betse.util.type.types import type_check, SEQUENCE
+from betse.util.type.types import type_check, Sequence
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 from scipy import interpolate
 
 # ....................{ BASE                               }....................
+#FIXME: Rename to "CellsAnim".
 class AnimCells(PlotCells):
     '''
     Abstract base class of all animation classes.
@@ -103,25 +176,25 @@ class AnimCells(PlotCells):
           `__init__()` method of this class, implying the current animation to
           support current overlays.
     _is_overlaying_current_gj_only : bool
-        `True` if only overlaying intracellular current _or_ `False` otherwise
+        `True` only if overlaying intracellular current _or_ `False` otherwise
         (i.e., if overlaying both intra- and extracellular current). Ignored
         unless overlaying current (i.e., if `_is_overlaying_current` is `True`).
     _is_saving_shown_frames : bool
-        `True` if both saving and displaying animation frames _or_ `False`
-        otherwise.
+        `True` only if both saving _and_ displaying animation frames.
     _save_frame_template : str
         `str.format()`-formatted template which, when formatted with the 0-based
         index of the current frame, yields the absolute path of the image file
         to be saved for that frame.
     _writer_frames : MovieWriter
-        Object writing frames from this animation to image files if enabled _or_
+        Matplotlib object saving animation frames as images if doing so _or_
         `None` otherwise.
     _writer_savefig_kwargs : dict
         Dictionary of all keyword arguments to be passed to the
-        `Figure.savefig()` method called to write each animation frame.
+        `Figure.savefig()` method called to save each animation frame for both
+        images and video.
     _writer_video : MovieWriter
-        Object encoding this animation to a video file if enabled _or_ `None`
-        otherwise.
+        Matplotlib object saving animation frames as video if doing so _or_
+        `None` otherwise.
     '''
 
     # ..................{ LIFECYCLE                          }..................
@@ -133,7 +206,7 @@ class AnimCells(PlotCells):
 
         #FIXME: For orthogonality, rename to "is_current_overlay_gj_only" and
         #the corresponding instance attributes similarly.
-        is_overlaying_current_gj_only = None,
+        is_overlaying_current_gj_only: bool = None,
         is_ecm_required: bool = False,
         *args, **kwargs
     ) -> None:
@@ -177,7 +250,7 @@ class AnimCells(PlotCells):
             raise BetseExceptionParameters(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
-                self._type))
+                self._label))
 
         # Default unpassed parameters.
         if is_overlaying_current_gj_only is None:
@@ -187,10 +260,6 @@ class AnimCells(PlotCells):
         # Classify defaulted parameters.
         self._is_overlaying_current_gj_only = is_overlaying_current_gj_only
 
-        # Validate these attributes.
-        assert types.is_bool(self._is_overlaying_current_gj_only), (
-            types.assert_not_bool(self._is_overlaying_current_gj_only))
-
         # If this subclass requests a current overlay, do so only if:
         #
         # * Requested by the current simulation configuration via "p.I_overlay".
@@ -199,7 +268,7 @@ class AnimCells(PlotCells):
             is_current_overlayable and self._p.I_overlay)
 
         # True if both saving and displaying animation frames.
-        self._is_saving_shown_frames = self._is_showing and self._is_saving
+        self._is_saving_showing = self._is_showing and self._is_saving
 
         # Type of animation attempt to be logged below.
         animation_verb = None
@@ -218,7 +287,7 @@ class AnimCells(PlotCells):
         # Log this animation as early as reasonably feasible.
         if animation_verb is not None:
             logs.log_info(
-                '{} animation "{}"...'.format(animation_verb, self._type))
+                '{} animation "{}"...'.format(animation_verb, self._label))
 
         # Classify attributes to be possibly redefined below.
         self._current_density_magnitude_time_series = None
@@ -226,7 +295,6 @@ class AnimCells(PlotCells):
         self._current_density_y_time_series = None
         self._current_density_stream_plot = None
         self._time_step = 0
-        self._writer_frames = None
         self._writer_frames = None
         self._writer_video = None
 
@@ -246,7 +314,7 @@ class AnimCells(PlotCells):
     ) -> None:
         '''
         Initialize this animation for platform-compatible file saving if enabled
-        by the current simulation configuration or noop otherwise.
+        by the current simulation configuration _or_ noop otherwise.
 
         Parameters
         ----------
@@ -258,7 +326,7 @@ class AnimCells(PlotCells):
 
         # Ensure that the passed directory and file basenames are actually
         # basenames and hence contain no directory separators.
-        paths.die_unless_basename(self._type)
+        paths.die_unless_basename(self._label)
 
         #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         #This is an utter travesty, but we have no choice but to hack detection
@@ -279,63 +347,134 @@ class AnimCells(PlotCells):
             loop_dirname = self._p.init_results
         else:
             raise BetseExceptionParameters(
-                'Anim saving unsupported during the "{}" loop.'.format(
+                'Animation saving unsupported during the "{}" loop.'.format(
                     plot_type))
-
-        #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
-
-        # Path of the subdirectory to which these files will be saved, creating
-        # this subdirectory and all parents thereof if needed.
-        save_dirname = paths.join(
-            loop_dirname, save_dir_parent_basename, self._type)
-        save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
 
         #FIXME: Pull the image filetype from the current YAML configuration
         #rather than coercing use of ".png".
+        #FIXME: To do so, let's:
+        #
+        #* Create a new "betse.science.plot.anim.config" submodule.
+        #* Create a new "AnimConfig" class in that submodule.
+        #* Define a AnimConfig.make() factory method ala the existing
+        #  betse.science.tissue.picker.TissuePicker.make() factory method. This
+        #  method should deserialize *ALL* settings in the
+        #  "results options/save animations" YAML subsection.
+        #* Refactor all of the following "save_*" locals into public
+        #  "AnimConfig" attributes, which should then be accessed here directly.
+        #* Call that method in the "Parameters" class, capturing the result to a
+        #  new "Parameters.anim" instance variable.
+
+        # True only if saving all frames of this animation to disk as images.
+        is_saving_frames = True
+
+        # True only if saving all frames of this animation to disk as a video.
+        is_saving_video = False
+
+        # Filetype of each frame image to be saved for this animation. Ignored
+        # if `is_saving_frames` is `False`.
         save_frame_filetype = 'png'
 
-        #FIXME: This currently defaults to padding frames with six or seven
-        #zeroes, on average. Let's make this a bit more aesthetic by padding
-        #frames to only as many zeroes are absolutely required by the current
-        #frame count. To do that, in turn, we'll probably need to shift
-        #everything that follows in this method to the _animate() method, where
-        #the actual frame count is finally passed.
+        # Filetype of the single video to be saved for this animation. Ignored
+        # if `is_saving_video` is `False`.
+        save_video_filetype = 'mp4'
 
-        # Template yielding the basenames of frame image files to be saved.
-        # The "{{"- and "}}"-delimited substring will reduce to a "{"- and "}"-
-        # delimited substring after formatting, which subsequent formatting
-        # elsewhere (e.g., in the "FileFrameWriter" class) will expand with the
-        # 0-based index of the current frame number.
-        save_frame_template_basename = '{}_{{:07d}}.{}'.format(
-            self._type, save_frame_filetype)
+        # List of the Matplotlib-specific lowercase alphanumeric names of all
+        # external encoders with which to encode this video (in descending order
+        # of preference), automatically selecting the first encoder on the
+        # current $PATH. Ignored if `is_saving_video` is `False`.
+        save_video_encoder_names = ['ffmpeg', 'avconv', 'mencoder']
 
-        # Template yielding the absolute paths of frame image files to be saved.
-        self._save_frame_template = paths.join(
-            save_dirname, save_frame_template_basename)
+        # If saving animation frames as either images or video, prepare to do so
+        # in a manner common to both.
+        if is_saving_frames or is_saving_video:
+            # Dictionary of all keyword arguments to be passed to the
+            # `Figure.savefig()` method called to save each animation frame for
+            # both images and video.
+            self._writer_savefig_kwargs = {
+                # Plot the background of each animation frame as transparent
+                # rather than pure white.
+                'transparent': True,
+            }
 
-        # Object writing frames from this animation to image files.
-        self._writer_frames = FileFrameWriter()
+            #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
 
-        # Dictionary of keyword arguments to be passed to Figure.savefig().
-        self._writer_savefig_kwargs = {
-            # Plot the background of each animation frame as transparent rather
-            # than pure-white.
-            'transparent': True,
-        }
+            # Path of the subdirectory to which these files will be saved,
+            # creating this subdirectory and all parents thereof if needed.
+            save_dirname = paths.join(
+                loop_dirname, save_dir_parent_basename, self._label)
+            save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
 
-        # If both saving and displaying animation frames, prepare for doing so.
-        # See the _save_frame() method for horrid discussion.
-        if self._is_saving_shown_frames:
-            self._writer_frames.setup(
-                fig=self._figure,
-                outfile=self._save_frame_template,
+        # If saving animation frames as images, prepare to do so.
+        if is_saving_frames:
+            #FIXME: This currently defaults to padding frames with six or seven
+            #zeroes, on average. Let's make this a bit more aesthetic by padding
+            #frames to only as many zeroes are absolutely required by the
+            #current frame count. To do that, in turn, we'll probably need to
+            #shift everything that follows in this method to the _animate()
+            #method, where the actual frame count is finally passed.
 
-                #FIXME: Pass the actual desired "dpi" parameter.
-                dpi=mpl_config.get_rc_param('savefig.dpi'),
-            )
+            # Template expanding to the basename of each image to be saved.
+            # The "FileFrameWriter" class subsequently expands the "{{"- and
+            # "}}"-delimited substring to the 0-based index of the current
+            # frame number.
+            save_frame_template_basename = '{}_{{:07d}}.{}'.format(
+                self._label, save_frame_filetype)
+
+            # Template expanding to the absolute path of each image to be saved.
+            self._writer_frames_template = paths.join(
+                save_dirname, save_frame_template_basename)
+
+            # Object writing animation frames as images.
+            self._writer_frames = FileFrameWriter()
+
+            # If both saving and displaying animation frames, prepare to do so.
+            # See the _save_frame() method for horrid discussion.
+            if self._is_saving_showing:
+                self._writer_frames.setup(
+                    fig=self._figure,
+                    outfile=self._writer_frames_template,
+
+                    #FIXME: Pass the actual desired "dpi" parameter.
+                    dpi=mpl_config.get_rc_param('savefig.dpi'),
+                )
+
+        # If saving animation frames as video, prepare to do so.
+        if is_saving_video:
+            # Basename of the video to be saved.
+            save_video_basename = '{}.{}'.format(
+                self._label, save_video_filetype)
+
+            # Absolute path of the video to be saved.
+            self._writer_video_filename = paths.join(
+                save_dirname, save_video_basename)
+
+            #FIXME: Search the current $PATH for the first such command. This is
+            #useful enough to warrant a new utility function, we should think.
+            for save_video_encoder_name in save_video_encoder_names:
+                pass
+
+            #FIXME: See _animate() for how to obtain this. We'll want to raise a
+            #BETSE-specific exception if this writer is unrecognized.
+            #FIXME: Ah! Intriguing. The following code snippet would appear to
+            #do it:
+            #
+            #from matplotlib.animation import writers
+            #if not writers.is_available(save_video_encoder_name):
+            #    raise SomeBetseException(
+            #        'Matplotlib animation writer "{}" unrecognized.'.format(
+            #            save_video_encoder_name))
+            #WriterVideoClass = writers[save_video_encoder_name]
+
+            # Class writing animation frames as video.
+            WriterVideoClass = None
+
+            # Object writing animation frames as video.
+            self._writer_video = WriterVideoClass()
 
 
-    # This method has been overriden to support subclasses that manually handle
+
+    # This method has been overridden to support subclasses that manually handle
     # animations rather than calling the _animate() method (e.g., the
     # "AnimCellsWhileSolving" subclass).
     def _prep_figure(self, *args, **kwargs) -> None:
@@ -347,42 +486,8 @@ class AnimCells(PlotCells):
             self._plot_current_density()
 
     # ..................{ PROPERTIES                         }..................
-    # The following testers are intended to be overridden by subclasses.
-    #
-    # The corresponding attributes (e.g., "_is_showing" for _is_showing())
-    # *MUST* be defined via dynamic methods rather than static attributes passed
-    # to this class' __init__() method (e.g., as an "is_saving" parameter.) Why?
-    # Because chicken-and-the-egg constraints. Specifically, the latter approach
-    # prevents subclasses from passing a value dependent on the current
-    # "Parameters" object to __init__(), as that object has yet to be classified
-    # as the "_p" attribute yet. (Ugh.)
-
-    #FIXME: Shift this property into the base class unmodified.
-    @property
-    def _is_showing(self) -> bool:
-        '''
-        `True` only if interactively displaying this animation.
-
-        This property is orthogonal to the `_is_saving` property, whose value
-        may concurrently also be `True`.
-        '''
-
-        return not self._p.turn_all_plots_off
-
-
-    #FIXME: Copy rather than shift this property into the base class. The base
-    #class version of this property should be modified to:
-    #    return self._p.autosave
-    #
-    #The version of this property below should remain unmodified.
     @property
     def _is_saving(self) -> bool:
-        '''
-        `True` only if non-interactively saving this animation.
-
-        This boolean is orthogonal to `_is_showing`, which may also be `True`.
-        '''
-
         return self._p.saveAnimations
 
     # ..................{ ANIMATORS                          }..................
@@ -465,14 +570,28 @@ class AnimCells(PlotCells):
             # If displaying animations, do so.
             if self._is_showing:
                 pyplot.show()
-            # Else if saving animation frames, do so.
+            # Else if saving animation frames as...
             elif self._is_saving:
-                #FIXME: Pass the "dpi" parameter as well.
-                self._anim.save(
-                    filename=self._save_frame_template,
-                    writer=self._writer_frames,
-                    savefig_kwargs=self._writer_savefig_kwargs,
-                )
+                # ...images, do so.
+                if self._writer_frames is not None:
+                    #FIXME: Pass the "dpi" parameter as well. Or would adding
+                    #this parameter to the "_writer_savefig_kwargs" dictionary
+                    #suffice to effect this?
+                    self._anim.save(
+                        filename=self._writer_frames_template,
+                        writer=self._writer_frames,
+                        savefig_kwargs=self._writer_savefig_kwargs,
+                    )
+
+                #FIXME: Implement us up.
+                # ...video, do so.
+                if self._writer_video is not None:
+                    pass
+                    # self._anim.save(
+                    #     filename=self._writer_frames_template,
+                    #     writer=self._writer_frames,
+                    #     savefig_kwargs=self._writer_savefig_kwargs,
+                    # )
 
                 # For space efficiency, explicitly close this animation *AFTER*
                 # saving this animation in a non-blocking manner.
@@ -548,7 +667,7 @@ class AnimCells(PlotCells):
         # this method *UNLESS* our _animate() method explicitly calls the
         # FuncAnimation.save() method with the writer name "frame" signifying
         # our "FileFrameWriter" class to do so. (Look. It's complicated, O.K.?)
-        if self._is_saving_shown_frames:
+        if self._is_saving_showing:
             self._writer_frames.grab_frame(**self._writer_savefig_kwargs)
 
 
@@ -702,20 +821,20 @@ class AnimField(AnimCellsAfterSolving):
 
     Attributes
     ----------
-    _magnitude_time_series : SEQUENCE
+    _magnitude_time_series : Sequence
         Electric field magnitudes as a function of time.
     _mesh_plot : matplotlib.image.AxesImage
         Meshplot of the current or prior frame's electric field magnitude.
     _stream_plot : matplotlib.streamplot.StreamplotSet
         Streamplot of the current or prior frame's electric field.
-    _x_time_series : SEQUENCE
+    _x_time_series : Sequence
         Electric field X components as a function of time.
-    _y_time_series : SEQUENCE
+    _y_time_series : Sequence
         Electric field Y components as a function of time.
-    _unit_x_time_series : SEQUENCE
+    _unit_x_time_series : Sequence
         Electric field X unit components as a function of time. The resulting
         electric field vectors are **unit vectors** (i.e., have magnitude 1).
-    _unit_y_time_series : SEQUENCE
+    _unit_y_time_series : Sequence
         Electric field Y unit components as a function of time. The resulting
         electric field vectors are **unit vectors** (i.e., have magnitude 1).
     '''
@@ -723,8 +842,8 @@ class AnimField(AnimCellsAfterSolving):
     @type_check
     def __init__(
         self,
-        x_time_series: SEQUENCE,
-        y_time_series: SEQUENCE,
+        x_time_series: Sequence,
+        y_time_series: Sequence,
         *args, **kwargs
     ) -> None:
         '''
@@ -732,10 +851,10 @@ class AnimField(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        x_time_series : SEQUENCE
+        x_time_series : Sequence
             Sequence (e.g., list, numpy array) of all electric field strength X
             components indexed by simulation time.
-        y_time_series : SEQUENCE
+        y_time_series : Sequence
             Sequence (e.g., list, numpy array) of all electric field strength Y
             components indexed by simulation time.
 

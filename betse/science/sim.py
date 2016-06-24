@@ -2227,9 +2227,8 @@ class Simulator(object):
         if p.plot_while_solving:
             self._anim_cells_while_solving = AnimCellsWhileSolving(
                 sim=self, cells=cells, p=p,
-                type='Vmem',
-                figure_title='Vmem while {}'.format(
-                    figure_type_label),
+                label='Vmem',
+                figure_title='Vmem while {}'.format(figure_type_label),
                 colorbar_title='Voltage [mV]',
                 is_color_autoscaled=p.autoscale_Vmem,
                 color_min=p.Vmem_min_clr,

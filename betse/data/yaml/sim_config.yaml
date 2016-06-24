@@ -873,7 +873,7 @@ results options:
 
         # List of the names of all external video encoder libraries to attempt
         # to use (in order of descending preference).
-        encoders: ['ffmpeg', 'avconv', 'mencoder']
+        encoders: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
 
 
     export data to file: True      # export all stored data for the plot cell

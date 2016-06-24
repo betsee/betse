@@ -38,7 +38,7 @@ from betse.science.plot.anim.abc import (
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
-from betse.util.type.types import type_check, SEQUENCE
+from betse.util.type.types import type_check, Sequence
 from enum import Enum
 from matplotlib import animation
 from matplotlib import pyplot as plt
@@ -168,14 +168,11 @@ class AnimCellsWhileSolving(AnimCells):
         self._cell_data_plot = self._plot_cells_sans_ecm(
             cell_data=cell_data)
 
-
-        cell_data_vm = cell_data
-
         # Perform all superclass plotting preparation immediately *BEFORE*
         # plotting this animation's first frame.
         self._prep_figure(
             color_mapping=self._cell_data_plot,
-            color_series=cell_data_vm,
+            color_series=cell_data,
         )
 
         # Plot this animation's first frame in a non-blocking manner.
@@ -187,7 +184,6 @@ class AnimCellsWhileSolving(AnimCells):
     @property
     def _is_showing(self) -> bool:
         return self._p.plot_while_solving
-
 
     @property
     def _is_saving(self) -> bool:
@@ -642,16 +638,16 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
     Parameters
     ----------
-    _cell_time_series : SEQUENCE
+    _cell_time_series : Sequence
         Morphogen concentration in cells as a function of time.
-    _env_time_series : SEQUENCE
+    _env_time_series : Sequence
         Morphogen concentration in the environment as a function of time.
     '''
 
     def __init__(
         self,
-        cell_time_series: SEQUENCE,
-        env_time_series: SEQUENCE,
+        cell_time_series: Sequence,
+        env_time_series: Sequence,
         *args, **kwargs
     ) -> None:
         '''
@@ -659,9 +655,9 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : SEQUENCE
+        cell_time_series : Sequence
             Morphogen concentration in cells as a function of time.
-        env_time_series : SEQUENCE
+        env_time_series : Sequence
             Morphogen concentration in the environment as a function of time.
 
         See the superclass `__init__()` method for all remaining parameters.
@@ -1169,14 +1165,14 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
 
     Attributes
     ----------
-    _cell_time_series : SEQUENCE
+    _cell_time_series : Sequence
         Arbitrary cell data as a function of time to be underlayed.
     '''
 
     @type_check
     def __init__(
         self,
-        cell_time_series: SEQUENCE,
+        cell_time_series: Sequence,
         *args, **kwargs
     ) -> None:
         '''
@@ -1184,7 +1180,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : SEQUENCE
+        cell_time_series : Sequence
             Arbitrary cell data as a function of time to be underlayed.
 
         See the superclass `__init__()` method for all remaining parameters.

@@ -21,13 +21,28 @@ objects).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import inspect, re
-from collections.abc import Container, Iterable, Mapping, Sequence
+from collections.abc import Container, Iterable, Mapping
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
 
+# For disambiguity with the BETSE-specific (and frankly more useful) "Sequence"
+# tuple of sequence types defined below, import the "Sequence" abstract base
+# class as a unique name.
+from collections.abc import Sequence as SequenceABC
+
 # ....................{ TUPLES                             }....................
-SEQUENCE = None
+Numeric = (int, float)
+'''
+Tuple of all **numeric classes** (i.e., classes whose instances are single
+scalar numbers excluding complex numbers, which typically require
+special-purpose handling).
+
+This tuple contains classes matching both integer and real number types.
+'''
+
+
+Sequence = None
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
 subclassing) the canonical `collections.abc.Sequence` API.
@@ -90,7 +105,7 @@ This includes:
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
-    Initialize module constants (e.g., `SEQUENCE`).
+    Initialize module constants (e.g., `Sequence`).
 
     These constants are typically:
 
@@ -104,11 +119,11 @@ def init() -> None:
     from numpy import ndarray
 
     # Declare these constants to be globals, permitting modification below.
-    global SEQUENCE
+    global Sequence
 
     # Tuple of all container base classes conforming to (but *NOT* necessarily
     # subclassing) the canonical "collections.abc.Sequence" API.
-    SEQUENCE = (Sequence, ndarray)
+    Sequence = (SequenceABC, ndarray)
 
 # ....................{ DECORATORS                         }....................
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
@@ -503,7 +518,7 @@ def is_sequence(obj: object) -> bool:
     `collections.Sequence`, due to _not_ supporting integer index-based lookup;
     `OrderedDict` implements both, due to supporting such lookup.
     '''
-    return isinstance(obj, Sequence)
+    return isinstance(obj, SequenceABC)
 
 
 def is_sequence_nonstr(obj: object) -> bool:

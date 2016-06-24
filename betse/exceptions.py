@@ -10,6 +10,8 @@ BETSE-specific exception hierarchy.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 
+#FIXME; Poor nomenclature. All exception classnames should end in "Exception".
+
 # ....................{ EXCEPTIONS                         }....................
 #FIXME: Define an __init__() method asserting that the passed exception message
 #is non-None, which Python permits by default but which is functionally useless.

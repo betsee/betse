@@ -1456,41 +1456,32 @@ class Molecule(object):
             plt.show(block=False)
 
     def anim_cells(self, sim, cells, p):
-
         """
         Create 2D animation of cell concentration.
-
         """
-
-        type_name = self.name + '_cells'
-        fig_tit = 'Cytosolic ' + self.name
 
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=[1e3*arr for arr in self.c_mems_time],
-            type=type_name,
-            figure_title=fig_tit,
+            label=self.name + '_cells',
+            figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [umol/L]',
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
 
     def anim_env(self, sim, cells, p):
-
         """
         Create 2D animation of env concentration.
-
         """
 
-        type_name = self.name + '_env'
-        fig_tit = 'Environmental ' + self.name
-
-        env_time_series = [env.reshape(cells.X.shape)*1e3 for env in self.c_env_time]
+        env_time_series = [
+            env.reshape(cells.X.shape)*1e3 for env in self.c_env_time]
         AnimEnvTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=env_time_series,
-            type=type_name,
-            figure_title=fig_tit,
+            label=self.name + '_env',
+            figure_title='Environmental ' + self.name,
             colorbar_title='Concentration [umol/L]',
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,

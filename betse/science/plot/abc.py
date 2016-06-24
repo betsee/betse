@@ -11,17 +11,20 @@ Abstract base classes of all Matplotlib-based plotting classes.
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
-import weakref
 import numpy as np
+import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseExceptionMethod
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.type import types, objects
+from betse.util.type.types import type_check, Numeric  #, Sequence
 from matplotlib import pyplot
 from matplotlib.collections import PolyCollection
+from matplotlib.colors import Colormap
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ BASE                               }....................
+##FIXME: Rename to "CellsPlot".
 class PlotCells(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting the cell cluster.
@@ -42,10 +45,10 @@ class PlotCells(object, metaclass=ABCMeta):
     _axes_bounds : list
         Spacial extent of the current 2D environment as a 4-element list
         conisting of (in order):
-        1. Minimum value of the figure's X axis.
-        2. Maximum value of the figure's X axis.
-        3. Minimum value of the figure's Y axis.
-        4. Maximum value of the figure's Y axis.
+        1. The minimum value of the figure's X axis.
+        2. The maximum value of the figure's X axis.
+        3. The minimum value of the figure's Y axis.
+        4. The maximum value of the figure's Y axis.
     _axes_title : str
         Text displayed above the figure axes. If a non-`None` value for the
         `axes_title` parameter is passed to the `__init__()` method, this is
@@ -82,32 +85,49 @@ class PlotCells(object, metaclass=ABCMeta):
         to be the corresponding minimum and maximum values for the current
         frame _or_ `False` if statically setting the minimum and maximum
         colorbar values to predetermined constants.
-    _type : str
+    _label : str
         Basename of the subdirectory in the phase-specific results directory
         to which all animation files will be saved _and_ the basename prefix of
         these files.
     '''
 
     # ..................{ LIFECYCLE                          }..................
+    @type_check
     def __init__(
         self,
 
+        #FIXME: Ideally, we would type check the first three parameters like so:
+        #
+        #    sim: Simulator,
+        #    cells: Cells,
+        #    p: Parameters,
+        #
+        #Sadly, doing so introduces circular import issues. To circumvent this,
+        #@type_check should be improved to support annotations as strings. When
+        #an annotation is a string, this decorator should attempt to dynamically
+        #import this string as the fully-qualified name of a class *AND* then
+        #use this class to type check this parameter: e.g.,
+        #
+        #    sim: 'betse.science.sim.Simulator',
+        #    cells: 'betse.science.cells.Cells',
+        #    p: 'betse.science.parameters.Parameters',
+
         # Mandatory parameters.
-        sim: 'Simulator',
-        cells: 'Cells',
-        p: 'Parameters',
-        type: str,
+        sim,
+        cells,
+        p,
+        label: str,
         figure_title: str,
         colorbar_title: str,
         is_color_autoscaled: bool,
-        color_min: float,
-        color_max: float,
+        color_min: Numeric,
+        color_max: Numeric,
 
         # Optional parameters.
         axes_title: str = None,
         axes_x_label: str = 'Spatial Distance [um]',
         axes_y_label: str = 'Spatial Distance [um]',
-        colormap: 'Colormap' = None,
+        colormap: Colormap = None,
         # scaling_series: np.nadarray = None,
     ) -> None:
         '''
@@ -121,7 +141,7 @@ class PlotCells(object, metaclass=ABCMeta):
             Current cell cluster.
         p : Parameters
             Current simulation configuration.
-        type : str
+        label : str
             Basename of the subdirectory in the phase-specific results directory
             to which all animation files will be saved _and_ the basename prefix
             of these files.
@@ -143,19 +163,15 @@ class PlotCells(object, metaclass=ABCMeta):
             values to be the corresponding minimum and maximum values for the
             current frame _or_ `False` if statically setting the minimum and
             maximum colorbar values to predetermined constants.
-        color_min : float
+        color_min : Numeric
             Minimum colorbar value to be used if `clrAutoscale` is `False`.
-        color_max : float
+        color_max : Numeric
             Maximum colorbar value to be used if `clrAutoscale` is `False`.
         colormap : matplotlib.cm.Colormap
             Matplotlib colormap to be used by default for all animation artists
             (e.g., colorbar, images) _or_ `None`, in which case the default
             colormap will be used.
         '''
-        # Validate core parameters.
-        assert types.is_simulator(sim), types.assert_not_simulator(sim)
-        assert types.is_cells(cells), types.assert_not_parameters(cells)
-        assert types.is_parameters(p), types.assert_not_parameters(p)
 
         # Classify core parameters with weak rather than strong (the default)
         # references, thus avoiding circular references and all resulting
@@ -171,27 +187,8 @@ class PlotCells(object, metaclass=ABCMeta):
         if colormap is None:
             colormap = p.default_cm
 
-        # Validate all remaining parameters *AFTER* defaulting parameters. Note
-        # that the "axes_title" parameter is subsequently validated by the
-        # _animate() method.
-        assert types.is_str_nonempty(type), (
-            types.assert_not_str_nonempty(type, 'Animation type'))
-        assert types.is_str_nonempty(figure_title), (
-            types.assert_not_str_nonempty(figure_title, 'Figure title'))
-        assert types.is_str_nonempty(colorbar_title), (
-            types.assert_not_str_nonempty(colorbar_title, 'Colorbar title'))
-        assert types.is_str_nonempty(axes_x_label), (
-            types.assert_not_str_nonempty(axes_x_label, 'X axis label'))
-        assert types.is_str_nonempty(axes_y_label), (
-            types.assert_not_str_nonempty(axes_y_label, 'Y axis label'))
-        assert types.is_bool(is_color_autoscaled), types.assert_not_bool(is_color_autoscaled)
-        assert types.is_numeric(color_min), types.assert_not_numeric(color_min)
-        assert types.is_numeric(color_max), types.assert_not_numeric(color_max)
-        assert types.is_matplotlib_colormap(colormap), (
-            types.assert_not_matplotlib_colormap(colormap))
-
         # Classify *AFTER* validating parameters.
-        self._type = type
+        self._label = label
         self._figure_title = figure_title
         self._axes_title = axes_title
         self._axes_x_label = axes_x_label
@@ -422,6 +419,40 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # Explicitly garbage collect.
         # gc.collect()
+
+    # ..................{ PROPERTIES                         }..................
+    # The following testers are intended to be overridden by subclasses.
+    #
+    # The corresponding attributes (e.g., "_is_showing" for _is_showing())
+    # *MUST* be defined as dynamic methods rather than static attributes passed
+    # to this class' __init__() method (e.g., as an "is_saving" parameter.) Why?
+    # Because chicken-and-the-egg constraints. Specifically, the latter approach
+    # prevents subclasses from passing a value dependent on the current
+    # "Parameters" object to __init__(), as that object has yet to be classified
+    # as the "_p" attribute yet. (Ugh.)
+
+    @property
+    def _is_showing(self) -> bool:
+        '''
+        `True` only if interactively displaying this plot or animation.
+
+        This property is orthogonal to the `_is_saving` property, whose value
+        may concurrently also be `True`.
+        '''
+
+        return not self._p.turn_all_plots_off
+
+
+    @property
+    def _is_saving(self) -> bool:
+        '''
+        `True` only if non-interactively saving this plot or animation.
+
+        This property is orthogonal to the `_is_showing` property, whose value
+        may concurrently also be `True`.
+        '''
+
+        return self._p.autosave
 
     # ..................{ COLORS                             }..................
     def _rescale_colors(self):
