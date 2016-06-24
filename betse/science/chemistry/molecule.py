@@ -25,6 +25,8 @@ from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
+from matplotlib import colors
+from matplotlib import cm
 
 
 # FIXME see if we need rates of all reactions stored in time vectors...?
@@ -52,6 +54,19 @@ class MasterOfMolecules(object):
         self.read_substances(sim, cells, config_substances, p)
 
         self.ave_cell_vol = cells.cell_vol.mean()  # average cell volume
+
+        self.reaction_names = []
+        self.transporter_names = []
+
+        self.plot_cmap = 'viridis'
+
+        # # set up the color vector (for plotting complex line graphs)
+        # maxlen = 2*len(self.transporter_names)
+        #
+        # lineplots_cm = plt.get_cmap('rainbow')
+        # cNorm = colors.Normalize(vmin=0, vmax=10)
+        # self.scalarMap = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
+
 
     def read_substances(self, sim, cells, config_substances, p):
         """
@@ -229,8 +244,8 @@ class MasterOfMolecules(object):
 
           """
 
-        # Initialize a list that will keep track of reaction names in the simulation
-        self.reaction_names = []
+        # # Initialize a list that will keep track of reaction names in the simulation
+        # self.reaction_names = []
 
         # Initialize a list that keeps the index of the reaction:
         self.reaction_index = []
@@ -298,8 +313,8 @@ class MasterOfMolecules(object):
 
             """
 
-        # Initialize a list that will keep track of reaction names in the simulation
-        self.transporter_names = []
+        # # Initialize a list that will keep track of reaction names in the simulation
+        # self.transporter_names = []
 
         # Initialize a list that keeps the index of the reaction:
         self.transporter_index = []
@@ -581,7 +596,7 @@ class MasterOfMolecules(object):
 
     def clear_cache(self):
         """
-        Initializes or clears the time-storage vectors at the begining of init and sim runs.
+        Initializes or clears the time-storage vectors at the beginning of init and sim runs.
 
         """
 
@@ -595,6 +610,18 @@ class MasterOfMolecules(object):
 
             if self.mit_enabled:
                 obj.c_mit_time = []
+
+        for name in self.transporter_names:
+            obj = getattr(self, name)
+
+            obj.rate_time = []
+
+        for name in self.reaction_names:
+            obj = getattr(self, name)
+
+            obj.rate_time = []
+
+
 
         if self.mit_enabled:
             self.vmit_time = []
@@ -619,6 +646,18 @@ class MasterOfMolecules(object):
 
             if self.mit_enabled:
                 obj.c_mit_time.append(obj.c_mit)
+
+
+        # save rates of transporters and reactions
+        for name in self.transporter_names:
+            obj = getattr(self, name)
+
+            obj.rate_time.append(obj.rate)
+
+        for name in self.reaction_names:
+            obj = getattr(self, name)
+
+            obj.rate_time.append(obj.rate)
 
 
         if self.mit_enabled:
@@ -662,11 +701,12 @@ class MasterOfMolecules(object):
                 logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
 
 
-        #     logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
-        #
-        # if p.ions_dict['H'] != 1:
-        #     logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
-        #     logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
+        if p.ions_dict['H'] == 1:
+            logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
+            logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
+
+            if self.mit_enabled:
+                logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
@@ -711,26 +751,71 @@ class MasterOfMolecules(object):
 
                 obj.plot_env(sim, cells, p, self.imagePath)
 
-        #------------------------------------------------------------------------------------------
+        #---------------cell everything plot---------------------------------------------
         data_all1D = []
         fig_all1D = plt.figure()
         ax_all1D = plt.subplot(111)
 
-        for name in self.molecule_names:
+
+        # set up the color vector (for plotting complex line graphs)
+        maxlen = len(self.molecule_names)
+
+        lineplots_cm = plt.get_cmap(self.plot_cmap)
+        cNorm = colors.Normalize(vmin=0, vmax=maxlen)
+        c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
+
+
+        for i, name in enumerate(self.molecule_names):
             obj = getattr(self, name)
 
             c_cells = [arr[p.plot_cell] for arr in obj.c_cells_time]
 
-            ax_all1D.plot(sim.time, c_cells, linewidth = 2.0, label=name)
+            ax_all1D.plot(sim.time, c_cells, color = c_names.to_rgba(i), linewidth = 2.0, label=name)
 
         legend = ax_all1D.legend(loc = 'upper right', shadow = False, frameon = False)
 
         ax_all1D.set_xlabel('Time [s]')
         ax_all1D.set_ylabel('Concentration [mmol/L]')
-        ax_all1D.set_title('Concentration of all substances in cell ' + str(p.plot_cell))
+        ax_all1D.set_title('Concentration of all substances in cell '  + str(p.plot_cell))
 
         if p.autosave is True:
-            savename = self.imagePath + 'AllCellConcentrations' + '.png'
+            savename = self.imagePath + 'AllCellConcentrations_' + str(p.plot_cell) + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        #-------------environment everything plot-------------------------------------------------
+        data_all1D = []
+        fig_all1D = plt.figure()
+        ax_all1D = plt.subplot(111)
+
+        # get a random selection of our chosen colors in the length of our data set:
+        # c_names = np.random.choice(self.c_string, len(self.molecule_names))
+
+        for i, name in enumerate(self.molecule_names):
+            obj = getattr(self, name)
+
+            if p.sim_ECM is True:
+                c_env = [arr[cells.map_cell2ecm][p.plot_cell] for arr in obj.c_env_time]
+
+            else:
+
+                mem_i = cells.cell_to_mems[p.plot_cell][0]
+
+                c_env = [arr[mem_i] for arr in obj.c_env_time]
+
+
+            ax_all1D.plot(sim.time, c_env, color = c_names.to_rgba(i), linewidth = 2.0, label=name)
+
+        legend = ax_all1D.legend(loc = 'upper right', shadow = False, frameon = False)
+
+        ax_all1D.set_xlabel('Time [s]')
+        ax_all1D.set_ylabel('Concentration [mmol/L]')
+        ax_all1D.set_title('Concentration of all substances in environment of cell ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'AllEnvConcentrations_' + str(p.plot_cell) + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
@@ -752,7 +837,7 @@ class MasterOfMolecules(object):
             axVmit.set_title('Mitochondrial transmembrane voltage in cell: ' + str(p.plot_cell))
 
             if p.autosave is True:
-                savename = self.imagePath + 'Vmit_cell' + '.png'
+                savename = self.imagePath + 'Vmit_cell_' + str(p.plot_cell) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
@@ -770,6 +855,35 @@ class MasterOfMolecules(object):
 
             if p.autosave is True:
                 savename = self.imagePath + '2DVmit.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            # plot of all substances in the mitochondria:----------------------------------------------
+
+            data_all1D = []
+            fig_all1D = plt.figure()
+            ax_all1D = plt.subplot(111)
+
+            # get a random selection of our chosen colors in the length of our data set:
+            # c_names = np.random.choice(self.c_string, len(self.molecule_names))
+
+            for i, name in enumerate(self.molecule_names):
+                obj = getattr(self, name)
+
+                c_mit = [arr[p.plot_cell] for arr in obj.c_mit_time]
+
+                ax_all1D.plot(sim.time, c_mit, color = c_names.to_rgba(i), linewidth=2.0, label=name)
+
+            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+            ax_all1D.set_xlabel('Time [s]')
+            ax_all1D.set_ylabel('Concentration [mmol/L]')
+            ax_all1D.set_title('Substances in mitochondria of cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'AllMitConcentrations_' + str(p.plot_cell) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:
@@ -804,11 +918,117 @@ class MasterOfMolecules(object):
         axpH.set_title('pH in/near cell : ' + str(p.plot_cell))
 
         if p.autosave is True:
-            savename = self.imagePath + 'pH' + '.png'
+            savename = self.imagePath + 'pH_' + str(p.plot_cell) + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
+        #-------Reaction rate plot and data export----------------------------------------
+
+        if len(self.reaction_names):
+
+            react_dataM = []
+            react_header = 'Time [s], '
+
+            react_dataM.append(sim.time)
+
+            data_all1D = []
+            fig_all1D = plt.figure()
+            ax_all1D = plt.subplot(111)
+
+            # set up the color vector (for plotting complex line graphs)
+            maxlen = len(self.reaction_names)
+
+            lineplots_cm = plt.get_cmap(self.plot_cmap)
+            cNorm = colors.Normalize(vmin=0, vmax=maxlen)
+            c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
+
+            for i, name in enumerate(self.reaction_names):
+                obj = getattr(self, name)
+
+                r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+
+                ax_all1D.plot(sim.time, r_rate, color = c_names.to_rgba(i), linewidth=2.0, label=name)
+
+                react_dataM.append(r_rate)
+                react_header = react_header + name + ' [mM/s]'+ ','
+
+            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+            ax_all1D.set_xlabel('Time [s]')
+            ax_all1D.set_ylabel('Rate [mM/s]')
+            ax_all1D.set_title('Reaction rates in cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'AllReactionRates_' + str(p.plot_cell) + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            react_dataM = np.asarray(react_dataM)
+
+            saveName = 'AllReactionRatesData_' + str(p.plot_cell) + '.csv'
+
+            saveDataReact = os.path.join(self.resultsPath, saveName)
+
+            np.savetxt(saveDataReact, react_dataM.T, delimiter=',', header=react_header)
+
+        #---Transporter rate plot and data export ------------------------------------------------------
+
+        if len(self.transporter_names):
+
+            transp_dataM = []
+            transp_header = 'Time [s], '
+
+            transp_dataM.append(sim.time)
+
+            # set up the color vector (for plotting complex line graphs)
+            maxlen = len(self.transporter_names)
+
+            lineplots_cm = plt.get_cmap(self.plot_cmap)
+            cNorm = colors.Normalize(vmin=0, vmax=maxlen)
+            c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
+
+            for i, name in enumerate(self.transporter_names):
+                obj = getattr(self, name)
+
+                # check the data structure size for this transporter:
+                if len(obj.rate_time[0]) == sim.cdl:
+
+                    t_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+
+                elif len(obj.rate_time[0]) == sim.mdl:
+                    mem_i = cells.cell_to_mems[p.plot_cell][0]
+                    t_rate = [arr[mem_i] for arr in obj.rate_time]
+
+                else:
+                    t_rate = np.zeros(len(sim.time))
+
+                ax_all1D.plot(sim.time, t_rate, color = c_names.to_rgba(i), linewidth=2.0, label=name)
+
+                transp_dataM.append(t_rate)
+                transp_header = transp_header + name + ' [mM/s]' + ','
+
+            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+            ax_all1D.set_xlabel('Time [s]')
+            ax_all1D.set_ylabel('Rate [mM/s]')
+            ax_all1D.set_title('Transporter rates in cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'AllTransporterRates_' + str(p.plot_cell) + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            saveName = 'AllTransporterRatesData_' + str(p.plot_cell) + '.csv'
+
+            saveDataTransp = os.path.join(self.resultsPath, saveName)
+
+            np.savetxt(saveDataTransp, transp_dataM.T, delimiter=',', header=transp_header)
 
     def anim(self, sim, cells, p, message = 'for auxiliary molecules...'):
         """
