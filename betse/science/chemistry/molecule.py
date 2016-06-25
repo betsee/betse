@@ -2276,7 +2276,9 @@ class Transporter(object):
         # modification factor for the equilibrium constant due to transfer of charged item across
         #  transmembrane voltage:
 
-        Kmod = np.exp(-vmem_term/(p.R*sim.T))
+        # Kmod = np.exp(-vmem_term/(p.R*sim.T))
+
+        deltaGi = -vmem_term/(p.R * sim.T)
 
         # get up-to-date concentration data for the reaction:
 
@@ -2304,7 +2306,25 @@ class Transporter(object):
             self.product_transfer_tag[ind_p] = prod_transfer_tag[j]
 
         # define the reaction equilibrium coefficient:
-        Keqm = np.exp(-self.delta_Go/(p.R*sim.T))*Kmod
+        # Ko = np.exp(-self.delta_Go/(p.R*sim.T))
+        Keqm = np.exp(-self.delta_Go/(p.R*sim.T) + deltaGi)
+
+        # if self.name == 'ETC':
+        #
+        #     print(Keqm.min(), Keqm.max(), Keqm.mean())
+            # print(deltaGi.mean())
+        #
+        #     deltaGo = -self.delta_Go / (p.R * sim.T)
+        #     deltaGi = - vmem_term / (p.R * sim.T)
+        #     deltaGG = -self.delta_Go / (p.R * sim.T) - vmem_term / (p.R * sim.T)
+        #
+        #     print(deltaGo)
+
+            # print(deltaGi.min(), deltaGi.max(), deltaGi.mean())
+
+            # print(Keqm.min(), Keqm.max(), Keqm.mean())
+            # print(Ko.min(), Ko.max(), Ko.mean())
+            # print(Kmod.min(), Kmod.max(), Kmod.mean())
 
         # calculate the MM rate coefficient for the backwards reaction direction and Q:
         backwards_term = []
