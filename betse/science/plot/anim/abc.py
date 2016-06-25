@@ -81,6 +81,26 @@ Abstract base classes of all Matplotlib-based animation classes.
 #
 #We probably want to unconditionally squelch all loggers retrieved for
 #submodules of the root "PIL" package. Let's see to it, please!
+#FIXME: O.K., explicitly squelching logging for a single module at a time is
+#trivial; see:
+#
+#https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
+#
+#The issue with this approach is that it requires doing so manually for each
+#offending module -- which is highly undesirable. The only reasonable
+#alternative appears to be monkey-patching logging.getLogger() like so:
+#
+#     import logging
+#     getLogger_old = logging.getLogger
+#     def getLogger_new(logger_name: str, *args, **kwargs) -> Logger:
+#         logger = getLogger_old(logger_name, *args, **kwargs)
+#         if not logger_name.startswith('betse'):
+#             logger.setLevel(logging.WARNING)
+#         return logger
+#
+#Note that this monkey-patching is *ONLY* necessary when the current global
+#logging level is DEBUG (e.g., due to the "--verbose" CLI option being passed).
+#Fairly sweet, no? Should work as is, but let's cobble it up.
 
 #FIXME: We should probably animate non-blockingly (e.g., by passing
 #"block=False" to the plt.show() command. To do so, however, we'll probably have
@@ -471,7 +491,6 @@ class AnimCells(PlotCells):
 
             # Object writing animation frames as video.
             self._writer_video = WriterVideoClass()
-
 
 
     # This method has been overridden to support subclasses that manually handle

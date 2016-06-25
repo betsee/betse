@@ -25,13 +25,50 @@ from collections.abc import Container, Iterable, Mapping
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
+from types import (
+    BuiltinFunctionType,
+    BuiltinMethodType,
+    FunctionType,
+    LambdaType,
+    MethodType,
+)
 
 # For disambiguity with the BETSE-specific (and frankly more useful) "Sequence"
 # tuple of sequence types defined below, import the "Sequence" abstract base
 # class as a unique name.
 from collections.abc import Sequence as SequenceABC
 
+# ....................{ TYPES                              }....................
+NoneType = type(None)
+'''
+Type (i.e., class object) of the singleton `None` object.
+
+Curiously, although the type of the `None` object is a class object whose
+`__name__` attribute is `NoneType`, there exists no globally accessible class
+by that name. To circumvents this obvious oversight, this global globally
+exposes this class.
+
+This class is principally useful for annotating both:
+
+* Callable parameters accepting `None` as a valid value.
+* Callables returning `None` as a valid value.
+'''
+
 # ....................{ TUPLES                             }....................
+Callable = (
+    BuiltinFunctionType,
+    BuiltinMethodType,
+    FunctionType,
+    LambdaType,
+    MethodType,
+)
+'''
+Tuple of all **callable classes** (i.e., classes whose instances are callable
+objects, including both built-in and user-defined functions, lambdas, and
+methods).
+'''
+
+
 Numeric = (int, float)
 '''
 Tuple of all **numeric classes** (i.e., classes whose instances are single
@@ -42,7 +79,13 @@ This tuple contains classes matching both integer and real number types.
 '''
 
 
-Sequence = None
+# Default this type to the "collections.abc.Sequence" type, permitting
+# early-time functionality elsewhere in the codebase to type check functions
+# accepting or returning pure-Python sequences. This module's init() function,
+# presumably called early in program startup, subsequently replaces this simple
+# type with a tuple consisting of this simple type as well as other third-party
+# types conforming to the same API (e.g., Numpy arrays and matrices).
+Sequence = SequenceABC
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
 subclassing) the canonical `collections.abc.Sequence` API.

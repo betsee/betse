@@ -103,7 +103,7 @@ class SimConfigWrapper(object):
 
         Raises
         ----------
-        BetseExceptionFile
+        BetseFileException
             If this file already exists.
         '''
 
@@ -184,7 +184,7 @@ class SimConfigWrapper(object):
 
         Raises
         ----------
-        BetseExceptionFile
+        BetseFileException
             If this file already exists.
         '''
 

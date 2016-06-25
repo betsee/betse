@@ -17,6 +17,8 @@ poor form. Call these functions _only_ where necessary.
 
 # ....................{ IMPORTS                            }....................
 import platform, sys
+
+import betse.util.command.runners
 from betse import metadata
 from betse.exceptions import BetseExceptionInterpreter
 from betse.util.io.log import logs
@@ -231,4 +233,4 @@ def run(command_args: list, **popen_kwargs) -> None:
     command_words = get_command_line_prefix() + command_args
 
     # Rerun this interpreter.
-    return commands.run(command_words, **popen_kwargs)
+    return betse.util.command.runners.run(command_words, **popen_kwargs)

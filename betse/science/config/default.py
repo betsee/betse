@@ -53,7 +53,7 @@ def write(config_filename: str) -> None:
 
     Raises
     ----------
-    BetseExceptionFile
+    BetseFileException
         If this file already exists.
     '''
 

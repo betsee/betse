@@ -99,7 +99,7 @@ def write(config_filename: str, config: dict) -> None:
 
     Raises
     ----------
-    BetseExceptionFile
+    BetseFileException
         If this file already exists.
     '''
     assert types.is_str_nonempty(config_filename), (
@@ -137,7 +137,7 @@ def _write_check(config_filename: str) -> None:
 
     Raises
     ----------
-    BetseExceptionFile
+    BetseFileException
         If this file already exists.
     '''
     assert types.is_str_nonempty(config_filename), (

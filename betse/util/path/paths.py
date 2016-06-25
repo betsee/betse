@@ -13,7 +13,7 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 
 # ....................{ IMPORTS                            }....................
 import errno, os, shutil
-from betse.exceptions import BetseExceptionPath
+from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
 from betse.util.type import types
 from os import path
@@ -26,7 +26,7 @@ def die_if_path(*pathnames) -> None:
 
     for pathname in pathnames:
         if is_path(pathname):
-            raise BetseExceptionPath(
+            raise BetsePathException(
                 'Path "{}" already exists.'.format(pathname))
 
 
@@ -37,7 +37,7 @@ def die_unless_path(*pathnames) -> None:
 
     for pathname in pathnames:
         if not is_path(pathname):
-            raise BetseExceptionPath(
+            raise BetsePathException(
                 'Path "{}" not found or unreadable.'.format(pathname))
 
 # ....................{ EXCEPTIONS ~ basename              }....................
@@ -51,7 +51,7 @@ def die_if_basename(pathname: str) -> None:
         For further details.
     '''
     if is_basename(pathname):
-        raise BetseExceptionPath(
+        raise BetsePathException(
             'Path "{}" contains no directory separators.'.format(pathname))
 
 
@@ -66,7 +66,7 @@ def die_unless_basename(pathname: str) -> None:
         For further details.
     '''
     if not is_basename(pathname):
-        raise BetseExceptionPath(
+        raise BetsePathException(
             'Path "{}" contains one or more directory separators.'.format(
                 pathname))
 
@@ -318,7 +318,7 @@ def get_type_label(pathname: str) -> str:
     # shambling thing that should not be. Panic, for space-time continuity
     # itself is now in question.
     else:
-        return BetseExceptionPath(
+        return BetsePathException(
             'Path "{}" type unrecognized.'.format(pathname))
 
     # This should never happen. That means it will in several seconds.

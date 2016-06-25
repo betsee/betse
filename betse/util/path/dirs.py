@@ -13,7 +13,7 @@ builtin.
 # ....................{ IMPORTS                            }....................
 import os
 import shutil
-from betse.exceptions import BetseExceptionDir
+from betse.exceptions import BetseDirException
 from betse.util.io.log import logs
 from betse.util.type import types
 from contextlib import contextmanager
@@ -26,7 +26,7 @@ def die_unless_dir(*dirnames) -> None:
     '''
     for dirname in dirnames:
         if not is_dir(dirname):
-            raise BetseExceptionDir(
+            raise BetseDirException(
                 'Directory "{}" not found or unreadable.'.format(dirname))
 
 
@@ -46,7 +46,7 @@ def die_if_dir(*dirnames) -> None:
 
     for dirname in dirnames:
         if is_dir(dirname):
-            raise BetseExceptionDir(
+            raise BetseDirException(
                 'Directory "{}" already exists.'.format(dirname))
 
 # ....................{ TESTERS                            }....................

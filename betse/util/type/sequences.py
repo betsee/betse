@@ -15,11 +15,12 @@ betse.util.type.types.is_sequence
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import types
-from collections.abc import Container, Mapping, Sequence
+from betse.util.type.types import type_check, Callable, Sequence
+from collections.abc import Container, Mapping
 
 # ....................{ GETTERS                            }....................
 def get_items_satisfying(
-    sequence: Sequence, item_satisfier: callable) -> Sequence:
+    sequence: Sequence, item_satisfier: Callable) -> Sequence:
     '''
     New non-string sequence containing only the proper subset of elements from
     the passed non-string sequence satisfying the passed callable.
@@ -29,10 +30,10 @@ def get_items_satisfying(
 
     Parameters
     ----------
-    sequence : collections.Sequence
+    sequence : Sequence
         Original sequence to return a proper subset of. For safety, this
         function does _not_ modify this sequence.
-    item_satisfier : callable
+    item_satisfier : Callable
         Callable (e.g., function, lambda) accepting a single element of this
         sequence and returning only:
         * `True` if this element satisfies the desired requirements.
@@ -44,10 +45,6 @@ def get_items_satisfying(
         Proper subset of the passed sequence. For efficiency, this new sequence
         is only a shallow rather than deep copy of the passed sequence.
     '''
-    assert types.is_sequence_nonstr(sequence), (
-        types.assert_not_sequence_nonstr(sequence))
-    assert types.is_callable(item_satisfier), (
-        types.assert_not_callable(item_satisfier))
 
     # Type of both the passed sequence and the sequence to be returned.
     sequence_type = type(sequence)
@@ -71,7 +68,7 @@ def get_items_prefixed_by(sequence: Sequence, item_prefix: str) -> Sequence:
 
     Parameters
     ----------
-    sequence : collections.Sequence
+    sequence : Sequence
         Original sequence to return a proper subset of. For safety, this
         function does _not_ modify this sequence.
     item_prefix : str
@@ -79,7 +76,7 @@ def get_items_prefixed_by(sequence: Sequence, item_prefix: str) -> Sequence:
 
     Returns
     ----------
-    collections.Sequence
+    Sequence
         Proper subset of the passed sequence. For efficiency, this new sequence
         is only a shallow rather than deep copy of the passed sequence.
     '''
@@ -102,7 +99,7 @@ def omit_item(sequence: Sequence, item: object) -> Sequence:
 
     Parameters
     ----------
-    sequence : collections.Sequence
+    sequence : Sequence
         Original sequence to return a proper subset of. For safety, this
         function does _not_ modify this sequence.
     item : object
@@ -110,7 +107,7 @@ def omit_item(sequence: Sequence, item: object) -> Sequence:
 
     Returns
     ----------
-    collections.Sequence
+    Sequence
         Proper subset of the passed sequence. For efficiency, this new sequence
         is only a shallow rather than deep copy of the passed sequence.
     '''
@@ -118,6 +115,7 @@ def omit_item(sequence: Sequence, item: object) -> Sequence:
     return omit_items(sequence=sequence, items=(item,))
 
 
+@type_check
 def omit_items(sequence: Sequence, items: Container) -> Sequence:
     '''
     New non-string sequence containing all elements of the passed non-string
@@ -125,21 +123,19 @@ def omit_items(sequence: Sequence, items: Container) -> Sequence:
 
     Parameters
     ----------
-    sequence : collections.Sequence
+    sequence : Sequence
         Original sequence to return a proper subset of. For safety, this
         function does _not_ modify this sequence.
-    items : collections.Container
+    items : Container
         Container containing all elements to be omitted from the returned
         sequence.
 
     Returns
     ----------
-    collections.Sequence
+    Sequence
         Proper subset of the passed sequence. For efficiency, this new sequence
         is only a shallow rather than deep copy of the passed sequence.
     '''
-    assert types.is_container_nonstr(items), (
-        types.assert_not_container_nonstr(items))
 
     # Return a generator-based shallow copy of this sequence.
     return get_items_satisfying(
@@ -164,6 +160,7 @@ def remove_item(sequence: Sequence, item: object) -> None:
     remove_items(sequence=sequence, items=(item,))
 
 
+@type_check
 def remove_items(sequence: Sequence, items: Container) -> None:
     '''
     Remove all elements contained in the passed non-string container from
@@ -171,13 +168,11 @@ def remove_items(sequence: Sequence, items: Container) -> None:
 
     Parameters
     ----------
-    sequence : collections.Sequence
+    sequence : Sequence
         Sequence to remove elements from.
-    items : collections.Container
+    items : Container
         Container containing all elements to be remove from this sequence.
     '''
-    assert types.is_sequence_nonstr(sequence), (
-        types.assert_not_sequence_nonstr(sequence))
 
     # Slice assignment implicitly modifies the original sequence, permitting
     # efficient reuse of existing assignment-based functionality.
@@ -229,6 +224,7 @@ def replace_items(sequence: Sequence, item_replacements: Mapping) -> Sequence:
     )
 
 # ....................{ SORTERS                            }....................
+@type_check
 def sort_lexicographic_ascending(sequence: Sequence) -> Sequence:
     '''
     Get a new non-string sequence sorted from the passed non-string sequence in
@@ -237,18 +233,16 @@ def sort_lexicographic_ascending(sequence: Sequence) -> Sequence:
 
     Parameters
     ----------
-    sequence : collections.Sequence
+    sequence : Sequence
         Unsorted sequence to be returned sorted. For generality, this sequence
-        is _not_ modified.
+        is _not_ modified by this function.
 
     Returns
     ----------
-    collections.Sequence
+    Sequence
         Sequence sorted from the passed sequence. For efficiency, this sequence
         is only a shallow rather than deep copy of the passed sequence.
     '''
-    assert types.is_sequence_nonstr(sequence), (
-        types.assert_not_sequence_nonstr(sequence))
 
     # Well, that was easy.
     return sorted(sequence)

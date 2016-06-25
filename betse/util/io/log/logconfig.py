@@ -29,7 +29,7 @@ log strictly more messages than) levels assigned larger integers: e.g.,
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, os, sys
-from betse.exceptions import BetseExceptionFile
+from betse.exceptions import BetseFileException
 from betse.util.type import types
 from collections import OrderedDict
 from enum import Enum
@@ -331,7 +331,7 @@ class LogConfig(object):
         #
         # If no filename is set, raise an exception.
         if self._filename is None:
-            raise BetseExceptionFile('Log filename not set.')
+            raise BetseFileException('Log filename not set.')
 
         # Create the directory containing this logfile with standard low-level
         # Python functionality if needed. Since our custom higher-level

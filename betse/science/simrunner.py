@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
 from betse.exceptions import (
-    BetseExceptionFile, BetseExceptionSimulation, BetseExceptionParameters)
+    BetseFileException, BetseExceptionSimulation, BetseExceptionParameters)
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.parameters import Parameters
@@ -464,7 +464,7 @@ class SimRunner(object):
 
         # If this simulation has yet to be run, fail.
         if not files.is_file(sim.savedSim):
-            raise BetseExceptionFile(
+            raise BetseFileException(
                 'Simulation cache file "{}" not found to plot '
                 '(e.g., due to no simulation having been run).'.format(
                     sim.savedSim))

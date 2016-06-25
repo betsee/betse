@@ -12,7 +12,7 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 
 # ....................{ IMPORTS                            }....................
 import os, re, shutil, tempfile
-from betse.exceptions import BetseExceptionFile
+from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
 from betse.util.type import types
 from betse.util.type.types import type_check
@@ -31,7 +31,7 @@ def die_unless_file(pathname: str) -> None:
         For further details.
     '''
     if not is_file(pathname):
-        raise BetseExceptionFile(
+        raise BetseFileException(
             'File "{}" not found or unreadable.'.format(pathname))
 
 # ....................{ EXCEPTIONS ~ if                    }....................
@@ -46,7 +46,7 @@ def die_if_file(pathname: str) -> None:
         For further details.
     '''
     if is_file(pathname):
-        raise BetseExceptionFile('File "{}" already exists.'.format(pathname))
+        raise BetseFileException('File "{}" already exists.'.format(pathname))
 
 
 def die_if_special(pathname: str) -> None:
@@ -61,7 +61,7 @@ def die_if_special(pathname: str) -> None:
     if is_special(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import paths
-        raise BetseExceptionFile(
+        raise BetseFileException(
             'File "{}" already an existing {}.'.format(
                 pathname, paths.get_type_label(pathname)))
 
@@ -435,7 +435,7 @@ def substitute_substrings(
                 file_target_temp.write(line)
 
             # if not is_line_matches:
-            #     raise BetseExceptionFile('No line matches!')
+            #     raise BetseFileException('No line matches!')
 
     # Copy all metadata (e.g., permissions) from the source to temporary
     # file *BEFORE* moving the latter, avoiding potential race conditions

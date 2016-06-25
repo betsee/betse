@@ -11,6 +11,7 @@ Low-level string facilities.
 import textwrap
 from betse.exceptions import BetseExceptionString
 from betse.util.type import types
+from betse.util.type.types import type_check
 from textwrap import TextWrapper
 
 # ....................{ SINGLETONS                         }....................
@@ -24,6 +25,7 @@ functions provided by module `textwrap` implicitly instantiate temporary
 '''
 
 # ....................{ EXCEPTIONS                         }....................
+@type_check
 def die_unless_prefix(
     text: str, prefix: str, exception_message: str = None) -> None:
     '''
@@ -38,8 +40,9 @@ def die_unless_prefix(
     prefix : str
         Prefix to test for.
     exception_message : optional[str]
-        Exception message to be raised. Defaults to `None`, in which case an
-        exception message synthesized from the passed arguments is raised.
+        Optional exception message to be raised. Defaults to `None`, in which
+        case an exception message synthesized from the passed arguments is
+        raised.
     '''
 
     # If this string is *NOT* prefixed by this prefix, raise an exception.
@@ -48,8 +51,6 @@ def die_unless_prefix(
         if not exception_message:
             exception_message = 'Text "{}" not prefixed by "{}".'.format(
                 text, prefix)
-        assert types.is_str(exception_message), (
-            types.assert_not_str(exception_message))
 
         # Raise this exception.
         raise BetseExceptionString(exception_message)
@@ -71,13 +72,11 @@ def is_prefix(text: str, prefix: str) -> bool:
     bool
         `True` only if `prefix` prefixes `text`.
     '''
-    assert types.is_str(text), types.assert_not_str(text)
-    assert types.is_str_nonempty(prefix), (
-        types.assert_not_str_nonempty(prefix, 'Prefix'))
 
     return text.startswith(prefix)
 
 
+@type_check
 def is_suffix(text: str, suffix: str) -> bool:
     '''
     `True` only if the second passed string suffixes the first passed string.
@@ -94,51 +93,8 @@ def is_suffix(text: str, suffix: str) -> bool:
     bool
         `True` only if `suffix` suffixes `text`.
     '''
-    assert types.is_str(text), types.assert_not_str(text)
-    assert types.is_str_nonempty(suffix), (
-        types.assert_not_str_nonempty(suffix, 'Suffix'))
 
     return text.endswith(suffix)
-
-# ....................{ JOINERS                            }....................
-def join(*texts) -> str:
-    '''
-    Concatenate the passed strings with no separating delimiter.
-
-    This is a convenience function wrapping the standard `"".join((...))`
-    method, whose syntax is arguably overly verbose.
-    '''
-    return join_on(*texts, delimiter='')
-
-
-def join_on_newline(*texts) -> str:
-    '''
-    Join the passed strings with newline as the separating delimiter.
-
-    This is a convnience function wrapping the standard
-    `"\n".join((...))` method, whose syntax is arguably overly verbose.
-    '''
-    return join_on(*texts, delimiter='\n')
-
-
-def join_on(*texts, delimiter: str) -> str:
-    '''
-    Join the passed strings with the passed separating delimiter.
-
-    This is a convenience function wrapping the standard
-    `"...".join((...))` method, whose syntax is arguably overly obfuscated.
-    '''
-    # To avoid obscure chicken-and-egg exceptions when logging exceptions, this
-    # delimiter must be validated manually rather than calling types.is_str().
-    assert isinstance(delimiter, str), types.assert_not_str(delimiter)
-
-    # If only one object was passed and such object is a non-string iterable
-    # (e.g, list, tuple), set the list of passed strings to such object.
-    if len(texts) == 1 and types.is_iterable_nonstr(texts[0]):
-        texts = texts[0]
-
-    # Join such texts.
-    return delimiter.join(texts)
 
 # ....................{ ADDERS                             }....................
 def add_prefix_unless_found(text: str, prefix: str) -> str:
@@ -158,11 +114,125 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
 
     return text if is_suffix(text, suffix) else text + suffix
 
+# ....................{ JOINERS                            }....................
+def join(*texts) -> str:
+    '''
+    Concatenate the passed strings with no separating delimiter.
+
+    This is a convenience function wrapping the standard `"".join((...))`
+    method, whose syntax is arguably overly verbose.
+    '''
+
+    return join_on(*texts, delimiter='')
+
+
+def join_on_newline(*texts) -> str:
+    '''
+    Join the passed strings with newline as the separating delimiter.
+
+    This is a convnience function wrapping the standard
+    `"\n".join((...))` method, whose syntax is arguably overly verbose.
+    '''
+
+    return join_on(*texts, delimiter='\n')
+
+
+@type_check
+def join_on(*texts, delimiter: str) -> str:
+    '''
+    Join the passed strings with the passed separating delimiter.
+
+    This is a convenience function wrapping the standard
+    `"...".join((...))` method, whose syntax is arguably overly obfuscated.
+    '''
+
+    # If only one object was passed and such object is a non-string iterable
+    # (e.g, list, tuple), set the list of passed strings to such object.
+    if len(texts) == 1 and types.is_iterable_nonstr(texts[0]):
+        texts = texts[0]
+
+    # Join these strings.
+    return delimiter.join(texts)
+
+
+# ....................{ JOINERS                            }....................
+def join_as_conjunction(*texts) -> str:
+    '''
+    Get a human-readable string conjunctively joining all passed strings.
+
+    Specifically, this function:
+
+    * Delimits each passed string excluding the last with `, `.
+    * Delimits the last passed string with `, and `.
+    '''
+
+    return '{}{}{}'.format(
+        join_on(*texts[0:-1], delimiter=', '), ', and ', texts[-1])
+
+
+def join_as_disjunction(*texts) -> str:
+    '''
+    Get a human-readable string disjunctively joining all passed strings.
+
+    Specifically, this function:
+
+    * Delimits each passed string excluding the last with `, `.
+    * Delimits the last passed string with `, or `.
+    '''
+
+    return '{}{}{}'.format(
+        join_on(*texts[0:-1], delimiter=', '), ', or ', texts[-1])
+
+# ....................{ QUOTERS                            }....................
+#FIXME: We don't actually escape embedded double quotes yet. The reason why is
+#that doing is subtly non-trivial; for safety, we don't want to re-escape
+#already escaped double quotes in this string. We only want to escape
+#currently unescaped double quotes in this string. To do so, we'll need to
+#leverage regex-based substitution with negative lookbehind preventing existing
+#substrings matching '\\"' from being subject to substitution.
+
+@type_check
+def double_quote(*text) -> str:
+    '''
+    Double-quote the passed string in a human-readable manner.
+
+    Specifically (in order):
+
+    . All prefixing and suffixing whitespace is removed from this string.
+    . If this string is either double- or single-quoted, these quotes are
+      removed.
+    . All other double quotes in this string are escaped (e.g., replacing each
+      `"` character with `\\"`).
+    . The resulting string is double-quoted and returned.
+
+    Parameters
+    ----------
+    text : str
+        String to be double-quoted.
+
+    Returns
+    ----------
+    str
+        Resulting string as described above.
+    '''
+
+    # Remove all prefixing and suffixing whitespace from this string.
+    text = remove_presuffix_whitespace(text)
+
+    # If this string is already either double- or single-quoted, strip these
+    # delimiting quotes for simplicity.
+    if ((text[0] == '"' and text[-1] == '"') or
+        (text[0] == "'" and text[-1] == "'")):
+        text = text[1:-1]
+
+    # Double quote this string.
+    return '"{}"'.format(text)
+
 # ....................{ REMOVERS                           }....................
+@type_check
 def remove_presuffix_whitespace(text: str) -> str:
     '''
-    New string with all prefixing and suffixing whitespace removed from the
-    passed string.
+    Remove all prefixing and suffixing whitespace from the passed string.
 
     If this string is neither prefixed nor suffixed by whitespace, this string
     is returned as is.
@@ -178,16 +248,15 @@ def remove_presuffix_whitespace(text: str) -> str:
     str
         Resulting string as described above.
     '''
-    assert types.is_str(text), types.assert_not_str(text)
 
     return text.strip()
 
 # ....................{ REMOVERS ~ prefix                  }....................
 def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
     '''
-    New string with the passed prefix removed from the passed string if the
-    former prefixes the latter _or_ raise an exception with the passed message
-    (defaulting to a message synthesized from the passed arguments) otherwise.
+    Remove the passed prefix from the passed string if the former prefixes the
+    latter _or_ raise an exception with the passed message (defaulting to a
+    message synthesized from the passed arguments) otherwise.
 
     Parameters
     ----------
@@ -215,8 +284,8 @@ def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
 
 def remove_prefix_if_found(text: str, prefix: str) -> str:
     '''
-    New string with the passed prefix removed from the passed string if the
-    former prefixes the latter _or_ the passed string as is otherwise.
+    Remove the passed prefix from the passed string if the former prefixes the
+    latter _or_ the passed string as is otherwise.
 
     Parameters
     ----------
@@ -237,8 +306,8 @@ def remove_prefix_if_found(text: str, prefix: str) -> str:
 # ....................{ REMOVERS ~ prefix                  }....................
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
-    New string with the passed suffix removed from the passed string if the
-    former suffixes the latter _or_ the passed string as is otherwise.
+    Remove the passed suffix from the passed string if the former suffixes the
+    latter _or_ the passed string as is otherwise.
 
     Parameters
     ----------

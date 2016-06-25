@@ -89,23 +89,30 @@ class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
                 callers.get_caller_basename()))
 
 # ....................{ EXCEPTIONS ~ path                  }....................
-class BetseExceptionPath(BetseException):
+class BetsePathException(BetseException):
     '''
     Path-specific exception.
     '''
     pass
 
 
-class BetseExceptionDir(BetseExceptionPath):
+class BetseDirException(BetsePathException):
     '''
     Directory-specific exception.
     '''
     pass
 
 
-class BetseExceptionFile(BetseExceptionPath):
+class BetseFileException(BetsePathException):
     '''
     File-specific exception.
+    '''
+    pass
+
+
+class BetseCommandException(BetseFileException):
+    '''
+    Command-specific exception.
     '''
     pass
 
