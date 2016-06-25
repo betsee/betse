@@ -692,7 +692,7 @@ class MasterOfMolecules(object):
                 logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
 
 
-        if p.ions_dict['H'] == 1:
+        if p.ions_dict['H'] != 1:
             logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
             logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
 
@@ -1776,7 +1776,6 @@ class Reaction(object):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-
 class Transporter(object):
 
     def __init__(self):
@@ -1994,6 +1993,7 @@ class Transporter(object):
                         setattr(obj_reactant, 'c_env', conc)
 
                     else:
+
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
                         sim_conc = getattr(sim, 'cc_env')
                         sim_conc[ion_check] = conc
@@ -2118,8 +2118,8 @@ class Transporter(object):
 
                     conc = conc + deltaC * self.products_coeff[i]
 
-                    mean_conc = conc.mean()
-                    conc[:] = mean_conc
+                    # mean_conc = conc.mean()
+                    # conc[:] = mean_conc
 
                     label = 'i' + product_name
                     ion_check = getattr(sim, label, None)
@@ -2130,9 +2130,12 @@ class Transporter(object):
                         setattr(obj_product, 'c_env', conc)
 
                     else:
+
+
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
                         sim_conc = getattr(sim, 'cc_env')
                         sim_conc[ion_check] = conc
+
 
 
                 elif p.sim_ECM is True:
@@ -2381,6 +2384,8 @@ class Transporter(object):
 
         # print(self.name)
         # print("delta moles", deltaMoles.mean())
+        # print("REACTANTS", self.reactants_list)
+        # print("PRODUCTS", self.products_list)
         # print("REACTANT transfer tags", self.reactant_transfer_tag)
         # print("PRODUCT transfer tags", self.product_transfer_tag)
         # print('------------------------------------------------')
@@ -2533,7 +2538,6 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 def get_influencers_grn(sim, sim_metabo, a_list, k_a_list, Km_a_list, n_a_list, i_list, k_i_list, Km_i_list,
         n_i_list, reaction_zone='cell'):
 
-
     """
     Get coefficients representing the net effect of all activators and inhibitors on a particular reaction.
 
@@ -2615,7 +2619,6 @@ def get_influencers_grn(sim, sim_metabo, a_list, k_a_list, Km_a_list, n_a_list, 
 
         # calculate the net effect of all activator terms:
         activator_alpha = np.prod(activator_terms, axis=0)
-
 
     else:
 

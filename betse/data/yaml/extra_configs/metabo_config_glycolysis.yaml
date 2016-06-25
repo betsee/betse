@@ -1,9 +1,10 @@
 %YAML 1.1
 ---
-# The BETSE glycolysis metabolism configuration file, which takes a simplified view of glycolysis.
+# The BETSE glycolysis metabolism configuration file, which takes a detailed view of glycolysis.
 # Levels and rates described by this model should be consistent with red blood cells (erythrocytes)
 # All metabolism related config files must contain biomolecules with the name 'ATP', 'ADP', and 'Pi',
 # otherwise, the level of complexity/detail can be high or low.
+# Runing this metabolism simulation requires an ion profile with H+ ions defined.
 
 # A Note on YAML
 # ----------
@@ -117,12 +118,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 5.0         # initial concentration in the environment [mmol/L]
     cell conc: 4.655    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    active pumping:                     # use ATP driven pumps to actively move morphogen?
-      turn on: True                     # turn pumping on?
-      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
-      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
-      pump Km: 0.52       # Michaelis-Menten coefficient for molecule in pump reaction
-      uses ATP: False      # uses ATP or facilitated transport?
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
       change start: 1.0          # time to start change [s]
@@ -169,18 +164,39 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 0.033         # initial concentration in the environment [mmol/L]
     cell conc: 3.335    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    active pumping:                     # use ATP driven pumps to actively move morphogen?
-      turn on: True                     # turn pumping on?
-      pump to cell: False       # pump from extracellular space to cell (True) or reverse (False)?
-      maximum rate: 5.0e-6              # maximum rate constant of pumping [mol/s]
-      pump Km: 3.5       # Michaelis-Menten coefficient for molecule in pump reaction
-      uses ATP: False      # uses ATP or facilitated transport?
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
       change start: 1.0          # time to start change [s]
       change finish: 7.0        # time to end change and return to original [s]
       change rate: 1.0           # rate of change [s]
       concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: False        # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+  - name: 'AMPK'         # AMP-activated protein kinase (controlled by AMP)
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 0.0         # initial concentration in the environment [mmol/L]
+    cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    growth and decay:
+      production rate: 1.0    # rate at which molecule is produced in the cytoplasm
+      decay rate: 0.5          # rate at which molecule is consumed in the cytoplasm
+      Km: 1.0                  # Half-maximum value for self-growth and decay [mmol/L]
+      n: 1.0                      # Hill coefficient for self-growth
+      activators: ['AMP']   # list of defined substances or simulation ions activating expression
+      Km activators: [1.0]      # list of half-maximum values for activators
+      k activators: [1.0]          # list of kinetic parameters of activators
+      n activators: [3.0]              # list of Hill exponent of activators
+      inhibitors: None                   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: None      # list of half-maximum values for inhibitors
+      k inhibitors: None                 # list of kinetic parameters of inhibitors
+      n inhibitors: None                # list of Hill exponent of inhibition
     plotting:
       plot 2D: True         # create a unique set of plots for the substance
       animate: False        # animate the substance during the sampled time-steps of the simulation
@@ -205,7 +221,7 @@ reactions:
     products: ['ADP', 'Pi']        # list of products; must be from set of names defined for biomolecules in above
     product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
     Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
-    max rate: 0.1              # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 0.5              # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 
   - name: adenylate_kinase              # adenylate kinase enzyme reaction (params from Khoo and Russel 1970)
@@ -223,20 +239,20 @@ reactions:
   - name: glycolysis              # hexokinase enzyme reaction
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
-    reactants: ['Gluc','ADP','Pi','NAD']       # FIXME + M- list of reagents; must be from set of names defined for biomolecules in above
-    reactant multipliers: [1.0, 2.0, 2.0, 2.0]      # reaction coefficients for reagents, in same order as reagent definition
-    Km reactants: [2.0, 0.10, 0.1, 0.5]             # list of half-max coefficients for reagents, in same order as reagents list
+    reactants: ['Gluc','ADP','Pi','NAD', 'M']
+    reactant multipliers: [1.0, 2.0, 2.0, 2.0, 2.0]    # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [2.0, 0.10, 0.1, 0.5, 1.0]           # list of half-max coefficients for reagents, in same order as reagents list
     products: ['Pyr', 'ATP', 'NADH']        # list of products; must be from set of names defined for biomolecules in above
     product multipliers: [2.0, 2.0, 2.0]    # reaction coefficients for products, in same order as product definition
     Km products: [0.1, 1.0, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
-    max rate: 1.0                # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 200.0                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
     reaction inhibitors: ['ATP']   # link to defined substances or ions inhibiting reaction activitiy
     inhibitor Km: [2.0]          # Km of inhibitors
     inhibitor n: [4]     # Hill exponent of inhibitor equation
-    reaction activators: ['AMP']   # link to defined substances or ions inhibiting reaction activitiy
-    activator Km: [0.05]          # Km of inhibitors
-    activator n: [1]     # Hill exponent of inhibitor equation
+    reaction activators: ['AMP', 'AMPK']   # link to defined substances or ions inhibiting reaction activitiy
+    activator Km: [0.05, 1.0]          # Km of inhibitors
+    activator n: [1, 2]     # Hill exponent of inhibitor equation
 
   - name: lactate-dehydrogenase         # lactate dehydrogenase enzyme
 
@@ -247,6 +263,50 @@ reactions:
     products: ['Lac', 'NAD']        # list of products; must be from set of names defined for biomolecules in above
     product multipliers: [1, 1]    # reaction coefficients for products, in same order as product definition
     Km products: [0.5, 0.5]        # list of half-max coefficients for reagents, in same order as reagents list
-    max rate: 1.0                # list of half-max coefficients for reagents, in same order as reagents list
-    standard free energy: -10.24e3   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-                                     # Note for this redox reaction: Eo = +0.13V, deltaG = -nFE
+    max rate: 150.0                # list of half-max coefficients for reagents, in same order as reagents list
+    standard free energy: -10.24e3
+    reaction inhibitors: None   # link to defined substances or ions inhibiting reaction activitiy
+    inhibitor Km: None          # Km of inhibitors
+    inhibitor n: None     # Hill exponent of inhibitor equation
+    reaction activators: ['AMPK']   # link to defined substances or ions inhibiting reaction activitiy
+    activator Km: [1.0]          # Km of inhibitors
+    activator n: [1]     # Hill exponent of inhibitor equation
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM TRANSPORTERS
+#-----------------------------------------------------------------------------------------------------------------------
+transporters:
+
+  - name: MCT1         # unique identifier for the transporter Km from Bonen A, 2001
+
+    reaction zone: cell
+    reactants: ['Lac', 'M']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1, 1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [3.5, 1.0]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Lac', 'M']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
+    Km products: [3.5, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: ['Lac']   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: ['M']     # items of reaction moved into cell during forwards reaction
+    max rate: 40.0          # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    transporter activators: ['AMPK']   # additional defined substances or ions increasing activity of transporter
+    activator Km: [1.0]
+    activator n: [1.0]
+
+  - name: GLUT1         # unique identifier for the transporter Km from Bonen A, 2001
+
+    reaction zone: cell
+    reactants: ['Gluc']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [1.5]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Gluc']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.5]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: ['Gluc']     # items of reaction moved into cell during forwards reaction
+    max rate: 300.0          # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    transporter activators: ['AMPK']   # additional defined substances or ions increasing activity of transporter
+    activator Km: [1.0]
+    activator n: [1.0]

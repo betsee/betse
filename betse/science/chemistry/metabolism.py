@@ -22,6 +22,7 @@ from betse.util.io.log import logs
 from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.config import sim_config
 from betse.exceptions import BetseExceptionParameters
+from betse.science import sim_toolbox as stb
 
 
 class MasterOfMetabolism(object):
@@ -111,6 +112,17 @@ class MasterOfMetabolism(object):
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)
 
             self.core.run_loop(t, sim, cells, p)
+
+            # update core ions in sim:
+            for i in sim.movingIons:
+
+                # update the ion concentration intra-cellularly:
+                sim.cc_mems[i][:], sim.cc_cells[i][:], _ = \
+                    stb.update_intra(sim, cells, sim.cc_mems[i][:],
+                        sim.cc_cells[i][:],
+                        sim.D_free[i],
+                        sim.zs[i], p)
+
 
             if t in tsamples:
 
