@@ -1030,6 +1030,8 @@ class MasterOfMolecules(object):
 
             saveDataTransp = os.path.join(self.resultsPath, saveName)
 
+            transp_dataM = np.asarray(transp_dataM)
+
             np.savetxt(saveDataTransp, transp_dataM.T, delimiter=',', header=transp_header)
 
     def anim(self, sim, cells, p, message = 'for auxiliary molecules...'):

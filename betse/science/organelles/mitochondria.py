@@ -25,8 +25,8 @@ class Mito(object):
     def __init__(self, sim, cells, p):
 
         # init basic fields
-        self.mit_vol = 0.5*cells.cell_vol     # mit volume
-        self.mit_sa = 0.5*cells.cell_sa      # mit surface areas
+        self.mit_vol = 0.1*cells.cell_vol     # mit volume
+        self.mit_sa = 0.1*cells.cell_sa      # mit surface areas
         self.Vmit = np.zeros(sim.cdl)   # transmembrane voltage for mit
         self.Q = np.zeros(sim.cdl)     # total charge in mit
         self.cm_mit = self.mit_sa*p.cm    # mit membrane capacitance
@@ -37,6 +37,9 @@ class Mito(object):
         for arr in self.Dm_mit:
 
             arr[:] = 1.0e-16                 # membrane permeability altered so all are minimal
+
+        # self.Dm_mit[sim.iM] = 1.0e-16
+        # self.Dm_mit[sim.iK] = 1.0e-16
 
         self.Dm_mit_base = copy.deepcopy(self.Dm_mit)  # copies of Dm for ion channel dynamics
         self.Dm_channels = copy.deepcopy(self.Dm_mit)
