@@ -31,6 +31,7 @@ log strictly more messages than) levels assigned larger integers: e.g.,
 import logging, os, sys
 from betse.exceptions import BetseFileException
 from betse.util.type import types
+from betse.util.type.types import type_check
 from collections import OrderedDict
 from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
@@ -157,7 +158,7 @@ class LogConfig(object):
     '''
     Default logging configuration.
 
-    Such configuration defines sensible default handlers for the root logger,
+    This configuration defines sensible default handlers for the root logger,
     which callers may customize (e.g., according to user-defined settings) by
     calling the appropriate getters.
 
@@ -175,7 +176,8 @@ class LogConfig(object):
     * Formatted in a timestamped manner detailing the point of origin (e.g.,
       "[2016-04-03 22:02:47] betse ERROR (util.py:50): File not found.").
     * Labelled as the current logger's name, defaulting to `root`. Since this
-      is _not_ a terribly descriptive name, callers are encouraged to
+      is _not_ a terribly descriptive name, callers are encouraged to replace
+      this by an application-specific name.
     * Printed to standard error if the logging level for this output is either
       `WARNING`, `ERROR`, or `CRITICAL`.
     * Printed to standard output if the logging level for this output is
@@ -265,11 +267,13 @@ class LogConfig(object):
         # "level" attribute accepted by its superclass constructor.
         self._logger_root_handler_stdout = StreamHandler(sys.stdout)
         self._logger_root_handler_stdout.setLevel(INFO)
-        self._logger_root_handler_stdout.addFilter(LoggerFilterInfoOrLess())
+        self._logger_root_handler_stdout.addFilter(LoggerFilterDebugNonBetse())
+        self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
 
         # Initialize the stderr handler.
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(WARNING)
+        self._logger_root_handler_stdout.addFilter(LoggerFilterDebugNonBetse())
 
         # Initialize the file handler... to nothing. This handler will be
         # initialized to an actual instance on the "type" property being set to
@@ -393,6 +397,8 @@ class LogConfig(object):
         # subsequently initialized, defer adding that handler.
         self._logger_root.addHandler(self._logger_root_handler_stdout)
         self._logger_root.addHandler(self._logger_root_handler_stderr)
+        self._logger_root.name = 'betse'
+        # logging.root.name = "snafu"
 
     # ..................{ PROPERTIES ~ bool                  }..................
     @property
@@ -525,20 +531,44 @@ class LogConfig(object):
         return self._logger_root_handler_stdout
 
 # ....................{ CLASSES ~ filter                   }....................
-class LoggerFilterInfoOrLess(Filter):
+class LoggerFilterDebugNonBetse(Filter):
     '''
-    Filter ignoring log records with logging level larger than `INFO`.
+    Log filter ignoring all log records with logging levels less than or equal
+    to `DEBUG` _and_ names not prefixed by `betse`.
 
-    This filter retains only log records with logging level of `INFO` or less.
+    Equivalently, this log filter _only_ retains log records with either:
+
+    * Logging levels greater than `DEBUG`.
+    * Names prefixed by `betse`.
+
+    This log filter prevents ignorable debug messages logged by third-party
+    frameworks (e.g., Pillow) from polluting BETSE's debug output.
     '''
 
-    def filter(self, log_record: LogRecord) -> str:
+    @type_check
+    def filter(self, log_record: LogRecord) -> bool:
         '''
-        `True` only if the passed log record has a logging level of `INFO` or
-        less.
+        `True` only if the passed log record is to be retained.
         '''
-        assert isinstance(log_record, LogRecord), (
-            '"{}" not a log record.'.format(log_record))
+
+        return (
+            log_record.levelno > DEBUG or
+            log_record.name.startswith('betse'))
+
+
+class LoggerFilterMoreThanInfo(Filter):
+    '''
+    Log filter ignoring all log records with logging levels greater than `INFO`.
+
+    Equivalently, this log filter _only_ retains log records with logging levels
+    less than or equal to `INFO`.
+    '''
+
+    @type_check
+    def filter(self, log_record: LogRecord) -> bool:
+        '''
+        `True` only if the passed log record is to be retained.
+        '''
 
         return log_record.levelno <= INFO
 

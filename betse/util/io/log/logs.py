@@ -3,11 +3,13 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-#FIXME: Move this entire module into the "log" subdirectory.
-
-#FIXME: Warnings should be prefixed by "<Warning> " in standard error or some
-#such and errors prefixed by "<Error> " in standard error or some such. See
-#the following stackoveflow question for details on how to implement this:
+#FIXME: Error messages should be prefixed by strings uniquely identifying the
+#sources of those messages. Specifically:
+#
+#* Warnings should be prefixed by "<Warning> {source_module_basename}".
+#* Errors should be prefixed by "<Error> {source_module_basename}".
+#
+#See the following stackoveflow question for details on how to implement this:
 #    https://stackoverflow.com/questions/14844970/modifying-logging-message-format-based-on-message-logging-level-in-python3
 
 #FIXME: The following blog post provides useful instructions on deserializing
@@ -17,15 +19,6 @@
 #of doing so, rather than providing a gamut of CLI options:
 #
 #    http://victorlin.me/posts/2012/08/26/good-logging-practice-in-python
-
-#FIXME: It would be great to augment LogConfig() with functionality
-#permitting the log filename to be explicitly set *AFTER* such object's
-#construction. To support this, define a new getter-setter pair of such class
-#called simply "filename". Such property's setter should:
-#
-#* Remove the existing file handler from the root logger.
-#* Create a new file handler writing to the passed file.
-#* Set such handler on the root logger.
 
 '''
 Low-level logging facilities.
@@ -59,14 +52,15 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 
 import logging, sys, traceback
 from betse.util.type import types
+from betse.util.type.types import type_check
 from io import StringIO
 
 # ....................{ GETTERS                            }....................
 def get(logger_name: str = None) -> logging.Logger:
     '''
     Get the logger with the passed `.`-delimited name, defaulting to the
-    basename of the current process (e.g., `betse`) implying the *global logger*
-    (i.e., the default application-wide logger).
+    basename of the current process (e.g., `betse`) implying the **global
+    logger** (i.e., the default application-wide logger).
 
     This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
@@ -92,10 +86,11 @@ def get(logger_name: str = None) -> logging.Logger:
     assert types.is_str_nonempty(logger_name), (
         types.assert_not_str_nonempty(logger_name, 'Logger name'))
 
-    # Get such logger.
+    # Return this logger.
     return logging.getLogger(logger_name)
 
 # ....................{ LOGGERS                            }....................
+@type_check
 def log_debug(message: str, *args, **kwargs) -> None:
     '''
     Log the passed debug message with the root logger, formatted with the passed
@@ -104,10 +99,11 @@ def log_debug(message: str, *args, **kwargs) -> None:
     This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert types.is_str(message), types.assert_not_str(message)
+
     logging.debug(message, *args, **kwargs)
 
 
+@type_check
 def log_info(message: str, *args, **kwargs) -> None:
     '''
     Log the passed informational message with the root logger, formatted with
@@ -116,10 +112,11 @@ def log_info(message: str, *args, **kwargs) -> None:
     This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert types.is_str(message), types.assert_not_str(message)
+
     logging.info(message, *args, **kwargs)
 
 
+@type_check
 def log_warning(message: str, *args, **kwargs) -> None:
     '''
     Log the passed warning message with the root logger, formatted with the
@@ -128,10 +125,11 @@ def log_warning(message: str, *args, **kwargs) -> None:
     This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert types.is_str(message), types.assert_not_str(message)
+
     logging.warning(message, *args, **kwargs)
 
 
+@type_check
 def log_error(message: str, *args, **kwargs) -> None:
     '''
     Log the passed error message with the root logger, formatted with the
@@ -140,19 +138,17 @@ def log_error(message: str, *args, **kwargs) -> None:
     This function expects the `LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
-    assert types.is_str(message), types.assert_not_str(message)
+
     logging.error(message, *args, **kwargs)
 
 
+@type_check
 def log_exception(exception: Exception) -> None:
     '''
     Log the passed exception with the root logger.
     '''
 
     try:
-        assert types.is_exception(exception), (
-            types.assert_not_exception(exception))
-
         # Avoid circular import dependencies.
         from betse.util.io import stderrs
         from betse.util.io.log import logconfig

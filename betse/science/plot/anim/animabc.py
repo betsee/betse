@@ -76,32 +76,6 @@ Abstract base classes of all Matplotlib-based animation classes.
 #So, yes. It's quite a bit of work. But it's absolutely essential as well,
 #particularly for implementing a general-purpose BETSE GUI.
 
-#FIXME: Squelch PIL debug messages: e.g., as emitted by
-#https://github.com/python-pillow/Pillow/blob/master/PIL/PngImagePlugin.py
-#
-#We probably want to unconditionally squelch all loggers retrieved for
-#submodules of the root "PIL" package. Let's see to it, please!
-#FIXME: O.K., explicitly squelching logging for a single module at a time is
-#trivial; see:
-#
-#https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
-#
-#The issue with this approach is that it requires doing so manually for each
-#offending module -- which is highly undesirable. The only reasonable
-#alternative appears to be monkey-patching logging.getLogger() like so:
-#
-#     import logging
-#     getLogger_old = logging.getLogger
-#     def getLogger_new(logger_name: str, *args, **kwargs) -> Logger:
-#         logger = getLogger_old(logger_name, *args, **kwargs)
-#         if not logger_name.startswith('betse'):
-#             logger.setLevel(logging.WARNING)
-#         return logger
-#
-#Note that this monkey-patching is *ONLY* necessary when the current global
-#logging level is DEBUG (e.g., due to the "--verbose" CLI option being passed).
-#Fairly sweet, no? Should work as is, but let's cobble it up.
-
 #FIXME: We should probably animate non-blockingly (e.g., by passing
 #"block=False" to the plt.show() command. To do so, however, we'll probably have
 #to implement an analogue to Matplotlib's "_pylab_helper.Gcf" global-like static
@@ -143,7 +117,7 @@ from abc import abstractmethod
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.plot.abc import PlotCells
+from betse.science.plot.plotabc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, Sequence

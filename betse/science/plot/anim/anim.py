@@ -33,7 +33,7 @@ import numpy as np
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.science.plot import plot
-from betse.science.plot.anim.abc import (
+from betse.science.plot.anim.animabc import (
     AnimCells, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths

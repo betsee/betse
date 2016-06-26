@@ -12,11 +12,19 @@ _all_ test modules.
 
 # ....................{ IMPORTS                            }....................
 import pytest
+from betse.exceptions import BetseException
 from betse_test.util.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
 # ....................{ IMPORTS ~ fixture                  }....................
 from betse_test.fixture.ignition import betse_init
+
+# ....................{ CLASSES                            }....................
+class BetseTestException(BetseException):
+    '''
+    Test-specific exception.
+    '''
+    pass
 
 # ....................{ HOOKS                              }....................
 def pytest_runtest_setup(item: 'pytest.main.Item'):

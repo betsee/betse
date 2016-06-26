@@ -8,7 +8,9 @@ BETSE-specific `test` subcommand for `setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.type import objects
 from betse_setup import util
+from distutils.errors import DistutilsClassError
 from setuptools import Command
 
 # ....................{ COMMANDS                           }....................
@@ -30,8 +32,10 @@ class test(Command):
         conditionally matching a substring of the name of each test function or
         class to be run if any _or_ `None` if all tests are to be run
         unconditionally.
-    _pyinstaller_command : list
-        List of all shell words of the PyInstaller command to be run.
+    _pytest_public : PackageType
+        Top-level public `pytest` package, imported by the `run()` method.
+    _pytest_private : PackageType
+        Top-level private `_pytest` package, imported by the `run()` method.
 
     See Also
     ----------
@@ -110,7 +114,8 @@ class test(Command):
         # self.install_dir = None
 
         # Custom private attributes.
-        # self._pyinstaller_command = None
+        self._pytest_public = None
+        self._pytest_private = None
 
 
     def finalize_options(self):
@@ -122,10 +127,128 @@ class test(Command):
 
 
     def run(self):
-        '''Run the current command and all subcommands thereof.'''
+        '''
+        Run the current command and all subcommands thereof.
+        '''
+
+        # Import and monkey-patch "py.test" *BEFORE* running "py.test".
+        self._init_pytest()
+        self._patch_pytest()
+        self._run_pytest()
+
+    # ..................{ PRIVATE                            }..................
+    def _init_pytest(self) -> None:
+        '''
+        Dynamically import the top-level `pytest` package into this object's
+        `_pytest` instance variable.
+
+        Specifically, this method imports the top-level `_pytest.main` module,
+        providing programmatic access to py.test's CLI implementation. While
+        py.test is also runnable as an external command, doing so invites
+        non-trivial complications. Unlike most Python applications (e.g.,
+        PyInstaller), py.test is _not_ dynamically importable via the following
+        import machinery:
+
+            # Don't do this.
+            >>> pytest_main = util.import_module(
+            ...    'pytest.main', exception_message=(
+            ...    'py.test not installed under the current Python interpreter.'))
+
+        Attempting to do so reliably raises exceptions resembling:
+
+            AttributeError: 'module' object has no attribute '__path__'
+
+        The reason why appears to be package `__path__` manipulations
+        dynamically performed by the private `_pytest` package. Sadly,
+        attempting to import `_pytest.main` fails with an even more
+        inscrutable exception. The solution, of course, is to brute-force it
+        by only dynamically importing the root `pytest` package.
+        '''
+
+        # Import the public "pytest" package *BEFORE* the private "_pytest"
+        # package. While importation order is typically ignorable, imports can
+        # technically have side effects. Tragicomically, this is the case here.
+        # Importing the public "pytest" package establishes runtime
+        # configuration required by submodules of the private "_pytest" package.
+        # The former *MUST* always be imported before the latter. Failing to do
+        # so raises obtuse exceptions at runtime... which is bad.
+        self._pytest_public = util.import_module(
+            'pytest', exception_message=(
+            'py.test not installed under the current Python interpreter.'))
+        self._pytest_private = util.import_module(
+            '_pytest', exception_message=(
+            'py.test not installed under the current Python interpreter.'))
+
+
+    def _patch_pytest(self) -> None:
+        '''
+        Monkey-patch the `pytest` framework in the active Python interpreter,
+        altering startup `pytest` functionality in an early-time manner _not_
+        permitted within `pytest` plugins.
+
+        `pytest` plugins (e.g., `conftest` submodules of a test suite) are
+        imported by `pytest` _after_ `pytest` startup and hence cannot be used
+        to alter startup `pytest` functionality in an early-time manner.
+
+        Specifically, this method monkey-patches:
+
+        * The `CaptureManager._getcapture()` method to capture stderr but
+          _not_ stdout (rather than neither stderr nor stdout) when `py.test` is
+          passed either the `-s` or `--capture=no` CLI options. The default
+          approach of _not_ capturing stderr prevents `py.test` from capturing
+          and hence reporting error messages in failure reports, requiring
+          tedious upwards scrolling through test output to find the
+          corresponding error messages.
+        *
+        '''
+
+        # py.test classes to be monkey-patched.
+        from _pytest.capture import CaptureManager, FDCapture, MultiCapture
+
+        # If the private method to be monkey-patched no longer exists, py.test
+        # is either broken or unsupported. In either case, raise an exception.
+        if not objects.is_method(CaptureManager, '_getcapture'):
+            raise DistutilsClassError(
+                'Method pytest.capture.CaptureManager._getcapture() '
+                'not found. The current version of py.test is either '
+                'broken (unlikely) or unsupported (likely).'
+            )
+
+        # Old method to be monkey-patched.
+        _getcapture_old = CaptureManager._getcapture
+
+        # New method applying this monkey-patch.
+        def _getcapture_new(self, method):
+            if method == "no":
+                return MultiCapture(
+                    out=False, err=True, in_=False, Capture=FDCapture)
+            else:
+                return _getcapture_old(self, method)
+
+        # Replace the old with the new method.
+        CaptureManager._getcapture = _getcapture_new
+
+
+    def _run_pytest(self) -> None:
+        '''
+        Call the `pytest.main()` function in the active Python interpreter,
+        passed CLI options corresponding to the CLI options passed to this
+        setuptools command.
+        '''
 
         # List of all shell words to be passed as arguments to py.test.
-        pytest_args = []
+        pytest_args = [
+            # When testing interactively, halt testing on the first failure.
+            # Permitting multiple failures complicates failure output,
+            # especially when every failure after the first is a result of the
+            # same underlying issue.
+            #
+            # When testing non-interactively, testing is typically *NOT* halted
+            # on the first failure. Hence, this option is confined to this
+            # subcommand rather than added to the general-purpose "pytest.ini"
+            # configuration.
+            '--maxfail=1'
+        ]
 
         # If the optional third-party "pytest-xdist" plugin is installed, pass
         # options specific to this plugin implicitly parallelizing tests to a
@@ -181,30 +304,18 @@ class test(Command):
         if self.match_name is not None:
             pytest_args.extend(['-k', util.shell_quote(self.match_name)])
 
-        # py.test's top-level "main" module, providing programmatic access to
-        # its CLI implementation. While py.test is also runnable as an external
-        # command, doing so invites non-trivial complications. Unlike most
-        # Python applications (e.g., PyInstaller), py.test is *NOT* dynamically
-        # importable via the following import machinery:
-        #
-        #     # Don't do this.
-        #     pytest_main = util.import_module(
-        #         'pytest.main', exception_message=(
-        #         'py.test not installed under the current Python interpreter.'))
-        #
-        # Attempting to do so reliably raises exceptions resembling:
-        #
-        #     AttributeError: 'module' object has no attribute '__path__'
-        #
-        # The reason why appears to be package "__path__" manipulations
-        # dynamically performed by the private "_pytest" package. Sadly,
-        # attempting to import "_pytest.main" fails with an even more
-        # inscrutable exception. The solution, of course, is to brute-force it
-        # by only dynamically importing the root "pytest" package. *SHRUG*
-        pytest = util.import_module(
-            'pytest', exception_message=(
-            'py.test not installed under the current Python interpreter.'))
-
         # Run py.test, propagating its exit status as our own up to the caller.
         print('Running py.test with arguments: {}'.format(pytest_args))
-        util.exit_with_status(pytest.main(pytest_args))
+        util.exit_with_status(self._pytest_public.main(pytest_args))
+
+# import pytest
+# from _pytest.capture import CaptureManager, FDCapture, MultiCapture
+# _getcapture_old = CaptureManager._getcapture
+#
+# def _getcapture_new(self, method):
+#     if method == "no":
+#         return MultiCapture(out=False, err=True, in_=False, Capture=FDCapture)
+#     else:
+#         return _getcapture_old(self, method)
+#
+# CaptureManager._getcapture = _getcapture_new

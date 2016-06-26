@@ -8,10 +8,36 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type import types
+from betse.util.type.types import type_check, Callable
+
+# ....................{ TESTERS                            }....................
+@type_check
+def is_method(obj: object, method_name: str) -> bool:
+    '''
+    `True` only if a method with the passed name is bound to the passed object.
+
+    Parameters
+    ----------
+    obj : object
+        Object to test for this method.
+    method_name : str
+        Name of the method to test this object for.
+
+    Returns
+    ----------
+    bool
+        `True` only if a method with this name is bound to this object.
+    '''
+
+    # Attribute with this name in this object if any or None otherwise.
+    method = getattr(obj, method_name, None)
+
+    # Return whether this attribute is a method.
+    return method is not None and callable(method)
 
 # ....................{ GETTERS                            }....................
-def get_method_or_none(obj: object, method_name: str) -> callable:
+@type_check
+def get_method_or_none(obj: object, method_name: str) -> Callable:
     '''
     Method with the passed name bound to the passed object if any _or_ `None`
     otherwise.
@@ -28,8 +54,6 @@ def get_method_or_none(obj: object, method_name: str) -> callable:
     callable, None
         Method with this name in this object if any _or_ `None` otherwise.
     '''
-    assert types.is_str_nonempty(method_name), (
-        types.assert_not_str_nonempty(method_name, 'Method name'))
 
     # Attribute with this name in this object if any or None otherwise.
     method = getattr(obj, method_name, None)
