@@ -267,13 +267,15 @@ class LogConfig(object):
         # "level" attribute accepted by its superclass constructor.
         self._logger_root_handler_stdout = StreamHandler(sys.stdout)
         self._logger_root_handler_stdout.setLevel(INFO)
-        self._logger_root_handler_stdout.addFilter(LoggerFilterDebugNonBetse())
         self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
 
         # Initialize the stderr handler.
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(WARNING)
+
+        # Prevent third-party debug messages from being printed.
         self._logger_root_handler_stdout.addFilter(LoggerFilterDebugNonBetse())
+        self._logger_root_handler_stderr.addFilter(LoggerFilterDebugNonBetse())
 
         # Initialize the file handler... to nothing. This handler will be
         # initialized to an actual instance on the "type" property being set to
@@ -363,6 +365,9 @@ class LogConfig(object):
         )
         self._logger_root_handler_file.setLevel(ALL)
 
+        # Prevent third-party debug messages from being logged to disk.
+        self._logger_root_handler_file.addFilter(LoggerFilterDebugNonBetse())
+
         # Linux-style logfile format.
         file_format = (
             '[{{asctime}}] {} {{levelname}} '
@@ -383,8 +388,16 @@ class LogConfig(object):
         Initialize the root logger with all previously initialized handlers.
         '''
 
+        # Avoid circular import dependencies.
+        from betse.util.command import commands
+
         # Root logger.
         self._logger_root = logging.getLogger()
+
+        # For uniqueness, change the name of the root logger to the basename of
+        # the current process (e.g., "betse"). By default, this name is the
+        # ambiguous word "root".
+        self._logger_root.name = commands.get_current_basename()
 
         # Instruct this logger to entertain all log requests, ensuring these
         # requests will be delegated to the handlers defined below. By default,
@@ -397,8 +410,6 @@ class LogConfig(object):
         # subsequently initialized, defer adding that handler.
         self._logger_root.addHandler(self._logger_root_handler_stdout)
         self._logger_root.addHandler(self._logger_root_handler_stderr)
-        self._logger_root.name = 'betse'
-        # logging.root.name = "snafu"
 
     # ..................{ PROPERTIES ~ bool                  }..................
     @property

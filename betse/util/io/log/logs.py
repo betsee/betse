@@ -73,16 +73,13 @@ def get(logger_name: str = None) -> logging.Logger:
     records, there currently remains no reason to pass a logger name.
     '''
 
-    # Default the name of this logger to the basename of the current process.
-    # (e.g., "betse").
+    # Default the name of this logger to the name of the root logger.
     if logger_name is None:
-        # Avoid circular import dependencies.
-        from betse.util.command import commands
-        return commands.get_current_basename()
+        logger_name = logging.root.name
 
     # If this name is the empty string, this function would get the root logger.
     # Since this name being empty typically constitutes an implicit error rather
-    # than an attempt to get the root logger, this constraint is asserted.
+    # than an attempt to get the root logger, prevent this.
     assert types.is_str_nonempty(logger_name), (
         types.assert_not_str_nonempty(logger_name, 'Logger name'))
 
