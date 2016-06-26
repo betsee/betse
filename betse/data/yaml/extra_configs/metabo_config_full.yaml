@@ -30,7 +30,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: -2               # charge (oxidation state)
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
-    cell conc: 2.0     # initial concentration in the cytoplasm [mmol/L]
+    cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
     plotting:
       plot 2D: True         # create a unique set of plots for the substance
@@ -101,8 +101,8 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: -1               # charge (oxidation state)
     env conc: 1.0e-4        # initial concentration in the environment [mmol/L]
-    cell conc: 0.005    # initial concentration in the cytoplasm [mmol/L]
-    mit conc: 0.005             # initial concentration in the mitochondria [mmol/L]
+    cell conc: 0.1    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
     plotting:
       plot 2D: True         # create a unique set of plots for the substance
       animate: False         # animate the substance during the sampled time-steps of the simulation
@@ -136,7 +136,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     z: -1               # charge (oxidation state)
     env conc: 0.0         # initial concentration in the environment [mmol/L]
     cell conc: 0.10    # initial concentration in the cytoplasm [mmol/L]
-    mit conc: 0.10             # initial concentration in the mitochondria [mmol/L]
+    mit conc: 0.20             # initial concentration in the mitochondria [mmol/L]
     active pumping:                     # use ATP driven pumps to actively move morphogen?
       turn on: True                     # turn pumping on?
       pump to cell: False       # pump from extracellular space to cell (True) or reverse (False)?
@@ -161,8 +161,8 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: -1               # charge (oxidation state)
     env conc: 0.0         # initial concentration in the environment [mmol/L]
-    cell conc: 1.0    # initial concentration in the cytoplasm [mmol/L]
-    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    cell conc: 0.1    # initial concentration in the cytoplasm [mmol/L]
+    mit conc: 0.1             # initial concentration in the mitochondria [mmol/L]
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
       change start: 1.0          # time to start change [s]
@@ -327,12 +327,12 @@ reactions:
   - name: glycolysis              # hexokinase enzyme reaction
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
-    reactants: ['Gluc','ADP','Pi','NAD', 'M']
-    reactant multipliers: [1.0, 2.0, 2.0, 2.0, 2.0]    # reaction coefficients for reagents, in same order as reagent definition
+    reactants: ['Gluc','ADP','Pi','NAD']
+    reactant multipliers: [1.0, 2.0, 2.0, 2.0]    # reaction coefficients for reagents, in same order as reagent definition
     Km reactants: [2.0, 0.10, 0.1, 0.5, 1.0]           # list of half-max coefficients for reagents, in same order as reagents list
-    products: ['Pyr', 'ATP', 'NADH']        # list of products; must be from set of names defined for biomolecules in above
-    product multipliers: [2.0, 2.0, 2.0]    # reaction coefficients for products, in same order as product definition
-    Km products: [0.1, 1.0, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Pyr', 'ATP', 'NADH', 'CO2']        # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [2.0, 2.0, 2.0, 2.0]    # reaction coefficients for products, in same order as product definition
+    Km products: [0.1, 1.0, 0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
     max rate: 200.0                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
     reaction inhibitors: ['ATP']   # link to defined substances or ions inhibiting reaction activitiy
@@ -347,11 +347,11 @@ reactions:
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['Pyr', 'NADH']              # list of reagents; must be from set of names defined for biomolecules in above
     reactant multipliers: [1, 1]      # reaction coefficients for reagents, in same order as reagent definition
-    Km reactants: [0.01, 0.1]             # list of half-max coefficients for reagents, in same order as reagents list
+    Km reactants: [0.01, 0.008]             # list of half-max coefficients for reagents, in same order as reagents list
     products: ['Lac', 'NAD']        # list of products; must be from set of names defined for biomolecules in above
     product multipliers: [1, 1]    # reaction coefficients for products, in same order as product definition
-    Km products: [0.5, 0.5]        # list of half-max coefficients for reagents, in same order as reagents list
-    max rate: 150.0                # list of half-max coefficients for reagents, in same order as reagents list
+    Km products: [0.01, 0.01]        # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 100.0                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: -10.24e3
     reaction inhibitors: None   # link to defined substances or ions inhibiting reaction activitiy
     inhibitor Km: None          # Km of inhibitors
@@ -371,7 +371,7 @@ reactions:
     products: ['AcoA', 'NADH']        # list of products; must be from set of names defined for biomolecules in above
     product multipliers: [1, 1]    # reaction coefficients for products, in same order as product definition
     Km products: [1.0, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
-    max rate: 0.02                # list of half-max coefficients for reagents, in same order as reagents list
+    max rate: 0.01                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
                                      # Note for this redox reaction: Eo = +0.13V, deltaG = -nFE
 
@@ -380,11 +380,11 @@ reactions:
 #    reaction zone: mitochondria        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
 #    reactants: ['Pyr', 'NADH']              # list of reagents; must be from set of names defined for biomolecules in above
 #    reactant multipliers: [1, 1]      # reaction coefficients for reagents, in same order as reagent definition
-#    Km reactants: [0.01, 0.1]             # list of half-max coefficients for reagents, in same order as reagents list
+#    Km reactants: [0.1, 0.008]             # list of half-max coefficients for reagents, in same order as reagents list
 #    products: ['Lac', 'NAD']        # list of products; must be from set of names defined for biomolecules in above
 #    product multipliers: [1, 1]    # reaction coefficients for products, in same order as product definition
-#    Km products: [0.5, 0.5]        # list of half-max coefficients for reagents, in same order as reagents list
-#    max rate: 0.1                # list of half-max coefficients for reagents, in same order as reagents list
+#    Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+#    max rate: 0.005                # list of half-max coefficients for reagents, in same order as reagents list
 #    standard free energy: -10.24e3   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 #                                     # Note for this redox reaction: Eo = +0.13V, deltaG = -nFE
 
@@ -397,7 +397,7 @@ reactions:
     products: ['NADH','ATP', 'coA', 'CO2']
     product multipliers: [3, 1, 1, 2]
     Km products: [1.0, 1.0, 1.0, 1.0]
-    max rate: 0.02
+    max rate: 0.01
     standard free energy: None
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -416,7 +416,7 @@ transporters:
     Km products: [3.5, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
     transfered out of cell: ['Lac']   # items of reaction moved out of cell during forwards reaction
     transfered into cell: ['M']     # items of reaction moved into cell during forwards reaction
-    max rate: 40.0          # maximum rate of transport [mol/(m2*s)]
+    max rate: 20.0          # maximum rate of transport [mol/(m2*s)]
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
     transporter activators: ['AMPK']   # additional defined substances or ions increasing activity of transporter
     activator Km: [1.0]
@@ -433,7 +433,7 @@ transporters:
     Km products: [1.5]        # list of half-max coefficients for reagents, in same order as reagents list
     transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
     transfered into cell: ['Gluc']     # items of reaction moved into cell during forwards reaction
-    max rate: 300.0          # maximum rate of transport [mol/(m2*s)]
+    max rate: 200.0          # maximum rate of transport [mol/(m2*s)]
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
     transporter activators: ['AMPK']   # additional defined substances or ions increasing activity of transporter
     activator Km: [1.0]
@@ -441,27 +441,27 @@ transporters:
 
   # Mitochondrial transporters -------------------------------------------------------------------------
 
-#  - name: AspMal_Shuttle         # aspartate-malate transporter
-#
-#    reaction zone: mitochondria
-#    reactants: ['NAD','NADH']   # list of reagents; must be from set of names defined for biomolecules in above
-#    reactant multipliers: [1, 1]  # reaction coefficients for reagents, in same order as reagent definition
-#    Km reactants: [1.0, 1.0]   # list of half-max coefficients for reagents, in same order as reagents list
-#    products: ['NAD','NADH']         # list of products; must be from set of names defined for biomolecules in above
-#    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
-#    Km products: [1.0, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
-#    transfered out of cell: ['NAD']   # items of reaction moved out of cell during forwards reaction
-#    transfered into cell: ['NADH']     # items of reaction moved into cell during forwards reaction
-#    max rate: 0.1          # maximum rate of transport [mol/(m2*s)]
-#    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-#    transporter activators: None   # additional defined substances or ions increasing activity of transporter
-#    activator Km: None
-#    activator n: None
-#    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
-#    inhibitor Km: None
-#    activator n: None
+  - name: AspMal_Shuttle         # aspartate-malate transporter
 
-  - name: MCT1         # unique identifier for the transporter Km from Bonen A, 2001
+    reaction zone: mitochondria
+    reactants: ['NAD','NADH']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1, 1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [1.0, 1.0]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['NAD','NADH']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.0, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: ['NAD']   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: ['NADH']     # items of reaction moved into cell during forwards reaction
+    max rate: 1.0          # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+    activator Km: None
+    activator n: None
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    activator n: None
+
+  - name: MCT1_Pyr         # unique identifier for the transporter Km from Bonen A, 2001
 
     reaction zone: mitochondria
     reactants: ['Pyr','M']   # list of reagents; must be from set of names defined for biomolecules in above
@@ -480,6 +480,26 @@ transporters:
     transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
     activator n: None
+
+#  - name: MCT1_Lact         # unique identifier for the transporter Km from Bonen A, 2001
+#
+#    reaction zone: mitochondria
+#    reactants: ['Lac','M']   # list of reagents; must be from set of names defined for biomolecules in above
+#    reactant multipliers: [1, 1]  # reaction coefficients for reagents, in same order as reagent definition
+#    Km reactants: [3.5, 1.0]   # list of half-max coefficients for reagents, in same order as reagents list
+#    products: ['Lac', 'M']         # list of products; must be from set of names defined for biomolecules in above
+#    product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
+#    Km products: [3.5, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+#    transfered out of cell: ['M']   # items of reaction moved out of cell during forwards reaction
+#    transfered into cell: ['Lac']     # items of reaction moved into cell during forwards reaction
+#    max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
+#    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+#    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+#    activator Km: None
+#    activator n: None
+#    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+#    inhibitor Km: None
+#    activator n: None
 
   - name: ETC         # electron transport chain
 
