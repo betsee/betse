@@ -24,7 +24,6 @@ from matplotlib.colors import Colormap
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ BASE                               }....................
-##FIXME: Rename to "CellsPlot".
 class PlotCells(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting the cell cluster.

@@ -823,8 +823,9 @@ results options:
         enabled: False      # save each animation as an encoded movie file?
         filetype: mp4       # movie filetype
 
-        # List of the names of all external video encoder libraries to attempt
-        # to use (in order of descending preference).
+        # List of the Matplotlib-specific names of all external video encoders
+        # with which to encode such movies (in descending order of preference).
+        # The first encoder on the current ${PATH} will be used automatically.
         encoders: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
 
 

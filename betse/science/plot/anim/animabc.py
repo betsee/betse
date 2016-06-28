@@ -115,8 +115,9 @@ Abstract base classes of all Matplotlib-based animation classes.
 import numpy as np
 from abc import abstractmethod
 from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib.anim import FileFrameWriter
 from betse.lib.matplotlib.matplotlibs import mpl_config
+from betse.lib.matplotlib.writer import video as video_writers
+from betse.lib.matplotlib.writer.frames import FileFrameWriter
 from betse.science.plot.plotabc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
@@ -126,7 +127,6 @@ from matplotlib.animation import FuncAnimation
 from scipy import interpolate
 
 # ....................{ BASE                               }....................
-#FIXME: Rename to "CellsAnim".
 class AnimCells(PlotCells):
     '''
     Abstract base class of all animation classes.
@@ -358,6 +358,11 @@ class AnimCells(PlotCells):
         #  "AnimConfig" attributes, which should then be accessed here directly.
         #* Call that method in the "Parameters" class, capturing the result to a
         #  new "Parameters.anim" instance variable.
+        #FIXME: Ah, right-o. We already appear to have existing classes
+        #encapsulating these configuration settings in the "saver" submodule.
+        #Frankly, however, that submodule is somewhat too fine-grained. We
+        #probably really only need a single "AnimConfig" class, as suggested
+        #above, rather than a deep class hierarchy. Consider simplifying.
 
         # True only if saving all frames of this animation to disk as images.
         is_saving_frames = True
@@ -373,11 +378,11 @@ class AnimCells(PlotCells):
         # if `is_saving_video` is `False`.
         save_video_filetype = 'mp4'
 
-        # List of the Matplotlib-specific lowercase alphanumeric names of all
-        # external encoders with which to encode this video (in descending order
-        # of preference), automatically selecting the first encoder on the
+        # List of the Matplotlib-specific names of all external encoders
+        # supported by Matplotlib with which to encode this video (in descending
+        # order of preference), automatically selecting the first encoder on the
         # current $PATH. Ignored if `is_saving_video` is `False`.
-        save_video_encoder_names = ['ffmpeg', 'avconv', 'mencoder']
+        save_video_writer_names = ['ffmpeg', 'avconv', 'mencoder']
 
         # If saving animation frames as either images or video, prepare to do so
         # in a manner common to both.
@@ -435,36 +440,25 @@ class AnimCells(PlotCells):
 
         # If saving animation frames as video, prepare to do so.
         if is_saving_video:
-            # Basename of the video to be saved.
+            #FIXME: Remove us up! Purely for testing.
+            save_video_writer_names = ('yamoli', 'yimbly')
+
+            # Class writing animation frames as video.
+            VideoWriterClass = video_writers.get_first_class(
+                save_video_writer_names)
+            print('found video writer: {}'.format(VideoWriterClass))
+
+            # Basename of the video to be written.
             save_video_basename = '{}.{}'.format(
                 self._label, save_video_filetype)
 
-            # Absolute path of the video to be saved.
+            # Absolute path of the video to be written.
             self._writer_video_filename = paths.join(
                 save_dirname, save_video_basename)
 
-            #FIXME: Search the current $PATH for the first such command. This is
-            #useful enough to warrant a new utility function, we should think.
-            for save_video_encoder_name in save_video_encoder_names:
-                pass
-
-            #FIXME: See _animate() for how to obtain this. We'll want to raise a
-            #BETSE-specific exception if this writer is unrecognized.
-            #FIXME: Ah! Intriguing. The following code snippet would appear to
-            #do it:
-            #
-            #from matplotlib.animation import writers
-            #if not writers.is_available(save_video_encoder_name):
-            #    raise SomeBetseException(
-            #        'Matplotlib animation writer "{}" unrecognized.'.format(
-            #            save_video_encoder_name))
-            #WriterVideoClass = writers[save_video_encoder_name]
-
-            # Class writing animation frames as video.
-            WriterVideoClass = None
-
+            #FIXME: Implement us up.
             # Object writing animation frames as video.
-            self._writer_video = WriterVideoClass()
+            # self._writer_video = VideoWriterClass()
 
 
     # This method has been overridden to support subclasses that manually handle

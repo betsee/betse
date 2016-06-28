@@ -3,14 +3,16 @@
 # See "LICENSE" for further details.
 
 '''
-Anim serialization classes.
+Animation serialization classes.
 '''
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractstaticmethod
 from betse.util.type import types
+from betse.util.type.types import type_check, Sequence
 
-# ....................{ BASE                               }....................
+# ....................{ SUPERCLASS                         }....................
+#FIXME: Rename to "AnimSaver".
 class AnimationSaver(object, metaclass=ABCMeta):
     '''
     Abstract base class of all animation serialization classes.
@@ -29,7 +31,7 @@ class AnimationSaver(object, metaclass=ABCMeta):
 
     # ..................{ ABSTRACT ~ static                  }..................
     @abstractstaticmethod
-    def make(params: 'Parameters') -> 'AnimationSaver':
+    def make(params: 'Parameters') -> "AnimationSaver":
         '''
         Factory method producing a concrete instance of this abstract base class
         from the passed simulation configuration.
@@ -44,21 +46,22 @@ class AnimationSaver(object, metaclass=ABCMeta):
         AnimationSaver
             Concrete instance of this abstract base class.
         '''
+
         pass
 
     # ..................{ CONCRETE ~ public                  }..................
-    def __init__(self, is_enabled: bool, filetype: bool) -> None:
-        assert types.is_bool(is_enabled), types.assert_not_bool(is_enabled)
-        assert types.is_str_nonempty(filetype), (
-            types.assert_not_str_nonempty(filetype))
+    @type_check
+    def __init__(self, is_enabled: bool, filetype: str) -> None:
 
+        # Classify the passed parameters.
         self.is_enabled = is_enabled
         self.filetype = filetype
 
 # ....................{ IMAGE                              }....................
+#FIXME: Rename to "AnimSaverFrames".
 class AnimationSaverFrames(AnimationSaver):
     '''
-    Anim serialization class serializing each frame of an animation to an
+    Animation serialization class serializing each frame of an animation to an
     image file of some predefined filetype.
 
     Attributes
@@ -69,7 +72,7 @@ class AnimationSaverFrames(AnimationSaver):
 
     # ..................{ PUBLIC ~ static                    }..................
     @abstractstaticmethod
-    def make(params: 'Parameters') -> 'AnimationSaverFrames':
+    def make(params: 'Parameters') -> "AnimationSaverFrames":
         assert types.is_parameters(params), types.assert_not_parameters(params)
 
         #FIXME: Non-ideal. Refactor in accordance with the corresponding
@@ -84,14 +87,14 @@ class AnimationSaverFrames(AnimationSaver):
         )
 
     # ..................{ PUBLIC                             }..................
-    def __init__(self, is_enabled: bool, filetype: bool, dpi: int) -> None:
-        assert types.is_int(dpi), types.assert_not_int(dpi)
+    @type_check
+    def __init__(self, is_enabled: bool, filetype: str, dpi: int) -> None:
 
         super().__init__(is_enabled, filetype)
-
         self.dpi = dpi
 
 # ....................{ VIDEO                              }....................
+#FIXME: Rename to "AnimSaverVideo".
 class AnimationSaverVideo(AnimationSaver):
     '''
     Anim serialization class serializing an entire animation to an encoded
@@ -107,7 +110,7 @@ class AnimationSaverVideo(AnimationSaver):
 
     # ..................{ PUBLIC ~ static                    }..................
     @abstractstaticmethod
-    def make(params: 'Parameters') -> 'AnimationSaverVideo':
+    def make(params: 'Parameters') -> "AnimationSaverVideo":
         assert types.is_parameters(params), types.assert_not_parameters(params)
 
         sav = (
@@ -119,12 +122,9 @@ class AnimationSaverVideo(AnimationSaver):
         )
 
     # ..................{ PUBLIC                             }..................
+    @type_check
     def __init__(
-        self, is_enabled: bool, filetype: bool, encoder_names: list) -> None:
-        assert types.is_sequence_nonstr(encoder_names), (
-            types.assert_not_sequence_nonstr(encoder_names))
+        self, is_enabled: bool, filetype: str, encoder_names: Sequence) -> None:
 
         super().__init__(is_enabled, filetype)
-
         self.encoder_names = encoder_names
-

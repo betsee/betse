@@ -88,20 +88,10 @@ def get_first_basename(
         if is_pathable(command_basename):
             return command_basename
 
-    # Raise an exception, as no such strings are pathable.
-    #
-    # List of each passed string, double-quoted for readability.
-    command_basenames_quoted = [
-        strs.quote(command_basename) for command_basename in command_basenames]
-
-    # String listing such double-quoted strings conjunctively.
-    command_basenames_readable = strs.join_as_conjunction(
-        *command_basenames_quoted)
-
-    # Exception message containing this list.
+    # Else, no such string is pathable. In this case, raise an exception.
     exception_message_suffix = (
         '{} not found in the current ${{PATH}}.'.format(
-            command_basenames_readable))
+            strs.join_as_conjunction_double_quoted(*command_basenames)))
 
     # If a non-empty exception message is passed, suffix this message with this
     # detailed explanation.

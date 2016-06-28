@@ -114,7 +114,7 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
 
     return text if is_suffix(text, suffix) else text + suffix
 
-# ....................{ JOINERS                            }....................
+# ....................{ JOINERS ~ on                       }....................
 def join(*texts) -> str:
     '''
     Concatenate the passed strings with no separating delimiter.
@@ -154,34 +154,140 @@ def join_on(*texts, delimiter: str) -> str:
     # Join these strings.
     return delimiter.join(texts)
 
+# ....................{ JOINERS ~ as                       }....................
+@type_check
+def join_as(
+    *texts,
+    delimiter_if_two: str,
+    delimiter_if_three_or_more_nonlast: str,
+    delimiter_if_three_or_more_last: str
+) -> str:
+    '''
+    Join the passed strings in a human-readable manner.
 
-# ....................{ JOINERS                            }....................
+    This function is typically used to join strings in a human-readable manner.
+    Specifically, if:
+
+    * No strings are passed, the empty string is returned.
+    * One string is passed, this string is returned as is without modification.
+    * Two strings are passed, these strings are joined with the passed
+      `delimiter_if_two` separator.
+    * Three or more strings are passed:
+      * All such strings except the last two are joined with the passed
+        `delimiter_if_three_or_more_nonlast` separator.
+      * The last two such strings are joined with the passed
+        `delimiter_if_three_or_more_last` separator.
+
+    Parameters
+    ----------
+    texts : Tuple[str]
+        List of all strings to be joined.
+    delimiter_if_two : str
+        String separating each element of `texts` if `len(texts) == 2`.
+    delimiter_if_three_or_more_nonlast : str
+        String separating each element _except_ the last two of `texts` if
+        `len(texts) >= 3`.
+    delimiter_if_three_or_more_last : str
+        String separating the last two elements of `texts` if `len(texts) >= 3`.
+
+    Returns
+    ----------
+    str
+        Resulting string as described above.
+
+    Examples
+    ----------
+    >>> join_as(
+    ...     ('Fulgrim', 'Perturabo', 'Angron', 'Mortarion'),
+    ...     delimiter_if_two=' and ',
+    ...     delimiter_if_three_or_more_nonlast=', ',
+    ...     delimiter_if_three_or_more_last=', and '
+    ... )
+    'Fulgrim, Perturabo, Angron, and Mortarion'
+    '''
+
+    # Number of passed strings.
+    texts_count = len(texts)
+
+    # If no strings are passed, return the empty string.
+    if texts_count == 0:
+        return ''
+    # If one string is passed, return this string as is.
+    elif texts_count == 1:
+        return texts[0]
+    # If two strings are passed, return these strings joined appropriately.
+    elif texts_count == 2:
+        return '{}{}{}'.format(
+            texts[0], delimiter_if_two, texts[1])
+    # If three or more strings are passed, return these strings joined
+    # appropriately.
+    else:
+        # All such strings except the last two, joined appropriately.
+        texts_nonlast = join_on(
+            *texts[0:-2], delimiter=delimiter_if_three_or_more_nonlast)
+
+        # The last two such strings, joined appropriately.
+        texts_last = '{}{}{}'.format(
+            texts[-2], delimiter_if_three_or_more_last, texts[-1])
+
+        # Return these two substrings, joined appropriately.
+        return '{}{}{}'.format(
+            texts_nonlast, delimiter_if_three_or_more_nonlast, texts_last)
+
+# ....................{ JOINERS ~ as : conjunction         }....................
 def join_as_conjunction(*texts) -> str:
     '''
     Get a human-readable string conjunctively joining all passed strings.
 
-    Specifically, this function:
+    Specifically:
 
-    * Delimits each passed string excluding the last with `, `.
-    * Delimits the last passed string with `, and `.
+    * Delimit all passed string excluding the last two with `, `.
+    * Delimit the last two passed strings with `, and `.
     '''
 
-    return '{}{}{}'.format(
-        join_on(*texts[0:-1], delimiter=', '), ', and ', texts[-1])
+    return join_as(
+        *texts,
+        delimiter_if_two=' and ',
+        delimiter_if_three_or_more_nonlast=', ',
+        delimiter_if_three_or_more_last=', and '
+    )
 
 
+def join_as_conjunction_double_quoted(*texts) -> str:
+    '''
+    Get a human-readable string conjunctively joining all passed strings,
+    double-quoted.
+
+    Specifically:
+
+    * Double-quote all passed strings.
+    * Delimit all passed strings excluding the last two with `, `.
+    * Delimit the last two passed strings with `, and `.
+    '''
+
+    # All passed strings, double-quoted.
+    texts_quoted = (double_quote(text) for text in texts)
+
+    # Return these strings, joined conjunctively.
+    return join_as_conjunction(*texts_quoted)
+
+# ....................{ JOINERS ~ as : conjunction         }....................
 def join_as_disjunction(*texts) -> str:
     '''
     Get a human-readable string disjunctively joining all passed strings.
 
-    Specifically, this function:
+    Specifically:
 
-    * Delimits each passed string excluding the last with `, `.
-    * Delimits the last passed string with `, or `.
+    * Delimit all passed strings excluding the last two with `, `.
+    * Delimit the last two passed strings with `, or `.
     '''
 
-    return '{}{}{}'.format(
-        join_on(*texts[0:-1], delimiter=', '), ', or ', texts[-1])
+    return join_as(
+        *texts,
+        delimiter_if_two=' or ',
+        delimiter_if_three_or_more_nonlast=', ',
+        delimiter_if_three_or_more_last=', or '
+    )
 
 # ....................{ QUOTERS                            }....................
 #FIXME: We don't actually escape embedded double quotes yet. The reason why is

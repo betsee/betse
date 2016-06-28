@@ -131,7 +131,7 @@ class BetseExceptionRegex(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ lib                   }....................
-class BetseExceptionMatplotlib(BetseException):
+class BetseMatplotlibException(BetseException):
     '''
     Matplotlib-specific exception.
     '''

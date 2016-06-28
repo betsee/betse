@@ -4,11 +4,11 @@
 # See "LICENSE" for further details.
 
 '''
-Matplotlib-specific animation classes.
+Matplotlib-specific classes writing animations as frames.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseExceptionMatplotlib
+from betse.exceptions import BetseMatplotlibException
 from betse.util.path import dirs, paths
 from matplotlib import verbose
 from matplotlib.animation import writers, MovieWriter
@@ -90,7 +90,7 @@ class FileFrameWriter(MovieWriter):
 
         # If this filename template is malformed, raise an exception.
         if not ('{' in self.outfile and '}' in self.outfile):
-            raise BetseExceptionMatplotlib(
+            raise BetseMatplotlibException(
                 'Frame filename template "{}" contains no "{{"- and "}}"-'
                 'delimited format specifier.'.format(self.outfile))
 
@@ -107,7 +107,7 @@ class FileFrameWriter(MovieWriter):
 
         # If this filetype is unsupported, raise an exception.
         if self.frame_format not in out_filetypes_supported:
-            raise BetseExceptionMatplotlib(
+            raise BetseMatplotlibException(
                 'Frame filetype "{}" unsupported by the '
                 'current Matplotlib backend (i.e., not in "{}").'.format(
                     self.frame_format, str(out_filetypes_supported)))
@@ -193,7 +193,7 @@ class FileFrameWriter(MovieWriter):
         #
         # # If this filetype is unsupported, raise an exception.
         # if self.frame_format not in out_filetypes_supported:
-        #     raise BetseExceptionMatplotlib(
+        #     raise BetseMatplotlibException(
         #         'Frame filetype "{}" unsupported by the '
         #         'current Matplotlib backend (i.e., not in "{}").'.format(
         #             self.frame_format, str(out_filetypes_supported)))

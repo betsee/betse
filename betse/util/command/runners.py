@@ -231,13 +231,13 @@ def _init_run_args(command_words: Sequence, popen_kwargs: Mapping) -> None:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses, shells
-    from betse.util.type import dicts
+    from betse.util.type import mappings
 
     # Log the command to be run before doing so.
     logs.log_debug('Running command: {}'.format(' '.join(command_words)))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if oses.is_windows_vanilla() and not dicts.is_keys(
+    if oses.is_windows_vanilla() and not mappings.is_keys(
         popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
         popen_kwargs['close_fds'] = False
 

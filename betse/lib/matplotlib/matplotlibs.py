@@ -85,17 +85,19 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from betse.exceptions import BetseExceptionMatplotlib
+from collections import OrderedDict
+
+from matplotlib import cm as colormaps
+from matplotlib import rcParams
+from matplotlib.colors import Colormap
+from matplotlib.figure import Figure
+
+from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.py import modules, pys
 from betse.util.type import sequences, strs, types
-from collections import OrderedDict
-from matplotlib import cm as colormaps
-from matplotlib import rcParams
-from matplotlib.colors import Colormap
-from matplotlib.figure import Figure
 
 # ....................{ IMPORTS ~ matplotlib               }....................
 # Import matplotlib in a safe manner. Unfortunately, the "matplotlib.__init__"
@@ -222,7 +224,7 @@ def get_colormap(colormap_name: str) -> Colormap:
     # Colormap with the passed name if any or "None" otherwise.
     colormap = getattr(colormaps, colormap_name, None)
     if not isinstance(colormap, Colormap):
-        raise BetseExceptionMatplotlib(
+        raise BetseMatplotlibException(
             'Matplotlib colormap "{}" not found.'.format(colormap_name))
     return colormap
 
@@ -319,8 +321,8 @@ class MatplotlibConfig(object):
         # establishing the backend, it only seems prudent to do so.)
 
         #FIXME: Uncomment when worky.
-        from betse.lib.matplotlib import anim
-        if False: anim    # silence contemptible IDE warning messages
+        from betse.lib.matplotlib.writer import frames
+        if False: frames  # silence contemptible IDE warning messages
 
     # ..................{ TESTERS                            }..................
     def is_backend(self) -> bool:
@@ -445,7 +447,7 @@ class MatplotlibConfig(object):
         '''
         # If no backend has been set yet, raise an exception.
         if not self.is_backend():
-            raise BetseExceptionMatplotlib('No matplotlib backend set.')
+            raise BetseMatplotlibException('No matplotlib backend set.')
 
         # Name of this backend's module.
         backend_module_name = (
@@ -455,7 +457,7 @@ class MatplotlibConfig(object):
         # *SHOULD* still be cached in-memory. Let's be sure.
         backend_module = sys.modules.get(backend_module_name, None)
         if backend_module is None:
-            raise BetseExceptionMatplotlib(
+            raise BetseMatplotlibException(
                 'Matplotlib backend module "{}" not found.'.format(
                     backend_module_name))
         return backend_module
@@ -482,7 +484,7 @@ class MatplotlibConfig(object):
         # that backend, let's be sure.
         backend_canvas_class = getattr(backend, 'FigureCanvas', None)
         if backend_canvas_class is None:
-            raise BetseExceptionMatplotlib(
+            raise BetseMatplotlibException(
                 'Matplotlib backend canvas class '
                 '"{}.FigureCanvas" not found.'.format(backend.__name__))
         return backend_canvas_class
