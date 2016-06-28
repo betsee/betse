@@ -822,7 +822,7 @@ class Parameters(object):
         # FIXME add these as options to the config
         self.KmNK_Na = 12.0   # NaKATPase enzyme ext Na half-max sat value (alpha1 = 12, alpha2 = 20, alpha3 = 60)
         self.KmNK_K = 0.2     # NaKATPase enzyme ext K half-max sat value (alpha1 = 0.2, alpha2 = 0.20, alpha3 = 0.09)
-        self.KmNK_ATP = 0.35   # NaKATPase enzyme ATP half-max sat value
+        self.KmNK_ATP = 0.45   # NaKATPase enzyme ATP half-max sat value
 
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
 

@@ -436,7 +436,7 @@ def plotPrettyPolyData(data, sim, cells, p, fig=None, ax=None, clrAutoscale = Tr
         if p.showCells is True:
             coll, ax = pretty_patch_plot(data_verts,ax,cells,p,p.default_cm, cmin=minval, cmax=maxval)
         else:
-            coll, ax = cell_mesh(data_verts,ax,cells,p,p.default_cm)
+            coll, ax = cell_mesh(data,ax,cells,p,p.default_cm)
 
         # add a colorbar
         coll.set_clim(minval, maxval)

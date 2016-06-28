@@ -27,6 +27,7 @@ from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from matplotlib import colors
 from matplotlib import cm
+from scipy.ndimage.filters import gaussian_filter
 
 
 class MasterOfMolecules(object):
@@ -92,6 +93,8 @@ class MasterOfMolecules(object):
             obj.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
             obj.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
             obj.z = mol_dic['z']  # charge (oxidation state)
+
+            obj.ignoreTJ = mol_dic.get('TJ permeable', False)  # ignore TJ?
             obj.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
             obj.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
 
@@ -183,6 +186,7 @@ class MasterOfMolecules(object):
             pd = mol_dic['plotting']
             obj.make_plots = pd['plot 2D']
             obj.make_ani = pd['animate']
+
             obj.plot_autoscale = pd['autoscale colorbar']
             obj.plot_max = pd['max val']
             obj.plot_min = pd['min val']
@@ -290,6 +294,11 @@ class MasterOfMolecules(object):
             obj.reaction_inhibitors_Km = react_dic.get('inhibitor Km', None)
             obj.reaction_inhibitors_n = react_dic.get('inhibitor n', None)
 
+            if self.mit_enabled:
+                obj.mit_enabled = True
+            else:
+                obj.mit_enabled = False
+
             # now we want to load the right concentration data arrays for reactants into the Reaction object:
 
             # check the reaction states to make sure all reagents/products are named biomolecules or ions:
@@ -363,6 +372,11 @@ class MasterOfMolecules(object):
             obj.transporter_inhibitors_list = trans_dic.get('transporter inhibitors', None)
             obj.transporter_inhibitors_Km = trans_dic.get('inhibitor Km', None)
             obj.transporter_inhibitors_n = trans_dic.get('inhibitor n', None)
+
+            if self.mit_enabled:
+                obj.mit_enabled = True
+            else:
+                obj.mit_enabled = False
 
     def set_react_sources(self, obj, sim, cells, p, reactant_name, i, reactant_type_self, reactant_type_sim):
 
@@ -472,6 +486,9 @@ class MasterOfMolecules(object):
             # update the substance on the inside of the cell:
             obj.updateIntra(sim, self, cells, p)
 
+            # calculate energy charge in the cell:
+            self.energy_charge(sim)
+
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
 
             self.mit.update(sim, cells, p)
@@ -538,6 +555,19 @@ class MasterOfMolecules(object):
                 if self.mit_enabled:
                     # update the cH and pH fields of sim with potentially new value of sim.iM
                     _, sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+
+    def energy_charge(self, sim):
+
+        if 'AMP' in self.molecule_names:
+
+            numo = (self.ATP.c_cells + 0.5*self.ADP.c_cells)
+            denomo = (self.ATP.c_cells + self.ADP.c_cells + self.AMP.c_cells)
+
+            self.chi = numo/denomo
+
+        else:
+
+            self.chi = np.zeros(sim.cdl)
 
     def updateInside(self, sim, cells, p):
         """
@@ -621,6 +651,8 @@ class MasterOfMolecules(object):
         self.pH_cells_time = []
         self.pH_env_time = []
 
+        self.chi_time = []
+
     def write_data(self, sim, p):
         """
         Writes concentration data from a time-step to time-storage vectors.
@@ -643,12 +675,16 @@ class MasterOfMolecules(object):
         for name in self.transporter_names:
             obj = getattr(self, name)
 
-            obj.rate_time.append(obj.rate)
+            if obj.rate is not None:
+
+                obj.rate_time.append(obj.rate)
 
         for name in self.reaction_names:
             obj = getattr(self, name)
 
-            obj.rate_time.append(obj.rate)
+            if obj.rate is not None:
+
+                obj.rate_time.append(obj.rate)
 
 
         if self.mit_enabled:
@@ -657,6 +693,8 @@ class MasterOfMolecules(object):
 
         self.pH_cells_time.append(sim.pH_cell)
         self.pH_env_time.append(sim.pH_env)
+
+        self.chi_time.append(self.chi)
 
     def report(self, sim, p):
         """
@@ -684,20 +722,20 @@ class MasterOfMolecules(object):
 
             if 'ETC' in self.transporter_names:
 
-                rate =  3600*1e15*self.ave_cell_vol*self.ETC.rate.mean()
+                rate =  0.5*3600*1e15*self.mit.mit_vol.mean()*self.ETC.rate.mean()
 
                 if 'ETC_ROS' in self.transporter_names:
-                    rate = rate + 2*3600 * 1e15 * self.ave_cell_vol * self.ETC_ROS.rate.mean()
+                    rate = rate + 3600*1e15*self.mit.mit_vol.mean()*self.ETC_ROS.rate.mean()
 
                 logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
 
+        logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
+        logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
 
-        if p.ions_dict['H'] != 1:
-            logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
-            logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
+        if self.mit_enabled:
+            logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
 
-            if self.mit_enabled:
-                logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
+        logs.log_info('Energy charge of cell ' + str(np.round(self.chi.mean(), 3)))
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 
@@ -949,12 +987,14 @@ class MasterOfMolecules(object):
                 # get the reaction object field
                 obj = getattr(self, name)
 
-                r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+                if len(obj.rate_time) > 0:
 
-                ax_all1D.plot(sim.time, r_rate, color = c_names.to_rgba(i), linewidth=2.0, label=name)
+                    r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
 
-                react_dataM.append(r_rate)
-                react_header = react_header + name + ' [mM/s]'+ ','
+                    ax_all1D.plot(sim.time, r_rate, color = c_names.to_rgba(i), linewidth=2.0, label=name)
+
+                    react_dataM.append(r_rate)
+                    react_header = react_header + name + ' [mM/s]'+ ','
 
             legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
@@ -996,22 +1036,31 @@ class MasterOfMolecules(object):
             for i, name in enumerate(self.transporter_names):
                 obj = getattr(self, name)
 
-                # check the data structure size for this transporter:
-                if len(obj.rate_time[0]) == sim.cdl:
+                # make a 1D plot of this reaction rate:
+                obj.plot_1D(sim, cells, p, self.imagePath)
 
-                    t_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+                if len(obj.rate_time) > 0:
 
-                elif len(obj.rate_time[0]) == sim.mdl:
-                    mem_i = cells.cell_to_mems[p.plot_cell][0]
-                    t_rate = [arr[mem_i] for arr in obj.rate_time]
+                    # check the data structure size for this transporter:
+                    if len(obj.rate_time[0]) == sim.cdl:
 
-                else:
-                    t_rate = np.zeros(len(sim.time))
+                        t_rate = [arr[p.plot_cell] for arr in obj.rate_time]
 
-                ax_all1D.plot(sim.time, t_rate, color = c_names.to_rgba(i), linewidth=2.0, label=name)
+                    elif len(obj.rate_time[0]) == sim.mdl:
+                        mem_i = cells.cell_to_mems[p.plot_cell][0]
+                        t_rate = [arr[mem_i] for arr in obj.rate_time]
 
-                transp_dataM.append(t_rate)
-                transp_header = transp_header + name + ' [mM/s]' + ','
+                    else:
+                        t_rate = np.zeros(len(sim.time))
+
+                    data_all1D = []
+                    fig_all1D = plt.figure()
+                    ax_all1D = plt.subplot(111)
+
+                    ax_all1D.plot(sim.time, t_rate, color = c_names.to_rgba(i), linewidth=2.0, label=name)
+
+                    transp_dataM.append(t_rate)
+                    transp_header = transp_header + name + ' [mM/s]' + ','
 
             legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
@@ -1034,6 +1083,46 @@ class MasterOfMolecules(object):
 
             np.savetxt(saveDataTransp, transp_dataM.T, delimiter=',', header=transp_header)
 
+        # energy charge plots:----------------------------------------------------------
+        # 1 D plot of mitochondrial voltage--------------------------------------------------------
+        chio = [arr[p.plot_cell] for arr in self.chi_time]
+
+        figChi = plt.figure()
+        axChi = plt.subplot(111)
+
+        axChi.plot(sim.time, chio)
+
+        axChi.set_xlabel('Time [s]')
+        axChi.set_ylabel('Energy charge')
+        axChi.set_title('Energy charge in cell: ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'EnergyCharge_cell_' + str(p.plot_cell) + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        #---2D plot--------------------------------------------------------------------
+
+
+
+        fig, ax, cb = viz.plotPolyData(sim, cells, p,
+            zdata=self.chi, number_cells=p.enumerate_cells, clrmap=p.default_cm)
+
+        ax.set_title('Final Energy Charge of Cell')
+        ax.set_xlabel('Spatial distance [um]')
+        ax.set_ylabel('Spatial distance [um]')
+        cb.set_label('Energy Charge')
+
+        if p.autosave is True:
+            savename = self.imagePath + '2DEnergyCharge.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+
     def anim(self, sim, cells, p, message = 'for auxiliary molecules...'):
         """
         Animates 2D data for each molecule in the simulation.
@@ -1043,9 +1132,10 @@ class MasterOfMolecules(object):
         logs.log_info('Animating data for ' + message)
         # get the name of the specific substance:
         for name in self.molecule_names:
+
             obj = getattr(self, name)
 
-            if p.createAnimations:
+            if p.createAnimations is True and obj.make_ani is True:
 
                 # create 2D animations for the substance in cells
                 obj.anim_cells(sim, cells, p)
@@ -1123,7 +1213,9 @@ class Molecule(object):
                                                                 Dm = self.Dm,
                                                                 Do = self.Do,
                                                                 c_bound = self.c_bound,
-                                                                ignoreECM = True)
+                                                                ignoreECM = True,
+                                                                smoothECM = True,
+                                                                ignoreTJ = self.ignoreTJ)
 
     def updateC(self, flux, sim, cells, p):
         """
@@ -1662,7 +1754,7 @@ class Reaction(object):
             self.get_reactants(sim, sim_metabo, 'c_cells', 'cc_cells')
             self.get_products(sim, sim_metabo, 'c_cells', 'cc_cells')
 
-        elif self.reaction_zone == 'mitochondria':
+        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
 
             self.get_reactants(sim, sim_metabo, 'c_mit', 'cc_mit')
             self.get_products(sim, sim_metabo, 'c_mit', 'cc_mit')
@@ -1736,40 +1828,62 @@ class Reaction(object):
 
             tag = 'cell'
 
-        elif self.reaction_zone == 'mitochondria':
+        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
 
             tag = 'mitochondria'
 
-        # get net effect of any activators or inhibitors of the reaction:
-        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.reaction_activators_list,
-            self.reaction_activators_Km, self.reaction_activators_n, self.reaction_inhibitors_list,
-            self.reaction_inhibitors_Km, self.reaction_inhibitors_n, reaction_zone=tag)
+        else:
 
-        # final degree of change, returned for use elsewhere (?):
-        flux = activator_alpha*inhibitor_alpha*reaction_rate
-        deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
+            tag = None
 
-        if self.reaction_zone == 'cell':
+        if tag is not None:
 
-            self.set_reactant_c(deltaC, sim, sim_metabo,'c_cells', 'cc_cells')
-            self.set_product_c(deltaC, sim, sim_metabo, 'c_cells', 'cc_cells')
+            # get net effect of any activators or inhibitors of the reaction:
+            activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.reaction_activators_list,
+                self.reaction_activators_Km, self.reaction_activators_n, self.reaction_inhibitors_list,
+                self.reaction_inhibitors_Km, self.reaction_inhibitors_n, reaction_zone=tag)
 
-        if self.reaction_zone == 'mitochondria':
+            # final degree of change, returned for use elsewhere (?):
+            flux = activator_alpha*inhibitor_alpha*reaction_rate
+            deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
 
-            self.set_reactant_c(deltaC, sim, sim_metabo,'c_mit', 'cc_mit')
-            self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
+            if self.reaction_zone == 'cell':
+
+                self.set_reactant_c(deltaC, sim, sim_metabo,'c_cells', 'cc_cells')
+                self.set_product_c(deltaC, sim, sim_metabo, 'c_cells', 'cc_cells')
+
+            if self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
+
+                self.set_reactant_c(deltaC, sim, sim_metabo,'c_mit', 'cc_mit')
+                self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
+
+        else:
+
+            flux = None
 
         return flux
 
     def plot_1D(self, sim, cells, p, saveImagePath):
 
-        r_rate = [arr[p.plot_cell] for arr in self.rate_time]
-        fig = plt.figure()
-        ax = plt.subplot(111)
-        ax.plot(sim.time, r_rate)
-        ax.set_xlabel('Time [s]')
-        ax.set_ylabel('Rate [mM/s]')
-        ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.plot_cell))
+        if self.reaction_zone == 'cell':
+
+            r_rate = [arr[p.plot_cell] for arr in self.rate_time]
+            fig = plt.figure()
+            ax = plt.subplot(111)
+            ax.plot(sim.time, r_rate)
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Rate [mM/s]')
+            ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.plot_cell))
+
+        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
+
+            r_rate = [arr[p.plot_cell] for arr in self.rate_time]
+            fig = plt.figure()
+            ax = plt.subplot(111)
+            ax.plot(sim.time, r_rate)
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Rate [mM/s]')
+            ax.set_title('Rate of ' + self.name + ' in mitochondria ' + str(p.plot_cell))
 
         if p.autosave is True:
             savename = saveImagePath + 'ReactionRate_' + self.name + '.png'
@@ -2184,6 +2298,8 @@ class Transporter(object):
     def compute_reaction(self, sim, sim_metabo, cells, p):
 
         if self.reaction_zone == 'cell':
+
+
             type_self_out = 'c_env'
             type_sim_out = 'cc_env'
 
@@ -2195,7 +2311,7 @@ class Transporter(object):
 
             vmem = sim.vm   # get the transmembrane voltage for this category
 
-        elif self.reaction_zone == 'mitochondria':
+        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
             type_self_out = 'c_cells'
             type_sim_out = 'cc_cells'
 
@@ -2206,6 +2322,9 @@ class Transporter(object):
             type_sim = 'cc_mit'
 
             vmem = sim_metabo.mit.Vmit  # get the transmembrane voltage for this category
+
+        else:
+            return  # don't proceed any further, get out of this function.
 
         echem_terms = []
         c_reactants_trans = []   # substances transferred across membrane -- start state concs
@@ -2290,7 +2409,7 @@ class Transporter(object):
             self.reactant_transfer_tag = ['c_mems' for x in range(0, len(self.c_reactants))]
             self.product_transfer_tag = ['c_mems' for x in range(0, len(self.c_products))]
 
-        elif self.reaction_zone == 'mitochondria':
+        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
 
             self.reactant_transfer_tag = ['c_mit' for x in range(0, len(self.c_reactants))]
             self.product_transfer_tag = ['c_mit' for x in range(0, len(self.c_products))]
@@ -2385,7 +2504,7 @@ class Transporter(object):
 
             tag = 'mems'
 
-        elif self.reaction_zone == 'mitochondria':
+        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
 
             tag = 'mitochondria'
 
@@ -2401,21 +2520,48 @@ class Transporter(object):
         if self.reaction_zone == 'cell':
             deltaMoles = deltaC*cells.mem_vol
 
-        elif self.reaction_zone == 'mitochondria':
+        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
             deltaMoles = deltaC*sim_metabo.mit.mit_vol
 
-        # print(self.name)
-        # print("delta moles", deltaMoles.mean())
-        # print("REACTANTS", self.reactants_list)
-        # print("PRODUCTS", self.products_list)
-        # print("REACTANT transfer tags", self.reactant_transfer_tag)
-        # print("PRODUCT transfer tags", self.product_transfer_tag)
-        # print('------------------------------------------------')
+        else:
+            deltaMoles = None
 
-        self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p)
-        self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p)
+
+        if deltaMoles is not None:
+
+            self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p)
+            self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p)
+
+        else:
+            deltaC = None
 
         return deltaC
+
+    def plot_1D(self, sim, cells, p, saveImagePath):
+
+        if len(self.rate_time) > 0:
+
+            if len(self.rate_time[0]) == sim.cdl:
+
+                r_rate = [arr[p.plot_cell] for arr in self.rate_time]
+
+            else:
+                mem_i = cells.cell_to_mems[p.plot_cell][0]
+                r_rate = [arr[mem_i] for arr in self.rate_time]
+
+            fig = plt.figure()
+            ax = plt.subplot(111)
+            ax.plot(sim.time, r_rate)
+            ax.set_xlabel('Time [s]')
+            ax.set_ylabel('Rate [mM/s]')
+            ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = saveImagePath + 'TransporterRate_' + self.name + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
 
 def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
                     n_i_list, reaction_zone='cell'):

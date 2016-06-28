@@ -626,58 +626,10 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
 
 reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
 
-reactions:                   # user-defined reactions, betweeen biomolecules defined above, and/or the simulation ions
-                             # 'Na', 'K', 'Cl', 'P', 'M', 'H'  (note the ion must be present in your profile for the
-                             # reaction to work, otherwise it is ignored.
-
-  - name: produce_Activator         # unique identifier for the reaction
-
-    reactants: ['Inhibitor', 'Dye']   # list of reagents; must be from set of names defined for biomolecules in above
-    reactant multipliers: [1,1]  # reaction coefficients for reagents, in same order as reagent definition
-    Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
-    products: ['Activator']         # list of products; must be from set of names defined for biomolecules in above
-    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
-    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
-    max rate: 1.0e-5          # maximum rate of the reaction
-    standard free energy: None  # standard free energy of reaction in J/mol. 'None' creates irreversible reaction
-    reaction activators: None   # additional substance increasing activity of reaction
-    activator Km: None          # Km of additional substances in same order as above
-    activator n: None
-    reaction inhibitors: None   # link to defined substances or ions inhibiting reaction activitiy
-    inhibitor Km: None          # Km of inhibitors
-    inhibitor n: None
-
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
 #-----------------------------------------------------------------------------------------------------------------------
-transporters enabled: False   # FIXME do an example transporter for ions in the default simulation
-
-transporters:
-
-  - name: NaCa_exchanger         # unique identifier for the transporter
-
-    reactants: ['Ca', 'Na']   # list of reagents; must be from set of names defined for biomolecules in above
-    reactant multipliers: [1,3]  # reaction coefficients for reagents, in same order as reagent definition
-    Km reactants: [0.1, 0.1]   # list of half-max coefficients for reagents, in same order as reagents list
-    products: ['Ca', 'Na']         # list of products; must be from set of names defined for biomolecules in above
-    product multipliers: [1, 3]   # reaction coefficients for products, in same order as product definition
-    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
-    transfered out of cell: ['Ca']   # items of reaction moved out of cell during forwards reaction
-    transfered into cell: ['Na']     # items of reaction moved into cell during forwards reaction
-    max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
-    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-    transporter activators: None   # additional defined substances or ions increasing activity of transporter
-    activator Km: None
-    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
-    inhibitor Km: None
-
-#-----------------------------------------------------------------------------------------------------------------------
-# CUSTOM CHANNELS
-#-----------------------------------------------------------------------------------------------------------------------
-custom channels enabled: False   # FIXME implement this in parameters and in molecule and in sim
-
-channels:
-
+transporters enabled: False
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM

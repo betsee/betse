@@ -207,6 +207,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     Dm: 2.0e-12          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: 0               # charge (oxidation state)
+    TJ permeable: True     # is the substance permeable through the tight junctions?
     env conc: 0.27         # initial concentration in the environment [mmol/L]
     cell conc: 0.27    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.27             # initial concentration in the mitochondria [mmol/L]
@@ -227,6 +228,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     Dm: 2.0e-12          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: 0               # charge (oxidation state)
+    TJ permeable: True     # is the substance permeable through the tight junctions?
     env conc: 1.2         # initial concentration in the environment [mmol/L]
     cell conc: 1.2    # initial concentration in the cytoplasm [mmol/L]
     mit conc: 1.2             # initial concentration in the mitochondria [mmol/L]

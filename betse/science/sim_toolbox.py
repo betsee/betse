@@ -88,7 +88,7 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     return flux
 
-def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):  # FIXME need rho_pumps!
+def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):
 
     """
     Parameters
@@ -996,7 +996,8 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6, ignoreECM = False):
+def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
+                   ignoreECM = False, smoothECM = False, ignoreTJ = False):
     """
     Transports a generic molecule across the membrane,
     through gap junctions, and if p.sim_ECM is true,
@@ -1144,8 +1145,10 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         denv_y = interp.griddata((cells.xypts[:, 0], cells.xypts[:, 1]), denv.ravel(),
             (cells.grid_obj.v_X, cells.grid_obj.v_Y), method='nearest', fill_value=Do)
 
-        denv_x = denv_x * sim.D_env_weight_u
-        denv_y = denv_y * sim.D_env_weight_v
+        if ignoreTJ is False:
+
+            denv_x = denv_x * sim.D_env_weight_u
+            denv_y = denv_y * sim.D_env_weight_v
 
         # calculate gradients in the environment
         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env, bounds='closed')
@@ -1219,6 +1222,10 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             cenv[:, 0] = c_bound
             cenv[0, :] = c_bound
             cenv[-1, :] = c_bound
+
+        if smoothECM is True:
+
+            cenv = gaussian_filter(cenv, p.smooth_level)
 
         # reshape the matrices into vectors:
         # self.v_env = self.v_env.ravel()
