@@ -27,7 +27,13 @@ from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from matplotlib import colors
 from matplotlib import cm
-from scipy.ndimage.filters import gaussian_filter
+
+from betse.science.tissue.channels import vg_na as vgna
+from betse.science.tissue.channels import vg_nap as vgnap
+from betse.science.tissue.channels import vg_k as vgk
+from betse.science.tissue.channels import vg_kir as vgkir
+from betse.science.tissue.channels import vg_funny as vgfun
+from betse.science.tissue.channels import vg_ca as vgca
 
 
 class MasterOfMolecules(object):
@@ -56,6 +62,7 @@ class MasterOfMolecules(object):
 
         self.reaction_names = []
         self.transporter_names = []
+        self.channel_names = []
 
         self.plot_cmap = 'viridis'
 
@@ -239,9 +246,6 @@ class MasterOfMolecules(object):
 
           """
 
-        # # Initialize a list that will keep track of reaction names in the simulation
-        # self.reaction_names = []
-
         # Initialize a list that keeps the index of the reaction:
         self.reaction_index = []
 
@@ -313,9 +317,6 @@ class MasterOfMolecules(object):
 
             """
 
-        # # Initialize a list that will keep track of reaction names in the simulation
-        # self.transporter_names = []
-
         # Initialize a list that keeps the index of the reaction:
         self.transporter_index = []
 
@@ -377,6 +378,45 @@ class MasterOfMolecules(object):
                 obj.mit_enabled = True
             else:
                 obj.mit_enabled = False
+
+    def read_channels(self, config_channels, sim, cells, p):
+
+        # Initialize a list that keeps the index of the channel:
+        self.channel_index = []
+
+        for q, chan_dic in enumerate(config_channels):
+            # get each user-defined name-filed in the dictionary:
+            name = str(chan_dic['name'])
+
+            # add the name to the name catalogue:
+            self.channel_names.append(name)
+            self.channel_index.append(q)
+
+            # add a field to the MasterOfReactions corresponding to Channel object with that name:
+            setattr(self, name, Channel())
+
+            # now set the attributes of that channel:
+
+            # get MasterOfMolecules.name
+            obj = getattr(self, name)
+
+            # assign general properties
+            obj.name = name  # let object know who it is
+
+            # list where the reaction takes place; if field not specified default to 'cell':
+            obj.reaction_zone = chan_dic.get('reaction zone', 'cell')
+
+            obj.channel_class = chan_dic['channel class']
+            obj.channel_type = chan_dic['channel type']
+            obj.channelMax = chan_dic['max conductivity']
+            obj.channel_activators = chan_dic.get('channel activators', None)
+            obj.activator_Km = chan_dic.get('activator Km', None)
+            obj.activator_n = chan_dic.get('activator n', None)
+            obj.channel_inhibitors = chan_dic.get('channel inhibitors', None)
+            obj.inhibitor_Km = chan_dic.get('inhibitor Km', None)
+            obj.inhibitor_n = chan_dic.get('activator n', None)
+
+            obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
     def set_react_sources(self, obj, sim, cells, p, reactant_name, i, reactant_type_self, reactant_type_sim):
 
@@ -602,6 +642,17 @@ class MasterOfMolecules(object):
 
             # compute the new reactants and products
             obj.rate = obj.compute_reaction(sim, sim_metabo, cells, p)
+
+    def run_loop_channels(self, sim, cells, p):
+
+        # get the object corresponding to the specific transporter:
+        for i, name in enumerate(self.channel_names):
+
+            # get the Reaction object:
+            obj = getattr(self, name)
+
+            # compute the channel activity
+            obj.run_channel(sim, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -1126,7 +1177,6 @@ class MasterOfMolecules(object):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
-
 
     def anim(self, sim, cells, p, message = 'for auxiliary molecules...'):
         """
@@ -2573,6 +2623,75 @@ class Transporter(object):
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
+
+class Channel(object):
+
+    def __init__(self):
+
+        self.dummy_dyna = DummyDyna()
+
+    def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
+
+        if ion_string == 'Na':
+
+            self.dummy_dyna.maxDmNa = max_val
+            self.dummy_dyna.targets_vgNa = np.asarray(cells.mem_i)
+            class_string = vgna
+
+        elif ion_string == 'NaP':
+
+            self.dummy_dyna.maxDmNaP = max_val
+            self.dummy_dyna.targets_vgNaP = np.asarray(cells.mem_i)
+            class_string = vgnap
+
+        elif ion_string == 'K':
+
+            self.dummy_dyna.maxDmK = max_val
+            self.dummy_dyna.targets_vgK = np.asarray(cells.mem_i)
+            class_string = vgk
+
+        elif ion_string == 'Kir':
+
+            self.dummy_dyna.maxDmKir = max_val
+            self.dummy_dyna.targets_vgKir = np.asarray(cells.mem_i)
+            class_string = vgkir
+
+        elif ion_string == 'Ca':
+
+            self.dummy_dyna.maxDmCa = max_val
+            self.dummy_dyna.targets_vgCa = np.asarray(cells.mem_i)
+            class_string = vgca
+
+        elif ion_string == 'Fun':
+
+            self.dummy_dyna.maxDmFun = max_val
+            self.dummy_dyna.targets_vgFun = np.asarray(cells.mem_i)
+            class_string = vgfun
+
+        else:
+
+            raise BetseExceptionParameters("Substance-modulated ion type not available. "
+                                           "Valid choices: Na, K, Ca, NaP, Kir, and Fun")
+
+            # create the desired voltage gated sodium channel instance:
+
+        self.channel_core = getattr(class_string,type_string)()
+
+
+        if p.run_sim is True:
+            # initialize the channel object
+            self.channel_core.init(self.dummy_dyna, sim, cells, p)
+
+    def run_channel(self, sim, cells, p):
+
+        self.channel_core.run(self.dummy_dyna, sim, cells, p)
+
+
+class DummyDyna(object):
+
+    def __init__(self):
+
+        pass
 
 def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
                     n_i_list, reaction_zone='cell'):

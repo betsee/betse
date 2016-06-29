@@ -937,6 +937,10 @@ class Simulator(object):
                     if self.metabo.transporters:
                         self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
 
+                    if self.metabo.channels:
+
+                        self.metabo.core.run_loop_channels(self, cells, p)
+
                     self.metabo.core.run_loop(t, self, cells, p)
 
                 # update gene regulatory network handler--------------------------------------------------------
@@ -948,6 +952,9 @@ class Simulator(object):
 
                     if self.grn.transporters:
                         self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
+
+                    if self.grn.channels:
+                        self.grn.core.run_loop_channels(self, cells, p)
 
                     # update the main gene regulatory network:
                     self.grn.core.run_loop(t, self, self.grn.core, cells, p)

@@ -399,6 +399,50 @@ class K_Slow(VgKABC):
         self._hInf = 1 / (1 + np.exp(-(V + 54) / -11))
         self._hTau = 360 + (1010 + 24 * (V + 55)) * np.exp(-((V + 75) / 48)**2)
 
+class KvLeak(VgKABC):
+
+    '''
+    Simple potassium leak channel -- always open -- for substance modulation.
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using a substance-modulated K+ channel')
+
+
+        self.vrev = -80     # reversal voltage used in model [mV]
+        Texpt = 23    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        self.qt = 1.0
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_K = 1
+        dyna.h_K = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 0
+        self._hpower = 0
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 1
+        self._mTau = 1
+        self._hInf = 1
+        self._hTau = 1
+
 
 
 

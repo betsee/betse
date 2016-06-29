@@ -214,3 +214,20 @@ reactions:
 #    inhibitor Km: None
 #    activator n: None
 
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM CHANNELS
+#-----------------------------------------------------------------------------------------------------------------------
+channels:
+
+  - name: ATP-K-channel
+
+    channel class: K       # class of the channels: Na, K, Ca, NaP, Kir, and Fun
+    channel type: KvLeak   # identify the channel as one of the available voltage gated types in each class
+    max conductivity: 1.0e-8          # maximum membrane conductivity to ion when channel fully open
+    channel activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
+    activator Km: [0.1]
+    activator n: [1.0]
+    channel inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: [5.0]
+    activator n: [1.0]
+

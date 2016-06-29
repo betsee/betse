@@ -169,7 +169,6 @@ class Ca_L(VgCaABC):
         self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
         V = V - 10
 
-
 class Ca_T(VgCaABC):
     '''
 
@@ -217,7 +216,6 @@ class Ca_T(VgCaABC):
         self._mTau = 3.394938 + (54.187616 / (1 + np.exp((V - -40.040397) / 4.110392)))
         self._hInf = 1 / (1 + np.exp((V - (-74.031965)) / 8.416382))
         self._hTau = 109.701136 + (0.003816 * np.exp(-V / 4.781719))
-
 
 class Ca_PQ(VgCaABC):
     '''
@@ -278,6 +276,50 @@ class Ca_PQ(VgCaABC):
 
         self._hInf = 1.0
         self._hTau = 1.0
+
+class CavLeak(VgCaABC):
+
+    '''
+    Simple calcium leak channel -- always open -- for substance modulation.
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using a substance-modulated Ca++ channel')
+
+
+        self.vrev = 30     # reversal voltage used in model [mV]
+        Texpt = 23    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        self.qt = 1.0
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_Ca = 1
+        dyna.h_Ca = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 0
+        self._hpower = 0
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 1
+        self._mTau = 1
+        self._hInf = 1
+        self._hTau = 1
 
 
 

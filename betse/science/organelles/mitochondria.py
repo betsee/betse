@@ -38,9 +38,6 @@ class Mito(object):
 
             arr[:] = 1.0e-18                 # membrane permeability altered so all are minimal
 
-        # self.Dm_mit[sim.iM] = 1.0e-17
-        # self.Dm_mit[sim.iK] = 1.0e-17
-
         self.Dm_mit_base = copy.deepcopy(self.Dm_mit)  # copies of Dm for ion channel dynamics
         self.Dm_channels = copy.deepcopy(self.Dm_mit)
 

@@ -52,6 +52,7 @@ class MasterOfMetabolism(object):
         substances_config = self.config_dic['biomolecules']
         reactions_config = self.config_dic['reactions']
         transporters_config = self.config_dic.get('transporters', None)
+        channels_config = self.config_dic.get('channels', None)
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
@@ -67,6 +68,13 @@ class MasterOfMetabolism(object):
 
         else:
             self.transporters = False
+
+        if channels_config is not None:
+            self.core.read_channels(channels_config, sim, cells, p)
+            self.channels = True
+
+        else:
+            self.channels = False
 
         # test to make sure the metabolic simulation includes core components:
         if self.core.ATP is None or self.core.ADP is None or self.core.Pi is None:
@@ -110,6 +118,9 @@ class MasterOfMetabolism(object):
 
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)
+
+            if self.channels:
+                self.core.run_loop_channels(sim, cells, p)
 
             self.core.run_loop(t, sim, cells, p)
 
