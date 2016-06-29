@@ -94,31 +94,48 @@ class Mito(object):
         cm2 = np.delete(self.cm_mit, target_inds_cell)
         self.cm_mit = cm2
 
+        cc_mit2 = []
+
         for i, arr in enumerate(sim.cc_mit):
 
             # remove cells from the mit ion array in sim:
             arr2 = np.delete(arr, target_inds_cell)
-            sim.cc_mit[i] = arr2
+            cc_mit2.append(arr2)
+
+        sim.cc_mit = np.asarray(cc_mit2)
+
+        dmit1 = []
+        dmit2 = []
+        dmit3 = []
+        zmit = []
 
         for i, arr in enumerate(self.Dm_mit):
 
             arr2 = np.delete(arr, target_inds_cell)
-            self.Dm_mit[i] = arr2
+            dmit2.append(arr2)
+
+        self.Dm_mit = np.asarray(dmit2)
 
         for i, arr in enumerate(self.Dm_mit_base):
 
             arr2 = np.delete(arr, target_inds_cell)
-            self.Dm_mit_base[i] = arr2
+            dmit1.append(arr2)
+
+        self.Dm_mit_base = np.asarray(dmit1)
 
         for i, arr in enumerate(self.Dm_channels):
 
             arr2 = np.delete(arr, target_inds_cell)
-            self.Dm_channels[i] = arr2
+            dmit3.append(arr2)
+
+        self.Dm_channels = np.asarray(dmit3)
 
         for i, arr in enumerate(self.zmit):
 
             arr2 = np.delete(arr, target_inds_cell)
-            self.zmit[i] = arr2
+            zmit.append(arr2)
+
+        self.zmit = np.asarray(zmit)
 
 
 

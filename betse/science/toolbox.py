@@ -473,7 +473,6 @@ def makegrid(xpts,ypts,gridsize,cells):
 
     return X, Y, dx, dy
 
-
 def RK4(f):
 
     """

@@ -137,15 +137,15 @@ class MasterOfMolecules(object):
 
                 if gating_ion_o != 'None':
                     obj.use_gating_ligand = True
-                    self.gating_ion = sim.get_ion(gating_ion_o)
+                    obj.gating_ion = sim.get_ion(gating_ion_o)
 
                 else:
                     obj.use_gating_ligand = False
-                    self.gating_ion = []
+                    obj.gating_ion = []
 
-                obj.gating_Hill_K = icg['target Hill coefficient']
-                obj.gating_Hill_n = icg['target Hill exponent']
-                obj.gating_max_val = icg['peak channel opening']
+                obj.gating_Hill_K = float(icg['target Hill coefficient'])
+                obj.gating_Hill_n = float(icg['target Hill exponent'])
+                obj.gating_max_val = float(icg['peak channel opening'])
                 obj.gating_extracell = icg['acts extracellularly']
 
             else:
@@ -613,7 +613,12 @@ class MasterOfMolecules(object):
 
         if self.mit_enabled:
 
-            self.mit.remove_mits(target_inds_cell)
+            self.mit.remove_mits(sim, target_inds_cell)
+
+        if sim.met_concs is not None: #update metabolism object if it's being simulated
+            sim.met_concs = {'cATP': self.ATP.c_mems,
+                'cADP': self.ADP.c_mems,
+                'cPi': self.Pi.c_mems}
 
     def clear_cache(self):
         """
@@ -1295,17 +1300,17 @@ class Molecule(object):
 
             if self.gating_extracell is False:
 
-                sim.Dm_mod_dye = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
+                Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
                                                                         self.gating_Hill_K,self.gating_Hill_n)
-
-                sim.Dm_morpho[self.gating_ion] = sim.Dm_mod_dye
+                sim.Dm_morpho[self.gating_ion] = sim.rho_channel*Dm_mod_mol
 
 
             elif self.gating_extracell is True and p.sim_ECM is True:
 
-                sim.Dm_mod_dye = self.gating_max_val*tb.hill(self.c_env,self.gating_Hill_K,self.gating_Hill_n)
 
-                sim.Dm_morpho[self.gating_ion] = sim.rho_channel*sim.Dm_mod_dye[cells.map_mem2ecm]
+                Dm_mod_mol = self.gating_max_val*tb.hill(self.c_env,self.gating_Hill_K,self.gating_Hill_n)
+
+                sim.Dm_morpho[self.gating_ion] = sim.rho_channel*Dm_mod_mol[cells.map_mem2ecm]
 
     def growth_and_decay(self, super_self, sim, cells, p):
         """
@@ -1346,18 +1351,24 @@ class Molecule(object):
         # remove cells from the cell concentration list:
         ccells2 = np.delete(self.c_cells, target_inds_cell)
         # reassign the new data vector to the object:
-        self.c_cells = ccells2
+        self.c_cells = ccells2[:]
 
         # remove cells from the mems concentration list:
         cmems2 = np.delete(self.c_mems, target_inds_mem)
         # reassign the new data vector to the object:
-        self.c_mems = cmems2
+        self.c_mems = cmems2[:]
+
+        if p.sim_ECM is False:
+
+            cenv2 = np.delete(self.c_env, target_inds_mem)
+            self.c_env = cenv2[:]
+
 
         if self.mit_enabled:
             # remove cells from the cell concentration list:
             cmit2 = np.delete(self.c_mit, target_inds_cell)
             # reassign the new data vector to the object:
-            self.c_mit = cmit2
+            self.c_mit = cmit2[:]
 
     def update_boundary(self, t, p):
         """

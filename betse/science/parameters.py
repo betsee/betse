@@ -434,21 +434,27 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
         self.molecules_enabled = self.config['biomolecules enabled']
 
-        self.molecules_config = self.config['biomolecules']
+        if self.molecules_enabled:
+
+            self.molecules_config = self.config['biomolecules']
 
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM REACTIONS
         #--------------------------------------------------------------------------------------------------------------
         self.reactions_enabled = self.config['reactions enabled']
 
-        self.reactions_config = self.config['reactions']
+        if self.reactions_enabled and self.molecules_enabled:
+
+            self.reactions_config = self.config['reactions']
 
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM TRANSPORTERS
         #--------------------------------------------------------------------------------------------------------------
         self.transporters_enabled = self.config['transporters enabled']
 
-        self.transporters_config = self.config['transporters']
+        if self.transporters_enabled and self.molecules_enabled:
+
+            self.transporters_config = self.config['transporters']
 
         #---------------------------------------------------------------------------------------------------------------
         #  METABOLISM
