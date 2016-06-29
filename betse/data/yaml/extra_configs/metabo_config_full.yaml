@@ -626,5 +626,23 @@ transporters:
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM CHANNELS
 #-----------------------------------------------------------------------------------------------------------------------
+#channels:
 #
-#  channels:
+#  - name: ATP-K-channel
+#
+#    channel class: K       # class of the channels: Na, K, Ca, NaP, Kir, and Fun
+#    channel type: KLeak   # identify the channel as one of the available voltage gated types in each class
+#    max conductivity: 1.0e-8          # maximum membrane conductivity to ion when channel fully open
+#    channel activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
+#    activator Km: [0.1]
+#    activator n: [3.0]
+#    channel inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
+#    inhibitor Km: [1.5]
+#    activator n: [3.0]
+#
+#    # channel class Na: Nav1p2, Nav1p3, NavRat1, NavRat2, NaLeak
+#    #               K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p5, Kv2p1, KLeak
+#    #               Kir: Kir2p1, Kv3p3, Kv3p4
+#    #               Ca: Ca_L, Ca_T, Ca_PQ, CaLeak
+#    #               NaP: Nav1p6
+#    #               Fun: HCN1, HCN2, HCN4

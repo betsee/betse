@@ -43,6 +43,8 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        self.modulator = 1.0
+
         self.v_corr = 0.0  # offset of voltages in the model -- experimental junction voltage [mV]
 
         V = sim.vm[dyna.targets_vgNa] * 1000 + self.v_corr
@@ -342,7 +344,7 @@ class NavRat3(VgNaABC):  # FIXME finish this!
         self._hTau = 1 / ((0.024 * (V - -50)) / (1 - (np.exp(-(V - -50) / 5))) + (0.0091 * (-V - 75.000123)) / (
         1 - (np.exp(-(-V - 75.000123) / 5))))
 
-class NavLeak(VgNaABC):
+class NaLeak(VgNaABC):
 
     '''
     Simple sodium leak channel -- always open -- for substance modulation.

@@ -120,7 +120,7 @@ class MasterOfMetabolism(object):
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)
 
             if self.channels:
-                self.core.run_loop_channels(sim, cells, p)
+                self.core.run_loop_channels(sim, self.core, cells, p)
 
             self.core.run_loop(t, sim, cells, p)
 

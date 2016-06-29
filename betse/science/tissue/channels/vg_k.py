@@ -44,6 +44,8 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        self.modulator = 1.0
+
         self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
 
         V = sim.vm[dyna.targets_vgK] * 1000 + self.v_corr
@@ -399,7 +401,7 @@ class K_Slow(VgKABC):
         self._hInf = 1 / (1 + np.exp(-(V + 54) / -11))
         self._hTau = 360 + (1010 + 24 * (V + 55)) * np.exp(-((V + 75) / 48)**2)
 
-class KvLeak(VgKABC):
+class KLeak(VgKABC):
 
     '''
     Simple potassium leak channel -- always open -- for substance modulation.
@@ -416,7 +418,7 @@ class KvLeak(VgKABC):
         logs.log_info('You are using a substance-modulated K+ channel')
 
 
-        self.vrev = -80     # reversal voltage used in model [mV]
+        self.vrev = -65     # reversal voltage used in model [mV]
         Texpt = 23    # temperature of the model in degrees C
         simT = sim.T - 273   # model temperature in degrees C
         self.qt = 1.0

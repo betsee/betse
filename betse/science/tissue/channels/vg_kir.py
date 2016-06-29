@@ -46,6 +46,8 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        self.modulator = 1.0
+
         self.v_corr = 0.0
 
         V = sim.vm[dyna.targets_vgKir] * 1000 + self.v_corr
@@ -207,7 +209,6 @@ class Kv3p4(VgKirABC):
         self._mTau = 10.000 / (1 + np.exp(((V - (4.440)) / (38.140))))
         self._hInf = 1 / (1 + np.exp(((V - (-53.320)) / (7.400))))
         self._hTau = 20000.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
-
 
 class Kv3p3(VgKirABC):
 

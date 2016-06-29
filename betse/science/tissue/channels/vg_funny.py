@@ -43,6 +43,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        self.modulator = 1.0
 
         V = sim.vm[dyna.targets_vgFun] * 1000
 

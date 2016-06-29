@@ -43,6 +43,8 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        self.modulator = 1.0
+
         self.v_corr = 0.0  # offset of voltages in the model -- experimental junction voltage [mV]
 
         V = sim.vm[dyna.targets_vgNaP] * 1000 + self.v_corr

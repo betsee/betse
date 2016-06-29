@@ -409,12 +409,12 @@ class MasterOfMolecules(object):
             obj.channel_class = chan_dic['channel class']
             obj.channel_type = chan_dic['channel type']
             obj.channelMax = chan_dic['max conductivity']
-            obj.channel_activators = chan_dic.get('channel activators', None)
-            obj.activator_Km = chan_dic.get('activator Km', None)
-            obj.activator_n = chan_dic.get('activator n', None)
-            obj.channel_inhibitors = chan_dic.get('channel inhibitors', None)
-            obj.inhibitor_Km = chan_dic.get('inhibitor Km', None)
-            obj.inhibitor_n = chan_dic.get('activator n', None)
+            obj.channel_activators_list = chan_dic.get('channel activators', None)
+            obj.channel_activators_Km = chan_dic.get('activator Km', None)
+            obj.channel_activators_n = chan_dic.get('activator n', None)
+            obj.channel_inhibitors_list = chan_dic.get('channel inhibitors', None)
+            obj.channel_inhibitors_Km = chan_dic.get('inhibitor Km', None)
+            obj.channel_inhibitors_n = chan_dic.get('activator n', None)
 
             obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
@@ -643,7 +643,7 @@ class MasterOfMolecules(object):
             # compute the new reactants and products
             obj.rate = obj.compute_reaction(sim, sim_metabo, cells, p)
 
-    def run_loop_channels(self, sim, cells, p):
+    def run_loop_channels(self, sim, sim_metabo, cells, p):
 
         # get the object corresponding to the specific transporter:
         for i, name in enumerate(self.channel_names):
@@ -652,7 +652,7 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             # compute the channel activity
-            obj.run_channel(sim, cells, p)
+            obj.run_channel(sim, sim_metabo, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -1376,12 +1376,6 @@ class Molecule(object):
             self.growth_inhibitors_list, self.growth_inhibitors_k, self.growth_inhibitors_Km,
             self.growth_inhibitors_n, reaction_zone='cell')
 
-
-        # RK4 method (appears identical to faster Euler method)
-        # delta_cells = tb.RK4(lambda cc: self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc)
-        # c_change = delta_cells(self.c_cells, p.dt)
-        # self.c_cells = self.c_cells + c_change
-        # self.c_mems = self.c_mems + c_change[cells.mem_to_cells]
 
         delta_cells = self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
         self.c_cells = self.c_cells + delta_cells*p.dt
@@ -2682,7 +2676,15 @@ class Channel(object):
             # initialize the channel object
             self.channel_core.init(self.dummy_dyna, sim, cells, p)
 
-    def run_channel(self, sim, cells, p):
+    def run_channel(self, sim, sim_metabo, cells, p):
+
+        # get modulation coefficients by any activating/inhibiting substances:
+        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.channel_activators_list,
+            self.channel_activators_Km, self.channel_activators_n, self.channel_inhibitors_list,
+            self.channel_inhibitors_Km, self.channel_inhibitors_n, reaction_zone='mems')
+
+        # calculate the value of the channel modulation constant:
+        self.channel_core.modulator = activator_alpha*inhibitor_alpha
 
         self.channel_core.run(self.dummy_dyna, sim, cells, p)
 

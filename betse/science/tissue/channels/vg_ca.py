@@ -42,6 +42,8 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
         '''
 
+        self.modulator = 1.0
+
         self.v_corr = 0.0  # offset of voltages in the model -- experimental junction voltage [mV]
 
         V = sim.vm[dyna.targets_vgCa] * 1000 + self.v_corr
@@ -277,7 +279,7 @@ class Ca_PQ(VgCaABC):
         self._hInf = 1.0
         self._hTau = 1.0
 
-class CavLeak(VgCaABC):
+class CaLeak(VgCaABC):
 
     '''
     Simple calcium leak channel -- always open -- for substance modulation.
