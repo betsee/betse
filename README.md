@@ -3,16 +3,19 @@ BETSE
 
 **BETSE** (**B**io **E**lectric **T**issue **S**imulation **E**ngine) is a
 cross-platform, open-source [finite
-volume](https://en.wikipedia.org/wiki/Finite_volume_method) analyzer, solver,
-and simulator for computational multiphysics problems in the life sciences –
-including [biochemical reaction
-networks](http://www.nature.com/subjects/biochemical-reaction-networks) (e.g.,
-metabolism), [gene regulatory
-networks](https://en.wikipedia.org/wiki/Gene_regulatory_network),
+volume](https://en.wikipedia.org/wiki/Finite_volume_method) simulator for 2D 
+computational multiphysics problems in the life sciences, including: 
 [electrodiffusion](https://en.wikipedia.org/wiki/Nernst%E2%80%93Planck_equation),
 [electro-osmosis](https://en.wikipedia.org/wiki/Electro-osmosis),
-[electrotaxis](https://en.wiktionary.org/wiki/galvanotaxis), and [voltage-gated
-ion channels](https://en.wikipedia.org/wiki/Voltage-gated_ion_channel).
+[galvanotaxis](https://en.wiktionary.org/wiki/galvanotaxis), [voltage-gated
+ion channels](https://en.wikipedia.org/wiki/Voltage-gated_ion_channel), [gene regulatory
+networks](https://en.wikipedia.org/wiki/Gene_regulatory_network), and
+[biochemical reaction
+networks](http://www.nature.com/subjects/biochemical-reaction-networks) (e.g.
+metabolism). BETSE is associated with the [Paul Allen Discovery Center at 
+Tufts University](http://www.alleninstitute.org/what-we-do/frontiers-group/discovery-centers/allen-discovery-center-tufts-university/) 
+and is supported by a Paul Allen Discovery Center award from the 
+[Paul G. Allen Frontiers Group](https://www.alleninstitute.org/what-we-do/frontiers-group).
 
 BETSE is [portably implemented](betse) in pure [Python
 3](https://en.wikipedia.org/wiki/History_of_Python), [continuously
@@ -26,10 +29,39 @@ low-level command line interface (CLI) named `betse`.
 ## Synopsis
 
 BETSE simulates biorealistic electrochemical phenomena in gap
-junction-networked, two-dimensional cellular collectives. To predict bioelectric
+junction-networked, 2D cellular collectives. To predict bioelectric
 patterns and their spatio-temporal dynamics, BETSE models ion channel and gap
-junction activity, tracks changes in ion concentration, and emits
-publication-quality plots and animations of the resulting behavior.
+junction activity, tracks changes in ion concentration and net ionic charge,
+calculates endogenous voltages and currents, 
+and emits raw data, publication-quality plots, and animations of the 
+resulting behavior. Cell clusters can be shaped, and tissue profiles defining 
+regions of unique ion channel activity defined, using user-created bitmaps. 
+
+Simulations can optionally include the 7 ions underpinning bioelectrical 
+signals: Na+, K+, Cl-, Ca++, H+, HCO-, and anionic proteins (P-). 
+
+Individual cells can include a variety of voltage gated ion channels, which are
+based on Hodgkin-Huxley formalism with experimentally-derived variables sourced
+from [Channelpedia](http://channelpedia.epfl.ch/). Currently implemented voltage
+gated channel types are: Nav1.2, Nav1.3, Nav1.6, Kv1.2, Kv1.2, Kv.1.5, Kv3.3, 
+Kv3.4, Kir2.1, L-type Ca, T-type Ca, P/Q-type Ca, HCN1, HCN2, and HCN4. In 
+addition, a variety of built-in and custom leak and ligand gated channels 
+are available, including calcium-gated K+ channels. Further control of 
+bioelectric cell dynamics is enabled by a range of ion pumps and exchangers, 
+including Na/K-ATPase, H/K-ATPase, V-ATPase, and Ca-ATPase. 
+
+Cells form an interconnected intracellular network via voltage-sensitive 
+gap junction connections, and a unique extracellular environment can be 
+maintained by tight junctions at the cluster periphery. Simulation of the 
+extracellular environment allows for exploration of local field potentials, the 
+transepithelial potential, and ephaptic coupling between cells. 
+
+BETSE also has biosystems modeling capabilities to implement custom 
+gene regulatory networks, biochemical reaction networks (with an emphasis on 
+metabolism) and integrate the interaction (i.e. activity modulation) between 
+gene-products and other biochemicals with ion channels, pumps and gap junctions,
+thereby allowing for the study of relationships between the powerful control
+systems of both gene/biochemcial regulatory networks and bioelectrical signals. 
 
 Simulation performance is perpetually validated by matching experimentally
 observed data on membrane permeability, ion concentration, resting potential,
@@ -46,6 +78,27 @@ been demonstrated for a range of well-known cases, including:
 * Development of realistic bioelectric signals on large-scale cellular wounds.
 
 For details, see our recently published [introductory paper](#reference).
+
+## License
+
+BETSE is open-source software licensed under the permissive [BSD 2-clause
+license](https://opensource.org/licenses/BSD-2-Clause). See [`LICENSE`](LICENSE)
+for exhaustive details.
+
+## Reference
+
+When utilizing BETSE in your own work, please cite the following 
+[open-access introductory
+paper](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract):
+
+> Pietak Alexis and [Levin Michael](https://ase.tufts.edu/biology/labs/levin/)
+> (2016). [**Exploring Instructive Physiological
+> Signaling with the Bioelectric Tissue Simulation Engine
+> (BETSE)**](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract).
+> [_Frontiers in Bioengineering and
+> Biotechnology_](http://journal.frontiersin.org/journal/bioengineering-and-biotechnology)
+> 4, 55. `doi:10.3389/fbioe.2016.00055`
+
 
 ## Requirements
 
@@ -71,10 +124,9 @@ BETSE currently runs _only_ on:
 
 ## Recommendations
 
-BETSE currently recommends but does *not* require:
+BETSE currently recommends:
 
-* **At least 8GB RAM**. Again, this is due to the memory intensiveness of
-  even small-scale tissue simulations.
+* **At least 4GB RAM**. 
 
 ## Dependencies
 
@@ -84,8 +136,6 @@ BETSE has both:
   installed.
 * Optional dependencies that may be installed at any time, at the user's
   discretion.
-
-The uncomputable joy-luck installation begins now!
 
 ### Mandatory
 
@@ -900,29 +950,3 @@ OS X executables on Linux. The conventional solution is to install OS X as a
 virtual guest of an existing Linux host and perform freezing under such guest.
 We recommend the open-source product VMware for this purpose.
 
-## License
-
-BETSE is open-source software licensed under the permissive [BSD 2-clause
-license](https://opensource.org/licenses/BSD-2-Clause). See [`LICENSE`](LICENSE)
-for exhaustive details.
-
-## Reference
-
-When utilizing BETSE in your own work, consider citing the following 
-[open-access introductory
-paper](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract):
-
-> Pietak Alexis, [Levin Michael](https://ase.tufts.edu/biology/labs/levin/)
-> (2016). [**Exploring Instructive Physiological
-> Signaling with the Bioelectric Tissue Simulation Engine
-> (BETSE)**](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract).
-> [_Frontiers in Bioengineering and
-> Biotechnology_](http://journal.frontiersin.org/journal/bioengineering-and-biotechnology)
-> 4, 55. `doi:10.3389/fbioe.2016.00055`
-
-## Acknowledgements
-
-This work was graciously supported by a [Paul Allen Discovery Center
-(PADC)](http://www.alleninstitute.org/what-we-do/frontiers-group/discovery-centers/allen-discovery-center-tufts-university)
-award from the [Paul G. Allen Frontiers
-Group](https://www.alleninstitute.org/what-we-do/frontiers-group).
