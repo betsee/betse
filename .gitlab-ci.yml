@@ -1,0 +1,52 @@
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Project-wide GitLab-CI configuration, integrating the in-house free-as-in-beer
+# continuous integration (CI) service exposed by GitLab with this project's
+# "py.test"-driven test suite.
+
+#FIXME: Replace use of the default pip cache with "pip-accel", which appears to
+#be substantially faster. For now, pip cache is better than no cache.
+
+# ....................{ DOCKER                             }....................
+# Name of the Docker image provisioning the software stack to be tested against.
+# Names of Python-specific Docker images include:
+#
+# * "python:2", provisioning a Python 2.7 software stack.
+# * "python:3", provisioning a Python 3.x software stack.
+image: python:3
+
+# ....................{ DEPENDENCIES                       }....................
+cache:
+  # List of the relative or absolute paths of all directories to be preserved
+  # between CI pipelines. (Note that relative paths are relative to the current
+  # build directory.)
+  paths:
+    # The directory to which pip caches artifacts pertaining to previously
+    # installed and possibly compiled dependencies.
+    - $HOME/.cache/pip
+    # - pip-cache
+
+# List of all external commands to be run *FIRST* for this CI pipeline.
+before_script:
+  # Update all system packages installed by default with this Docker image for
+  # the duration of this CI pipeline.
+  - apt-get update -qy
+
+  #FIXME: Is this line actually helpful? Presumably, the "python:3" Docker image
+  #should already provision these for us. Let's omit this, for now.
+  # - apt-get install -y python3 python3-dev python3-pip
+
+  # Install all Python-specific dependencies via pip3.
+  # - export PIP_CACHE_DIR="pip-cache"
+  - pip3 install -qr requirements.txt
+
+# ....................{ TESTS                              }....................
+test:
+  # List of all external commands to be run *AFTER* those listed above by
+  # "before_script" for each CI pipeline.
+  script:
+    # Run the entire "py.test"-based test suite.
+    - py.test

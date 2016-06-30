@@ -1,0 +1,18 @@
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Project-wide pip configuration. When installing this package via pip, each
+# uncommented line of this file lists:
+#
+# * A command-line option to be passed to the "pip install" command, prefixed
+#   by either "-" or "--".
+# * A package dependency to be installed by pip.
+
+# ....................{ OPTIONS                            }....................
+# This package currently requires no custom options.
+
+# ....................{ DEPENDENCIES                       }....................
+# Default to the set of all dependencies listed by the "setup.py" script.
+.

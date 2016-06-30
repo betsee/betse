@@ -2,15 +2,50 @@ BETSE
 ===========
 
 **BETSE** (**B**io **E**lectric **T**issue **S**imulation **E**ngine) is an open-
-source cross-platform suite of scientific software for the life sciences –
-emphasizing bio-realistic modelling of dynamic electrochemical phenomena in gap
-junction-networked cell collectives and spatio-temporal pattern formation. For
-usability _and_ scriptability, this suite includes both high-level graphical
-user (GUI) and low-level command line (CLI) interfaces. 
+source cross-platform [finite
+volume](https://en.wikipedia.org/wiki/Finite_volume_method) analyzer, solver,
+and simulator for computational multiphysics problems in the life sciences –
+including [biochemical reaction
+networks](http://www.nature.com/subjects/biochemical-reaction-networks) (e.g.,
+metabolism), [gene regulatory
+networks](https://en.wikipedia.org/wiki/Gene_regulatory_network),
+[electrodiffusion](https://en.wikipedia.org/wiki/Nernst%E2%80%93Planck_equation),
+[electro-osmosis](https://en.wikipedia.org/wiki/Electro-osmosis),
+electrotaxis](https://en.wiktionary.org/wiki/galvanotaxis), and [voltage-gated
+ion channels](https://en.wikipedia.org/wiki/Voltage-gated_ion_channel).
 
-BETSE is portably implemented in pure Python 3, [rigorously tested](#testing)
-with [`py.test`](http://pytest.org), and [permissively distributed](#license)
-under the [BSD 2-clause license](https://opensource.org/licenses/BSD-2-Clause).
+BETSE is portably implemented in pure Python 3, [continuously tested](#testing)
+with the rigorous [`py.test`](http://pytest.org) harness, and [permissively
+distributed](#license) under the [BSD 2-clause
+license](https://opensource.org/licenses/BSD-2-Clause). While a high-level
+graphical user interface (GUI) is planned, BETSE currently only implements a
+low-level command line interface (CLI).
+
+## Synopsis
+
+BETSE simulates biorealistic electrochemical phenomena in gap junction-networked
+two-dimensional cellular collectives. To predict bioelectric patterns and their
+spatio-temporal dynamics, BETSE:
+
+* Models ion channel and gap junction activity.
+* Tracks changes in ion concentration.
+* Emits publication-quality plots and animations of the resulting behavior.
+
+Simulation performance is perpetually validated by matching experimentally
+observed data on membrane permeability, ion concentration, resting potential,
+and related biophysical quantities to simulation output. The expected outcomes
+are demonstrated for an array of such well-known cases as:
+
+* Prediction of the correct [transmembrane
+  voltage](https://en.wikipedia.org/wiki/Membrane_potential) changes on
+  perturbations to single cell membrane states and environmental ion
+  concentrations.
+* Development of realistic
+  [transepithelial potential differences
+  (TEPD)](https://en.wikipedia.org/wiki/Transepithelial_potential_difference).
+* Development of realistic bioelectric signals on large-scale cellular wounds.
+
+For details, see our recently published [introductory paper](#reference).
 
 ## Requirements
 
@@ -870,3 +905,22 @@ We recommend the open-source product VMware for this purpose.
 BETSE is open-source software licensed under the permissive [BSD 2-clause
 license](https://opensource.org/licenses/BSD-2-Clause). See [`LICENSE`](LICENSE)
 for exhaustive details.
+
+## Reference
+
+If utilizing BETSE in your own research, consider citing our
+[introductory open-access
+paper](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract):
+
+> Pietak Alexis, Levin Michael (2016). [**Exploring Instructive Physiological
+> Signaling with the Bioelectric Tissue Simulation Engine
+> (BETSE)**]((http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract).
+> _Frontiers in Bioengineering and Biotechnology_ 4, 55.
+> `doi:10.3389/fbioe.2016.00055`
+
+## Acknowledgements
+
+This work was graciously supported by a [Paul Allen Discovery Center
+(PADC)](http://www.alleninstitute.org/what-we-do/frontiers-group/discovery-centers/allen-discovery-center-tufts-university)
+award from the [Paul G. Allen Frontiers
+Group](https://www.alleninstitute.org/what-we-do/frontiers-group).
