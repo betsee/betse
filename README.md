@@ -1,8 +1,8 @@
 BETSE
 ===========
 
-**BETSE** (**B**io **E**lectric **T**issue **S**imulation **E**ngine) is an open-
-source cross-platform [finite
+**BETSE** (**B**io **E**lectric **T**issue **S**imulation **E**ngine) is a
+cross-platform, open-source [finite
 volume](https://en.wikipedia.org/wiki/Finite_volume_method) analyzer, solver,
 and simulator for computational multiphysics problems in the life sciences –
 including [biochemical reaction
@@ -11,30 +11,30 @@ metabolism), [gene regulatory
 networks](https://en.wikipedia.org/wiki/Gene_regulatory_network),
 [electrodiffusion](https://en.wikipedia.org/wiki/Nernst%E2%80%93Planck_equation),
 [electro-osmosis](https://en.wikipedia.org/wiki/Electro-osmosis),
-electrotaxis](https://en.wiktionary.org/wiki/galvanotaxis), and [voltage-gated
+[electrotaxis](https://en.wiktionary.org/wiki/galvanotaxis), and [voltage-gated
 ion channels](https://en.wikipedia.org/wiki/Voltage-gated_ion_channel).
 
-BETSE is portably implemented in pure Python 3, [continuously tested](#testing)
-with the rigorous [`py.test`](http://pytest.org) harness, and [permissively
+BETSE is [portably implemented](betse) in pure [Python
+3](https://en.wikipedia.org/wiki/History_of_Python), [continuously
+stress-tested](#testing) with [GitLab-CI](https://about.gitlab.com/gitlab-ci)
+**+** [py.test](http://pytest.org), and [permissively
 distributed](#license) under the [BSD 2-clause
 license](https://opensource.org/licenses/BSD-2-Clause). While a high-level
-graphical user interface (GUI) is planned, BETSE currently only implements a
-low-level command line interface (CLI).
+graphical user interface (GUI) is planned, BETSE currently _only_ provides a
+low-level command line interface (CLI) named `betse`.
 
 ## Synopsis
 
-BETSE simulates biorealistic electrochemical phenomena in gap junction-networked
-two-dimensional cellular collectives. To predict bioelectric patterns and their
-spatio-temporal dynamics, BETSE:
-
-* Models ion channel and gap junction activity.
-* Tracks changes in ion concentration.
-* Emits publication-quality plots and animations of the resulting behavior.
+BETSE simulates biorealistic electrochemical phenomena in gap
+junction-networked, two-dimensional cellular collectives. To predict bioelectric
+patterns and their spatio-temporal dynamics, BETSE models ion channel and gap
+junction activity, tracks changes in ion concentration, and emits
+publication-quality plots and animations of the resulting behavior.
 
 Simulation performance is perpetually validated by matching experimentally
 observed data on membrane permeability, ion concentration, resting potential,
-and related biophysical quantities to simulation output. The expected outcomes
-are demonstrated for an array of such well-known cases as:
+and related biophysical quantities to simulation output. Expected outcomes have
+been demonstrated for a range of well-known cases, including:
 
 * Prediction of the correct [transmembrane
   voltage](https://en.wikipedia.org/wiki/Membrane_potential) changes on
@@ -908,15 +908,17 @@ for exhaustive details.
 
 ## Reference
 
-If utilizing BETSE in your own research, consider citing our
-[introductory open-access
+When utilizing BETSE in your own work, consider citing the following 
+[open-access introductory
 paper](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract):
 
-> Pietak Alexis, Levin Michael (2016). [**Exploring Instructive Physiological
+> Pietak Alexis, [Levin Michael](https://ase.tufts.edu/biology/labs/levin/)
+> (2016). [**Exploring Instructive Physiological
 > Signaling with the Bioelectric Tissue Simulation Engine
-> (BETSE)**]((http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract).
-> _Frontiers in Bioengineering and Biotechnology_ 4, 55.
-> `doi:10.3389/fbioe.2016.00055`
+> (BETSE)**](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract).
+> [_Frontiers in Bioengineering and
+> Biotechnology_](http://journal.frontiersin.org/journal/bioengineering-and-biotechnology)
+> 4, 55. `doi:10.3389/fbioe.2016.00055`
 
 ## Acknowledgements
 
