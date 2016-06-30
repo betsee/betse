@@ -162,6 +162,58 @@ class Kv1p2(VgKABC):
         self._hInf = 1.0000/(1+ np.exp((V + 22.0000)/11.3943))
         self._hTau = 15000.0000/(1+ np.exp(-(V + 46.5600)/44.1479))
 
+class Kv1p3(VgKABC):
+    '''
+    Kv1.3 model from Douglass et al 1990.
+
+    Potassium voltage-gated channel Kv1.3 is a member of the shaker-related subfamily and belongs to the
+    delayed rectifier class of channels, which allow nerve cells to efficiently re-polarize following an
+    action potential. This channel is implicated in a host of non-neural activity, including autoimmune
+    and inflammatory disorders, cell proliferation, and cancer development.
+
+    reference:	Douglass J. et al. Characterization and functional expression of a rat genomic DNA
+    clone encoding a lymphocyte potassium channel. J. Immunol., 1990 Jun 15 , 144 (4841-50).
+
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the vgK channel: Kv1.3')
+
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_K = 1.0000 / (1 + np.exp((V - -14.1000) / -10.3000))
+        dyna.h_K = 1.0000 / (1 + np.exp((V - -33.0000) / 3.7000))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 1.0000 / (1 + np.exp((V - -14.1000) / -10.3000))
+        self._mTau = (-0.2840 * V) + 19.1600
+        self._hInf = 1.0000 / (1 + np.exp((V - -33.0000) / 3.7000))
+        self._hTau = (-13.7600 * V) + 1162.4000
+
+
 class Kv1p1(VgKABC):
     '''
     Kv1.1 model from Christie et al, cloned from rat brain, studied in xenopus.

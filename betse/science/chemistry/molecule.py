@@ -529,6 +529,9 @@ class MasterOfMolecules(object):
             # calculate energy charge in the cell:
             self.energy_charge(sim)
 
+            # ensure no negs:
+            stb.no_negs(obj.c_mems)
+
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
 
             self.mit.update(sim, cells, p)
@@ -2687,7 +2690,6 @@ class Channel(object):
         self.channel_core.modulator = activator_alpha*inhibitor_alpha
 
         self.channel_core.run(self.dummy_dyna, sim, cells, p)
-
 
 class DummyDyna(object):
 

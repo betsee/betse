@@ -417,8 +417,8 @@ stretch gated Na+:         # stretch activated depolarization (Na+) channel
 voltage gated K+:             # voltage gated potassium channel, delayed rectifyer
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
-    channel type: ['K_Slow','K_Fast']      # available types: 'Kv1p1', 'Kv1p2' (brain), 'Kv1p5' (muscle),
-                             # 'K_Slow', 'K_Fast', 'Kv2p1'
+    channel type: ['K_Slow','K_Fast']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
+                                           # 'K_Slow', 'K_Fast', 'Kv2p1'
     max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 additional voltage gated K+:    # Other types of K+ currents including inward-rectifying
@@ -1044,6 +1044,8 @@ internal parameters:
   alpha_HK:  1.0e-5    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 
   alpha_V:  1.0e-5     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+
+  alpha_NaCa: 1.0e-5    # rate of Na/Ca exchanger [m/mol*s]
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 

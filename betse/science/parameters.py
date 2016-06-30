@@ -557,6 +557,9 @@ class Parameters(object):
         # include V-ATPase in the simulation? Yes =1, No = 0
         self.VATPase_dyn = self.config['variable settings']['optional pumps']['VATPase pump']
 
+        # include a Na-Ca exchanger in the simulation?
+        self.NaCa_exch_dyn = self.config['variable settings']['optional pumps']['Na/Ca exchanger']
+
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
 
@@ -849,14 +852,10 @@ class Parameters(object):
         self.KmV_ATP = 0.15    # V-ATPase half-max sat value for ATP (0.13 to 0.5 )
         self.KmV_H = 1.0e-5    # V-ATPase half-max sat value for H
 
-        # FIXME add this to config (ATP Synthase parameters, metabolism module)
-        self.alpha_AS = 1.0e-5
-        self.KmAS_ADP = 0.3
-        self.KmAS_H = 6.6e-3
-        self.KmAS_P = 2.0
-        self.KmAS_ATP = 0.1
-
-        # self.simulate_TEP = iu['simulate TEP']
+        # FIXME add this to config (Na-Ca exchanger parameters)
+        self.alpha_NaCaExch = float(iu.get('alpha_NaCa', 1.0e-6))
+        self.KmNC_Na = 5.0
+        self.KmNC_Ca = 1.0e-3
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]

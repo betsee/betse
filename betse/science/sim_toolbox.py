@@ -218,8 +218,6 @@ def pumpCaATP(cCai,cCao,Vm,T,p, met = None):
 
     f_Ca = -p.alpha_Ca*(frwd - (Q/Keq)*bkwrd)  # flux as [mol/m2s]
 
-    # print(f_Ca.min(), f_Ca.max())
-
     return f_Ca
 
 def pumpCaER(cCai,cCao,Vm,T,p):  # FIXME this should be replaced and use only pumpCaATP, defined above!
@@ -311,7 +309,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
 
     return f_H, f_K
 
-def pumpVATP(cHi,cHo,Vm,T,p,block, met = None):
+def pumpVATP(cHi,cHo,Vm,T,p, block, met = None):
 
     deltaGATP_o = p.deltaGATP
 
@@ -352,55 +350,55 @@ def pumpVATP(cHi,cHo,Vm,T,p,block, met = None):
 
     return f_H
 
-def pumpATPSynth(cHi,cHo,cATP,cADP,cPi,Vm,T,p):
+def exch_NaCa(cNai, cNao, cCai, cCao, Vm, T, p):
     """
-    Calculates H+ flux into the mitochondrial matrix (+
-    flow is into the mitochondria), which is equivalent
-    to ATP created and ADP consumed in the ATP Synthase
-    enzyme reaction of the mitochondria.
+    The sodium-calcium exchanger, which removes one
+    calcium from the cell in exchange for 3 sodium
+    into the cell. Important for voltage gated
+    calcium signals.
 
-    Parameters
-    ------------
-    cHi      Hydrogen concentration in the mitocondrial matrix
-    cHo      Hydrogen concentration outside of the mitochondria
-    cATP     ATP concentration in the mitochondrial matrix
-    cADP     ADP concentration in the mitochondrial matrix
-    cPi      Phosphate concentration in the mitochondrial matrix
-    Vm        Mitochondrial membrane potential
-    T         Temperature
-    p         Parameters object p
+    3 Na_out + 1 Ca_in --> 3 Na_in + 1 Ca_out
+
+    cNai:  Sodium inside the cell
+    cNao:  Sodium outside the cell
+    cCai:  Calcium inside the cell
+    cCao:  Calcium outside the cell
+    Vm:    Transmembrane voltage
+    T:     Temperature
+    p:     Instance of parameters
 
     Returns
     -------
-    f_h      hydrogen flux into the matrix and ATP synthesis rate
+    f_Na      Flux of sodium
+    f_Ca      Flux of calcium
 
     """
 
-    deltaGATP_o = p.deltaGATP
-
     # calculate the reaction coefficient Q:
-    Qnumo = cATP * (cHi ** 3)
-    Qdenomo = cADP * cPi * (cHo ** 3)
+    Qnumo = (cNai ** 3) * (cCao)
+    Qdenomo = (cNao ** 3) * (cCai)
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-6
+    Qdenomo[inds_Z] = 1.0e-10
 
     Q = Qnumo / Qdenomo
 
-    # calculate the equilibrium constant for the pump reaction:
-    Keq = np.exp(deltaGATP_o / (p.R * T) - 3 * ((p.F * Vm) / (p.R * T)))
+    # # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(-((p.F * Vm) / (p.R * T)))
 
     # calculate the reaction rate coefficient
-    alpha = p.alpha_AS * (1 - Q / Keq)
+    alpha = p.alpha_NaCaExch * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
-    numo_E = (cHo / p.KmAS_H) * (cADP / p.KmAS_ADP) * (cPi / p.KmAS_P)
-    denomo_E = (1 + (cHo / p.KmAS_H)) *(1+ (cADP / p.KmAS_ADP)) *(1 + (cPi / p.KmAS_P))
+    numo_E = ((cNao / p.KmNC_Na) ** 3) * (cCai / p.KmNC_Ca)
+    denomo_E = (1 + (cNao / p.KmNC_Na) ** 3) * (1 + (cCai / p.KmNC_Ca))
 
-    f_H = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
+    f_Na = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
-    return f_H
+    f_Ca = -(1/ 3) * f_Na  # flux as [mol/m2s]
+
+    return f_Na, f_Ca
 
 def get_volt(q,sa,p):
 
@@ -651,17 +649,24 @@ def np_flux_special(cx,cy,gcx,gcy,gvx,gvy,ux,uy,Dx,Dy,z,T,p):
     return fx, fy
 
 def no_negs(data):
+    """
+    This function screens an (concentration) array to
+    ensure there are no NaNs and no negative values,
+    crashing with an instability message if it finds any.
+
+    """
 
     # ensure no NaNs:
     inds_nan = (np.isnan(data)).nonzero()
-    data[inds_nan] = 0
 
     # ensure that data has no less than zero values:
     inds_neg = (data < 0).nonzero()
-    data[inds_neg] = 0
 
-    # if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
-    #     loggers.log_info("Warning: invalid value (0 or Nan) found in concentration data.")
+    if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
+
+        raise BetseExceptionSimulationInstability(
+            "Your simulation has become unstable. Please try a smaller time step,"
+            "reduce gap junction radius, and/or reduce rate coefficients.")
 
     return data
 
@@ -1374,3 +1379,58 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
     # cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
 
     return cX_mems, cX_cells, net_flux
+
+
+
+#----------------------------------------------------------------------------------------------------------------
+# WASTELANDS
+#---------------------------------------------------------------------------------------------------------------
+# def pumpATPSynth(cHi,cHo,cATP,cADP,cPi,Vm,T,p):
+#     """
+#     Calculates H+ flux into the mitochondrial matrix (+
+#     flow is into the mitochondria), which is equivalent
+#     to ATP created and ADP consumed in the ATP Synthase
+#     enzyme reaction of the mitochondria.
+#
+#     Parameters
+#     ------------
+#     cHi      Hydrogen concentration in the mitocondrial matrix
+#     cHo      Hydrogen concentration outside of the mitochondria
+#     cATP     ATP concentration in the mitochondrial matrix
+#     cADP     ADP concentration in the mitochondrial matrix
+#     cPi      Phosphate concentration in the mitochondrial matrix
+#     Vm        Mitochondrial membrane potential
+#     T         Temperature
+#     p         Parameters object p
+#
+#     Returns
+#     -------
+#     f_h      hydrogen flux into the matrix and ATP synthesis rate
+#
+#     """
+#
+#     deltaGATP_o = p.deltaGATP
+#
+#     # calculate the reaction coefficient Q:
+#     Qnumo = cATP * (cHi ** 3)
+#     Qdenomo = cADP * cPi * (cHo ** 3)
+#
+#     # ensure no chance of dividing by zero:
+#     inds_Z = (Qdenomo == 0.0).nonzero()
+#     Qdenomo[inds_Z] = 1.0e-6
+#
+#     Q = Qnumo / Qdenomo
+#
+#     # calculate the equilibrium constant for the pump reaction:
+#     Keq = np.exp(deltaGATP_o / (p.R * T) - 3 * ((p.F * Vm) / (p.R * T)))
+#
+#     # calculate the reaction rate coefficient
+#     alpha = p.alpha_AS * (1 - Q / Keq)
+#
+#     # calculate the enzyme coefficient:
+#     numo_E = (cHo / p.KmAS_H) * (cADP / p.KmAS_ADP) * (cPi / p.KmAS_P)
+#     denomo_E = (1 + (cHo / p.KmAS_H)) *(1+ (cADP / p.KmAS_ADP)) *(1 + (cPi / p.KmAS_P))
+#
+#     f_H = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
+#
+#     return f_H

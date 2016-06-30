@@ -1721,7 +1721,7 @@ class Simulator(object):
 
             # run Ca-ATPase
 
-            f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa][cells.mem_to_cells],
+            f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa],
                 self.cc_env[self.iCa][cells.map_mem2ecm],
                 self.vm, self.T, p, met = self.met_concs)
 
@@ -1730,6 +1730,18 @@ class Simulator(object):
             # add Ca++ flux to storage:
             self.fluxes_mem[self.iCa] = f_CaATP
 
+            if p.NaCa_exch_dyn is True:
+                # run Na Ca exchanger
+                f_NaEx, f_CaEx = stb.exch_NaCa(self.cc_mems[self.iNa],
+                        self.cc_env[self.iNa][cells.map_mem2ecm],
+                        self.cc_mems[self.iCa],
+                        self.cc_env[self.iCa][cells.map_mem2ecm],
+                        self.vm, self.T, p)
+
+            else:
+                f_NaEx = 0
+                f_CaEx = 0
+
         else:
 
             # run Ca-ATPase
@@ -1737,8 +1749,21 @@ class Simulator(object):
             f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa], self.cc_env[self.iCa], self.vm, self.T, p,
                           met = self.met_concs)
 
+            if p.NaCa_exch_dyn is True:
+                # run Na Ca exchanger
+                f_NaEx, f_CaEx = stb.exch_NaCa(self.cc_mems[self.iNa],
+                        self.cc_env[self.iNa],
+                        self.cc_mems[self.iCa],
+                        self.cc_env[self.iCa],
+                        self.vm, self.T, p)
+
+            else:
+                f_NaEx = 0
+                f_CaEx = 0
+
             # store the transmembrane flux for this ion
-            self.fluxes_mem[self.iCa] = self.rho_pump*f_CaATP
+            self.fluxes_mem[self.iCa] = self.rho_pump*(f_CaATP + f_CaEx)
+
 
         if p.metabolism_enabled:
             # update ATP concentrations after pump action:
@@ -1750,7 +1775,11 @@ class Simulator(object):
 
         # # update calcium concentrations in cell and ecm:
         self.cc_mems[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_mems[self.iCa][:],
-            self.cc_env[self.iCa][:], f_CaATP, cells, p, ignoreECM = False)
+            self.cc_env[self.iCa][:], f_CaATP + f_CaEx, cells, p, ignoreECM = False)
+
+        if p.NaCa_exch_dyn:
+            self.cc_mems[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_mems[self.iNa][:],
+                self.cc_env[self.iNa][:], f_NaEx, cells, p, ignoreECM = False)
 
         # update concentrations intracellularly:
         self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
