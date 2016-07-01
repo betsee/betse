@@ -86,8 +86,6 @@ class EndoRetic(object):
 
         # print(1e3*self.Ver.mean(), sim.cc_er[sim.iCa].mean(), sim.cc_cells[sim.iCa].mean())
 
-
-
     def channels(self, sim, cells, p):
 
         # Dm_mod_mol = self.gating_max_val * tb.hill(sim.cc_cells[sim.iCa], self.gating_Hill_K, self.gating_Hill_n)
@@ -102,8 +100,6 @@ class EndoRetic(object):
                 cIP3_act = (sim.molecules.IP3.c_cells/p.act_Km_IP3)**p.act_n_IP3
 
                 Dm_mod_mol = (cCa_act/(1 + cCa_act))*(1/(1 + cCa_inh))*(cIP3_act/(1+cIP3_act))
-
-        print(Dm_mod_mol[p.plot_cell], self.Ver[p.plot_cell], sim.cc_er[sim.iCa][p.plot_cell], sim.cc_cells[sim.iCa][p.plot_cell])
 
         self.Dm_channels[sim.iCa] = p.max_er*sim.rho_channel * Dm_mod_mol
 
