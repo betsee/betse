@@ -29,6 +29,7 @@ from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
 from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.gene import MasterOfGenes
+from betse.science.organelles.endo_retic import EndoRetic
 
 class Simulator(object):
     '''
@@ -442,13 +443,13 @@ class Simulator(object):
 
         # -------------------------------------------------------------------------------------------------------
 
-        if p.ions_dict['Ca'] == 1:  # initialize the endoplasmic reticulum
-            # Define the diffusion matrix for the endoplasmic reticulum:
-            self.Dm_er = np.zeros((2, len(cells.cell_i)))
-            self.Dm_er[0, :] = p.Dm_Ca
-            self.Dm_er[1, :] = p.Dm_M
-
-            self.v_er = np.zeros(len(cells.cell_i))
+        # if p.ions_dict['Ca'] == 1:  # initialize the endoplasmic reticulum
+        #     # Define the diffusion matrix for the endoplasmic reticulum:
+        #     self.Dm_er = np.zeros((2, len(cells.cell_i)))
+        #     self.Dm_er[0, :] = p.Dm_Ca
+        #     self.Dm_er[1, :] = p.Dm_M
+        #
+        #     self.v_er = np.zeros(len(cells.cell_i))
 
 
             # initialize a time-zero vmem vector:
@@ -471,10 +472,10 @@ class Simulator(object):
         self.fluxes_gj = np.asarray(self.fluxes_gj)
         self.fluxes_mem = np.asarray(self.fluxes_mem)
 
-        if p.ions_dict['Ca'] == 1:  # items specific for Calcium dynamics
-            self.cc_er = np.asarray(self.cc_er)
-            self.z_array_er = np.asarray(self.z_array_er)
-            self.Dm_er = np.asarray(self.Dm_er)
+        # if p.ions_dict['Ca'] == 1:  # items specific for Calcium dynamics
+        #     self.cc_er = np.asarray(self.cc_er)
+        #     self.z_array_er = np.asarray(self.z_array_er)
+        #     self.Dm_er = np.asarray(self.Dm_er)
 
         if p.sim_ECM is True:  # items specific for extracellular spaces simulation:
 
@@ -572,20 +573,6 @@ class Simulator(object):
 
         self.Dm_cells[self.iK] = (p.channel_noise_level * self.channel_noise_factor + 1) * self.Dm_cells[self.iK]
 
-        # if p.dynamic_noise is True:
-        #     # add a random walk on protein concentration to generate dynamic noise:
-        #     self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
-        #
-        #     if p.ions_dict['P'] == 1:
-        #         self.cc_mems[self.iP] = self.cc_mems[self.iP] * (1 + self.protein_noise_flux)
-        #
-        #     # balance the mass and charge for the system:
-        #     if p.sim_ECM is False:
-        #         self.cc_env[self.iP] = self.cc_env[self.iP] * (1 - self.protein_noise_flux)
-        #
-        #     else:
-        #         self.cc_env[self.iP][cells.map_mem2ecm] = self.cc_env[self.iP][cells.map_mem2ecm] \
-        #                                                   * (1 - self.protein_noise_flux)
 
         #--Blocks initialization--------------------
 
@@ -723,8 +710,15 @@ class Simulator(object):
             self.rho_pump = 1  # else just define it as identity.
             self.rho_channel = 1
 
-        # Initialize all user-specified interventions and dynamic channels.
+        # initialize calcium dynamics if desired:
+        if p.ions_dict['Ca'] == 1 and p.Ca_dyn is True:
+
+            self.endo_retic = EndoRetic(self, cells, p)
+
+        # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)
+
+
 
     def run_sim_core(self, cells, p):
         '''
@@ -746,8 +740,7 @@ class Simulator(object):
 
         self.vm_to = np.copy(self.vm)  # create a copy of the original voltage
 
-        if p.Ca_dyn is True:
-            pass
+
 
         # Display and/or save an animation during solving and calculate:
         #
@@ -776,11 +769,6 @@ class Simulator(object):
                 self.dvm = (self.vm - self.vm_to) / p.dt
 
                 self.vm_to = np.copy(self.vm)  # reassign the history-saving vm
-
-                if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-
-                    pass
-
 
                 # Calculate the values of scheduled and dynamic quantities (e.g.
                 # ion channel multipliers).
@@ -907,6 +895,9 @@ class Simulator(object):
                 if p.ions_dict['Ca'] == 1:
 
                     self.ca_handler(cells, p)
+
+                    if p.Ca_dyn:
+                        self.endo_retic.update(self, cells, p)
 
                 if p.ions_dict['H'] == 1:
 
@@ -1184,8 +1175,7 @@ class Simulator(object):
             self.rho_pump_time = []
 
         if p.Ca_dyn is True:
-            pass
-
+            self.endo_retic.clear_cache()
 
         if p.sim_ECM is True:
 
@@ -1298,7 +1288,7 @@ class Simulator(object):
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
 
-            pass
+            self.endo_retic.write_cache(self)
 
         if p.sim_ECM is True:
 
@@ -1387,16 +1377,8 @@ class Simulator(object):
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
 
-            pass
+            logs.log_info("Final Ver " + str(np.round(1.0e3*self.endo_retic.Ver.mean(),3)) + " mV")
 
-
-        # if p.voltage_dye ==1:
-        #     dye_env_final = np.mean(self.cDye_env)
-        #     dye_cell_final = np.mean(self.cDye_mems)
-        #     logs.log_info('Final average morphogen concentration in the environment: ' + str(np.round(dye_env_final, 6))
-        #                   + ' mmol/L')
-        #     logs.log_info('Final average morphogen concentration in cells: ' + str(np.round(dye_cell_final, 6)) +
-        #                      ' mmol/L')
 
     def sim_info_report(self,cells,p):
 

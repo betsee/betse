@@ -66,7 +66,6 @@ class MasterOfMolecules(object):
 
         self.plot_cmap = 'viridis'
 
-
     def read_substances(self, sim, cells, config_substances, p):
         """
             Initializes all of the main variables for all molecules included in the simulation.
@@ -1355,11 +1354,10 @@ class Molecule(object):
 
                 Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
                                                                         self.gating_Hill_K,self.gating_Hill_n)
+
                 sim.Dm_morpho[self.gating_ion] = sim.rho_channel*Dm_mod_mol
 
-
             elif self.gating_extracell is True and p.sim_ECM is True:
-
 
                 Dm_mod_mol = self.gating_max_val*tb.hill(self.c_env,self.gating_Hill_K,self.gating_Hill_n)
 

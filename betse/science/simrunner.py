@@ -125,8 +125,6 @@ class SimRunner(object):
             'Initializing simulation with configuration file "{}".'.format(
                 self._config_basename))
 
-
-
         start_time = time.time()  # get a start value for timing the simulation
 
         p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
@@ -448,6 +446,11 @@ class SimRunner(object):
             sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
             sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
 
+        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
+
+            sim.endo_retic.init_saving(cells, p, plot_type = 'init', nested_folder_name = 'ER')
+            sim.endo_retic.plot_er(sim, cells, p)
+
         if p.turn_all_plots_off is False:
             plt.show()
 
@@ -494,6 +497,11 @@ class SimRunner(object):
             sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
             sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
             sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
+
+        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
+
+            sim.endo_retic.init_saving(cells, p, plot_type = 'sim', nested_folder_name = 'ER')
+            sim.endo_retic.plot_er(sim, cells, p)
 
         if p.turn_all_plots_off is False:
             plt.show()

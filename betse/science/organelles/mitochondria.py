@@ -17,7 +17,6 @@ import numpy as np
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
-
 import copy
 
 class Mito(object):

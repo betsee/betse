@@ -216,26 +216,50 @@ def pumpCaATP(cCai,cCao,Vm,T,p, met = None):
 
     bkwrd = numo_Eb/denomo_Eb
 
-    f_Ca = -p.alpha_Ca*(frwd - (Q/Keq)*bkwrd)  # flux as [mol/m2s]
+    f_Ca = -p.alpha_Ca*frwd*(1 - (Q/Keq))  # flux as [mol/m2s]
 
     return f_Ca
 
-def pumpCaER(cCai,cCao,Vm,T,p):  # FIXME this should be replaced and use only pumpCaATP, defined above!
+def pumpCaER(cCai,cCao,Vm,T,p):
     """
     Pumps calcium out of the cell and into the endoplasmic reticulum.
     Vm is the voltage across the endoplasmic reticulum membrane.
 
     """
 
-    deltaGATP = 20*p.R*T
+    deltaGATP_o = p.deltaGATP
 
-    delG_Ca = p.R*T*np.log(cCai/cCao) + 2*p.F*Vm
-    delG_CaATP = deltaGATP - (delG_Ca)
-    delG_pump = (delG_CaATP/1000)
+    cATP = p.cATP
+    cADP = p.cADP
+    cPi = p.cPi
 
-    alpha = p.alpha_Ca*(delG_pump - p.halfmax_Ca)
+    # calculate the reaction coefficient Q:
+    Qnumo = cADP * cPi * cCai
+    Qdenomo = cATP * cCao
 
-    f_Ca  = alpha*(cCao)      #flux as [mol/s]
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-16
+
+    Q = Qnumo / Qdenomo
+
+    # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(-deltaGATP_o / (p.R * T) - 2 * ((p.F * Vm) / (p.R * T)))
+
+
+    # calculate the enzyme coefficient for forward reaction:
+    numo_E = (cCao / p.KmCa_Ca) * (cATP / p.KmCa_ATP)
+    denomo_E = (1 + (cCao / p.KmCa_Ca)) * (1 + (cATP / p.KmCa_ATP))
+
+    frwd = numo_E / denomo_E
+
+    # calculate the enzyme coefficient for backward reaction:
+    numo_Eb = (cCai / p.KmCa_Ca)
+    denomo_Eb = (1 + (cCai / p.KmCa_Ca))
+
+    bkwrd = numo_Eb / denomo_Eb
+
+    f_Ca = p.alpha_Ca * frwd * (1 - (Q / Keq))  # flux as [mol/m2s]
 
     return f_Ca
 
