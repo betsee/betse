@@ -429,6 +429,18 @@ class Parameters(object):
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
         self.Ca_dyn = self.config['Ca dynamics']['turn on']
 
+        if self.Ca_dyn:
+            self.serca_max = self.config['Ca dynamics']['serca pump max'] # maximum rate of the ER membrane Ca++ ATPase (serca)
+            self.max_er = self.config['Ca dynamics']['max er']    # maximum conductivity of ER membrane Ca++ channel
+            self.act_Km_Ca = self.config['Ca dynamics']['act Km Ca'] # concentration at which calcium activates ER opening
+            self.act_n_Ca = self.config['Ca dynamics']['act n Ca']    # exponent for Ca activation
+            self.inh_Km_Ca = self.config['Ca dynamics']['inh Km Ca']  # concentration at which calcium inhibits ER opening
+            self.inh_n_Ca = self.config['Ca dynamics']['inh n Ca']     # exponent for Ca inhibition
+            self.act_Km_IP3 = self.config['Ca dynamics']['act Km IP3']   # concentration at which IP3 (if included in biomolecules) activates opening
+            self.act_n_IP3 = self.config['Ca dynamics']['act n IP3']     # exponent for IP3 (if included in biomolecules) activates opening
+
+
+
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM BIOCHEMISTRY
         #--------------------------------------------------------------------------------------------------------------
@@ -495,7 +507,7 @@ class Parameters(object):
 
         # mechanical deformation ----------------------------------------------------------
         self.deformation = self.config['variable settings']['deformation']['turn on']
-        # FIXME GET RID OF DEFAULT AND MAKE THIS HARD-WIRED into CONFIG:
+
         self.galvanotropism = float(self.config['variable settings']['deformation'].get('galvanotropism',0.1))
         self.td_deform = self.config['variable settings']['deformation']['time dependent deformation']
         self.fixed_cluster_bound = self.config['variable settings']['deformation']['fixed cluster boundary']
@@ -606,7 +618,6 @@ class Parameters(object):
 
         ro = self.config['results options']
 
-        #FIXME: Double negative hurt brainpan.
         self.turn_all_plots_off = not ro['plot after solving']
         self.plot_cutlines = ro['plot cutlines']
 

@@ -36,11 +36,14 @@ class EndoRetic(object):
         self.cm_er = self.er_sa*p.cm    # mit membrane capacitance
 
         sim.cc_er = copy.deepcopy(sim.cc_cells)    # ion concentrations
+        sim.cc_er[sim.iCa][:] = 0.1                # initial concentration in the ER
         self.Dm_er = copy.deepcopy(sim.cc_cells)    # membrane permeability
 
         for arr in self.Dm_er:
 
             arr[:] = 1.0e-18                 # membrane permeability altered so all are minimal
+
+        self.Dm_er[sim.iK] = 1.0e-16   # add a K+ leak channel...
 
         self.Dm_er_base = copy.deepcopy(self.Dm_er)  # copies of Dm for ion channel dynamics
         self.Dm_channels = copy.deepcopy(self.Dm_er)
@@ -57,10 +60,12 @@ class EndoRetic(object):
 
     def update(self, sim, cells, p):
 
-        self.channels(sim, cells, p)
+        if p.run_sim:
+
+            self.channels(sim, cells, p)
 
         # run SERCA pump:
-        f_CaATP = 10*stb.pumpCaER(sim.cc_er[sim.iCa], sim.cc_cells[sim.iCa], self.Ver, sim.T, p)
+        f_CaATP = stb.pumpCaER(sim.cc_er[sim.iCa], sim.cc_cells[sim.iCa], self.Ver, sim.T, p)
 
         # update with flux
         sim.cc_cells[sim.iCa] = sim.cc_cells[sim.iCa] - f_CaATP * (self.er_sa / cells.cell_vol) * p.dt
@@ -79,15 +84,28 @@ class EndoRetic(object):
 
         self.get_v(sim, p)
 
+        # print(1e3*self.Ver.mean(), sim.cc_er[sim.iCa].mean(), sim.cc_cells[sim.iCa].mean())
+
+
+
     def channels(self, sim, cells, p):
 
-        self.gating_max_val = 1.0e-15
-        self.gating_Hill_K = 0.6e-3
-        self.gating_Hill_n = 3.0
+        # Dm_mod_mol = self.gating_max_val * tb.hill(sim.cc_cells[sim.iCa], self.gating_Hill_K, self.gating_Hill_n)
+        cCa_act = (sim.cc_cells[sim.iCa]/p.act_Km_Ca)**p.act_n_Ca
+        cCa_inh = (sim.cc_cells[sim.iCa] /p.inh_Km_Ca)**p.inh_n_Ca
 
-        Dm_mod_mol = self.gating_max_val * tb.hill(sim.cc_cells[sim.iCa], self.gating_Hill_K, self.gating_Hill_n)
+        Dm_mod_mol = (cCa_act/(1+cCa_act))*(1/(1+cCa_inh))
 
-        self.Dm_channels[sim.iCa] = sim.rho_channel * Dm_mod_mol
+        if p.molecules_enabled:
+
+            if 'IP3' in sim.molecules.molecule_names:
+                cIP3_act = (sim.molecules.IP3.c_cells/p.act_Km_IP3)**p.act_n_IP3
+
+                Dm_mod_mol = (cCa_act/(1 + cCa_act))*(1/(1 + cCa_inh))*(cIP3_act/(1+cIP3_act))
+
+        print(Dm_mod_mol[p.plot_cell], self.Ver[p.plot_cell], sim.cc_er[sim.iCa][p.plot_cell], sim.cc_cells[sim.iCa][p.plot_cell])
+
+        self.Dm_channels[sim.iCa] = p.max_er*sim.rho_channel * Dm_mod_mol
 
         self.Dm_er = self.Dm_er_base + self.Dm_channels
 

@@ -259,7 +259,7 @@ def pumpCaER(cCai,cCao,Vm,T,p):
 
     bkwrd = numo_Eb / denomo_Eb
 
-    f_Ca = p.alpha_Ca * frwd * (1 - (Q / Keq))  # flux as [mol/m2s]
+    f_Ca = p.serca_max * frwd * (1 - (Q / Keq))  # flux as [mol/m2s]
 
     return f_Ca
 
