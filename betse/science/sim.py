@@ -587,6 +587,10 @@ class Simulator(object):
         else:
             self.VATP_block = 1
 
+        # initialize additional pump blocks:
+        self.CaATP_block = np.ones(self.mdl)  # initialize CaATP blocking vector
+        self.NaCaExch_block = np.ones(self.mdl)  # initialize CaATP blocking vector
+
         # -----auxiliary molecules initialization -------------------------
 
         # create and initialize the auxiliary-molecules handler for this simulation:
@@ -907,12 +911,13 @@ class Simulator(object):
 
                         self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
 
-                    if self.channels:
-                        self.molecules.run_loop_channels(self, self.core, cells, p)
+                    if p.channels_enabled:
 
-                    if self.modulators:
+                        self.molecules.run_loop_channels(self, self.molecules, cells, p)
 
-                        self.molecules.run_loop_modulators(self, self.core, cells, p)
+                    if p.modulators_enabled:
+
+                        self.molecules.run_loop_modulators(self, self.molecules, cells, p)
 
                     self.molecules.run_loop(t, self, cells, p)
 
@@ -1270,11 +1275,11 @@ class Simulator(object):
             self.rho_channel_time.append(self.rho_channel[:])
             self.rho_pump_time.append(self.rho_pump[:])
 
-        if p.v_sensitive_gj is True:
-            self.gjopen_time.append(self.gjopen[:])
+        # if p.v_sensitive_gj is True:
+        self.gjopen_time.append(self.gjopen[:])
 
-        else:
-            self.gjopen_time.append(self.gjopen)
+        # else:
+        #     self.gjopen_time.append(self.gjopen)
 
         self.time.append(t)
 
@@ -1709,7 +1714,7 @@ class Simulator(object):
 
             f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa],
                 self.cc_env[self.iCa][cells.map_mem2ecm],
-                self.vm, self.T, p, met = self.met_concs)
+                self.vm, self.T, p, self.CaATP_block, met = self.met_concs)
 
             f_CaATP = self.rho_pump * f_CaATP
 
@@ -1722,7 +1727,7 @@ class Simulator(object):
                         self.cc_env[self.iNa][cells.map_mem2ecm],
                         self.cc_mems[self.iCa],
                         self.cc_env[self.iCa][cells.map_mem2ecm],
-                        self.vm, self.T, p)
+                        self.vm, self.T, p, self.NaCaExch_block)
 
             else:
                 f_NaEx = 0

@@ -743,29 +743,31 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-    if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
-        # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
-        fig_x = plt.figure()
-        ax_x = plt.subplot(111)
-        con_segs = cells.nn_edges
-        connects = p.um*np.asarray(con_segs)
-        collection = LineCollection(connects, array=sim.gjopen, cmap= p.background_cm, linewidths=2.0)
-        ax_x.add_collection(collection)
-        cb = fig_x.colorbar(collection)
-        plt.axis('equal')
-        plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
+    # if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
+    # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
+    fig_x = plt.figure()
+    ax_x = plt.subplot(111)
+    con_segs = cells.nn_edges
+    connects = p.um*np.asarray(con_segs)
+    collection = LineCollection(connects, array=sim.gjopen, cmap= p.background_cm, linewidths=2.0)
+    ax_x.add_collection(collection)
+    # collection.set_clim(0, 1)
+    cb = fig_x.colorbar(collection)
+    plt.axis('equal')
+    plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
 
-        cb.set_label('Relative Permeability')
-        ax_x.set_xlabel('Spatial x [um]')
-        ax_x.set_ylabel('Spatial y [um')
-        ax_x.set_title('Final Gap Junction Relative Permeability')
 
-        if p.autosave is True:
-            savename = savedImg + 'final_gjState' + '.png'
-            plt.savefig(savename,format='png',transparent=True)
+    cb.set_label('Relative Permeability')
+    ax_x.set_xlabel('Spatial x [um]')
+    ax_x.set_ylabel('Spatial y [um')
+    ax_x.set_title('Final Gap Junction Relative Permeability')
 
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
+    if p.autosave is True:
+        savename = savedImg + 'final_gjState' + '.png'
+        plt.savefig(savename,format='png',transparent=True)
+
+    if p.turn_all_plots_off is False:
+        plt.show(block=False)
 
     if p.sim_eosmosis is True and sim.run_sim is True:
         viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)

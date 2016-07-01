@@ -241,16 +241,16 @@ channels:
 #-----------------------------------------------------------------------------------------------------------------------
 # SUBSTANCE MODULATING EFFECTS on SIMULATOR PUMPs and GAP JUNCTIONs
 #-----------------------------------------------------------------------------------------------------------------------
-modulators:
-
-  - name: GJ-block
-
-    target: gj       # sim entity targeted: gj (for gap junctions), Na/K-ATP, H/K-ATP or V-ATP
-    max effect: 1.0        # maximum value of modulation
-    activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
-    activator Km: [0.1]
-    activator n: [3.0]
-    inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
-    inhibitor Km: [1.5]
-    inhibitor n: [3.0]
+#modulators:
+#
+#  - name: GJ-block
+#
+#    target: gj       # sim entity targeted: gj (for gap junctions), Na/K-ATP, H/K-ATP or V-ATP
+#    max effect: 1.0        # maximum value of modulation
+#    activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
+#    activator Km: [0.1]
+#    activator n: [3.0]
+#    inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
+#    inhibitor Km: [1.5]
+#    inhibitor n: [3.0]
 

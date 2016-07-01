@@ -151,7 +151,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):
 
     return f_Na, f_K, -f_Na  # FIXME get rid of this return of extra -f_Na!!
 
-def pumpCaATP(cCai,cCao,Vm,T,p, met = None):
+def pumpCaATP(cCai,cCao,Vm,T,p, block, met = None):
 
     """
     Parameters
@@ -201,7 +201,7 @@ def pumpCaATP(cCai,cCao,Vm,T,p, met = None):
     Keq = np.exp(-deltaGATP_o / (p.R * T) + 2*((p.F * Vm) / (p.R * T)))
 
     # calculate the reaction rate coefficient
-    alpha = p.alpha_Ca * (1 - (Q / Keq))
+    alpha = block* p.alpha_Ca * (1 - (Q / Keq))
     # alpha = p.alpha_Ca
 
     # calculate the enzyme coefficient for forward reaction:
@@ -374,7 +374,7 @@ def pumpVATP(cHi,cHo,Vm,T,p, block, met = None):
 
     return f_H
 
-def exch_NaCa(cNai, cNao, cCai, cCao, Vm, T, p):
+def exch_NaCa(cNai, cNao, cCai, cCao, Vm, T, p, block):
     """
     The sodium-calcium exchanger, which removes one
     calcium from the cell in exchange for 3 sodium
@@ -412,7 +412,7 @@ def exch_NaCa(cNai, cNao, cCai, cCao, Vm, T, p):
     Keq = np.exp(-((p.F * Vm) / (p.R * T)))
 
     # calculate the reaction rate coefficient
-    alpha = p.alpha_NaCaExch * (1 - (Q / Keq))
+    alpha = block*p.alpha_NaCaExch * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
     numo_E = ((cNao / p.KmNC_Na) ** 3) * (cCai / p.KmNC_Ca)

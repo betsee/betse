@@ -438,6 +438,7 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             obj.target_label = str(mod_dic['target'])
+            obj.zone = str(mod_dic['zone'])
             obj.max_val = float(mod_dic['max effect'])
             obj.modulator_activators_list = mod_dic.get('activators', None)
             obj.modulator_activators_Km = mod_dic.get('activator Km', None)
@@ -445,6 +446,8 @@ class MasterOfMolecules(object):
             obj.modulator_inhibitors_list = mod_dic.get('inhibitors', None)
             obj.modulator_inhibitors_Km = mod_dic.get('inhibitor Km', None)
             obj.modulator_inhibitors_n = mod_dic.get('inhibitor n', None)
+
+            obj.init_modulator(sim, cells, p)
 
     def set_react_sources(self, obj, sim, cells, p, reactant_name, i, reactant_type_self, reactant_type_sim):
 
@@ -2747,35 +2750,23 @@ class Modulator(object):
         self.modulator_inhibitors_Km = None
         self.modulator_inhibitors_n = None
 
-    def run_modulator(self, sim, sim_metabo, cells, p):
-
-        print("Running Modulator")
-
-        # get the coefficients activating and/or inhibiting the sim structure:
-
-        # get modulation coefficients by any activating/inhibiting substances:
-        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.modulator_activators_list,
-            self.modulator_activators_Km, self.modulator_activators_n, self.modulator_inhibitors_list,
-            self.modulator_inhibitors_Km, self.modulator_inhibitors_n, reaction_zone='mems')
-
-        # calculate the value of the channel modulation constant:
-        modulator = self.max_val*activator_alpha * inhibitor_alpha
+    def init_modulator(self, sim, cells, p):
 
         if self.target_label == 'gj':
 
-            sim.gj_block = sim.gj_block*modulator
+            sim.gj_block_o = np.ones(sim.mdl)
 
         elif self.target_label == 'Na/K-ATPase':
 
-            sim.NaKATP_block = sim.NaK_ATP_block*modulator
+            sim.NaKATP_block_o =  np.ones(sim.mdl)
 
         elif self.target_label == 'H/K-ATPase':
 
-            sim.HKATP_block = sim.HK_ATP_block * modulator
+            sim.HKATP_block_o =  np.ones(sim.mdl)
 
         elif self.target_label == 'V-ATPase':
 
-            sim.VATP_block = sim.V_ATP_block * modulator
+            sim.VATP_block_o =  np.ones(sim.mdl)
 
         else:
 
@@ -2784,6 +2775,67 @@ class Modulator(object):
                                            "available. Available choices "
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                            "and 'V-ATPase' ")
+
+    def run_modulator(self, sim, sim_metabo, cells, p):
+
+        if self.zone == 'env':
+
+            zone_tag = 'env'
+
+        elif self.zone == 'cell':
+
+            zone_tag = 'mems'
+
+        else:
+
+            raise BetseExceptionParameters("You have requested an unavailable modulator zone."
+                                           "Available choices are 'env' and 'mems'.")
+
+        # get the coefficients activating and/or inhibiting the sim structure:
+
+        # get modulation coefficients by any activating/inhibiting substances:
+        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.modulator_activators_list,
+            self.modulator_activators_Km, self.modulator_activators_n, self.modulator_inhibitors_list,
+            self.modulator_inhibitors_Km, self.modulator_inhibitors_n, reaction_zone=zone_tag)
+
+        # calculate the value of the channel modulation constant:
+        modulator = self.max_val*activator_alpha * inhibitor_alpha
+
+        # make size alteration for case of true environment:
+        if p.sim_ECM is True and self.zone == 'env':
+            modulator = modulator[cells.map_mem2ecm]
+
+        if self.target_label == 'gj':
+
+            sim.gj_block = modulator
+
+        elif self.target_label == 'Na/K-ATPase':
+
+            sim.NaKATP_block = modulator
+
+        elif self.target_label == 'H/K-ATPase':
+
+            sim.HKATP_block = modulator
+
+        elif self.target_label == 'V-ATPase':
+
+            sim.VATP_block = modulator
+
+        elif self.target_label == 'Ca-ATPase':
+
+            sim.CaATP_block = modulator
+
+        elif self.target_label == 'Na/Ca-Exch':
+
+            sim.NaCaExch_block = modulator
+
+        else:
+
+            raise BetseExceptionParameters("You have requested a "
+                                           "sim modulator that is not "
+                                           "available. Available choices "
+                                           "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
+                                           "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
 
 
 class DummyDyna(object):
@@ -2819,7 +2871,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
         type_self = 'c_cells'
         type_sim = 'cc_cells'
 
-    if reaction_zone == 'mems':
+    elif reaction_zone == 'mems':
         type_self = 'c_mems'
         type_sim = 'cc_mems'
 
@@ -2827,6 +2879,11 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 
         type_self = 'c_mit'
         type_sim = 'cc_mit'
+
+    elif reaction_zone == 'env':
+
+        type_self = 'c_env'
+        type_sim = 'cc_env'
 
     # initialize a blank list
     activator_terms = []
