@@ -630,7 +630,6 @@ class TissueHandler(object):
 
         if p.global_options['gj_block'] != 0:
             sim.gj_block[self.targets_gj_block] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
-            # sim.gj_block[:] = (1.0 - tb.pulse(t,self.tonGJ,self.toffGJ,self.trampGJ))
 
         if p.global_options['NaKATP_block'] != 0:
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))

@@ -63,6 +63,7 @@ class MasterOfMolecules(object):
         self.reaction_names = []
         self.transporter_names = []
         self.channel_names = []
+        self.modulator_names = []
 
         self.plot_cmap = 'viridis'
 
@@ -417,6 +418,34 @@ class MasterOfMolecules(object):
 
             obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
+    def read_modulators(self, config_modulators, sim, cells, p):
+
+        self.modulator_index = []
+
+        for q, mod_dic in enumerate(config_modulators):
+
+            name = str(mod_dic['name'])
+
+            self.modulator_names.append(name)
+            self.modulator_index.append(q)
+
+            # add a field to the MasterOfReactions corresponding to Channel object with that name:
+            setattr(self, name, Modulator())
+
+            # now set the attributes of that channel:
+
+            # get MasterOfMolecules.name
+            obj = getattr(self, name)
+
+            obj.target_label = str(mod_dic['target'])
+            obj.max_val = float(mod_dic['max effect'])
+            obj.modulator_activators_list = mod_dic.get('activators', None)
+            obj.modulator_activators_Km = mod_dic.get('activator Km', None)
+            obj.modulator_activators_n = mod_dic.get('activator n', None)
+            obj.modulator_inhibitors_list = mod_dic.get('inhibitors', None)
+            obj.modulator_inhibitors_Km = mod_dic.get('inhibitor Km', None)
+            obj.modulator_inhibitors_n = mod_dic.get('inhibitor n', None)
+
     def set_react_sources(self, obj, sim, cells, p, reactant_name, i, reactant_type_self, reactant_type_sim):
 
         """
@@ -655,6 +684,16 @@ class MasterOfMolecules(object):
 
             # compute the channel activity
             obj.run_channel(sim, sim_metabo, cells, p)
+
+    def run_loop_modulators(self, sim, sim_metabo, cells, p):
+
+        # get the object corresponding to the specific transporter:
+        for i, name in enumerate(self.modulator_names):
+            # get the Reaction object:
+            obj = getattr(self, name)
+
+            # compute the channel activity
+            obj.run_modulator(sim, sim_metabo, cells, p)
 
     def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
 
@@ -2688,6 +2727,64 @@ class Channel(object):
         self.channel_core.modulator = activator_alpha*inhibitor_alpha
 
         self.channel_core.run(self.dummy_dyna, sim, cells, p)
+
+class Modulator(object):
+    """
+    The modulator object allows a substance defined in MasterOfMolecules to
+    exert an activating or inhibiting influence over simulation-defined pumps
+    and/or gap junctions.
+
+    """
+    def __init__(self):
+
+        self.target_label = None
+        self.max_val = None
+
+        self.modulator_activators_list = None
+        self.modulator_activators_Km = None
+        self.modulator_activators_n = None
+        self.modulator_inhibitors_list = None
+        self.modulator_inhibitors_Km = None
+        self.modulator_inhibitors_n = None
+
+    def run_modulator(self, sim, sim_metabo, cells, p):
+
+        print("Running Modulator")
+
+        # get the coefficients activating and/or inhibiting the sim structure:
+
+        # get modulation coefficients by any activating/inhibiting substances:
+        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.modulator_activators_list,
+            self.modulator_activators_Km, self.modulator_activators_n, self.modulator_inhibitors_list,
+            self.modulator_inhibitors_Km, self.modulator_inhibitors_n, reaction_zone='mems')
+
+        # calculate the value of the channel modulation constant:
+        modulator = self.max_val*activator_alpha * inhibitor_alpha
+
+        if self.target_label == 'gj':
+
+            sim.gj_block = sim.gj_block*modulator
+
+        elif self.target_label == 'Na/K-ATPase':
+
+            sim.NaKATP_block = sim.NaK_ATP_block*modulator
+
+        elif self.target_label == 'H/K-ATPase':
+
+            sim.HKATP_block = sim.HK_ATP_block * modulator
+
+        elif self.target_label == 'V-ATPase':
+
+            sim.VATP_block = sim.V_ATP_block * modulator
+
+        else:
+
+            raise BetseExceptionParameters("You have requested a "
+                                           "sim modulator that is not "
+                                           "available. Available choices "
+                                           "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
+                                           "and 'V-ATPase' ")
+
 
 class DummyDyna(object):
 

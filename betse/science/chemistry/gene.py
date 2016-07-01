@@ -44,6 +44,8 @@ class MasterOfGenes(object):
         substances_config = self.config_dic['biomolecules']
         reactions_config = self.config_dic.get('reactions', None)
         transporters_config = self.config_dic.get('transporters', None)
+        channels_config = self.config_dic.get('channels', None)
+        modulators_config = self.config_dic.get('modulators', None)
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
@@ -65,6 +67,22 @@ class MasterOfGenes(object):
         else:
             self.transporters = False
 
+        # initialize channels, if desired:
+        if channels_config is not None:
+            self.core.read_channels(channels_config, sim, cells, p)
+            self.channels = True
+
+        else:
+            self.channels = False
+
+        # initialize modulators, if desired:
+
+        if modulators_config is not None:
+            self.core.read_modulators(modulators_config, sim, cells, p)
+            self.modulators = True
+
+        else:
+            self.modulators = False
 
     def run_core_sim(self, sim, cells, p):
 
@@ -95,6 +113,9 @@ class MasterOfGenes(object):
 
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)
+
+            if self.modulators:
+                self.core.run_loop_modulators(sim, self.core, cells, p)
 
             self.core.run_loop(t, sim, cells, p)
 

@@ -443,17 +443,6 @@ class Simulator(object):
 
         # -------------------------------------------------------------------------------------------------------
 
-        # if p.ions_dict['Ca'] == 1:  # initialize the endoplasmic reticulum
-        #     # Define the diffusion matrix for the endoplasmic reticulum:
-        #     self.Dm_er = np.zeros((2, len(cells.cell_i)))
-        #     self.Dm_er[0, :] = p.Dm_Ca
-        #     self.Dm_er[1, :] = p.Dm_M
-        #
-        #     self.v_er = np.zeros(len(cells.cell_i))
-
-
-            # initialize a time-zero vmem vector:
-
         self.vm_to = np.zeros(self.mdl)  # FIXME is this used anywhere?
 
         # convert all data structures to Numpy arrays:
@@ -471,11 +460,6 @@ class Simulator(object):
 
         self.fluxes_gj = np.asarray(self.fluxes_gj)
         self.fluxes_mem = np.asarray(self.fluxes_mem)
-
-        # if p.ions_dict['Ca'] == 1:  # items specific for Calcium dynamics
-        #     self.cc_er = np.asarray(self.cc_er)
-        #     self.z_array_er = np.asarray(self.z_array_er)
-        #     self.Dm_er = np.asarray(self.Dm_er)
 
         if p.sim_ECM is True:  # items specific for extracellular spaces simulation:
 
@@ -617,6 +601,14 @@ class Simulator(object):
             if p.transporters_enabled:
 
                 self.molecules.read_transporters(p.transporters_config, self, cells, p)
+
+            if p.channels_enabled:
+
+                self.molecules.read_channels(p.channels_config, self, cells, p)
+
+            if p.modulators_enabled:
+
+                self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
         else:
             self.molecules = None
@@ -915,7 +907,12 @@ class Simulator(object):
 
                         self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
 
-                # FIXME add in custon channel?
+                    if self.channels:
+                        self.molecules.run_loop_channels(self, self.core, cells, p)
+
+                    if self.modulators:
+
+                        self.molecules.run_loop_modulators(self, self.core, cells, p)
 
                     self.molecules.run_loop(t, self, cells, p)
 
@@ -932,6 +929,10 @@ class Simulator(object):
 
                         self.metabo.core.run_loop_channels(self, self.metabo.core, cells, p)
 
+                    if self.metabo.modulators:
+
+                        self.metabo.core.run_loop_modulators(self, self.metabo.core, cells, p)
+
                     self.metabo.core.run_loop(t, self, cells, p)
 
                 # update gene regulatory network handler--------------------------------------------------------
@@ -946,6 +947,9 @@ class Simulator(object):
 
                     if self.grn.channels:
                         self.grn.core.run_loop_channels(self, self.grn.core, cells, p)
+
+                    if self.grn.modulators:
+                        self.grn.core.run_loop_modulators(self, self.grn.core, cells, p)
 
                     # update the main gene regulatory network:
                     self.grn.core.run_loop(t, self, self.grn.core, cells, p)
@@ -1787,27 +1791,6 @@ class Simulator(object):
 
             # run the gap junction dynamics object to update gj open state of sim:
             self.gj_funk.run(self, cells, p)
-
-            # # determine the open state of gap junctions:
-            # gmin = self.gj_funk.gmin
-            #
-            # alpha_gj = self.gj_funk.alpha_gj
-            # beta_gj = self.gj_funk.beta_gj_p
-            #
-            # vgj = np.abs(self.vgj)
-            #
-            # dgjopen_dt = (1 - self.gjopen)*alpha_gj(vgj) - (self.gjopen - gmin)*beta_gj(vgj)
-            #
-            # self.gjopen = self.gjopen + 1e3*dgjopen_dt*p.dt
-            #
-            # # threshold to ensure 0 to 1 status
-            # inds_gj_over = (self.gjopen > 1.0).nonzero()
-            # self.gjopen[inds_gj_over] = 1.0
-            #
-            # inds_gj_under = (self.gjopen < 0.0).nonzero()
-            # self.gjopen[inds_gj_under] = 0.0
-            #
-            # self.gjopen = self.gj_block*self.gjopen
 
         else:
             self.gjopen = self.gj_block*np.ones(len(cells.mem_i))

@@ -453,7 +453,7 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM REACTIONS
         #--------------------------------------------------------------------------------------------------------------
-        self.reactions_enabled = self.config['reactions enabled']
+        self.reactions_enabled = self.config.get('reactions enabled', False)
 
         if self.reactions_enabled and self.molecules_enabled:
 
@@ -462,11 +462,29 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM TRANSPORTERS
         #--------------------------------------------------------------------------------------------------------------
-        self.transporters_enabled = self.config['transporters enabled']
+        self.transporters_enabled = self.config.get('transporters enabled', False)
 
         if self.transporters_enabled and self.molecules_enabled:
 
             self.transporters_config = self.config['transporters']
+
+        #--------------------------------------------------------------------------------------------------------------
+        #  CUSTOM CHANNELS
+        #--------------------------------------------------------------------------------------------------------------
+        self.channels_enabled = self.config.get('channels enabled', False)
+
+        if self.channels_enabled and self.molecules_enabled:
+
+            self.channels_config = self.config['channels']
+
+        #--------------------------------------------------------------------------------------------------------------
+        #  CUSTOM MODULATORS
+        #--------------------------------------------------------------------------------------------------------------
+        self.modulators_enabled = self.config.get('modulators enabled', False)
+
+        if self.modulators_enabled and self.molecules_enabled:
+
+            self.modulators_config = self.config['modulators']
 
         #---------------------------------------------------------------------------------------------------------------
         #  METABOLISM
