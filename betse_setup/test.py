@@ -238,6 +238,17 @@ class test(Command):
 
         # List of all shell words to be passed as arguments to py.test.
         pytest_args = [
+            # When testing interactively, prevent py.test from capturing stdout
+            # but *NOT* stderr. By default, py.test captures and delays printing
+            # stdout until after test completion. While a possibly suitable
+            # default for short-lived unit tests, such capturing is unsuitable
+            # for long-lived functional tests.
+            #
+            # Note that this option is monkey-patched by the _patch_pytest()
+            # method to capture only stdout. By default, this option captures
+            # neither stdout (which is good) nor stderr (which is bad).
+            '--capture=no',
+
             # When testing interactively, halt testing on the first failure.
             # Permitting multiple failures complicates failure output,
             # especially when every failure after the first is a result of the
@@ -247,7 +258,7 @@ class test(Command):
             # on the first failure. Hence, this option is confined to this
             # subcommand rather than added to the general-purpose "pytest.ini"
             # configuration.
-            '--maxfail=1'
+            '--maxfail=1',
         ]
 
         # If the optional third-party "pytest-xdist" plugin is installed, pass
