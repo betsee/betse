@@ -97,7 +97,7 @@ cache:
     # - $HOME/.cache/pip
 
 # List of all external commands to be run *FIRST* for this CI pipeline.
-before_script:
+# before_script:
   # Update all system packages installed by default with this image for the
   # duration of this CI pipeline.
   #
