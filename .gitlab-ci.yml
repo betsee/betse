@@ -55,6 +55,8 @@
 # from Continuum Analytics. If and when Alpine Linux supports Python 3.x,
 # consider a (probably painful and hence improbable) switch. See also:
 #
+# * Docker Hub Registery entry for this image::
+#   https://hub.docker.com/r/continuumio/anaconda3
 # * Open-source GitHub repository hosting this image's Dockerfile:
 #   https://github.com/ContinuumIO/docker-images/tree/master/anaconda3
 # * Platform-specific lists of all Anaconda packages installed by default:
@@ -86,13 +88,16 @@ cache:
   # between CI pipelines. (Note that relative paths are relative to the current
   # build directory.)
   paths:
+    # The directory to which Matplotlib caches metadata (e.g., on fonts).
+    - mpl-cache
+
     # The directory to which pip caches artifacts pertaining to previously
     # installed and possibly compiled dependencies.
     - pip-cache
     # - $HOME/.cache/pip
 
 # List of all external commands to be run *FIRST* for this CI pipeline.
-#before_script:
+before_script:
   # Update all system packages installed by default with this image for the
   # duration of this CI pipeline.
   #
@@ -117,6 +122,9 @@ test:
   # List of all external commands to be run for each CI pipeline *AFTER* those
   # listed within "before_script" above.
   script:
+    # Instruct Matplotlib to cache metadata to a build-relative path.
+    - export MPLCONFIGDIR="mpl-cache"
+
     # Run the entire "py.test"-based test suite under the following options:
     #
     # * "--maxfail=3", halting testing on the third failure. For discussion, see
