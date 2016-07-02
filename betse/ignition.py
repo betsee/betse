@@ -48,6 +48,10 @@ High-level application initialization common to both the CLI and GUI.
 #the high-level synopsis, see:
 #
 #    http://deeplearning.net/software/theano/introduction.html
+#FIXME: Theano and Torch (a similar framewark) appear to now be subsumed by
+#TensorFlow, a Google-backed framework originally implemented in support of
+#machine learning workflows at Google (e.g., DeepMind), but sufficiently
+#generalized as to support a wide variety of computational needs -- like ours.
 
 #FIXME: The "~/.betse" directory grows fairly large fairly quickly. It'd be
 #great to emit non-fatal warnings if its size exceeds some reasonable threshold

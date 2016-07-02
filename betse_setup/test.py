@@ -307,15 +307,3 @@ class test(Command):
         # Run py.test, propagating its exit status as our own up to the caller.
         print('Running py.test with arguments: {}'.format(pytest_args))
         util.exit_with_status(self._pytest_public.main(pytest_args))
-
-# import pytest
-# from _pytest.capture import CaptureManager, FDCapture, MultiCapture
-# _getcapture_old = CaptureManager._getcapture
-#
-# def _getcapture_new(self, method):
-#     if method == "no":
-#         return MultiCapture(out=False, err=True, in_=False, Capture=FDCapture)
-#     else:
-#         return _getcapture_old(self, method)
-#
-# CaptureManager._getcapture = _getcapture_new

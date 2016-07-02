@@ -11,42 +11,114 @@
 #be substantially faster. For now, pip cache is better than no cache.
 
 # ....................{ DOCKER                             }....................
-# Name of the Docker image provisioning the software stack to be tested against.
-# Names of Python-specific Docker images include:
+# Colon-delimited name and tag of the first- or third-party Docker image
+# registered with the Docker Hub Registery (e.g., "python:3", denoting the
+# Docker image named "python" tagged as "3"), provisioning the scientific stack
+# to be tested against. A tag is an alphanumeric label unique to an image,
+# whose name is itself an alphanumeric label unique to the set of all images
+# registered with the Docker Hub Registery. A tag typically specifies the
+# version of that image to be used.
 #
-# * "python:2", provisioning a Python 2.7 software stack.
-# * "python:3", provisioning a Python 3.x software stack.
-image: python:3
+# For a list of all available Docker images, see the search bar at the top of
+# "https://hub.docker.com". To find relevant images, consider (in order):
+# 
+# * Either:
+#   * Google "docker python3 matplotlib". Since Matplotlib transitively requires
+#     most dependencies required by this project, this query (typically) yields
+#     maximally relevant images.
+#   * Search the Docker Hub Registry directly by:
+#     * Switching the list box from its useless default of "All" to either
+#       "Downloads" or "Stars", sorting hits on image usage or upvotes.
+#     * Searching for "python". Unfortunately, since the search engine *ONLY*
+#       searches image names rather than some combination of names,
+#       descriptions, and/or Dockerfiles, the resulting hits tend to be only
+#       minimally relevant.
+# * For each image of interest, clicking the "Tags" subpage to list:
+#   * All available tags for that image.
+#   * For each such tag, the compressed filesize of that tagged image.
+#
+# All else being equal, the smallest image pre-packaging the largest number of
+# dependencies required for our scientific stack is the most ideal. Note that
+# downloading and installing dependencies via a package manager is significantly
+# slower than merely downloading an image pre-packaging those dependencies.
+#
+# Docker official images are rumoured to be switching from an Ubuntu- to an
+# Alpine Linux-based OS. Thanks to an obsessive-compulsive attention to
+# minification, Alpine Linux is ideal for Docker-based CI. While Alpine Linux
+# comes bundled with a package manager ("apk") providing a variety of scientific
+# Python packages (e.g., "py-numpy"), these packages are all specific to the
+# Python 2.7 ecosystem as of mid-2016. If and when Alpine Linux provides new
+# Python 3.x-compatible scientific Python packages, the current choice of Docker
+# image below should be revisited.
+#
+# For simplicity, we currently fallback to the official Anaconda 3 Docker image
+# from Continuum Analytics. If and when Alpine Linux supports Python 3.x,
+# consider a (probably painful and hence improbable) switch. See also:
+#
+# * Open-source GitHub repository hosting this image's Dockerfile:
+#   https://github.com/ContinuumIO/docker-images/tree/master/anaconda3
+# * Platform-specific lists of all Anaconda packages installed by default:
+#   http://repo.continuum.io/pkgs
+# * A promising alternative installing additional optional dependencies over
+#   Anaconda 3, including FFMpeg. It's fairly heavyweight (which is bad), but
+#   frequently maintained (which is good):
+#   https://hub.docker.com/r/kaggle/python
+#   https://github.com/Kaggle/docker-python
+# * A promising alternative layering Anaconda 3 onto Alpine Linux, thus
+#   circumventing several of the aforementioned issues. Unfortunately, this
+#   image is infrequently maintained and hence unreliable (which is terribad):
+#   https://github.com/vishnu2kmohan/anaconda3-docker
+image: continuumio/anaconda3
 
 # ....................{ DEPENDENCIES                       }....................
 cache:
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  # ! WARNING: Due to an outstanding issue, GitLab-CI currently ignores *ALL*
+  # ! cache paths outside the build directory. See also:
+  # !     https://gitlab.com/gitlab-org/gitlab-ce/issues/4431
+  # ! Sadly, this implies that cache paths listed below *MUST* be both relative
+  # ! to and contained in the build directory. To ensure this, ensure that each
+  # ! such path is prefixed by neither "/", "./", or "../" *OR* by any variable
+  # ! expanding to such a path (e.g., "$HOME").
+  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  #
   # List of the relative or absolute paths of all directories to be preserved
   # between CI pipelines. (Note that relative paths are relative to the current
   # build directory.)
   paths:
     # The directory to which pip caches artifacts pertaining to previously
     # installed and possibly compiled dependencies.
-    - $HOME/.cache/pip
-    # - pip-cache
+    - pip-cache
+    # - $HOME/.cache/pip
 
 # List of all external commands to be run *FIRST* for this CI pipeline.
-before_script:
-  # Update all system packages installed by default with this Docker image for
-  # the duration of this CI pipeline.
-  - apt-get update -qy
+#before_script:
+  # Update all system packages installed by default with this image for the
+  # duration of this CI pipeline.
+  #
+  # Since this image is frequently updated, this is ignored.
+  #- apt-get update -qy
 
-  # Install the Python 3.x version of "py.test". Doing so via the system-wide
-  # package manager is (presumably!) faster than doing so via pip.
-  - apt-get install -y python3-pip
+  # Install all dependencies available via the system-wide package manager,
+  # which is typically both faster and stabler than doing so via pip3.
+  #
+  # Since this image provides all such dependencies by default, this is ignored.
+  # - apt-get install -y
 
-  # Install all Python-specific dependencies via pip3.
+  # Install all Python-specific dependencies via pip3, explicitly declaring the
+  # custom pip3 cache directory listed above.
+  #
+  # Since this image provides all such dependencies by default, this is ignored.
   # - export PIP_CACHE_DIR="pip-cache"
-  - pip3 install -qr requirements.txt
+  # - pip3 install -qr requirements.txt
 
 # ....................{ TESTS                              }....................
 test:
-  # List of all external commands to be run *AFTER* those listed above by
-  # "before_script" for each CI pipeline.
+  # List of all external commands to be run for each CI pipeline *AFTER* those
+  # listed within "before_script" above.
   script:
-    # Run the entire "py.test"-based test suite.
-    - py.test
+    # Run the entire "py.test"-based test suite under the following options:
+    #
+    # * "--maxfail=3", halting testing on the third failure. For discussion, see
+    #   the "betse_setup.test" submodule.
+    - py.test --maxfail=3
