@@ -1,3 +1,5 @@
+[![build status](https://gitlab.com/betse/betse/badges/master/build.svg)](https://gitlab.com/betse/betse/commits/master)
+
 BETSE
 ===========
 
