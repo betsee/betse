@@ -414,7 +414,7 @@ class MasterOfMolecules(object):
             obj.channel_activators_n = chan_dic.get('activator n', None)
             obj.channel_inhibitors_list = chan_dic.get('channel inhibitors', None)
             obj.channel_inhibitors_Km = chan_dic.get('inhibitor Km', None)
-            obj.channel_inhibitors_n = chan_dic.get('activator n', None)
+            obj.channel_inhibitors_n = chan_dic.get('inhibitor n', None)
 
             obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 

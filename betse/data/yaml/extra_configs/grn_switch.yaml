@@ -19,44 +19,67 @@
 biomolecules:  # specify the properties of any number of auxillary chemicals
 
 
-  - name: 'Gene Full Template'    # give the substance a unique identifier of your choice.
+  - name: 'A'    # give the substance a unique identifier of your choice.
 
-    Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: 0               # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
+    GJ permeable: False   # can this substance pass through gap junctions?
     growth and decay:
-      production rate: 2.0    # maximum rate at which molecule is produced in the cytoplasm
-      decay rate: 1.0          # maximum rate at which molecule is degraded in the cytoplasm
+      production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
       Km: 1.0                  # Half-maximum value for decay [mmol/L]
       n: 1.0                   # Hill exponent for decay
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
       k activators: None       # list of kinetic parameters of activators
       n activators: None       # list of Hill exponent of activators
-      inhibitors: ['Gene 3']   # list of defined substances or simulation ions inhibiting expression
-      Km inhibitors: [1]      # list of half-maximum values for inhibitors
-      k inhibitors: [100]      # list of kinetic parameters of inhibitors
-      n inhibitors: [1]        # list of Hill exponent of inhibitors
+      inhibitors: ['B']   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: [1.0]      # list of half-maximum values for inhibitors
+      k inhibitors: [1.0]      # list of kinetic parameters of inhibitors
+      n inhibitors: [3.0]        # list of Hill exponent of inhibitors
     ion channel gating:
       ion channel target: None    # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
       target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
       peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
       acts extracellularly: True        # acts via extracellular (True) or intracellular (False) concentration?
-    active pumping:                     # use ATP driven pumps to actively move morphogen?
-      turn on: False                     # turn pumping on?
-      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
-      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
-      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
-      uses ATP: False      # uses ATP or facilitated transport?
-    change at bounds:      # Change the environmental concentration of molecule from the global boundary
-      event happens: False     # turn the event on (True) or off (False)
-      change start: 1.0          # time to start change [s]
-      change finish: 7.0        # time to end change and return to original [s]
-      change rate: 1.0           # rate of change [s]
-      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+      min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+  - name: 'B'    # give the substance a unique identifier of your choice.
+
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 0               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
+    GJ permeable: False    # can this substance pass through gap junctions?
+    growth and decay:
+      production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
+      Km: 0.5                  # Half-maximum value for decay [mmol/L]
+      n: 3.0                   # Hill exponent for decay
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      k activators: None       # list of kinetic parameters of activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: ['A']   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: [1.0]      # list of half-maximum values for inhibitors
+      k inhibitors: [1.0]      # list of kinetic parameters of inhibitors
+      n inhibitors: [3.0]        # list of Hill exponent of inhibitors
+    ion channel gating:
+      ion channel target: None    # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
+      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: True        # acts via extracellular (True) or intracellular (False) concentration?
     plotting:
       plot 2D: True         # create a unique set of plots for the substance
       animate: True         # animate the substance during the sampled time-steps of the simulation
@@ -69,17 +92,17 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
 #-----------------------------------------------------------------------------------------------------------------------
 #channels:
 
-#  - name: ATP-K-channel
+#  - name: vgCa
 #
-#    channel class: K       # class of the channels: Na, K, Ca, NaP, Kir, and Fun
-#    channel type: KLeak   # identify the channel as one of the available voltage gated types in each class
-#    max conductivity: 1.0e-8          # maximum membrane conductivity to ion when channel fully open
-#    channel activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
-#    activator Km: [0.1]
-#    activator n: [3.0]
-#    channel inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
-#    inhibitor Km: [1.5]
-#    activator n: [3.0]
+#    channel class: Ca       # class of the channels: Na, K, Ca, NaP, Kir, and Fun
+#    channel type: Ca_L   # identify the channel as one of the available voltage gated types in each class
+#    max conductivity: 1.0e-6          # maximum membrane conductivity to ion when channel fully open
+#    channel activators: None  # additional defined substances or ions increasing activity of transporter
+#    activator Km: None
+#    activator n: None
+#    channel inhibitors: ['A']    # additional defined substances or ions decreasing activity of transporter
+#    inhibitor Km: [1.0]
+#    inhibitor n: [3.0]
 
     # channel class Na: Nav1p2, Nav1p3, NavRat1, NavRat2, NaLeak
     #               K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p5, Kv2p1, KLeak

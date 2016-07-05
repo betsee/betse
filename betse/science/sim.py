@@ -644,7 +644,7 @@ class Simulator(object):
             # create an instance of the metabolism simulator
             self.grn = MasterOfGenes(p)
             # read in the configuration settings for the metabolism simulator:
-            self.grn.read_genes_config(self, cells, p)
+            self.grn.read_gene_config(self, cells, p)
 
         else:
             self.grn = None
@@ -713,8 +713,6 @@ class Simulator(object):
 
         # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)
-
-
 
     def run_sim_core(self, cells, p):
         '''
@@ -950,14 +948,14 @@ class Simulator(object):
                     if self.grn.transporters:
                         self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
 
-                    if self.grn.channels:
+                    if self.grn.channels and p.run_sim is True:
                         self.grn.core.run_loop_channels(self, self.grn.core, cells, p)
 
                     if self.grn.modulators:
                         self.grn.core.run_loop_modulators(self, self.grn.core, cells, p)
 
                     # update the main gene regulatory network:
-                    self.grn.core.run_loop(t, self, self.grn.core, cells, p)
+                    self.grn.core.run_loop(t, self, cells, p)
 
 
                 # dynamic noise handling-----------------------------------------------------------------------------------
@@ -1290,10 +1288,12 @@ class Simulator(object):
         if p.metabolism_enabled:
 
             self.metabo.core.write_data(self, p)
+            self.metabo.core.report(self, p)
 
         if p.grn_enabled:
 
             self.grn.core.write_data(self, p)
+            self.grn.core.report(self, p)
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
 

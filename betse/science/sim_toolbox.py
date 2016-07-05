@@ -174,6 +174,9 @@ def pumpCaATP(cCai,cCao,Vm,T,p, block, met = None):
 
     deltaGATP_o = p.deltaGATP
 
+    no_negs(cCai)
+    no_negs(cCao)
+
     if met is None:
 
         # if metabolism vector not supplied, use singular defaults for concentrations
