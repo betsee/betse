@@ -60,28 +60,36 @@ BETSE simulates biorealistic electrochemical phenomena in gap
 junction-networked, 2D cellular collectives. To predict bioelectric patterns
 and their spatio-temporal dynamics, BETSE:
 
-* Models ion channel and gap junction activity.
+* Models [ion channel](https://en.wikipedia.org/wiki/Ion_channel) and
+  [gap junction](https://en.wikipedia.org/wiki/Gap_junction) activity.
 * Tracks changes in ion concentration and net ionic charge.
 * Calculates endogenous voltages and currents.
 * Imports bitmask images defining the shapes of:
   * Cell clusters.
   * Cell cluster regions localizing ion channel activity, typically signifying
     different types of adjacent tissues (e.g., organs).
-* Exports the resulting behavior to a variety of output formats for subsequent
-  post-processing, including:
-  * Publication-quality plots, graphs, and still frames.
-  * Playable animations as Internet-friendly compressed video.
-  * Tabular, structured data (e.g., [comma-separated values
+* Exports simulation results to a variety of output formats, including:
+  * Publication-quality plots and graphs.
+  * Internet-friendly compressed video.
+  * Post-processable tabular data (e.g., [comma-separated values
     (CSV)](https://en.wikipedia.org/wiki/Comma-separated_values)).
 
 Simulations can optionally include the seven ions underpinning bioelectrical
-signals: [Na<sup>+</sup>](https://en.wikipedia.org/wiki/Sodium_in_biology), [K<sup>+</sup>](https://en.wikipedia.org/wiki/Potassium_in_biology), [Cl<sup>-</sup>](https://en.wikipedia.org/wiki/Chloride), [Ca<sup>2+</sup>](https://en.wikipedia.org/wiki/Calcium_in_biology), [H<sup>+</sup>](https://en.wikipedia.org/wiki/Hydron_(chemistry)), [HCO<sub>3</sub><sup>-</sup>](https://en.wikipedia.org/wiki/Bicarbonate_transporter_protein), and [anionic proteins
+signals: [Na<sup>+</sup>](https://en.wikipedia.org/wiki/Sodium_in_biology),
+[K<sup>+</sup>](https://en.wikipedia.org/wiki/Potassium_in_biology),
+[Cl<sup>-</sup>](https://en.wikipedia.org/wiki/Chloride),
+[Ca<sup>2+</sup>](https://en.wikipedia.org/wiki/Calcium_in_biology),
+[H<sup>+</sup>](https://en.wikipedia.org/wiki/Hydron_(chemistry)),
+[HCO<sub>3</sub><sup>-</sup>](https://en.wikipedia.org/wiki/Bicarbonate_transporter_protein),
+and [anionic proteins
 (P<sup>-</sup>)](https://en.wikipedia.org/wiki/Gibbs%E2%80%93Donnan_effect).
 
-Individual cells can include a variety of voltage gated ion channels, which are
-based on Hodgkin-Huxley formalism with experimentally-derived variables sourced
-from [Channelpedia](http://channelpedia.epfl.ch). Currently implemented voltage
-gated channel types include Nav1.2, Nav1.3, Nav1.6, Kv1.2, Kv1.2, Kv.1.5,
+Individual cells can include a variety of voltage-gated ion channels, which are
+based on [Hodgkin-Huxley
+formalism](https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model) with
+experimentally-derived variables sourced from
+[Channelpedia](http://channelpedia.epfl.ch). Currently implemented
+voltage-gated channel types include Nav1.2, Nav1.3, Nav1.6, Kv1.2, Kv1.2, Kv.1.5,
 Kv3.3, Kv3.4, Kir2.1, L-type Ca, T-type Ca, P/Q-type Ca, HCN1, HCN2, and HCN4.
 A variety of built-in and custom leak and ligand gated channels are available,
 including calcium-gated K+ channels. Further control of bioelectric cell
