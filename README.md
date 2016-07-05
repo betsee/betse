@@ -29,19 +29,54 @@ platforms is planned, BETSE currently _only_ provides a low-level command
 line interface (CLI) supporting Linux and OS X.
 <sup>_Windows is currently unsupported._</sup>
 
-## Synopsis
+## Installation
+
+BETSE is installable under **Linux** and **OS X** as follows:
+
+1. Install **[Git](https://git-scm.com/downloads).**
+1. Install the **Python 3.x** (e.g., 3.5) variant of
+   **[Anaconda](https://www.continuum.io/downloads).** <sup>Do _not_ install the
+   Python 2.7 variant of Anaconda. BETSE requires Python 3.x.</sup>
+1. Run the following commands from within a command-line terminal:
+   1. Download the live version of BETSE.
+
+            git clone https://gitlab.com/betse/betse.git
+
+   1. Install BETSE.
+
+            cd betse && sudo python3 setup.py install
+
+   1. **_(Optional)_** Test BETSE by running a sample simulation.
+
+            cd /tmp && betse try
+
+For a comprehensive list of system requirements, software dependencies, and
+platform-specific installation instructions, see [**BETSE
+Installation**](doc/md/INSTALL.md).
+
+## Description
 
 BETSE simulates biorealistic electrochemical phenomena in gap
-junction-networked, 2D cellular collectives. To predict bioelectric
-patterns and their spatio-temporal dynamics, BETSE models ion channel and gap
-junction activity, tracks changes in ion concentration and net ionic charge,
-calculates endogenous voltages and currents,
-and emits raw data, publication-quality plots, and animations of the
-resulting behavior. Cell clusters can be shaped, and tissue profiles defining
-regions of unique ion channel activity defined, using user-created bitmaps.
+junction-networked, 2D cellular collectives. To predict bioelectric patterns
+and their spatio-temporal dynamics, BETSE:
+
+* Models ion channel and gap junction activity.
+* Tracks changes in ion concentration and net ionic charge.
+* Calculates endogenous voltages and currents.
+* Imports bitmask images defining the shapes of:
+  * Cell clusters.
+  * Cell cluster regions localizing ion channel activity, typically signifying
+    different types of adjacent tissues (e.g., organs).
+* Exports the resulting behavior to a variety of output formats for subsequent
+  post-processing, including:
+  * Publication-quality plots, graphs, and still frames.
+  * Playable animations as Internet-friendly compressed video.
+  * Tabular, structured data (e.g., [comma-separated values
+    (CSV)](https://en.wikipedia.org/wiki/Comma-separated_values)).
 
 Simulations can optionally include the seven ions underpinning bioelectrical
-signals: Na+, K+, Cl-, Ca++, H+, HCO-, and anionic proteins (P-).
+signals: [Na<sup>+</sup>](https://en.wikipedia.org/wiki/Sodium_in_biology), [K<sup>+</sup>](https://en.wikipedia.org/wiki/Potassium_in_biology), [Cl<sup>-</sup>](https://en.wikipedia.org/wiki/Chloride), [Ca<sup>2+</sup>](https://en.wikipedia.org/wiki/Calcium_in_biology), [H<sup>+</sup>](https://en.wikipedia.org/wiki/Hydron_(chemistry)), [HCO<sub>3</sub><sup>-</sup>](https://en.wikipedia.org/wiki/Bicarbonate_transporter_protein), and [anionic proteins
+(P<sup>-</sup>)](https://en.wikipedia.org/wiki/Gibbs%E2%80%93Donnan_effect).
 
 Individual cells can include a variety of voltage gated ion channels, which are
 based on Hodgkin-Huxley formalism with experimentally-derived variables sourced
@@ -66,6 +101,8 @@ gene-products and other biochemicals with ion channels, pumps and gap junctions,
 thereby allowing for the study of relationships between the powerful control
 systems of both gene/biochemical regulatory networks and bioelectrical signals.
 
+## Validation
+
 Simulation performance is perpetually validated by matching experimentally
 observed data on membrane permeability, ion concentration, resting potential,
 and related biophysical quantities to simulation output. Expected outcomes have
@@ -81,33 +118,6 @@ been demonstrated for a range of well-known cases, including:
 * Development of realistic bioelectric signals on large-scale cellular wounds.
 
 For details, see our recently published [introductory paper](#reference).
-
-## Installation
-
-BETSE is installable under **Linux** and **OS X** as follows:
-
-1. Install **[Git](https://git-scm.com/downloads).**
-1. Install the **Python 3.x** (e.g., 3.5) variant of
-   **[Anaconda](https://www.continuum.io/downloads).** <sup>Do _not_ install the
-   Python 2.7 variant of Anaconda. BETSE requires Python 3.x.</sup>
-1. Run the following commands from within a command-line terminal:
-   1. Download the latest unstable version of BETSE:
-
-            git clone https://gitlab.com/betse/betse.git
-
-   1. Install BETSE:
-
-            cd betse
-            sudo python3 setup.py install
-
-   1. **_(Optional)_** Test BETSE by running a sample simulation:
-
-            cd /tmp
-            betse try
-
-For a comprehensive list of requirements,
-mandatory and optional dependencies, and platform-specific installation
-instructions, see [**BETSE Installation**](doc/md/INSTALL.md).
 
 ## License
 

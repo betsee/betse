@@ -67,7 +67,7 @@ That said, BETSE itself does _not_ require `pip3` at runtime.
 Under Linux, BETSE also requires:
 
 * [Tcl/Tk](https://www.tcl.tk).
-* Matplotlib compiled with Tcl/Tk support (i.e., the `tkagg` backend enabled).
+* Matplotlib compiled with Tcl/Tk support (i.e., the `tkagg` backend).
 
 #### Linux Debian
 
@@ -86,7 +86,7 @@ form of recompilation, relinking, or reinstallation.
 
 BETSE requires a fairly recent version of Matplotlib. If the newest version of
 Matplotlib installed by your distribution is insufficient, the newest version of
-Matplotlib may be manually installed as follows:
+Matplotlib is installable in a system-wide manner as follows:
 
     $ sudo apt-get uninstall python3-matplotlib &&
       sudo apt-get install gcc gfortran libfreetype6-dev libpng-dev libpython3-all-dev tcl-dev tk-dev &&
@@ -114,10 +114,10 @@ Note that OpenBLAS and ATLAS _cannot_ be installed at the same time.
 
 ###### OpenBLAS
 
-OpenBLAS is a more performant (but often less stable) optimized BLAS and LAPACK
-implementation. While ATLAS is recommended for new users, users requiring
-improved performance may benefit from installing OpenBLAS instead. OpenBLAS is
-installable in a system-wide manner as follows:
+OpenBLAS is a more performant (but less stable) optimized BLAS and LAPACK
+implementation. While ATLAS is recommended for new users, experienced users
+requiring improved performance may benefit from installing OpenBLAS instead.
+OpenBLAS is installable in a system-wide manner as follows:
 
     $ sudo apt-get install build-essential libopenblas-dev &&
       sudo update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libopenblas.so.0 &&
@@ -495,8 +495,9 @@ BETSE is subsequently uninstallable via `pip` as follows:
 
 ### User-specific
 
-BETSE is installable into a user-specific venv by running the following
-command **from within such venv**:
+BETSE is installable into a user-specific
+[venv](https://docs.python.org/3/library/venv.html) by running the following
+commands **from within that venv**:
 
     $ cd "${BETSE_DIR}"
     $ ./setup.py install
@@ -510,3 +511,68 @@ by `setuptools` and dependencies already installed by such package maneger.
 BETSE is subsequently uninstallable via `pip` as follows:
 
     $ pip uninstall betse
+
+### Docker
+
+BETSE is also installable into a [Docker](https://www.docker.com)-hosted Linux
+distribution contained within an existing Linux distribution, circumventing the
+need to install BETSE directly into an existing system. For simplicity, the
+following instructions assume usage of Docker's official Ubuntu image:
+
+1. Install [**Docker**](https://docs.docker.com/engine/installation).
+1. Instruct the Xauthority security mechanism to ignore hostnames, permitting
+   Docker containers with different hostnames than that of the local host to
+   access the current X11 socket. <sup>_Thanks to [Jürgen
+   Weigert](https://stackoverflow.com/users/3936284/j%c3%bcrgen-weigert) for his
+   observant [Stackoverflow answer](https://stackoverflow.com/a/25280523)
+   inspiring this snippet.</sup>
+
+        $ touch /tmp/.docker.xauth && xauth nlist :0 |
+              sed -e 's/^..../ffff/' |
+              xauth -f /tmp/.docker.xauth nmerge -
+
+1. Download the latest version of [Continuum
+   Analytics](https://www.continuum.io/downloads)' official [Anaconda 3 Docker
+   image](https://hub.docker.com/r/continuumio/anaconda3) and instantiate this
+   image as a new Docker container named `betse` running an interactive Bash
+   session mounting the X11 socket of the host's current X11 session.
+
+        $ docker run -it\
+              --name betse\
+              -v /tmp/.X11-unix:/tmp/.X11-unix\
+              -v /tmp/.docker.xauth:/tmp/.docker.xauth\
+              -e DISPLAY=$DISPLAY\
+              -e XAUTHORITY=/tmp/.docker.xauth\
+              continuumio/anaconda3 bash
+
+1. Run the following commands from within this container:
+   1. **_(Optional)_** Test the X11 connection by running `xeyes`.
+
+            $ apt-get update && apt-get install -y x11-apps && xeyes
+
+   1. Download the live version of BETSE into the `${HOME}` directory of the
+      current user (i.e., `root`).
+
+            $ cd ~ && git clone https://gitlab.com/betse/betse.git
+
+   1. Install BETSE.
+
+            $ cd betse && python3 setup.py install
+
+   1. **_(Optional)_** Test BETSE by running a sample simulation.
+
+            $ cd /tmp && betse try && rm -rf sample_sim
+
+   1. Exit this session.
+
+            $ exit
+
+To resume the previously instantiated container:
+
+1. Restart this container.
+
+        $ docker start betse
+
+1. Reenter this container by running another interactive Bash session.
+
+        $ docker attach betse
