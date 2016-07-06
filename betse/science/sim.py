@@ -886,6 +886,11 @@ class Simulator(object):
 
                 # ----transport and handling of special ions---------------------------------------------------------------
 
+                if p.ions_dict['Cl'] == 1:
+
+                    self.cl_handler(cells, p)
+
+
                 if p.ions_dict['Ca'] == 1:
 
                     self.ca_handler(cells, p)
@@ -1707,6 +1712,38 @@ class Simulator(object):
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells,p)
+
+    def cl_handler(self, cells, p):
+
+        if p.NaKCl_exch_dyn is True:
+
+            cNai = self.cc_mems[self.iNa]
+            cKi = self.cc_mems[self.iK]
+            cCli = self.cc_mems[self.iCl]
+
+            if p.sim_ECM is True:
+                cNao = self.cc_env[self.iNa][cells.map_mem2ecm]
+                cKo = self.cc_env[self.iK][cells.map_mem2ecm]
+                cClo = self.cc_env[self.iCl][cells.map_mem2ecm]
+
+            else:
+
+                cNao = self.cc_env[self.iNa]
+                cKo = self.cc_env[self.iK]
+                cClo = self.cc_env[self.iCl]
+
+            f_Na, f_K, f_Cl = stb.exch_NaKCl(cNai,cNao,cKi,cKo,cCli,cClo,self.vm,self.T,p)
+
+            # update concentrations of Na, K and Cl in cells and environment:
+
+            self.cc_mems[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_mems[self.iNa][:],
+                self.cc_env[self.iNa][:], f_Na, cells, p, ignoreECM=False)
+
+            self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
+                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=False)
+
+            self.cc_mems[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_mems[self.iCl][:],
+                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=False)
 
     def ca_handler(self,cells,p):
 

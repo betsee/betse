@@ -590,6 +590,9 @@ class Parameters(object):
         # include a Na-Ca exchanger in the simulation?
         self.NaCa_exch_dyn = self.config['variable settings']['optional pumps']['Na/Ca exchanger']
 
+        # include a Na-K-Cl cotransporter?
+        self.NaKCl_exch_dyn = self.config['variable settings']['optional pumps'].get('Na/K/Cl cotrans', False)
+
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
 
@@ -860,7 +863,7 @@ class Parameters(object):
         # FIXME add these as options to the config
         self.KmNK_Na = 12.0   # NaKATPase enzyme ext Na half-max sat value (alpha1 = 12, alpha2 = 20, alpha3 = 60)
         self.KmNK_K = 0.2     # NaKATPase enzyme ext K half-max sat value (alpha1 = 0.2, alpha2 = 0.20, alpha3 = 0.09)
-        self.KmNK_ATP = 0.45   # NaKATPase enzyme ATP half-max sat value
+        self.KmNK_ATP = 0.35   # NaKATPase enzyme ATP half-max sat value
 
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
 
@@ -885,6 +888,12 @@ class Parameters(object):
         self.alpha_NaCaExch = float(iu.get('alpha_NaCa', 1.0e-6))
         self.KmNC_Na = 5.0
         self.KmNC_Ca = 1.0e-3
+
+        # FIXME add to config (Na-K-Cl cotransporter parameters)
+        self.alpha_NaKCl = float(iu.get('alpha_NaKCl', 1.0e-5))
+        self.KmNaKCl_Na = 10.0
+        self.KmNaKCl_K = 0.2
+        self.KmNaKCl_Cl = 10.0
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]

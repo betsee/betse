@@ -497,6 +497,25 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+        if p.sim_ECM is True:
+
+            plt.figure()
+            plt.imshow(
+                sim.cc_env[sim.iCa].reshape(cells.X.shape),
+                origin='lower',
+                extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
+                cmap=p.default_cm,
+            )
+            plt.colorbar()
+            plt.title('Environmental Calcium [mmol/L]')
+
+            if p.autosave is True:
+                savename10 = savedImg + 'Final_environmental_calcium' + '.png'
+                plt.savefig(savename10, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
         pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH])
 
@@ -515,6 +534,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
+
 
     if p.ions_dict['H'] == 1 and p.HKATPase_dyn == 1 and sim.run_sim is True:
 

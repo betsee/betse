@@ -567,9 +567,20 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
 reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
 
 #-----------------------------------------------------------------------------------------------------------------------
+#  CUSTOM CHANNELS
+#-----------------------------------------------------------------------------------------------------------------------
+
+channels enabled: False   # enable (True) or turn off (False) all of the following reactions
+
+#-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
 #-----------------------------------------------------------------------------------------------------------------------
 transporters enabled: False
+
+#-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM MODULATORS
+#-----------------------------------------------------------------------------------------------------------------------
+modulators enabled: False
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM
@@ -627,6 +638,8 @@ variable settings:
 
     Na/Ca exchanger: False  # include a sodium/calcium exchanger?
                             # only works for an ion profile with Ca2+ ions (animal or basic_Ca)
+
+    Na/K/Cl cotrans: True   # include a sodium/potassium/chloride co-transporter?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
@@ -1048,11 +1061,13 @@ internal parameters:
 
   alpha_Ca:  1.0e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  alpha_HK:  1.0e-5    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  alpha_HK:  1.0e-7    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 
-  alpha_V:  1.0e-5     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  alpha_V:  1.0e-7     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
 
-  alpha_NaCa: 1.0e-5    # rate of Na/Ca exchanger [m/mol*s]
+  alpha_NaCa: 1.0e-8    # rate of Na/Ca exchanger [m/mol*s]
+
+  alpha_NaKCl: 1.0e-5   # rate of Na/K/Cl cotransporter [m/mol*s]
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
