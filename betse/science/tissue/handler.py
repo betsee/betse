@@ -18,6 +18,7 @@ from betse.science.tissue.channels import vg_k as vgk
 from betse.science.tissue.channels import vg_kir as vgkir
 from betse.science.tissue.channels import vg_funny as vgfun
 from betse.science.tissue.channels import vg_ca as vgca
+from betse.science.tissue.channels import wound_channel as w
 from betse.science.tissue.channels_o import cagPotassium
 from betse.util.io.log import logs
 from betse.util.type import types
@@ -41,17 +42,13 @@ class TissueHandler(object):
 
     def __init__(
         self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
-        #FIXME: Reduce to the following single line:
-        #    self.data_length = len(cells.mem_i if p.sim_ECM else cells.cell_i)
-        #Actually, as this duplicates logic below, we should probably just
-        #move this logic into a new private method _init_data_length().
-        #Actually, the ideal solution is to shift this into the
-        #tissueProfiles() method if feasible; doing so would permit us to
-        #simply remove this logic both here and below.
+
         if p.sim_ECM is True:
             self.data_length = len(cells.mem_i)
         else:
             self.data_length = len(cells.mem_i)
+
+        self.wound_channel_used = False
 
 
     def runAllInit(
@@ -733,7 +730,7 @@ class TissueHandler(object):
                 logs.log_info(
                     'Cutting cell cluster via cut profile "%s"...',
                     cut_profile_name)
-                removeCells(p.profiles[cut_profile_name].picker, sim, cells, p)
+                self.removeCells(p.profiles[cut_profile_name].picker, sim, cells, p)
 
             logs.log_info("Cutting event successful! Resuming simulation...")
 
@@ -853,6 +850,10 @@ class TissueHandler(object):
 
             self.stretchChannel(sim,cells,p,t)
 
+        if self.wound_channel_used is True:
+
+            self.wound_channel.run(self, sim, cells, p)
+
     def stretchChannel(self,sim,cells,p,t):
 
         dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
@@ -968,311 +969,335 @@ class TissueHandler(object):
         sim.P_cells = sim.P_mod + sim.P_base
 
 
-#FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
-def removeCells(
-    tissue_picker,
-    sim: 'Simulation', cells: 'Cells', p: 'Parameters') -> None:
-    '''
-    Permanently remove all cells selected by the passed tissue picker.
+    #FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
+    def removeCells(self,tissue_picker, sim, cells, p) -> None:
+        '''
+        Permanently remove all cells selected by the passed tissue picker.
 
-    Parameters
-    ---------------------------------
-    tissue_picker : TissuePicker
-        Object matching all cells to be removed.
-    sim : Simulator
-        Instance of the `Simulator` class.
-    cells : Cells
-        Instance of the `Cells` class.
-    p : Parameters
-        Instance of the `Parameters` class.
-    '''
-    assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_cells(cells),   types.assert_not_cells(cells)
-    assert types.is_parameters(p),  types.assert_not_parameters(p)
+        Parameters
+        ---------------------------------
+        tissue_picker : TissuePicker
+            Object matching all cells to be removed.
+        sim : Simulator
+            Instance of the `Simulator` class.
+        cells : Cells
+            Instance of the `Cells` class.
+        p : Parameters
+            Instance of the `Parameters` class.
+        '''
+        assert types.is_simulator(sim), types.assert_not_simulator(sim)
+        assert types.is_cells(cells),   types.assert_not_cells(cells)
+        assert types.is_parameters(p),  types.assert_not_parameters(p)
 
-    # Redo environmental diffusion matrices by setting the environmental spaces
-    # around cut world to the free value (True) or not (False)?
-    open_TJ = True
+        # Redo environmental diffusion matrices by setting the environmental spaces
+        # around cut world to the free value (True) or not (False)?
+        open_TJ = True
 
-    # Subtract this bitmap's clipping mask from the global cluster mask.
-    bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
-    cells.cluster_mask = cells.cluster_mask - bitmap_mask
+        # Subtract this bitmap's clipping mask from the global cluster mask.
+        bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
+        cells.cluster_mask = cells.cluster_mask - bitmap_mask
 
-    # Indices of all cells to be removed, ignoring extracellular spaces.
-    target_inds_cell = tissue_picker.get_cell_indices(cells, p, ignoreECM=True)
+        # Indices of all cells to be removed, ignoring extracellular spaces.
+        target_inds_cell = tissue_picker.get_cell_indices(cells, p, ignoreECM=True)
 
-    # get the corresponding flags to membrane entities
-    target_inds_mem = cells.cell_to_mems[target_inds_cell]
-    target_inds_mem,_,_ = tb.flatten(target_inds_mem)
-    # target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
+        # get the corresponding flags to membrane entities
+        target_inds_mem = cells.cell_to_mems[target_inds_cell]
+        target_inds_mem,_,_ = tb.flatten(target_inds_mem)
+        target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
-    # get a list of nearest neighbours to cells being removed:
-    target_inds_nn_o = cells.cell_nn[target_inds_cell]
-    target_inds_nn, _, _ = tb.flatten(target_inds_nn_o)
-
-    if p.sim_ECM is True:
-        # get environmental targets around each removed cell:
-        ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
-        ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
-
-        #FIXME: The following five lines are reducible to this single line:
-        #    ecm_targs = ecm_targs_cell + ecm_targs_mem
-        #Multifoliate rose gallavanting obscenely in a midnight haze!
-        ecm_targs = []
-        for v in ecm_targs_cell:
-            ecm_targs.append(v)
-        for v in ecm_targs_mem:
-            ecm_targs.append(v)
-
-        # redo environmental diffusion matrices by
-        # setting the environmental spaces around cut world to the free value -- if desired!:
-        if open_TJ is True:
-            # save the x,y coordinates of the original boundary cell and membrane points:
-            old_bflag_cellxy = cells.cell_centres[cells.bflags_cells]
-            # old_bflag_memxy = cells.mem_mids_flat[cells.bflags_mems]
-
-    # set up the situation to make world joined to cut world have more permeable membranes:
-    # hurt_cells = np.zeros(len(cells.cell_i))
-
-    # # If we're creating a dangling gap junction situation...
-    # if p.scheduled_options['cuts'].is_hurt_cells_leaky:
-    #     target_inds_gj_unique = np.unique(target_inds_gj)
-    #
-    #     for i, inds in enumerate(cells.cell_to_nn_full): # for all the nn inds to a cell...
-    #         inds_array = np.asarray(inds)
-    #         inds_in_target = np.intersect1d(inds_array,target_inds_gj_unique)
-    #
-    #         if len(inds_in_target):
-    #             hurt_cells[i] = 1  # flag the cell as a "hurt" cell
-    #
-    #     hurt_inds = (hurt_cells == 1).nonzero()
-
-        #FIXME: The following two conditional branches are suspiciously
-        #similar. They appear to reduce to just:
+        # WOUND TARGETS and CHANNEL SET UP ----------------------------------------------------------------
+        # get a list of nearest neighbours to cells being removed:
+        # target_inds_nn_o = cells.cell_nn[target_inds_cell]
+        # target_inds_nn, _, _ = tb.flatten(target_inds_nn_o)
         #
-        # cut_indices = hurt_inds if not p.sim_ECM else (
-        #     tb.flatten(cells.cell_to_mems[hurt_inds])[0])
-        # for i, dmat_a in enumerate(sim.Dm_cells):
-        #     sim.Dm_cells[i][cut_indices] = (
-        #         p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-        #
-        #Loamy-eyed surf and sandy-haired sun!
-        #
-        # if p.sim_ECM is True:
-        #     mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
-        #
-        #     for i,dmat_a in enumerate(sim.Dm_cells):
-        #         sim.Dm_cells[i][mem_flags] = (
-        #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-        #
-        # else:
-        #     for i, dmat_a in enumerate(sim.Dm_cells):
-        #         sim.Dm_cells[i][hurt_inds] = (
-        #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-        #
-        # # copy the Dm to the base:
-        # sim.Dm_base = np.copy(sim.Dm_cells)
+        # # self.targets_vgWound = np.asarray(target_inds_nn)
+        # # get the cell xy coordinates for the wound targets so we can update the targets after cutting:
+        # wound_neigh_xy = cells.cell_centres[target_inds_nn]
 
-    # Names of all attributes in the current "Simulation" object.
-    sim_names = list(sim.__dict__.keys())
 
-    #FIXME: Redeclare as a "set" object, rename to "specials_names", and remove
-    #the duplicate declaration of that variable below. Jumpin' jallopies!
+        # -------- -------------------------------------------------------------
 
-    # Names of all such attributes to be repaired due to this cutting event.
-    specials_list = [
-        'cc_cells',
-        'cc_mems',
-        'cc_env',
-        'cc_er',
-        'z_array',
-        'z_array_er',
-        'fluxes_gj',
-        'fluxes_mem',
-        'Dm_base',
-        'Dm_cells',
-        'Dm_scheduled',
-        'Dm_vg',
-        'Dm_cag',
-        'Dm_morpho',
-        'Dm_er_base',
-        'Dm_er_CICR',
-        'Dm_stretch',
-        'Dm_custom',
-        'D_gj',
-    ]
 
-    if p.sim_ECM is True:
-        specials_list.remove('cc_env')
-        extra = ['z_array_cells']
-        for ent in extra:
-            specials_list.append(ent)
+        if p.sim_ECM is True:
+            # get environmental targets around each removed cell:
+            ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
+            ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
 
-    special_names = set(specials_list)
+            #FIXME: The following five lines are reducible to this single line:
+            #    ecm_targs = ecm_targs_cell + ecm_targs_mem
+            #Multifoliate rose gallavanting obscenely in a midnight haze!
+            ecm_targs = []
+            for v in ecm_targs_cell:
+                ecm_targs.append(v)
+            for v in ecm_targs_mem:
+                ecm_targs.append(v)
 
-    #FIXME: This is awesome-sauce in a BETSE jar, but I don't quite grok what's
-    #going on. It'd be swell if this could recieve some documentation
-    #massaging. The tidal waves of time recede, inch by minute inch!
-    for name in sim_names:
-        if name in special_names: # if this is a nested data structure...
-            super_data = getattr(sim, name)
-            super_data2 = []
+            # redo environmental diffusion matrices by
+            # setting the environmental spaces around cut world to the free value -- if desired!:
+            if open_TJ is True:
+                # save the x,y coordinates of the original boundary cell and membrane points:
+                old_bflag_cellxy = cells.cell_centres[cells.bflags_cells]
+                # old_bflag_memxy = cells.mem_mids_flat[cells.bflags_mems]
 
-            for i, data in enumerate(super_data):
+        # set up the situation to make world joined to cut world have more permeable membranes:
+        hurt_cells = np.zeros(len(cells.cell_i))
+
+        # If we're creating a dangling gap junction situation...
+        # if p.scheduled_options['cuts'].is_hurt_cells_leaky:
+        target_inds_gj_unique = np.unique(target_inds_gj)
+
+        for i, inds in enumerate(cells.cell_to_nn_full): # for all the nn inds to a cell...
+            inds_array = np.asarray(inds)
+            inds_in_target = np.intersect1d(inds_array,target_inds_gj_unique)
+
+            if len(inds_in_target):
+                hurt_cells[i] = 1  # flag the cell as a "hurt" cell
+
+        hurt_inds = (hurt_cells == 1).nonzero()
+        sim.hurt_mask = np.zeros(sim.cdl)
+        sim.hurt_mask[hurt_inds] = 1.0
+
+
+            #FIXME: The following two conditional branches are suspiciously
+            #similar. They appear to reduce to just:
+            #
+            # cut_indices = hurt_inds if not p.sim_ECM else (
+            #     tb.flatten(cells.cell_to_mems[hurt_inds])[0])
+            # for i, dmat_a in enumerate(sim.Dm_cells):
+            #     sim.Dm_cells[i][cut_indices] = (
+            #         p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
+            #
+            #Loamy-eyed surf and sandy-haired sun!
+            #
+            # if p.sim_ECM is True:
+            #     mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
+            #
+            #     for i,dmat_a in enumerate(sim.Dm_cells):
+            #         sim.Dm_cells[i][mem_flags] = (
+            #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
+            #
+            # else:
+            #     for i, dmat_a in enumerate(sim.Dm_cells):
+            #         sim.Dm_cells[i][hurt_inds] = (
+            #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
+            #
+            # # copy the Dm to the base:
+            # sim.Dm_base = np.copy(sim.Dm_cells)
+
+        # Names of all attributes in the current "Simulation" object.
+        sim_names = list(sim.__dict__.keys())
+
+        #FIXME: Redeclare as a "set" object, rename to "specials_names", and remove
+        #the duplicate declaration of that variable below. Jumpin' jallopies!
+
+        # Names of all such attributes to be repaired due to this cutting event.
+        specials_list = [
+            'cc_cells',
+            'cc_mems',
+            'cc_env',
+            'cc_er',
+            'z_array',
+            'z_array_er',
+            'fluxes_gj',
+            'fluxes_mem',
+            'Dm_base',
+            'Dm_cells',
+            'Dm_scheduled',
+            'Dm_vg',
+            'Dm_cag',
+            'Dm_morpho',
+            'Dm_er_base',
+            'Dm_er_CICR',
+            'Dm_stretch',
+            'Dm_custom',
+            'D_gj',
+        ]
+
+        if p.sim_ECM is True:
+            specials_list.remove('cc_env')
+            extra = ['z_array_cells']
+            for ent in extra:
+                specials_list.append(ent)
+
+        special_names = set(specials_list)
+
+        #FIXME: This is awesome-sauce in a BETSE jar, but I don't quite grok what's
+        #going on. It'd be swell if this could recieve some documentation
+        #massaging. The tidal waves of time recede, inch by minute inch!
+        for name in sim_names:
+            if name in special_names: # if this is a nested data structure...
+                super_data = getattr(sim, name)
+                super_data2 = []
+
+                for i, data in enumerate(super_data):
+                    if isinstance(data, np.ndarray):
+                        if len(data) == len(cells.cell_i):
+                            data2 = np.delete(data,target_inds_cell)
+
+                        elif len(data) == len(cells.mem_i):
+                            data2 = np.delete(data,target_inds_mem)
+
+                        # elif len(data) == len(cells.nn_i):
+                        #     data2 = np.delete(data,target_inds_gj)
+
+                    elif isinstance(data, list):
+                        data2 = []
+                        if len(data) == len(cells.cell_i):
+                            for index in sorted(target_inds_cell, reverse=True):
+                                del data[index]
+                            data2.append(data[index])
+
+                        elif len(data) == len(cells.mem_i):
+                            for index in sorted(target_inds_mem, reverse=True):
+                                del data[index]
+                            data2.append(data[index])
+
+                        # elif len(data) == len(cells.nn_i):
+                        #     for index in sorted(target_inds_gj, reverse=True):
+                        #         del data[index]
+                        #     data2.append(data[index])
+
+                    super_data2.append(data2)
+
+                if type(super_data) == np.ndarray:
+                    super_data2 = np.asarray(super_data2)
+
+                setattr(sim, name, super_data2)
+
+
+            else:
+                data = getattr(sim, name)
+
                 if isinstance(data, np.ndarray):
                     if len(data) == len(cells.cell_i):
-                        data2 = np.delete(data,target_inds_cell)
+                        data2 = np.delete(data, target_inds_cell)
+                        setattr(sim, name, data2)
 
                     elif len(data) == len(cells.mem_i):
-                        data2 = np.delete(data,target_inds_mem)
-
-                    # elif len(data) == len(cells.nn_i):
-                    #     data2 = np.delete(data,target_inds_gj)
+                        data2 = np.delete(data, target_inds_mem)
+                        setattr(sim, name, data2)
 
                 elif isinstance(data, list):
                     data2 = []
+
                     if len(data) == len(cells.cell_i):
                         for index in sorted(target_inds_cell, reverse=True):
                             del data[index]
                         data2.append(data[index])
+                        setattr(sim, name, data2)
 
                     elif len(data) == len(cells.mem_i):
                         for index in sorted(target_inds_mem, reverse=True):
                             del data[index]
                         data2.append(data[index])
+                        setattr(sim, name, data2)
 
-                    # elif len(data) == len(cells.nn_i):
-                    #     for index in sorted(target_inds_gj, reverse=True):
-                    #         del data[index]
-                    #     data2.append(data[index])
+        # delete data from molecules object
 
-                super_data2.append(data2)
+        if p.molecules_enabled:
 
-            if type(super_data) == np.ndarray:
-                super_data2 = np.asarray(super_data2)
+            sim.molecules.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
-            setattr(sim, name, super_data2)
+        if p.metabolism_enabled:
 
+            sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+        if p.grn_enabled:
+
+            sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+
+    #-------------------------------Fix-up cell world ----------------------------------------------------------------------
+        new_cell_centres = []
+        new_ecm_verts = []
+        removal_flags = np.zeros(len(cells.cell_i))
+        removal_flags[target_inds_cell] = 1
+
+        for i,flag in enumerate(removal_flags):
+            if flag == 0:
+                new_cell_centres.append(cells.cell_centres[i])
+                new_ecm_verts.append(cells.ecm_verts[i])
+
+        cells.cell_centres = np.asarray(new_cell_centres)
+        cells.ecm_verts = np.asarray(new_ecm_verts)
+
+        # recalculate ecm_verts_unique:
+        ecm_verts_flat,_,_ = tb.flatten(cells.ecm_verts)
+        ecm_verts_set = set()
+
+        for vert in ecm_verts_flat:
+            ptx = vert[0]
+            pty = vert[1]
+            ecm_verts_set.add((ptx,pty))
+
+        cells.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
+        cells.ecm_verts_unique = np.asarray(cells.ecm_verts_unique)  # convert to numpy array
+
+        #-----------------------------------------------------------------
+        logs.log_info('Recalculating cluster variables for new configuration...')
+
+        cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
+        cells.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
+        cells.intra_updater(p)  # creates matrix used for finite volume integration on cell patch
+        cells.cell_vols(p)  # calculate the volume of cell and its internal regions
+        cells.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
+        cells.near_neigh(p)  # Calculate the nn array for each cell
+        cells.voronoiGrid(p)
+        cells.calc_gj_vects(p)
+        cells.environment(p)  # define features of the ecm grid
+        cells.make_maskM(p)
+        cells.grid_len = len(cells.xypts)
+
+        # update sim data lengths with new world values:
+        sim.mdl = len(cells.mem_mids_flat)  # mems-data-length
+        sim.cdl = len(cells.cell_centres)  # cells-data-length
+
+        if p.sim_ECM is True:  # set environnment data length
+            sim.edl = len(cells.xypts)
 
         else:
-            data = getattr(sim, name)
+            sim.edl = len(cells.mem_mids_flat)
 
-            if isinstance(data, np.ndarray):
-                if len(data) == len(cells.cell_i):
-                    data2 = np.delete(data, target_inds_cell)
-                    setattr(sim, name, data2)
+        logs.log_info('Re-creating cell network Poisson solver...')
+        cells.graphLaplacian(p)
 
-                elif len(data) == len(cells.mem_i):
-                    data2 = np.delete(data, target_inds_mem)
-                    setattr(sim, name, data2)
-
-            elif isinstance(data, list):
-                data2 = []
-
-                if len(data) == len(cells.cell_i):
-                    for index in sorted(target_inds_cell, reverse=True):
-                        del data[index]
-                    data2.append(data[index])
-                    setattr(sim, name, data2)
-
-                elif len(data) == len(cells.mem_i):
-                    for index in sorted(target_inds_mem, reverse=True):
-                        del data[index]
-                    data2.append(data[index])
-                    setattr(sim, name, data2)
-
-    # delete data from molecules object
-
-    if p.molecules_enabled:
-
-        sim.molecules.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
-
-    if p.metabolism_enabled:
-
-        sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
-
-    if p.grn_enabled:
-
-        sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+        # if running voltage gated gap junctions, reinnitialize them:
+        if p.v_sensitive_gj:
+            sim.gj_funk.init(sim, cells, p)
 
 
+        if p.sim_ECM is True:
 
+            if open_TJ is True:
+                # if desire for cut away space to lack tight junctions, remove new bflags from set:
+                searchTree = sps.KDTree(cells.cell_centres)
+                original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
+                cells.bflags_cells = original_pt_inds[:]
 
-#-------------------------------Fix-up cell world ----------------------------------------------------------------------
-    new_cell_centres = []
-    new_ecm_verts = []
-    removal_flags = np.zeros(len(cells.cell_i))
-    removal_flags[target_inds_cell] = 1
+            sim.initDenv(cells,p)
 
-    for i,flag in enumerate(removal_flags):
-        if flag == 0:
-            new_cell_centres.append(cells.cell_centres[i])
-            new_ecm_verts.append(cells.ecm_verts[i])
+        if p.fluid_flow is True or p.deformation is True:
+            # make a laplacian and solver for discrete transfers on closed, irregular cell network:
 
-    cells.cell_centres = np.asarray(new_cell_centres)
-    cells.ecm_verts = np.asarray(new_ecm_verts)
+            cells.deform_tools(p)
+            logs.log_info('Completed major world-building computations.')
 
-    # recalculate ecm_verts_unique:
-    ecm_verts_flat,_,_ = tb.flatten(cells.ecm_verts)
-    ecm_verts_set = set()
+        if p.sim_eosmosis is True:
 
-    for vert in ecm_verts_flat:
-        ptx = vert[0]
-        pty = vert[1]
-        ecm_verts_set.add((ptx,pty))
+            cells.eosmo_tools(p)
 
-    cells.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
-    cells.ecm_verts_unique = np.asarray(cells.ecm_verts_unique)  # convert to numpy array
+        # WOUND CHANNEL FINALIZATION-----------------------------------------
 
-    #-----------------------------------------------------------------
-    logs.log_info('Recalculating cluster variables for new configuration...')
+        # recalculate targets for wound channel:
+        match_inds = (sim.hurt_mask == 1.0).nonzero()
 
-    cells.cellVerts(p)   # create individual cell polygon vertices and other essential data structures
-    cells.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
-    cells.intra_updater(p)  # creates matrix used for finite volume integration on cell patch
-    cells.cell_vols(p)  # calculate the volume of cell and its internal regions
-    cells.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
-    cells.near_neigh(p)  # Calculate the nn array for each cell
-    cells.voronoiGrid(p)
-    cells.calc_gj_vects(p)
-    cells.environment(p)  # define features of the ecm grid
-    cells.make_maskM(p)
-    cells.grid_len = len(cells.xypts)
+        mem_match_inds = tb.flatten(cells.cell_to_mems[match_inds[0]])[0]
 
-    # update sim data lengths with new world values:
-    sim.mdl = len(cells.mem_mids_flat)  # mems-data-length
-    sim.cdl = len(cells.cell_centres)  # cells-data-length
+        self.targets_vgWound = mem_match_inds
 
-    if p.sim_ECM is True:  # set environnment data length
-        sim.edl = len(cells.xypts)
+        self.maxDmWound = 1.0e-7   # FIXME add to params and config!
 
-    else:
-        sim.edl = len(cells.mem_mids_flat)
+        self.wound_channel_used = True
+        self.wound_channel = w.TRP()
+        self.wound_channel.init(self, sim, cells, p)
 
-    logs.log_info('Re-creating cell network Poisson solver...')
-    cells.graphLaplacian(p)
-
-    # if running voltage gated gap junctions, reinnitialize them:
-    if p.v_sensitive_gj:
-        sim.gj_funk.init(sim, cells, p)
-
-
-    if p.sim_ECM is True:
-
-        if open_TJ is True:
-            # if desire for cut away space to lack tight junctions, remove new bflags from set:
-            searchTree = sps.KDTree(cells.cell_centres)
-            original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
-            cells.bflags_cells = original_pt_inds[:]
-
-        sim.initDenv(cells,p)
-
-    if p.fluid_flow is True or p.deformation is True:
-        # make a laplacian and solver for discrete transfers on closed, irregular cell network:
-
-        cells.deform_tools(p)
-        logs.log_info('Completed major world-building computations.')
-
-    if p.sim_eosmosis is True:
-
-        cells.eosmo_tools(p)

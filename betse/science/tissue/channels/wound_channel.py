@@ -56,7 +56,7 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm[dyna.targets_vgFun] * 1000
+        V = sim.vm[dyna.targets_vgWound] * 1000
 
         self._calculate_state(V, dyna, sim, p)
 
@@ -136,7 +136,7 @@ class TRP(WoundABC):
 
         """
 
-        self.vrev = 50  # reversal voltage used in model [mV]
+        self.vrev = 30  # reversal voltage used in model [mV]
 
         self._mInf = 1.0
         self._mTau = 1.0

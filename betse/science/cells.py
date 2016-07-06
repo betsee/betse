@@ -1682,6 +1682,18 @@ class Cells(object):
         self.cell_nn_tx = np.asarray(self.cell_nn_tx)
         self.cell_nn_ty = np.asarray(self.cell_nn_ty)
 
+        # mapping between gap junction index and cell:
+        self.cell_to_nn_full = [[] for x in range(len(self.cell_i))]
+
+        for i, (cell_i, cell_j) in enumerate(self.cell_nn_i):
+
+            if cell_i != cell_j:  # if it's not a boundary membrane...
+
+                self.cell_to_nn_full[cell_i].append(i)
+                self.cell_to_nn_full[cell_j].append(i)
+
+        self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
+
     def save_cluster(self,p,savecells = True):
         '''
         Saves the cell cluster using a python pickle.
