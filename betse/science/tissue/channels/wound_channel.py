@@ -47,7 +47,7 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
         self.W_factor = 2.0   # initial concentration of the 'wound factor' (which is basically pressure)
-        self.W_decay = 0.1    # FIXME p.W_decay
+        self.W_decay = p.wound_close_factor
 
 
     def run(self, dyna, sim, cells, p):

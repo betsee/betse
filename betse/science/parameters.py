@@ -237,7 +237,13 @@ class Parameters(object):
             self.scheduled_options['ecmJ'] = ecmj
 
         # Parameterize the cutting event if enabled.
+        self.use_wound_channel = self.config['cutting event'].get('wound channel', False)
+        self.wound_Dmax = float(self.config['cutting event'].get('max conductivity', 1.0e-7))
+        self.wound_close_factor = float(self.config['cutting event'].get('closure delay', 1.0))
+
+
         self.scheduled_options['cuts'] = ActionCut.make(self)
+
 
         #---------------------------------------------------------------------------------------------------------------
         # GLOBAL INTERVENTIONS

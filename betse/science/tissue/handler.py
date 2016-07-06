@@ -1005,19 +1005,6 @@ class TissueHandler(object):
         target_inds_mem,_,_ = tb.flatten(target_inds_mem)
         target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
-        # WOUND TARGETS and CHANNEL SET UP ----------------------------------------------------------------
-        # get a list of nearest neighbours to cells being removed:
-        # target_inds_nn_o = cells.cell_nn[target_inds_cell]
-        # target_inds_nn, _, _ = tb.flatten(target_inds_nn_o)
-        #
-        # # self.targets_vgWound = np.asarray(target_inds_nn)
-        # # get the cell xy coordinates for the wound targets so we can update the targets after cutting:
-        # wound_neigh_xy = cells.cell_centres[target_inds_nn]
-
-
-        # -------- -------------------------------------------------------------
-
-
         if p.sim_ECM is True:
             # get environmental targets around each removed cell:
             ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
@@ -1042,8 +1029,7 @@ class TissueHandler(object):
         # set up the situation to make world joined to cut world have more permeable membranes:
         hurt_cells = np.zeros(len(cells.cell_i))
 
-        # If we're creating a dangling gap junction situation...
-        # if p.scheduled_options['cuts'].is_hurt_cells_leaky:
+        # If we're creating a wound-induced channel ------------------------------------------------
         target_inds_gj_unique = np.unique(target_inds_gj)
 
         for i, inds in enumerate(cells.cell_to_nn_full): # for all the nn inds to a cell...
@@ -1057,32 +1043,7 @@ class TissueHandler(object):
         sim.hurt_mask = np.zeros(sim.cdl)
         sim.hurt_mask[hurt_inds] = 1.0
 
-
-            #FIXME: The following two conditional branches are suspiciously
-            #similar. They appear to reduce to just:
-            #
-            # cut_indices = hurt_inds if not p.sim_ECM else (
-            #     tb.flatten(cells.cell_to_mems[hurt_inds])[0])
-            # for i, dmat_a in enumerate(sim.Dm_cells):
-            #     sim.Dm_cells[i][cut_indices] = (
-            #         p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-            #
-            #Loamy-eyed surf and sandy-haired sun!
-            #
-            # if p.sim_ECM is True:
-            #     mem_flags,_,_ = tb.flatten(cells.cell_to_mems[hurt_inds])  # get the flags to the memrbanes
-            #
-            #     for i,dmat_a in enumerate(sim.Dm_cells):
-            #         sim.Dm_cells[i][mem_flags] = (
-            #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-            #
-            # else:
-            #     for i, dmat_a in enumerate(sim.Dm_cells):
-            #         sim.Dm_cells[i][hurt_inds] = (
-            #             p.scheduled_options['cuts'].hurt_cell_leakage * sim.D_free[i])
-            #
-            # # copy the Dm to the base:
-            # sim.Dm_base = np.copy(sim.Dm_cells)
+        #----------------------------------------------------------------------------------
 
         # Names of all attributes in the current "Simulation" object.
         sim_names = list(sim.__dict__.keys())
@@ -1288,16 +1249,18 @@ class TissueHandler(object):
 
         # WOUND CHANNEL FINALIZATION-----------------------------------------
 
-        # recalculate targets for wound channel:
-        match_inds = (sim.hurt_mask == 1.0).nonzero()
+        if p.use_wound_channel is True:
 
-        mem_match_inds = tb.flatten(cells.cell_to_mems[match_inds[0]])[0]
+            # recalculate targets for wound channel:
+            match_inds = (sim.hurt_mask == 1.0).nonzero()
 
-        self.targets_vgWound = mem_match_inds
+            mem_match_inds = tb.flatten(cells.cell_to_mems[match_inds[0]])[0]
 
-        self.maxDmWound = 1.0e-7   # FIXME add to params and config!
+            self.targets_vgWound = mem_match_inds
 
-        self.wound_channel_used = True
-        self.wound_channel = w.TRP()
-        self.wound_channel.init(self, sim, cells, p)
+            self.maxDmWound = p.wound_Dmax   # FIXME add to params and config!
+
+            self.wound_channel_used = True
+            self.wound_channel = w.TRP()
+            self.wound_channel.init(self, sim, cells, p)
 
