@@ -134,6 +134,7 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
         Fe_cell_y = sim.F_gj_y
 
     else:
+
         Fe_cell_x = np.zeros(len(cells.mem_i))
         Fe_cell_y = np.zeros(len(cells.mem_i))
 

@@ -1552,34 +1552,34 @@ class Simulator(object):
 
         IdM = np.ones(self.mdl)
 
-        # electrofuse the H+ ion between the cytoplasm and the environment
-        if p.sim_ECM is True:
-
-            # Electrofuse the H+ ion between the cytoplasm and the ecms.
-            f_H1 = stb.electroflux(
-                self.cc_env[self.iH][cells.map_mem2ecm],
-                self.cc_mems[self.iH][cells.mem_to_cells],
-                self.Dm_cells[self.iH],
-                IdM*p.tm,
-                IdM*self.zs[self.iH],
-                self.vm,
-                self.T,
-                p,
-            )
-
-            self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H1
-
-
-        else:
-
-            f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],IdM*p.tm,
-                IdM*self.zs[self.iH],self.vm,self.T,p)
-
-            self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
-
-        # update H+ in cells and environment, first in absence of bicarbonate buffering:
-        self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
-            self.cc_env[self.iH][:], f_H1, cells, p, ignoreECM = False)
+        # # electrofuse the H+ ion between the cytoplasm and the environment
+        # if p.sim_ECM is True:
+        #
+        #     # Electrofuse the H+ ion between the cytoplasm and the ecms.
+        #     f_H1 = stb.electroflux(
+        #         self.cc_env[self.iH][cells.map_mem2ecm],
+        #         self.cc_mems[self.iH][cells.mem_to_cells],
+        #         self.Dm_cells[self.iH],
+        #         IdM*p.tm,
+        #         IdM*self.zs[self.iH],
+        #         self.vm,
+        #         self.T,
+        #         p,
+        #     )
+        #
+        #     self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H1
+        #
+        #
+        # else:
+        #
+        #     f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],IdM*p.tm,
+        #         IdM*self.zs[self.iH],self.vm,self.T,p)
+        #
+        #     self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
+        #
+        # # update H+ in cells and environment, first in absence of bicarbonate buffering:
+        # self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
+        #     self.cc_env[self.iH][:], f_H1, cells, p, ignoreECM = False)
 
 
         # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1590,7 +1590,7 @@ class Simulator(object):
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V(cells,p)
 
-        if p.HKATPase_dyn == 1 and p.run_sim is True: # if there's an H,K ATPase pump
+        if p.HKATPase_dyn == 1: # if there's an H,K ATPase pump
 
             if p.sim_ECM is True:
 
@@ -1607,7 +1607,6 @@ class Simulator(object):
 
                 self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
                 self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
-
 
             else:
 
@@ -1639,6 +1638,9 @@ class Simulator(object):
             self.cc_mems[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_mems[self.iM][:],
                 self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = False)
 
+            self.cc_env[self.iM] = gaussian_filter(self.cc_env[self.iM].reshape(cells.X.shape),
+                                                   p.smooth_level).ravel()
+
 
             # Calculate the new pH and H+ concentrations:
             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1663,7 +1665,7 @@ class Simulator(object):
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells,p)
 
-        if p.VATPase_dyn == 1 and p.run_sim is True:  # if there's a V-ATPase pump
+        if p.VATPase_dyn == 1:  # if there's a V-ATPase pump
 
             if p.sim_ECM is True:
 
@@ -1765,12 +1767,17 @@ class Simulator(object):
                 'cPi': self.metabo.core.Pi.c_mems}
 
         # # update calcium concentrations in cell and ecm:
+
         self.cc_mems[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_mems[self.iCa][:],
             self.cc_env[self.iCa][:], f_CaATP + f_CaEx, cells, p, ignoreECM = False)
 
         if p.NaCa_exch_dyn:
+
             self.cc_mems[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_mems[self.iNa][:],
                 self.cc_env[self.iNa][:], f_NaEx, cells, p, ignoreECM = False)
+
+        # smooth extracellular calcium levels:
+        self.cc_env[self.iCa] = gaussian_filter(self.cc_env[self.iCa].reshape(cells.X.shape), p.smooth_level).ravel()
 
         # update concentrations intracellularly:
         self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
@@ -1955,7 +1962,7 @@ class Simulator(object):
         # which is assumed to be about 1 nm:
 
         self.field_mod = (1e-9/p.cell_space)
-        # self.field_mod = 0.1
+        # self.field_mod = 1.0e-10
 
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
             self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],

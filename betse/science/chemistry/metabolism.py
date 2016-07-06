@@ -119,6 +119,7 @@ class MasterOfMetabolism(object):
         i = 0
         while i < len(tt) - p.t_resample:
             i += p.t_resample
+            i = int(i)
             tsamples.add(tt[i])
 
         self.core.clear_cache()

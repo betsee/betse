@@ -102,6 +102,7 @@ class MasterOfMolecules(object):
             obj.z = mol_dic['z']  # charge (oxidation state)
 
             obj.ignoreTJ = mol_dic.get('TJ permeable', False)  # ignore TJ?
+            obj.ignoreGJ = mol_dic.get('GJ impermeable',False) # ignore GJ?
             obj.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
             obj.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
 
@@ -120,15 +121,15 @@ class MasterOfMolecules(object):
                 obj.Kgd = gad['Km']
                 obj.n_production = gad['n']
 
-                obj.growth_activators_list = gad['activators']
-                obj.growth_activators_k = gad['k activators']
-                obj.growth_activators_Km = gad['Km activators']
+                obj.growth_activators_list = gad.get('activators', None)
+                obj.growth_activators_k = gad.get('k activators', None)
+                obj.growth_activators_Km = gad.get('Km activators', None)
 
-                obj.growth_activators_n = gad['k activators']
-                obj.growth_inhibitors_list = gad['inhibitors']
-                obj.growth_inhibitors_k = gad['k inhibitors']
-                obj.growth_inhibitors_Km = gad['Km inhibitors']
-                obj.growth_inhibitors_n = gad['k inhibitors']
+                obj.growth_activators_n = gad.get('k activators', None)
+                obj.growth_inhibitors_list = gad.get('inhibitors', None)
+                obj.growth_inhibitors_k = gad.get('k inhibitors', None)
+                obj.growth_inhibitors_Km = gad.get('Km inhibitors', None)
+                obj.growth_inhibitors_n = gad.get('k inhibitors', None)
 
             else:
                 obj.simple_growth = False
@@ -1314,7 +1315,8 @@ class Molecule(object):
                                                                 c_bound = self.c_bound,
                                                                 ignoreECM = True,
                                                                 smoothECM = True,
-                                                                ignoreTJ = self.ignoreTJ)
+                                                                ignoreTJ = self.ignoreTJ,
+                                                                ignoreGJ = self.ignoreGJ)
 
     def updateC(self, flux, sim, cells, p):
         """

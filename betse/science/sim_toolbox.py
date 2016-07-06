@@ -1029,7 +1029,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
-                   ignoreECM = False, smoothECM = False, ignoreTJ = False):
+                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False):
     """
     Transports a generic molecule across the membrane,
     through gap junctions, and if p.sim_ECM is true,
@@ -1077,35 +1077,35 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     cX_mems, cX_env_o = update_Co(sim, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
 
     # ------------------------------------------------------------
+    if ignoreGJ is False:
+        # Update dye concentration in the gj connected cell network:
 
-    # Update dye concentration in the gj connected cell network:
+        # Intracellular voltage gradient:
+        grad_vgj = sim.vgj / cells.gj_len
 
-    # Intracellular voltage gradient:
-    grad_vgj = sim.vgj / cells.gj_len
+        grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
-    grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
+        # midpoint concentration:
+        cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
-    # midpoint concentration:
-    cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
+        # electroosmotic fluid velocity:
+        if p.fluid_flow is True:
+            ux = sim.u_gj_x
+            uy = sim.u_gj_y
 
-    # electroosmotic fluid velocity:
-    if p.fluid_flow is True:
-        ux = sim.u_gj_x
-        uy = sim.u_gj_y
+            # get component of fluid tangent to gap junctions
+            ugj = ux * cells.mem_vects_flat[:, 2] + uy * cells.mem_vects_flat[:, 3]
 
-        # get component of fluid tangent to gap junctions
-        ugj = ux * cells.mem_vects_flat[:, 2] + uy * cells.mem_vects_flat[:, 3]
+        else:
+            ugj = 0
 
-    else:
-        ugj = 0
+        fgj_X = nernst_planck_vector(cX_mids, grad_cgj, grad_vgj, ugj,
+            p.gj_surface*sim.gjopen*Do, z, sim.T, p)
 
-    fgj_X = nernst_planck_vector(cX_mids, grad_cgj, grad_vgj, ugj,
-        p.gj_surface*sim.gjopen*Do, z, sim.T, p)
+        # divergence calculation for individual cells (finite volume expression)
+        delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
-    # divergence calculation for individual cells (finite volume expression)
-    delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
-
-    cX_mems = cX_mems + p.dt * delta_cc
+        cX_mems = cX_mems + p.dt * delta_cc
 
     #------------------------------------------------------------------------------------------------------------
 

@@ -26,7 +26,7 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
     z: 0               # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
-    GJ permeable: False   # can this substance pass through gap junctions?
+    GJ impermeable: True   # can this substance pass through gap junctions?
     growth and decay:
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
@@ -60,7 +60,7 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
     z: 0               # charge (oxidation state)
     env conc: 0.0        # initial concentration in the environment [mmol/L]
     cell conc: 0.0    # initial concentration in the cytoplasm [mmol/L]
-    GJ permeable: False    # can this substance pass through gap junctions?
+    GJ impermeable: True    # can this substance pass through gap junctions?
     growth and decay:
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
