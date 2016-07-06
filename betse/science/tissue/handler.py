@@ -1006,6 +1006,10 @@ def removeCells(
     target_inds_mem,_,_ = tb.flatten(target_inds_mem)
     # target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
+    # get a list of nearest neighbours to cells being removed:
+    target_inds_nn_o = cells.cell_nn[target_inds_cell]
+    target_inds_nn, _, _ = tb.flatten(target_inds_nn_o)
+
     if p.sim_ECM is True:
         # get environmental targets around each removed cell:
         ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
