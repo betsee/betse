@@ -537,7 +537,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
 
 
-    if p.ions_dict['H'] == 1 and p.HKATPase_dyn == 1 and sim.run_sim is True:
+    if p.ions_dict['H'] == 1 and p.HKATPase_dyn == 1:
 
         viz.plotMemData(cells,p,zdata=-sim.HKATPase_rate,clrmap=p.default_cm)
 
@@ -551,6 +551,24 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
+    #----plot 2D pump data--------------------------------------------------------------------------------
+    pumpData = sim.rate_NaKATP*1e9
+
+    figPump, axPump, cbPump = viz.plotPrettyPolyData(pumpData, sim, cells, p,
+        number_cells=p.enumerate_cells, clrmap=p.default_cm)
+
+    axPump.set_title('Final Na/K-ATPase Pump Rate')
+    axPump.set_xlabel('Spatial distance [um]')
+    axPump.set_ylabel('Spatial distance [um]')
+    cbPump.set_label('Pump Na+ Flux (nmol/m2*s)')
+
+    if p.autosave is True:
+        savename8 = savedImg + 'final_NaKPump_2D' + '.png'
+        plt.savefig(savename8, format='png', transparent=True)
+
+    if p.turn_all_plots_off is False:
+        plt.show(block=False)
 
 
 

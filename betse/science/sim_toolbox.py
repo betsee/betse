@@ -203,10 +203,6 @@ def pumpCaATP(cCai,cCao,Vm,T,p, block, met = None):
     # calculate the equilibrium constant for the pump reaction:
     Keq = np.exp(-deltaGATP_o / (p.R * T) + 2*((p.F * Vm) / (p.R * T)))
 
-    # calculate the reaction rate coefficient
-    alpha = block* p.alpha_Ca * (1 - (Q / Keq))
-    # alpha = p.alpha_Ca
-
     # calculate the enzyme coefficient for forward reaction:
     numo_E = (cCai/p.KmCa_Ca) * (cATP/p.KmCa_ATP)
     denomo_E = (1 + (cCai/p.KmCa_Ca)) * (1+ (cATP/p.KmCa_ATP))
@@ -1169,8 +1165,9 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     #------------------------------------------------------------------------------------------------------------
 
-    # electrodiffuse intracellular concentrations
-    # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Do, z, p)
+        # electrodiffuse intracellular concentrations
+
+        # cX_mems = update_intra(sim, cells, cX_mems, Do, z, p)
 
     # Transport dye through environment, if p.sim_ECM is True-----------------------------------------------------
 

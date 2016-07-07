@@ -656,7 +656,7 @@ variable settings:
   fluid flow:
 
     include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
-    water viscocity: 0.5      # viscocity of water [Pa s] (applies to ease of flow)
+    water viscocity: 5.0e-2      # viscocity of water [Pa s] (applies to ease of flow)
 
 
   deformation:
