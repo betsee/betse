@@ -31,12 +31,12 @@ class EndoRetic(object):
         # init basic fields
         self.er_vol = 0.1*cells.cell_vol     # er volume
         self.er_sa = 1.0*cells.cell_sa      # er surface areas
-        self.Ver = 2.0e-3*np.ones(sim.cdl)   # initial trans-membrane voltage for er
+        self.Ver = 0.0e-3*np.ones(sim.cdl)   # initial trans-membrane voltage for er
         self.Q = np.zeros(sim.cdl)     # total charge in mit
         self.cm_er = self.er_sa*p.cm    # mit membrane capacitance
 
         sim.cc_er = copy.deepcopy(sim.cc_cells)    # ion concentrations
-        sim.cc_er[sim.iCa][:] = 0.1                # initial concentration in the ER
+        sim.cc_er[sim.iCa][:] = 1.0e-3                # initial concentration in the ER
         self.Dm_er = copy.deepcopy(sim.cc_cells)    # membrane permeability
 
         for arr in self.Dm_er:
@@ -101,7 +101,7 @@ class EndoRetic(object):
 
                 Dm_mod_mol = (cCa_act/(1 + cCa_act))*(1/(1 + cCa_inh))*(cIP3_act/(1+cIP3_act))
 
-        self.Dm_channels[sim.iCa] = p.max_er*sim.rho_channel * Dm_mod_mol
+        self.Dm_channels[sim.iCa] = p.max_er*Dm_mod_mol
 
         self.Dm_er = self.Dm_er_base + self.Dm_channels
 
@@ -182,13 +182,13 @@ class EndoRetic(object):
 
         cc_er2 = []
 
-        for i, arr in enumerate(sim.cc_er):
-
-            # remove cells from the mit ion array in sim:
-            arr2 = np.delete(arr, target_inds_cell)
-            cc_er2.append(arr2)
-
-        sim.cc_er = np.asarray(cc_er2)
+        # for i, arr in enumerate(sim.cc_er):
+        #
+        #     # remove cells from the mit ion array in sim:
+        #     arr2 = np.delete(arr, target_inds_cell)
+        #     cc_er2.append(arr2)
+        #
+        # sim.cc_er = np.asarray(cc_er2)
 
         der1 = []
         der2 = []
@@ -198,16 +198,16 @@ class EndoRetic(object):
         for i, arr in enumerate(self.Dm_er):
 
             arr2 = np.delete(arr, target_inds_cell)
-            der2.append(arr2)
+            der1.append(arr2)
 
-        self.Dm_er = np.asarray(der2)
+        self.Dm_er = np.asarray(der1)
 
         for i, arr in enumerate(self.Dm_er_base):
 
             arr2 = np.delete(arr, target_inds_cell)
-            der1.append(arr2)
+            der2.append(arr2)
 
-        self.Dm_er_base = np.asarray(der1)
+        self.Dm_er_base = np.asarray(der2)
 
         for i, arr in enumerate(self.Dm_channels):
 

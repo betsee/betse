@@ -711,6 +711,9 @@ class Simulator(object):
 
             self.endo_retic = EndoRetic(self, cells, p)
 
+        else:
+            self.endo_retic = None
+
         # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)
 
@@ -2396,8 +2399,6 @@ class Simulator(object):
 #         self.cc_env[ion_i][:] = c_env.mean()
 
 # FIXME SESS' FIASCO of WUNDERLUST BEGINS hERE---------------------------------
-
-# FIXME SESS' FIASCO of WunderLOUST BEGINS hERE----------------------------------
 
 # Example usage:
 #

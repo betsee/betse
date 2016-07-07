@@ -1010,14 +1010,18 @@ class TissueHandler(object):
             ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
             ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
 
-            #FIXME: The following five lines are reducible to this single line:
-            #    ecm_targs = ecm_targs_cell + ecm_targs_mem
-            #Multifoliate rose gallavanting obscenely in a midnight haze!
             ecm_targs = []
             for v in ecm_targs_cell:
                 ecm_targs.append(v)
             for v in ecm_targs_mem:
                 ecm_targs.append(v)
+
+            # if running metabolism, make a situation where the cells burst out their ATP:
+            if sim.metabo is not None:
+                # get concentration of ATP in cells to be removed:
+                cell_ATP = sim.metabo.core.ATP.c_cells[target_inds_cell]*cells.cell_vol[target_inds_cell]
+                # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
+                sim.metabo.core.ATP.c_env[ecm_targs_cell] = cell_ATP/(p.cell_height*cells.delta**2)
 
             # redo environmental diffusion matrices by
             # setting the environmental spaces around cut world to the free value -- if desired!:
@@ -1161,11 +1165,15 @@ class TissueHandler(object):
 
         if p.metabolism_enabled:
 
-            sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+            sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p, met_tag = True)
 
         if p.grn_enabled:
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+        if p.Ca_dyn is True and sim.endo_retic is not None:
+
+            sim.endo_retic.remove_ers(sim, target_inds_cell)
 
 
     #-------------------------------Fix-up cell world ----------------------------------------------------------------------

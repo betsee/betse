@@ -699,7 +699,7 @@ class MasterOfMolecules(object):
             # compute the channel activity
             obj.run_modulator(sim, sim_metabo, cells, p)
 
-    def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p):
+    def mod_after_cut_event(self,target_inds_cell, target_inds_mem, sim, cells, p, met_tag = False):
 
         # get the name of the specific substance:
         for name in self.molecule_names:
@@ -711,7 +711,7 @@ class MasterOfMolecules(object):
 
             self.mit.remove_mits(sim, target_inds_cell)
 
-        if sim.met_concs is not None: #update metabolism object if it's being simulated
+        if sim.met_concs is not None and met_tag is True: #update metabolism object if it's being simulated
             sim.met_concs = {'cATP': self.ATP.c_mems,
                 'cADP': self.ADP.c_mems,
                 'cPi': self.Pi.c_mems}
