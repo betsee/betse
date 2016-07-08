@@ -6,6 +6,24 @@
 Animation serialization classes.
 '''
 
+#FIXME: *UGH.* We overengineered this one, folks. Replace this entire class
+#hierarchy with a single class encapsulating all saving functionality pertaining
+#to frames and videos. Why? Consider the current approach. How do callers save
+#frames and video under the current approach? Due to the current partitioning of
+#frames and video logic into separate classes and hence objects, callers would
+#presumably need to call something like:
+#
+#    self._anim_saver_frames.save()
+#    self._anim_saver_video.save()
+#
+#Frankly, that's horrible. Such low-level details as whether or not frames
+#and/or video saving is currently enabled should be encapsulated away from
+#callers into a single high-level class.
+#
+#Indeed, let's go one step further and generalize this class to encapsulate
+#*ALL* general-purpose animation functionality -- both saving and displaying.
+#Hence, name this single class "AnimConfig".
+
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractstaticmethod
 from betse.util.type import types

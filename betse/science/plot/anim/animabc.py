@@ -364,19 +364,60 @@ class AnimCells(PlotCells):
         #probably really only need a single "AnimConfig" class, as suggested
         #above, rather than a deep class hierarchy. Consider simplifying.
 
-        # True only if saving all frames of this animation to disk as images.
+        # `True` only if saving all frames of this animation to disk as images.
         is_saving_frames = True
 
-        # True only if saving all frames of this animation to disk as a video.
+        # `True` only if saving all frames of this animation to disk as a video.
         is_saving_video = False
 
         # Filetype of each frame image to be saved for this animation. Ignored
         # if `is_saving_frames` is `False`.
         save_frame_filetype = 'png'
 
-        # Filetype of the single video to be saved for this animation. Ignored
-        # if `is_saving_video` is `False`.
+        # Dots per inch (DPI) of each frame image to be saved for this
+        # animation. Ignored if `is_saving_frames` is `False`.
+        self._writer_frames_dpi = mpl_config.get_rc_param('savefig.dpi')
+
+        # Filetype of the video to be saved for this animation. Ignored if
+        # `is_saving_video` is `False`.
         save_video_filetype = 'mp4'
+
+        # Dots per inch (DPI) of each frame of the video to be saved for this
+        # animation. Ignored if `is_saving_frames` is `False`.
+        self._writer_video_dpi = mpl_config.get_rc_param('savefig.dpi')
+
+        #FIXME: Set a sane default. There appear to be two Matplotlib defaults
+        #for FPS, depending on object instantiation:
+        #
+        #* For writers instantiated directly, FPS defaults to 5. (Bit low, no?)
+        #* For writers instantiated indirectly, FPS defaults to a formula
+        #  presumably intelligently depending on animation properties:
+        #
+        #      # Convert interval in ms to frames per second
+        #      fps = 1000. / self._interval
+        #
+        #While we have no idea how the latter works, it's probably more useful.
+
+        # Frames per second (FPS) of the video to be saved for this animation.
+        # Ignored if `is_saving_video` is `False`.
+        save_video_fps = None
+
+        #FIXME: Set a sane default.
+        # Dictionary mapping from each Matplotlib-specific metadata name to that
+        # metadata's string value of the video to be saved for this animation.
+        # Ignored if `is_saving_video` is `False`. Metadata names of common
+        # interest include: "title", "artist", "genre", "subject", "copyright",
+        # "srcform", and "comment".
+        save_video_metadata = {}
+        # save_video_metadata = {artist: 'Me'}
+
+        # Bitrate of the video to be saved for this animation. Ignored if
+        # `is_saving_video` is `False`.
+        save_video_bitrate = mpl_config.get_rc_param('animation.bitrate')
+
+        # Name of the codec with which to encode the video to be saved for this
+        # animation. Ignored if `is_saving_video` is `False`.
+        save_video_codec = mpl_config.get_rc_param('animation.codec')
 
         # List of the Matplotlib-specific names of all external encoders
         # supported by Matplotlib with which to encode this video (in descending
@@ -427,15 +468,19 @@ class AnimCells(PlotCells):
             # Object writing animation frames as images.
             self._writer_frames = FileFrameWriter()
 
+            #FIXME: Perform this for video as well.
             # If both saving and displaying animation frames, prepare to do so.
+            # If only saving but *NOT* displaying animation frames, the setup()
+            # method called below is already called by the MovieWriter.saving()
+            # method called by the Anim.save() method called by the _animate()
+            # method called below. (No comment on architectural missteps.)
+            #
             # See the _save_frame() method for horrid discussion.
             if self._is_saving_showing:
                 self._writer_frames.setup(
                     fig=self._figure,
                     outfile=self._writer_frames_template,
-
-                    #FIXME: Pass the actual desired "dpi" parameter.
-                    dpi=mpl_config.get_rc_param('savefig.dpi'),
+                    dpi=self._writer_frames_dpi,
                 )
 
         # If saving animation frames as video, prepare to do so.
@@ -456,9 +501,21 @@ class AnimCells(PlotCells):
             self._writer_video_filename = paths.join(
                 save_dirname, save_video_basename)
 
-            #FIXME: Implement us up.
             # Object writing animation frames as video.
-            # self._writer_video = VideoWriterClass()
+            self._writer_video = VideoWriterClass(
+                fps=save_video_fps,
+                bitrate=save_video_bitrate,
+                codec=save_video_codec,
+                metadata=save_video_metadata,
+            )
+
+            # If both saving and displaying animation frames, prepare as above.
+            if self._is_saving_showing:
+                self._writer_video.setup(
+                    fig=self._figure,
+                    outfile=self._writer_video_filename,
+                    dpi=self._writer_video_dpi,
+                )
 
 
     # This method has been overridden to support subclasses that manually handle
@@ -559,26 +616,43 @@ class AnimCells(PlotCells):
                 pyplot.show()
             # Else if saving animation frames as...
             elif self._is_saving:
-                # ...images, do so.
+                #FIXME: If soving both frames and video, the current approach
+                #does technically work but is highly inefficient. It appears to
+                #recreate the animation in-memory twice! A sane alternative is:
+                #
+                #* If soving both frames and video:
+                #  * Create only "self._writer_video". Hence,
+                #    "self._writer_frames" should remain None.
+                #  * Configure "self._writer_video" to write frames. This may
+                #    require us to avoid the more efficient pipe-based method of
+                #    writing video in favour of a temporary file-based method.
+                #    If this is the case, we may also need to manually move all
+                #    temporary files written by "self._writer_video" from the
+                #    temporary directory to which they are written into the
+                #    desired target directory.
+                #
+                #This should be feasible. Research is required, clearly.
+
+                # ...images, do so. Due to non-orthogonality in the Matplotlib
+                # API, all encoding parameters *EXCEPT* dots per inch (DPI) are
+                # passable to the "self._writer_frames" constructor. DPI,
+                # however, is *ONLY* passable to the save() method called below.
                 if self._writer_frames is not None:
-                    #FIXME: Pass the "dpi" parameter as well. Or would adding
-                    #this parameter to the "_writer_savefig_kwargs" dictionary
-                    #suffice to effect this?
                     self._anim.save(
-                        filename=self._writer_frames_template,
                         writer=self._writer_frames,
+                        filename=self._writer_frames_template,
+                        dpi=self._writer_frames_dpi,
                         savefig_kwargs=self._writer_savefig_kwargs,
                     )
 
-                #FIXME: Implement us up.
                 # ...video, do so.
                 if self._writer_video is not None:
-                    pass
-                    # self._anim.save(
-                    #     filename=self._writer_frames_template,
-                    #     writer=self._writer_frames,
-                    #     savefig_kwargs=self._writer_savefig_kwargs,
-                    # )
+                    self._anim.save(
+                        writer=self._writer_video,
+                        filename=self._writer_video_filename,
+                        dpi=self._writer_video_dpi,
+                        savefig_kwargs=self._writer_savefig_kwargs,
+                    )
 
                 # For space efficiency, explicitly close this animation *AFTER*
                 # saving this animation in a non-blocking manner.

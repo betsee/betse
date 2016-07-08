@@ -50,6 +50,7 @@ class FileFrameWriter(MovieWriter):
         empty list. Since no external process is forked to write animation
         frames, all arguments to be passed to that process are ignorable.
         '''
+
         # Ignoring "extra_args" is essential. Failing to do so results in
         # exceptions in the superclass constructor, which when "extra_args" is
         # None attempts to access the non-existent "args_key" class attribute.
@@ -83,6 +84,7 @@ class FileFrameWriter(MovieWriter):
         https://www.python.org/dev/peps/pep-3101
             For details on format specifiers.
         '''
+
         super().setup(*args, **kwargs)
 
         # Frame number of the next frame to be written.
