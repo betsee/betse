@@ -47,11 +47,17 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       k inhibitors: [1.0]      # list of kinetic parameters of inhibitors
       n inhibitors: [3.0]        # list of Hill exponent of inhibitors
     ion channel gating:
-      ion channel target: None            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      ion channel target: ['Na','K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
       target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
       peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
       acts extracellularly: False        # acts via extracellular (True) or intracellular (False) concentration?
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: None   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: None      # list of half-maximum values for inhibitors
+      n inhibitors: None        # list of Hill exponent of inhibitors
     active pumping:                     # use ATP driven pumps to actively move morphogen?
       turn on: False                     # turn pumping on?
       pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?

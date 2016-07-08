@@ -57,6 +57,7 @@ class MasterOfMolecules(object):
         self.mit_enabled = mit_enabled
 
         self.read_substances(sim, cells, config_substances, p)
+        self.tissue_init(sim, cells, config_substances, p)
 
         self.ave_cell_vol = cells.cell_vol.mean()  # average cell volume
 
@@ -109,96 +110,6 @@ class MasterOfMolecules(object):
             obj.c_mito = mol_dic.get('mit conc',None)  # initialized to None if optional fields not present
             obj.c_ero = mol_dic.get('er conc', None)
 
-            # factors involving auto-catalytic growth and decay in the cytoplasm
-            gad = mol_dic.get('growth and decay', None)
-
-            if gad != 'None' and gad is not None:
-
-                obj.simple_growth = True
-
-                obj.r_production = gad['production rate']
-                obj.r_decay = gad['decay rate']
-                obj.Kgd = gad['Km']
-                obj.n_production = gad['n']
-
-                obj.growth_activators_list = gad.get('activators', None)
-                obj.growth_activators_k = gad.get('k activators', None)
-                obj.growth_activators_Km = gad.get('Km activators', None)
-
-                obj.growth_activators_n = gad.get('k activators', None)
-                obj.growth_inhibitors_list = gad.get('inhibitors', None)
-                obj.growth_inhibitors_k = gad.get('k inhibitors', None)
-                obj.growth_inhibitors_Km = gad.get('Km inhibitors', None)
-                obj.growth_inhibitors_n = gad.get('k inhibitors', None)
-
-            else:
-                obj.simple_growth = False
-
-            # assign ion channel gating properties
-            icg = mol_dic.get('ion channel gating', None)
-
-            if icg is not None:
-
-                obj.ion_channel_gating = True
-
-                gating_ion_o = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
-
-                if gating_ion_o != 'None':
-                    obj.use_gating_ligand = True
-                    obj.gating_ion = sim.get_ion(gating_ion_o)
-
-                else:
-                    obj.use_gating_ligand = False
-                    obj.gating_ion = []
-
-                obj.gating_Hill_K = float(icg['target Hill coefficient'])
-                obj.gating_Hill_n = float(icg['target Hill exponent'])
-                obj.gating_max_val = float(icg['peak channel opening'])
-                obj.gating_extracell = icg['acts extracellularly']
-
-            else:
-
-                obj.ion_channel_gating = False
-
-            # assign active pumping properties
-            ap = mol_dic.get('active pumping', None)
-
-            if ap is not None:
-
-                obj.active_pumping = True
-                obj.use_pumping = ap['turn on']
-                obj.pump_to_cell = ap['pump to cell']
-                obj.pump_max_val = ap['maximum rate']
-                obj.pump_Km = ap['pump Km']
-                obj.pumps_use_ATP = ap['uses ATP']
-
-            else:
-                obj.active_pumping = False
-
-
-            # assign boundary change event properties
-            cab = mol_dic.get('change at bounds', None)
-
-            if cab is not None:
-                obj.change_bounds = True
-                obj.change_at_bounds = cab['event happens']
-                obj.change_bounds_start = cab['change start']
-                obj.change_bounds_end = cab['change finish']
-                obj.change_bounds_rate = cab['change rate']
-                obj.change_bounds_target = cab['concentration']
-
-            else:
-                obj.change_bounds = False
-
-            # assign plotting properties
-            pd = mol_dic['plotting']
-            obj.make_plots = pd['plot 2D']
-            obj.make_ani = pd['animate']
-
-            obj.plot_autoscale = pd['autoscale colorbar']
-            obj.plot_max = pd['max val']
-            obj.plot_min = pd['min val']
-
             # create data structures to use with sim --------
             # initialize concentrations in cells:
             obj.c_cells = np.ones(sim.cdl)*obj.c_cello
@@ -237,6 +148,117 @@ class MasterOfMolecules(object):
             self.mit = Mito(sim, cells, p)
         else:
             self.mit = None
+
+    def tissue_init(self, sim, cells, config_substances, p):
+
+        for q, mol_dic in enumerate(config_substances):
+            # get each user-defined name-filed in the dictionary:
+            name = str(mol_dic['name'])
+
+            # get MasterOfMolecules.name
+            obj = getattr(self, name)
+
+            # factors involving auto-catalytic growth and decay in the cytoplasm
+            gad = mol_dic.get('growth and decay', None)
+
+            if gad != 'None' and gad is not None:
+
+                obj.simple_growth = True
+
+                obj.r_production = gad['production rate']
+                obj.r_decay = gad['decay rate']
+                obj.Kgd = gad['Km']
+                obj.n_production = gad['n']
+
+                obj.growth_activators_list = gad.get('activators', None)
+                obj.growth_activators_k = gad.get('k activators', None)
+                obj.growth_activators_Km = gad.get('Km activators', None)
+
+                obj.growth_activators_n = gad.get('k activators', None)
+                obj.growth_inhibitors_list = gad.get('inhibitors', None)
+                obj.growth_inhibitors_k = gad.get('k inhibitors', None)
+                obj.growth_inhibitors_Km = gad.get('Km inhibitors', None)
+                obj.growth_inhibitors_n = gad.get('k inhibitors', None)
+
+            else:
+                obj.simple_growth = False
+
+            # assign ion channel gating properties
+            icg = mol_dic.get('ion channel gating', None)
+
+            if icg is not None:
+
+                obj.ion_channel_gating = True
+
+                gating_ion_o = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
+
+                if gating_ion_o != 'None':
+                    obj.use_gating_ligand = True
+
+                    obj.gating_ion = []
+
+                    for ion_o in gating_ion_o:
+                        obj.gating_ion.append(sim.get_ion(ion_o))
+
+                else:
+                    obj.use_gating_ligand = False
+                    obj.gating_ion = []
+
+                obj.gating_Hill_K = float(icg['target Hill coefficient'])
+                obj.gating_Hill_n = float(icg['target Hill exponent'])
+                obj.gating_max_val = float(icg['peak channel opening'])
+                obj.gating_extracell = icg['acts extracellularly']
+
+                # get any optional activators and inhibitors for the channel:
+                obj.activators_list = icg.get('activators', None)
+                obj.activators_Km = icg.get('Km activators', None)
+                obj.activators_n = icg.get('n activators', None)
+
+                obj.inhibitors_list = icg.get('inhibitors', None)
+                obj.inhibitors_Km = icg.get('Km inhibitors', None)
+                obj.inhibitors_n = icg.get('n inhibitors', None)
+
+            else:
+
+                obj.ion_channel_gating = False
+
+            # assign active pumping properties
+            ap = mol_dic.get('active pumping', None)
+
+            if ap is not None:
+
+                obj.active_pumping = True
+                obj.use_pumping = ap['turn on']
+                obj.pump_to_cell = ap['pump to cell']
+                obj.pump_max_val = ap['maximum rate']
+                obj.pump_Km = ap['pump Km']
+                obj.pumps_use_ATP = ap['uses ATP']
+
+            else:
+                obj.active_pumping = False
+
+            # assign boundary change event properties
+            cab = mol_dic.get('change at bounds', None)
+
+            if cab is not None:
+                obj.change_bounds = True
+                obj.change_at_bounds = cab['event happens']
+                obj.change_bounds_start = cab['change start']
+                obj.change_bounds_end = cab['change finish']
+                obj.change_bounds_rate = cab['change rate']
+                obj.change_bounds_target = cab['concentration']
+
+            else:
+                obj.change_bounds = False
+
+            # assign plotting properties
+            pd = mol_dic['plotting']
+            obj.make_plots = pd['plot 2D']
+            obj.make_ani = pd['animate']
+
+            obj.plot_autoscale = pd['autoscale colorbar']
+            obj.plot_max = pd['max val']
+            obj.plot_min = pd['min val']
 
     def read_reactions(self, config_reactions, sim, cells, p):
 
@@ -546,7 +568,7 @@ class MasterOfMolecules(object):
             if p.run_sim is True:
                 # use the substance as a gating ligand (if desired)
                 if obj.ion_channel_gating:
-                    obj.gating(sim, cells, p)
+                    obj.gating(sim, self, cells, p)
 
                 # update the global boundary (if desired)
                 if obj.change_bounds:
@@ -1385,7 +1407,7 @@ class Molecule(object):
                     cells, p, Df=self.Do, z=self.z, pump_into_cell=self.pump_to_cell, alpha_max=self.pump_max_val,
                     Km_X=self.pump_Km, Keq= 1.0)
 
-    def gating(self, sim, cells, p):
+    def gating(self, sim, sim_metabo, cells, p):
         """
         Uses the molecule concentration to open an ion channel in the cell membranes.
 
@@ -1394,18 +1416,29 @@ class Molecule(object):
         # update membrane permeability if dye targets an ion channel:
         if self.use_gating_ligand:
 
+            # calculate any activators and/or inhibitor effects:
+            activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.activators_list,
+                self.activators_Km, self.activators_n, self.inhibitors_list,
+                self.inhibitors_Km, self.inhibitors_n, reaction_zone='mems')
+
+
             if self.gating_extracell is False:
 
-                Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
-                                                                        self.gating_Hill_K,self.gating_Hill_n)
+                for ion_tag in self.gating_ion:
 
-                sim.Dm_morpho[self.gating_ion] = sim.rho_channel*Dm_mod_mol
+                    Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
+                                                                            self.gating_Hill_K,self.gating_Hill_n)
+
+                    sim.Dm_morpho[ion_tag] = sim.rho_channel*Dm_mod_mol*activator_alpha*inhibitor_alpha
 
             elif self.gating_extracell is True and p.sim_ECM is True:
 
-                Dm_mod_mol = self.gating_max_val*tb.hill(self.c_env,self.gating_Hill_K,self.gating_Hill_n)
+                for ion_tag in self.gating_ion:
 
-                sim.Dm_morpho[self.gating_ion] = sim.rho_channel*Dm_mod_mol[cells.map_mem2ecm]
+                    Dm_mod_mol = self.gating_max_val*tb.hill(self.c_env,self.gating_Hill_K,self.gating_Hill_n)
+
+                    sim.Dm_morpho[ion_tag] = (activator_alpha*inhibitor_alpha*sim.rho_channel*
+                                              Dm_mod_mol[cells.map_mem2ecm])
 
     def growth_and_decay(self, super_self, sim, cells, p):
         """
@@ -2839,7 +2872,6 @@ class Modulator(object):
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                            "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
 
-
 class DummyDyna(object):
 
     def __init__(self):
@@ -2970,6 +3002,8 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
                 # define the reactant as the ion concentration from the cell concentrations object in sim:
                 sim_conco = getattr(sim, type_sim)
                 c_inh = sim_conco[ion_check]
+
+            # print(i_list, Km_i_list, n_i_list)
 
             Km_inh = Km_i_list[j]
             n_inh = n_i_list[j]

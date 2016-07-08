@@ -621,6 +621,22 @@ class Simulator(object):
 
                 self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
+        elif p.molecules_enabled and self.molecules is not None:
+        # don't declare a whole new object, but re-read in parts that user may have changed:
+            self.molecules.tissue_init(self, cells, p.molecules_config,p)
+
+            if p.reactions_enabled:
+                self.molecules.read_reactions(p.reactions_config, self, cells, p)
+
+            if p.transporters_enabled:
+                self.molecules.read_transporters(p.transporters_config, self, cells, p)
+
+            if p.channels_enabled:
+                self.molecules.read_channels(p.channels_config, self, cells, p)
+
+            if p.modulators_enabled:
+                self.molecules.read_modulators(p.modulators_config, self, cells, p)
+
 
         #-----metabolism initialization -----------------------------------
         if p.metabolism_enabled and self.metabo is None:
@@ -636,6 +652,8 @@ class Simulator(object):
             self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
                               'cADP': self.metabo.core.ADP.c_mems,
                               'cPi': self.metabo.core.Pi.c_mems}
+
+        # FIXME these should be alterable after initing too -- fix later
 
 
         #-----gene regulatory network initialization-------------------------
