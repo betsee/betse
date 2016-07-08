@@ -31,19 +31,17 @@ class EndoRetic(object):
         # init basic fields
         self.er_vol = 0.1*cells.cell_vol     # er volume
         self.er_sa = 1.0*cells.cell_sa      # er surface areas
-        self.Ver = 0.0e-3*np.ones(sim.cdl)   # initial trans-membrane voltage for er
+        self.Ver = np.zeros(sim.cdl)   # initial trans-membrane voltage for er
         self.Q = np.zeros(sim.cdl)     # total charge in mit
         self.cm_er = self.er_sa*p.cm    # mit membrane capacitance
 
         sim.cc_er = copy.deepcopy(sim.cc_cells)    # ion concentrations
-        sim.cc_er[sim.iCa][:] = 1.0e-3                # initial concentration in the ER
+        sim.cc_er[sim.iCa][:] = 0.1                # initial concentration in the ER
         self.Dm_er = copy.deepcopy(sim.cc_cells)    # membrane permeability
 
         for arr in self.Dm_er:
 
             arr[:] = 1.0e-18                 # membrane permeability altered so all are minimal
-
-        self.Dm_er[sim.iK] = 1.0e-16   # add a K+ leak channel...
 
         self.Dm_er_base = copy.deepcopy(self.Dm_er)  # copies of Dm for ion channel dynamics
         self.Dm_channels = copy.deepcopy(self.Dm_er)
@@ -104,6 +102,9 @@ class EndoRetic(object):
         self.Dm_channels[sim.iCa] = p.max_er*Dm_mod_mol
 
         self.Dm_er = self.Dm_er_base + self.Dm_channels
+
+        # print(sim.cc_er[sim.iCa][p.plot_cell], sim.cc_cells[sim.iCa][p.plot_cell],
+        # sim.molecules.IP3.c_cells[p.plot_cell])
 
     def clear_cache(self):
 

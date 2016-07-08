@@ -33,6 +33,19 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    growth and decay:
+      production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
+      Km: 1.0                  # Half-maximum value for decay [mmol/L]
+      n: 1.0                   # Hill exponent for decay
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      k activators: None       # list of kinetic parameters of activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: ['B']   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: [1.0]      # list of half-maximum values for inhibitors
+      k inhibitors: [1.0]      # list of kinetic parameters of inhibitors
+      n inhibitors: [3.0]        # list of Hill exponent of inhibitors
     ion channel gating:
       ion channel target: None            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -158,7 +171,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-#   REACTIONS of METABOLISM
+#   REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
 
 reactions:
@@ -174,6 +187,12 @@ reactions:
     Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
     max rate: 5.0e-3                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+    activator Km: None
+    activator n: None
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    activator n: None
 
   - name: produce_ATP              # unique identifier for the reaction
 
@@ -186,33 +205,38 @@ reactions:
     Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
     max rate: 1.0                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+    activator Km: None
+    activator n: None
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    activator n: None
 
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
 #-----------------------------------------------------------------------------------------------------------------------
-#transporters:
-#
-## FIXME implement this
-#
-#  - name: MCT         # unique identifier for the transporter
-#
-#    reactants: ['Pyr']   # list of reagents; must be from set of names defined for biomolecules in above
-#    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
-#    Km reactants: [0.1]   # list of half-max coefficients for reagents, in same order as reagents list
-#    products: ['Pyr']         # list of products; must be from set of names defined for biomolecules in above
-#    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
-#    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
-#    transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
-#    transfered into cell: ['Pyr']     # items of reaction moved into cell during forwards reaction
-#    max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
-#    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-#    transporter activators: None   # additional defined substances or ions increasing activity of transporter
-#    activator Km: None
-#    activator n: None
-#    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
-#    inhibitor Km: None
-#    activator n: None
+transporters:
+
+
+  - name: MCT         # unique identifier for the transporter
+
+    reactants: ['Pyr']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [0.1]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Pyr']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: ['Pyr']     # items of reaction moved into cell during forwards reaction
+    max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+    activator Km: None
+    activator n: None
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    activator n: None
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM CHANNELS
@@ -229,7 +253,7 @@ channels:
     activator n: [3.0]
     channel inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: [1.5]
-    activator n: [3.0]
+    inhibitor n: [3.0]
 
     # channel class Na: Nav1p2, Nav1p3, NavRat1, NavRat2, NaLeak
     #               K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p5, Kv2p1, KLeak
@@ -241,16 +265,16 @@ channels:
 #-----------------------------------------------------------------------------------------------------------------------
 # SUBSTANCE MODULATING EFFECTS on SIMULATOR PUMPs and GAP JUNCTIONs
 #-----------------------------------------------------------------------------------------------------------------------
-#modulators:
-#
-#  - name: GJ-block
-#
-#    target: gj       # sim entity targeted: gj (for gap junctions), Na/K-ATP, H/K-ATP or V-ATP
-#    max effect: 1.0        # maximum value of modulation
-#    activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
-#    activator Km: [0.1]
-#    activator n: [3.0]
-#    inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
-#    inhibitor Km: [1.5]
-#    inhibitor n: [3.0]
+modulators:
+
+  - name: GJ-block
+
+    target: gj       # sim entity targeted: gj (for gap junctions), Na/K-ATP, H/K-ATP or V-ATP
+    max effect: 1.0        # maximum value of modulation
+    activators: ['ADP']  # additional defined substances or ions increasing activity of transporter
+    activator Km: [0.1]
+    activator n: [3.0]
+    inhibitors: ['ATP']    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: [1.5]
+    inhibitor n: [3.0]
 

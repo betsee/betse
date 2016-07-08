@@ -40,6 +40,9 @@ def cagPotassium(dyna,sim,cells,p):
     P[inds_P_under] = 0.0
 
     # calculate conductance of this potassium channel:
+    # print(P.mean())
+
+    # delta_Q = - (dyna.maxDmKcag * P * (sim.vm - self.vrev))
     sim.Dm_cag[sim.iK] = dyna.maxDmKcag*P
 
 

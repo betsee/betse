@@ -1838,7 +1838,7 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
         # self.vgj = self.v_cell[cells.nn_i]- self.v_cell[cells.mem_i]
-        self.vgj = self.vm[cells.nn_i] - self.vm[cells.mem_i]
+        self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
 
         if p.v_sensitive_gj is True:
 
