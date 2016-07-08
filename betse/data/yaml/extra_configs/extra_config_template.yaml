@@ -236,7 +236,7 @@ transporters:
     activator n: None
     transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
-    activator n: None
+    inhibitor n: None
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM CHANNELS

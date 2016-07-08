@@ -142,6 +142,12 @@ class Simulator(object):
 
         """
 
+        # initialize all extra substances related objects to None, to be filled in if desired later
+        self.molecules = None
+        self.metabo = None
+        self.met_concs = None
+        self.grn = None
+
         i = -1  # dynamic index
 
         self.mdl = len(cells.mem_i)  # mems-data-length
@@ -594,7 +600,8 @@ class Simulator(object):
         # -----auxiliary molecules initialization -------------------------
 
         # create and initialize the auxiliary-molecules handler for this simulation:
-        if p.molecules_enabled:
+        #(only do these initializations if they haven't been done yet)
+        if p.molecules_enabled and self.molecules is None:
 
             self.molecules = MasterOfMolecules(self, cells, p.molecules_config,p)
 
@@ -614,11 +621,9 @@ class Simulator(object):
 
                 self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
-        else:
-            self.molecules = None
 
         #-----metabolism initialization -----------------------------------
-        if p.metabolism_enabled:
+        if p.metabolism_enabled and self.metabo is None:
 
             logs.log_info("Initializing metabolism...")
 
@@ -632,12 +637,9 @@ class Simulator(object):
                               'cADP': self.metabo.core.ADP.c_mems,
                               'cPi': self.metabo.core.Pi.c_mems}
 
-        else:
-            self.metabo = None
-            self.met_concs = None
 
         #-----gene regulatory network initialization-------------------------
-        if p.grn_enabled:
+        if p.grn_enabled and self.grn is None:
 
             logs.log_info("Initializing gene regulatory network...")
 
@@ -645,9 +647,6 @@ class Simulator(object):
             self.grn = MasterOfGenes(p)
             # read in the configuration settings for the metabolism simulator:
             self.grn.read_gene_config(self, cells, p)
-
-        else:
-            self.grn = None
 
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------
@@ -1292,6 +1291,7 @@ class Simulator(object):
         if p.molecules_enabled:
 
             self.molecules.write_data(self, p)
+            self.molecules.report(self, p)
 
         if p.metabolism_enabled:
 
