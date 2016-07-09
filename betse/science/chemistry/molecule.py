@@ -1532,7 +1532,7 @@ class Molecule(object):
 
     def export_data(self, sim, cells, p, savePath):
 
-        saveName = 'ExportData_' + self.name + '.csv'
+        saveName = 'ExportData_' + self.name + '_' + str(p.plot_cell) + '.csv'
 
         saveData = os.path.join(savePath, saveName)
 
@@ -1591,7 +1591,7 @@ class Molecule(object):
         ax.set_title('Concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
 
         if p.autosave is True:
-            savename = saveImagePath + 'CellConcentration_' + self.name + '.png'
+            savename = saveImagePath + 'CellConcentration_' + self.name + '_' + str(p.plot_cell) + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
         if p.turn_all_plots_off is False:
@@ -1608,7 +1608,7 @@ class Molecule(object):
             ax.set_title('Mitochondrial concentration of ' + self.name + ' in cell ' + str(p.plot_cell))
 
             if p.autosave is True:
-                savename = saveImagePath + 'MitConcentration_' + self.name + '.png'
+                savename = saveImagePath + 'MitConcentration_' + self.name + '_' + str(p.plot_cell) + '.png'
                 plt.savefig(savename, format='png', transparent=True)
 
             if p.turn_all_plots_off is False:

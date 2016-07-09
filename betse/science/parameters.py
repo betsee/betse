@@ -599,6 +599,9 @@ class Parameters(object):
         # include a Na-K-Cl cotransporter?
         self.NaKCl_exch_dyn = self.config['variable settings']['optional pumps'].get('Na/K/Cl cotrans', False)
 
+        # include a Cl-K symporter?
+        self.ClK_symp_dyn = self.config['variable settings']['optional pumps'].get('Cl/K symporter', False)
+
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
 
@@ -897,9 +900,15 @@ class Parameters(object):
 
         # FIXME add to config (Na-K-Cl cotransporter parameters)
         self.alpha_NaKCl = float(iu.get('alpha_NaKCl', 1.0e-5))
-        self.KmNaKCl_Na = 10.0
+        self.KmNaKCl_Na = 1.0
         self.KmNaKCl_K = 0.2
-        self.KmNaKCl_Cl = 10.0
+        self.KmNaKCl_Cl = 1.0
+
+        # FIXME add to config (Cl-K symporter parameters)
+
+        self.alpha_ClK = float(iu.get('alpha_ClK', 1.0e-4))
+        self.KmClK_K = 1.0
+        self.KmClK_Cl = 1.0
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]

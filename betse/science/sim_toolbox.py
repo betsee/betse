@@ -483,6 +483,61 @@ def exch_NaKCl(cNai, cNao, cKi, cKo, cCli, cClo, Vm, T, p, block=1.0):
 
     return f_Na, f_K, f_Cl
 
+def symp_ClK(cKi, cKo, cCli, cClo, Vm, T, p, block=1.0):
+    """
+    The Na-K-Cl cotransporter. Important for maintainig the correct
+    orientation of the trans-epithelial potential but maintaining
+    the correct salt balance and providing stimulus for Na/K-ATPase
+    pumpt activity.
+
+    K_in + Cl_in --> K_out + Cl_out
+
+    cKi:  Potassium inside the cell
+    cKo:  Potassium outside the cell
+
+    cCli:  Chloride inside the cell
+    cClo:  Chloride outside the cell
+
+    Vm:    Transmembrane voltage
+    T:     Temperature
+    p:     Instance of parameters
+
+    Returns
+    -------
+    f_Na      Flux of sodium
+    f_K      Flux of potassium
+    f_K      Flux of chloride
+
+    """
+
+    # calculate the reaction coefficient Q:
+    Qdenomo = (cKi)* (cCli)
+    Qnumo = (cKo)*(cClo)
+
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-10
+
+    Q = Qnumo / Qdenomo
+
+    # # calculate the equilibrium constant for the pump reaction:
+    Keq = 1
+
+    # calculate the reaction rate coefficient
+    alpha = block*p.alpha_ClK * (1 - (Q / Keq))
+
+    # calculate the enzyme coefficient:
+    numo_E = (cKi / p.KmClK_K)* (cCli / p.KmClK_Cl)
+    denomo_E = (1 + (cKi / p.KmClK_K)) * (1 + (cCli / p.KmClK_Cl))
+
+    f_K = - alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
+
+    f_Cl = f_K  # flux as [mol/m2s]
+
+    # print(f_K.mean(), cCli.mean())
+
+    return f_K, f_Cl
+
 def get_volt(q,sa,p):
 
     """

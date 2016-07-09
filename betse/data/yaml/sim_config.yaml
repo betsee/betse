@@ -36,7 +36,6 @@
 #------------------------------------------------------------------------------------------------------------------------
 # Settings specific to saving simulations and results output
 
-
 init file saving:
 
     directory: betse_1/INITS         # directory to load/save init run
@@ -644,6 +643,8 @@ variable settings:
 
     Na/K/Cl cotrans: True   # include a sodium/potassium/chloride co-transporter?
 
+    Cl/K symporter: False    # include a chloride/potassium symporter?
+
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
     turn on: False        # turn on electroosmosis of pumps and channels
@@ -1025,14 +1026,6 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     flux threshold: 1.0e-4     # flux cut off maximum
 
-#    voltage gated Ca:
-#
-#        max Dmem Ca: 1.0e-15        # maximum Ca2+ membrane diffusion coefficient channel open [m2/s]
-#        activation v: -40e-3        # voltage threshold above which vgK is activated [V]
-#        inactivation v: 30e-3       # voltage threshold above which vgCa is inactivated [V]
-#        inactivation Ca: 5.0e-3     # level of cytosolic Ca2+ above which vgCa is inactivated [mmol/L]
-#        reactivation Ca: 200e-6     # level of cytosolic Ca2+ below which vgCa is un-inactivated [mmol/L]
-
     calcium gated K:
 
         max Dmem K: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
@@ -1071,6 +1064,8 @@ internal parameters:
   alpha_NaCa: 1.0e-8    # rate of Na/Ca exchanger [m/mol*s]
 
   alpha_NaKCl: 1.0e-5   # rate of Na/K/Cl cotransporter [m/mol*s]
+
+  alpha_ClK: 1.0e-4     # rate of Cl/K symporter [m/mol*s]
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 

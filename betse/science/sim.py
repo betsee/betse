@@ -1766,6 +1766,29 @@ class Simulator(object):
             self.cc_mems[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_mems[self.iCl][:],
                 self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=False)
 
+
+        if p.ClK_symp_dyn is True:
+
+            cKi = self.cc_mems[self.iK]
+            cCli = self.cc_mems[self.iCl]
+
+            if p.sim_ECM is True:
+                cKo = self.cc_env[self.iK][cells.map_mem2ecm]
+                cClo = self.cc_env[self.iCl][cells.map_mem2ecm]
+
+            else:
+                cKo = self.cc_env[self.iK]
+                cClo = self.cc_env[self.iCl]
+
+            f_K, f_Cl = stb.symp_ClK(cKi, cKo, cCli, cClo, self.vm, self.T, p)
+
+            # update concentrations of K and Cl in cells and environment:
+            self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
+                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=False)
+
+            self.cc_mems[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_mems[self.iCl][:],
+                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=False)
+
     def ca_handler(self,cells,p):
 
         if p.sim_ECM is True:
