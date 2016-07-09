@@ -1948,6 +1948,9 @@ class Reaction(object):
             Q_deno = np.prod(Q_deno_list, axis=0)
             Q_numo = np.prod(Q_numo_list, axis=0)
 
+            inds_neg = (Q_deno == 0).nonzero()
+            Q_deno[inds_neg] = 1.0e-15  # ensure no division by zero
+
             # finally, *the* reaction quotient:
             Q = Q_numo/Q_deno
 
@@ -2627,6 +2630,9 @@ class Transporter(object):
         # get the numerator and denomenator of the reaction quotient:
         Q_deno = np.prod(Q_deno_list, axis=0)
         Q_numo = np.prod(Q_numo_list, axis=0)
+
+        inds_neg = (Q_deno == 0).nonzero()
+        Q_deno[inds_neg] = 1.0e-15   # ensure no division by zero
 
         # finally, *the* reaction quotient:
         Q = Q_numo/Q_deno

@@ -1219,6 +1219,10 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         cX_mems = cX_mems + p.dt * delta_cc
 
+    else:
+        fgj_X = np.zeros(sim.mdl)
+
+
     #------------------------------------------------------------------------------------------------------------
 
         # electrodiffuse intracellular concentrations
