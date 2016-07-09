@@ -33,6 +33,8 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
+    TJ permeable: False
+    GJ impermeable: False
     growth and decay:
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm

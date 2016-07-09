@@ -271,6 +271,7 @@ class MasterOfMolecules(object):
 
         # Initialize a list that keeps the index of the reaction:
         self.reaction_index = []
+        self.reaction_names = []
 
         for q, react_dic in enumerate(config_reactions):
             # get each user-defined name-filed in the dictionary:
@@ -342,6 +343,7 @@ class MasterOfMolecules(object):
 
         # Initialize a list that keeps the index of the reaction:
         self.transporter_index = []
+        self.transporter_names = []
 
         for q, trans_dic in enumerate(config_transporters):
             # get each user-defined name-filed in the dictionary:
@@ -406,6 +408,7 @@ class MasterOfMolecules(object):
 
         # Initialize a list that keeps the index of the channel:
         self.channel_index = []
+        self.channel_names = []
 
         for q, chan_dic in enumerate(config_channels):
             # get each user-defined name-filed in the dictionary:
@@ -444,6 +447,7 @@ class MasterOfMolecules(object):
     def read_modulators(self, config_modulators, sim, cells, p):
 
         self.modulator_index = []
+        self.modulator_names = []
 
         for q, mod_dic in enumerate(config_modulators):
 
@@ -552,6 +556,10 @@ class MasterOfMolecules(object):
 
         """
 
+        # Initialize arrays for substance charge contribution:
+        net_Q_cell = 0
+        net_Q_env = 0
+
         # get the name of the specific substance:
         for name in self.molecule_names:
 
@@ -585,6 +593,18 @@ class MasterOfMolecules(object):
 
             # ensure no negs:
             stb.no_negs(obj.c_mems)
+
+            # calculate the charge density this substance contributes to cell and environment:
+            obj_Q_cell = p.F * obj.c_mems * obj.z
+
+            obj_Q_env = p.F * obj.c_env * obj.z
+            # add that contribution to the total sum:
+            net_Q_cell = net_Q_cell + obj_Q_cell
+            net_Q_env = net_Q_env + obj_Q_env
+
+        # update charge in the cell and environment of the main bioelectric simulator:
+        sim.rho_cells = sim.rho_cells + net_Q_cell
+        sim.rho_env = sim.rho_env + net_Q_env
 
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
 
@@ -760,12 +780,11 @@ class MasterOfMolecules(object):
 
             obj.rate_time = []
 
+
         for name in self.reaction_names:
             obj = getattr(self, name)
 
             obj.rate_time = []
-
-
 
         if self.mit_enabled:
             self.vmit_time = []

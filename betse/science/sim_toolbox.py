@@ -829,7 +829,7 @@ def ghk_calculator(sim, cells, p):
         (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
 
 def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
-                 Km_ATP=1.0, met = None):
+                 Km_ATP=1.0, met = None, n=1):
 
 
     """
@@ -896,8 +896,8 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
         # active pumping of molecule from cell and into environment:
         # calculate the reaction coefficient Q:
-        Qnumo = cADP * cPi * (cX_env)
-        Qdenomo = cATP * (cX_cell)
+        Qnumo = cADP * cPi * (cX_env**n)
+        Qdenomo = cATP * (cX_cell**n)
 
         # ensure no chance of dividing by zero:
         inds_Z = (Qdenomo == 0.0).nonzero()
@@ -906,14 +906,14 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
         Q = Qnumo / Qdenomo
 
         # calculate the equilibrium constant for the pump reaction:
-        Keq = np.exp(-deltaGATP_o / (p.R * sim.T) + ((z * p.F * sim.vm) / (p.R * sim.T)))
+        Keq = np.exp(-deltaGATP_o / (p.R * sim.T) + ((n*z * p.F * sim.vm) / (p.R * sim.T)))
 
         # calculate the reaction rate coefficient
         alpha = alpha_max * (1 - (Q / Keq))
 
         # calculate the enzyme coefficient:
-        numo_E = (cX_cell / Km_X) * (cATP / Km_ATP)
-        denomo_E = (1 + (cX_cell / Km_X)) * (1 + (cATP / Km_ATP))
+        numo_E = ((cX_cell / Km_X)**n) * (cATP / Km_ATP)
+        denomo_E = (1 + (cX_cell / Km_X)**n) * (1 + (cATP / Km_ATP))
 
         f_X = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
@@ -965,7 +965,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell=False, alpha_max=1.0e-8,
-        Km_X=1.0, Keq=1.0):
+        Km_X=1.0, Keq=1.0, n = 1.0):
 
 
     """
@@ -1037,6 +1037,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
         denomo_E = (1 + (cX_cell / Km_X))
 
         f_X = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
+
 
 
     else:
