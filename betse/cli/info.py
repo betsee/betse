@@ -21,11 +21,13 @@
 
 from collections import OrderedDict
 from io import StringIO
+
 from betse import metadata
-from betse.util.command import commands
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
+from betse.util.path.command import commands
 from betse.util.py import pys
+
 
 # ..................{ LOGGERS                                }..................
 def log_header() -> None:

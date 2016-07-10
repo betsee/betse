@@ -49,7 +49,7 @@ class HelpFormatterParagraph(HelpFormatter):
     Examples
     ----------
         >>> from argparse import ArgumentParser
-        >>> from betse.util.command.args import HelpFormatterParagraph
+        >>> from betse.util.path.command import HelpFormatterParagraph
         >>> arg_parser = ArgumentParser(
         ...     formatter_class = HelpFormatterParagraph)
         >>> arg_subparsers = arg_parser.add_subparsers()

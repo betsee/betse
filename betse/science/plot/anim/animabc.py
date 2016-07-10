@@ -281,7 +281,7 @@ class AnimCells(PlotCells):
         # Log this animation as early as reasonably feasible.
         if animation_verb is not None:
             logs.log_info(
-                '{} animation "{}"...'.format(animation_verb, self._label))
+                '%s animation "%s"...', animation_verb, self._label)
 
         # Classify attributes to be possibly redefined below.
         self._current_density_magnitude_time_series = None
@@ -368,6 +368,7 @@ class AnimCells(PlotCells):
         is_saving_frames = True
 
         # `True` only if saving all frames of this animation to disk as a video.
+        # is_saving_video = True
         is_saving_video = False
 
         # Filetype of each frame image to be saved for this animation. Ignored
@@ -477,21 +478,30 @@ class AnimCells(PlotCells):
             #
             # See the _save_frame() method for horrid discussion.
             if self._is_saving_showing:
+                # Log this saving attempt.
+                logs.log_debug(
+                    'Saving animation frames "%s"...',
+                    self._writer_frames_template)
+
+                # Prepare to save these animation frames.
                 self._writer_frames.setup(
                     fig=self._figure,
                     outfile=self._writer_frames_template,
                     dpi=self._writer_frames_dpi,
                 )
 
+        #FIXME: FFMpeg integration appears to be extremely fragile. To combat
+        #this, consider enabling an FFMpeg-specific debug log with the
+        #following (...although we have no idea where the log actually lives):
+        #
+        #    matplotlib.rcParams['animation.ffmpeg_args'] = '-report'
+
         # If saving animation frames as video, prepare to do so.
         if is_saving_video:
-            #FIXME: Remove us up! Purely for testing.
-            save_video_writer_names = ('yamoli', 'yimbly')
-
             # Class writing animation frames as video.
             VideoWriterClass = video_writers.get_first_class(
                 save_video_writer_names)
-            print('found video writer: {}'.format(VideoWriterClass))
+            # print('found video writer: {}'.format(VideoWriterClass))
 
             # Basename of the video to be written.
             save_video_basename = '{}.{}'.format(
@@ -511,6 +521,12 @@ class AnimCells(PlotCells):
 
             # If both saving and displaying animation frames, prepare as above.
             if self._is_saving_showing:
+                # Log this saving attempt.
+                logs.log_debug(
+                    'Saving animation video "%s"...',
+                    self._writer_video_filename)
+
+                # Prepare to save this animation video.
                 self._writer_video.setup(
                     fig=self._figure,
                     outfile=self._writer_video_filename,
@@ -568,7 +584,11 @@ class AnimCells(PlotCells):
         # to subsequent plot handling -- in which case only the first plot will
         # be plotted without explicit warning or error. Die, matplotlib! Die!!
         self._anim = FuncAnimation(
-            self._figure, self.plot_frame,
+            # Figure to which the "func" callable plots each frame.
+            fig=self._figure,
+
+            # Callable plotting each frame.
+            func=self.plot_frame,
 
             # Number of frames to be animated.
             frames=frame_count,
@@ -614,6 +634,14 @@ class AnimCells(PlotCells):
             # If displaying animations, do so.
             if self._is_showing:
                 pyplot.show()
+
+                # If saving animation frames as images, finalize doing so.
+                if self._writer_frames is not None:
+                    self._writer_frames.finish()
+
+                # If saving animation frames as video, finalize doing so.
+                if self._writer_video is not None:
+                    self._writer_video.finish()
             # Else if saving animation frames as...
             elif self._is_saving:
                 #FIXME: If soving both frames and video, the current approach
@@ -632,6 +660,40 @@ class AnimCells(PlotCells):
                 #    desired target directory.
                 #
                 #This should be feasible. Research is required, clearly.
+                #FIXME: Actually, there's a far simpler way requiring no changes
+                #to our existing methodology -- which is good. The core issue is
+                #that the Anim.save() and Anim.saving() methods are overly
+                #clumsy wrappers around core "MovieWriter" functions. Since we
+                #already call the latter directly in our _plot_frame() method,
+                #there's absolutely no incentive to calling the former here.
+                #Instead, refactor this approach as follows:
+                #
+                #* Unconditionally call the MovieWriter.setup() method above.
+                #  Specifically:
+                #
+                #      # Refactor conditionals like this...
+                #      if self._is_saving_showing:
+                #          self._writer_frames.setup(...)
+                #
+                #      # ...to merely this.
+                #      self._writer_frames.setup(...)
+                #
+                #* Replace the calls to Anim.save() below with either:
+                #  * Implicit iteration leveraging the existing pyplot.show()
+                #    method call above by hiding this figure. I have no idea
+                #    whether this actually works, but it seems worth a try.
+                #    This is low-hanging fruit and hence preferable:
+                #
+                #      self._figure.canvas.Show(False)
+                #      pyplot.show()
+                #
+                #    What happens? We have no idea. Simple to test, happily.
+                #
+                #  * If the implicit iteration approach fails, explicit
+                #    iteration by essentially duplicating the iteration
+                #    performed by the Anim.save() function below. While also
+                #    trivial, the extra effort involved makes the above
+                #    approach preferable.
 
                 # ...images, do so. Due to non-orthogonality in the Matplotlib
                 # API, all encoding parameters *EXCEPT* dots per inch (DPI) are
@@ -695,10 +757,11 @@ class AnimCells(PlotCells):
             0-based index of the frame to be plotted.
         '''
 
-        # loggers.log_info(
-        #     'Updating animation "{}" frame number {}...'.format(
-        #         self._type,
-        #         len(self._sim.time) if frame_number == -1 else frame_number))
+        # Log this animation frame.
+        logs.log_debug(
+            'Plotting animation "%s" frame %d...',
+            self._label,
+            len(self._sim.time) if frame_number == -1 else frame_number)
 
         # Classify the passed time step.
         self._time_step = frame_number
@@ -729,7 +792,13 @@ class AnimCells(PlotCells):
         # FuncAnimation.save() method with the writer name "frame" signifying
         # our "FileFrameWriter" class to do so. (Look. It's complicated, O.K.?)
         if self._is_saving_showing:
-            self._writer_frames.grab_frame(**self._writer_savefig_kwargs)
+            # If saving animation frames as images, save this frame as such.
+            if self._writer_frames is not None:
+                self._writer_frames.grab_frame(**self._writer_savefig_kwargs)
+
+            # If saving animation frames as video, save this frame as such.
+            if self._writer_video is not None:
+                self._writer_video.grab_frame(**self._writer_savefig_kwargs)
 
 
     @abstractmethod

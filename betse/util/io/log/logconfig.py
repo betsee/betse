@@ -121,42 +121,11 @@ simplifies modification of logging levels at runtime (e.g., in response to
 command-line arguments or configuration file settings).
 '''
 
-# ....................{ INITIALIZERS                       }....................
-def init() -> None:
-    '''
-    Enable the default logging configuration for the current Python process.
-    '''
-
-    # Instantiate this singleton global with the requisite defaults.
-    global _config
-    _config = LogConfig()
-
-# ....................{ GETTERS                            }....................
-def get() -> None:
-    '''
-    Singleton logging configuration for the current Python process.
-    '''
-
-    global _config
-    return _config
-
-
-def get_metadata() -> OrderedDict:
-    '''
-    Ordered dictionary synopsizing the current logging configuration.
-    '''
-
-    return OrderedDict((
-        ('type', _config.log_type.name.lower()),
-        ('file', _config.filename),
-        ('verbose', str(_config.is_verbose).lower()),
-    ))
-
 # ....................{ CONFIG                             }....................
 #FIXME: Update docstring to reflect the new default configuration.
 class LogConfig(object):
     '''
-    Default logging configuration.
+    BETSE-specific logging configuration.
 
     This configuration defines sensible default handlers for the root logger,
     which callers may customize (e.g., according to user-defined settings) by
@@ -165,8 +134,9 @@ class LogConfig(object):
     Caveats
     ----------
     Since this class' `__init__()` method may raise exceptions, this class
-    should be instantiated at application startup _after_ establishing default
-    exception handling.
+    should be instantiated at application startup by an explicit call to the
+    module-level `init()` function _after_ establishing default exception
+    handling. Hence, this class is _not_ instantiated at the end of this module.
 
     Default Settings
     ----------
@@ -259,7 +229,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.command import commands
+        from betse.util.path.command import commands
 
         # Initialize the stdout handler.
         #
@@ -321,7 +291,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.command import commands
+        from betse.util.path.command import commands
         from betse.util.type import ints
 
         # Remove the previously registered file handler if any *BEFORE*
@@ -389,7 +359,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.command import commands
+        from betse.util.path.command import commands
 
         # Root logger.
         self._logger_root = logging.getLogger()
@@ -426,32 +396,32 @@ class LogConfig(object):
     def is_verbose(self) -> bool:
         '''
         `True` only if _all_ messages are to be unconditionally logged to the
-        stdout Handler (and hence printed to stdout).
+        stdout handler (and hence printed to stdout).
 
         Equivalently, this method returns `True` only if the logging level for
         the stdout handler is `ALL`.
+
+        Note that this logging level is publicly retrievable by accessing the
+        `handler_stdout.level` property.
         '''
 
         return self._logger_root_handler_stdout.level == ALL
 
 
     @is_verbose.setter
+    @type_check
     def is_verbose(self, is_verbose: bool) -> None:
         '''
         Set the verbosity of the stdout handler.
 
-        This method sets the logging level for the stdout handler to:
+        This method sets this handler's logging level to:
 
-        * `ALL` if the passed boolean is `True`.
-        * `INFO` if the passed boolean is `False`.
+        * If the passed boolean is `True`, `ALL` .
+        * If the passed boolean is `False`, `INFO`.
         '''
-        assert types.is_bool(is_verbose), types.assert_not_bool(is_verbose)
 
         # Convert the passed boolean to a logging level for the stdout handler.
-        if is_verbose:
-            self._logger_root_handler_stdout.setLevel(ALL)
-        else:
-            self._logger_root_handler_stdout.setLevel(INFO)
+        self._logger_root_handler_stdout.setLevel(ALL if is_verbose else INFO)
 
     # ..................{ PROPERTIES ~ type                  }..................
     @property
@@ -464,6 +434,7 @@ class LogConfig(object):
 
 
     @log_type.setter
+    @type_check
     def log_type(self, log_type: LogType) -> None:
         '''
         Set the type of logging to be performed.
@@ -474,8 +445,8 @@ class LogConfig(object):
           been explicitly set by an external caller), an exception is raised.
         * Else, the file handler is reconfigured to log to that file.
         '''
-        assert types.is_in_enum(log_type, LogType), (
-            types.assert_not_in_enum(log_type, LogType))
+        # assert types.is_in_enum(log_type, LogType), (
+        #     types.assert_not_in_enum(log_type, LogType))
 
         # Record this log_type *BEFORE* reconfiguring loggers or handlers, which
         # access this private attribute through its public property.
@@ -495,6 +466,7 @@ class LogConfig(object):
 
 
     @filename.setter
+    @type_check
     def filename(self, filename: str) -> None:
         '''
         Set the absolute or relative path of the file logged to by the file
@@ -504,8 +476,6 @@ class LogConfig(object):
         `LogType.FILE`), this method reconfigures the file handler accordingly;
         else, this filename is effectively ignored.
         '''
-        assert types.is_str_nonempty(filename), (
-            types.assert_not_str_nonempty(filename, 'Log filename'))
 
         # Record this filename *BEFORE* reconfiguring the file handler, which
         # accesses this private attribute through its public property.
@@ -523,6 +493,7 @@ class LogConfig(object):
         Root logger handler appending to the current logfile if file logging is
         enabled _or_ `None` otherwise.
         '''
+
         return self._logger_root_handler_file
 
 
@@ -531,6 +502,7 @@ class LogConfig(object):
         '''
         Root logger handler printing to standard error.
         '''
+
         return self._logger_root_handler_stderr
 
 
@@ -539,6 +511,7 @@ class LogConfig(object):
         '''
         Root logger handler printing to standard output.
         '''
+
         return self._logger_root_handler_stdout
 
 # ....................{ CLASSES ~ filter                   }....................
@@ -628,3 +601,39 @@ class LoggerFormatterStream(Formatter):
     #         text = super().format(log_record),
     #         text_wrapper = self._text_wrapper,
     #     )
+
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Enable the default logging configuration for the active Python process.
+    '''
+
+    # Instantiate this singleton global with the requisite defaults.
+    global _config
+    _config = LogConfig()
+
+# ....................{ GETTERS                            }....................
+def get() -> LogConfig:
+    '''
+    Singleton logging configuration for the active Python process.
+
+    Returns
+    ----------
+    LogConfig
+        Such configuration.
+    '''
+
+    global _config
+    return _config
+
+
+def get_metadata() -> OrderedDict:
+    '''
+    Ordered dictionary synopsizing the current logging configuration.
+    '''
+
+    return OrderedDict((
+        ('type', _config.log_type.name.lower()),
+        ('file', _config.filename),
+        ('verbose', str(_config.is_verbose).lower()),
+    ))

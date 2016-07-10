@@ -32,10 +32,12 @@ Most runners accept the same optional keyword arguments accepted by the
 
 # ....................{ IMPORTS                            }....................
 import subprocess
-from betse.util.io.log import logs
-from betse.util.type.types import type_check, Sequence
 from collections.abc import Mapping
 from subprocess import CalledProcessError, TimeoutExpired
+
+from betse.util.io.log import logs
+from betse.util.type.types import type_check, Sequence
+
 
 # ....................{ RUNNERS                            }....................
 def run(command_words: Sequence, **popen_kwargs) -> None:
@@ -59,7 +61,7 @@ def run(command_words: Sequence, **popen_kwargs) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.command import exits
+    from betse.util.path.command import exits
 
     # Run this command, raising an exception on command failure. For
     # reusability, reimplement the subprocess.check_call() function here rather
@@ -92,7 +94,7 @@ def run_nonfatal(command_words: Sequence, **popen_kwargs) -> int:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.command.exits import FAILURE_DEFAULT
+    from betse.util.path.command import FAILURE_DEFAULT
 
     # Sanitize these arguments.
     _init_run_args(popen_kwargs)

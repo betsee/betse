@@ -27,16 +27,16 @@ Abstract command line interface (CLI).
 import cProfile, sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
+from enum import Enum
 from betse import ignition, metadata, pathtree
 from betse.cli import info, clioption
-from betse.util.command import commands
-from betse.util.command.args import HelpFormatterParagraph
-from betse.util.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
+from betse.util.path.command import commands
+from betse.util.path.command.args import HelpFormatterParagraph
+from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.type import types, strs
 from betse.util.type.types import type_check
-from enum import Enum
 
 # ....................{ ENUMS                              }....................
 ProfileType = Enum('ProfileType', ('NONE', 'CALL'))

@@ -265,8 +265,10 @@ def join_as_conjunction_double_quoted(*texts) -> str:
     * Delimit the last two passed strings with `, and `.
     '''
 
-    # All passed strings, double-quoted.
-    texts_quoted = (double_quote(text) for text in texts)
+    # All passed strings, double-quoted. Since the "*" operator applied to this
+    # variable below requires a sequence rather than a generator, this has been
+    # assigned the most space-efficient sequence (i.e., a frozen tuple).
+    texts_quoted = tuple(double_quote(text) for text in texts)
 
     # Return these strings, joined conjunctively.
     return join_as_conjunction(*texts_quoted)
@@ -298,7 +300,7 @@ def join_as_disjunction(*texts) -> str:
 #substrings matching '\\"' from being subject to substitution.
 
 @type_check
-def double_quote(*text) -> str:
+def double_quote(text) -> str:
     '''
     Double-quote the passed string in a human-readable manner.
 

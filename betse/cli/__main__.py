@@ -16,7 +16,7 @@ This submodule is a thin wrapper intended to be:
 
 # ....................{ IMPORTS                            }....................
 from betse.cli.clicli import CLICLI
-from betse.util.command import exits
+from betse.util.path.command import exits
 
 # ....................{ MAIN                               }....................
 def main(arg_list: list = None) -> int:

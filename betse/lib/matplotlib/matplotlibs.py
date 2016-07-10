@@ -36,7 +36,7 @@
 #backends *NOT* being available. This is certainly feasible, as the
 #following stackoverflow answer demonstrates -- if somewhat involved:
 #    https://stackoverflow.com/questions/5091993/list-of-all-available-matplotlib-backends
-#That said, we really want to do this *ANYWAY* to print such list when running
+#That said, we really want to do this *ANYWAY* to print this list when running
 #"betse info". So, let's just get this done, please.
 
 '''
@@ -79,65 +79,30 @@ Footnote descriptions are as follows:
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To permit the current backend to be subsequently specified by the
-# init() function, most matplotlib modules (in particular, "matplotlib.pyplot")
-# are *NOT* safely importable at the top-level of this module. See init().
+# WARNING: To permit Matplotlib's default verbosity and backend to be
+# initialized to BETSE-specific values, no matplotlib package or module may be
+# imported until *AFTER* the MatplotlibConfig.init() method has been called --
+# including here at the top-level.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
 from collections import OrderedDict
-
-from matplotlib import cm as colormaps
-from matplotlib import rcParams
-from matplotlib.colors import Colormap
-from matplotlib.figure import Figure
-
 from betse.exceptions import BetseMatplotlibException
-from betse.util.io.log import logs
+from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.py import modules, pys
-from betse.util.type import sequences, strs, types
-
-# ....................{ IMPORTS ~ matplotlib               }....................
-# Import matplotlib in a safe manner. Unfortunately, the "matplotlib.__init__"
-# module implicitly imported on the first matplotlib importation performs the
-# following unsafe logic:
-#
-# * The current command-line argument list "sys.argv" is iteratively searched
-#   for arguments prefixed by "-d" of length >= 3 (e.g., "-dtkagg" but *NOT*
-#   simply "-d").
-# * For each such argument, "matplotlib.__init__" attempts to enable the backend
-#   whose name is given by such argument excluding the prefixing "-d", silently
-#   ignoring exceptions.
-#
-# This is utterly horrible. Since enabling arbitrary backends can have non-
-# negligible side effects, "matplotlib.__init__" *MUST* be prevented from
-# performing such logic. Since this module is imported *ONLY* on the first
-# importation of a matplotlib module, it suffices to perform this preventation
-# *ONLY* for the following importation of the top-level matplotlib package.
-
-# Copy the current argument list into a temporary list.
-_sys_argv_old = sys.argv[:]
-
-# Remove all arguments following the mandatory basename of the current process
-# from the current argument list, preventing matplotlib from inspecting
-# arguments and hence enabling arbitrary backends.
-del(sys.argv[1:])
-
-# Import matplotlib safely.
-try:
-    import matplotlib
-# Restore the prior argument list from such temporary list.
-finally:
-    sys.argv = _sys_argv_old
-    del(_sys_argv_old)
+from betse.util.type import sequences, strs
+from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
 RC_PARAMS = {
-    # Print terse messages. By default, *NO* messages are printed. Valid
-    # values include: "silent", "helpful", "debug", and "debug-annoying".
-    'verbose.level': 'helpful',
+    #FIXME: This doesn't appear to do anything anymore. Excise, please. *sigh*
+
+    # Unconditionally print terse messages. By default, matplotlib prints *NO*
+    # messages. Valid values include: "silent", "helpful", "debug", and
+    # "debug-annoying".
+    # 'verbose.level': 'helpful',
     # 'verbose.level': 'debug',
 }
 '''
@@ -153,6 +118,8 @@ on-disk `matplotlibrc` file.
 # ....................{ CONSTANTS ~ z-order                }....................
 # These values derive from the following canonical z-order example:
 #     http://matplotlib.org/examples/pylab_examples/zorder_demo.html
+
+#FIXME: Shift these constants into a new "betse.lib.matplotlib.zorder" module.
 
 ZORDER_PATCH = 1
 '''
@@ -204,9 +171,10 @@ streamplot z-order. Specifically, streamplots were assigned a default z-order of
 '''
 
 # ....................{ GETTERS                            }....................
-def get_colormap(colormap_name: str) -> Colormap:
+@type_check
+def get_colormap(colormap_name: str):
     '''
-    Get the Matplotlib colormap with the passed name.
+    Matplotlib colormap uniquely identified by the passed name.
 
     Parameters
     ----------
@@ -214,18 +182,28 @@ def get_colormap(colormap_name: str) -> Colormap:
         Name of the attribute in the `matplotlib.cm` module corresponding to the
         desired colormap (e.g., `Blues`, `Greens`, `jet`, `rainbow).
 
+    Returns
+    ----------
+    matplotlib.colors.Colormap
+        Such colormap.
+
     See Also
     ----------
     http://matplotlib.org/examples/color/colormaps_reference.html
         List of supported colormaps.
     '''
-    assert types.is_str(colormap_name), types.assert_not_str(colormap_name)
+
+    # Delay importation of the "matplotlib.__init__" module.
+    from matplotlib import cm as colormaps
+    from matplotlib.colors import Colormap
 
     # Colormap with the passed name if any or "None" otherwise.
     colormap = getattr(colormaps, colormap_name, None)
     if not isinstance(colormap, Colormap):
         raise BetseMatplotlibException(
             'Matplotlib colormap "{}" not found.'.format(colormap_name))
+
+    # Return this colormap.
     return colormap
 
 # ....................{ CLASSES                            }....................
@@ -239,11 +217,16 @@ class MatplotlibConfig(object):
         List of the strictly lowercase names of all currently available
         matplotlib-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
     '''
-    def __init__(self):
-        super().__init__()
-        self._backend_names = None
 
     # ..................{ INITIALIZERS                       }..................
+    def __init__(self):
+
+        super().__init__()
+
+        # Declare instance variables.
+        self._backend_names = None
+
+
     def init(self) -> None:
         '''
         Reconfigure matplotlib with sane defaults specific to the current
@@ -251,23 +234,119 @@ class MatplotlibConfig(object):
 
         On first importation, matplotlib configures itself by loading the
         contents of the first `matplotlibrc` file found in any of several
-        candidate directories. Technically, `betse` *could* supply an
+        candidate directories. Technically, `betse` _could_ supply an
         application-specific version of such file to force matplotlib to adopt
         application-specific configuration settings. Since synchronizing such
         local copy with remote changes is an onerous (if not ultimately
-        infeasible) chore, we elect instead to reconfigure matplotlib *after*
+        infeasible) chore, we elect instead to reconfigure matplotlib _after_
         such file has already been loaded at application startup. While this
         slightly increases the cost of such startup, the alternatives are
         impractical at best.
+
+        Sanitization
+        ----------
+        This method imports matplotlib in a safe manner and should be the first
+        call to do so for the active Python process. Unfortunately, the
+        `matplotlib.__init__` module implicitly imported on the first matplotlib
+        importation performs the following unsafe logic:
+
+        * The current command-line argument list `sys.argv` is iteratively
+          searched for arguments matching patterns, including:
+          * Arguments prefixed by `-d` of length greater than or equal to 3
+            (e.g., `-dtkagg` but _not_ simply `-d`). For each such argument,
+            `matplotlib.__init__` attempts to enable the backend whose name is
+            given by such argument excluding the prefixing `-d`, silently
+            ignoring exceptions.
+          * Arguments prefixed by `--verbose-` matching a matplotlib-specific
+            verbosity level (e.g., `--verbose-debug`). For each such argument,
+            `matplotlib.__init__` coerces the global verbosity to that level.
+
+        This is utterly horrible. Since enabling arbitrary backends can have
+        non- negligible side effects, `matplotlib.__init__` _must_ be prevented
+        from performing this logic. Since this module is imported _only_ on the
+        first importation of a matplotlib module, it suffices to perform this
+        preventation _only_ for the following importation of the top-level
+        matplotlib package.
 
         See Also
         ----------
         http://matplotlib.org/users/customizing.html
             matplotlib configuration details.
         '''
-        # Reconfigure the following settings, whose keys are the names of
-        # settings provided by the official "matplotlibrc" file.
-        matplotlib.rcParams.update(RC_PARAMS)
+
+        #FIXME: Incorrect. The following logic assumes the logging configuration
+        #to have been finalized at this point. However, this function is
+        #transitively called ignition.init() *BEFORE* CLI handling processes
+        #passed CLI options to finalize such configuration. Hence, this method
+        #must be refactored to be explicitly called by the CLI after CLI
+        #argument handling. The optimal means of doing so is probably to shift
+        #the call to mpl_config.init() in libs.init() into the CLI logic. (Ugh.)
+
+        # Inform interactive users enabling BETSE-specific verbosity of
+        # matplotlib-specific verbosity output by this importation.
+        logs.log_debug('Initializing matplotlib...')
+
+        # Copy the current argument list into a temporary list.
+        _sys_argv_old = sys.argv[:]
+
+        # Remove all arguments following the mandatory basename of the current
+        # process from the current argument list, preventing matplotlib from
+        # inspecting arguments and hence enabling arbitrary backends.
+        del(sys.argv[1:])
+
+        # Import the "matplotlib.__init__" module. Since this module prints
+        # verbose messages if and only if the matplotlib-specific CLI option
+        # "--verbose-debug" is in this argument list, this option must be
+        # explicitly added to this list *BEFORE* importing this module. Awful!
+        try:
+            # Logging configuration singleton.
+            log_config = logconfig.get()
+
+            # Logging level of the stdout handler, representing the default
+            # logging level for the active Python process.
+            log_level = log_config.handler_stdout.level
+
+            # Convert this numeric level to the corresponding name of the
+            # matplotlib-specific verbosity level. Since there exist fewer of
+            # the latter than the former, this conversion is necessarily lossy.
+            # A hearty thanks for failing to conform to well-established Python
+            # standards yet again, matplotlib.
+            verbosity_level_name = None
+
+            # If BETSE-specific debugging is enabled, enable the mildest form of
+            # matplotlib-specific logging. While matplotlib also supports the
+            # "debug" and "debug-annoying" verbosity levels, both produce far
+            # more effluvia than is helpful.
+            if log_level <= logconfig.DEBUG:
+                verbosity_level_name = 'helpful'
+            # Else, squelch all matplotlib-specific logging. Since matplotlib
+            # supports no fine-grained verbosity levels between "helpful" and
+            # "silent", reduce all non-debugging levels to merely "silent".
+            else:
+                verbosity_level_name = 'silent'
+
+            # Convert this name into a matplotlib-specific CLI option.
+            # print('matplotlib verbosity: ' + verbosity_level_name)
+            sys.argv.append('--verbose-' + verbosity_level_name)
+
+            #FIXME: We should additionally set the "ffmpeg"-specific CLI option
+            #"-loglevel" based on the above "log_level" as well -- perhaps by
+            #setting "rcParams['animation.ffmpeg_args'] = '-report'" or some
+            #such *AFTER* importing matplotlib below.
+
+            # Import matplotlib *AFTER* setting all matplotlib-specific CLI
+            # options parsed by this importation.
+            import matplotlib
+        # Restore the prior argument list from this temporary list.
+        finally:
+            sys.argv = _sys_argv_old
+            del(_sys_argv_old)
+
+        # Import all remaining Matplotlib attributes required below.
+        from matplotlib import rcParams
+
+        # Unconditionally enable the settings defined by the "RC_PARAMS" global.
+        rcParams.update(RC_PARAMS)
 
         #FIXME: Excise commentary.
         # Configure the backend to be implicitly used for subsequent plotting.
@@ -319,8 +398,6 @@ class MatplotlibConfig(object):
         # these classes by name without having to manually instantiate them.
         # (While it may or may not be necessary to import these classes after
         # establishing the backend, it only seems prudent to do so.)
-
-        #FIXME: Uncomment when worky.
         from betse.lib.matplotlib.writer import frames
         if False: frames  # silence contemptible IDE warning messages
 
@@ -330,11 +407,13 @@ class MatplotlibConfig(object):
         `True` if a backend has been set (i.e., if the `matplotlib.use()` method
         has been called for the current Python session) or `False` otherwise.
         '''
+
         # This test corresponds exactly to the test performed by the
         # matplotlib.use() method itself to detect repetitious calls.
         return 'matplotlib.backends' in sys.modules
 
 
+    @type_check
     def is_backend_usable(self, backend_name: str) -> bool:
         '''
         `True` if the backend with the passed name is **usable** (i.e., safely
@@ -344,9 +423,8 @@ class MatplotlibConfig(object):
         If desired, the caller _must_ manually save and restore the current
         backend.
         '''
-        assert types.is_str(backend_name), types.assert_not_str(backend_name)
 
-        # Avoid importing this module at the top-level, for safety.
+        # Delay importation of the "matplotlib.__init__" module.
         from matplotlib import pyplot
 
         # Since backend names are case-insensitive, lowercase such name.
@@ -370,18 +448,22 @@ class MatplotlibConfig(object):
     # ..................{ GETTERS                            }..................
     def get_rc_param(self, param_name) -> object:
         '''
-        Get the value of the parameter with the passed `.`-delimited name
-        (e.g., `savefile.dpi`) in the external `matplotlibrc` file.
+        Value of the parameter with the passed `.`-delimited name (e.g.,
+        `savefile.dpi`) in the external `matplotlibrc` file.
 
         If no such parameter exists, an exception is raised.
         '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        from matplotlib import rcParams
+
+        # Return this parameter's value.
         return rcParams[param_name]
 
 
     def get_metadata(self) -> OrderedDict:
         '''
-        Get an ordered dictionary synopsizing the current matplotlib
-        installation.
+        Ordered dictionary synopsizing the current matplotlib installation.
         '''
 
         # This dictionary.
@@ -403,7 +485,7 @@ class MatplotlibConfig(object):
     # ..................{ MAKERS                             }..................
     #FIXME: Define a new make_backend_figure_manager() method as well. This
     #method is fine, for now. We might very well want to call this sometime.
-    def make_backend_figure(self, *args, **kwargs) -> Figure:
+    def make_backend_figure(self, *args, **kwargs):
         '''
         Create and return a new `Figure` instance passed the passed arguments
         _and_ associated with a new `FigureCanvasBase` instance corresponding to
@@ -422,10 +504,21 @@ class MatplotlibConfig(object):
           closed.
 
         If no backend has been set yet, an exception is raised.
+
+        Returns
+        ----------
+        matplotlib.figure.Figure
+            Such figure.
         '''
 
+        # Delay importation of the "matplotlib.__init__" module.
+        from matplotlib.figure import Figure
+
+        # Create this figure.
         figure = Figure(*args, **kwargs)
         self.backend_figure_canvas(figure)
+
+        # Return this figure.
         return figure
 
     # ..................{ PROPERTIES ~ read-only             }..................
@@ -435,6 +528,11 @@ class MatplotlibConfig(object):
         Absolute path of the current `matplotlibrc` file establishing default
         matplotlib options.
         '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        import matplotlib
+
+        # Return this path.
         return matplotlib.matplotlib_fname()
 
     # ..................{ PROPERTIES ~ read-only : backend   }..................
@@ -445,6 +543,7 @@ class MatplotlibConfig(object):
 
         If no backend has been set yet, an exception is raised.
         '''
+
         # If no backend has been set yet, raise an exception.
         if not self.is_backend():
             raise BetseMatplotlibException('No matplotlib backend set.')
@@ -460,6 +559,8 @@ class MatplotlibConfig(object):
             raise BetseMatplotlibException(
                 'Matplotlib backend module "{}" not found.'.format(
                     backend_module_name))
+
+        # Return this module.
         return backend_module
 
 
@@ -585,15 +686,21 @@ class MatplotlibConfig(object):
     @property
     def backend_name(self) -> str:
         '''
-        Get the human-readable name (e.g., `Qt5Agg`) of the current backend.
+        Human-readable name (e.g., `Qt5Agg`) of the current backend.
 
         This name is _not_ guaranteed to be lowercase and, in fact, is typically
         a mix of upper- and lowercase alphanumeric characters.
         '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        import matplotlib
+
+        # Return this backend's name.
         return matplotlib.get_backend()
 
 
     @backend_name.setter
+    @type_check
     def backend_name(self, backend_name: str) -> None:
         '''
         Set the current backend to the backend with the passed name.
@@ -601,7 +708,9 @@ class MatplotlibConfig(object):
         This name is interpreted case-insensitively and hence may be in any case
         including mixed lower and uppercase (e.g., `tkagg`, `TKAGG`, `TkAgg`).
         '''
-        assert types.is_str(backend_name), types.assert_not_str(backend_name)
+
+        # Delay importation of the "matplotlib.__init__" module.
+        import matplotlib
 
         # Since backend names are case-insensitive, lowercase such name.
         backend_name = backend_name.lower()

@@ -9,8 +9,8 @@ External command fixture classes.
 
 # ....................{ IMPORTS                            }....................
 from contextlib import ExitStack
-from betse.util.command import exits
-from betse.util.type import types
+from betse.util.path.command import exits
+from betse.util.type.types import type_check, Sequence
 
 # ....................{ CLASSES ~ single                   }....................
 class CLITester(object):
@@ -40,8 +40,8 @@ class CLITester(object):
         called.
     '''
 
-
-    def __init__(self, contexts: 'collections.Sequence') -> None:
+    @type_check
+    def __init__(self, contexts: Sequence) -> None:
         '''
         Initialize this test runner with the passed `request` fixture object.
 
@@ -52,8 +52,6 @@ class CLITester(object):
             `betse.cli.__main__.main()` method when this object's `run()` method
             is called.
         '''
-        assert types.is_sequence_nonstr(contexts), (
-            types.assert_not_sequence_nonstr(contexts))
 
         # Classify the passed parameters.
         self._contexts = contexts
@@ -158,10 +156,11 @@ class CLITesterPreArged(object):
         Further details on BETSE CLI execution.
     '''
 
+    @type_check
     def __init__(
         self,
         cli: CLITester,
-        subcommand_args: 'collections.Sequence'
+        subcommand_args: Sequence,
     ) -> None:
         '''
         Initialize this test runner with the passed `request` fixture object.
@@ -176,10 +175,6 @@ class CLITesterPreArged(object):
             when this object's `run()` method is called. These arguments should
             comprise the BETSE CLI subcommand to be tested.
         '''
-        assert isinstance(cli, CLITester), (
-            'Object "{}" not a CLI test runner.'.format(cli))
-        assert types.is_sequence_nonstr(subcommand_args), (
-            types.assert_not_sequence_nonstr(subcommand_args))
 
         # Classify the passed parameters.
         self._cli = cli

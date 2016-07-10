@@ -3,9 +3,6 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-#FIXME: Move the entire "betse.util.commands" subpackage to
-#"betse.util.path.commands".
-
 '''
 **Command** (i.e., external executable file) facilities.
 '''

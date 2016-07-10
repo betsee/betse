@@ -31,19 +31,16 @@ def is_pathable(command_basename: str) -> bool:
 
     Raises
     ----------
-    BetseCommandException
-        If the passed string contains a directory separator and hence is _not_ a
-        basename.
+    BetsePathException
+        If the passed string is _not_ a basename (i.e., contains one or more
+        directory separators).
     '''
 
     # Avoid circular import dependencies.
     from betse.util.path import paths
 
     # If this string is *NOT* a pure basename, fail.
-    if paths.is_basename(command_basename):
-        raise BetseCommandException(
-            'Command basename "{}" contains directory separators.'.format(
-                command_basename))
+    paths.die_unless_basename(command_basename)
 
     # Return whether this command exists or not.
     return shutil.which(command_basename) is not None

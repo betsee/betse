@@ -8,12 +8,13 @@ Matplotlib-specific classes writing animations as video.
 '''
 
 # ....................{ IMPORTS                            }....................
+from matplotlib.animation import writers
+
 from betse.exceptions import BetseMatplotlibException
-from betse.util.command import pathables
+from betse.util.path.command import pathables
 from betse.util.type import strs
 from betse.util.type.mappings import bidict
 from betse.util.type.types import type_check, Sequence
-from matplotlib.animation import writers
 
 # ....................{ DICTS                              }....................
 WRITER_NAME_TO_COMMAND_BASENAME = bidict(
@@ -121,8 +122,7 @@ def get_first_class(video_writer_names: Sequence) -> type:
     else:
         # Human-readable string listing the names of all passed video encoders.
         video_writer_names_readable = (
-            strs.join_as_conjunction_double_quoted(
-                *video_writer_names))
+            strs.join_as_conjunction_double_quoted(*video_writer_names))
 
         # Raise an exception containing this human-readable string.
         raise BetseMatplotlibException(

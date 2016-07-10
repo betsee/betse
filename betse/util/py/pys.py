@@ -17,12 +17,10 @@ poor form. Call these functions _only_ where necessary.
 
 # ....................{ IMPORTS                            }....................
 import platform, sys
-
-import betse.util.command.runners
 from betse import metadata
 from betse.exceptions import BetseExceptionInterpreter
 from betse.util.io.log import logs
-from betse.util.type import types
+from betse.util.type.types import type_check, Sequence
 from collections import OrderedDict
 
 # ....................{ INITIALIZERS                       }....................
@@ -206,7 +204,8 @@ def get_metadata() -> OrderedDict:
     return metadata
 
 # ....................{ RUNNERS                            }....................
-def run(command_args: list, **popen_kwargs) -> None:
+@type_check
+def run(command_args: Sequence, **popen_kwargs) -> None:
     '''
     Rerun the active Python interpreter as a subprocess of the current Python
     process, raising an exception on subprocess failure.
@@ -223,14 +222,12 @@ def run(command_args: list, **popen_kwargs) -> None:
     run()
         Low-level commentary on subprocess execution.
     '''
-    assert types.is_sequence_nonstr(command_args), (
-        types.assert_not_sequence_nonstr(command_args))
 
     # Avoid circular import dependencies.
-    from betse.util.command import commands
+    from betse.util.path.command import runners
 
     # List of one or more shell words comprising this command.
     command_words = get_command_line_prefix() + command_args
 
     # Rerun this interpreter.
-    return betse.util.command.runners.run(command_words, **popen_kwargs)
+    return runners.run(command_words, **popen_kwargs)

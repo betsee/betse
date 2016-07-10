@@ -16,6 +16,7 @@ import errno, os, shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
 from betse.util.type import types
+from betse.util.type.types import type_check
 from os import path
 
 # ....................{ EXCEPTIONS ~ path                  }....................
@@ -50,9 +51,11 @@ def die_if_basename(pathname: str) -> None:
     is_basename()
         For further details.
     '''
+
     if is_basename(pathname):
         raise BetsePathException(
-            'Path "{}" contains no directory separators.'.format(pathname))
+            'Path "{}" contains no directory separators '
+            "(i.e., '{}' characters).".format(pathname, os.sep))
 
 
 def die_unless_basename(pathname: str) -> None:
@@ -65,12 +68,14 @@ def die_unless_basename(pathname: str) -> None:
     is_basename()
         For further details.
     '''
+
     if not is_basename(pathname):
         raise BetsePathException(
-            'Path "{}" contains one or more directory separators.'.format(
-                pathname))
+            'Path "{}" contains one or more directory separators'
+            "(i.e., '{}' characters).".format(pathname, os.sep))
 
 # ....................{ TESTERS                            }....................
+@type_check
 def is_path(pathname: str) -> bool:
     '''
     `True` if the passed path exists.
@@ -78,8 +83,6 @@ def is_path(pathname: str) -> bool:
     If such path is an existing **broken symbolic link** (i.e., a symbolic link
     whose target no longer exists), this function still returns True.
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
 
     # Call path.lexists() rather than path.exists(), as the latter returns False
     # for dangling symbolic links -- which is entirely irrelevant to most

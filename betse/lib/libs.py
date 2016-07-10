@@ -40,7 +40,7 @@ def init() -> None:
     # (possibly) importing such dependencies.
     die_unless_satisfiable_all()
 
-    # Configure such dependencies.
+    # Configure these dependencies.
     mpl_config.init()
 
 # ....................{ EXCEPTIONS                         }....................
