@@ -1414,7 +1414,6 @@ class Simulator(object):
 
             logs.log_info("Final Ver " + str(np.round(1.0e3*self.endo_retic.Ver.mean(),3)) + " mV")
 
-
     def sim_info_report(self,cells,p):
 
         logs.log_info('This world contains ' + str(cells.cell_number) + ' cells.')
@@ -1878,8 +1877,8 @@ class Simulator(object):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
-        # self.vgj = self.v_cell[cells.nn_i]- self.v_cell[cells.mem_i]
-        self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
+        self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
+        # self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
 
         if p.v_sensitive_gj is True:
 
@@ -2263,7 +2262,6 @@ class Simulator(object):
             self.D_env_weight_v[:,-1] = 0
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
-
 
     # ..................{ PLOTTERS                           }..................
 
