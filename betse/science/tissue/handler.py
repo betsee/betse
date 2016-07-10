@@ -449,7 +449,7 @@ class TissueHandler(object):
                 setattr(self,object_name,Kir_class())
 
                 if p.run_sim is True:
-                    # initialize the voltage-gated sodium object
+                    # initialize the voltage-gated potassium object
                     init_funk = getattr(self,object_name)
                     init_funk.init(self, sim, cells, p)
 

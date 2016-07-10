@@ -379,7 +379,7 @@ class Simulator(object):
 
             self.ionlabel[self.iH] = 'protons'
 
-            self.movingIons.append(self.iH)
+            # self.movingIons.append(self.iH)
 
             # create concentrations of dissolved carbon dioxide (carbonic acid, non-dissociated):
 
@@ -915,8 +915,6 @@ class Simulator(object):
 
                     self.ca_handler(cells, p)
 
-                    if p.Ca_dyn:
-                        self.endo_retic.update(self, cells, p)
 
                 if p.ions_dict['H'] == 1:
 
@@ -1577,13 +1575,32 @@ class Simulator(object):
 
         IdM = np.ones(self.mdl)
 
+
+        # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
+        self.cc_mems[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems, self.cc_mems[self.iM])
+
+        self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
+
+        self.cc_mems[self.iH], self.cc_env[self.iH], _, _, _, _ = stb.molecule_mover(self,
+                                                                 self.cc_mems[self.iH],
+                                                                 self.cc_env[self.iH],
+                                                                 cells, p,
+                                                                 z=self.zs[self.iH],
+                                                                 Dm=self.Dm_cells[self.iH],
+                                                                 Do=self.D_free[self.iH],
+                                                                 c_bound=self.c_env_bound[self.iH],
+                                                                 ignoreECM=False,
+                                                                 smoothECM=False,
+                                                                 ignoreTJ=False,
+                                                                 ignoreGJ=False)
+
         # # electrofuse the H+ ion between the cytoplasm and the environment
         # if p.sim_ECM is True:
         #
         #     # Electrofuse the H+ ion between the cytoplasm and the ecms.
         #     f_H1 = stb.electroflux(
         #         self.cc_env[self.iH][cells.map_mem2ecm],
-        #         self.cc_mems[self.iH][cells.mem_to_cells],
+        #         self.cc_mems[self.iH],
         #         self.Dm_cells[self.iH],
         #         IdM*p.tm,
         #         IdM*self.zs[self.iH],
@@ -1600,28 +1617,40 @@ class Simulator(object):
         #     f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],IdM*p.tm,
         #         IdM*self.zs[self.iH],self.vm,self.T,p)
         #
-        #     self.fluxes_mem[self.iH] = f_H1[cells.mem_to_cells]
+        #     self.fluxes_mem[self.iH] = f_H1
         #
         # # update H+ in cells and environment, first in absence of bicarbonate buffering:
         # self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
-        #     self.cc_env[self.iH][:], f_H1, cells, p, ignoreECM = False)
+        #     self.cc_env[self.iH][:], f_H1, cells, p, ignoreECM = True)
+
+        # self.cc_mems[self.iH], self.cc_mems[self.iM], _, self.pH_cell = stb.bicarb_reaction_buffer(self.cc_mems[self.iH],
+        #                                                                     self.cc_mems[self.iM], p.cCO2, p)
+        #
+        # self.cc_env[self.iH], self.cc_env[self.iM], _, self.pH_cell = stb.bicarb_reaction_buffer(
+        #                                                                 self.cc_env[self.iH],
+        #                                                                 self.cc_env[self.iM], p.cCO2, p)
 
 
-        # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-        self.cc_mems[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems, self.cc_mems[self.iM])
 
-        self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
+        # update concentrations intracellularly:
+        self.cc_mems[self.iH][:], self.cc_cells[self.iH][:], _ = \
+            stb.update_intra(self, cells, self.cc_mems[self.iH][:],
+                self.cc_cells[self.iH][:],
+                self.D_free[self.iH],
+                self.zs[self.iH], p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         self.update_V(cells,p)
 
         if p.HKATPase_dyn == 1: # if there's an H,K ATPase pump
 
+            # if HKATPase pump is desired, run the H-K-ATPase pump:
+
             if p.sim_ECM is True:
 
-                f_H2, f_K2 = stb.pumpHKATP(self.cc_mems[self.iH][cells.mem_to_cells],
+                f_H2, f_K2 = stb.pumpHKATP(self.cc_mems[self.iH],
                     self.cc_env[self.iH][cells.map_mem2ecm],
-                    self.cc_mems[self.iK][cells.mem_to_cells], self.cc_env[self.iK][cells.map_mem2ecm],
+                    self.cc_mems[self.iK], self.cc_env[self.iK][cells.map_mem2ecm],
                     self.vm, self.T, p, self.HKATP_block, met = self.met_concs)
 
                 # modify fluxes by any uneven redistribution of pump location:
@@ -1663,9 +1692,6 @@ class Simulator(object):
             self.cc_mems[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_mems[self.iM][:],
                 self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = False)
 
-            self.cc_env[self.iM] = gaussian_filter(self.cc_env[self.iM].reshape(cells.X.shape),
-                                                   p.smooth_level).ravel()
-
 
             # Calculate the new pH and H+ concentrations:
             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1673,19 +1699,36 @@ class Simulator(object):
 
             self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env,self.cc_env[self.iM])
 
-            # update concentrations intracellularly:
-            self.cc_mems[self.iH][:], self.cc_cells[self.iH][:], _ = \
-                stb.update_intra(self, cells, self.cc_mems[self.iH][:],
-                    self.cc_cells[self.iH][:],
-                    self.D_free[self.iH],
-                    self.zs[self.iH], p)
+            # self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
+            #     self.cc_env[self.iH][:], f_H2, cells, p, ignoreECM = True)
 
-            # update concentrations intracellularly:
-            self.cc_mems[self.iM][:], self.cc_cells[self.iM][:], _ = \
-                stb.update_intra(self, cells, self.cc_mems[self.iM][:],
-                    self.cc_cells[self.iM][:],
-                    self.D_free[self.iM],
-                    self.zs[self.iM], p)
+            # self.cc_env[self.iM] = gaussian_filter(self.cc_env[self.iM].reshape(cells.X.shape),
+            #                                        p.smooth_level).ravel()
+
+            # self.cc_env[self.iK] = gaussian_filter(self.cc_env[self.iK].reshape(cells.X.shape),
+            #                                        p.smooth_level).ravel()
+
+            # self.cc_mems[self.iH], self.cc_mems[self.iM], cCO2, self.pH_cell = stb.bicarb_reaction_buffer(
+            #     self.cc_mems[self.iH],
+            #     self.cc_mems[self.iM], p.cCO2, p)
+            #
+            # self.cc_env[self.iH], self.cc_env[self.iM], cCO2, self.pH_cell = stb.bicarb_reaction_buffer(
+            #     self.cc_env[self.iH],
+            #     self.cc_env[self.iM], p.cCO2, p)
+
+            # # update concentrations intracellularly:
+            # self.cc_mems[self.iK][:], self.cc_cells[self.iK][:], _ = \
+            #     stb.update_intra(self, cells, self.cc_mems[self.iK][:],
+            #         self.cc_cells[self.iK][:],
+            #         self.D_free[self.iK],
+            #         self.zs[self.iK], p)
+            #
+            # # update concentrations intracellularly:
+            # self.cc_mems[self.iH][:], self.cc_cells[self.iH][:], _ = \
+            #     stb.update_intra(self, cells, self.cc_mems[self.iH][:],
+            #         self.cc_cells[self.iH][:],
+            #         self.D_free[self.iH],
+            #         self.zs[self.iH], p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells,p)
@@ -1695,7 +1738,7 @@ class Simulator(object):
             if p.sim_ECM is True:
 
                 # if HKATPase pump is desired, run the H-K-ATPase pump:
-                f_H3 = stb.pumpVATP(self.cc_mems[self.iH][cells.mem_to_cells], self.cc_env[self.iH][cells.map_mem2ecm],
+                f_H3 = stb.pumpVATP(self.cc_mems[self.iH], self.cc_env[self.iH][cells.map_mem2ecm],
                     self.vm, self.T, p, self.VATP_block, met = self.met_concs)
 
                 # modify flux by any uneven redistribution of pump location:
@@ -1709,7 +1752,7 @@ class Simulator(object):
                 f_H3 = stb.pumpVATP(self.cc_mems[self.iH],self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block,
                                     met = self.met_concs)
 
-                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3[cells.mem_to_cells]
+                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_mems[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_mems[self.iM][:],
@@ -1857,7 +1900,8 @@ class Simulator(object):
                 self.cc_env[self.iNa][:], f_NaEx, cells, p, ignoreECM = False)
 
         # smooth extracellular calcium levels:
-        self.cc_env[self.iCa] = gaussian_filter(self.cc_env[self.iCa].reshape(cells.X.shape), p.smooth_level).ravel()
+        # FIXME smoothing does not appear to be the answer to Ca++ issues...
+        # self.cc_env[self.iCa] = gaussian_filter(self.cc_env[self.iCa].reshape(cells.X.shape), p.smooth_level).ravel()
 
         # update concentrations intracellularly:
         self.cc_mems[self.iCa][:], self.cc_cells[self.iCa][:], _ = \
@@ -1871,7 +1915,7 @@ class Simulator(object):
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
 
-            pass
+            self.endo_retic.update(self, cells, p)
 
     def update_gj(self,cells,p,t,i):
 
@@ -2095,6 +2139,8 @@ class Simulator(object):
         # finite volume integrator:
         # cenv = np.dot(cells.gridInt, cenv.ravel())
         # cenv = cenv.reshape(cells.X.shape)
+
+        # cenv = gaussian_filter(cenv, p.smooth_level)
 
         if p.closed_bound is True:
             # Neumann boundary condition (flux at boundary)

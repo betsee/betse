@@ -309,7 +309,7 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-10
+    Qdenomo[inds_Z] = 1.0e-15
 
     Q = Qnumo / Qdenomo
 
@@ -323,14 +323,82 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
     numo_E = (cHi / p.KmHK_H) * (cKo / p.KmHK_K) * (cATP / p.KmHK_ATP)
     denomo_E = (1 + (cHi / p.KmHK_H)) *(1+ (cKo / p.KmHK_K)) *(1+ (cATP / p.KmHK_ATP))
 
-
     f_H  = -alpha*(numo_E/denomo_E)      #flux as [mol/s], scaled by concentrations in and out
 
     f_K = -f_H          # flux as [mol/s]
 
-    # print(block, f_H.mean())
+    # print(f_H.mean())
 
     return f_H, f_K
+
+def pumpHKATP_m(cMi,cMo,cKi,cKo,Vm,T,p,block, met = None):
+
+    """
+    Parameters
+    ----------
+    cHi            Concentration of H+ inside the cell
+    cHo            Concentration of H+ outside the cell
+    cKi             Concentration of K+ inside the cell
+    cKo             Concentration of K+ outside the cell
+    voli            Volume of the cell [m3]
+    volo            Volume outside the cell [m3]
+    Vm              Voltage across cell membrane [V]
+    p               An instance of Parameters object
+
+
+    Returns
+    -------
+    cHi2           Updated H+ inside cell
+    cHo2           Updated H+ outside cell
+    cKi2            Updated K+ inside cell
+    cKo2            Updated K+ outside cell
+    f_Na            Na+ flux (into cell +)
+    f_K             K+ flux (into cell +)
+    """
+
+    deltaGATP_o = p.deltaGATP
+
+
+    if met is None:
+
+        # if metabolism vector not supplied, use singular defaults for concentrations
+        cATP = p.cATP
+        cADP = p.cADP
+        cPi  = p.cPi
+
+    else:
+
+        cATP = met['cATP']  # concentration of ATP in mmol/L
+        cADP = met['cADP']  # concentration of ADP in mmol/L
+        cPi = met['cPi']  # concentration of Pi in mmol/L
+
+    # calculate the reaction coefficient Q:
+    Qnumo = cADP * cPi * (cMi) * (cKi)
+    Qdenomo = cATP * (cMo) * (cKo)
+
+    # ensure no chance of dividing by zero:
+    inds_Z = (Qdenomo == 0.0).nonzero()
+    Qdenomo[inds_Z] = 1.0e-15
+
+    Q = Qnumo / Qdenomo
+
+    # calculate the equilibrium constant for the pump reaction:
+    Keq = np.exp(-deltaGATP_o / (p.R * T))
+
+    # calculate the reaction rate coefficient
+    alpha = block * p.alpha_HK * (1 - (Q / Keq))
+
+    # calculate the enzyme coefficient:
+    numo_E = (cMo / p.KmHK_H) * (cKo / p.KmHK_K) * (cATP / p.KmHK_ATP)
+    denomo_E = (1 + (cMo / p.KmHK_H)) *(1+ (cKo / p.KmHK_K)) *(1+ (cATP / p.KmHK_ATP))
+
+    f_M  = alpha*(numo_E/denomo_E)      #flux as [mol/s], scaled by concentrations in and out
+
+    f_K = f_M          # flux as [mol/s]
+
+    # print(block, f_M.mean())
+
+    return f_M, f_K
 
 def pumpVATP(cHi,cHo,Vm,T,p, block, met = None):
 
@@ -826,17 +894,24 @@ def bicarbonate_buffer(cCO2, cHCO3):
     pH = 6.1 + np.log10(cHCO3/cCO2)
 
     cH = 10**(-pH)*1e3
-    # Q = (cH*cHCO3)/(cCO2)
-    #
-    # v_ph = p.vm_ph*(cCO2/(1+cCO2))*(1 - (Q/p.Keqm_ph))
-    #
-    # cCO2 = cCO2 - v_ph*p.dt
-    # cHCO3 = cHCO3 + v_ph*p.dt
-    # cH = cH + v_ph*p.dt
-    #
-    # pH = -np.log10(cH*1e-3)
 
     return cH, pH
+
+def bicarb_reaction_buffer(cH, cHCO3, cCO2, p):
+
+    Q = (cH*cHCO3)/(cCO2)
+
+    v_ph = p.vm_ph*(cCO2/(1+cCO2))*(1 - (Q/p.Keqm_ph))
+
+    cCO2 = cCO2 - v_ph*p.dt
+    cHCO3 = cHCO3 + v_ph*p.dt
+    cH = cH + v_ph*p.dt
+
+    pH = -np.log10(cH*1e-3)
+
+    # print("RUNNING BUFFFER")
+
+    return cH, cHCO3, cCO2, pH
 
 def ghk_calculator(sim, cells, p):
     """

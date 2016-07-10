@@ -886,6 +886,7 @@ class Parameters(object):
         self.KmHK_K = 0.6      # HKATPase enzyme K half-max sat value
         self.KmHK_ATP = 0.15   # HKATPase enzyme ATP half-max sat value
         self.KmHK_H = 0.5e-6   # HKATPase enzyme H half-max sat value
+        self.KmHK_M = 1.0       # HKATPase enzyme M half-max sat value
 
         self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
 
@@ -912,6 +913,7 @@ class Parameters(object):
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]
+        self.cCO2 = 1.2
 
         # charge states of ions
         self.z_Na = 1
@@ -990,9 +992,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 8.5
-            self.cK_cell = 135.0
-            self.cP_cell = 120.0
+            self.cNa_cell = 15.0
+            self.cK_cell = 125.0
+            self.cP_cell = 110.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
 
@@ -1025,10 +1027,10 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 8.5
-            self.cK_cell = 135.0
+            self.cNa_cell = 15.0
+            self.cK_cell = 125.0
             self.cCa_cell = 1.0e-3
-            self.cP_cell = 120.0
+            self.cP_cell = 110.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
 
@@ -1055,7 +1057,7 @@ class Parameters(object):
             self.cNa_env = 145.0
             self.cK_env = 5.0
             self.cCl_env = 105.0
-            self.cCa_env = 2.0
+            self.cCa_env = 1.0
             self.cH_env = 3.98e-5
             self.cP_env = 10.0
 
@@ -1066,12 +1068,12 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 8.5
-            self.cK_cell = 135.0
+            self.cNa_cell = 15.0
+            self.cK_cell = 125.0
             self.cCl_cell = 20.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 3.98e-5
-            self.cP_cell = 120.0
+            self.cP_cell = 110.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
