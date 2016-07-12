@@ -232,7 +232,8 @@ def _init_run_args(command_words: Sequence, popen_kwargs: Mapping) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import oses, shells
+    from betse.util.os import oses
+    from betse.util.os.shell import envs
     from betse.util.type import mappings
 
     # Log the command to be run before doing so.
@@ -246,7 +247,7 @@ def _init_run_args(command_words: Sequence, popen_kwargs: Mapping) -> None:
     # Isolate the current set of environment variables to this command,
     # preventing concurrent changes in these variables in the current process
     # from affecting this command's subprocess.
-    popen_kwargs['env'] = shells.get_environment()
+    popen_kwargs['env'] = envs.get_env()
 
     # Decode command output with the current locale's preferred encoding.
     popen_kwargs['universal_newlines'] = True

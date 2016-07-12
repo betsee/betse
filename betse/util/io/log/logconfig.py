@@ -29,8 +29,8 @@ log strictly more messages than) levels assigned larger integers: e.g.,
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, os, sys
+from betse import metadata
 from betse.exceptions import BetseFileException
-from betse.util.type import types
 from betse.util.type.types import type_check
 from collections import OrderedDict
 from enum import Enum
@@ -112,6 +112,7 @@ FILE : enum
 '''
 
 # ....................{ GLOBALS                            }....................
+# See below for utility functions accessing this singleton.
 _config = None
 '''
 Singleton logging configuration for the current Python process.
@@ -237,13 +238,17 @@ class LogConfig(object):
         # "level" attribute accepted by its superclass constructor.
         self._logger_root_handler_stdout = StreamHandler(sys.stdout)
         self._logger_root_handler_stdout.setLevel(INFO)
-        self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
+        # self._logger_root_handler_stdout.setLevel(DEBUG)
+
+        #FIXME: This no longer appears necessary, in which case the
+        #"LoggerFilterMoreThanInfo" class is removable as well.
+        # self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
 
         # Initialize the stderr handler.
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(WARNING)
 
-        # Prevent third-party debug messages from being printed.
+        # Prevent third-party debug messages from being logged at all.
         self._logger_root_handler_stdout.addFilter(LoggerFilterDebugNonBetse())
         self._logger_root_handler_stderr.addFilter(LoggerFilterDebugNonBetse())
 
@@ -358,22 +363,27 @@ class LogConfig(object):
         Initialize the root logger with all previously initialized handlers.
         '''
 
-        # Avoid circular import dependencies.
-        from betse.util.path.command import commands
-
         # Root logger.
         self._logger_root = logging.getLogger()
 
-        # For uniqueness, change the name of the root logger to the basename of
-        # the current process (e.g., "betse"). By default, this name is the
-        # ambiguous word "root".
-        self._logger_root.name = commands.get_current_basename()
+        # For uniqueness, change the name of the root logger to that of our
+        # top-level package "betse" from its ambiguous default "root".
+        self._logger_root.name = metadata.PACKAGE_NAME
 
         # Instruct this logger to entertain all log requests, ensuring these
         # requests will be delegated to the handlers defined below. By default,
         # this logger ignores all log requests with level less than "WARNING",
         # preventing handlers from receiving these requests.
         self._logger_root.setLevel(ALL)
+
+        # For safety, remove all existing handlers from the root logger. While
+        # this should *NEVER* be the case for conventional BETSE runs, this is
+        # usually the case for functional BETSE tests *NOT* parallelized by
+        # "xdist" and hence running in the same Python process. For safety,
+        # iterate over a shallow copy of the list of handlers to be removed
+        # rather than the actual list being modified here.
+        for root_handler in list(self._logger_root.handlers):
+            self._logger_root.removeHandler(root_handler)
 
         # Register all initialized handlers with the root logger *AFTER*
         # successfully configuring these handlers. Since the file handler is
@@ -391,7 +401,6 @@ class LogConfig(object):
         return self.log_type is LogType.FILE
 
     # ..................{ PROPERTIES ~ bool : verbose        }..................
-    #FIXME: Define a corresponding setter.
     @property
     def is_verbose(self) -> bool:
         '''
@@ -422,6 +431,7 @@ class LogConfig(object):
 
         # Convert the passed boolean to a logging level for the stdout handler.
         self._logger_root_handler_stdout.setLevel(ALL if is_verbose else INFO)
+        # print('handler verbosity: {} ({})'.format(self._logger_root_handler_stdout.level, ALL))
 
     # ..................{ PROPERTIES ~ type                  }..................
     @property
@@ -535,9 +545,10 @@ class LoggerFilterDebugNonBetse(Filter):
         `True` only if the passed log record is to be retained.
         '''
 
+        # print('log record name: {}'.format(log_record.name))
         return (
             log_record.levelno > DEBUG or
-            log_record.name.startswith('betse'))
+            log_record.name.startswith(metadata.PACKAGE_NAME))
 
 
 class LoggerFilterMoreThanInfo(Filter):
@@ -609,6 +620,7 @@ def init() -> None:
     '''
 
     # Instantiate this singleton global with the requisite defaults.
+    # print('Reinitializing logging.')
     global _config
     _config = LogConfig()
 

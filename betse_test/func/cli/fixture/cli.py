@@ -96,7 +96,7 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITester:
     '''
 
     # Names of all BETSE-specific fixtures (excluding this fixture) required by
-    # this test.
+    # the current test.
     betse_fixture_names = requests.get_fixture_names_prefixed_by(
         request=request, fixture_name_prefix='betse_')
 

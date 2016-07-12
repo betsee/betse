@@ -63,12 +63,22 @@ def is_frozen() -> bool:
     #   "py2app", "py2exe").
     return hasattr(sys, '_MEIPASS') or hasattr(sys, 'frozen')
 
+
+def is_testing() -> bool:
+    '''
+    `True` only if the active Python interpreter is running a test session
+    (e.g., with the `py.test` test harness).
+    '''
+
+    return metadata._IS_TESTING
+
 # ....................{ TESTERS ~ arch                     }....................
 def is_wordsize_32() -> bool:
     '''
     `True` only if the active Python interpreter is **32-bit** (i.e., was
     compiled with a 32-bit toolchain into a 32-bit executable).
     '''
+
     return not is_wordsize_64()
 
 
@@ -100,6 +110,7 @@ def get_name() -> str:
     Human-readable name of the active Python interpreter's implementation (e.g.,
     `CPython`, `PyPy`).
     '''
+
     return platform.python_implementation()
 
 
@@ -108,6 +119,7 @@ def get_version() -> str:
     Human-readable `.`-delimited version specifier string of the active Python
     interpreter (e.g., `2.7.10`, `3.4.1`).
     '''
+
     return platform.python_version()
 
 # ....................{ GETTERS ~ path                     }....................
@@ -184,7 +196,8 @@ def get_metadata() -> OrderedDict:
     This function aggregates the metadata reported by the reasonably
     cross-platform module `platform` into a simple dictionary.
     '''
-    # Such dictionary.
+
+    # This dictionary.
     metadata = OrderedDict((
         ('type', get_name()),
         ('version', get_version()),
@@ -196,7 +209,7 @@ def get_metadata() -> OrderedDict:
     # 2-tuple providing this interpreter's build number and date as strings.
     python_build = platform.python_build()
 
-    # Append such metadata.
+    # Append this metadata.
     metadata['build number'] = python_build[0]
     metadata['build data'] = python_build[1]
 

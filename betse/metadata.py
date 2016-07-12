@@ -42,7 +42,10 @@ import sys
 # General-purpose metadata.
 
 NAME = 'BETSE'
-'''Human-readable program name.'''
+'''
+Human-readable program name.
+'''
+
 
 DESCRIPTION = ''.join((
     NAME, ', the [B]io[E]lectric [T]issue [S]imulation [E]ngine: '
@@ -50,11 +53,16 @@ DESCRIPTION = ''.join((
     'gap junction-networked cell collectives, ',
     'with a focus on spatio-temporal pattern formation.',
 ))
-'''Human-readable program description.'''
+'''
+Human-readable program description.
+'''
+
 
 AUTHORS = 'Alexis Pietak, Cecil Curry'
 # AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
-'''Human-readable program authors as a comma-delimited list.'''
+'''
+Human-readable program authors as a comma-delimited list.
+'''
 
 # ....................{ PYTHON ~ version                   }....................
 # Validate the version of the active Python interpreter *BEFORE* subsequent code
@@ -96,8 +104,14 @@ if sys.hexversion < 0x03040000:
         'Python ', sys.version, '. We feel sadness for you.',
     )))
 
+# ....................{ METADATA ~ packages                }....................
+PACKAGE_NAME = NAME.lower()
+'''
+Fully-qualified name of the top-level Python package implementing this program.
+'''
+
 # ....................{ METADATA ~ scripts                 }....................
-SCRIPT_NAME_CLI = NAME.lower()
+SCRIPT_NAME_CLI = PACKAGE_NAME
 '''
 Basename of the CLI-specific Python script wrapper created by `setuptools`
 installation.
@@ -213,4 +227,14 @@ See Also
 ----------
 README.md
     Human-readable list of these dependencies.
+'''
+
+# ....................{ METADATA ~ private                 }....................
+_IS_TESTING = False
+'''
+`True` only if the active Python interpreter is running a test session (e.g.,
+with the `py.test` test harness).
+
+This private global is subject to change and hence_not_ intended to be accessed.
+(Consider calling the public `betse.util.py.pys.is_testing()` function instead.)
 '''

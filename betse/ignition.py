@@ -70,11 +70,31 @@ first inefficiently performs no meaningful work -- and is thus safely ignorable.
 '''
 
 # ....................{ INITIALIZERS                       }....................
+def reinit() -> None:
+    '''
+    (Re-)initialize the current application.
+
+    Specifically:
+
+    * If this application has _not_ already been initialized under the active
+      Python process, this application will be initilialized.
+    * Else, this application has already been initialized under the active
+      Python process. In this case, this application will be re-initilialized.
+    '''
+
+    # Force the init() function to reinitialize this application.
+    global _IS_IGNITED
+    _IS_IGNITED = False
+
+    # Reinitialize this application.
+    init()
+
+
 #FIXME: Update docstring when time and kindness affords.
 def init() -> None:
     '''
     Initialize the current application if this application has not already been
-    initialized by the current Python process _or_ noop otherwise.
+    initialized under the active Python process _or_ noop otherwise.
 
     Specifically, this function:
 

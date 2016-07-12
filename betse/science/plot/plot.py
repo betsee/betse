@@ -2,8 +2,6 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# FIXME saving animations as video files directly doesn't work
-
 import os, os.path
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt

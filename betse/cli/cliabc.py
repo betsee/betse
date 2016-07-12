@@ -20,7 +20,7 @@ Abstract command line interface (CLI).
 #    each line or function call (respectively), "statprof" non-deterministically
 #    wakes up at predefined intervals, records a stack trace, and then goes back
 #    to sleep. On application completion, "statprof" then tallies up each stack
-#    trace and outpus a command-line table of the most expensive lines. Pretty
+#    trace and outputs a command-line table of the most expensive lines. Pretty
 #    sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
 
 # ....................{ IMPORTS                            }....................
@@ -163,6 +163,7 @@ class CLIABC(metaclass=ABCMeta):
         # ignoring the first element of "sys.argv" (i.e., the filename of the
         # command from which the current Python process was spawned).
         if arg_list is None:
+            # logs.log_info('Defaulting to sys.argv')
             arg_list = sys.argv[1:]
         assert types.is_sequence_nonstr(arg_list), (
             types.assert_not_sequence_nonstr(arg_list))
@@ -172,9 +173,20 @@ class CLIABC(metaclass=ABCMeta):
         self._arg_list = arg_list
 
         try:
-            # Initialize the BETSE core *BEFORE* subsequent logic. This
-            # initializes logging, validates paths, and guarantees sanity.
-            ignition.init()
+            # (Re-)initialize BETSE *BEFORE* subsequent logic. Note that merely
+            # calling the ignition.init() function to initialize BETSE:
+            #
+            # * Suffices when BETSE is *NOT* being run by a test suite.
+            # * Is insufficient when BETSE is being run by a test suite, in
+            #   which case this suite may run each test from within the same
+            #   Python process. Due to caching internally performed by the
+            #   ignition.init() function, calling that function here would fail
+            #   to re-initialize BETSE in any test except the first. To
+            #   model the real world as closely as reasonable, the
+            #   ignition.reinit() function is called instead.
+            #
+            # Doing so initializes logging, validates paths, and ensures sanity.
+            ignition.reinit()
 
             # Parse these arguments *AFTER* initializing logging, ensuring
             # logging of exceptions raised by this parsing.
@@ -408,6 +420,7 @@ class CLIABC(metaclass=ABCMeta):
 
         # Configure logging according to the passed options. Note that order of
         # assignment is insignificant here.
+        # print('is verbose? {}'.format(self._args.is_verbose))
         log_config.is_verbose = self._args.is_verbose
         log_config.filename = self._args.log_filename
 

@@ -234,14 +234,13 @@ class MatplotlibConfig(object):
 
         On first importation, matplotlib configures itself by loading the
         contents of the first `matplotlibrc` file found in any of several
-        candidate directories. Technically, `betse` _could_ supply an
-        application-specific version of such file to force matplotlib to adopt
-        application-specific configuration settings. Since synchronizing such
+        candidate directories. Technically, BETSE _could_ supply an
+        application-specific version of this file to force matplotlib to adopt
+        application-specific configuration settings. Since synchronizing this
         local copy with remote changes is an onerous (if not ultimately
         infeasible) chore, we elect instead to reconfigure matplotlib _after_
-        such file has already been loaded at application startup. While this
-        slightly increases the cost of such startup, the alternatives are
-        impractical at best.
+        this file has already been loaded at application startup. While this
+        does increase startup costs, the alternatives are all absurd at best.
 
         Sanitization
         ----------
@@ -267,6 +266,30 @@ class MatplotlibConfig(object):
         first importation of a matplotlib module, it suffices to perform this
         preventation _only_ for the following importation of the top-level
         matplotlib package.
+
+        Backend
+        ----------
+        This method also sets the default matplotlib backend to be implicitly
+        used for subsequent plotting, which matplotlib requires to be configured
+        _before_ the first importation of any the following modules:
+        `matplotlib.pyplot` or `matplotlib.backends`.  Specifically:
+
+        * If this method is called by `py.test`-driven testing and hence
+          possibly by headless remote continuous integration (CI) with no access
+          to a window manager, the non-interactive `Agg` backend is used.
+        * Else, if the current platform is:
+          * Either Linux or Windows, the `TkAgg` backend is used. This is the
+            only backend currently known to survive freezing into executables.
+            Alternatives include:
+            * `Qt4Agg`, an aesthetically inferior backend _not_ appearing to
+              support animation out of the box.
+          * OS X, the `MacOSX` backend is used. This is the only backend
+            currently known to survive freezing into executables. Alternatives
+            include:
+            * `CocoaAgg`, a non-native backend leveraging the cross-platform C++
+              library AGG (Anti-grain Geometry). That's good. Unfortunately,
+              this backend is officially deprecated and fundametally broken.
+              That's bad.
 
         See Also
         ----------
@@ -346,48 +369,15 @@ class MatplotlibConfig(object):
         # Unconditionally enable the settings defined by the "RC_PARAMS" global.
         rcParams.update(RC_PARAMS)
 
-        #FIXME: Excise commentary.
-        # Configure the backend to be implicitly used for subsequent plotting.
-        # This backend *MUST* be configured prior to the first importation of
-        # matplotlib's "pyplot", "matplotlib", or "backends" modules.
-        #
-        # If the current operating system is Linux or Windows, the "TkAgg"
-        # backend is currently set. Alternatives include:
-        #
-        # * "Qt4Agg", an aesthetically inferior backend *NOT* appearing to
-        #   support animation out of the box.
-        #
-        # If the current operating system is Apple OS X, any non-native backend
-        # leveraging the cross-platform C++ library AGG (Anti-grain Geometry) is
-        # preferred to native backends. There exist two of the latter:
-        #
-        # * "CocoaAgg", which leverages AGG but is officially deprecated and
-        #   fundametally broken. (Really.)
-        # * "MacOSX", which does *NOT* leverage AGG and is known to have
-        #   outstanding issues (e.g., the show() method refusing to block).
-        #
-        # There remain numerous non-native, AGG-based backends. We currently
-        # prefer "TkAgg" for the following reasons:
-        #
-        # * Parity (both visual and functional) with the Linux and Windows
-        #   versions.
-        # * Stability. While once well-known to sporadically crash, such backend
-        #   has proved stable throughout the development of our CLI interface.
-        # * Installability. When installing "matplotlib", MacPorts enables by
-        #   default the "tkinter" variant and hence such backend but *NO* other
-        #   AGG-based backends.
-        #
-        # If the current operating system is OS X, enable the only backend known
-        # to survive freezing: the typical default for this system, "MacOSX".
-        if oses.is_os_x():
+        # If tests are being run, default to the non-interactive "Agg" backend
+        if pys.is_testing():
+            self.backend_name = 'Agg'
+        # Else if the current platform is OS X, default to the "MacOSX" backend.
+        elif oses.is_os_x():
             self.backend_name = 'MacOSX'
-        # Else, the current operating system is Linux or Windows. In this case,
-        # enable the only backend known to survive freezing: again, the typical
-        # default for these systems, "TkAgg". Unlike the "MacOSX" backend,
-        # however, the "TkAgg" backend is known to be somewhat... fragile.
+        # Else, the current platform is either Linux or Windows. In this case,
+        # default to the "TkAgg" backend.
         else:
-            # self.backend_name = 'Gtk3Cairo'
-            # self.backend_name = 'Qt4Agg'
             self.backend_name = 'TkAgg'
 
         # Import all animation writer classes *AFTER* establishing the backend,
@@ -710,7 +700,7 @@ class MatplotlibConfig(object):
         # Delay importation of the "matplotlib.__init__" module.
         import matplotlib
 
-        # Since backend names are case-insensitive, lowercase such name.
+        # Lowercase this name, as backend names are case-insensitive.
         backend_name = backend_name.lower()
 
         try:

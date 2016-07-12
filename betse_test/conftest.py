@@ -12,7 +12,9 @@ _all_ test modules.
 
 # ....................{ IMPORTS                            }....................
 import pytest
+from betse import metadata
 from betse.exceptions import BetseException
+from betse.util.os.shell import envs
 from betse_test.util.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
@@ -26,15 +28,49 @@ class BetseTestException(BetseException):
     '''
     pass
 
-# ....................{ HOOKS                              }....................
+# ....................{ HOOKS ~ session                    }....................
+#FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
+def pytest_sessionstart(session):
+    '''
+    Hook run immediately _before_ starting the current test session (i.e.,
+    calling the `pytest.session.main()` function).
+    '''
+
+    pass
+
+
+#FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?
+def pytest_sessionfinish(session, exitstatus):
+    '''
+    Hook run immediately _after_ completing the current test session (i.e.,
+    calling the `pytest.session.main()` function).
+    '''
+
+    pass
+
+# ....................{ HOOKS ~ test                       }....................
 def pytest_runtest_setup(item: 'pytest.main.Item'):
     '''
     Hook run immediately _before_ running the passed test.
 
-    If this is a **serial test** (i.e., test method bound to an instance of the
-    the `SerialTestABC` superclass) for which a prior serial test in the same
-    test class was recorded as failing by the `pytest_runtest_makereport()`
-    hook, this hook marks this test as xfailing.
+    Specifically:
+
+    * The BETSE-specific `betse._is_pytest` global boolean is set to `True`,
+      informing the main codebase that tests are currently being run. Logic
+      elsewhere then performs test-specific handling if this boolean is enabled
+      (e.g., defaulting to a non-interactive matplotlib backend suitable for
+      usage in this possibly non-interactive test environment).
+    * If the external `${DISPLAY}` environment variable is currently set (e.g.,
+      to the X11-specific socket to be connected to display GUI components),
+      unset this variable. Permitting this variable to remain set would permit
+      tests erroneously attempting to connect to an X11 server to locally
+      succeed but remotely fail, as headless continuous integration (CI)
+      typically has no access to an X11 server. Unsetting this variable ensures
+      orthogonality between these cases by coercing the former to fail as well.
+    * If this is a **serial test** (i.e., test method bound to an instance of
+      the the `SerialTestABC` superclass) for which a prior serial test in the
+      same test class was recorded as failing by the
+      `pytest_runtest_makereport()` hook, this hook marks this test as xfailing.
 
     Parameters
     ----------
@@ -46,6 +82,30 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
     https://pytest.org/latest/example/simple.html#incremental-testing-test-steps
         Official py.test code snippet inspiring this implementation.
     '''
+
+    #FIXME: The following two operations should be converted into autouse
+    #fixtures defined in this plugin above. Such fixtures should require the
+    #builtin fixture permitting us to temporarily change environment variables,
+    #which should then be used to temporarily undefine the ${DISPLAY} variable.
+    #What was that called again... "monkeypatch"? Contemplate eternity.
+
+    # Inform the main codebase that tests are currently being run.
+    metadata._IS_TESTING = True
+
+    # Unset the external `${DISPLAY}` environment variable if currently set.
+    # Technically, this operation needs to be performed:
+    #
+    # * Only once for the entire test suite when py.test is *NOT* parallelized
+    #   with "xdist", in which case all tests run in the same process and hence
+    #   share the same environment variables.
+    # * Once for each test when py.test is parallelized with "xdist", in which
+    #   case each test is run in a distinct subprocess and hence does *NOT*
+    #   share the same environment variables.
+    #
+    # Since unsetting environment variables is fast, doing so here transparently
+    # supports both use cases detailed above with no discernable downside. See
+    # the docstring for additional commentary.
+    envs.unset_var_if_set('DISPLAY')
 
     # For each list of fixtures requested by this test...
     for fixture_defs in item._fixtureinfo.name2fixturedefs.values():
