@@ -31,6 +31,7 @@ side effects, we adopt the former approach.
 
 # ....................{ IMPORTS                            }....................
 import importlib, os, platform, shutil, subprocess, sys, time
+from betse.util.type.types import type_check
 from distutils.errors import (
     DistutilsExecError, DistutilsFileError, DistutilsModuleError)
 from os import path
@@ -761,6 +762,7 @@ def remove_symlink(filename: str) -> None:
     os.unlink(filename)
 
 # ....................{ SETUPTOOLS                         }....................
+@type_check
 def add_setup_command_classes(
     metadata: dict, setup_options: dict, *command_classes) -> None:
     '''
@@ -771,24 +773,20 @@ def add_setup_command_classes(
     corresponding class. Hence, the names of such classes are recommended to be
     short lowercase strings (e.g., `freeze`, `symlink`).
     '''
-    assert isinstance(metadata, dict),\
-        '"{}" not a dictionary.'.format(metadata)
-    assert isinstance(setup_options, dict),\
-        '"{}" not a dictionary.'.format(setup_options)
 
     # Add each such command class as a new command of the same name.
     for command_class in command_classes:
-        assert isinstance(command_class, type),\
-            '"{}" not a class.'.format(command_class)
+        assert isinstance(command_class, type), (
+            '"{}" not a class.'.format(command_class))
 
-        # Add such command.
+        # Add this command.
         setup_options['cmdclass'][command_class.__name__] = command_class
 
-        # Expose the passed dictionaries to such class by monkey-patching
-        # correspoding private class fields into such classes. While passing
-        # such dictionaries to instances of such class (e.g., on initialization)
-        # would be ideal, distutils and hence setuptools requires commands to be
-        # added as classes rather than instances. (Thus, the current approach.)
+        # Expose the passed dictionaries to this class by monkey-patching
+        # BETSE-specific private class variables into these classes. While
+        # passing these dictionaries to instances of this class (e.g., on
+        # instantiation) would be ideal, distutils and hence setuptools
+        # requires commands to be registered as classes rather than instances.
         command_class._metadata = metadata
         command_class._setup_options = setup_options
 

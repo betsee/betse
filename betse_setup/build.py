@@ -22,8 +22,8 @@ maintaining backward compatibility with older `setuptools` versions.
 
 # ....................{ IMPORTS                            }....................
 from distutils.errors import DistutilsClassError
-from pkg_resources import Distribution
 from betse_setup import util
+from pkg_resources import Distribution
 from setuptools.command import easy_install
 from setuptools.command.easy_install import ScriptWriter, WindowsScriptWriter
 
@@ -95,6 +95,7 @@ else:
 Script template to be formatted by `ScriptWriterSimple.get_script_args()`.
 '''
 
+
 SCRIPT_ENTRY_FUNC_SUBTEMPLATE = '''
     # If this module requires an entry function to be run, call this function.
     # For POSIX compliance, propagate the value returned by this function
@@ -117,8 +118,6 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     Add commands building distribution entry points to the passed dictionary of
     `setuptools` options.
     '''
-    assert isinstance(setup_options, dict), (
-        '"{}" not a dictionary.'.format(setup_options))
 
     # If neither of the class functions monkey-patched below exist, setuptools
     # is either broken or an unsupported newer version. In either case, an
@@ -172,6 +171,7 @@ def _patched_get_args(
 
     This function monkey-patches the `ScriptWriter.get_args()` class function.
     '''
+
     # Default this shebang line if unpassed.
     if script_shebang is None:
         script_shebang = cls.get_header()

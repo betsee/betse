@@ -113,6 +113,7 @@ class freeze(Command, metaclass = ABCMeta):
     Human-readable advice appended to exception messages raised by this class.
     '''
 
+
     user_options = [
         ('clean', None,
          'clean PyInstaller cache of temporary paths before building'),

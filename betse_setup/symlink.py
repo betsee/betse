@@ -25,18 +25,19 @@ package -- which largely has the same effect, albeit less resiliently. While
 '''
 
 # ....................{ IMPORTS                            }....................
+import os
 from betse_setup import util
 from setuptools.command.install import install
 from setuptools.command.install_lib import install_lib
 from setuptools.command.install_scripts import install_scripts
 from os import path
-import os
 
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
     Add `symlink` subcommands to the passed dictionary of `setuptools` options.
     '''
+
     util.add_setup_command_classes(
         metadata, setup_options,
         symlink, symlink_lib, symlink_scripts, unsymlink)
@@ -51,11 +52,13 @@ class symlink(install):
     system-wide installation.
     '''
 
-    description =\
-        'install a symlink rather than copy of this package (for development)'
+    # ..................{ ATTRIBUTES                         }..................
+    description = (
+        'install a symlink rather than copy of this package (for development)')
     '''
     Command description printed when running `./setup.py --help-commands`.
     '''
+
 
     sub_commands = [
         ('symlink_lib', None),
@@ -69,12 +72,13 @@ class symlink(install):
     * `None` signifying that such command should always be run.
     '''
 
-
+    # ..................{ SUPERCLASS                         }..................
     def finalize_options(self):
         '''
         Default undefined command-specific options to the options passed to the
         current parent command if any (e.g., `install`).
         '''
+
         super().finalize_options()
 
         #FIXME: Replicate this functionality for the "install" command as well.

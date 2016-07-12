@@ -23,60 +23,34 @@ BETSE's `setuptools`-based makefile.
 #FIXME: Specify all setup() metadata keys listed here:
 #https://docs.python.org/3/distutils/setupscript.html#additional-meta-data
 
-# ....................{ START                              }....................
-#FIXME: This approach is utter tripe. Mildly clever? Yes. But it's a complete
-#kludge, breaks tooling (e.g., IDE-based error checking), and is quite simply
-#unnecessary. Why? Because the "betse.metadata" submodule:
-#
-#* Only imports "sys", which is guaranteed to always be importable.
-#* Contains a stringent warning against importing anything else.
-#
-#Note that this import is guaranteed to succeed. By Python mandate, "sys.path"
-#is guaranteed to search the directory containing this "setup.py" script for
-#imports *BEFORE* any other directory. To quote:
-#
-#   "As initialized upon program startup, the first item of this list, path[0],
-#    is the directory containing the script that was used to invoke the Python
-#    interpreter."
-#
-#See also: https://stackoverflow.com/a/10097543/2809027
-
-# Import all constants defined by "betse.metadata" into the current namespace
-# *BEFORE* subsequent logic possibly depending on the the version of the active
-# Python interpreter, which this importation also validates.
-#
-# This awkward (albeit increasingly commonplace) snippet is required for
-# reliable importation of metadata declared by and hence shared with the main
-# codebase. Unfortunately, such metadata is *NOT* reliably importably via the
-# conventional syntax (e.g., "from betse import metadata"). The reason is
-# subtle.
-#
-# Importing packages from the main codebase implicitly imports such codebase's
-# top-level "__init__.py" submodule. If that submodule imports from at least one
-# package *NOT* provided by stock Python installations (e.g., from packages
-# installed as mandatory dependencies by this makefile), this importation will
-# fail for users lacking these packages. While that submodule currently imports
-# from no such packages, this race condition is sufficiently horrible as to
-# warrant explicit circumvention: namely, by manually reading and evaluating the
-# module defining these constants.
-#
-# This is horrible, but coding gets like that sometimes. We blame Guido.
-with open('betse/metadata.py') as betse_metadata:
-    exec(betse_metadata.read())
-
 # ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To avoid race conditions during setuptools-based installation, this
+# module may import *ONLY* from packages guaranteed to exist at the start of
+# installation. This includes all standard Python and BETSE packages but *NOT*
+# third-party dependencies, which if currently uninstalled will only be
+# installed at some later time in the installation.
+#
+# Technically, this script may import from all packages in the BETSE codebase
+# including the top-level "betse", "betse_setup", and "betse_test" packages.
+# By Python mandate, the first element of "sys.path" is guaranteed to be the
+# directory containing this script. Hence, Python necessarily searches this
+# directory for imports from the local version of BETSE *BEFORE* any other
+# directories (including system directories containing previously installed
+# versions of BETSE). To quote:
+#
+#     "As initialized upon program startup, the first item of this list,
+#      path[0], is the directory containing the script that was used to invoke
+#      the Python interpreter."
+#
+# See also: https://stackoverflow.com/a/10097543/2809027
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 import setuptools
+from betse import metadata
 from betse_setup import build, freeze, symlink, test
 
 # ....................{ OPTIONS                            }....................
-# Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,
-# "freeze_file") of other metadata *NOT* already declared by the "setup_options"
-# dictionary defined below. Since setuptools raises fatal exceptions on such
-# dictionary containing unrecognized keys, such keys are collected here.
-metadata = {
-    # While currently empty, it's likely we'll want this again... someday.
-}
-
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
 setup_options = {
@@ -84,12 +58,12 @@ setup_options = {
     # Self-explanatory metadata. Since the "NAME" constant provided by
     # "betse.info" is uppercase *AND* since setuptools-installed package names
     # are commonly lowercase, such constant is coerced to lowercase.
-    'name': NAME.lower(),
-    'version': __version__,
-    'description': DESCRIPTION,
-    'author': AUTHORS,
+    'name': metadata.NAME.lower(),
+    'version': metadata.__version__,
+    'description': metadata.DESCRIPTION,
+    'author': metadata.AUTHORS,
     'author_email': 'alexis.pietak@gmail.com',
-    'url': 'http://www.mindshines.com',
+    'url': 'https://gitlab.com/betse/betse',
 
     # PyPi-specific metadata.
     'keywords': 'science research visualization',
@@ -113,12 +87,16 @@ setup_options = {
     # Cross-platform script wrappers dynamically created at installation time.
     'entry_points': {
         # CLI-specific scripts.
-        'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.__main__:main',],
+        'console_scripts': [
+            metadata.SCRIPT_NAME_CLI + ' = betse.cli.__main__:main',
+        ],
         # 'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.clicli:main',],
 
         #FIXME: After creating a BETSE GUI, uncomment the following logic.
         # GUI-specific scripts.
-        #'gui_scripts':  [SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',],
+        #'gui_scripts':  [
+        #     metadata.SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',
+        #],
     },
 
     # List of all Python packages (i.e., directories containing zero or more
@@ -188,14 +166,14 @@ setup_options = {
 
     # ..................{ DEPENDENCY                         }..................
     # Runtime dependencies.
-    'install_requires': DEPENDENCIES_RUNTIME,
+    'install_requires': metadata.DEPENDENCIES_RUNTIME,
 
     #FIXME; Switch to "py.test". Setuptools integration isn't terribly arduous,
     #but does require some unctuous boilerplate:
     #    https://pytest.org/latest/goodpractices.html
 
     # Testing dependencies.
-    'tests_require': DEPENDENCIES_TESTING,
+    'tests_require': metadata.DEPENDENCIES_TESTING,
 
     # ..................{ TEST                               }..................
     # Name of the package running unit tests.
@@ -209,10 +187,23 @@ Modules in the `betse`-specific `setup` package customize such options (e.g., by
 defining custom commands).
 '''
 
+
+setup_options_custom = {
+    # While currently empty, it's likely we'll want this again... someday.
+}
+'''
+Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,
+`freeze_file`) of other metadata _not_ already declared by the `setup_options`
+dictionary.
+
+Setuptools raises fatal exceptions when the `setup_options` dictionary contains
+unrecognized keys. For safety, these keys are added to this dictionary instead.
+'''
+
 # ....................{ COMMANDS                           }....................
 # Define all BETSE-specific setuptools commands.
 for setup_module in (build, freeze, symlink, test):
-    setup_module.add_setup_commands(metadata, setup_options)
+    setup_module.add_setup_commands(setup_options_custom, setup_options)
 
 # ....................{ SETUP                              }....................
 setuptools.setup(**setup_options)

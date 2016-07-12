@@ -18,6 +18,7 @@ def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
     Add the `test` subcommand to the passed dictionary of `setuptools` options.
     '''
+
     util.add_setup_command_classes(metadata, setup_options, test)
 
 # ....................{ CLASSES ~ base                     }....................
@@ -48,10 +49,12 @@ class test(Command):
         which is sufficiently trivial as to be effectively useless.
     '''
 
+    # ..................{ ATTRIBUTES                         }..................
     description = 'run py.test-driven functional and unit tests'
     '''
     Command description printed on running `./setup.py --help-commands`.
     '''
+
 
     user_options = [
         (
