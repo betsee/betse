@@ -122,7 +122,7 @@ from betse.science.plot.plotabc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, Sequence
-from matplotlib import pyplot
+from matplotlib import pyplot, verbose
 from matplotlib.animation import FuncAnimation
 from scipy import interpolate
 
@@ -527,11 +527,20 @@ class AnimCells(PlotCells):
                     self._writer_video_filename)
 
                 # Prepare to save this animation video.
+
+                #FIXME: Generalize all "verbose"-specific code that follows
+                #into a new MatplotlibConfig.with_verbosity() context manager
+                #temporarily setting the matplotlib-specific verbosity level
+                #to the passed level for the duration of that context manager
+                #and then reverting to the prior level.
+
+                verbose.set_level('debug')
                 self._writer_video.setup(
                     fig=self._figure,
                     outfile=self._writer_video_filename,
                     dpi=self._writer_video_dpi,
                 )
+                verbose.set_level('helpful')
 
 
     # This method has been overridden to support subclasses that manually handle
@@ -631,17 +640,21 @@ class AnimCells(PlotCells):
         #accepted by the ani.save() function itself, so string name it is!
 
         try:
-            # If displaying animations, do so.
+            # If displaying and optionally saving animations...
             if self._is_showing:
+                # Do so.
                 pyplot.show()
 
-                # If saving animation frames as images, finalize doing so.
-                if self._writer_frames is not None:
-                    self._writer_frames.finish()
+                #FIXME: We need to call the finish() method on writers here,
+                #much as we do in the close() method called below. However, we
+                #can't simply call close() here, as this is a blocking
+                #animation. Presumably, doing so safely requires registering a
+                #finalizer method with the matplotlib backend API. (Possibly.)
 
-                # If saving animation frames as video, finalize doing so.
-                if self._writer_video is not None:
-                    self._writer_video.finish()
+                # Finalize all writers saving this animation if any. Do *NOT*
+                # finalize the animation itself here, as the above method is
+                # still plotting this animation in a blocking manner.
+                # self.close_writers()
             # Else if saving animation frames as...
             elif self._is_saving:
                 #FIXME: If soving both frames and video, the current approach
@@ -716,8 +729,7 @@ class AnimCells(PlotCells):
                         savefig_kwargs=self._writer_savefig_kwargs,
                     )
 
-                # For space efficiency, explicitly close this animation *AFTER*
-                # saving this animation in a non-blocking manner.
+                # Finalize displaying and/or saving this animation.
                 self.close()
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
@@ -729,6 +741,46 @@ class AnimCells(PlotCells):
             # Else, reraise this exception.
             else:
                 raise
+
+    # ..................{ CLOSERS                            }..................
+    def close(self) -> None:
+        '''
+        Finalize displaying and/or saving this non-blocking animation.
+
+        This method is intended to be called as the last statement in the
+        `_animate()` method animating this non-blocking subclass. If this
+        subclass is blocking, this method must _not_ be called.
+
+        See Also
+        ----------
+        close()
+            Superclass method destroying this animation's low-level plot and
+            all memory associated with this plot.
+        '''
+
+        # Finalize this animation's low-level plot.
+        super().close()
+
+        # Prevent this animation from being reused and break hard cycles.
+        self._anim = None
+
+        # If saving animation frames as images...
+        if self._writer_frames is not None:
+            # Finalize doing so.
+            self._writer_frames.finish()
+
+            # Prevent this writer from being reused and break hard cycles.
+            self._writer_frames = None
+
+        # If saving animation frames as video...
+        if self._writer_video is not None:
+            # Finalize doing so.
+            verbose.set_level('debug')
+            self._writer_video.finish()
+            verbose.set_level('helpful')
+
+            # Prevent this writer from being reused and break hard cycles.
+            self._writer_video = None
 
     # ..................{ PLOTTERS                           }..................
     #FIXME: Rename "frame_number" to "time_step".
@@ -798,7 +850,9 @@ class AnimCells(PlotCells):
 
             # If saving animation frames as video, save this frame as such.
             if self._writer_video is not None:
+                verbose.set_level('debug')
                 self._writer_video.grab_frame(**self._writer_savefig_kwargs)
+                verbose.set_level('helpful')
 
 
     @abstractmethod

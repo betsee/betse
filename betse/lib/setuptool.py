@@ -11,7 +11,6 @@ dependency simplifying inspection of `betse` dependencies.
 # ....................{ IMPORTS                            }....................
 import pkg_resources
 from pkg_resources import DistributionNotFound, Requirement, VersionConflict
-
 from betse import metadata
 from betse.exceptions import BetseExceptionModule
 from betse.util.io.log import logs

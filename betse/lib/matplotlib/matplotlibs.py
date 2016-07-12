@@ -274,14 +274,6 @@ class MatplotlibConfig(object):
             matplotlib configuration details.
         '''
 
-        #FIXME: Incorrect. The following logic assumes the logging configuration
-        #to have been finalized at this point. However, this function is
-        #transitively called ignition.init() *BEFORE* CLI handling processes
-        #passed CLI options to finalize such configuration. Hence, this method
-        #must be refactored to be explicitly called by the CLI after CLI
-        #argument handling. The optimal means of doing so is probably to shift
-        #the call to mpl_config.init() in libs.init() into the CLI logic. (Ugh.)
-
         # Inform interactive users enabling BETSE-specific verbosity of
         # matplotlib-specific verbosity output by this importation.
         logs.log_debug('Initializing matplotlib...')
@@ -327,6 +319,7 @@ class MatplotlibConfig(object):
 
             # Convert this name into a matplotlib-specific CLI option.
             # print('matplotlib verbosity: ' + verbosity_level_name)
+            # verbosity_level_name='debug'
             sys.argv.append('--verbose-' + verbosity_level_name)
 
             #FIXME: We should additionally set the "ffmpeg"-specific CLI option
@@ -336,7 +329,12 @@ class MatplotlibConfig(object):
 
             # Import matplotlib *AFTER* setting all matplotlib-specific CLI
             # options parsed by this importation.
-            import matplotlib
+            from matplotlib import verbose
+
+            # Permit the verbose.set_level() method to be subsequently called.
+            # If this private attribute is *NOT* nullified, all subsequent calls
+            # to that method reduce to noops. (Don't ask. Don't tell.)
+            verbose._commandLineVerbose = None     # yes, this is horrible
         # Restore the prior argument list from this temporary list.
         finally:
             sys.argv = _sys_argv_old

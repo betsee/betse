@@ -57,8 +57,6 @@ High-level application initialization common to both the CLI and GUI.
 #great to emit non-fatal warnings if its size exceeds some reasonable threshold
 #(e.g., 1MB).
 
-# ....................{ IMPORTS                            }....................
-
 # ....................{ GLOBALS                            }....................
 _IS_IGNITED = False
 '''
@@ -96,7 +94,7 @@ def init() -> None:
 
     # Defer heavyweight imports to their point of use.
     from betse import pathtree
-    from betse.lib import libs
+    from betse.lib import libcheck
     from betse.util.io.log import logconfig
     from betse.util.py import pys
     from betse.util.type import types
@@ -112,8 +110,11 @@ def init() -> None:
     # Validate core directories and files required at program startup.
     pathtree.init()
 
-    # Validate mandatory dependencies.
-    libs.init()
+    # Validate mandatory dependencies. Avoid initializing these dependencies
+    # here (by calling libs.init()). Doing so requires the logging configuration
+    # to have been finalized (e.g., by parsing CLI options), which it has yet to
+    # be at this early point in the application lifecycle.
+    libcheck.init()
 
     # Validate the active Python interpreter *AFTER* validating mandatory
     # dependencies. While the former (mostly) comprises unenforced

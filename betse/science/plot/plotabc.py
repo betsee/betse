@@ -355,7 +355,7 @@ class PlotCells(object, metaclass=ABCMeta):
         '''
         Destroy this plot and deallocate all memory associated with this plot.
 
-        To reduce Matplotlib's memory overhead, this method (in order):
+        To reduce matplotlib's memory overhead, this method (in order):
 
         . Explicitly closes this plot's figure.
         . Explicitly breaks all circular references between this plot's figure

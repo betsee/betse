@@ -24,52 +24,19 @@ from betse import metadata
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
-    Initialize all mandatory runtime dependencies of `betse`.
+    Initialize all mandatory runtime dependencies of BETSE.
 
-    This function (in order):
+    Specifically, this function:
 
-    . Raises an exception unless all dependencies are currently satisfiable.
-    . Reconfigure `matplotlib` with sane defaults specific to the current
+    * Reconfigures matplotlib with sane defaults specific to the current
       platform.
     '''
 
     # Avoid circular import dependencies.
     from betse.lib.matplotlib.matplotlibs import mpl_config
 
-    # Ensure that all mandatory dependencies exist *BEFORE* subsequent logic
-    # (possibly) importing such dependencies.
-    die_unless_satisfiable_all()
-
     # Configure these dependencies.
     mpl_config.init()
-
-# ....................{ EXCEPTIONS                         }....................
-def die_unless_satisfiable_all() -> None:
-    '''
-    Raise an exception unless all mandatory runtime dependencies of `betse` are
-    **satisfiable** (i.e., importable and of a satisfactory version).
-
-    Equivalently, this function raises an exception if at least one such
-    dependency is unsatisfied. For importable unsatisfied dependencies with
-    `setuptools`-specific metadata (e.g., `.egg-info/`-suffixed subdirectories
-    of the `site-packages/` directory for the active Python 3 interpreter,
-    typically created by `setuptools` at install time), this function
-    additionally validates the versions of such dependencies to satisfy `betse`
-    requirements.
-    '''
-    # Avoid circular import dependencies.
-    from betse.util.py import modules
-
-    # If the "pkg_resources" setuptools dependency is missing, raise an
-    # exception *BEFORE* importing such dependency below.
-    modules.die_unless_module(
-        module_name='pkg_resources',
-        exception_message='Mandatory dependency "pkg_resources" not found.',
-    )
-
-    # Validate these dependencies via "pkg_resources".
-    from betse.lib import setuptool
-    setuptool.die_unless_requirements_satisfiable_all()
 
 # ....................{ GETTERS                            }....................
 def get_metadata() -> OrderedDict:

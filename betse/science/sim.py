@@ -2311,7 +2311,6 @@ class Simulator(object):
             self.D_env_weight_v[-1,:] = 0
 
     # ..................{ PLOTTERS                           }..................
-
     def _plot_loop(self, cells, p):
         '''
         Display and/or save an animation during solving if requested _and_
@@ -2328,8 +2327,7 @@ class Simulator(object):
             plotted animations, for example.
         '''
 
-
-        # type and maximum number of steps of the current run.
+        # Type and maximum number of steps of the current run.
         if p.run_sim is False:
             figure_type_label = 'Initializing'
             loop_type_label = 'initialization'
@@ -2403,8 +2401,6 @@ class Simulator(object):
         if self._anim_cells_while_solving is not None:
             self._anim_cells_while_solving.close()
             self._anim_cells_while_solving = None
-
-
 
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS

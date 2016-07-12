@@ -29,14 +29,11 @@ Matplotlib-based animation classes.
 #existing streamplot each animation frame instead. Investigate the aged pandas!
 
 # ....................{ IMPORTS                            }....................
-from enum import Enum
-
 import numpy as np
+from enum import Enum
 from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
-from scipy import interpolate
-
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.writer.frames import FileFrameWriter
 from betse.science.plot import plot
@@ -46,6 +43,7 @@ from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
 from betse.util.type.types import type_check, Sequence
+from scipy import interpolate
 
 #FIXME: Shift functions called only by this module either to a new
 #"betse.science.plot.animation.helper" module or possibly as private
@@ -201,7 +199,6 @@ class AnimCellsWhileSolving(AnimCells):
         #new _get_cell_data() method returning this array in a centralized
         #manner callable both here and above. Rays of deluded beaming sunspray!
 
-
         # If the unique identifier for the array of cell vertices has *NOT*
         # changed, the cell cluster has *NOT* fundamentally changed and need
         # only be updated with this time step's cell data.
@@ -225,7 +222,6 @@ class AnimCellsWhileSolving(AnimCells):
         # Update the color bar with the content of the cell body plot *AFTER*
         # possibly recreating this plot above.
         if self._is_color_autoscaled:
-
             cell_data_vm = cell_data
 
             # If autoscaling this colorbar in a telescoping manner and this is
@@ -254,7 +250,8 @@ class AnimCellsWhileSolving(AnimCells):
             self._figure.canvas.draw()
 
 
-    def _update_cell_plots(self, cell_data: np.ndarray) -> None:
+    @type_check
+    def _update_cell_plots(self, cell_data: Sequence) -> None:
         '''
         Update _without_ recreating all cell plots for this time step with the
         passed array of arbitrary cell data.
@@ -265,18 +262,17 @@ class AnimCellsWhileSolving(AnimCells):
 
         Parameters
         -----------
-        cell_data : np.ndarray
+        cell_data : Sequence
             Arbitrary cell data defined on an environmental grid to be plotted.
         '''
-        assert types.is_sequence_nonstr(cell_data), (
-            types.assert_not_sequence_nonstr(cell_data))
 
         self._update_cell_plot_sans_ecm(
             cell_plot=self._cell_data_plot,
             cell_data=cell_data)
 
 
-    def _revive_cell_plots(self, cell_data: np.ndarray) -> None:
+    @type_check
+    def _revive_cell_plots(self, cell_data: Sequence) -> None:
         '''
         Recreate all cell plots for this time step with the passed array of
         arbitrary cell data.
@@ -288,11 +284,9 @@ class AnimCellsWhileSolving(AnimCells):
 
         Parameters
         -----------
-        cell_data : np.ndarray
+        cell_data : Sequence
             Arbitrary cell data defined on an environmental grid to be plotted.
         '''
-        assert types.is_sequence_nonstr(cell_data), (
-            types.assert_not_sequence_nonstr(cell_data))
 
         self._cell_data_plot = self._revive_cell_plots_sans_ecm(
             cell_plot=self._cell_data_plot,

@@ -30,6 +30,7 @@ from argparse import ArgumentParser
 from enum import Enum
 from betse import ignition, metadata, pathtree
 from betse.cli import info, clioption
+from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
 from betse.util.path.command import commands
@@ -126,6 +127,8 @@ class CLIABC(metaclass=ABCMeta):
 
     # ..................{ INITIALIZERS                       }..................
     def __init__(self):
+
+        # Initialize subclasses performing diamond inheritance if any.
         super().__init__()
 
         # For safety, nullify all remaining attributes.
@@ -169,13 +172,20 @@ class CLIABC(metaclass=ABCMeta):
         self._arg_list = arg_list
 
         try:
-            # Initialize the current application *BEFORE* subsequent logic. This
-            # initializes logging and validates paths -- among other chores.
+            # Initialize the BETSE core *BEFORE* subsequent logic. This
+            # initializes logging, validates paths, and guarantees sanity.
             ignition.init()
 
             # Parse these arguments *AFTER* initializing logging, ensuring
             # logging of exceptions raised by this parsing.
             self._parse_args()
+
+            # Initialize all mandatory runtime dependencies *AFTER* parsing all
+            # logging-specific CLI options and hence finalizing the logging
+            # configuration for the active Python process. This initialization
+            # integrates the custom logging and debugging schemes implemented
+            # by these dependencies with that implemented by BETSE.
+            libs.init()
 
             #FIXME: Implement support for the "self._profile_filename" option as
             #well. Sadly, "cProfile" appears to be quite simplistic. To have
@@ -236,9 +246,9 @@ class CLIABC(metaclass=ABCMeta):
         In order, this method:
 
         * Creates and configures an argument parser with sensible defaults.
-        * Calls the subclass-specific `_config_arg_parsing()` method,
-          defaulting to a noop.
-        * Parses all arguments with such parser.
+        * Calls the subclass-specific `_config_arg_parsing()` method, defaulting
+          to a noop.
+        * Parses all arguments with this parser.
         '''
 
         # Create and configure all argument parsers.
