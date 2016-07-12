@@ -36,7 +36,7 @@ class MasterOfMetabolism(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedMoM = os.path.join(betse_cache_dir, 'MetabolicNetwork.betse')
 
-    def read_metabo_config(self, sim, cells, p):  # can this be implemented in MasterofMolecules instead? To cut down on classes?
+    def read_metabo_config(self, sim, cells, p, dyna):
 
         # create the path to read the metabolism config file:
 
@@ -57,7 +57,7 @@ class MasterOfMetabolism(object):
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
-        self.core = MasterOfMolecules(sim, cells, substances_config, p, self.mit_enabled)
+        self.core = MasterOfMolecules(sim, cells, substances_config, p, mit_enabled=self.mit_enabled)
 
         # initialize the reactions of metabolism:
         self.core.read_reactions(reactions_config, sim, cells, p)

@@ -180,6 +180,18 @@ class MasterOfMolecules(object):
                 obj.growth_inhibitors_Km = gad.get('Km inhibitors', None)
                 obj.growth_inhibitors_n = gad.get('k inhibitors', None)
 
+                obj.growth_profiles_list = gad.get('apply to', None)
+
+                if obj.growth_profiles_list is not None:
+
+                    obj.growth_targets = []
+
+                    # FIXME finish this
+
+                    # for profile in obj.growth_profiles_list:
+                    #     targets = dyna.tissue_target_inds[profile]
+                    #     obj.growth_targets.append(targets)
+
             else:
                 obj.simple_growth = False
 
@@ -602,9 +614,10 @@ class MasterOfMolecules(object):
             net_Q_cell = net_Q_cell + obj_Q_cell
             net_Q_env = net_Q_env + obj_Q_env
 
-        # update charge in the cell and environment of the main bioelectric simulator:
-        sim.rho_cells = sim.rho_cells + net_Q_cell
-        sim.rho_env = sim.rho_env + net_Q_env
+        if p.substances_affect_charge:
+            # update charge in the cell and environment of the main bioelectric simulator:
+            sim.rho_cells = sim.rho_cells + net_Q_cell
+            sim.rho_env = sim.rho_env + net_Q_env
 
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
 
@@ -1355,7 +1368,7 @@ class Molecule(object):
                                                                 Do = self.Do,
                                                                 c_bound = self.c_bound,
                                                                 ignoreECM = True,
-                                                                smoothECM = True,
+                                                                smoothECM = p.smooth_concs,
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ)
 

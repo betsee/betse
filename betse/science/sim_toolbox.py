@@ -1417,7 +1417,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             uenvx = 0
             uenvy = 0
 
-        field_mod = (1e-9 / p.cell_space)
+        field_mod = p.field_modulation
 
         f_env_x_X, f_env_y_X = np_flux_special(cenv_x, cenv_y, grad_cc_env_x, grad_cc_env_y,
             field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx, uenvy, denv_x, denv_y, z, sim.T, p)

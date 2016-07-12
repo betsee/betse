@@ -844,12 +844,18 @@ class Parameters(object):
 
         self.smooth_level = float(iu['gaussian smoothing'])
 
+        self.smooth_concs = iu.get('smooth concentrations', True)
+
         # self.env_delay_const = float(iu['environmental delay factor'])
         # self.cell_delay_const = float(iu['cytosolic delay factor'])
 
         self.media_sigma = float(iu['media resistivity'])
 
         self.electrolyte_screening = float(iu['electrolyte screening factor'])
+
+        self.field_modulation = float(iu.get('field modulation factor', 0.05))
+
+        self.substances_affect_charge = iu.get('substances affect Vmem', False)
 
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
@@ -974,6 +980,8 @@ class Parameters(object):
         self.rho = 1050 # mass density of system [kg/m3]
 
         self.Keqm_ph = 7.94e-4          # equilibrium constant for bicarbonate buffer
+
+
 
         # FIXME add rate to config file
         self.vm_ph = 5.0e-3             # rate constant for bicarbonate buffer [mol/s] 5.0e-5 originally

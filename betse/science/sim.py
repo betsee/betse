@@ -840,18 +840,18 @@ class Simulator(object):
                 self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
                     self.cc_env[self.iK][:], fK_NaK, cells, p, ignoreECM = False)
 
-                # update the concentrations intra-cellularly:
-                self.cc_mems[self.iNa][:],  self.cc_cells[self.iNa][:], _ = \
-                    stb.update_intra(self, cells, self.cc_mems[self.iNa][:],
-                                     self.cc_cells[self.iNa][:],
-                                     self.D_free[self.iNa],
-                                     self.zs[self.iNa], p)
-
-                self.cc_mems[self.iK][:],  self.cc_cells[self.iK][:], _ = \
-                    stb.update_intra(self, cells, self.cc_mems[self.iK][:],
-                                     self.cc_cells[self.iK][:],
-                                     self.D_free[self.iK],
-                                     self.zs[self.iK], p)
+                # # update the concentrations intra-cellularly:
+                # self.cc_mems[self.iNa][:],  self.cc_cells[self.iNa][:], _ = \
+                #     stb.update_intra(self, cells, self.cc_mems[self.iNa][:],
+                #                      self.cc_cells[self.iNa][:],
+                #                      self.D_free[self.iNa],
+                #                      self.zs[self.iNa], p)
+                #
+                # self.cc_mems[self.iK][:],  self.cc_cells[self.iK][:], _ = \
+                #     stb.update_intra(self, cells, self.cc_mems[self.iK][:],
+                #                      self.cc_cells[self.iK][:],
+                #                      self.D_free[self.iK],
+                #                      self.zs[self.iK], p)
 
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
@@ -1494,6 +1494,7 @@ class Simulator(object):
             Qcells = self.rho_cells * cells.mem_vol
 
             Qecm = self.rho_env[cells.envInds_inClust] * cells.true_ecm_vol[cells.envInds_inClust]
+            # Qecm = self.rho_env[cells.envInds_inClust] *p.cell_height*cells.delta**2
 
 
             cs_ecm = p.electrolyte_screening*cells.memSa_per_envSquare[cells.envInds_inClust]
@@ -1900,7 +1901,7 @@ class Simulator(object):
                 self.cc_env[self.iNa][:], f_NaEx, cells, p, ignoreECM = False)
 
         # smooth extracellular calcium levels:
-        # FIXME smoothing does not appear to be the answer to Ca++ issues...
+        # if p.smooth_concs:
         # self.cc_env[self.iCa] = gaussian_filter(self.cc_env[self.iCa].reshape(cells.X.shape), p.smooth_level).ravel()
 
         # update concentrations intracellularly:
@@ -1921,8 +1922,8 @@ class Simulator(object):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
-        self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
-        # self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
+        # self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
+        self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
 
         if p.v_sensitive_gj is True:
 
@@ -2086,8 +2087,8 @@ class Simulator(object):
         # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
         # which is assumed to be about 1 nm:
 
-        self.field_mod = (1e-9/p.cell_space)
-        # self.field_mod = 1.0e-10
+        # self.field_mod = (1e-9/p.cell_space)
+        self.field_mod = p.field_modulation
 
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
             self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
