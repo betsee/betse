@@ -43,6 +43,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       Km: 1.0                  # Half-maximum value for decay [mmol/L]
       n: 1.0                   # Hill exponent for decay
       apply to: ['spot']       # apply growth only to a specific tissue profile, or 'all' for everything
+
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
       k activators: None       # list of kinetic parameters of activators
@@ -102,6 +103,7 @@ reactions:
     Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
     max rate: 5.0e-3                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+
     transporter activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
     activator n: None
@@ -129,7 +131,9 @@ transporters:
     transfered into cell: ['Pyr']     # items of reaction moved into cell during forwards reaction
     max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    apply to: ['nerves', 'spot']      # apply transporter only on certain profiles?
     ignore ECM: True
+
     transporter activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
     activator n: None

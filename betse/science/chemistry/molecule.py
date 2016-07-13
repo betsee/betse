@@ -400,6 +400,9 @@ class MasterOfMolecules(object):
             obj.delta_Go = trans_dic['standard free energy']
             obj.ignore_ECM_transporter = trans_dic['ignore ECM']
 
+            obj.transporter_profiles_list = trans_dic.get('apply to', None)
+            obj.init_reaction(cells, p)
+
             if obj.delta_Go == 'None':
                 obj.delta_Go = None  # make the field a proper None variable
 
@@ -1489,7 +1492,7 @@ class Molecule(object):
 
             for profile in self.growth_profiles_list:
                 targets_cell = self.dummy_dyna.cell_target_inds[profile]
-                self.growth_targets_cell.append(targets_cell)
+                self.growth_targets_cell.extend(targets_cell)
 
                 targets_mem = self.dummy_dyna.tissue_target_inds[profile]
                 self.growth_targets_mem.append(targets_mem)
@@ -2225,6 +2228,10 @@ class Transporter(object):
 
     def set_reactant_c(self, deltaMoles, sim, sim_metabo, reactant_tags, cells, p, ignoreECM = True):
 
+        targ_cells = self.transporter_targets_cell
+        targ_mems = self.transporter_targets_mem
+        targ_env = self.transporter_targets_env
+
         for i, reactant_name in enumerate(self.reactants_list):
 
             type_tag = reactant_tags[i]
@@ -2235,7 +2242,9 @@ class Transporter(object):
 
                     deltaC = deltaMoles/cells.mem_vol
 
-                    conc = self.c_reactants[i] - deltaC*self.reactants_coeff[i]
+                    conc = np.zeros(sim.mdl)
+
+                    conc[targ_mems] = self.c_reactants[i][targ_mems] - deltaC[targ_mems]*self.reactants_coeff[i]
 
                     label = 'i' + reactant_name
                     ion_check = getattr(sim, label, None)
@@ -2248,14 +2257,15 @@ class Transporter(object):
                     else:
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
                         sim_conc = getattr(sim, 'cc_mems')
-
                         sim_conc[ion_check] = conc
 
                 elif type_tag == 'c_cells':
 
                     deltaC = deltaMoles / cells.cell_vol
 
-                    conc = self.c_reactants[i] - deltaC * self.reactants_coeff[i]
+                    conc = np.zeros(sim.cdl)
+
+                    conc[targ_cells] = self.c_reactants[i][targ_cells] - deltaC[targ_cells]*self.reactants_coeff[i]
 
                     label = 'i' + reactant_name
                     ion_check = getattr(sim, label, None)
@@ -2275,7 +2285,9 @@ class Transporter(object):
 
                     deltaC = deltaMoles / sim_metabo.mit.mit_vol
 
-                    conc = self.c_reactants[i] - deltaC * self.reactants_coeff[i]
+                    conc = np.zeros(sim.cdl)
+
+                    conc[targ_cells] = self.c_reactants[i][targ_cells] - deltaC[targ_cells] * self.reactants_coeff[i]
 
                     label = 'i' + reactant_name
                     ion_check = getattr(sim, label, None)
@@ -2299,9 +2311,9 @@ class Transporter(object):
 
                     deltaC = deltaMoles/cells.mem_sa
 
-                    conc = self.c_reactants[i]
+                    conc = np.zeros(sim.mdl)
 
-                    conc = conc - deltaC * self.reactants_coeff[i]
+                    conc[targ_mems] = self.c_reactants[i][targ_mems] - deltaC[targ_mems] * self.reactants_coeff[i]
 
                     mean_conc = conc.mean()
                     conc[:] = mean_conc
@@ -2352,9 +2364,9 @@ class Transporter(object):
 
                         obj_reactant = getattr(sim_metabo, reactant_name)
 
-                        conco = obj_reactant.c_env
+                        conco = np.zeros(sim.edl)
 
-                        conco = conco - delta_env*self.reactants_coeff[i]
+                        conco[targ_env] = obj_reactant.c_env[targ_env] - delta_env[targ_env]*self.reactants_coeff[i]
 
                         setattr(obj_reactant, 'c_env', conco)
 
@@ -2362,13 +2374,17 @@ class Transporter(object):
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
                         sim_conc = getattr(sim, 'cc_env')
 
-                        conco = sim_conc[ion_check]
+                        conco = np.zeros(sim.edl)
 
-                        conco = conco - delta_env*self.reactants_coeff[i]
+                        conco[targ_env] = sim_conc[ion_check][targ_env] - delta_env[targ_env]*self.reactants_coeff[i]
 
                         sim_conc[ion_check] = conco[:]
 
     def set_product_c(self, deltaMoles, sim, sim_metabo, product_tags, cells, p, ignoreECM = True):
+
+        targ_cells = self.transporter_targets_cell
+        targ_mems = self.transporter_targets_mem
+        targ_env = self.transporter_targets_env
 
         for i, product_name in enumerate(self.products_list):
 
@@ -2380,7 +2396,9 @@ class Transporter(object):
 
                     deltaC = deltaMoles / cells.mem_vol
 
-                    conc = self.c_products[i] + deltaC * self.products_coeff[i]
+                    conc = np.zeros(sim.mdl)
+
+                    conc[targ_mems] = self.c_products[i][targ_mems] + deltaC[targ_mems] * self.products_coeff[i]
 
                     label = 'i' + product_name
                     ion_check = getattr(sim, label, None)
@@ -2400,7 +2418,9 @@ class Transporter(object):
 
                     deltaC = deltaMoles / cells.cell_vol
 
-                    conc = self.c_products[i] + deltaC * self.products_coeff[i]
+                    conc = np.zeros(sim.cdl)
+
+                    conc[targ_cells] = self.c_products[i][targ_cells] + deltaC[targ_cells] * self.products_coeff[i]
 
                     label = 'i' + product_name
                     ion_check = getattr(sim, label, None)
@@ -2420,7 +2440,9 @@ class Transporter(object):
 
                     deltaC = deltaMoles / sim_metabo.mit.mit_vol
 
-                    conc = self.c_products[i] + deltaC * self.products_coeff[i]
+                    conc = np.zeros(sim.cdl)
+
+                    conc[targ_cells] = self.c_products[i][targ_cells] + deltaC * self.products_coeff[i]
 
                     label = 'i' + product_name
                     ion_check = getattr(sim, label, None)
@@ -2442,9 +2464,9 @@ class Transporter(object):
 
                     deltaC = deltaMoles / cells.mem_sa
 
-                    conc = self.c_products[i]
+                    conc = np.zeros(sim.mdl)
 
-                    conc = conc + deltaC * self.products_coeff[i]
+                    conc[targ_mems] = self.c_products[i][targ_mems] + deltaC[targ_mems] * self.products_coeff[i]
 
                     # mean_conc = conc.mean()
                     # conc[:] = mean_conc
@@ -2497,9 +2519,9 @@ class Transporter(object):
 
                         obj_product = getattr(sim_metabo, product_name)
 
-                        conco = obj_product.c_env
+                        conco = np.zeros(sim.edl)
 
-                        conco = conco + delta_env*self.products_coeff[i]
+                        conco[targ_env] = obj_product.c_env[targ_env] + delta_env[targ_env]*self.products_coeff[i]
 
                         setattr(obj_product, 'c_env', conco)
 
@@ -2507,11 +2529,36 @@ class Transporter(object):
                         # define the reactant as the ion concentration from the cell concentrations object in sim:
                         sim_conc = getattr(sim, 'cc_env')
 
-                        conco = sim_conc[ion_check]
+                        conco = np.zeros(sim.edl)
 
-                        conco = conco + delta_env * self.products_coeff[i]
+                        conco[targ_env] = sim_conc[ion_check][targ_env] + delta_env[targ_env] * self.products_coeff[i]
 
                         sim_conc[ion_check] = conco[:]
+
+    def init_reaction(self,cells, p):
+
+        if self.transporter_profiles_list is not None and self.transporter_profiles_list != 'all':
+
+            self.transporter_targets_mem = []
+            self.transporter_targets_cell = []
+            self.transporter_targets_env = []
+
+            for profile in self.transporter_profiles_list:
+
+                targets_cell = self.dummy_dyna.cell_target_inds[profile]
+                self.transporter_targets_cell.extend(targets_cell)
+
+                targets_mem = self.dummy_dyna.tissue_target_inds[profile]
+                self.transporter_targets_mem.extend(targets_mem)
+
+                targets_env = self.dummy_dyna.env_target_inds[profile]
+                self.transporter_targets_env.extend(targets_env)
+
+        elif self.transporter_profiles_list is None or self.transporter_profiles_list == 'all':
+
+            self.transporter_targets_mem = cells.mem_i
+            self.transporter_targets_cell = cells.cell_i
+            self.transporter_targets_env = [x for x in range(0, len(cells.xypts))]
 
     def compute_reaction(self, sim, sim_metabo, cells, p):
 
