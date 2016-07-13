@@ -959,7 +959,7 @@ def ghk_calculator(sim, cells, p):
         (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
 
 def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
-                 Km_ATP=1.0, met = None, n=1):
+                 Km_ATP=1.0, met = None, n=1, ignoreECM = True):
 
 
     """
@@ -1047,7 +1047,6 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
         f_X = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
-
     else:
 
         # active pumping of molecule from environment and into cell:
@@ -1074,7 +1073,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
         f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     # update cell and environmental concentrations
-    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = True)
+    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
 
     # next electrodiffuse concentrations around the cell interior:
     # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
@@ -1095,7 +1094,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell=False, alpha_max=1.0e-8,
-        Km_X=1.0, Keq=1.0, n = 1.0):
+        Km_X=1.0, Keq=1.0, n = 1.0, ignoreECM = True):
 
 
     """
@@ -1196,7 +1195,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
         f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     # update cell and environmental concentrations
-    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM= True)
+    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM= ignoreECM)
 
     # next electrodiffuse concentrations around the cell interior:
     # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)

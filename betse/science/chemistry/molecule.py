@@ -19,6 +19,7 @@ import os.path
 import numpy as np
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
+from betse.science.tissue.handler import TissueHandler
 from betse.util.io.log import logs
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionParameters
@@ -89,7 +90,7 @@ class MasterOfMolecules(object):
             self.molecule_index.append(q)
 
             # add a field to the MasterOfMolecules corresponding to Molecule object with that name
-            setattr(self, name, Molecule())
+            setattr(self, name, Molecule(sim, cells, p))
 
             # now set the attributes of that Molecule object with the cornucopia of variables:
 
@@ -98,12 +99,7 @@ class MasterOfMolecules(object):
 
             # assign general properties
             obj.name = name   # let object know who it is
-            obj.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
-            obj.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
-            obj.z = mol_dic['z']  # charge (oxidation state)
 
-            obj.ignoreTJ = mol_dic.get('TJ permeable', False)  # ignore TJ?
-            obj.ignoreGJ = mol_dic.get('GJ impermeable',False) # ignore GJ?
             obj.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
             obj.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
 
@@ -158,6 +154,18 @@ class MasterOfMolecules(object):
             # get MasterOfMolecules.name
             obj = getattr(self, name)
 
+
+            obj.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
+            obj.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
+            obj.z = mol_dic['z']  # charge (oxidation state)
+
+            obj.ignore_ECM_pump = mol_dic['ignore ECM']
+
+            obj.ignoreTJ = mol_dic.get('TJ permeable', False)  # ignore TJ?
+            obj.ignoreGJ = mol_dic.get('GJ impermeable',False) # ignore GJ?
+
+            obj.TJ_factor = float(mol_dic.get('TJ factor', 1.0))
+
             # factors involving auto-catalytic growth and decay in the cytoplasm
             gad = mol_dic.get('growth and decay', None)
 
@@ -170,6 +178,8 @@ class MasterOfMolecules(object):
                 obj.Kgd = gad['Km']
                 obj.n_production = gad['n']
 
+                obj.growth_profiles_list = gad.get('apply to', None)
+
                 obj.growth_activators_list = gad.get('activators', None)
                 obj.growth_activators_k = gad.get('k activators', None)
                 obj.growth_activators_Km = gad.get('Km activators', None)
@@ -180,20 +190,11 @@ class MasterOfMolecules(object):
                 obj.growth_inhibitors_Km = gad.get('Km inhibitors', None)
                 obj.growth_inhibitors_n = gad.get('k inhibitors', None)
 
-                obj.growth_profiles_list = gad.get('apply to', None)
-
-                if obj.growth_profiles_list is not None:
-
-                    obj.growth_targets = []
-
-                    # FIXME finish this
-
-                    # for profile in obj.growth_profiles_list:
-                    #     targets = dyna.tissue_target_inds[profile]
-                    #     obj.growth_targets.append(targets)
+                obj.init_growth(cells, p)
 
             else:
                 obj.simple_growth = False
+                obj.growth_profiles_list = None
 
             # assign ion channel gating properties
             icg = mol_dic.get('ion channel gating', None)
@@ -246,6 +247,7 @@ class MasterOfMolecules(object):
                 obj.pump_Km = ap['pump Km']
                 obj.pumps_use_ATP = ap['uses ATP']
 
+
             else:
                 obj.active_pumping = False
 
@@ -295,7 +297,7 @@ class MasterOfMolecules(object):
 
             # add a field to the MasterOfReactions corresponding to Reaction object with that name:
             #self._reactions[name] = Reaction()
-            setattr(self, name, Reaction())
+            setattr(self, name, Reaction(sim, cells, p))
 
             # now set the attributes of that Reaction object with the cornucopia of variables:
 
@@ -367,7 +369,7 @@ class MasterOfMolecules(object):
 
             # add a field to the MasterOfReactions corresponding to Transporter object with that name:
 
-            setattr(self, name, Transporter())
+            setattr(self, name, Transporter(sim, cells, p))
 
             # now set the attributes of that Transporter object with the cornucopia of variables:
 
@@ -396,6 +398,7 @@ class MasterOfMolecules(object):
             obj.vmax = float(trans_dic['max rate'])
 
             obj.delta_Go = trans_dic['standard free energy']
+            obj.ignore_ECM_transporter = trans_dic['ignore ECM']
 
             if obj.delta_Go == 'None':
                 obj.delta_Go = None  # make the field a proper None variable
@@ -431,7 +434,7 @@ class MasterOfMolecules(object):
             self.channel_index.append(q)
 
             # add a field to the MasterOfReactions corresponding to Channel object with that name:
-            setattr(self, name, Channel())
+            setattr(self, name, Channel(sim, cells, p))
 
             # now set the attributes of that channel:
 
@@ -1301,7 +1304,12 @@ class MasterOfMolecules(object):
 
 class Molecule(object):
 
-    def __init__(self):
+    def __init__(self, sim, cells, p):
+
+        self.dummy_dyna = TissueHandler(sim, cells, p)
+        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
+
+
 
         # Set all fields to None -- these will be dynamically set by MasterOfMolecules
 
@@ -1367,7 +1375,7 @@ class Molecule(object):
                                                                 Dm = self.Dm,
                                                                 Do = self.Do,
                                                                 c_bound = self.c_bound,
-                                                                ignoreECM = True,
+                                                                ignoreECM = self.ignore_ECM_pump,
                                                                 smoothECM = p.smooth_concs,
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ)
@@ -1428,7 +1436,7 @@ class Molecule(object):
                                                                      cells, p, Df=self.Do, z=self.z,
                                                                      pump_into_cell=self.pump_to_cell,
                                                                      alpha_max=self.pump_max_val, Km_X=self.pump_Km,
-                                                                     Km_ATP=1.0, met = met_vect)
+                                                                     Km_ATP=1.0, met = met_vect, ignoreECM = self.ignore_ECM_pump)
                 if p.metabolism_enabled:
                     # update ATP concentrations after pump action:
                     sim.metabo.update_ATP(flux, sim, cells, p)
@@ -1437,7 +1445,7 @@ class Molecule(object):
 
                 self.c_mems, self.c_env, flux = stb.molecule_transporter(sim, self.c_mems, self.c_env,
                     cells, p, Df=self.Do, z=self.z, pump_into_cell=self.pump_to_cell, alpha_max=self.pump_max_val,
-                    Km_X=self.pump_Km, Keq= 1.0)
+                    Km_X=self.pump_Km, Keq= 1.0, ignoreECM = self.ignore_ECM_pump)
 
     def gating(self, sim, sim_metabo, cells, p):
         """
@@ -1472,6 +1480,26 @@ class Molecule(object):
                     sim.Dm_morpho[ion_tag] = (activator_alpha*inhibitor_alpha*sim.rho_channel*
                                               Dm_mod_mol[cells.map_mem2ecm])
 
+    def init_growth(self,cells, p):
+
+        if self.growth_profiles_list is not None and self.growth_profiles_list != 'all':
+
+            self.growth_targets_cell = []
+            self.growth_targets_mem = []
+
+            for profile in self.growth_profiles_list:
+                targets_cell = self.dummy_dyna.cell_target_inds[profile]
+                self.growth_targets_cell.append(targets_cell)
+
+                targets_mem = self.dummy_dyna.tissue_target_inds[profile]
+                self.growth_targets_mem.append(targets_mem)
+
+
+        elif self.growth_profiles_list is None or self.growth_profiles_list == 'all':
+
+            self.growth_targets_cell = cells.cell_i
+            self.growth_targets_mem = cells.mem_i
+
     def growth_and_decay(self, super_self, sim, cells, p):
         """
         Grows and/or decays the molecule concentration in the cell cytosol using a simple rate equation
@@ -1488,9 +1516,12 @@ class Molecule(object):
 
 
         delta_cells = self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
-        self.c_cells = self.c_cells + delta_cells*p.dt
 
-        self.c_mems = self.c_mems + delta_cells[cells.mem_to_cells]*p.dt
+        self.c_cells[self.growth_targets_cell] = self.c_cells[self.growth_targets_cell] + \
+                                                 delta_cells[self.growth_targets_cell]*p.dt
+
+        self.c_mems[self.growth_targets_mem] = self.c_mems[self.growth_targets_mem] + \
+                                               delta_cells[cells.mem_to_cells][self.growth_targets_mem]*p.dt
 
         # make sure the concs inside the cell are evenly mixed after production/decay:
         # self.updateIntra(sim, cells, p)
@@ -1750,7 +1781,10 @@ class Molecule(object):
 
 class Reaction(object):
 
-    def __init__(self):
+    def __init__(self, sim, cells, p):
+
+        self.dummy_dyna = TissueHandler(sim, cells, p)
+        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
 
         # pre-populate the object with fields that will be assigned by MasterOfMolecules
 
@@ -1785,6 +1819,7 @@ class Reaction(object):
         self.reaction_inhibitors_list = None
         self.reaction_inhibitors_Km = None
         self.reaction_inhibitors_n = None
+
 
     def get_reactants(self, sim, sim_metabo, reactant_type_self, reactant_type_sim):
 
@@ -2062,7 +2097,10 @@ class Reaction(object):
 
 class Transporter(object):
 
-    def __init__(self):
+    def __init__(self, sim, cells, p):
+
+        self.dummy_dyna = TissueHandler(sim, cells, p)
+        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
 
         # pre-populate the object with fields that will be assigned by MasterOfMolecules
 
@@ -2185,7 +2223,7 @@ class Transporter(object):
 
                 self.c_products.append(sim_conc)
 
-    def set_reactant_c(self, deltaMoles, sim, sim_metabo, reactant_tags, cells, p):
+    def set_reactant_c(self, deltaMoles, sim, sim_metabo, reactant_tags, cells, p, ignoreECM = True):
 
         for i, reactant_name in enumerate(self.reactants_list):
 
@@ -2299,7 +2337,13 @@ class Transporter(object):
                     # finally, ensure that the boundary values are restored:
                     flux_env[cells.ecm_bound_k] = bound_vals
 
-                    delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+                    if ignoreECM is True:
+
+                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+
+                    else:
+
+                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
 
                     label = 'i' + reactant_name
                     ion_check = getattr(sim, label, None)
@@ -2324,7 +2368,7 @@ class Transporter(object):
 
                         sim_conc[ion_check] = conco[:]
 
-    def set_product_c(self, deltaMoles, sim, sim_metabo, product_tags, cells, p):
+    def set_product_c(self, deltaMoles, sim, sim_metabo, product_tags, cells, p, ignoreECM = True):
 
         for i, product_name in enumerate(self.products_list):
 
@@ -2438,7 +2482,13 @@ class Transporter(object):
                     # finally, ensure that the boundary values are restored:
                     flux_env[cells.ecm_bound_k] = bound_vals
 
-                    delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+                    if ignoreECM is True:
+
+                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+
+                    else:
+
+                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
 
                     label = 'i' + product_name
                     ion_check = getattr(sim, label, None)
@@ -2700,8 +2750,10 @@ class Transporter(object):
 
         if deltaMoles is not None:
 
-            self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p)
-            self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p)
+            self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p,
+                                ignoreECM = self.ignore_ECM_transporter)
+            self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p,
+                               ignoreECM = self.ignore_ECM_transporter)
 
         else:
             deltaC = None
@@ -2736,9 +2788,10 @@ class Transporter(object):
 
 class Channel(object):
 
-    def __init__(self):
+    def __init__(self, sim, cells, p):
 
-        self.dummy_dyna = DummyDyna()
+        self.dummy_dyna = TissueHandler(sim, cells, p)
+        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
 
     def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
 
@@ -2910,11 +2963,12 @@ class Modulator(object):
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                            "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
 
-class DummyDyna(object):
-
-    def __init__(self):
-
-        pass
+# class DummyDyna(object):
+#
+#     def __init__(self,cells, p):
+#
+#         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
+#         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
 
 def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
                     n_i_list, reaction_zone='cell'):
