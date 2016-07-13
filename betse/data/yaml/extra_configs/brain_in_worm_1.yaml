@@ -11,20 +11,20 @@ init file saving:
 
     directory: INITS         # directory to load/save init run
 
-    file: init_1.betse        # filename to load/save init run
+    file: init_biw_1.betse        # filename to load/save init run
 
-    worldfile: world_1.betse      # filename to load/save cell cluster
+    worldfile: world_biw_1.betse      # filename to load/save cell cluster
 
 sim file saving:
 
     directory: SIMS # directory to load/save sim run
 
-    file: sim_1.betse    # filename to load/save sim run
+    file: sim_biw_1.betse    # filename to load/save sim run
 
 results file saving:
 
-    init directory: RESULTS/init_1  # directory to load/save data, plots, and animations for init
-    sim directory: RESULTS/sim_1  # directory to load/save data, plots, and animations for sim
+    init directory: RESULTS/init_biw_1  # directory to load/save data, plots, and animations for init
+    sim directory: RESULTS/sim_biw_1  # directory to load/save data, plots, and animations for sim
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -47,9 +47,9 @@ automatically run initialization: True     # If init file is not found, do you w
 
 sim time settings:
 
-  time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
-  total time: 5.0         # time to end sim run [s]
-  sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
+  time step: 1.0e-4       # time step-size [s] (recommended 1.0e-3 or smaller)
+  total time: 0.200         # time to end sim run [s]
+  sampling rate: 5.0e-4      # period to sample data [s] (at least time step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # GENERAL OPTIONS
@@ -60,7 +60,7 @@ sim time settings:
 
 general options:
 
-  comp grid size: 20         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
+  comp grid size: 50         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
   plot grid size: 50        # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
@@ -109,7 +109,7 @@ general options:
 
 world options:
 
-  world size: 150e-6      # dimension of the square world space [m]
+  world size: 400e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1000e-6 m
 
@@ -124,10 +124,10 @@ world options:
                               # recommended 26.0e-9 m for animal cells
                               # 1.0e-6 for plant cells and animal cells with heavy extracellular matrix
 
-  lattice type: rect           # form of the base lattice (before adding lattice disorder)
+  lattice type: hex           # form of the base lattice (before adding lattice disorder)
                               # options: 'hex' for hegagonal or 'rect' for rectilinear
 
-  lattice disorder: 0.8       # noise level for the lattice
+  lattice disorder: 0.6       # noise level for the lattice
                               # recommended range 0 to 0.8
                               # this randomizes lattice points from the rectangular or
                               # hexagonal base grid. If equal to 0, a perfect
@@ -155,7 +155,7 @@ tissue profile definition:
 
     clipping:     # geometry mask defining shape of global cell cluster
         bitmap:   # bitmap whose coloured pixel area defines this mask
-            file: geo/circle/circle_base.png  # bitmap path relative to config file location;
+            file: geo/ellipse/body.png  # bitmap path relative to config file location;
                                                   # if "None", clipping will be disabled
 
     profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
@@ -183,7 +183,7 @@ tissue profile definition:
 
               bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
 
-                  file: geo/circle/circle_base.png  # Absolute or relative bitmap path
+                  file: geo/ellipse/body.png  # Absolute or relative bitmap path
 
               indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
                                            # otherwise this is ignored. This must be a list of positive integers
@@ -200,7 +200,26 @@ tissue profile definition:
         # cells near the cluster centre.
 
         - type: tissue
-          name: spot
+          name: nerves
+          insular: True
+
+          diffusion constants:
+              Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
+              Dm_K: 15.0e-18    # K+ membrane diffusion constant [m2/s]
+              Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
+              Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
+              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+              Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
+              Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
+
+          cell targets:
+              type: bitmap
+              bitmap: { file: geo/ellipse/nerves.png }
+              indices: [3, 14, 15, 9, 265]
+              random: 50
+
+        - type: tissue
+          name: somatic
           insular: False
 
           diffusion constants:
@@ -214,7 +233,7 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/circle/mini_spot.png }
+              bitmap: { file: geo/ellipse/somatic.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
@@ -222,7 +241,7 @@ tissue profile definition:
         # the cluster boundary.
 
         - type: tissue
-          name: wound
+          name: spot
           insular: False
 
           diffusion constants:
@@ -236,7 +255,7 @@ tissue profile definition:
 
           cell targets:
               type: bitmap
-              bitmap: { file: geo/circle/wedge.png }
+              bitmap: { file: geo/ellipse/thought.png }
               indices: [3, 14, 15, 9, 265]
               random: 50
 
@@ -246,7 +265,7 @@ tissue profile definition:
 
           bitmap:         # bitmap whose coloured pixel area defines the
                           # subset of cells to be removed
-              file: geo/circle/wedge.png
+              file: geo/ellipse/amputation.png
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -257,13 +276,13 @@ tissue profile definition:
 # No file synch issues: Targeted intervention settings can be altered after seed and init.
 
 change Na mem:       # Change the membrane permeability to Na+
-    event happens: True        # turn the event on (True) or off (False)
-    change start: 0.5                # time to start change [s]
-    change finish: 1.0               # time to end change and return to original [s]
-    change rate: 0.1                 # rate of change [s]
-    multiplier: 100.0                # factor to multiply base level
+    event happens: False        # turn the event on (True) or off (False)
+    change start: 2.0e-3                # time to start change [s]
+    change finish: 15.0e-3               # time to end change and return to original [s]
+    change rate: 1.0e-3                 # rate of change [s]
+    multiplier: 500.0                # factor to multiply base level
     modulator function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-    apply to: ['wound']          # name(s) of the tissue profile(s) to apply intervention to
+    apply to: ['spot']          # name(s) of the tissue profile(s) to apply intervention to
 
 change K mem:       # Change the membrane permeability to K+
     event happens: False              # turn the event on (True) or off (False)
@@ -308,10 +327,10 @@ apply external voltage:
 
     event happens: False   # enable (True) or disable (False) this event?
     change start: 0.5     # time [s] at which to begin applying voltage
-    change finish: 1.0    # time [s] at which to cease applying voltage
+    change finish: 1.5    # time [s] at which to cease applying voltage
     change rate: 0.1      # time [s] over which voltage proceeds from background
                           # to peak and from peak to background
-    peak voltage: 0.100   # max voltage [V] applied by this event
+    peak voltage: 0.50   # max voltage [V] applied by this event
 
     positive voltage boundary: top     # env boundary to apply positive voltage
                                        # ("top", "bottom", "left", or "right")
@@ -371,13 +390,13 @@ modulator function properties:   # set properties of modulating functions which 
 
 voltage gated Na+:
     turn on: False                 # voltage gated sodium channel
-    apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
+    apply to: ['spot','nerves']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
                                   # 'NavRat1', 'NaVRat2'
-    max value: 1.0e-8             # maximum channel conductivity when channel fully open [S/m2]
+    max value: 2.0e-5             # maximum channel conductivity when channel fully open [S/m2]
 
 persistent vg Na+:
-    turn on: True                 # voltage gated sodium channel with persistant current
+    turn on: False                 # voltage gated sodium channel with persistant current
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p6']         # available types: 'Nav1p6' (persistent brain)
     max value: 1.0e-8             # maximum channel conductivity when channel fully open [S/m2]
@@ -389,14 +408,14 @@ stretch gated Na+:         # stretch activated depolarization (Na+) channel
 
 voltage gated K+:             # voltage gated potassium channel, delayed rectifyer
     turn on: False
-    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
+    apply to: ['spot','nerves']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['K_Slow']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
                                            # 'K_Slow', 'K_Fast', 'Kv2p1'
-    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 additional voltage gated K+:    # Other types of K+ currents including inward-rectifying
-    turn on: True
-    apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
+    turn on: False
+    apply to: ['somatic', 'nerves', 'spot']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
     max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2]
 
@@ -407,15 +426,15 @@ calcium gated K+:              # calcium gated potassium channel
 
 funny current:                 # "funny current" K+/Na+ channel
     turn on: False
-    apply to: ['all']
+    apply to: ['spot']
     channel type: ['HCN4']         # available types: 'HCN1', 'HCN2' or 'HCN4'
-    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
 
 voltage gated Ca2+:            # voltage gated calcium channel
-    turn on: True
-    apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    channel type: ['Ca_L']        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
-    max value: 1.0e-7        # maximum channel conductivity when channel fully open [S/m2]
+    turn on: False
+    apply to: ['nerves','spot']         # name(s) of the tissue profile(s) to apply it to
+    channel type: ['Ca_PQ']        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
+    max value: 1.0e-8        # maximum channel conductivity when channel fully open [S/m2]
 
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell
@@ -502,16 +521,16 @@ biomolecules enabled: True   # include all following definitions in simulation (
 biomolecules:  # specify the properties of any number of auxillary chemicals
 
   - name: 'Mg'    # Magnesium ion
-    Dm: 1.0e-16          #  membrane diffusion coefficient [m2/s]
+    Dm: 1.0e-14          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: 2               # charge (oxidation state)
     env conc: 0.5        # initial concentration in the environment [mmol/L]
-    cell conc: 0.5         # initial concentration in the cytoplasm [mmol/L]
+    cell conc: 0.2         # initial concentration in the cytoplasm [mmol/L]
     active pumping:                     # use ATP driven pumps to actively move morphogen?
       turn on: True                     # turn pumping on?
       pump to cell: False       # pump from extracellular space to cell (True) or reverse (False)?
-      maximum rate: 1.0e-6              # maximum rate constant of pumping [mol/s]
-      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
+      maximum rate: 6.75e-6              # maximum rate constant of pumping [mol/s]
+      pump Km: 0.5       # Michaelis-Menten coefficient for molecule in pump reaction
       uses ATP: True      # uses ATP or facilitated transport?
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
@@ -526,43 +545,45 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       max val: 2.0               # if autoscale is False, max value to use for plot
       min val: 0.0                    # if autoscale is False, min value to use for plot
 
-  - name: 'Glutamate'    # glutamate ionic amino acid
-    Dm: 1.0e-16          #  membrane diffusion coefficient [m2/s]
+  - name: 'Glutamate'    # Amino acid glutamate
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: -1               # charge (oxidation state)
-    env conc: 0.1        # initial concentration in the environment [mmol/L]
-    cell conc: 0.1         # initial concentration in the cytoplasm [mmol/L]
-#    growth and decay:
-#      production rate: 0.5    # maximum rate at which molecule is produced in the cytoplasm
-#      decay rate: 1.0          # maximum rate at which molecule is degraded in the cytoplasm
-#      Km: 1.0                  # Half-maximum value for decay [mmol/L]
-#      n: 1.0                   # Hill exponent for decay
-#      activators: None         # list of defined substances or simulation ions activating expression
-#      Km activators: None      # list of half-maximum values for activators
-#      k activators: None       # list of kinetic parameters of activators
-#      n activators: None       # list of Hill exponent of activators
-#      inhibitors: None   # list of defined substances or simulation ions inhibiting expression
-#      Km inhibitors: None      # list of half-maximum values for inhibitors
-#      k inhibitors: None      # list of kinetic parameters of inhibitors
-#      n inhibitors: None        # list of Hill exponent of inhibitors
-#    active pumping:                     # use ATP driven pumps to actively move morphogen?
-#      turn on: True                     # turn pumping on?
-#      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
-#      maximum rate: 1.0e-7              # maximum rate constant of pumping [mol/s]
-#      pump Km: 1.0       # Michaelis-Menten coefficient for molecule in pump reaction
-#      uses ATP: True      # uses ATP or facilitated transport?
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0         # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False
+    growth and decay:
+      production rate: 0.1    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 0.1          # maximum rate at which molecule is degraded in the cytoplasm
+      Km: 0.5                  # Half-maximum value for decay [mmol/L]
+      n: 1.0                   # Hill exponent for decay
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      k activators: None       # list of kinetic parameters of activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: None   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: None      # list of half-maximum values for inhibitors
+      k inhibitors: None      # list of kinetic parameters of inhibitors
+      n inhibitors: None        # list of Hill exponent of inhibitors
+#      apply to: ['nerves', 'spot']      # apply production only to certain profiles?
+    active pumping:                     # use ATP driven pumps to actively move morphogen?
+      turn on: True                     # turn pumping on?
+      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-6              # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-2       # Michaelis-Menten coefficient for molecule in pump reaction
+      uses ATP: True      # uses ATP or facilitated transport?
 #    ion channel gating:
-#      ion channel target: ['Na','Ca']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
-#      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
-#      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
+#      ion channel target: ['Na','K','Ca']   # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+#      target Hill coefficient: 0.003   # half-max value for channel opening with respect to concentration
+#      target Hill exponent: 3.0         # Hill exponent; affects shape of opening-vs-concentration curve
 #      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
 #      acts extracellularly: True        # acts via extracellular (True) or intracellular (False) concentration?
 #      activators: None         # list of defined substances or simulation ions activating expression
 #      Km activators: None      # list of half-maximum values for activators
 #      n activators: None       # list of Hill exponent of activators
 #      inhibitors: ['Mg']   # list of defined substances or simulation ions inhibiting expression
-#      Km inhibitors: [10.0e-6]      # list of half-maximum values for inhibitors
-#      n inhibitors: [5.0]        # list of Hill exponent of inhibitors
+#      Km inhibitors: [0.25]      # list of half-maximum values for inhibitors
+#      n inhibitors: [3.0]        # list of Hill exponent of inhibitors
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
       change start: 1.0          # time to start change [s]
@@ -575,6 +596,61 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       autoscale colorbar: True      # autoscale the min-max values of the colorbar?
       max val: 2.0               # if autoscale is False, max value to use for plot
       min val: 0.0                    # if autoscale is False, min value to use for plot
+
+
+  - name: 'Serotonin'    # neurotransmitter serotonin
+    Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
+    Do: 1.0e-9          # free diffusion constant in extra and intracellular spaces [m2/s]
+    z: 2               # charge (oxidation state)
+    env conc: 0.0        # initial concentration in the environment [mmol/L]
+    cell conc: 0.0         # initial concentration in the cytoplasm [mmol/L]
+    TJ permeable: False
+    growth and decay:
+      production rate: 0.1    # maximum rate at which molecule is produced in the cytoplasm
+      decay rate: 0.1          # maximum rate at which molecule is degraded in the cytoplasm
+      Km: 0.5                  # Half-maximum value for decay [mmol/L]
+      n: 1.0                   # Hill exponent for decay
+      activators: None         # list of defined substances or simulation ions activating expression
+      Km activators: None      # list of half-maximum values for activators
+      k activators: None       # list of kinetic parameters of activators
+      n activators: None       # list of Hill exponent of activators
+      inhibitors: None   # list of defined substances or simulation ions inhibiting expression
+      Km inhibitors: None      # list of half-maximum values for inhibitors
+      k inhibitors: None      # list of kinetic parameters of inhibitors
+      n inhibitors: None        # list of Hill exponent of inhibitors
+#      apply to: ['nerves', 'spot']      # apply production only to certain profiles?
+    active pumping:                     # use ATP driven pumps to actively move morphogen?
+      turn on: True                     # turn pumping on?
+      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-6              # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-2       # Michaelis-Menten coefficient for molecule in pump reaction
+      uses ATP: True      # uses ATP or facilitated transport?
+#    ion channel gating:
+#      ion channel target: ['Na','K','Ca']   # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+#      target Hill coefficient: 0.003   # half-max value for channel opening with respect to concentration
+#      target Hill exponent: 3.0         # Hill exponent; affects shape of opening-vs-concentration curve
+#      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
+#      acts extracellularly: True        # acts via extracellular (True) or intracellular (False) concentration?
+#      activators: None         # list of defined substances or simulation ions activating expression
+#      Km activators: None      # list of half-maximum values for activators
+#      n activators: None       # list of Hill exponent of activators
+#      inhibitors: ['Mg']   # list of defined substances or simulation ions inhibiting expression
+#      Km inhibitors: [0.25]      # list of half-maximum values for inhibitors
+#      n inhibitors: [3.0]        # list of Hill exponent of inhibitors
+    change at bounds:      # Change the environmental concentration of molecule from the global boundary
+      event happens: False     # turn the event on (True) or off (False)
+      change start: 1.0          # time to start change [s]
+      change finish: 7.0        # time to end change and return to original [s]
+      change rate: 1.0           # rate of change [s]
+      concentration: 1e-3      # target concentration for duration of change [mmol/L]
+    plotting:
+      plot 2D: True         # create a unique set of plots for the substance
+      animate: True         # animate the substance during the sampled time-steps of the simulation
+      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+      max val: 2.0               # if autoscale is False, max value to use for plot
+      min val: 0.0                    # if autoscale is False, min value to use for plot
+
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHEMICAL REACTIONS
@@ -589,43 +665,43 @@ transporters enabled: False
 
 transporters:
 
-  - name: GLUT-Na         # Na+ coupled glutamate transporter
+  - name: GLUT-synapse         # Ca2+ activated glutimate synapse
 
-    reactants: ['Glutamate', 'Na']   # list of reagents; must be from set of names defined for biomolecules in above
-    reactant multipliers: [1, 2]  # reaction coefficients for reagents, in same order as reagent definition
-    Km reactants: [0.2, 1.0]   # list of half-max coefficients for reagents, in same order as reagents list
-    products: ['Glutamate', 'Na']         # list of products; must be from set of names defined for biomolecules in above
-    product multipliers: [1, 2]   # reaction coefficients for products, in same order as product definition
-    Km products: [1.0, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
-    transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
-    transfered into cell: ['Glutamate', 'Na']     # items of reaction moved into cell during forwards reaction
-    max rate: 0.1          # maximum rate of transport [mol/(m2*s)]
+    reactants: ['Glutamate']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [1.0e-3]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Glutamate']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: ['Glutamate']   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: []     # items of reaction moved into cell during forwards reaction
+    max rate: 10.0          # maximum rate of transport [mol/(m2*s)]
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-    transporter activators: None   # additional defined substances or ions increasing activity of transporter
-    activator Km: None
-    activator n: None
+    transporter activators: ['Ca']   # additional defined substances or ions increasing activity of transporter
+    activator Km: [1.0e-3]
+    activator n: [3.0]
     transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
     inhibitor n: None
 
-#  - name: Mg-trans         # unique identifier for the transporter
-#
-#    reactants: ['Mg','Na']   # list of reagents; must be from set of names defined for biomolecules in above
-#    reactant multipliers: [1, 2]  # reaction coefficients for reagents, in same order as reagent definition
-#    Km reactants: [1.0e-3, 1.0]   # list of half-max coefficients for reagents, in same order as reagents list
-#    products: ['Mg', 'Na']         # list of products; must be from set of names defined for biomolecules in above
-#    product multipliers: [1, 2]   # reaction coefficients for products, in same order as product definition
-#    Km products: [1.0, 1.0]        # list of half-max coefficients for reagents, in same order as reagents list
-#    transfered out of cell: ['Mg']   # items of reaction moved out of cell during forwards reaction
-#    transfered into cell: ['Na']     # items of reaction moved into cell during forwards reaction
-#    max rate: 0.01          # maximum rate of transport [mol/(m2*s)]
-#    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-#    transporter activators: None   # additional defined substances or ions increasing activity of transporter
-#    activator Km: None
-#    activator n: None
-#    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
-#    inhibitor Km: None
-#    inhibitor n: None
+  - name: 5HT-synapse         # Ca2+ activated serotonin synapse
+
+    reactants: ['Serotonin']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
+    Km reactants: [1.0e-3]   # list of half-max coefficients for reagents, in same order as reagents list
+    products: ['Serotonin']         # list of products; must be from set of names defined for biomolecules in above
+    product multipliers: [1]   # reaction coefficients for products, in same order as product definition
+    Km products: [1.0]        # list of half-max coefficients for reagents, in same order as reagents list
+    transfered out of cell: ['Serotonin']   # items of reaction moved out of cell during forwards reaction
+    transfered into cell: []     # items of reaction moved into cell during forwards reaction
+    max rate: 10.0          # maximum rate of transport [mol/(m2*s)]
+    standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
+    transporter activators: ['Ca']   # additional defined substances or ions increasing activity of transporter
+    activator Km: [1.0e-3]
+    activator n: [3.0]
+    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    inhibitor Km: None
+    inhibitor n: None
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM CHANNELS
@@ -678,7 +754,7 @@ variable settings:
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
       Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+      Dm_Cl: 10.0e-18       # Cl- membrane diffusion constant [m2/s]
       Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
       Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -701,7 +777,9 @@ variable settings:
     Na/Ca exchanger: False  # include a sodium/calcium exchanger?
                             # only works for an ion profile with Ca2+ ions (animal or basic_Ca)
 
-    Na/K/Cl cotrans: False   # include a sodium/potassium/chloride co-transporter?
+    Na/K/Cl cotrans: True   # include a sodium/potassium/chloride co-transporter?
+
+    Cl/K symporter: False    # include a chloride/potassium symporter?
 
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
@@ -757,7 +835,7 @@ variable settings:
 
     gj voltage window: 15    # steepness of gating function (not currently used)
 
-    gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
+    gj minimum: 0.05      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
 
 
   environmental boundary: # set conditions for the global (environmental) boundary
@@ -768,10 +846,10 @@ variable settings:
                             # otherwise this is ignored.
 
 
-  tight junction scaling: 1.0   # factor by which tight junctions scale
+  tight junction scaling: 1.0e-2   # factor by which tight junctions scale
                                    # free-diffusion
 
-  tight junction relative diffusion:  # relative values for tight junction ion
+  tight junction relative diffusion:  # relative values for tight junction ion 
                                       # permeability
     Na:  1
     K: 1
@@ -822,7 +900,7 @@ results options:
                                        # pngs) to the results directory
                                        # options True or False (case sensitive)
 
-    create all animations: True     # Display and/or save post-simulation
+    create all animations: False     # Display and/or save post-simulation
                                     # animations (True) or not (False)? If
                                     # "True", only animations explicitly
                                     # enabled below are displayed and/or saved.
@@ -830,7 +908,7 @@ results options:
 
     save animations:        # Post-simulation animation saving options.
       frames:
-        enabled: True       # Save each animation as a series of frame images?
+        enabled: False       # Save each animation as a series of frame images?
         filetype: png       # image filetype
         dpi: 300            # image dots per inch (DPI)
 
@@ -856,7 +934,7 @@ results options:
                                    # options True or False (case sensitive)
                                    # warning should not be used for world sizes over 200 um.
 
-    plot cell index: 43              # State the cell index to use for single-cell time plots
+    plot cell index: 51              # State the cell index to use for single-cell time plots
                                     # the index of cells can be seen using enumerate cells feature.
 
     plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
@@ -869,80 +947,80 @@ results options:
                                     # Note if working with a large cluster (>500 um) do not
                                     # show cells (set to False) as it will plot very slowly.
                                     # options True or False (case sensitive)
-
+  
     overlay currents: False         # overlay electric current or concentration
                                     # flux streamlines on 2D plotted data?
-
+  
     streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
-
+  
     plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
                                     # total current if true, plot gap junction current if false
-
+  
     plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
-
+  
     plot masked geometry: True      # plot the geometry using the overall shape as a mask
-
+  
     Vmem 2D:
       plot Vmem: True              # 2d plot of final vmem ?
       autoscale colorbar: True    # autoscale colorbar to min max of data set?
       max val: 10.0                # maximum colorbar value in mV
       min val: -70.0               # minimum colorbar value in mV
-
+  
     Ca 2D:
       plot Ca: True                # 2d plot of final cell calcium (if Ca2+ present in ion profile)?
       autoscale colorbar: True    # autoscale colorbar to min max of data set?
       max val: 1000                 # maximum colorbar value in nmol/L
       min val: 0                    # minimum colorbar value in nmol/L
-
+  
     pH 2D:
       plot pH: True                # 2d plot of final pH (if H+ present in ion profile) ?
       autoscale colorbar: True    # autoscale colorbar to min max of data set?
       max val: 8                 # maximum colorbar value in pH units
       min val: 6                    # minimum colorbar value pH units
-
+  
     Vcell 2D:
       plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
       autoscale colorbar: True       # autoscale colorbar to min max of data set?
       max val: 10                    # maximum colorbar value in mV
       min val: -70                   # minimum colorbar value in mV
-
+  
     Venv 2D:
       plot Venv: True                # 2d plot of voltage in environmental spaces of the collective?
       autoscale colorbar: True       # autoscale colorbar to min max of data set?
       max val: 10                    # maximum colorbar value in mV
       min val: -70                   # minimum colorbar value in mV
-
+  
     Charge 2D:
       plot Charge: True                # 2d plot of net ionic charge in collective?
       autoscale colorbar: True       # autoscale colorbar to min max of data set?
       max val: 10                    # maximum colorbar value in mV
       min val: -70                   # minimum colorbar value in mV
-
+  
     Efield 2D:
       plot Efield: True              # 2d plot of electric field
       autoscale colorbar: True        # autoscale colorbar to min max of data set?
       max val: 900                   # maximum colorbar value in V/m
       min val: 0                      # maximum colorbar value in V/m
-
+  
     Currents 2D:
       plot Currents: True               # 2d plot of net current flow in the collective?
       autoscale colorbar: True          # autoscale colorbar to min max of data set?
       max val: 150                    # maximum colorbar value [pA]
       min val: 0                        # minimum colorbar value [A]
       colormap: coolwarm                    # colorbar for the currents
-
+  
     Pressure 2D:                      # 2D plot of pressure in the cluster
       plot Pressure: True
       autoscale colorbar: True
       max val: 15
       min val: -15
-
+  
     Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
       plot Osmotic Pressure: True
       autoscale colorbar: True
       max val: 15
       min val: -15
-
+  
     Velocity 2D:
       plot Velocity: True          # 2D plot of the velocity of electrostatic
                                    # fluid in the cell cluster? Ignored unless
@@ -951,7 +1029,7 @@ results options:
       autoscale colorbar: True
       max val: 15
       min val: -15
-
+  
     Electrostatic 2D:                      # 2D plot of electrostatic force in the cluster
       plot Electrostatic: True
       autoscale colorbar: True
@@ -973,19 +1051,19 @@ results options:
         min val: 0                   # minimum colorbar vlue in nmol/L
 
     pH Ani:
-        animate pH: True           # 2d animation of cell pH with time ?
+        animate pH: False           # 2d animation of cell pH with time ?
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 8               # maximum colorbar value in nmol/L
         min val: 6                   # minimum colorbar vlue in nmol/L
 
     Vmem GJ Ani:
-        animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+        animate Vmem with gj: False   # 2d animation of vmem with superimposed gj network showing current direction
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 50.0                # maximum colorbar value in mV
         min val: -70.0               # minimum colorbar value in mV
-
+  
     Vcell Ani:
-        animate Vcell: True          # Plot a 2D animation of voltage in cells?
+        animate Vcell: False          # Plot a 2D animation of voltage in cells?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
@@ -995,33 +1073,33 @@ results options:
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
-
+  
     P cell Ani:
         animate P cell: False         # Plot a 2D animation of electroosmotic
                                      # pressure in individual cells?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
-
+  
     Osmotic P Ani:
         animate Osmotic P: False      # Plot a 2D animation of osmotic pressure
                                      # difference in individual cells?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
-
+  
     Force Ani:
         animate force: False         # 2d animation of body forces in individual cells of the collective?
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 100                  # maximum colorbar value in N/m3
         min val: 0                 # minimum colorbar value in N/m3
-
+  
     Current Ani:
         animate current: False       # 2d animation of current in individual cells of the collective?
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 150                # maximum colorbar value [pA]
         min val: 0                  # minimum colorbar value [pA]
-
+  
     Membrane Ani:
         animate Membrane: False      # Plot a 2D animation of membrane pump
                                     # motion in the cell cluster? Ignored
@@ -1030,13 +1108,13 @@ results options:
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 1                # maximum colorbar value [pA]
         min val: 0                  # minimum colorbar value [pA]
-
+  
     Efield Ani:
         animate Efield: False        # 2d animation of electric field in extracellullar matrix
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 1500               # max colorbar value [V/m]
         min val: 0                  # min colorbar value [V/m]
-
+  
     Velocity Ani:
         animate Velocity: False      # Plot a 2D animation of the velocity of
                                     # fluid in the cell cluster? Ignored unless
@@ -1056,20 +1134,20 @@ results options:
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 10                 # max colorbar value [um] when autoscale is False
         min val: 0                  # min colorbar value [um] when autoscale is False
-
+  
     default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
                                  # options include
                                  # coolwarm, hot, rainbow, jet, Blues, Greens, bone
                                  # to reverse a colormap add _r to the name (e.g. cm.jet_r)
                                  # for all options please see
                                  # http://matplotlib.org/examples/color/colormaps_reference.html
-
+  
     background colormap: Blues     # Specify colormap to be used for data with vector overlays and 0 --> + data,
                                       # including:
                                       # currents, flow, electric field and deformation.
-
+  
     gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
-
+  
     vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
                                    # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
 
@@ -1111,27 +1189,37 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  2.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
+  alpha_NaK:  5.0e-6   # max  rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
-  alpha_Ca:  1.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  5.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  alpha_HK:  1.0e-7    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  alpha_HK:  1.0e-6    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 
   alpha_V:  1.0e-7     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
 
-  alpha_NaCa: 1.0e-7    # rate of Na/Ca exchanger [m/mol*s]
+  alpha_NaCa: 1.0e-6    # rate of Na/Ca exchanger [m/mol*s]
 
-  alpha_NaKCl: 1.0e-5
+  alpha_NaKCl: 1.0e-6    # rate of Na-K-Cl cotransporter [m/mol*s]
+
+  alpha_ClK: 1.0e-6     # rate of Cl/K symporter [m/mol*s]
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
   gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0 to 2.
+
+  smooth concentrations: True   # apply gaussian smoothing to substance concentration?
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
   electrolyte screening factor: 0.02 # ~0.02 to 0.1 electrolyte double layer screening & self-capacitances [F/m2] 0.86
 
   media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
+
+  field modulation factor: 1.0e-1    # factor to decrease electrophoretic component of ion mobility
+
+  substances affect Vmem: True  # do ionic biochemicals, metabolites and gene products affect charge state?
+
+
 
 
 

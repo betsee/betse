@@ -120,8 +120,11 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     if p.plot_single_cell_graphs is True:
         # Plot cell sodium concentration versus time.
+
+        mem_i = cells.cell_to_mems[p.plot_cell][0]
+
         figConcsNa, axConcsNa = viz.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iNa, p.plot_cell, fig=None,
+            sim.cc_time, sim.time, sim.iNa, mem_i, fig=None,
             ax=None, lncolor='g', ionname='Na+')
 
         titNa = 'Sodium concentration in cell ' + str(p.plot_cell)
@@ -136,7 +139,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         # Plot cell potassium concentration versus time.
         figConcsK, axConcsK = viz.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iK, p.plot_cell, fig=None,
+            sim.cc_time, sim.time, sim.iK, mem_i, fig=None,
             ax=None, lncolor='b', ionname='K+')
 
         titK = 'Potassium concentration in cell ' + str(p.plot_cell)
@@ -152,7 +155,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         # plot-cell anion (bicarbonate) concentration vs time:
 
         figConcsM, axConcsM = viz.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iM, p.plot_cell,
+            sim.cc_time, sim.time, sim.iM, mem_i,
             fig=None,
             ax=None,
             lncolor='r',
@@ -278,7 +281,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         # Plot cell calcium vs time (if Ca enabled in ion profiles).
         if p.ions_dict['Ca'] ==1:
             figA, axA = viz.plotSingleCellCData(
-                sim.cc_time, sim.time, sim.iCa, p.plot_cell,
+                sim.cc_time, sim.time, sim.iCa, mem_i,
                 fig=None,
                 ax=None,
                 lncolor='g',

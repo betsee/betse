@@ -1000,9 +1000,9 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 15.0
+            self.cNa_cell = 8.0
             self.cK_cell = 125.0
-            self.cP_cell = 110.0
+            self.cP_cell = 100.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cP_cell]
 
@@ -1035,10 +1035,10 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 15.0
+            self.cNa_cell = 8.0
             self.cK_cell = 125.0
             self.cCa_cell = 1.0e-3
-            self.cP_cell = 110.0
+            self.cP_cell = 100.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
 
@@ -1076,12 +1076,12 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 15.0
+            self.cNa_cell = 8.0
             self.cK_cell = 125.0
             self.cCl_cell = 20.0
             self.cCa_cell = 1.0e-3
             self.cH_cell = 3.98e-5
-            self.cP_cell = 110.0
+            self.cP_cell = 100.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
