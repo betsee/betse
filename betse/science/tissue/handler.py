@@ -653,8 +653,6 @@ class TissueHandler(object):
 
             sim.Dm_scheduled[sim.iNa][self.targets_Namem] = self.mem_mult_Namem*effector_Na*p.Dm_Na
 
-
-
         if p.scheduled_options['K_mem'] != 0:
             effector_K = self.scalar_Kmem*self.dyna_Kmem(t)*\
                          tb.pulse(t,self.t_on_Kmem,self.t_off_Kmem,self.t_change_Kmem)
