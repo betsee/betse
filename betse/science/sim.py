@@ -901,6 +901,9 @@ class Simulator(object):
                         #update concentrations in the extracellular spaces:
                         self.update_ecm(cells, p, t, i)
 
+                    # ensure no negative concentrations:
+                    stb.no_negs(self.cc_mems[i])
+
                 # recalculate the net, unbalanced charge and voltage in each cell:
                     self.update_V(cells, p)
 
@@ -1069,6 +1072,7 @@ class Simulator(object):
                         timeDeform(self,cells, t, p)
 
                 stb.check_v(self.vm)
+
 
                 # ---------time sampling and data storage---------------------------------------------------
                 if t in tsamples:

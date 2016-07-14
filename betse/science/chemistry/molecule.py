@@ -453,12 +453,15 @@ class MasterOfMolecules(object):
             obj.channel_class = chan_dic['channel class']
             obj.channel_type = chan_dic['channel type']
             obj.channelMax = chan_dic['max conductivity']
+            obj.channel_profiles_list = chan_dic['apply to']
+
             obj.channel_activators_list = chan_dic.get('channel activators', None)
             obj.channel_activators_Km = chan_dic.get('activator Km', None)
             obj.channel_activators_n = chan_dic.get('activator n', None)
             obj.channel_inhibitors_list = chan_dic.get('channel inhibitors', None)
             obj.channel_inhibitors_Km = chan_dic.get('inhibitor Km', None)
             obj.channel_inhibitors_n = chan_dic.get('inhibitor n', None)
+
 
             obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
@@ -1495,7 +1498,7 @@ class Molecule(object):
                 self.growth_targets_cell.extend(targets_cell)
 
                 targets_mem = self.dummy_dyna.tissue_target_inds[profile]
-                self.growth_targets_mem.append(targets_mem)
+                self.growth_targets_mem.extend(targets_mem)
 
 
         elif self.growth_profiles_list is None or self.growth_profiles_list == 'all':
@@ -2842,40 +2845,57 @@ class Channel(object):
 
     def init_channel(self, ion_string, type_string, max_val, sim, cells, p):
 
+        # get targets for the reaction
+        if self.channel_profiles_list is not None and self.channel_profiles_list != 'all':
+
+            self.channel_targets_mem = []
+
+            for profile in self.channel_profiles_list:
+
+                targets_mem = self.dummy_dyna.tissue_target_inds[profile]
+                self.channel_targets_mem.extend(targets_mem)
+
+            self.channel_targets_mem = np.asarray(self.channel_targets_mem)
+
+        elif self.channel_profiles_list is None or self.channel_profiles_list == 'all':
+
+            self.channel_targets_mem = np.asarray(cells.mem_i)
+
+
         if ion_string == 'Na':
 
             self.dummy_dyna.maxDmNa = max_val
-            self.dummy_dyna.targets_vgNa = np.asarray(cells.mem_i)
+            self.dummy_dyna.targets_vgNa = self.channel_targets_mem
             class_string = vgna
 
         elif ion_string == 'NaP':
 
             self.dummy_dyna.maxDmNaP = max_val
-            self.dummy_dyna.targets_vgNaP = np.asarray(cells.mem_i)
+            self.dummy_dyna.targets_vgNaP = self.channel_targets_mem
             class_string = vgnap
 
         elif ion_string == 'K':
 
             self.dummy_dyna.maxDmK = max_val
-            self.dummy_dyna.targets_vgK = np.asarray(cells.mem_i)
+            self.dummy_dyna.targets_vgK = self.channel_targets_mem
             class_string = vgk
 
         elif ion_string == 'Kir':
 
             self.dummy_dyna.maxDmKir = max_val
-            self.dummy_dyna.targets_vgKir = np.asarray(cells.mem_i)
+            self.dummy_dyna.targets_vgKir = self.channel_targets_mem
             class_string = vgkir
 
         elif ion_string == 'Ca':
 
             self.dummy_dyna.maxDmCa = max_val
-            self.dummy_dyna.targets_vgCa = np.asarray(cells.mem_i)
+            self.dummy_dyna.targets_vgCa = self.channel_targets_mem
             class_string = vgca
 
         elif ion_string == 'Fun':
 
             self.dummy_dyna.maxDmFun = max_val
-            self.dummy_dyna.targets_vgFun = np.asarray(cells.mem_i)
+            self.dummy_dyna.targets_vgFun = self.channel_targets_mem
             class_string = vgfun
 
         else:
