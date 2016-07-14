@@ -161,10 +161,10 @@ class MasterOfMolecules(object):
 
             obj.ignore_ECM_pump = mol_dic['ignore ECM']
 
-            obj.ignoreTJ = mol_dic.get('TJ permeable', False)  # ignore TJ?
-            obj.ignoreGJ = mol_dic.get('GJ impermeable',False) # ignore GJ?
+            obj.ignoreTJ = mol_dic['TJ permeable']  # ignore TJ?
+            obj.ignoreGJ = mol_dic['GJ impermeable'] # ignore GJ?
 
-            obj.TJ_factor = float(mol_dic.get('TJ factor', 1.0))
+            obj.TJ_factor = float(mol_dic['TJ factor'])
 
             # factors involving auto-catalytic growth and decay in the cytoplasm
             gad = mol_dic.get('growth and decay', None)
@@ -178,7 +178,7 @@ class MasterOfMolecules(object):
                 obj.Kgd = gad['Km']
                 obj.n_production = gad['n']
 
-                obj.growth_profiles_list = gad.get('apply to', None)
+                obj.growth_profiles_list = gad['apply to']
 
                 obj.growth_activators_list = gad.get('activators', None)
                 obj.growth_activators_k = gad.get('k activators', None)
@@ -308,7 +308,7 @@ class MasterOfMolecules(object):
             obj.name = name  # let object know who it is
 
             # list where the reaction takes place; if field not specified default to 'cell':
-            obj.reaction_zone = react_dic.get('reaction zone', 'cell')
+            obj.reaction_zone = react_dic['reaction zone']
 
             # set the main fields of the reaction object
             obj.reactants_list = react_dic['reactants']
@@ -380,7 +380,7 @@ class MasterOfMolecules(object):
             obj.name = name  # let object know who it is
 
             # list where the reaction takes place; if field not specified default to 'cell':
-            obj.reaction_zone = trans_dic.get('reaction zone', 'cell')
+            obj.reaction_zone = trans_dic['reaction zone']
 
             # set the main fields of the reaction object
             obj.reactants_list = trans_dic['reactants']
@@ -400,7 +400,7 @@ class MasterOfMolecules(object):
             obj.delta_Go = trans_dic['standard free energy']
             obj.ignore_ECM_transporter = trans_dic['ignore ECM']
 
-            obj.transporter_profiles_list = trans_dic.get('apply to', None)
+            obj.transporter_profiles_list = trans_dic['apply to']
             obj.init_reaction(cells, p)
 
             if obj.delta_Go == 'None':
@@ -448,7 +448,7 @@ class MasterOfMolecules(object):
             obj.name = name  # let object know who it is
 
             # list where the reaction takes place; if field not specified default to 'cell':
-            obj.reaction_zone = chan_dic.get('reaction zone', 'cell')
+            obj.reaction_zone = 'cell'
 
             obj.channel_class = chan_dic['channel class']
             obj.channel_type = chan_dic['channel type']

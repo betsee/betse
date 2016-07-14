@@ -133,7 +133,7 @@ class Parameters(object):
         self.cell_space = float(self.config['world options']['cell spacing'])  # the true cell-cell spacing
         self.nl = float(self.config['world options']['lattice disorder'])  # noise level for the lattice
 
-        volmult = self.config['internal parameters'].get('environment volume multiplier',1)
+        volmult = float(self.config['internal parameters']['environment volume multiplier'])
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height  # environmental volume for "no ECM" simulation
 
@@ -540,7 +540,7 @@ class Parameters(object):
         # mechanical deformation ----------------------------------------------------------
         self.deformation = self.config['variable settings']['deformation']['turn on']
 
-        self.galvanotropism = float(self.config['variable settings']['deformation'].get('galvanotropism',0.1))
+        self.galvanotropism = float(self.config['variable settings']['deformation']['galvanotropism'])
         self.td_deform = self.config['variable settings']['deformation']['time dependent deformation']
         self.fixed_cluster_bound = self.config['variable settings']['deformation']['fixed cluster boundary']
         self.youngMod = float(self.config['variable settings']['deformation']['young modulus'])
@@ -565,7 +565,7 @@ class Parameters(object):
         self.gj_flux_sensitive = False
         self.gj_vthresh = float(self.config['variable settings']['gap junctions']['gj voltage threshold'])
         self.gj_vgrad  = float(self.config['variable settings']['gap junctions']['gj voltage window'])
-        self.gj_min = float(self.config['variable settings']['gap junctions'].get('gj minimum',0.04))
+        self.gj_min = float(self.config['variable settings']['gap junctions']['gj minimum'])
         self.gj_respond_flow = False # (feature currently unsupported)
         self.v_sensitive_gj = self.config['variable settings']['gap junctions']['voltage sensitive gj']
 
@@ -605,10 +605,10 @@ class Parameters(object):
         self.NaCa_exch_dyn = self.config['variable settings']['optional pumps']['Na/Ca exchanger']
 
         # include a Na-K-Cl cotransporter?
-        self.NaKCl_exch_dyn = self.config['variable settings']['optional pumps'].get('Na/K/Cl cotrans', False)
+        self.NaKCl_exch_dyn = self.config['variable settings']['optional pumps']['Na/K/Cl cotrans']
 
         # include a Cl-K symporter?
-        self.ClK_symp_dyn = self.config['variable settings']['optional pumps'].get('Cl/K symporter', False)
+        self.ClK_symp_dyn = self.config['variable settings']['optional pumps']['Cl/K symporter']
 
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
@@ -838,7 +838,7 @@ class Parameters(object):
 
         self.exportData = ro['export data to file']     # export all stored data for the plot_cell to a csv text file
 
-        self.exportData2D = ro.get('export 2D data to file', False)
+        self.exportData2D = ro['export 2D data to file']
 
         self.clip = 20e-6
 
@@ -852,7 +852,7 @@ class Parameters(object):
 
         self.smooth_level = float(iu['gaussian smoothing'])
 
-        self.smooth_concs = iu.get('smooth concentrations', True)
+        self.smooth_concs = iu['smooth concentrations']
 
         # self.env_delay_const = float(iu['environmental delay factor'])
         # self.cell_delay_const = float(iu['cytosolic delay factor'])
@@ -861,9 +861,9 @@ class Parameters(object):
 
         self.electrolyte_screening = float(iu['electrolyte screening factor'])
 
-        self.field_modulation = float(iu.get('field modulation factor', 0.05))
+        self.field_modulation = float(iu['field modulation factor'])
 
-        self.substances_affect_charge = iu.get('substances affect Vmem', False)
+        self.substances_affect_charge = iu['substances affect Vmem']
 
          # default free diffusion constants (cytoplasmic)
         self.Do_Na = float(iu['Do_Na'])      # free diffusion constant sodium [m2/s]
@@ -909,19 +909,19 @@ class Parameters(object):
         self.KmV_H = 1.0e-5    # V-ATPase half-max sat value for H
 
         # FIXME add this to config (Na-Ca exchanger parameters)
-        self.alpha_NaCaExch = float(iu.get('alpha_NaCa', 1.0e-6))
+        self.alpha_NaCaExch = float(iu['alpha_NaCa'])
         self.KmNC_Na = 5.0
         self.KmNC_Ca = 1.0e-3
 
         # FIXME add to config (Na-K-Cl cotransporter parameters)
-        self.alpha_NaKCl = float(iu.get('alpha_NaKCl', 1.0e-5))
+        self.alpha_NaKCl = float(iu['alpha_NaKCl'])
         self.KmNaKCl_Na = 1.0
         self.KmNaKCl_K = 0.2
         self.KmNaKCl_Cl = 1.0
 
         # FIXME add to config (Cl-K symporter parameters)
 
-        self.alpha_ClK = float(iu.get('alpha_ClK', 1.0e-4))
+        self.alpha_ClK = float(iu['alpha_ClK'])
         self.KmClK_K = 1.0
         self.KmClK_Cl = 1.0
 

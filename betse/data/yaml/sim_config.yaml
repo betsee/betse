@@ -1088,6 +1088,8 @@ internal parameters:
 
   electrolyte screening factor: 0.02 # ~0.02 to 0.1 electrolyte double layer screening & self-capacitances [F/m2] 0.86
 
+  field modulation factor: 1.0e-1    # factor to decrease electrophoretic component of ion mobility
+
   media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
 
 

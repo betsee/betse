@@ -37,13 +37,13 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     GJ impermeable: False
     TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
     ignore ECM: True
+
     growth and decay:
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
       Km: 1.0                  # Half-maximum value for decay [mmol/L]
       n: 1.0                   # Hill exponent for decay
       apply to: ['spot']       # apply growth only to a specific tissue profile, or 'all' for everything
-
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
       k activators: None       # list of kinetic parameters of activators
@@ -53,6 +53,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       k inhibitors: [1.0]      # list of kinetic parameters of inhibitors
       n inhibitors: [3.0]        # list of Hill exponent of inhibitors
       apply to: ['nerves', 'spot']      # apply production only to certain profiles?
+
     ion channel gating:
       ion channel target: ['Na','K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
@@ -65,18 +66,21 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       inhibitors: None   # list of defined substances or simulation ions inhibiting expression
       Km inhibitors: None      # list of half-maximum values for inhibitors
       n inhibitors: None        # list of Hill exponent of inhibitors
+
     active pumping:                     # use ATP driven pumps to actively move morphogen?
       turn on: False                     # turn pumping on?
       pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
       maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
       pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
       uses ATP: False      # uses ATP or facilitated transport?
+
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
       change start: 1.0          # time to start change [s]
       change finish: 7.0        # time to end change and return to original [s]
       change rate: 1.0           # rate of change [s]
       concentration: 1e-3      # target concentration for duration of change [mmol/L]
+
     plotting:
       plot 2D: True         # create a unique set of plots for the substance
       animate: True         # animate the substance during the sampled time-steps of the simulation
@@ -121,6 +125,7 @@ transporters:
 
   - name: MCT         # unique identifier for the transporter
 
+    reaction zone: cell    # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['Pyr']   # list of reagents; must be from set of names defined for biomolecules in above
     reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
     Km reactants: [0.1]   # list of half-max coefficients for reagents, in same order as reagents list
