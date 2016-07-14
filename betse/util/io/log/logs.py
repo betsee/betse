@@ -167,9 +167,16 @@ def log_exception(exception: Exception) -> None:
         # Traceback object for this exception.
         _, _, exc_traceback = sys.exc_info()
 
+        #FIXME: The private traceback._iter_chain() function has been removed by
+        #Python 3.5. The canonical solution appears to be... wait for it,
+        #
+        #* Copying the latest Python 3.4 definition of traceback._iter_chain()
+        #  into a new _iter_chain() function.
+        #* Call our _iter_chain() copy *ONLY* if traceback._iter_chain() is
+        #  unavailable.
+
         # List of 2-tuples "(exception, traceback)" for all parent
-        # exceptions of this exception *AND* this exception (in order),
-        # where:
+        # exceptions of this exception *AND* this exception (in order), where:
         #
         # * "exception" is each exception.
         # * "traceback" is each exception's traceback.

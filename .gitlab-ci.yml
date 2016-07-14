@@ -129,5 +129,5 @@ test:
     #
     # * "--maxfail=3", halting testing on the third failure. For discussion, see
     #   the "betse_setup.test" submodule.
-    - py.test --maxfail=3 -s
-    # - py.test --maxfail=3
+    - py.test --maxfail=3
+    # - py.test --maxfail=3 -s

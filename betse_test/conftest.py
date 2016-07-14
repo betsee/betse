@@ -48,10 +48,12 @@ def pytest_sessionfinish(session, exitstatus):
 
     pass
 
-# ....................{ HOOKS ~ test                       }....................
-def pytest_runtest_setup(item: 'pytest.main.Item'):
+# ....................{ HOOKS ~ plugin                     }....................
+def pytest_configure(config):
     '''
-    Hook run immediately _before_ running the passed test.
+    Hook run immediately _after_ both parsing all `py.test` command-line options
+    and loading all third-party `py.test` plugins (including
+    application-specific `conftest` scripts).
 
     Specifically:
 
@@ -67,27 +69,15 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
       succeed but remotely fail, as headless continuous integration (CI)
       typically has no access to an X11 server. Unsetting this variable ensures
       orthogonality between these cases by coercing the former to fail as well.
-    * If this is a **serial test** (i.e., test method bound to an instance of
-      the the `SerialTestABC` superclass) for which a prior serial test in the
-      same test class was recorded as failing by the
-      `pytest_runtest_makereport()` hook, this hook marks this test as xfailing.
-
-    Parameters
-    ----------
-    item : pytest.main.Item
-        Metadata encapsulating this test callable (e.g., function, method).
-
-    See Also
-    ----------
-    https://pytest.org/latest/example/simple.html#incremental-testing-test-steps
-        Official py.test code snippet inspiring this implementation.
     '''
 
     #FIXME: The following two operations should be converted into autouse
     #fixtures defined in this plugin above. Such fixtures should require the
     #builtin fixture permitting us to temporarily change environment variables,
     #which should then be used to temporarily undefine the ${DISPLAY} variable.
-    #What was that called again... "monkeypatch"? Contemplate eternity.
+    #What was that called again... "monkeypatch"? Contemplate eternity and see:
+    #
+    #    http://pytest.org/latest/fixture.html#autouse-fixtures-xunit-setup-on-steroids
 
     # Inform the main codebase that tests are currently being run.
     metadata._IS_TESTING = True
@@ -106,6 +96,42 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
     # supports both use cases detailed above with no discernable downside. See
     # the docstring for additional commentary.
     envs.unset_var_if_set('DISPLAY')
+
+
+def pytest_unconfigure(config):
+    '''
+    Hook run immediately _before_ exiting the current `py.test` test session.
+
+    Specifically:
+
+    * The BETSE-specific `betse._is_pytest` global boolean is set to `False`,
+      informing the main codebase that tests are no longer currently being run.
+    '''
+
+    metadata._IS_TESTING = False
+
+# ....................{ HOOKS ~ test                       }....................
+def pytest_runtest_setup(item: 'pytest.main.Item'):
+    '''
+    Hook run immediately _before_ running the passed test.
+
+    Specifically:
+
+    * If this is a **serial test** (i.e., test method bound to an instance of
+      the the `SerialTestABC` superclass) for which a prior serial test in the
+      same test class was recorded as failing by the
+      `pytest_runtest_makereport()` hook, this hook marks this test as xfailing.
+
+    Parameters
+    ----------
+    item : pytest.main.Item
+        Metadata encapsulating this test callable (e.g., function, method).
+
+    See Also
+    ----------
+    https://pytest.org/latest/example/simple.html#incremental-testing-test-steps
+        Official py.test code snippet inspiring this implementation.
+    '''
 
     # For each list of fixtures requested by this test...
     for fixture_defs in item._fixtureinfo.name2fixturedefs.values():

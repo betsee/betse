@@ -5,17 +5,13 @@
 
 '''
 Low-level directory facilities.
-
-This module is named `dirs` rather than `dir` to avoid conflict with the `dir()`
-builtin.
 '''
 
 # ....................{ IMPORTS                            }....................
-import os
-import shutil
+import os, shutil
 from betse.exceptions import BetseDirException
 from betse.util.io.log import logs
-from betse.util.type import types
+from betse.util.type.types import type_check
 from contextlib import contextmanager
 from os import path
 
@@ -24,6 +20,7 @@ def die_unless_dir(*dirnames) -> None:
     '''
     Raise an exception unless all passed directories exist.
     '''
+
     for dirname in dirnames:
         if not is_dir(dirname):
             raise BetseDirException(
@@ -34,8 +31,10 @@ def die_unless_parent_dir(pathname: str) -> None:
     '''
     Raise an exception unless the parent directory of the passed path exists.
     '''
+
     # Avoid circular import dependencies.
     from betse.util.path import paths
+
     die_unless_dir(paths.get_dirname(pathname))
 
 # ....................{ EXCEPTIONS ~ if                    }....................
@@ -50,12 +49,11 @@ def die_if_dir(*dirnames) -> None:
                 'Directory "{}" already exists.'.format(dirname))
 
 # ....................{ TESTERS                            }....................
+@type_check
 def is_dir(dirname: str) -> bool:
     '''
     `True` only if the passed directory exists.
     '''
-    assert types.is_str_nonempty(dirname), (
-        types.assert_not_str_nonempty(dirname, 'Dirname'))
 
     return path.isdir(dirname)
 
@@ -72,6 +70,7 @@ def get_current_dirname() -> str:
     return os.getcwd()
 
 # ....................{ SETTERS                            }....................
+@type_check
 def set_current(dirname: str) -> None:
     '''
     Set the **current working directory** (CWD) of the active Python process to
@@ -86,8 +85,6 @@ def set_current(dirname: str) -> None:
     dirname : str
         Relative or absolute path of the directory to change to.
     '''
-    assert types.is_str_nonempty(dirname), (
-        types.assert_not_str_nonempty(dirname, 'Dirname'))
 
     # Log this change.
     logs.log_debug('Changing current working directory to "%s".', dirname)
@@ -95,9 +92,10 @@ def set_current(dirname: str) -> None:
     # Change to this directory.
     os.chdir(dirname)
 
-# ....................{ CONTEXT MANAGERS                   }....................
+# ....................{ CONTEXTS                           }....................
 @contextmanager
-def current(dirname: str) -> contextmanager:
+@type_check
+def current(dirname: str):
     '''
     Context manager setting the **current working directory** (CWD) of the
     active Python process to the passed directory for the duration of this
@@ -113,14 +111,14 @@ def current(dirname: str) -> contextmanager:
 
     Returns
     -----------
-    contextmanager
+    contextlib._GeneratorContextManager
         Context manager changing the CWD as described above.
 
     Yields
     -----------
     None
-        This context manager yields no value. Hence, the caller's `with`
-        statement should _not_ be suffixed by an `as` clause.
+        Since this context manager yields no value, the caller's `with`
+        statement must be suffixed by _no_ `as` clause.
 
     See Also
     -----------
@@ -141,8 +139,6 @@ def current(dirname: str) -> contextmanager:
     >>> print('CWD: ' + dirs.get_current_dirname())
     CWD: /home/azrael
     '''
-    assert types.is_str_nonempty(dirname), (
-        types.assert_not_str_nonempty(dirname, 'Dirname'))
 
     # Absolute path of the current CWD.
     dirname_prior = get_current_dirname()
@@ -170,6 +166,7 @@ def list_basenames(dirname: str) -> list:
     return os.listdir(dirname)
 
 # ....................{ MAKERS                             }....................
+@type_check
 def make_unless_dir(dirname: str) -> None:
     '''
     Create the passed directory if this directory does *not* already exist.
@@ -177,8 +174,6 @@ def make_unless_dir(dirname: str) -> None:
     All nonexistent parents of this directory will also be recursively created,
     mimicking the action of the standard `mkdir -p` shell command.
     '''
-    assert types.is_str_nonempty(dirname), (
-        types.assert_not_str_nonempty(dirname, 'Dirname'))
 
     # If this directory does *NOT* already exist, create this directory. To
     # support logging, this condition is explicitly tested for. To avoid race
@@ -208,6 +203,7 @@ def canonicalize_and_make_unless_dir(dirname: str) -> str:
     make_unless_dir()
         Further details.
     '''
+
     # Avoid circular import dependencies.
     from betse.util.path import paths
     dirname = paths.canonicalize(dirname)
@@ -223,6 +219,7 @@ def make_parent_unless_dir(*pathnames) -> None:
     All nonexistent parents of each such directory will also be recursively
     created, mimicking the action of the standard `mkdir -p` shell command.
     '''
+
     # Avoid circular import dependencies.
     from betse.util.path import paths
 
@@ -234,6 +231,7 @@ def make_parent_unless_dir(*pathnames) -> None:
         make_unless_dir(paths.get_dirname(paths.canonicalize(pathname)))
 
 # ....................{ COPIERS                            }....................
+@type_check
 def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
     '''
     Recursively copy the passed source directory to a subdirectory of the passed
@@ -251,10 +249,6 @@ def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
         >>> dirs.is_dir('/tmp/linux/')
         True
     '''
-    assert types.is_str_nonempty(dirname_source),\
-        types.assert_not_str_nonempty(dirname_source, 'Source dirname')
-    assert types.is_str_nonempty(dirname_target),\
-        types.assert_not_str_nonempty(dirname_target, 'Target dirname')
 
     # Avoid circular import dependencies.
     from betse.util.path import paths
@@ -264,6 +258,7 @@ def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
     copy(dirname_source, paths.join(dirname_target, basename_source))
 
 
+@type_check
 def copy(dirname_source: str, dirname_target: str) -> None:
     '''
     Recursively copy the passed source to target directory.
@@ -276,10 +271,6 @@ def copy(dirname_source: str, dirname_target: str) -> None:
     If either the source directory does not exist *or* the target directory
     already exists, an exception will be raised.
     '''
-    assert types.is_str_nonempty(dirname_source), (
-        types.assert_not_str_nonempty(dirname_source, 'Source dirname'))
-    assert types.is_str_nonempty(dirname_target), (
-        types.assert_not_str_nonempty(dirname_target, 'Target dirname'))
 
     # Log this copy.
     logs.log_debug(

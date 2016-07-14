@@ -379,9 +379,11 @@ class AnimCells(PlotCells):
         # animation. Ignored if `is_saving_frames` is `False`.
         self._writer_frames_dpi = mpl_config.get_rc_param('savefig.dpi')
 
+        #FIXME: Change the YAML default to "webm", please.
+
         # Filetype of the video to be saved for this animation. Ignored if
         # `is_saving_video` is `False`.
-        save_video_filetype = 'mp4'
+        save_video_filetype = 'webm'
 
         # Dots per inch (DPI) of each frame of the video to be saved for this
         # animation. Ignored if `is_saving_frames` is `False`.
@@ -416,9 +418,79 @@ class AnimCells(PlotCells):
         # `is_saving_video` is `False`.
         save_video_bitrate = mpl_config.get_rc_param('animation.bitrate')
 
+        #FIXME: Terrible default. Instead, let's default to a video codec
+        #conditionally dependent on the filetype of the desired video file.
+        #Note that this codec is indeed a *VIDEO* rather than *AUDIO* codec, as
+        #confirmed by matplotlib's use of the "-vcodec" CLI option to FFmpeg.
+        #Makes sense. Matplotlib can hardly reasonably support audio, now can
+        #it? As a starting place, consider:
+        #
+        #* If the desired video encoder is "ffmpeg" and the desired codec is
+        #  "auto"...
+        #  * If this filetype is ".webm" and...
+        #    * If the "libvpx-vp9" encoder (i.e., WebM VP-9) is available,
+        #      prefer that. All WebM encodings are unencumbered by onerous
+        #      licensing or patent requirements, unlike both H.264 and H.265.
+        #    * Else if the "libvpx" encoder (i.e., WebM VP-8) is available,
+        #      fallback to that. VP-9 is newer and hence preferable, but VP-8
+        #      suffices as well.
+        #    * Else, raise an exception.
+        #  * If this filetype is ".mp4" and...
+        #    * If the "hevc" encoder (i.e., H.265 / HEVC / MPEG-H Part 2) is
+        #      available, prefer that.
+        #    * Else if the "libx264" encoder (i.e., H.264 / AVC / MPEG-4 Part
+        #      10) is available, prefer that.
+        #    * Else if the "mpeg4" encoder (i.e., MPEG-4 Part 2) is available,
+        #      fallback to that.
+        #    * Else if the "libxvid" encoder (i.e., MPEG-4 Part 2) is
+        #      available, fallback to that. "libxvid" is an alternate MPEG-4
+        #      encoder. I'm unclear whether that or "mpeg4" are preferable, but
+        #      given the legacy nature of both... it probably doesn't matter.
+        #    * Else if the "h263" encoder (i.e., H.263) is available, fallback
+        #      to that. To quote Wikipedia: "MPEG-4 Part 2 is H.263 compatible
+        #      in the sense that basic 'baseline' H.263 bitstreams are
+        #      correctly decoded by an MPEG-4 Video decoder."
+        #    * Else, raise an exception.
+        #  * If this filetype is ".ogv" and...
+        #    * If the "libtheora" encoder (i.e., Theora) is available, use
+        #      that.
+        #    * Else, raise an exception.
+        #  * Else, raise an exception.
+        #
+        #To test whether a given encoding codec is available, we'll want to:
+        #
+        #* If the desired video encoder is "ffmpeg":
+        #  * Create a new "betse.libs.ffmpeg" package containing a new
+        #    "betse.libs.ffmpeg.ffmpegs" submodule providing an is_encoder()
+        #    tester function returning "True" if this version of FFMpeg
+        #    supports the encoding codec with the passed name: e.g.,
+        #
+        #        @type_check
+        #        def is_encoder(encoder_name: str) -> bool:
+        #
+        #    There exist numerous possible implementations of this tester with
+        #    the customary tradeoffs, including:
+        #    * Capturing the stdout of the external "ffmpeg -encoders" command
+        #      and grepping such stdout for a line whose second is the passed
+        #      encoder name.
+        #    * Capturing the stdout of the following external command, where
+        #      ${encoder_name} is the passed encoder name:
+        #
+        #          $ ffmpeg -help encoder=${encoder_name}
+        #
+        #      Sadly, this command does *NOT* report non-zero exit status if
+        #      the passed encoder is unavailable. It does, however, terminate
+        #      its stdout with the following line:
+        #
+        #          Codec '${encoder_name}' is not recognized by FFmpeg.
+        #
+        #      Hence, merely grep such output via the str.endswith() builtin
+        #      for the suffix "' is not recognized by FFmpeg."
+        #  * Call betse.libs.ffmpeg.ffmpegs.is_encoder().
+
         # Name of the codec with which to encode the video to be saved for this
         # animation. Ignored if `is_saving_video` is `False`.
-        save_video_codec = mpl_config.get_rc_param('animation.codec')
+        save_video_codec = 'auto'
 
         # List of the Matplotlib-specific names of all external encoders
         # supported by Matplotlib with which to encode this video (in descending
@@ -478,7 +550,7 @@ class AnimCells(PlotCells):
             #
             # See the _save_frame() method for horrid discussion.
             if self._is_saving_showing:
-                # Log this saving attempt.
+                # Log this preparation.
                 logs.log_debug(
                     'Saving animation frames "%s"...',
                     self._writer_frames_template)
@@ -521,26 +593,23 @@ class AnimCells(PlotCells):
 
             # If both saving and displaying animation frames, prepare as above.
             if self._is_saving_showing:
-                # Log this saving attempt.
+                # Log this preparation.
                 logs.log_debug(
                     'Saving animation video "%s"...',
                     self._writer_video_filename)
 
-                # Prepare to save this animation video.
-
-                #FIXME: Generalize all "verbose"-specific code that follows
-                #into a new MatplotlibConfig.with_verbosity() context manager
-                #temporarily setting the matplotlib-specific verbosity level
-                #to the passed level for the duration of that context manager
-                #and then reverting to the prior level.
-
-                verbose.set_level('debug')
-                self._writer_video.setup(
-                    fig=self._figure,
-                    outfile=self._writer_video_filename,
-                    dpi=self._writer_video_dpi,
-                )
-                verbose.set_level('helpful')
+                # Prepare to save this animation video. Matplotlib squelches
+                # critical (technically non-fatal but effectively fatal)
+                # warnings and errors emitted by the external command invoked
+                # by this call to the MovieWriter.setup() method *UNLESS* the
+                # current matplotlib-specific verbosity level is "debug".
+                # Temporarily ensure this for the duration of this call.
+                with mpl_config.verbosity_debug_if_helpful():
+                    self._writer_video.setup(
+                        fig=self._figure,
+                        outfile=self._writer_video_filename,
+                        dpi=self._writer_video_dpi,
+                    )
 
 
     # This method has been overridden to support subclasses that manually handle
@@ -774,10 +843,10 @@ class AnimCells(PlotCells):
 
         # If saving animation frames as video...
         if self._writer_video is not None:
-            # Finalize doing so.
-            verbose.set_level('debug')
-            self._writer_video.finish()
-            verbose.set_level('helpful')
+            # Finalize doing so. For debuggability, temporarily escalate the
+            # matplotlib-specific verbosity level.
+            with mpl_config.verbosity_debug_if_helpful():
+                self._writer_video.finish()
 
             # Prevent this writer from being reused and break hard cycles.
             self._writer_video = None
@@ -850,9 +919,11 @@ class AnimCells(PlotCells):
 
             # If saving animation frames as video, save this frame as such.
             if self._writer_video is not None:
-                verbose.set_level('debug')
-                self._writer_video.grab_frame(**self._writer_savefig_kwargs)
-                verbose.set_level('helpful')
+                # For debuggability, temporarily escalate the
+                # matplotlib-specific verbosity level.
+                with mpl_config.verbosity_debug_if_helpful():
+                    self._writer_video.grab_frame(
+                        **self._writer_savefig_kwargs)
 
 
     @abstractmethod

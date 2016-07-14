@@ -87,6 +87,7 @@ Footnote descriptions are as follows:
 
 import sys
 from collections import OrderedDict
+from contextlib import contextmanager
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
@@ -389,127 +390,7 @@ class MatplotlibConfig(object):
         from betse.lib.matplotlib.writer import frames
         if False: frames  # silence contemptible IDE warning messages
 
-    # ..................{ TESTERS                            }..................
-    def is_backend(self) -> bool:
-        '''
-        `True` if a backend has been set (i.e., if the `matplotlib.use()` method
-        has been called for the current Python session) or `False` otherwise.
-        '''
-
-        # This test corresponds exactly to the test performed by the
-        # matplotlib.use() method itself to detect repetitious calls.
-        return 'matplotlib.backends' in sys.modules
-
-
-    @type_check
-    def is_backend_usable(self, backend_name: str) -> bool:
-        '''
-        `True` if the backend with the passed name is **usable** (i.e., safely
-        switchable to without raising exceptions) on the current system.
-
-        This method modifies but does _not_ restore the previously set backend.
-        If desired, the caller _must_ manually save and restore the current
-        backend.
-        '''
-
-        # Delay importation of the "matplotlib.__init__" module.
-        from matplotlib import pyplot
-
-        # Since backend names are case-insensitive, lowercase such name.
-        backend_name = backend_name.lower()
-
-        # If this backend is "Gtk3Agg", immediately report this backend to be
-        # unusable without testing such report. Attempting to use such backend
-        # currently emits the following warning, which only serves to confound
-        # the issue for end users:
-        #     UserWarning: The Gtk3Agg backend is not known to work on Python 3.x.
-        if backend_name == 'gtk3agg':
-            return False
-
-        # Test this backend.
-        try:
-            pyplot.switch_backend(backend_name)
-            return True
-        except:
-            return False
-
-    # ..................{ GETTERS                            }..................
-    def get_rc_param(self, param_name) -> object:
-        '''
-        Value of the parameter with the passed `.`-delimited name (e.g.,
-        `savefile.dpi`) in the external `matplotlibrc` file.
-
-        If no such parameter exists, an exception is raised.
-        '''
-
-        # Delay importation of the "matplotlib.__init__" module.
-        from matplotlib import rcParams
-
-        # Return this parameter's value.
-        return rcParams[param_name]
-
-
-    def get_metadata(self) -> OrderedDict:
-        '''
-        Ordered dictionary synopsizing the current matplotlib installation.
-        '''
-
-        # This dictionary.
-        metadata = OrderedDict((
-            ('rc file', self.rc_filename),
-            ('current backend', self.backend_name),
-            # ('[backend] current', self.backend_name),
-        ))
-
-        # For each available backend, add metadata synopsizing that backend.
-        for backend_name in self.backend_names:
-            metadata[
-                'backend {} usable'.format(backend_name.capitalize())] = str(
-                    self.is_backend_usable(backend_name)).lower()
-
-        # Get this dictionary.
-        return metadata
-
-    # ..................{ MAKERS                             }..................
-    #FIXME: Define a new make_backend_figure_manager() method as well. This
-    #method is fine, for now. We might very well want to call this sometime.
-    def make_backend_figure(self, *args, **kwargs):
-        '''
-        Create and return a new `Figure` instance passed the passed arguments
-        _and_ associated with a new `FigureCanvasBase` instance corresponding to
-        the current backend (e.g., `FigureCanvasQt5Agg` for the `qt5agg`
-        backend).
-
-        This figure will _not_ be associated with a new or existing
-        `FigureManagerBase` instance corresponding to the current backend (e.g.,
-        `FigureManagerQt5Agg` for the `qt5agg` backend) _or_ with the `pyplot`
-        interface. In theory, this implies that this figure should be implicitly
-        garbage collected on:
-
-        * If either _not_ displayed or displayed in a blocking manner, leaving
-          scope.
-        * If displayed in a non-blocking manner, this figure's window being
-          closed.
-
-        If no backend has been set yet, an exception is raised.
-
-        Returns
-        ----------
-        matplotlib.figure.Figure
-            Such figure.
-        '''
-
-        # Delay importation of the "matplotlib.__init__" module.
-        from matplotlib.figure import Figure
-
-        # Create this figure.
-        figure = Figure(*args, **kwargs)
-        self.backend_figure_canvas(figure)
-
-        # Return this figure.
-        return figure
-
-    # ..................{ PROPERTIES ~ read-only             }..................
+    # ..................{ PROPERTIES ~ rc                    }..................
     @property
     def rc_filename(self) -> str:
         '''
@@ -523,7 +404,66 @@ class MatplotlibConfig(object):
         # Return this path.
         return matplotlib.matplotlib_fname()
 
-    # ..................{ PROPERTIES ~ read-only : backend   }..................
+    # ..................{ PROPERTIES ~ verbosity             }..................
+    @property
+    def verbosity_level_name(self) -> str:
+        '''
+        Name of the current matplotlib-specific verbosity level.
+
+        This name is guaranteed to be one of the following human-readable
+        lowercase alphabetic words (in order of increasing verbosity):
+
+        * `silent`, hiding all Matplotlib output _except_ non-fatal warnings.
+        * `helpful`, emitting terse Matplotlib debugging output.
+        * `debug`, emitting verbose Matplotlib debugging output.
+        * `debug-annoying`, emitting _very_ verbose Matplotlib debugging output.
+          (You never want this.)
+        '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        from matplotlib import verbose
+
+        # Return this name.
+        return verbose.level
+
+
+    @verbosity_level_name.setter
+    @type_check
+    def verbosity_level_name(self, verbosity_level_name: str) -> None:
+        '''
+        Set the current matplotlib-specific verbosity level to the level with
+        the passed name.
+
+        If this name is _not_ a recognized level name, an exception is raised.
+
+        Parameters
+        -----------
+        verbosity_level_name : str
+            Name of this level.
+
+        See Also
+        -----------
+        verbosity_level_name
+            This property's corresponding getter documents the set of all
+            recognized level names.
+        '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        from matplotlib import verbose
+
+        # If this name is unrecognized, raise an exception. For unknown reasons,
+        # the Verbose.set_level() method called below unsafely emits non-fatal
+        # warnings rather than raising fatal exceptions on receiving an
+        # unrecognized level name.
+        if verbosity_level_name not in verbose.levels:
+            raise BetseMatplotlibException(
+                'Matplotlib verbosity level "{}" unrecognized.'.format(
+                    verbosity_level_name))
+
+        # Set this name.
+        verbose.set_level(verbosity_level_name)
+
+    # ..................{ PROPERTIES ~ backend               }..................
     @property
     def backend(self) -> type(sys):
         '''
@@ -534,7 +474,7 @@ class MatplotlibConfig(object):
 
         # If no backend has been set yet, raise an exception.
         if not self.is_backend():
-            raise BetseMatplotlibException('No matplotlib backend set.')
+            raise BetseMatplotlibException('Matplotlib backend not set.')
 
         # Name of this backend's module.
         backend_module_name = (
@@ -608,7 +548,7 @@ class MatplotlibConfig(object):
         # Magic is magic. Do not question magic, for it is magical.
         return list(backend_canvas_class.filetypes.keys())
 
-
+    # ..................{ PROPERTIES ~ backend : names       }..................
     @property
     def backend_names(self) -> list:
         '''
@@ -622,6 +562,7 @@ class MatplotlibConfig(object):
         fails to list all possible backends (e.g., `mixed` tends to be missing).
         Instead, this function iteratively inspects the current filesystem.
         '''
+
         # If this funuction has *NOT* been called at least once, create and
         # cache this list.
         if self._backend_names is None:
@@ -670,7 +611,7 @@ class MatplotlibConfig(object):
         # Get the cached list.
         return self._backend_names
 
-    # ..................{ PROPERTIES ~ backend name          }..................
+    # ..................{ PROPERTIES ~ backend : name        }..................
     @property
     def backend_name(self) -> str:
         '''
@@ -726,6 +667,180 @@ class MatplotlibConfig(object):
         # Log such setting *AFTER* succeeding.
         logs.log_debug(
             'Enabled matplotlib backend "{}".'.format(backend_name))
+
+    # ..................{ CONTEXTS                           }..................
+    @contextmanager
+    def verbosity_debug_if_helpful(self):
+        '''
+        Context manager setting the matplotlib-specific verbosity level to
+        `debug` if currently `helpful` for the duration of this context.
+
+        This context manager temporarily increases this level by one level.
+        Although the `helpful` and `debug` levels _both_ produce debug output,
+        only the latter produces debug output for external commands invoked by
+        matplotlib (e.g., for encoding video via `ffmpeg`); the former produces
+        _no_ such output. However, the latter is overly verbose for general use
+        and hence useful only for specific cases. Consider instead:
+
+        * Defaulting to the `helpful` level.
+        * Escalating to the `debug` level by explicitly entering this context
+          manager for the duration of special-case work requiring verbosity.
+
+        This context manager guaranteeably reverts this level to the prior level
+        even when fatal exceptions are raised. If this level is _not_ currently
+        `helpful`, this context manager is a noop.
+
+        Returns
+        -----------
+        contextlib._GeneratorContextManager
+            Context manager setting the level as described above.
+
+        Yields
+        -----------
+        None
+            Since this context manager yields no value, the caller's `with`
+            statement must be suffixed by _no_ `as` clause.
+        '''
+
+        # If the current level is "helpful"...
+        if self.verbosity_level_name == 'helpful':
+            # Escalate to the "debug" level temporarily.
+            self.verbosity_level_name = 'debug'
+
+            # Yield control to the body of the caller's "with" block.
+            try:
+                yield
+            # Revert to the prior level even if that block raised an exception.
+            finally:
+                self.verbosity_level_name = 'helpful'
+        # Else, the current level is *NOT* "helpful". Reduce to a noop.
+        else:
+            yield
+
+    # ..................{ TESTERS                            }..................
+    def is_backend(self) -> bool:
+        '''
+        `True` if a backend has been set (i.e., if the `matplotlib.use()` method
+        has been called for the current Python session) or `False` otherwise.
+        '''
+
+        # This test corresponds exactly to the test performed by the
+        # matplotlib.use() method itself to detect repetitious calls.
+        return 'matplotlib.backends' in sys.modules
+
+
+    @type_check
+    def is_backend_usable(self, backend_name: str) -> bool:
+        '''
+        `True` if the backend with the passed name is **usable** (i.e., safely
+        switchable to without raising exceptions) on the current system.
+
+        This method modifies but does _not_ restore the previously set backend.
+        If desired, the caller _must_ manually save and restore the current
+        backend.
+        '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        from matplotlib import pyplot
+
+        # Since backend names are case-insensitive, lowercase such name.
+        backend_name = backend_name.lower()
+
+        # If this backend is "Gtk3Agg", immediately report this backend to be
+        # unusable without testing such report. Attempting to use such backend
+        # currently emits the following warning, which only serves to confound
+        # the issue for end users:
+        #     UserWarning: The Gtk3Agg backend is not known to work on Python 3.x.
+        if backend_name == 'gtk3agg':
+            return False
+
+        # Test this backend.
+        try:
+            pyplot.switch_backend(backend_name)
+            return True
+        except:
+            return False
+
+    # ..................{ GETTERS                            }..................
+    def get_rc_param(self, param_name) -> object:
+        '''
+        Value of the parameter with the passed `.`-delimited name (e.g.,
+        `savefile.dpi`) in the external `matplotlibrc` file.
+
+        If no such parameter exists, an exception is raised.
+
+        Raises
+        ----------
+        KeyError
+            If no such parameter exists.
+        '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        from matplotlib import rcParams
+
+        # Return this parameter's value.
+        return rcParams[param_name]
+
+
+    def get_metadata(self) -> OrderedDict:
+        '''
+        Ordered dictionary synopsizing the current matplotlib installation.
+        '''
+
+        # This dictionary.
+        metadata = OrderedDict((
+            ('rc file', self.rc_filename),
+            ('current backend', self.backend_name),
+            # ('[backend] current', self.backend_name),
+        ))
+
+        # For each available backend, add metadata synopsizing that backend.
+        for backend_name in self.backend_names:
+            metadata[
+                'backend {} usable'.format(backend_name.capitalize())] = str(
+                    self.is_backend_usable(backend_name)).lower()
+
+        # Get this dictionary.
+        return metadata
+
+    # ..................{ MAKERS                             }..................
+    #FIXME: Define a new make_backend_figure_manager() method as well. This
+    #method is fine, for now. We might very well want to call this sometime.
+    def make_backend_figure(self, *args, **kwargs):
+        '''
+        Create and return a new `Figure` instance passed the passed arguments
+        _and_ associated with a new `FigureCanvasBase` instance corresponding to
+        the current backend (e.g., `FigureCanvasQt5Agg` for the `qt5agg`
+        backend).
+
+        This figure will _not_ be associated with a new or existing
+        `FigureManagerBase` instance corresponding to the current backend (e.g.,
+        `FigureManagerQt5Agg` for the `qt5agg` backend) _or_ with the `pyplot`
+        interface. In theory, this implies that this figure should be implicitly
+        garbage collected on:
+
+        * If either _not_ displayed or displayed in a blocking manner, leaving
+          scope.
+        * If displayed in a non-blocking manner, this figure's window being
+          closed.
+
+        If no backend has been set yet, an exception is raised.
+
+        Returns
+        ----------
+        matplotlib.figure.Figure
+            Such figure.
+        '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        from matplotlib.figure import Figure
+
+        # Create this figure.
+        figure = Figure(*args, **kwargs)
+        self.backend_figure_canvas(figure)
+
+        # Return this figure.
+        return figure
 
 # ....................{ SINGLETONS                         }....................
 mpl_config = MatplotlibConfig()
