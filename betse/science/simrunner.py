@@ -520,10 +520,6 @@ class SimRunner(object):
 
         cells = Cells(p)
 
-        # loggers.log_info('This world contains '+ str(cells.cell_number) + ' cells.')
-        # loggers.log_info('Each cell has an average of '+ str(round(cells.average_nn,2)) + ' nearest-neighbours.')
-
-
         if files.is_file(cells.savedWorld):
             cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             p.sim_ECM = cells.sim_ECM
@@ -542,17 +538,19 @@ class SimRunner(object):
             os.makedirs(image_cache_dir, exist_ok=True)
             savedImg = os.path.join(image_cache_dir, 'fig_')
 
-        fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
-            p, dyna, cells, clrmap=p.default_cm)
+        if p.plot_cell_cluster is True:
 
-        if p.autosave is True:
-            savename10 = savedImg + 'cluster_mosaic' + '.png'
-            plt.savefig(savename10,format='png',transparent=True)
+            fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
+                p, dyna, cells, clrmap=p.default_cm)
 
-        if p.turn_all_plots_off is False:
-            plt.show(block = False)
+            if p.autosave is True:
+                savename10 = savedImg + 'cluster_mosaic' + '.png'
+                plt.savefig(savename10,format='png',transparent=True)
 
-        if p.sim_ECM is True:
+            if p.turn_all_plots_off is False:
+                plt.show(block = False)
+
+        if p.sim_ECM is True and p.plot_cluster_mask is True:
             plt.figure()
             ax99 = plt.subplot(111)
             plt.imshow(
@@ -594,30 +592,35 @@ class SimRunner(object):
             if p.turn_all_plots_off is False:
                 plt.show(block = False)
 
-        # plot gj
-        fig_x = plt.figure()
-        ax_x = plt.subplot(111)
 
-        if p.showCells is True:
-            base_points = np.multiply(cells.cell_verts, p.um)
-            col_cells = PolyCollection(base_points, facecolors='k', edgecolors='none')
-            col_cells.set_alpha(0.3)
-            ax_x.add_collection(col_cells)
+        if p.plot_cell_connectivity is True:
+            # plot gj
+            fig_x = plt.figure()
+            ax_x = plt.subplot(111)
 
-        con_segs = cells.nn_edges
-        connects = p.um*np.asarray(con_segs)
-        collection = LineCollection(connects,linewidths=1.0,color='b')
-        ax_x.add_collection(collection)
-        plt.axis('equal')
-        plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
+            if p.showCells is True:
+                base_points = np.multiply(cells.cell_verts, p.um)
+                col_cells = PolyCollection(base_points, facecolors='k', edgecolors='none')
+                col_cells.set_alpha(0.3)
+                ax_x.add_collection(col_cells)
 
-        ax_x.set_xlabel('Spatial x [um]')
-        ax_x.set_ylabel('Spatial y [um')
-        ax_x.set_title('Cell Connectivity Network')
+            con_segs = cells.nn_edges
+            connects = p.um*np.asarray(con_segs)
+            collection = LineCollection(connects,linewidths=1.0,color='b')
+            ax_x.add_collection(collection)
+            plt.axis('equal')
+            plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
 
-        if p.autosave is True:
-            savename10 = savedImg + 'gj_connectivity_network' + '.png'
-            plt.savefig(savename10,format='png',transparent=True)
+            ax_x.set_xlabel('Spatial x [um]')
+            ax_x.set_ylabel('Spatial y [um')
+            ax_x.set_title('Cell Connectivity Network')
+
+            if p.autosave is True:
+                savename10 = savedImg + 'gj_connectivity_network' + '.png'
+                plt.savefig(savename10,format='png',transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block = False)
 
         if p.turn_all_plots_off is False:
             plt.show(block = False)

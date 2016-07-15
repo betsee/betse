@@ -600,10 +600,8 @@ metabolism settings:
 
   metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
 
-  metabolism config: extra_configs/extra_config_template.yaml  # supply a path to the config file containing metabolic sim info
-                                                      # metabo_config_basic.yaml supplies a very basic metabolism model
-                                                      # metabo_config_glycolysis_full.yaml supplies a full metabolism model
-                                                      # these config files are ignored if 'metabolism simulated' is F
+  metabolism config: extra_configs/extra_config_template.yaml  # supply a path to the metabolic model config file
+
 #-----------------------------------------------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK
 #-----------------------------------------------------------------------------------------------------------------------
@@ -714,9 +712,7 @@ variable settings:
   environmental boundary: # set conditions for the global (environmental) boundary
 
     closed boundary: False  # Are global environmental boundaries closed (True)
-                            # or open (False)? Applies only if the "simulate
-                            # extracellular spaces" option is enabled,
-                            # otherwise this is ignored.
+                            # or open (False)?
 
 
   tight junction scaling: 1.0e-5   # factor by which tight junctions scale
@@ -754,30 +750,17 @@ results options:
                                  # options True or False (case sensitive)
 
     save solving plot: True      # save the plot while solving figure
-                                 # as the sim progresses (as 300 dpi png
-                                 # in folder in the results directory)
-                                 # warning this can slow down simulations
-                                 # options True or False (case sensitive)
+                                 # as the sim progresses
 
-    plot after solving: True     # Display post-simulation plots and/or
-                                 # animations (True) or not (False)? This
-                                 # option does *NOT* govern saving of either
-                                 # post-simulation plots (see "automatically
-                                 # save plots") or animations (see "save
-                                 # animations"). If "automatically save plots"
-                                 # is also "True", plots will be exported to
-                                 # results without displaying.
-                                 # options True or False (case sensitive)
+    display plots: True     # Display post-simulation plots and/or animations automatically after solving and
+                             # when plot commands are called (True) or not (False)?
 
     automatically save plots: True     # autosave all still images (as 300 dpi
                                        # pngs) to the results directory
                                        # options True or False (case sensitive)
 
     create all animations: True     # Display and/or save post-simulation
-                                    # animations (True) or not (False)? If
-                                    # "True", only animations explicitly
-                                    # enabled below are displayed and/or saved.
-                                    # options True or False (case sensitive)
+                                    # animations (True) or not (False)?
 
     save animations:        # Post-simulation animation saving options.
       frames:
@@ -802,10 +785,7 @@ results options:
     export 2D data to file: False   # export 2D Vmem (for all cells at each time) to .csv file as x, y, Vmem
 
     enumerate cells: False         # number the cells on 2D plots with their simulation index?
-                                   # this can help to decide which cell you are interested in getting
-                                   # specific data on (for single cell graphs plotted over time).
-                                   # options True or False (case sensitive)
-                                   # warning should not be used for world sizes over 200 um.
+
 
     plot cell index: 0              # State the cell index to use for single-cell time plots
                                     # the index of cells can be seen using enumerate cells feature.
@@ -814,12 +794,7 @@ results options:
                                     # (the plot cell) as a function of simulation time
 
     show cells: True                # if True, plots and animations show individual cells,
-                                    # each displayed with color-coded data. If False,
-                                    # plots and animations show data as interpolated over a 2D
-                                    # surface so individual cells are not shown.
-                                    # Note if working with a large cluster (>500 um) do not
-                                    # show cells (set to False) as it will plot very slowly.
-                                    # options True or False (case sensitive)
+                                    # each displayed with color-coded data.
   
     overlay currents: False         # overlay electric current or concentration
                                     # flux streamlines on 2D plotted data?
@@ -909,7 +884,15 @@ results options:
       max val: 15
       min val: -15
 
-    #---------Animations -------------------------------------------------------------------------------------------------
+    # World-related plotting options------------------------------------------------------------------------------------
+    plot cell cluster: True     # 'plot seed' creates a plot showing tissue and cut profiles
+
+    plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
+
+    plot cluster mask: True  # 'plot seed' creates a plot showing the logarithm of environmental diffusion
+
+
+    #---------Animations -----------------------------------------------------------------------------------------------
 
     Vmem Ani:
         animate Vmem: True           # 2d animation of vmem with time?

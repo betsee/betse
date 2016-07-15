@@ -453,8 +453,6 @@ class Parameters(object):
             self.act_Km_IP3 = self.config['Ca dynamics']['act Km IP3']   # concentration at which IP3 (if included in biomolecules) activates opening
             self.act_n_IP3 = self.config['Ca dynamics']['act n IP3']     # exponent for IP3 (if included in biomolecules) activates opening
 
-
-
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM BIOCHEMISTRY
         #--------------------------------------------------------------------------------------------------------------
@@ -656,7 +654,8 @@ class Parameters(object):
 
         ro = self.config['results options']
 
-        self.turn_all_plots_off = not ro['plot after solving']
+        self.turn_all_plots_off = not ro.get('display plots', False)
+
         self.plot_cutlines = ro['plot cutlines']
 
         # Colormaps.
@@ -752,6 +751,15 @@ class Parameters(object):
         self.autoscale_Vel = ro['Velocity 2D']['autoscale colorbar']
         self.Vel_min_clr = float(ro['Velocity 2D']['min val'])
         self.Vel_max_clr = float(ro['Velocity 2D']['max val'])
+
+        # Plot seed options:
+        self.plot_cell_cluster = ro.get('plot cell cluster', True)
+
+        self.plot_cell_connectivity = ro.get('plot cell connectivity diagram', True)
+
+        self.plot_cluster_mask = ro.get('plot cluster mask', True)
+
+        # Animations options:
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
 
