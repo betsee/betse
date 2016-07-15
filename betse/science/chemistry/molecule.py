@@ -2695,11 +2695,7 @@ class Transporter(object):
         # define the reaction equilibrium coefficient:
         # Ko = np.exp(-self.delta_Go/(p.R*sim.T))
 
-        if self.delta_Go != 'None' or self.delta_Go is not None:
-            Keqm = np.exp(-self.delta_Go/(p.R*sim.T) + deltaGi)
-
-        else:
-            Keqm = 1
+        Keqm = np.exp(-self.delta_Go/(p.R*sim.T) + deltaGi)
 
         # if self.name == 'ETC':
         #
@@ -2772,13 +2768,7 @@ class Transporter(object):
 
         forward_rate = self.vmax*np.prod(forward_term, axis=0)
 
-        if self.delta_Go != 'None' or self.delta_Go is not None:
-            reaction_rate = forward_rate - (Q / Keqm) * backwards_rate
-
-        else:
-            reaction_rate = forward_rate
-
-        # reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
+        reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
 
         # get net effect of any activators or inhibitors of the reaction:
 
