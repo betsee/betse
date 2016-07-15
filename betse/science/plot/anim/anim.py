@@ -35,7 +35,7 @@ from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
 from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib.writer.frames import FileFrameWriter
+from betse.lib.matplotlib.writer.mplframe import FileFrameWriter
 from betse.science.plot import plot
 from betse.science.plot.anim.animabc import (
     AnimCells, AnimCellsAfterSolving, AnimField, AnimVelocity)

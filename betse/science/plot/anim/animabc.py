@@ -116,13 +116,13 @@ import numpy as np
 from abc import abstractmethod
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.lib.matplotlib.writer import video as video_writers
-from betse.lib.matplotlib.writer.frames import FileFrameWriter
+from betse.lib.matplotlib.writer import mplvideo
+from betse.lib.matplotlib.writer.mplframe import FileFrameWriter
 from betse.science.plot.plotabc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, Sequence
-from matplotlib import pyplot, verbose
+from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 from scipy import interpolate
 
@@ -379,11 +379,20 @@ class AnimCells(PlotCells):
         # animation. Ignored if `is_saving_frames` is `False`.
         self._writer_frames_dpi = mpl_config.get_rc_param('savefig.dpi')
 
-        #FIXME: Change the YAML default to "webm", please.
+        #FIXME: Change the YAML default to "mkv", please.
 
         # Filetype of the video to be saved for this animation. Ignored if
-        # `is_saving_video` is `False`.
-        save_video_filetype = 'webm'
+        # `is_saving_video` is `False`. Recognized filetypes include:
+        #
+        # * "mkv" (Matroska), an open-standard audio and video container
+        #   supporting all relevant codecs and hence the default.
+        # * "avi", Microsoft's obsolete proprietary audio and video container.
+        # * "gif", a proprietary image format supporting video animations.
+        # * "ogv" (Theora), Xiph's open-standard audio and video container.
+        # * "mov" (QuickTime), Apple's proprietary audio and video container.
+        # * "mp4" (MPEG-4 Part 14), an open-standard audio and video container.
+        # * "webm" (WebM), Google's proprietary audio and video container.
+        save_video_filetype = 'mkv'
 
         # Dots per inch (DPI) of each frame of the video to be saved for this
         # animation. Ignored if `is_saving_frames` is `False`.
@@ -397,15 +406,34 @@ class AnimCells(PlotCells):
         #  presumably intelligently depending on animation properties:
         #
         #      # Convert interval in ms to frames per second
-        #      fps = 1000. / self._interval
+        #      fps = 1000.0 / self._interval
         #
         #While we have no idea how the latter works, it's probably more useful.
 
         # Frames per second (FPS) of the video to be saved for this animation.
         # Ignored if `is_saving_video` is `False`.
-        save_video_fps = None
+        save_video_fps = 5
 
-        #FIXME: Set a sane default.
+        #FIXME: Set a sane default. Note the following interesting logic in
+        #the "matplotlib.animations" module:
+        #
+        #class MencoderBase(object):
+        #    # Mencoder only allows certain keys, other ones cause the program
+        #    # to fail.
+        #    allowed_metadata = ['name', 'artist', 'genre', 'subject', 'copyright',
+        #                        'srcform', 'comment']
+        #
+        #Hence, we'll probably want to default to something containing at most
+        #such metadata. Maybe? Maybe the empty list is the only sane default.
+        #Ah! Right. We can certainly at least set the:
+        #
+        #* "title" and "name" to the current animation's label. These two
+        #  metadata appear to be synonyms of each other.
+        #* "genre" to "Bioinformatics".
+        #* "copyright" to "@ {}".format(current_year) or some such.
+        #
+        #And that's probably it.
+
         # Dictionary mapping from each Matplotlib-specific metadata name to that
         # metadata's string value of the video to be saved for this animation.
         # Ignored if `is_saving_video` is `False`. Metadata names of common
@@ -418,84 +446,47 @@ class AnimCells(PlotCells):
         # `is_saving_video` is `False`.
         save_video_bitrate = mpl_config.get_rc_param('animation.bitrate')
 
-        #FIXME: Terrible default. Instead, let's default to a video codec
-        #conditionally dependent on the filetype of the desired video file.
-        #Note that this codec is indeed a *VIDEO* rather than *AUDIO* codec, as
-        #confirmed by matplotlib's use of the "-vcodec" CLI option to FFmpeg.
-        #Makes sense. Matplotlib can hardly reasonably support audio, now can
-        #it? As a starting place, consider:
+        # List of the matplotlib-specific names of all external encoders
+        # supported by matplotlib with which to encode this video (in descending
+        # order of preference), automatically selecting the first encoder found
+        # on the current $PATH. Ignored if `is_saving_video` is `False`.
         #
-        #* If the desired video encoder is "ffmpeg" and the desired codec is
-        #  "auto"...
-        #  * If this filetype is ".webm" and...
-        #    * If the "libvpx-vp9" encoder (i.e., WebM VP-9) is available,
-        #      prefer that. All WebM encodings are unencumbered by onerous
-        #      licensing or patent requirements, unlike both H.264 and H.265.
-        #    * Else if the "libvpx" encoder (i.e., WebM VP-8) is available,
-        #      fallback to that. VP-9 is newer and hence preferable, but VP-8
-        #      suffices as well.
-        #    * Else, raise an exception.
-        #  * If this filetype is ".mp4" and...
-        #    * If the "hevc" encoder (i.e., H.265 / HEVC / MPEG-H Part 2) is
-        #      available, prefer that.
-        #    * Else if the "libx264" encoder (i.e., H.264 / AVC / MPEG-4 Part
-        #      10) is available, prefer that.
-        #    * Else if the "mpeg4" encoder (i.e., MPEG-4 Part 2) is available,
-        #      fallback to that.
-        #    * Else if the "libxvid" encoder (i.e., MPEG-4 Part 2) is
-        #      available, fallback to that. "libxvid" is an alternate MPEG-4
-        #      encoder. I'm unclear whether that or "mpeg4" are preferable, but
-        #      given the legacy nature of both... it probably doesn't matter.
-        #    * Else if the "h263" encoder (i.e., H.263) is available, fallback
-        #      to that. To quote Wikipedia: "MPEG-4 Part 2 is H.263 compatible
-        #      in the sense that basic 'baseline' H.263 bitstreams are
-        #      correctly decoded by an MPEG-4 Video decoder."
-        #    * Else, raise an exception.
-        #  * If this filetype is ".ogv" and...
-        #    * If the "libtheora" encoder (i.e., Theora) is available, use
-        #      that.
-        #    * Else, raise an exception.
-        #  * Else, raise an exception.
+        # Recognized names include:
         #
-        #To test whether a given encoding codec is available, we'll want to:
-        #
-        #* If the desired video encoder is "ffmpeg":
-        #  * Create a new "betse.libs.ffmpeg" package containing a new
-        #    "betse.libs.ffmpeg.ffmpegs" submodule providing an is_encoder()
-        #    tester function returning "True" if this version of FFMpeg
-        #    supports the encoding codec with the passed name: e.g.,
-        #
-        #        @type_check
-        #        def is_encoder(encoder_name: str) -> bool:
-        #
-        #    There exist numerous possible implementations of this tester with
-        #    the customary tradeoffs, including:
-        #    * Capturing the stdout of the external "ffmpeg -encoders" command
-        #      and grepping such stdout for a line whose second is the passed
-        #      encoder name.
-        #    * Capturing the stdout of the following external command, where
-        #      ${encoder_name} is the passed encoder name:
-        #
-        #          $ ffmpeg -help encoder=${encoder_name}
-        #
-        #      Sadly, this command does *NOT* report non-zero exit status if
-        #      the passed encoder is unavailable. It does, however, terminate
-        #      its stdout with the following line:
-        #
-        #          Codec '${encoder_name}' is not recognized by FFmpeg.
-        #
-        #      Hence, merely grep such output via the str.endswith() builtin
-        #      for the suffix "' is not recognized by FFmpeg."
-        #  * Call betse.libs.ffmpeg.ffmpegs.is_encoder().
+        # * "ffmpeg", an open-source cross-platform audio and video encoder.
+        # * "avconv", an open-source cross-platform audio and video encoder
+        #   forked from (and largely interchangeable with) "ffmpeg".
+        # * "mencoder", an open-source cross-platform audio and video encoder
+        #   associated with MPlayer, a popular media player.
+        # * "imagemagick", an open-source cross-platform image manipulation
+        #   suite supporting *ONLY* creation of animated GIFs.
+        save_video_writer_names = ['ffmpeg', 'avconv', 'mencoder']
 
-        # Name of the codec with which to encode the video to be saved for this
-        # animation. Ignored if `is_saving_video` is `False`.
-        save_video_codec = 'auto'
+        #FIXME: Complete comment.
+        # List of the encoder-specific names of all codecs with which to encode
+        # this video (in descending order of preference), automatically
+        # selecting the first codec supported by the current encoder. If any
+        # such name is `auto`, that name will be substituted by BETSE with the
+        # name of a codec specific to the current encoder and the filetype of
+        # the video being encoded. Ignored if `is_saving_video` is `False`.
+        #
+        # Recognized names include:
+        #
+        # * If the current encoder is either `ffmpeg` or `avconv` and this
+        #   video filetype is:
+        #   * `mp4`:
+        #     *
+        # * If the current encoder is `imagemagick`, a non-fatal warning will
+        #   be printed for any codec except `auto` and summarily ignored.
+        save_video_codec_names = ['auto']
 
-        # List of the Matplotlib-specific names of all external encoders
-        # supported by Matplotlib with which to encode this video (in descending
+        # List of the matplotlib-specific names of all external encoders
+        # supported by matplotlib with which to encode this video (in descending
         # order of preference), automatically selecting the first encoder on the
         # current $PATH. Ignored if `is_saving_video` is `False`.
+        #
+        #
+        # Recognized names include:
         save_video_writer_names = ['ffmpeg', 'avconv', 'mencoder']
 
         # If saving animation frames as either images or video, prepare to do so
@@ -570,10 +561,23 @@ class AnimCells(PlotCells):
 
         # If saving animation frames as video, prepare to do so.
         if is_saving_video:
-            # Class writing animation frames as video.
-            VideoWriterClass = video_writers.get_first_class(
+            # Name of the first video encoder installed on the current system.
+            video_writer_name = mplvideo.get_first_writer_name(
                 save_video_writer_names)
             # print('found video writer: {}'.format(VideoWriterClass))
+
+            #FIXME: Implement us up.
+
+            # Class writing animation frames as video.
+            VideoWriterClass = mplvideo.get_class(video_writer_name)
+
+            # Name of the first video codec supported by both this video
+            # encoder and the video container with this video's filetype.
+            video_codec_name = mplvideo.get_first_codec_name(
+                writer_name=video_writer_name,
+                container_filetype=save_video_filetype,
+                codec_names=save_video_codec_names,
+            )
 
             # Basename of the video to be written.
             save_video_basename = '{}.{}'.format(
@@ -587,7 +591,7 @@ class AnimCells(PlotCells):
             self._writer_video = VideoWriterClass(
                 fps=save_video_fps,
                 bitrate=save_video_bitrate,
-                codec=save_video_codec,
+                codec=video_codec_name,
                 metadata=save_video_metadata,
             )
 
