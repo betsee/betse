@@ -7,6 +7,8 @@
 Matplotlib-specific classes writing animations as frames.
 '''
 
+#FIXME: Consider contributing most or all of this submodule back to matplotlib.
+
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMatplotlibException
 from betse.util.path import dirs, paths

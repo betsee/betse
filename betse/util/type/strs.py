@@ -454,24 +454,23 @@ def uppercase_first_char(text: str) -> str:
     )
 
 # ....................{ QUOTERS                            }....................
+@type_check
 def shell_quote(text: str) -> str:
     '''
-    Shell-quote the passed string.
+    Shell-quote the passed string in a platform-specific manner.
 
-    If the current operating system is:
+    If the current platform is:
 
-    * *Not* Windows (e.g., Linux, OS X), the returned string is guaranteed to be
+    * _Not_ Windows (e.g., Linux, OS X), the returned string is guaranteed to be
       suitable for passing as an arbitrary positional argument to external
       commands.
-    * Windows, the returned string is suitable for passing *only* to external
-      commands parsing arguments according in the same manner as the Microsoft C
-      runtime. Whereas *all* applications running under POSIX-compliant systems
-      are required to parse arguments in the same manner (e.g., according to
-      Bourne shell lexing), no such standard applies to applications running
-      under Windows. For this reason, shell quoting is inherently unreliable
-      under Windows.
+    * Windows, the returned string is suitable for passing _only_ to external
+      commands parsing arguments in the same manner as the Microsoft C runtime.
+      While _all_ applications on POSIX-compliant systems are required to parse
+      arguments in the same manner (i.e., according to Bourne shell lexing), no
+      such standard applies to Windows applications. Shell quoting is therefore
+      fragile under Windows -- like pretty much everything.
     '''
-    assert types.is_str(text), types.assert_not_str(text)
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
@@ -501,9 +500,11 @@ def wrap_lines(lines: list, **kwargs) -> str:
     wrap()
         For further details.
     '''
+
     return wrap(join(lines), **kwargs)
 
 
+@type_check
 def wrap(
     text: str,
     text_wrapper = textwrap,
@@ -525,8 +526,6 @@ def wrap(
     https://docs.python.org/3/library/textwrap.html
         For further details on keyword arguments.
     '''
-    assert types.is_str(text), types.assert_not_str(text)
-    assert types.is_str(line_prefix), types.assert_not_str(line_prefix)
     assert hasattr(text_wrapper, 'wrap'), (
         'Object "{}" not a text wrapper '
         '(i.e., has no wrap() callable).'.format(text_wrapper))

@@ -566,13 +566,12 @@ class AnimCells(PlotCells):
                 save_video_writer_names)
             # print('found video writer: {}'.format(VideoWriterClass))
 
-            #FIXME: Implement us up.
-
-            # Class writing animation frames as video.
-            VideoWriterClass = mplvideo.get_class(video_writer_name)
+            # Matplotlib animation writer class encapsulating this encoder.
+            VideoWriterClass = mplvideo.get_writer_class(video_writer_name)
 
             # Name of the first video codec supported by both this video
-            # encoder and the video container with this video's filetype.
+            # encoder and the video container format corresponding to this
+            # video's filetype.
             video_codec_name = mplvideo.get_first_codec_name(
                 writer_name=video_writer_name,
                 container_filetype=save_video_filetype,

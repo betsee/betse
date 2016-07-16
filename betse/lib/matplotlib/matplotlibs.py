@@ -39,6 +39,8 @@
 #That said, we really want to do this *ANYWAY* to print this list when running
 #"betse info". So, let's just get this done, please.
 
+#FIXME: Consider contributing most or all of this submodule back to matplotlib.
+
 '''
 High-level support facilities for matplotlib, a mandatory runtime dependency.
 
@@ -369,6 +371,24 @@ class MatplotlibConfig(object):
 
         # Unconditionally enable the settings defined by the "RC_PARAMS" global.
         rcParams.update(RC_PARAMS)
+
+        #FIXME: Add transparent support for headless environments here, for
+        #which we'll want to default to a headless backend as we currently do
+        #when testing (e.g., "Agg"). To do so, add OS-specific logic testing for
+        #the presence of a windowing manager as follows:
+        #
+        #* Under Linux, test for (in order):
+        #  * X11 connectivity.
+        #  * Wayland connectivity.
+        #  * Mir connectivity.
+        #* Under OS X and Windows, don't bother testing anything. Windows
+        #  explicitly fails to support headless operation. OS X technically
+        #  supports headless operation via an obscure (albeit well-documented)
+        #  hack where one enters ">console" as the login username, but
+        #  effectively fails to support headless operation as well.
+        #
+        #This is critical under Linux, as it would render BETSE amenable to
+        #scripted, remote, and (hopefully) parallelized usage.
 
         # If tests are being run, default to the non-interactive "Agg" backend
         if pys.is_testing():

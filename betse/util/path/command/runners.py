@@ -12,10 +12,10 @@ Most runners accept a mandatory `command_words` parameter, a list of one or more
 shell words comprising this command whose:
 
 * Mandatory first element is either:
-    * This command's absolute or relative path.
-    * This command's basename, in which case the first command with that
-      basename in the current `${PATH}` environment variable will be run. If no
-      such command is found, an exception is raised.
+  * This command's absolute or relative path.
+  * This command's basename, in which case the first command with that basename
+    in the current `${PATH}` environment variable will be run. If no such
+    command is found, an exception is raised.
 * Optional subsequent elements are this command's arguments (in order).
 
 `Popen()` Keyword Arguments
@@ -27,17 +27,15 @@ Most runners accept the same optional keyword arguments accepted by the
   this command is to be run. Defaults to the current CWD.
 * `timeout`, the maximum number of milliseconds this command is to be run for.
   Commands with execution time exceeding this timeout will be mercifully killed.
-  Defaults to `None`, in which case this command will run indefinitely.
+  Defaults to `None`, in which case this command may run indefinitely.
 '''
 
 # ....................{ IMPORTS                            }....................
 import subprocess
-from collections.abc import Mapping
-from subprocess import CalledProcessError, TimeoutExpired
-
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, Sequence
-
+from collections.abc import Mapping
+from subprocess import CalledProcessError, TimeoutExpired
 
 # ....................{ RUNNERS                            }....................
 def run(command_words: Sequence, **popen_kwargs) -> None:
@@ -155,7 +153,8 @@ def run_with_output_interleaved(
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout and stderr output by this subprocess
-    (interleaved together) _and_ raising an exception on subprocess failure.
+    interleaved together (in arbitrary order) _and_ raising an exception on
+    subprocess failure.
 
     Parameters
     ----------
