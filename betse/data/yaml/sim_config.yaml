@@ -381,14 +381,17 @@ modulator function properties:   # set properties of modulating functions which 
   gradient_x:           # generate a spatial gradient of a property in the x-direction
       slope: 1.0        # rate of change of gradient per unit x-dimension
       offset: 0         # offset to all gradient values
+      exponent: 1      # Hill exponent for gradient values
 
   gradient_y:           # generate a spatial gradient of a property in the y-direction
       slope: 1.0        # rate of change of gradient per unit x-dimension
       offset: 0         # offset to all gradient values
+      exponent: 1      # Hill exponent for gradient values
 
   gradient_r:           # generate a radial spatial gradient of a property
       slope: 1.0        # radial gradient rate of change per unit radius
       offset: 0
+      exponent: 1      # Hill exponent for gradient values
 
   periodic:              # generate a sinusoidal oscillation of a property
       frequency: 10e3     # frequency of oscillation [Hz]

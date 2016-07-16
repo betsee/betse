@@ -53,6 +53,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       k inhibitors: [1.0]      # list of kinetic parameters of inhibitors
       n inhibitors: [3.0]        # list of Hill exponent of inhibitors
       apply to: ['nerves', 'spot']      # apply production only to certain profiles?
+      modulator function: gradient_x        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
 
     ion channel gating:
       ion channel target: ['Na','K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')

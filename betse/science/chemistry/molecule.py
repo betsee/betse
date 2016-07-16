@@ -20,6 +20,7 @@ import numpy as np
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.science.tissue.handler import TissueHandler
+from betse.science.event import modulators as mods
 from betse.util.io.log import logs
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseExceptionParameters
@@ -180,6 +181,8 @@ class MasterOfMolecules(object):
 
                 obj.growth_profiles_list = gad['apply to']
 
+                modulator_function_name = gad.get('modulator function', None)
+
                 obj.growth_activators_list = gad.get('activators', None)
                 obj.growth_activators_k = gad.get('k activators', None)
                 obj.growth_activators_Km = gad.get('Km activators', None)
@@ -191,6 +194,16 @@ class MasterOfMolecules(object):
                 obj.growth_inhibitors_n = gad.get('k inhibitors', None)
 
                 obj.init_growth(cells, p)
+
+                if modulator_function_name != None or modulator_function_name is not None:
+                    obj.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(obj.growth_targets_mem,
+                                                                                              cells, p)
+                    obj.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(obj.growth_targets_cell,
+                                                                                               cells, p)
+
+                else:
+                    obj.growth_mod_function_mems = 1
+                    obj.growth_mod_function_cells = 1
 
             else:
                 obj.simple_growth = False
@@ -1521,7 +1534,7 @@ class Molecule(object):
             self.growth_inhibitors_n, reaction_zone='cell')
 
 
-        delta_cells = self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
+        delta_cells = self.growth_mod_function_cells*self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
 
         self.c_cells[self.growth_targets_cell] = self.c_cells[self.growth_targets_cell] + \
                                                  delta_cells[self.growth_targets_cell]*p.dt

@@ -624,14 +624,18 @@ class Parameters(object):
 
         self.gradient_x_properties['slope'] =float(self.config['modulator function properties']['gradient_x']['slope'])
         self.gradient_x_properties['offset'] =float(self.config['modulator function properties']['gradient_x']['offset'])
-
-        self.gradient_x_properties['exponent'] = float(self.config['modulator function properties']['gradient_x'].get('exponent', 1))
+        self.gradient_x_properties['exponent'] = float(
+                                        self.config['modulator function properties']['gradient_x'].get('exponent', 1))
 
         self.gradient_y_properties['slope'] =float(self.config['modulator function properties']['gradient_y']['slope'])
         self.gradient_y_properties['offset'] = float(self.config['modulator function properties']['gradient_y']['offset'])
+        self.gradient_y_properties['exponent'] = float(
+                                    self.config['modulator function properties']['gradient_y'].get('exponent', 1))
 
         self.gradient_r_properties['slope'] = float(self.config['modulator function properties']['gradient_r']['slope'])
         self.gradient_r_properties['offset'] = float(self.config['modulator function properties']['gradient_r']['offset'])
+        self.gradient_r_properties['exponent'] = float(
+            self.config['modulator function properties']['gradient_r'].get('exponent', 1))
 
         self.periodic_properties['frequency'] = float(self.config['modulator function properties']['periodic']['frequency'])
         self.periodic_properties['phase'] = float(self.config['modulator function properties']['periodic']['phase'])

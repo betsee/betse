@@ -130,11 +130,30 @@ def gradient_y(pc, cells,p):
                     length of fy is equal to cell number.
     """
 
-    fy = np.zeros(len(cells.mem_i))
+    if len(pc) == len(cells.mem_i):
+        fy = np.zeros(len(cells.mem_i))
+        y_vals_o = cells.mem_mids_flat[:, 1]
 
-    fy[pc] = np.abs(cells.mem_mids_flat[pc,1] - p.gradient_x_properties['offset'])
+    elif len(pc) == len(cells.cell_i):
+        fy = np.zeros(len(cells.mem_i))
+        y_vals_o = cells.cell_centres[:, 1]
 
-    fy = (fy/fy.max())*p.gradient_x_properties['slope']
+    min_grad = y_vals_o.min()
+
+    # shift values to have a minimum of zero:
+    y_vals = y_vals_o - min_grad
+
+    # scale values to have a maximum of 1:
+    y_vals = y_vals / y_vals.max()
+
+    # shift the y_mid value by the offset:
+    y_mid = 0.5 + p.gradient_y_properties['offset']
+
+    n = p.gradient_y_properties['exponent']
+
+    grad_slope = ((y_vals / y_mid) ** n) / (1 + ((y_vals / y_mid) ** n))
+
+    fy = (grad_slope) * p.gradient_y_properties['slope']
 
     dynamics = lambda t: 1
 
