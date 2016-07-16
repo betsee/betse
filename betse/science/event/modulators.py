@@ -65,12 +65,9 @@ def gradient_x(pc,cells,p):
     Creates a spatial gradient along the x-axis from 0 to 1 over a patch
     of cells defined by indices.
 
-    If p.sim_ECM is True, the data is defined and returned on membrane midpoints,
-    otherwise cell centres are the defining structure.
-
     Parameters
     ----------
-    pc                 Indices of cells (p.sim_ECM == False) or membranes (p.sim_ECM == True)
+    pc                 Indices of membranes
     cells              Instance of Cells module
     p                  Instance of parameters
 
@@ -83,21 +80,30 @@ def gradient_x(pc,cells,p):
     dynamics        Null quantity corresponding to time dynamics.
     """
 
-    if p.sim_ECM is False:
-
-        fx = np.zeros(len(cells.cell_i))
-
-        fx[pc] = np.abs(cells.cell_centres[pc,0] - p.gradient_x_properties['offset'])
-
-        fx = (fx/fx.max())*p.gradient_x_properties['slope']
-
-    else:
-
+    if len(pc) == len(cells.mem_i):
         fx = np.zeros(len(cells.mem_i))
+        x_vals_o = cells.mem_mids_flat[:, 0]
 
-        fx[pc] = np.abs(cells.mem_mids_flat[pc,0] - p.gradient_x_properties['offset'])
+    elif len(pc) == len(cells.cell_i):
+        fx = np.zeros(len(cells.mem_i))
+        x_vals_o = cells.cell_centres[:, 0]
 
-        fx = (fx/fx.max())*p.gradient_x_properties['slope']
+    min_grad = x_vals_o.min()
+
+    # shift values to have a minimum of zero:
+    x_vals = x_vals_o - min_grad
+
+    # scale values to have a maximum of 1:
+    x_vals = x_vals/x_vals.max()
+
+    # shift the x_mid value by the offset:
+    x_mid = 0.5 + p.gradient_x_properties['offset']
+
+    n = p.gradient_x_properties['exponent']
+
+    grad_slope = ((x_vals/x_mid)**n)/(1+((x_vals/x_mid)**n))
+
+    fx = (grad_slope)*p.gradient_x_properties['slope']
 
     dynamics = lambda t: 1
 
@@ -113,7 +119,7 @@ def gradient_y(pc, cells,p):
 
     Parameters
     ----------
-    pc                 Indices of cells (p.sim_ECM == False) or membranes (p.sim_ECM == True)
+    pc                 Indices of membranes
     cells              Instance of Cells module
     p                  Instance of parameters
 
@@ -124,21 +130,11 @@ def gradient_y(pc, cells,p):
                     length of fy is equal to cell number.
     """
 
-    if p.sim_ECM is False:
+    fy = np.zeros(len(cells.mem_i))
 
-        fy = np.zeros(len(cells.cell_i))
+    fy[pc] = np.abs(cells.mem_mids_flat[pc,1] - p.gradient_x_properties['offset'])
 
-        fy[pc] = np.abs(cells.cell_centres[pc,1] - p.gradient_x_properties['offset'])
-
-        fy = (fy/fy.max())*p.gradient_x_properties['slope']
-
-    else:
-
-        fy = np.zeros(len(cells.mem_i))
-
-        fy[pc] = np.abs(cells.mem_mids_flat[pc,1] - p.gradient_x_properties['offset'])
-
-        fy = (fy/fy.max())*p.gradient_x_properties['slope']
+    fy = (fy/fy.max())*p.gradient_x_properties['slope']
 
     dynamics = lambda t: 1
 
@@ -155,7 +151,7 @@ def gradient_r(pc, cells,p):
 
         Parameters
         ----------
-        pc                 Indices of cells (p.sim_ECM == False) or membranes (p.sim_ECM == True)
+        pc                 Indices of membranes
         cells              Instance of Cells module
         p                  Instance of parameters
 
@@ -166,33 +162,18 @@ def gradient_r(pc, cells,p):
                         length of r is equal to cell number.
 
     """
-    if p.sim_ECM is False:
 
-        fx = np.zeros(len(cells.cell_i))
-        fy = np.zeros(len(cells.cell_i))
+    fx = np.zeros(len(cells.mem_i))
+    fy = np.zeros(len(cells.mem_i))
 
-        fx[pc] = cells.cell_centres[pc,0] - cells.centre[0] - p.gradient_r_properties['offset']
-        fy[pc] = cells.cell_centres[pc,1] - cells.centre[1] - p.gradient_r_properties['offset']
+    fx[pc] = cells.mem_mids_flat[pc,0] - cells.centre[0] - p.gradient_r_properties['offset']
+    fy[pc] = cells.mem_mids_flat[pc,1] - cells.centre[1] - p.gradient_r_properties['offset']
 
-        r = np.sqrt(fx**2 + fy**2)
+    r = np.sqrt(fx**2 + fy**2)
 
-        r = r/r.max()
+    r = r/r.max()
 
-        r = r*p.gradient_r_properties['slope']
-
-    else:
-
-        fx = np.zeros(len(cells.mem_i))
-        fy = np.zeros(len(cells.mem_i))
-
-        fx[pc] = cells.mem_mids_flat[pc,0] - cells.centre[0] - p.gradient_r_properties['offset']
-        fy[pc] = cells.mem_mids_flat[pc,1] - cells.centre[1] - p.gradient_r_properties['offset']
-
-        r = np.sqrt(fx**2 + fy**2)
-
-        r = r/r.max()
-
-        r = r*p.gradient_r_properties['slope']
+    r = r*p.gradient_r_properties['slope']
 
     dynamics = lambda t: 1
 

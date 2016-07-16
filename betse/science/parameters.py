@@ -625,6 +625,8 @@ class Parameters(object):
         self.gradient_x_properties['slope'] =float(self.config['modulator function properties']['gradient_x']['slope'])
         self.gradient_x_properties['offset'] =float(self.config['modulator function properties']['gradient_x']['offset'])
 
+        self.gradient_x_properties['exponent'] = float(self.config['modulator function properties']['gradient_x'].get('exponent', 1))
+
         self.gradient_y_properties['slope'] =float(self.config['modulator function properties']['gradient_y']['slope'])
         self.gradient_y_properties['offset'] = float(self.config['modulator function properties']['gradient_y']['offset'])
 

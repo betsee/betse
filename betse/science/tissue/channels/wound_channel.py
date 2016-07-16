@@ -101,9 +101,10 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 
         self.update_charge(sim.iNa, delta_Q, dyna.targets_vgWound, sim, cells, p)
+        self.update_charge(sim.iK, delta_Q, dyna.targets_vgWound, sim, cells, p)
 
         if p.ions_dict['Ca'] == 1.0:
-            self.update_charge(sim.iCa, delta_Q, dyna.targets_vgWound, sim, cells, p)
+            self.update_charge(sim.iCa, 0.1*delta_Q, dyna.targets_vgWound, sim, cells, p)
 
 
     @abstractmethod
@@ -156,7 +157,7 @@ class TRP(WoundABC):
 
         """
 
-        self.vrev = 30  # reversal voltage used in model [mV]
+        self.vrev = 0  # reversal voltage used in model [mV]
 
         self._mInf = 1.0
         self._mTau = 1.0
