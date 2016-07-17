@@ -103,8 +103,8 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
         self.update_charge(sim.iNa, delta_Q, dyna.targets_vgWound, sim, cells, p)
         self.update_charge(sim.iK, delta_Q, dyna.targets_vgWound, sim, cells, p)
 
-        if p.ions_dict['Ca'] == 1.0:
-            self.update_charge(sim.iCa, 0.1*delta_Q, dyna.targets_vgWound, sim, cells, p)
+        # if p.ions_dict['Ca'] == 1.0:
+        #     self.update_charge(sim.iCa, 0.1*delta_Q, dyna.targets_vgWound, sim, cells, p)
 
 
     @abstractmethod

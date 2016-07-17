@@ -1155,19 +1155,7 @@ class TissueHandler(object):
                         data2.append(data[index])
                         setattr(sim, name, data2)
 
-        # delete data from molecules object
 
-        if p.molecules_enabled:
-
-            sim.molecules.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
-
-        if p.metabolism_enabled:
-
-            sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p, met_tag = True)
-
-        if p.grn_enabled:
-
-            sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
         if p.Ca_dyn is True and sim.endo_retic is not None:
 
@@ -1232,6 +1220,19 @@ class TissueHandler(object):
         if p.v_sensitive_gj:
             sim.gj_funk.init(sim, cells, p)
 
+
+        # delete data from molecules objects:
+        if p.molecules_enabled:
+
+            sim.molecules.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+
+        if p.metabolism_enabled:
+
+            sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p, met_tag = True)
+
+        if p.grn_enabled:
+
+            sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
         if p.sim_ECM is True:
 

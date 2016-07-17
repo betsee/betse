@@ -195,7 +195,7 @@ class MasterOfMolecules(object):
 
                 obj.init_growth(cells, p)
 
-                if modulator_function_name != None or modulator_function_name is not None:
+                if modulator_function_name != 'None' and modulator_function_name is not None:
                     obj.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(obj.growth_targets_mem,
                                                                                               cells, p)
                     obj.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(obj.growth_targets_cell,
@@ -792,6 +792,17 @@ class MasterOfMolecules(object):
             sim.met_concs = {'cATP': self.ATP.c_mems,
                 'cADP': self.ADP.c_mems,
                 'cPi': self.Pi.c_mems}
+
+        for name in self.transporter_names:
+            obj = getattr(self, name)
+
+            obj.update_transporter(sim, cells, p)
+
+        for name in self.channel_names:
+            obj = getattr(self, name)
+
+            obj.update_channel(sim, cells, p)
+
 
     def clear_cache(self):
         """
@@ -1536,6 +1547,7 @@ class Molecule(object):
 
         delta_cells = self.growth_mod_function_cells*self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
 
+
         self.c_cells[self.growth_targets_cell] = self.c_cells[self.growth_targets_cell] + \
                                                  delta_cells[self.growth_targets_cell]*p.dt
 
@@ -1561,6 +1573,14 @@ class Molecule(object):
         cmems2 = np.delete(self.c_mems, target_inds_mem)
         # reassign the new data vector to the object:
         self.c_mems = cmems2[:]
+
+        if self.simple_growth is True:
+
+            gmfc = np.delete(self.growth_mod_function_cells, target_inds_cell)
+            self.growth_mod_function_cells = gmfc[:]
+
+        self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
+        self.init_growth(cells, p)
 
         if p.sim_ECM is False:
 
@@ -1838,7 +1858,6 @@ class Reaction(object):
         self.reaction_inhibitors_list = None
         self.reaction_inhibitors_Km = None
         self.reaction_inhibitors_n = None
-
 
     def get_reactants(self, sim, sim_metabo, reactant_type_self, reactant_type_sim):
 
@@ -2850,6 +2869,12 @@ class Transporter(object):
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
+    def update_transporter(self, sim, cells, p):
+
+        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
+        self.init_reaction(cells, p)
+
+
 class Channel(object):
 
     def __init__(self, sim, cells, p):
@@ -2937,6 +2962,10 @@ class Channel(object):
         self.channel_core.modulator = activator_alpha*inhibitor_alpha
 
         self.channel_core.run(self.dummy_dyna, sim, cells, p)
+
+    def update_channel(self, sim, cells, p):
+        self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
+        self.init_channel(self.channel_class, self.channel_type, self.channelMax, sim, cells, p)
 
 class Modulator(object):
     """
