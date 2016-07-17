@@ -109,10 +109,10 @@ reactions:
     max rate: 5.0e-3                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
 
-    transporter activators: None   # additional defined substances or ions increasing activity of transporter
+    reaction activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
     activator n: None
-    transporter inhibitors: None    # additional defined substances or ions decreasing activity of transporter
+    reaction inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
     activator n: None
 

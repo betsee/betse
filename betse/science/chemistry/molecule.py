@@ -2091,11 +2091,22 @@ class Reaction(object):
             if self.reaction_zone == 'cell':
 
                 self.set_reactant_c(deltaC, sim, sim_metabo,'c_cells', 'cc_cells')
+
+                # re-obtain updated concentrations:
+                self.get_reactants(sim, sim_metabo, 'c_cells', 'cc_cells')
+                self.get_products(sim, sim_metabo, 'c_cells', 'cc_cells')
+
                 self.set_product_c(deltaC, sim, sim_metabo, 'c_cells', 'cc_cells')
+
 
             if self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
 
                 self.set_reactant_c(deltaC, sim, sim_metabo,'c_mit', 'cc_mit')
+
+                # obtain updated concentrations:
+                self.get_reactants(sim, sim_metabo, 'c_mit', 'cc_mit')
+                self.get_products(sim, sim_metabo, 'c_mit', 'cc_mit')
+
                 self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
 
         else:
@@ -2661,7 +2672,6 @@ class Transporter(object):
 
                 echem_terms.append(out_term)
 
-
         if self.transport_in_list != None:
 
             for in_name in self.transport_in_list:
@@ -2700,7 +2710,6 @@ class Transporter(object):
         deltaGi = -vmem_term/(p.R * sim.T)
 
         # get up-to-date concentration data for the reaction:
-
         self.get_reactants(sim, sim_metabo, type_self, type_sim)
         self.get_products(sim, sim_metabo, type_self, type_sim)
 
@@ -2835,6 +2844,11 @@ class Transporter(object):
 
             self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p,
                                 ignoreECM = self.ignore_ECM_transporter)
+
+            # get up-to-date concentration data for the reaction:
+            self.get_reactants(sim, sim_metabo, type_self, type_sim)
+            self.get_products(sim, sim_metabo, type_self, type_sim)
+
             self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p,
                                ignoreECM = self.ignore_ECM_transporter)
 
