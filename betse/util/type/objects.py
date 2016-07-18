@@ -8,7 +8,7 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.types import type_check, Callable
+from betse.util.type.types import type_check, CallableTypes
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -37,7 +37,7 @@ def is_method(obj: object, method_name: str) -> bool:
 
 # ....................{ GETTERS                            }....................
 @type_check
-def get_method_or_none(obj: object, method_name: str) -> Callable:
+def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
     '''
     Method with the passed name bound to the passed object if any _or_ `None`
     otherwise.

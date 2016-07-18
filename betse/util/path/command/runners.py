@@ -33,12 +33,12 @@ Most runners accept the same optional keyword arguments accepted by the
 # ....................{ IMPORTS                            }....................
 import subprocess
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, SequenceTypes
 from collections.abc import Mapping
 from subprocess import CalledProcessError, TimeoutExpired
 
 # ....................{ RUNNERS                            }....................
-def run(command_words: Sequence, **popen_kwargs) -> None:
+def run(command_words: SequenceTypes, **popen_kwargs) -> None:
     '''
     Run the passed command as a subprocess of the current Python process,
     raising an exception on subprocess failure.
@@ -47,7 +47,7 @@ def run(command_words: Sequence, **popen_kwargs) -> None:
 
     Parameters
     ----------
-    command_words : Sequence
+    command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
         Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
@@ -70,7 +70,7 @@ def run(command_words: Sequence, **popen_kwargs) -> None:
         raise CalledProcessError(exit_status, command_words)
 
 
-def run_nonfatal(command_words: Sequence, **popen_kwargs) -> int:
+def run_nonfatal(command_words: SequenceTypes, **popen_kwargs) -> int:
     '''
     Run the passed command as a subprocess of the current Python process,
     returning only the exit status of this subprocess.
@@ -80,7 +80,7 @@ def run_nonfatal(command_words: Sequence, **popen_kwargs) -> int:
 
     Parameters
     ----------
-    command_words : Sequence
+    command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
         Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
@@ -111,7 +111,7 @@ def run_nonfatal(command_words: Sequence, **popen_kwargs) -> int:
     return exit_status
 
 # ....................{ RUNNERS ~ stdout                   }....................
-def run_with_stdout_captured(command_words: Sequence, **popen_kwargs) -> str:
+def run_with_stdout_captured(command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout output by this subprocess _and_ raising
@@ -119,7 +119,7 @@ def run_with_stdout_captured(command_words: Sequence, **popen_kwargs) -> str:
 
     Parameters
     ----------
-    command_words : Sequence
+    command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
         Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
@@ -149,7 +149,7 @@ def run_with_stdout_captured(command_words: Sequence, **popen_kwargs) -> str:
 
 
 def run_with_output_interleaved(
-    command_words: Sequence, **popen_kwargs) -> str:
+    command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout and stderr output by this subprocess
@@ -158,7 +158,7 @@ def run_with_output_interleaved(
 
     Parameters
     ----------
-    command_words : Sequence
+    command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
         Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
@@ -185,7 +185,7 @@ def run_with_output_interleaved(
 
 # ....................{ PRIVATE                            }....................
 @type_check
-def _init_run_args(command_words: Sequence, popen_kwargs: Mapping) -> None:
+def _init_run_args(command_words: SequenceTypes, popen_kwargs: Mapping) -> None:
     '''
     Sanitize the dictionary of keyword arguments to be passed to the
     `subprocess.Popen()` callable with sane defaults.
@@ -224,7 +224,7 @@ def _init_run_args(command_words: Sequence, popen_kwargs: Mapping) -> None:
 
     Arguments
     ----------
-    command_words : Sequence
+    command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
         Dictionary of keyword arguments to be sanitized.

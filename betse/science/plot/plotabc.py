@@ -17,7 +17,7 @@ from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseExceptionMethod
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.type import types, objects
-from betse.util.type.types import type_check, Numeric  #, Sequence
+from betse.util.type.types import type_check, NumericTypes  #, SequenceTypes
 from matplotlib import pyplot
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Colormap
@@ -119,8 +119,8 @@ class PlotCells(object, metaclass=ABCMeta):
         figure_title: str,
         colorbar_title: str,
         is_color_autoscaled: bool,
-        color_min: Numeric,
-        color_max: Numeric,
+        color_min: NumericTypes,
+        color_max: NumericTypes,
 
         # Optional parameters.
         axes_title: str = None,
@@ -162,9 +162,9 @@ class PlotCells(object, metaclass=ABCMeta):
             values to be the corresponding minimum and maximum values for the
             current frame _or_ `False` if statically setting the minimum and
             maximum colorbar values to predetermined constants.
-        color_min : Numeric
+        color_min : NumericTypes
             Minimum colorbar value to be used if `clrAutoscale` is `False`.
-        color_max : Numeric
+        color_max : NumericTypes
             Maximum colorbar value to be used if `clrAutoscale` is `False`.
         colormap : matplotlib.cm.Colormap
             Matplotlib colormap to be used by default for all animation artists

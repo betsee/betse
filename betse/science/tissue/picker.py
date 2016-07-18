@@ -238,7 +238,7 @@ class TissuePickerIndices(TissuePicker):
     Attributes
     ----------------------------
     indices : collections.Sequence
-        Sequence (e.g., list, tuple) of the indices of all cells to be matched.
+        SequenceTypes (e.g., list, tuple) of the indices of all cells to be matched.
     '''
 
     def __init__(self, indices):

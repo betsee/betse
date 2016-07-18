@@ -21,7 +21,7 @@ objects).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import inspect, re
-from collections.abc import Container, Iterable, Mapping
+from collections.abc import Container, Iterable, Mapping, Sequence
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
@@ -32,11 +32,6 @@ from types import (
     LambdaType,
     MethodType,
 )
-
-# For disambiguity with the BETSE-specific (and frankly more useful) "Sequence"
-# tuple of sequence types defined below, import the "Sequence" abstract base
-# class as a unique name.
-from collections.abc import Sequence as SequenceABC
 
 # ....................{ TYPES                              }....................
 NoneType = type(None)
@@ -50,12 +45,12 @@ exposes this class.
 
 This class is principally useful for annotating both:
 
-* Callable parameters accepting `None` as a valid value.
+* CallableTypes parameters accepting `None` as a valid value.
 * Callables returning `None` as a valid value.
 '''
 
 # ....................{ TUPLES                             }....................
-Callable = (
+CallableTypes = (
     BuiltinFunctionType,
     BuiltinMethodType,
     FunctionType,
@@ -69,7 +64,7 @@ methods).
 '''
 
 
-Numeric = (int, float)
+NumericTypes = (int, float)
 '''
 Tuple of all **numeric classes** (i.e., classes whose instances are single
 scalar numbers excluding complex numbers, which typically require
@@ -85,7 +80,7 @@ This tuple contains classes matching both integer and real number types.
 # presumably called early in program startup, subsequently replaces this simple
 # type with a tuple consisting of this simple type as well as other third-party
 # types conforming to the same API (e.g., Numpy arrays and matrices).
-Sequence = SequenceABC
+SequenceTypes = (Sequence,)
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
 subclassing) the canonical `collections.abc.Sequence` API.
@@ -99,9 +94,9 @@ numerous others.
 While all sequences are iterables, not all iterables are sequences. Generally
 speaking, sequences correspond to the proper subset of iterables whose elements
 are ordered. `dict` and `OrderedDict` are the canonical examples. `dict`
-implements `collections.Iterable` but _not_ `collections.Sequence`, due to
-_not_ supporting integer index-based lookup; `OrderedDict` implements both, due
-to supporting such lookup.
+implements `collections.abc.Iterable` but _not_ `collections.abc.Sequence`, due
+to _not_ supporting integer index-based lookup; `OrderedDict` implements both,
+due to supporting such lookup.
 
 For generality, this tuple contains classes matching both pure-Python sequences
 _and_ non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
@@ -148,7 +143,7 @@ This includes:
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
-    Initialize module constants (e.g., `Sequence`).
+    Initialize module constants (e.g., `SequenceTypes`).
 
     These constants are typically:
 
@@ -162,11 +157,11 @@ def init() -> None:
     from numpy import ndarray
 
     # Declare these constants to be globals, permitting modification below.
-    global Sequence
+    global SequenceTypes
 
     # Tuple of all container base classes conforming to (but *NOT* necessarily
     # subclassing) the canonical "collections.abc.Sequence" API.
-    Sequence = (SequenceABC, ndarray)
+    SequenceTypes = (Sequence, ndarray)
 
 # ....................{ DECORATORS                         }....................
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
@@ -551,24 +546,25 @@ def is_sequence(obj: object) -> bool:
 
     Sequences are iterables supporting efficient element access via integer
     indices. Equivalently, sequences implement the abstract base class
-    `collections.Sequence` and hence define the `__getitem__()` and `__len__()`
-    methods (among numerous others).
+    `collections.abc.Sequence` and hence define the `__getitem__()` and
+    `__len__()` methods (among numerous others).
 
     While all sequences are iterables, not all iterables are sequences.
     Generally speaking, sequences correspond to the proper subset of iterables
     whose elements are ordered. `dict` and `OrderedDict` are the canonical
     examples. `dict` implements `collections.Iterable` but _not_
-    `collections.Sequence`, due to _not_ supporting integer index-based lookup;
-    `OrderedDict` implements both, due to supporting such lookup.
+    `collections.abc.Sequence`, due to _not_ supporting integer index-based
+    lookup; `OrderedDict` implements both, due to supporting such lookup.
     '''
-    return isinstance(obj, SequenceABC)
+
+    return isinstance(obj, Sequence)
 
 
 def is_sequence_nonstr(obj: object) -> bool:
     '''
     `True` only if the passed object is a **non-string sequence** (i.e.,
-    implements the abstract base class `collections.Sequence` _and_ is not a
-    string).
+    implements the abstract base class `collections.abc.Sequence` _and_ is not
+    a string).
 
     For generality, this functions returns `True` for both pure-Python
     non-string sequences _and_ non-Pythonic Fortran-based `numpy` arrays and
@@ -576,7 +572,6 @@ def is_sequence_nonstr(obj: object) -> bool:
     implementing all methods defined by that subclass).
     '''
 
-    # Let's do this.
     return (
         # Is this a pure-Python non-string sequence?
         (is_sequence(obj) and not is_str(obj)) or
@@ -588,8 +583,9 @@ def is_sequence_nonstr(obj: object) -> bool:
 def is_sequence_nonstr_nonempty(obj: object) -> bool:
     '''
     `True` only if the passed object is a **nonempty non-string sequence**
-    (i.e., implements the abstract base class `collections.Sequence`, is not a
-    string, _and_ contains at least one element).
+    (i.e., implements the abstract base class `collections.abc.Sequence`, is
+    not a string, _and_ contains at least one element).
+
     '''
     return is_sequence_nonstr(obj) and len(obj)
 

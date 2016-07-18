@@ -12,7 +12,7 @@ absolute path) facilities.
 # ....................{ IMPORTS                            }....................
 import shutil
 from betse.exceptions import BetseCommandException
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -48,7 +48,7 @@ def is_pathable(command_basename: str) -> bool:
 # ....................{ GETTERS ~ first                    }....................
 @type_check
 def get_first_basename(
-    command_basenames: Sequence,
+    command_basenames: SequenceTypes,
     exception_message: str = None) -> str:
     '''
     Get the first pathable string in the passed list (i.e., the first string
@@ -58,7 +58,7 @@ def get_first_basename(
 
     Parameters
     ----------
-    command_basenames : Sequence
+    command_basenames : SequenceTypes
         List of the basenames of all commands to be iteratively searched for
         (in descending order of preference).
     exception_message : optional[str]

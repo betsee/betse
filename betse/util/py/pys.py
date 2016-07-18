@@ -20,7 +20,7 @@ import platform, sys
 from betse import metadata
 from betse.exceptions import BetseExceptionInterpreter
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
 
 # ....................{ INITIALIZERS                       }....................
@@ -218,7 +218,7 @@ def get_metadata() -> OrderedDict:
 
 # ....................{ RUNNERS                            }....................
 @type_check
-def run(command_args: Sequence, **popen_kwargs) -> None:
+def run(command_args: SequenceTypes, **popen_kwargs) -> None:
     '''
     Rerun the active Python interpreter as a subprocess of the current Python
     process, raising an exception on subprocess failure.

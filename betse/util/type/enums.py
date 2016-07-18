@@ -12,7 +12,7 @@ facilities.
 from betse.util.type import types
 
 # ....................{ GETTERS                            }....................
-def get_names_lowercase(enum: "EnumMeta") -> 'collections.Sequence':
+def get_names_lowercase(enum: "EnumMeta") -> 'collections.SequenceTypes':
     '''
     Non-string sequence of the lowercased names of all members of the passed
     enumeration type in **declaration order** (i.e., the order in which these

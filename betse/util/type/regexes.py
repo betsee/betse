@@ -10,7 +10,7 @@ Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 # ....................{ IMPORTS                            }....................
 import re
 from betse.exceptions import BetseExceptionRegex
-from betse.util.type.types import type_check, Callable
+from betse.util.type.types import type_check, CallableTypes
 from sre_parse import Pattern
 
 # ....................{ FLAGS                              }....................
@@ -293,7 +293,7 @@ def remove_substrings(text: str, regex: (str, Pattern), **kwargs) -> str:
 def substitute_substrings(
     text: str,
     regex: (str, Pattern),
-    substitution: (str,) + Callable,
+    substitution: (str,) + CallableTypes,
     **kwargs
 ) -> str:
     '''

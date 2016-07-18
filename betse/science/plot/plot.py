@@ -1625,7 +1625,7 @@ def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
 
 
 #FIXME: Use everywhere in "betse.science.plot.anim.pipeline".
-def upscale_data(data: (int, float, np.ndarray, 'Sequence')) -> (
+def upscale_data(data: (int, float, np.ndarray, 'SequenceTypes')) -> (
     int, float, np.ndarray):
     '''
     Upscale the contents of the passed object for use in plots and animations.
@@ -1642,7 +1642,7 @@ def upscale_data(data: (int, float, np.ndarray, 'Sequence')) -> (
 
     Parameters
     ----------------------------
-    data : (int, float, np.ndarray, Sequence)
+    data : (int, float, np.ndarray, SequenceTypes)
         Pure-Python number or sequence _or_ NumPy array to be upscaled.
 
     Returns

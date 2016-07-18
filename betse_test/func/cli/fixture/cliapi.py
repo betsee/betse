@@ -10,7 +10,7 @@ External command fixture classes.
 # ....................{ IMPORTS                            }....................
 from contextlib import ExitStack
 from betse.util.path.command import exits
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ CLASSES ~ single                   }....................
 class CLITester(object):
@@ -41,13 +41,13 @@ class CLITester(object):
     '''
 
     @type_check
-    def __init__(self, contexts: Sequence) -> None:
+    def __init__(self, contexts: SequenceTypes) -> None:
         '''
         Initialize this test runner with the passed `request` fixture object.
 
         Parameters
         ----------
-        contexts : collections.Sequence
+        contexts : SequenceType
             List of all context managers with which to subsequently call the
             `betse.cli.__main__.main()` method when this object's `run()` method
             is called.
@@ -147,7 +147,7 @@ class CLITesterPreArged(object):
     _cli : CLITester
         BETSE CLI test runner, testing a single subcommand of the official
         BETSE CLI (i.e., `betse`) in the active Python interpreter.
-    _subcommand_args : collections.Sequence
+    _subcommand_args : SequenceType
         Argument list comprising the BETSE CLI subcommand to be tested.
 
     See Also
@@ -156,11 +156,12 @@ class CLITesterPreArged(object):
         Further details on BETSE CLI execution.
     '''
 
+
     @type_check
     def __init__(
         self,
         cli: CLITester,
-        subcommand_args: Sequence,
+        subcommand_args: SequenceTypes,
     ) -> None:
         '''
         Initialize this test runner with the passed `request` fixture object.

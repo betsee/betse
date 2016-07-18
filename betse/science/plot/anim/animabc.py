@@ -121,7 +121,7 @@ from betse.lib.matplotlib.writer.mplframe import FileFrameWriter
 from betse.science.plot.plotabc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 from scipy import interpolate
@@ -668,7 +668,7 @@ class AnimCells(PlotCells):
             # Figure to which the "func" callable plots each frame.
             fig=self._figure,
 
-            # Callable plotting each frame.
+            # CallableTypes plotting each frame.
             func=self.plot_frame,
 
             # Number of frames to be animated.
@@ -1079,20 +1079,20 @@ class AnimField(AnimCellsAfterSolving):
 
     Attributes
     ----------
-    _magnitude_time_series : Sequence
+    _magnitude_time_series : SequenceTypes
         Electric field magnitudes as a function of time.
     _mesh_plot : matplotlib.image.AxesImage
         Meshplot of the current or prior frame's electric field magnitude.
     _stream_plot : matplotlib.streamplot.StreamplotSet
         Streamplot of the current or prior frame's electric field.
-    _x_time_series : Sequence
+    _x_time_series : SequenceTypes
         Electric field X components as a function of time.
-    _y_time_series : Sequence
+    _y_time_series : SequenceTypes
         Electric field Y components as a function of time.
-    _unit_x_time_series : Sequence
+    _unit_x_time_series : SequenceTypes
         Electric field X unit components as a function of time. The resulting
         electric field vectors are **unit vectors** (i.e., have magnitude 1).
-    _unit_y_time_series : Sequence
+    _unit_y_time_series : SequenceTypes
         Electric field Y unit components as a function of time. The resulting
         electric field vectors are **unit vectors** (i.e., have magnitude 1).
     '''
@@ -1100,8 +1100,8 @@ class AnimField(AnimCellsAfterSolving):
     @type_check
     def __init__(
         self,
-        x_time_series: Sequence,
-        y_time_series: Sequence,
+        x_time_series: SequenceTypes,
+        y_time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
         '''
@@ -1109,11 +1109,11 @@ class AnimField(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        x_time_series : Sequence
-            Sequence (e.g., list, numpy array) of all electric field strength X
+        x_time_series : SequenceTypes
+            SequenceTypes (e.g., list, numpy array) of all electric field strength X
             components indexed by simulation time.
-        y_time_series : Sequence
-            Sequence (e.g., list, numpy array) of all electric field strength Y
+        y_time_series : SequenceTypes
+            SequenceTypes (e.g., list, numpy array) of all electric field strength Y
             components indexed by simulation time.
 
         See the superclass `__init__()` method for all remaining parameters.

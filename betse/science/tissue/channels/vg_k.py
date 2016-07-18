@@ -274,7 +274,7 @@ class Kv1p5(VgKABC):
     In addition, Kv1.5 channels are also expressed in many other organs, such as pulmonary arteries,
     brain, skeletal muscle, and have crucial function in cell cycle regulation.
 
-    Reference: Philipson LH. et al. Sequence and functional expression in Xenopus oocytes of a
+    Reference: Philipson LH. et al. SequenceTypes and functional expression in Xenopus oocytes of a
     human insulinoma and islet potassium channel. Proc. Natl. Acad. Sci. U.S.A., 1991 Jan 1 , 88 (53-7).
 
     '''

@@ -27,7 +27,7 @@ Animation serialization classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractstaticmethod
 from betse.util.type import types
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ SUPERCLASS                         }....................
 #FIXME: Rename to "AnimSaver".
@@ -142,7 +142,7 @@ class AnimationSaverVideo(AnimationSaver):
     # ..................{ PUBLIC                             }..................
     @type_check
     def __init__(
-        self, is_enabled: bool, filetype: str, encoder_names: Sequence) -> None:
+        self, is_enabled: bool, filetype: str, encoder_names: SequenceTypes) -> None:
 
         super().__init__(is_enabled, filetype)
         self.encoder_names = encoder_names

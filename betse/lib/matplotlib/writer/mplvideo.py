@@ -11,10 +11,11 @@ Matplotlib-specific classes writing animations as video.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMatplotlibException
+from betse.util.io.log import logs
 from betse.util.path.command import pathables, runners
 from betse.util.type import regexes, strs
 from betse.util.type.mappings import bidict
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, NoneType, SequenceTypes
 from matplotlib.animation import writers
 
 # ....................{ DICTS                              }....................
@@ -58,13 +59,18 @@ These mappings are accessible as follows:
 
 
 # Subsequently initialized by the init() function.
-WRITER_NAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES = None
+WRITER_BASENAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES = None
 '''
-Dictionary mapping from the matplotlib-specific name of each video encoder
-supported by matplotlib (e.g., `ffmpeg`) to a nested dictionary mapping from
-the filetype of each video container format recognized by BETSE (e.g.,
-`mp4`) to a list of the names of all widely used video codecs supported by
-that encoder (in descending order of widespread preference).
+Dictionary mapping from the basename of the external command for each video
+encoder recognized by matplotlib (e.g., `ffmpeg`) to a nested dictionary mapping
+from the filetype of each video container format recognized by BETSE (e.g.,
+`mp4`) to a list of the names of all widely used video codecs supported by that
+encoder (in descending order of general-purpose, subjective preference).
+
+Since multiple matplotlib animation writers (e.g., `ffmpeg`, `ffmpeg_file`)
+typically execute the same external command (e.g., `ffmpeg`), this dictionary
+maps from the latter rather than the former. Mapping from the former would
+needlessly require redundant mappings for writers sharing the same command.
 
 This dictionary is principally used by the `get_first_codec_name()` utility
 function to obtain the preferred codec for a given combination of video
@@ -80,9 +86,9 @@ def init() -> None:
     '''
 
     # Globals initialized below.
-    global WRITER_NAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES
+    global WRITER_BASENAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES
 
-    WRITER_NAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES = {
+    WRITER_BASENAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES = {
         # FFmpeg.
         'ffmpeg': {
             # Audio Video Interleave (AVI). AVI supports the smallest subset of
@@ -141,13 +147,16 @@ def init() -> None:
         # ImageMagick, encoding videos only as old-school animated GIFs. Since
         # ImageMagick is *NOT* a general-purpose video encoder and hence fails
         # to support the notion of video codecs, a codec of "None" is used.
-        'imagemagick': {
+        # This has beneficial side effects, including ensuring that no edge-case
+        # functionality in the matplotlib codebase attempts to erroneously
+        # encode anything with ImageMagick using a codec.
+        'convert': {
             'gif': [None],
         }
     }
 
     # Shorthand to preserve sanity below.
-    codec_names = WRITER_NAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES
+    codec_names = WRITER_BASENAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES
 
     # For FFmpeg, define the set of all codecs supported by the "mp4" (i.e.,
     # MPEG-4 Part 14) and "mov" (i.e., QuickTime) container formats to be the
@@ -205,11 +214,12 @@ def die_unless_writer(writer_name: str) -> None:
             'Matplotlib animation video writer "{}" unrecognized.'.format(
                 writer_name))
 
-
-def die_unless_writer_command(writer_name: str) -> None:
+# ....................{ EXCEPTIONS ~ pathable              }....................
+def die_unless_writer_pathable(writer_name: str) -> None:
     '''
     Raise an exception unless a video encoder with the passed
-    matplotlib-specific name is an external command in the current `${PATH}`.
+    matplotlib-specific name is recognized by both matplotlib and BETSE itself
+    _and_ is an external command in the current `${PATH}`.
 
     Parameters
     ----------
@@ -218,19 +228,42 @@ def die_unless_writer_command(writer_name: str) -> None:
 
     See Also
     ----------
-    is_writer_command
+    is_writer_pathable
         Further details.
     '''
 
     # If this writer is *NOT* in the ${PATH}...
-    if not is_writer_command(writer_name):
+    if not is_writer_pathable(writer_name):
         # Basename of this writer's command.
         writer_basename = WRITER_NAME_TO_COMMAND_BASENAME[writer_name]
 
         # Raise an exception.
         raise BetseMatplotlibException(
-            'Matplotlib animation video writer "{}" unrecognized or '
-            'not in the current ${{PATH}}.'.format(writer_basename))
+            'Matplotlib animation video encoder "{}" unrecognized or '
+            'not in current ${{PATH}}.'.format(writer_basename))
+
+
+def die_unless_writer_command_pathable(writer_basename: str) -> None:
+    '''
+    Raise an exception unless a video encoder whose external command has the
+    passed basename is recognized by both matplotlib and BETSE itself _and_ is
+    in the current `${PATH}`.
+
+    Parameters
+    ----------
+    writer_basename : str
+        Basename of the external command of the video encoder to test.
+
+    See Also
+    ----------
+    is_writer_command_pathable
+        Further details.
+    '''
+
+    if not is_writer_command_pathable(writer_basename):
+        raise BetseMatplotlibException(
+            'Matplotlib animation video encoder "{}" unrecognized or '
+            'not in current ${{PATH}}.'.format(writer_basename))
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -267,7 +300,29 @@ def is_writer(writer_name: str) -> bool:
 
 
 @type_check
-def is_writer_command(writer_name: str) -> bool:
+def is_writer_basename(writer_basename: str) -> bool:
+    '''
+    `True` only if a video encoder whose external command has the passed
+    basename (e.g., `ffmpeg`) is recognized by both matplotlib and BETSE itself.
+
+    Parameters
+    ----------
+    writer_basename : str
+        Basename of the external command of the video encoder to test.
+
+    Returns
+    ----------
+    bool
+        `True` only if this encoder is recognized by both matplotlib and BETSE.
+    '''
+
+    return (
+        writer_basename in WRITER_NAME_TO_COMMAND_BASENAME.reverse and
+        is_writer(WRITER_NAME_TO_COMMAND_BASENAME.reverse[writer_basename]))
+
+# ....................{ TESTERS ~ pathable                 }....................
+@type_check
+def is_writer_pathable(writer_name: str) -> bool:
     '''
     `True` only if the video encoder with the passed matplotlib-specific name
     (e.g., `ffmpeg`) is recognized by both matplotlib and BETSE itself _and_ is
@@ -285,29 +340,60 @@ def is_writer_command(writer_name: str) -> bool:
         `True` only if the above conditions hold.
     '''
 
-    # If this writer is recognized...
-    if is_writer(writer_name):
-        # Basename of this encoder's command.
-        writer_basename = WRITER_NAME_TO_COMMAND_BASENAME[writer_name]
-
-        # Return whether this command is in the current ${PATH}.
-        return pathables.is_pathable(writer_basename)
-    # Else, this writer is unrecognized. Return False.
-    else:
-        return False
+    return is_writer(writer_name) and is_writer_command_pathable(
+        WRITER_NAME_TO_COMMAND_BASENAME[writer_name])
 
 
 @type_check
-def is_writer_codec(writer_name: str, codec_name: str) -> bool:
+def is_writer_command_pathable(writer_basename: str) -> bool:
     '''
-    `True` only if the video encoder with the passed matplotlib-specific name
-    (e.g., `ffmpeg`) supports the video codec with the passed encoder-specific
-    name (e.g., `libx264`).
+    `True` only if the video encoder whose external command has the passed
+    basename (e.g., `ffmpeg`) is recognized by both matplotlib and BETSE itself
+    _and_ is installed as an external command in the current `${PATH}`,
+    typically of the same name as the passed name.
 
     Parameters
     ----------
-    writer_name : str
-        Matplotlib-specific alphanumeric lowercase name of the encoder to test.
+    writer_basename : str
+        Basename of the external command of the video encoder to test.
+
+    Returns
+    ----------
+    bool
+        `True` only if the above conditions hold.
+    '''
+
+    return (
+        is_writer_basename(writer_basename) and
+        pathables.is_pathable(writer_basename))
+
+# ....................{ TESTERS ~ codec                    }....................
+@type_check
+def is_writer_command_codec(
+    writer_basename: str, codec_name: (str, NoneType)) -> bool:
+    '''
+    `True` only if the video encoder whose external command has the passed
+    basename (e.g., `ffmpeg`) supports the video codec with the passed
+    encoder-specific name (e.g., `libx264`).
+
+    Specifically, this function returns `True` only if the passed basename is:
+
+    * `ffmpeg` _and_ the `ffmpeg -help encoder={codec_name}` command succeeds.
+    * `avconv` _and_ the `avconv -help encoder={codec_name}` command succeeds.
+    * `mencoder`, the `mencoder -ovc help` command lists the Mencoder-specific
+      `lavc` video codec, _and_ either:
+      * `ffmpeg` is in the current `${PATH}` and recursively calling this
+        function as `is_writer_codec('ffmpeg', codec_name)` returns `True`.
+      * `ffmpeg` is _not_ in the current `${PATH}`, in which case this function
+        assumes the passed codec to be supported and simply returns `True`.
+    * Any other passed basename (e.g., `convert`, implying ImageMagick) _and_
+      the passed codec is `None`. These basenames are assumed to _not_ actually
+      be video encoders and thus support _no_ video codecs.
+
+    Parameters
+    ----------
+    writer_basename : str
+        Basename of the external command of the video encoder to test.
     codec_name : str
         Encoder-specific name of the codec to be tested for.
 
@@ -319,23 +405,20 @@ def is_writer_codec(writer_name: str, codec_name: str) -> bool:
     Raises
     ----------
     BetseMatplotlibException
-        If this writer is either:
+        If this basename is either:
         * Unrecognized by matplotlib or BETSE itself.
         * Not found as an external command in the current `${PATH}`.
+        * Mencoder and the `mencoder -ovc help` command fails to list the
+          Mencoder-specific `lavc` video codec required by Matplotlib.
 
     See Also
     ----------
-    is_writer_command
+    is_writer_pathable
         Tester validating this writer.
     '''
 
-    # If this encoder is unrecognized or not in the ${PATH}, raise an exception.
-    die_unless_writer_command(writer_name)
-
-    # Basename of this encoder's command.
-    writer_basename = WRITER_NAME_TO_COMMAND_BASENAME[writer_name]
-
-    #FIXME: Implement support for all remaining encoders, including ImageMagick.
+    # If this command is unrecognized or not in the ${PATH}, raise an exception.
+    die_unless_writer_command_pathable(writer_basename)
 
     # For FFmpeg, detect this codec by capturing help documentation output by
     # the "ffmpeg" command for this codec and grepping this output for a string
@@ -344,8 +427,7 @@ def is_writer_codec(writer_name: str, codec_name: str) -> bool:
     if writer_basename == 'ffmpeg':
         # Help documentation for this codec captured from "ffmpeg".
         ffmpeg_codec_help = runners.run_with_stdout_captured(command_words=(
-            'ffmpeg',
-            '-help',
+            'ffmpeg', '-help',
             'encoder=' + strs.shell_quote('${codec_name}'.format(codec_name)),
         ))
 
@@ -355,6 +437,16 @@ def is_writer_codec(writer_name: str, codec_name: str) -> bool:
         #
         #     Codec '${codec_name}' is not recognized by FFmpeg.
         return ffmpeg_codec_help.endswith("' is not recognized by FFmpeg.")
+    # For Libav, detect this codec in the same exact manner as for FFmpeg.
+    elif writer_basename == 'avconv':
+        # Help documentation for this codec captured from "avconv".
+        avconv_codec_help = runners.run_with_stdout_captured(command_words=(
+            'avconv', '-help',
+            'encoder=' + strs.shell_quote('${codec_name}'.format(codec_name)),
+        ))
+
+        # Return whether this documentation is suffixed by an indicative string.
+        return avconv_codec_help.endswith("' is not recognized by Libav.")
     # For Mencoder, detect this codec by capturing help documentation output by
     # the "mencoder" command for *ALL* video codecs, grepping this output for
     # the "lavc" video codec required by matplotlib, and, if found, repeating
@@ -373,17 +465,37 @@ def is_writer_codec(writer_name: str, codec_name: str) -> bool:
             flags=regexes.MULTILINE,
         ):
             # If the "ffmpeg" command is in the current ${PATH}, query that
-            # command for whether or not this code is supported. (Note that the
-            # recursion bottoms out with this call, as the above logic handling
-            # the FFmpeg writer does *NOT* recall this function.)
-            if is_writer_command('ffmpeg'):
-                return is_writer_codec('ffmpeg', codec_name)
-            #FIXME: Print a non-fatal warning and return True here.
+            # command for whether or not the passed codec is supported. Note
+            # that the recursion bottoms out with this call, as the above logic
+            # handling the FFmpeg writer does *NOT* recall this function.
+            if is_writer_pathable('ffmpeg'):
+                return is_writer_command_codec('ffmpeg', codec_name)
+            # Else, "ffmpeg" is *NOT* in the ${PATH}. Since Mencoder implements
+            # "lavc" codec support by linking against the "libavcodec" shared
+            # library rather than calling the "ffmpeg" command, it's technically
+            # permissible (albeit uncommon) for the "mencoder" but not "ffmpeg"
+            # command to be in the ${PATH}. Hence, this does *NOT* indicate a
+            # fatal error. This does, however, prevent us from querying whether
+            # or not the passed codec is supported. In lieu of sensible
+            # alternatives...
             else:
-                pass
-        #FIXME: Raise a fatal exception here.
+                # Log a non-fatal warning.
+                logs.log_warning(
+                    'Mencoder "libavcodec"-based video codec "{}" '
+                    'possibly unavailable. Consider installing FFmpeg to '
+                    'resolve this warning.'.format(codec_name))
+
+                # Assume the passed codec to be supported.
+                return True
+        # Else, Mencoder fails to support the "lavc" codec. Raise an exception.
         else:
-            pass
+            raise BetseMatplotlibException(
+                'Mencoder video codec "lavc" unavailable.')
+
+    # For any other writer (e.g., ImageMagick), assume this writer to *NOT* be
+    # a video encoder and hence support *NO* video codecs. In this case, return
+    # True only if the passed codec is "None", signifying "no video codec."
+    return codec_name is None
 
 # ....................{ GETTERS                            }....................
 @type_check
@@ -406,11 +518,6 @@ def get_writer_class(writer_name: str) -> type:
     ----------
     BetseMatplotlibException
         If this writer is unrecognized by either matplotlib or BETSE itself.
-
-    See Also
-    ----------
-    is_writer
-        Tester validating this writer as recognized.
     '''
 
     # If this writer is unrecognized, raise an exception.
@@ -420,45 +527,36 @@ def get_writer_class(writer_name: str) -> type:
     return writers[writer_name]
 
 # ....................{ GETTERS ~ first                    }....................
-#FIXME: Revise docstring.
 @type_check
-def get_first_writer_name(writer_names: Sequence) -> str:
+def get_first_writer_name(writer_names: SequenceTypes) -> str:
     '''
-    Get the matplotlib animation class (e.g., `ImageMagickWriter`) writing the
-    first video encoder whose matplotlib-specific name (e.g., `imagemagick`) is
-    in the passed list and whose corresponding command (e.g., `convert`) is in
-    the current `${PATH}` if any _or_ raise an exception otherwise (i.e., if no
-    such encoder's command is in the current `${PATH}`).
+    Get the first matplotlib-specific name (e.g., `imagemagick`) of the
+    matplotlib animation writer class (e.g., `ImageMagickWriter`) in the passed
+    list whose corresponding external command (e.g., `convert`) is in the
+    current `${PATH}` if any _or_ raise an exception otherwise (i.e., if no such
+    writer's command is in the `${PATH}`).
 
     This function iteratively searches for encoder commands in the same order as
     encoder names are listed in the passed list.
 
     Parameters
     ----------
-    writer_names : Sequence
+    writer_names : SequenceTypes
         List of the matplotlib-specific alphanumeric lowercase names of all
         encoders to search for.
 
     Returns
     ----------
-    type
-        Matplotlib animation writer class of the first such writer to be found.
+    str
+        Matplotlib-specific name of the first such writer.
 
     Raises
     ----------
     BetseMatplotlibException
         If either:
-        * Any encoder in the passed list is unrecognized by matplotlib or BETSE.
-        * No corresponding command is found in the current `${PATH}`.
-
-    See Also
-    ----------
-    is_writer
-        Tester validating this writer as recognized.
+        * Any writer in the passed list is unrecognized by matplotlib or BETSE.
+        * No such writer's external command is found in the current `${PATH}`.
     '''
-
-    # Basename of the first video encoder command in the ${PATH} if any or None.
-    writer_basename = None
 
     # For the matplotlib-specific name of each passed video encoder...
     for writer_name in writer_names:
@@ -470,26 +568,18 @@ def get_first_writer_name(writer_names: Sequence) -> str:
 
         # If this command is in the ${PATH}, cease searching.
         if pathables.is_pathable(writer_basename):
-            break
+            return writer_name
+
     # Else, no such command is in the ${PATH}. Raise an exception.
-    else:
-        # Human-readable string listing the names of all passed video encoders.
-        writer_names_readable = (
-            strs.join_as_conjunction_double_quoted(*writer_names))
-
-        # Raise an exception containing this human-readable string.
-        raise BetseMatplotlibException(
-            'Matplotlib animation video writers {} '
-            'not found in the current ${{PATH}}.'.format(
-                writer_names_readable))
-
-    # Return the matplotlib writer class for this encoder.
-    return writers[writer_name]
+    raise BetseMatplotlibException(
+        'Matplotlib animation video writers {} '
+        'not found in current ${{PATH}}.'.format(
+            strs.join_as_conjunction_double_quoted(*writer_names)))
 
 
 @type_check
 def get_first_codec_name(
-    writer_name: str, container_filetype: str, codec_names: Sequence) -> str:
+    writer_name: str, container_filetype: str, codec_names: SequenceTypes) -> str:
     '''
     Get the name of the first video codec (e.g., `libx264`) in the passed list
     supported by both the encoder with the passed matplotlib-specific name
@@ -519,7 +609,7 @@ def get_first_codec_name(
         search for the passed codecs.
     container_filetype: str
         Filetype of the video container format to constrain this search to.
-    codec_names: Sequence
+    codec_names: SequenceTypes
         List of the encoder-specific names of all codecs to search for.
 
     Returns
@@ -530,15 +620,14 @@ def get_first_codec_name(
 
     Raises
     ----------
-    !!!!!!!!!!
-    ! FIXME: Update us up, please!
-    !!!!!!!!!!
-
     BetseMatplotlibException
         If any of the following errors arise:
-        * This encoder is either:
+        * This writer is either:
           * Unrecognized by matplotlib or BETSE itself.
           * Not found as an external command in the current `${PATH}`.
+        * This container format is unsupported by this writer.
+        * No codec whose name is in the passed list is supported by both this
+          writer and this container format.
 
     See Also
     ----------
@@ -546,107 +635,51 @@ def get_first_codec_name(
         Tester validating this writer.
     '''
 
-    #FIXME: Terrible default. Instead, let's default to a video codec
-    #conditionally dependent on the filetype of the desired video file.
-    #Note that this codec is indeed a *VIDEO* rather than *AUDIO* codec, as
-    #confirmed by matplotlib's use of the "-vcodec" CLI option to FFmpeg.
-    #Makes sense. Matplotlib can hardly reasonably support audio, can it?
-    #Note that the filetype uniquely specifies the container format. As a
-    #starting place, consider:
-    #
-    #* If the desired codec is "auto" *AND*
-    #* If the desired video encoder is "ffmpeg" and...
-    #  * If this filetype is either ".mkv" (i.e., Matroska, a general-
-    #    purpose container format that may contain relatively arbitrary
-    #    video and audio streams, including WebM, MPEG-4, and H.26*) or
-    #    ".webm" and...
-    #    * If the "libvpx-vp9" encoder (i.e., WebM VP-9) is available,
-    #      prefer that. All WebM encodings are unencumbered by onerous
-    #      licensing or patent requirements, unlike both H.264 and H.265.
-    #    * Else if the "libvpx" encoder (i.e., WebM VP-8) is available,
-    #      fallback to that. VP-9 is newer and hence preferable, but VP-8
-    #      suffices as well.
-    #    * Else if this filetype is ".mkv", attempt both ".ogv" and ".mp4" codec
-    #      dectection as well. Matroska supports a superset of all codecs
-    #      supported by traditional MPEG-specific containers.
-    #    * Else, raise an exception.
-    #  * If this filetype is either ".mov", ".mp4", or ".avi" (three
-    #    container formats which appear to be functionally synonymous for
-    #    all extents and purposes) and...
-    #    * If the "hevc" encoder (i.e., H.265 / HEVC / MPEG-H Part 2) is
-    #      available, prefer that.
-    #    * Else if the "libx264" encoder (i.e., H.264 / AVC / MPEG-4 Part
-    #      10) is available, prefer that.
-    #    * Else if the "mpeg4" encoder (i.e., MPEG-4 Part 2) is available,
-    #      fallback to that.
-    #    * Else if the "libxvid" encoder (i.e., MPEG-4 Part 2) is
-    #      available, fallback to that. "libxvid" is an alternate MPEG-4
-    #      encoder. I'm unclear whether that or "mpeg4" are preferable, but
-    #      given the legacy nature of both... it probably doesn't matter.
-    #    * Else if the "h263" encoder (i.e., H.263) is available, fallback
-    #      to that. To quote Wikipedia: "MPEG-4 Part 2 is H.263 compatible
-    #      in the sense that basic 'baseline' H.263 bitstreams are
-    #      correctly decoded by an MPEG-4 Video decoder."
-    #    * Else if the "mpeg2video" encoder (i.e., MPEG-2) is available,
-    #      fallback to that. Sucks, but what can you do?
-    #    * Else, raise an exception.
-    #  * If this filetype is ".ogv" and...
-    #    * If the "libtheora" encoder (i.e., Theora) is available, use
-    #      that.
-    #    * Else, raise an exception.
-    #  * Else, raise an exception.
-    #* If the desired video encoder is "imagemagick" and...
-    #  * If this filetype is ".gif", coerce the codec to "None" to ensure
-    #    that no edge-case functionality in the matplotlib codebase
-    #    attempts to erroneously encode anything with a codec.
-    #  * Else, raise an exception.
-    #  * Note that a non-fatal warning should probably also be raised if
-    #    the codec list is anything other than "['auto']", as all such
-    #    codecs will be ignored in that case.
-    #
-    #To test whether a given encoding codec is available, we'll want to:
-    #
-    #* If the desired video encoder is "ffmpeg":
-    #  * Create a new "betse.libs.ffmpeg" package containing a new
-    #    "betse.libs.ffmpeg.ffmpegs" submodule providing an is_encoder()
-    #    tester function returning "True" if this version of FFmpeg
-    #    supports the encoding codec with the passed name: e.g.,
-    #
-    #        @type_check
-    #        def is_encoder(encoder_name: str) -> bool:
-    #
-    #    There exist numerous possible implementations of this tester with
-    #    the customary tradeoffs, including:
-    #    * Capturing the stdout of the external "ffmpeg -encoders" command
-    #      and grepping such stdout for a line whose second is the passed
-    #      encoder name.
-    #    * Capturing the stdout of the following external command, where
-    #      ${encoder_name} is the passed encoder name:
-    #
-    #          $ ffmpeg -help encoder=${encoder_name}
-    #
-    #      Sadly, this command does *NOT* report non-zero exit status if
-    #      the passed encoder is unavailable. It does, however, terminate
-    #      its stdout with the following line:
-    #
-    #          Codec '${encoder_name}' is not recognized by FFmpeg.
-    #
-    #      Hence, merely grep such output via the str.endswith() builtin
-    #      for the suffix "' is not recognized by FFmpeg."
-    #  * Call betse.libs.ffmpeg.ffmpegs.is_encoder().
-    #* If the desired video encoder is "avconv":
-    #  * Equivalent to the "ffmpeg" approach except calling "avconv" rather
-    #    than "ffmpeg" -- hopefully, anyway. To test this, we'll probably
-    #    want to install and test "avconv" within a docker container.
-    #* If the desired video encoder is "mencoder":
-    #  * ...we have no idea, at the moment.
-    #* If the desired video encoder is "imagemagick", print non-fatal
-    #  warnings (as described above) for all codecs other than "auto".
+    # If this writer is unrecognized or not in the ${PATH}, raise an exception.
+    die_unless_writer_pathable(writer_name)
 
-    # If this encoder is unrecognized or not in the ${PATH}, raise an exception.
-    die_unless_writer_command(writer_name)
+    # Basename of this writer's command.
+    writer_basename = WRITER_NAME_TO_COMMAND_BASENAME[writer_name]
 
-    #FIXME: Iteratively call is_writer_codec() here. Wowzer.
+    # Dictionary mapping from the filetype of each video container format to a
+    # list of the names of all video codecs supported by this writer.
+    container_filetype_to_codec_names = (
+        WRITER_BASENAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES[writer_basename])
+
+    # If the passed container is unsupported by this writer, raise an exception.
+    if container_filetype not in container_filetype_to_codec_names:
+        raise BetseMatplotlibException(
+            'Video container format "{}" unsupported by '
+            'matplotlib animation video writer "{}".'.format(
+                container_filetype, writer_name))
+
+    # List of the names of all video codecs supported by this writer, used to
+    # resolve passed codecs with the BETSE-specific name "auto".
+    auto_codec_names = container_filetype_to_codec_names[container_filetype]
+
+    # For the name of each passed codec...
+    for codec_name in codec_names:
+        # If this is the BETSE-specific name "auto"...
+        if codec_name == 'auto':
+            # For the name of each codec supported by this writer...
+            for auto_codec_name in auto_codec_names:
+                # If this writer supports this codec, return this name.
+                if is_writer_command_codec(writer_basename, auto_codec_name):
+                    return auto_codec_name
+        # Else if this writer supports this codec, return this name.
+        elif is_writer_command_codec(writer_basename, codec_name):
+            return codec_name
+
+    # Else, no passed codecs are supported by this combination of writer and
+    # container format. Raise an exception.
+    raise BetseMatplotlibException(
+        'Video codec(s) {} unsupported by '
+        'video container format "{}" and '
+        'matplotlib animation video writer "{}".'.format(
+            strs.join_as_conjunction_double_quoted(*codec_names),
+            container_filetype,
+            writer_name,
+        ))
 
 # ....................{ MAIN                               }....................
 # Initialize all global variables declared by this submodule.

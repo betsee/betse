@@ -42,7 +42,7 @@ from betse.science.plot.anim.animabc import (
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
-from betse.util.type.types import type_check, Sequence
+from betse.util.type.types import type_check, SequenceTypes
 from scipy import interpolate
 
 #FIXME: Shift functions called only by this module either to a new
@@ -251,7 +251,7 @@ class AnimCellsWhileSolving(AnimCells):
 
 
     @type_check
-    def _update_cell_plots(self, cell_data: Sequence) -> None:
+    def _update_cell_plots(self, cell_data: SequenceTypes) -> None:
         '''
         Update _without_ recreating all cell plots for this time step with the
         passed array of arbitrary cell data.
@@ -262,7 +262,7 @@ class AnimCellsWhileSolving(AnimCells):
 
         Parameters
         -----------
-        cell_data : Sequence
+        cell_data : SequenceTypes
             Arbitrary cell data defined on an environmental grid to be plotted.
         '''
 
@@ -272,7 +272,7 @@ class AnimCellsWhileSolving(AnimCells):
 
 
     @type_check
-    def _revive_cell_plots(self, cell_data: Sequence) -> None:
+    def _revive_cell_plots(self, cell_data: SequenceTypes) -> None:
         '''
         Recreate all cell plots for this time step with the passed array of
         arbitrary cell data.
@@ -284,7 +284,7 @@ class AnimCellsWhileSolving(AnimCells):
 
         Parameters
         -----------
-        cell_data : Sequence
+        cell_data : SequenceTypes
             Arbitrary cell data defined on an environmental grid to be plotted.
         '''
 
@@ -634,16 +634,16 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
     Parameters
     ----------
-    _cell_time_series : Sequence
+    _cell_time_series : SequenceTypes
         Morphogen concentration in cells as a function of time.
-    _env_time_series : Sequence
+    _env_time_series : SequenceTypes
         Morphogen concentration in the environment as a function of time.
     '''
 
     def __init__(
         self,
-        cell_time_series: Sequence,
-        env_time_series: Sequence,
+        cell_time_series: SequenceTypes,
+        env_time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
         '''
@@ -651,9 +651,9 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : Sequence
+        cell_time_series : SequenceTypes
             Morphogen concentration in cells as a function of time.
-        env_time_series : Sequence
+        env_time_series : SequenceTypes
             Morphogen concentration in the environment as a function of time.
 
         See the superclass `__init__()` method for all remaining parameters.
@@ -1161,14 +1161,14 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
 
     Attributes
     ----------
-    _cell_time_series : Sequence
+    _cell_time_series : SequenceTypes
         Arbitrary cell data as a function of time to be underlayed.
     '''
 
     @type_check
     def __init__(
         self,
-        cell_time_series: Sequence,
+        cell_time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
         '''
@@ -1176,7 +1176,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : Sequence
+        cell_time_series : SequenceTypes
             Arbitrary cell data as a function of time to be underlayed.
 
         See the superclass `__init__()` method for all remaining parameters.
