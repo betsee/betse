@@ -155,9 +155,6 @@ class AnimCells(PlotCells):
         Streamplot of either electric current or concentration flux overlayed
         over this subclass' animation if `_is_overlaying_current` is
         `True` _or_ `None` otherwise.
-    _time_step : int
-        0-based index of the frame currently being plotted, corresponding to the
-        0-based sampled time step currently being simulated.
     _is_overlaying_current : bool
         `True` if overlaying either electric current or concentration flux
         streamlines on this animation _or_ `False` otherwise. By design, this
@@ -179,6 +176,13 @@ class AnimCells(PlotCells):
         `str.format()`-formatted template which, when formatted with the 0-based
         index of the current frame, yields the absolute path of the image file
         to be saved for that frame.
+    _time_step_last : int
+        0-based index of the last frame to be plotted.
+    _time_step : int
+        0-based index of the frame currently being plotted, corresponding to the
+        0-based sampled time step currently being simulated.
+    _time_step_absolute : int
+        0-based index of the last frame to be plotted.
     _writer_frames : MovieWriter
         Matplotlib object saving animation frames as images if doing so _or_
         `None` otherwise.
@@ -288,9 +292,13 @@ class AnimCells(PlotCells):
         self._current_density_x_time_series = None
         self._current_density_y_time_series = None
         self._current_density_stream_plot = None
-        self._time_step = 0
         self._writer_frames = None
         self._writer_video = None
+
+        # 0-based index of the current frame, initialized to -1 to ensure the
+        # subsequent incrementation of this integer in the _plot_frame() method
+        # yields 0 (i.e., the index of the first frame).
+        self._time_step = -1
 
         # If saving animations, prepare to do so.
         if self._is_saving:
@@ -394,26 +402,6 @@ class AnimCells(PlotCells):
         # * "webm" (WebM), Google's proprietary audio and video container.
         save_video_filetype = 'mkv'
 
-        # Dots per inch (DPI) of each frame of the video to be saved for this
-        # animation. Ignored if `is_saving_frames` is `False`.
-        self._writer_video_dpi = mpl_config.get_rc_param('savefig.dpi')
-
-        #FIXME: Set a sane default. There appear to be two Matplotlib defaults
-        #for FPS, depending on object instantiation:
-        #
-        #* For writers instantiated directly, FPS defaults to 5. (Bit low, no?)
-        #* For writers instantiated indirectly, FPS defaults to a formula
-        #  presumably intelligently depending on animation properties:
-        #
-        #      # Convert interval in ms to frames per second
-        #      fps = 1000.0 / self._interval
-        #
-        #While we have no idea how the latter works, it's probably more useful.
-
-        # Frames per second (FPS) of the video to be saved for this animation.
-        # Ignored if `is_saving_video` is `False`.
-        save_video_fps = 5
-
         #FIXME: Set a sane default. Note the following interesting logic in
         #the "matplotlib.animations" module:
         #
@@ -442,9 +430,30 @@ class AnimCells(PlotCells):
         save_video_metadata = {}
         # save_video_metadata = {artist: 'Me'}
 
+        # Dots per inch (DPI) of each frame of the video to be saved for this
+        # animation. Ignored if `is_saving_frames` is `False`.
+        self._writer_video_dpi = mpl_config.get_rc_param('savefig.dpi')
+
+        #FIXME: Set a sane default. There appear to be two Matplotlib defaults
+        #for FPS, depending on object instantiation:
+        #
+        #* For writers instantiated directly, FPS defaults to 5. (Bit low, no?)
+        #* For writers instantiated indirectly, FPS defaults to a formula
+        #  presumably intelligently depending on animation properties:
+        #
+        #      # Convert interval in ms to frames per second
+        #      fps = 1000.0 / self._interval
+        #
+        #While we have no idea how the latter works, it's probably more useful.
+
+        # Frames per second (FPS) of the video to be saved for this animation.
+        # Ignored if `is_saving_video` is `False`.
+        save_video_fps = 5
+
         # Bitrate of the video to be saved for this animation. Ignored if
         # `is_saving_video` is `False`.
-        save_video_bitrate = mpl_config.get_rc_param('animation.bitrate')
+        save_video_bitrate = 1500
+        # save_video_bitrate = mpl_config.get_rc_param('animation.bitrate')
 
         # List of the matplotlib-specific names of all external encoders
         # supported by matplotlib with which to encode this video (in descending
@@ -460,7 +469,7 @@ class AnimCells(PlotCells):
         #   associated with MPlayer, a popular media player.
         # * "imagemagick", an open-source cross-platform image manipulation
         #   suite supporting *ONLY* creation of animated GIFs.
-        save_video_writer_names = ['ffmpeg', 'avconv', 'mencoder']
+        save_video_writer_names = ['ffmpeg_file', 'avconv', 'mencoder']
 
         #FIXME: Complete comment.
         # List of the encoder-specific names of all codecs with which to encode
@@ -479,15 +488,6 @@ class AnimCells(PlotCells):
         # * If the current encoder is `imagemagick`, a non-fatal warning will
         #   be printed for any codec except `auto` and summarily ignored.
         save_video_codec_names = ['auto']
-
-        # List of the matplotlib-specific names of all external encoders
-        # supported by matplotlib with which to encode this video (in descending
-        # order of preference), automatically selecting the first encoder on the
-        # current $PATH. Ignored if `is_saving_video` is `False`.
-        #
-        #
-        # Recognized names include:
-        save_video_writer_names = ['ffmpeg', 'avconv', 'mencoder']
 
         # If saving animation frames as either images or video, prepare to do so
         # in a manner common to both.
@@ -543,7 +543,7 @@ class AnimCells(PlotCells):
             if self._is_saving_showing:
                 # Log this preparation.
                 logs.log_debug(
-                    'Saving animation frames "%s"...',
+                    'Preparing to save animation frames "%s"...',
                     self._writer_frames_template)
 
                 # Prepare to save these animation frames.
@@ -598,7 +598,7 @@ class AnimCells(PlotCells):
             if self._is_saving_showing:
                 # Log this preparation.
                 logs.log_debug(
-                    'Saving animation video "%s"...',
+                    'Preparing to save animation video "%s"...',
                     self._writer_video_filename)
 
                 # Prepare to save this animation video. Matplotlib squelches
@@ -615,8 +615,8 @@ class AnimCells(PlotCells):
                     )
 
 
-    # This method has been overridden to support subclasses that manually handle
-    # animations rather than calling the _animate() method (e.g., the
+    # This method has been overridden to support subclasses that manually
+    # handle animations rather than calling the _animate() method (e.g., the
     # "AnimCellsWhileSolving" subclass).
     def _prep_figure(self, *args, **kwargs) -> None:
 
@@ -648,7 +648,7 @@ class AnimCells(PlotCells):
         Attributes
         ----------
         frame_count : int
-            Number of frames to be animated.
+            Total number of frames to be animated.
 
         All remaining parameters will be passed to the superclass `__prep()`
         method as is.
@@ -656,6 +656,9 @@ class AnimCells(PlotCells):
 
         # Prepare for plotting immediately *BEFORE* plotting the first frame.
         self._prep_figure(*args, **kwargs)
+
+        # 0-based index of the last frame to be plotted.
+        self._time_step_last = frame_count - 1
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
         #FuncAnimation(). Lemon grass and dill!
@@ -722,6 +725,8 @@ class AnimCells(PlotCells):
                 #can't simply call close() here, as this is a blocking
                 #animation. Presumably, doing so safely requires registering a
                 #finalizer method with the matplotlib backend API. (Possibly.)
+                #FIXME: Ah. Right. Simply conditionally call such finish()
+                #methods when plotting the last frame far below.
 
                 # Finalize all writers saving this animation if any. Do *NOT*
                 # finalize the animation itself here, as the above method is
@@ -729,7 +734,7 @@ class AnimCells(PlotCells):
                 # self.close_writers()
             # Else if saving animation frames as...
             elif self._is_saving:
-                #FIXME: If soving both frames and video, the current approach
+                #FIXME: If saving both frames and video, the current approach
                 #does technically work but is highly inefficient. It appears to
                 #recreate the animation in-memory twice! A sane alternative is:
                 #
@@ -833,8 +838,17 @@ class AnimCells(PlotCells):
         # Finalize this animation's low-level plot.
         super().close()
 
+        # Finalize all writers saving this animation if any.
+        self._close_writers()
+
         # Prevent this animation from being reused and break hard cycles.
         self._anim = None
+
+
+    def _close_writers(self) -> None:
+        '''
+        Finalize all writers saving this animation if any.
+        '''
 
         # If saving animation frames as images...
         if self._writer_frames is not None:
@@ -878,17 +892,36 @@ class AnimCells(PlotCells):
         Parameters
         ----------
         frame_number : int
-            0-based index of the frame to be plotted.
+            0-based index of the frame to be plotted _or_ -1 if the most recent
+            frame is to be plotted.
         '''
+
+        # Convert the passed possibly relative index of the frame to be plotted
+        # into an absolute 0-based index.
+        #
+        # # If this index is the relative index -1...
+        if frame_number == -1:
+            # Increment the current index by 1.
+            self._time_step += 1
+
+            # Assert that the resulting length is equal to the current length
+            # of the list of sampling data points minus 1.
+            assert self._time_step == len(self._sim.time) - 1
+        else:
+            #FIXME: Insanity. For "PlotAfterSolving"-style plots, the first
+            #frame is plotted twice. This prevents us from simply incrementing
+            #"self._time_step", as doing so would desynchronize that variable
+            #from the passed frame number. Figure out why the first frame is
+            #being uselessly plotted twice.
+            self._time_step = frame_number
+            # logs.log_debug(
+            #     'time step %d; frame number %d', self._time_step, frame_number)
+            # assert frame_number == -1 or self._time_step == frame_number
 
         # Log this animation frame.
         logs.log_debug(
             'Plotting animation "%s" frame %d...',
-            self._label,
-            len(self._sim.time) if frame_number == -1 else frame_number)
-
-        # Classify the passed time step.
-        self._time_step = frame_number
+            self._label, self._time_step)
 
         # If plotting a current overlay, do so.
         if self._is_overlaying_current:
@@ -927,6 +960,20 @@ class AnimCells(PlotCells):
                 with mpl_config.verbosity_debug_if_helpful():
                     self._writer_video.grab_frame(
                         **self._writer_savefig_kwargs)
+
+            #FIXME: Conditionally do the following *ONLY* if this is the last
+            #frame. That's the trouble, however: how do we determine whether
+            #this is the last frame or not?
+            #FIXME: *UGH.* This now works in all cases except for
+            #"PlotWhileSolving"-style animations, as the "self._time_step_last"
+            #variable is undefined in that case. (Ye Gods.)
+
+            # If this is the last frame to be plotted, finalize all writers
+            # saving this animation if any.
+            # print('Here?!? ' + str(self._time_step))
+            # if self._time_step == self._time_step_last:
+            #     print('!!!!!!!!!!!!!!!Closing up shop!')
+            #     self._close_writers()
 
 
     @abstractmethod

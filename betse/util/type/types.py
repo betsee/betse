@@ -74,13 +74,8 @@ This tuple contains classes matching both integer and real number types.
 '''
 
 
-# Default this type to the "collections.abc.Sequence" type, permitting
-# early-time functionality elsewhere in the codebase to type check functions
-# accepting or returning pure-Python sequences. This module's init() function,
-# presumably called early in program startup, subsequently replaces this simple
-# type with a tuple consisting of this simple type as well as other third-party
-# types conforming to the same API (e.g., Numpy arrays and matrices).
-SequenceTypes = (Sequence,)
+# This tuple is declared here for documentation purposes but initialized below.
+SequenceTypes = None
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
 subclassing) the canonical `collections.abc.Sequence` API.
@@ -103,6 +98,22 @@ _and_ non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
 subclass `collections.abc.Sequence` despite implementing the entirety of that
 that API.
 '''
+
+# Add sequence types to the previously declared tuple.
+#
+# If Numpy is available, add both this API and the Numpy array type (which
+# fails to subclass this API). Although Numpy is a mandatory dependency, this
+# submodule is typically imported quite early in program startup, implying the
+# importability of *ANY* dependency (mandatory or not) at the top level of this
+# submodule to still be in question. Since subsequent logic in program startup
+# is guaranteed to raise human-readable exceptions for missing dependencies,
+# this error is silently ignored here.
+try:
+    from numpy import ndarray
+    SequenceTypes = (Sequence, ndarray)
+# Else, Numpy is unavailable. Add only this API.
+except ImportError:
+    SequenceTypes = (Sequence,)
 
 # ....................{ SETS : private                     }....................
 _PARAMETER_KIND_IGNORED = {
@@ -139,29 +150,6 @@ This includes:
   are safely ignorable by callers, however, there appears to be little
   real-world utility in enforcing this constraint.
 '''
-
-# ....................{ INITIALIZERS                       }....................
-def init() -> None:
-    '''
-    Initialize module constants (e.g., `SequenceTypes`).
-
-    These constants are typically:
-
-    * Tuples of types declared by third-party packages and hence _not_ safely
-      importable at the top level of this module.
-    * Imported to type hint callables (e.g., functions, methods) defined
-      elsewhere in the codebase.
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from numpy import ndarray
-
-    # Declare these constants to be globals, permitting modification below.
-    global SequenceTypes
-
-    # Tuple of all container base classes conforming to (but *NOT* necessarily
-    # subclassing) the canonical "collections.abc.Sequence" API.
-    SequenceTypes = (Sequence, ndarray)
 
 # ....................{ DECORATORS                         }....................
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
