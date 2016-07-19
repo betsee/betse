@@ -114,7 +114,7 @@ reactions:
     activator n: None
     reaction inhibitors: None    # additional defined substances or ions decreasing activity of transporter
     inhibitor Km: None
-    activator n: None
+    inhibitor n: None
 
 
 
