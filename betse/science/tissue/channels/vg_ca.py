@@ -169,7 +169,7 @@ class Ca_L(VgCaABC):
         self._mTau = (5.0000 + 20.0000 / (1 + np.exp((V - -25.000) / 5)))
         self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
         self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
-        V = V - 10
+        # V = V - 10
 
 class Ca_T(VgCaABC):
     '''

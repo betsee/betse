@@ -152,9 +152,62 @@ class MasterOfMolecules(object):
             # get each user-defined name-filed in the dictionary:
             name = str(mol_dic['name'])
 
+            if name not in self.molecule_names:
+
+                # add the name to the name catalogue:
+                self.molecule_names.append(name)
+                self.molecule_index.append(q)
+
+                # add a field to the MasterOfMolecules corresponding to Molecule object with that name
+                setattr(self, name, Molecule(sim, cells, p))
+
+                # now set the attributes of that Molecule object with the cornucopia of variables:
+
+                # get MasterOfMolecules.name
+                obj = getattr(self, name)
+
+                # assign general properties
+                obj.name = name  # let object know who it is
+
+                obj.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
+                obj.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
+
+                obj.c_mito = mol_dic.get('mit conc', None)  # initialized to None if optional fields not present
+                obj.c_ero = mol_dic.get('er conc', None)
+
+                # create data structures to use with sim --------
+                # initialize concentrations in cells:
+                obj.c_cells = np.ones(sim.cdl) * obj.c_cello
+                obj.c_mems = np.ones(sim.mdl) * obj.c_cello
+
+                # if there is an initial concentration for mitochondria, define a conc vector for it:
+                if obj.c_mito is not None and self.mit_enabled:
+
+                    obj.c_mit = np.ones(sim.cdl) * obj.c_mito
+
+                elif self.mit_enabled and obj.c_mito is None:
+                    obj.c_mit = np.zeros(sim.cdl)
+
+                # if there is an initial concentration for endo retic, define a conc vector for it:
+                if obj.c_ero is not None:
+                    obj.c_er = np.ones(sim.cdl) * obj.c_ero
+
+                # initialize concentration in the environment:
+                if p.sim_ECM is False:
+                    obj.c_env = np.ones(sim.mdl) * obj.c_envo
+                else:
+                    obj.c_env = np.ones(sim.edl) * obj.c_envo
+
+                # initialize concentration at the boundary
+                obj.c_bound = obj.c_envo
+
+                if self.mit_enabled:
+                    obj.mit_enabled = True
+                else:
+                    obj.mit_enabled = False
+
             # get MasterOfMolecules.name
             obj = getattr(self, name)
-
 
             obj.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
             obj.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
@@ -802,7 +855,6 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             obj.update_channel(sim, cells, p)
-
 
     def clear_cache(self):
         """
@@ -1544,7 +1596,6 @@ class Molecule(object):
             self.growth_inhibitors_list, self.growth_inhibitors_k, self.growth_inhibitors_Km,
             self.growth_inhibitors_n, reaction_zone='cell')
 
-
         delta_cells = self.growth_mod_function_cells*self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
 
 
@@ -1574,10 +1625,13 @@ class Molecule(object):
         # reassign the new data vector to the object:
         self.c_mems = cmems2[:]
 
-        if self.simple_growth is True:
+        if self.simple_growth is True and self.growth_mod_function_cells != 1:
 
             gmfc = np.delete(self.growth_mod_function_cells, target_inds_cell)
             self.growth_mod_function_cells = gmfc[:]
+
+            if len(self.growth_mod_function_cells) == 0:
+                self.growth_mod_function_cells = 1
 
         self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
         self.init_growth(cells, p)
@@ -2887,7 +2941,6 @@ class Transporter(object):
 
         self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
         self.init_reaction(cells, p)
-
 
 class Channel(object):
 

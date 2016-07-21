@@ -228,8 +228,7 @@ class SimRunner(object):
         logs.log_info(
             'The simulation took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
-        logs.log_info(
-            'When ready, close all of the figure windows to end the program.')
+
 
         if p.turn_all_plots_off is False:
 
@@ -237,6 +236,8 @@ class SimRunner(object):
             # fresh instance of Parameters.
             p = Parameters(config_filename=self._config_filename)
             plot_all(cells, sim, p, plot_type='sim')
+            logs.log_info(
+                'When ready, close all of the figure windows to end the program.')
             plt.show()
 
     def sim_brn(self):
