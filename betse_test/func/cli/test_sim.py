@@ -13,16 +13,37 @@ Functional tests for BETSE's CLI testing all simulation-specific subcommands
 
 # ....................{ TESTS                              }....................
 def test_cli_sim_default(
-    betse_cli_sim, betse_sim_config_default) -> None:
+    betse_cli_sim: 'CLITester',
+    betse_sim_config_default: 'SimTestState',
+) -> None:
     '''
-    Test the simulation of the default simulation configuration.
+    Test simulating with the default simulation configuration.
 
     Parameters
     ----------
     betse_cli_sim : CLITester
-        Test-specific object encapsulating the simulation-specific BETSE CLI.
-    betse_sim_config : SimTestState
-        Test-specific object encapsulating this simulation configuration file.
+        Object encapsulating CLI-driven simulation testing.
+    betse_sim_config_default : SimTestState
+        Object encapsulating the default simulation configuration.
+    '''
+
+    # Test the currently parametrized simulation-specific BETSE CLI subcommand.
+    betse_cli_sim()
+
+
+def test_cli_sim_anims(
+    betse_cli_sim: 'CLITester',
+    betse_sim_config_anims: 'SimTestState',
+) -> None:
+    '''
+    Test simulating all animations and features required by these animations.
+
+    Parameters
+    ----------
+    betse_cli_sim : CLITester
+        Object encapsulating CLI-driven simulation testing.
+    betse_sim_config_anims : SimTestState
+        Object encapsulating the simulation configuration enabling animations.
     '''
 
     # Test the currently parametrized simulation-specific BETSE CLI subcommand.

@@ -218,6 +218,51 @@ class SimConfigWrapper(object):
         self._config['results options']['plot while solving'] = False
         self._config['results options']['plot after solving'] = False
 
+    # ..................{ ENABLERS                           }..................
+    def enable_anims(self) -> None:
+        '''
+        Enable all supported animations and all features required by these
+        animations.
+
+        This method is intended to be called by non-interactive test suites
+        exercising all animations. Specifically, this method enables:
+
+        * The calcium (Ca) animation by enabling:
+          * The mammalian ion profile (i.e., `animal`), enabling all ions
+            including calcium.
+        * The deformation animation by enabling:
+          * Galvanotaxis (i.e., deformations).
+        * The pH animation dependent upon hydrogen (H) by enabling:
+          * The mammalian ion profile (i.e., `animal`), enabling all ions
+            including hydrogen.
+        * The "Membrane" animation of membrane pump density by enabling:
+          * Membrane pump/channel movement via electrophoresis/osmosis.
+        * The "P cell", "Osmotic P", and "Force" animations of electroosmotic
+          pressure, osmotic pressure, and hydrostatic body force respectively by
+          enabling:
+          * Osmotic pressure.
+        * The "Vcell", "Venv", and "Current" animations of cellular voltage,
+          environmental voltage, and extracellular current by enabling:
+          * The extracellular matrix (ECM).
+        * The "Velocity" animation of cluster fluid velocity by enabling:
+          * Fluid flow.
+          * Electrostatic pressure.
+        '''
+
+        # Disable display of all mid- and post-simulation plots and animations.
+        self._config['general options']['ion profile'] = 'animal'
+        self._config['general options']['simulate extracellular spaces'] = True
+        self._config[
+            'variable settings']['channel electroosmosis']['turn on'] = True
+        self._config[
+            'variable settings']['deformation']['turn on'] = True
+        self._config[
+            'variable settings']['fluid flow']['include fluid flow'] = True
+        self._config[
+            'variable settings']['pressures']['include electrostatic pressure'] = True
+        self._config[
+            'variable settings']['pressures']['include osmotic pressure'] = True
+
     # ..................{ MINIMIZERS                         }..................
     def minify(self) -> None:
         '''

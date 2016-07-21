@@ -17,7 +17,8 @@ from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseExceptionMethod
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.type import types, objects
-from betse.util.type.types import type_check, NumericTypes  #, SequenceTypes
+from betse.util.type.types import (
+    type_check, NoneType, NumericTypes)  #, SequenceTypes
 from matplotlib import pyplot
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Colormap
@@ -123,10 +124,10 @@ class PlotCells(object, metaclass=ABCMeta):
         color_max: NumericTypes,
 
         # Optional parameters.
-        axes_title: str = None,
+        axes_title: (str, NoneType) = None,
         axes_x_label: str = 'Spatial Distance [um]',
         axes_y_label: str = 'Spatial Distance [um]',
-        colormap: Colormap = None,
+        colormap: (Colormap, NoneType) = None,
         # scaling_series: np.nadarray = None,
     ) -> None:
         '''
@@ -420,6 +421,13 @@ class PlotCells(object, metaclass=ABCMeta):
         # gc.collect()
 
     # ..................{ PROPERTIES                         }..................
+    #FIXME: Convert all of the following properties back into normal instance
+    #variables initialized from parameters passed to this class' __init__()
+    #method. Doing so requires subclass __init__() methods to explicitly accept
+    #the "p" parameter, permitting such methods to initialize these paremeters
+    #in the expected way. Doing so is trivial. The current approach is both
+    #obscene design overkill *AND* inefficient. This saddens us.
+
     # The following testers are intended to be overridden by subclasses.
     #
     # The corresponding attributes (e.g., "_is_showing" for _is_showing())

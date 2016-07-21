@@ -16,7 +16,7 @@ feature sets and edge cases.
 # ....................{ IMPORTS                            }....................
 from betse.science.config.wrapper import SimConfigWrapper
 from betse.util.path import dirs
-from betse.util.type import strs, types
+from betse.util.type import strs
 from betse.util.type.types import type_check
 from betse_test.util import requests
 from py._path.local import LocalPath
@@ -96,8 +96,8 @@ class SimTestState(object):
         duration of this context.
 
         This method is dynamically called by the `run()` method of the
-        `CLITester` instance returned by the `betse_cli` fixture for the
-        current test.
+        `CLITester` instance provided by the `betse_cli` fixture for the current
+        fixture or test.
         '''
 
         return dirs.current(self.config.dirname)

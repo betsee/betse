@@ -121,7 +121,7 @@ from betse.lib.matplotlib.writer.mplframe import FileFrameWriter
 from betse.science.plot.plotabc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, NoneType, SequenceTypes
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 from scipy import interpolate
@@ -166,7 +166,7 @@ class AnimCells(PlotCells):
         * The `is_current_overlayable` boolean parameter passed to the
           `__init__()` method of this class, implying the current animation to
           support current overlays.
-    _is_overlaying_current_gj_only : bool
+    _is_current_overlay_only_gj : bool
         `True` only if overlaying intracellular current _or_ `False` otherwise
         (i.e., if overlaying both intra- and extracellular current). Ignored
         unless overlaying current (i.e., if `_is_overlaying_current` is `True`).
@@ -176,8 +176,11 @@ class AnimCells(PlotCells):
         `str.format()`-formatted template which, when formatted with the 0-based
         index of the current frame, yields the absolute path of the image file
         to be saved for that frame.
+    _time_step_count : int
+        Number of frames to be plotted.
     _time_step_last : int
-        0-based index of the last frame to be plotted.
+        0-based index of the last frame to be plotted, exactly equivalent to
+        `self._time_step_count - 1`.
     _time_step : int
         0-based index of the frame currently being plotted, corresponding to the
         0-based sampled time step currently being simulated.
@@ -199,13 +202,11 @@ class AnimCells(PlotCells):
     @type_check
     def __init__(
         self,
-        save_dir_parent_basename: str,
         is_current_overlayable: bool,
-
-        #FIXME: For orthogonality, rename to "is_current_overlay_gj_only" and
-        #the corresponding instance attributes similarly.
-        is_overlaying_current_gj_only: bool = None,
+        save_dir_parent_basename: str,
+        is_current_overlay_only_gj: (bool, NoneType) = None,
         is_ecm_required: bool = False,
+        time_step_count: (int, NoneType) = None,
         *args, **kwargs
     ) -> None:
         '''
@@ -224,7 +225,7 @@ class AnimCells(PlotCells):
             `p.calc_J` parameters) _or_ `False` otherwise. All subclasses except
             those already plotting streamlines (e.g., by calling the superclass
             `_plot_stream()` method) should unconditionally enable this boolean.
-        is_overlaying_current_gj_only : optional[bool]
+        is_current_overlay_only_gj : optional[bool]
             `True` if only overlaying intracellular current _or_ `False` if
             overlaying both intra- and extracellular current. Ignored if current
             is _not_ being overlayed at all (i.e., if `_is_overlaying_current`
@@ -237,6 +238,9 @@ class AnimCells(PlotCells):
             `True` if this animation is specific to extracellular spaces or
             `False` otherwise. If `True` and extracellular spaces are currently
             disabled, an exception is raised. Defaults to `False`.
+        time_step_count : optional[int]
+            Number of frames to be plotted. If `None`, defaults to the number
+            of sampled time steps in the current tissue simulation.
         '''
 
         # Pass all parameters *NOT* listed above to our superclass.
@@ -251,12 +255,15 @@ class AnimCells(PlotCells):
                 self._label))
 
         # Default unpassed parameters.
-        if is_overlaying_current_gj_only is None:
-            is_overlaying_current_gj_only = not (
+        if is_current_overlay_only_gj is None:
+            is_current_overlay_only_gj = not (
                 self._p.sim_ECM and self._p.IecmPlot)
+        if time_step_count is None:
+            time_step_count = len(self._sim.time)
 
-        # Classify defaulted parameters.
-        self._is_overlaying_current_gj_only = is_overlaying_current_gj_only
+        # Classify all remaining parameters.
+        self._is_current_overlay_only_gj = is_current_overlay_only_gj
+        self._time_step_count = time_step_count
 
         # If this subclass requests a current overlay, do so only if:
         #
@@ -274,7 +281,7 @@ class AnimCells(PlotCells):
             animation_verb = 'Plotting'
         elif self._is_saving:
             animation_verb = 'Saving'
-        # If neither displaying or saving this animation, this animation would
+        # If neither displaying nor saving this animation, this animation would
         # ideally reduce to a noop. Since this is a superclass method, however,
         # simply returning would have little effect; while raising an exception
         # would certainly have an effect, doing so would also require all
@@ -633,11 +640,7 @@ class AnimCells(PlotCells):
 
     # ..................{ ANIMATORS                          }..................
     @type_check
-    def _animate(
-        self,
-        frame_count: int,
-        *args, **kwargs
-    ) -> None:
+    def _animate(self, *args, **kwargs) -> None:
         '''
         Display and/or save this animation as requested by the current
         simulation configuration.
@@ -645,20 +648,17 @@ class AnimCells(PlotCells):
         This method is intended to be called as the last statement in the
         `__init__()` method of all subclasses of this superclass.
 
-        Attributes
+        Parameters
         ----------
-        frame_count : int
-            Total number of frames to be animated.
-
-        All remaining parameters will be passed to the superclass `__prep()`
-        method as is.
+        All passed parameters are passed to the superclass `__prep_figure()`
+        method.
         '''
 
         # Prepare for plotting immediately *BEFORE* plotting the first frame.
         self._prep_figure(*args, **kwargs)
 
         # 0-based index of the last frame to be plotted.
-        self._time_step_last = frame_count - 1
+        self._time_step_last = self._time_step_count - 1
 
         #FIXME: For efficiency, we should probably be passing "blit=True," to
         #FuncAnimation(). Lemon grass and dill!
@@ -675,7 +675,7 @@ class AnimCells(PlotCells):
             func=self.plot_frame,
 
             # Number of frames to be animated.
-            frames=frame_count,
+            frames=self._time_step_count,
 
             # Delay in milliseconds between consecutive frames.
             interval=100,
@@ -869,7 +869,7 @@ class AnimCells(PlotCells):
             self._writer_video = None
 
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Rename "frame_number" to "time_step".
+    #FIXME: Rename the "frame_number" parameter to "time_step".
     @type_check
     def plot_frame(self, frame_number: int) -> None:
         '''
@@ -934,12 +934,9 @@ class AnimCells(PlotCells):
         self._axes.set_title('{} (time {:.3f}s)'.format(
             self._axes_title, self._sim.time[frame_number]))
 
-        #FIXME: Refactor _plot_frame_figure() to use "self._time_step" rather
-        #than repass this parameter everywhere.
-
         # Plot this frame *AFTER* performing all superclass-specific plotting,
         # permitting the subclass to modify that plotting.
-        self._plot_frame_figure(frame_number)
+        self._plot_frame_figure()
 
         # If both saving and displaying animation frames, save this frame. Note
         # that if only saving but *NOT* displaying animations, this frame will
@@ -977,7 +974,7 @@ class AnimCells(PlotCells):
 
 
     @abstractmethod
-    def _plot_frame_figure(self, frame_number: int) -> None:
+    def _plot_frame_figure(self) -> None:
         '''
         Plot the frame with the passed 0-based index onto the current figure.
 
@@ -1001,7 +998,7 @@ class AnimCells(PlotCells):
         '''
 
         # Time series of all current density X and Y components.
-        if self._is_overlaying_current_gj_only is True:
+        if self._is_current_overlay_only_gj is True:
             I_grid_x_time = []
             I_grid_y_time = []
 
@@ -1050,7 +1047,7 @@ class AnimCells(PlotCells):
         '''
 
         # If animating only intracellular current, do so.
-        if self._is_overlaying_current_gj_only:
+        if self._is_current_overlay_only_gj:
             self._axes_title = 'Intracellular Current'
 
             # #FIXME: Is there any point to this? From what we can tell, the
@@ -1069,7 +1066,11 @@ class AnimCells(PlotCells):
             #     self._current_density_x_time_series[-1],
             #     self._current_density_y_time_series[-1],
             #     self._axes, self._cells, self._p)
+            #
 
+
+    #FIXME: Replace all usage of the "frame_number" parameter with the existing
+    #"self._time_step" variable; then remove this parameter.
     @type_check
     def _replot_current_density(self, frame_number: int) -> None:
         '''

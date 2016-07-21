@@ -132,10 +132,9 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
     if p.ani_I is True:
         # Always animate the gap junction current.
-
         AnimCurrent(
             sim=sim, cells=cells, p=p,
-            is_overlaying_current_gj_only=True,
+            is_current_overlay_only_gj=True,
             label='current_gj',
             figure_title='Intracellular Current',
             colorbar_title='Current Density [uA/cm2]',
@@ -144,11 +143,11 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             color_max=p.I_ani_max_clr,
         )
 
-        # Also animate the extracellular spaces current if desired.
+        # Animate the extracellular spaces current if desired as well.
         if p.sim_ECM is True:
             AnimCurrent(
                 sim=sim, cells=cells, p=p,
-                is_overlaying_current_gj_only=False,
+                is_current_overlay_only_gj=False,
                 label='current_ecm',
                 figure_title='Extracellular Current',
                 colorbar_title='Current Density [uA/cm2]',
@@ -185,34 +184,32 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 color_max=p.Efield_ani_max_clr,
             )
 
-    if p.ani_Pcell is True and p.deform_osmo is True:
-        AnimCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=sim.P_cells_time,
-            label='Pcell',
-            figure_title='Hydrostatic Pressure in Cells',
-            colorbar_title='Pressure [Pa]',
-            is_color_autoscaled=p.autoscale_Pcell_ani,
-            color_min=p.Pcell_ani_min_clr,
-            color_max=p.Pcell_ani_max_clr,
-        )
+    if p.deform_osmo is True:
+        if p.ani_Pcell is True:
+            AnimCellsTimeSeries(
+                sim=sim, cells=cells, p=p,
+                time_series=sim.P_cells_time,
+                label='Pcell',
+                figure_title='Hydrostatic Pressure in Cells',
+                colorbar_title='Pressure [Pa]',
+                is_color_autoscaled=p.autoscale_Pcell_ani,
+                color_min=p.Pcell_ani_min_clr,
+                color_max=p.Pcell_ani_max_clr,
+            )
 
-    if p.ani_Pcell is True and p.deform_osmo is True:
-        AnimCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=sim.osmo_P_delta_time,
-            label='OsmoP',
-            figure_title='Osmotic Pressure in Cells',
-            colorbar_title='Pressure [Pa]',
-            is_color_autoscaled=p.autoscale_Pcell_ani,
-            color_min=p.Pcell_ani_min_clr,
-            color_max=p.Pcell_ani_max_clr,
-        )
+        if p.ani_osmoP is True:
+            AnimCellsTimeSeries(
+                sim=sim, cells=cells, p=p,
+                time_series=sim.osmo_P_delta_time,
+                label='OsmoP',
+                figure_title='Osmotic Pressure in Cells',
+                colorbar_title='Pressure [Pa]',
+                is_color_autoscaled=p.autoscale_Pcell_ani,
+                color_min=p.Pcell_ani_min_clr,
+                color_max=p.Pcell_ani_max_clr,
+            )
 
-    if p.ani_force is True:
-
-
-        if p.deform_osmo is True:
+        if p.ani_force is True:
             AnimFieldIntracellular(
                 sim=sim, cells=cells, p=p,
                 x_time_series=[(1/p.um)*arr for arr in sim.F_hydro_x_time],

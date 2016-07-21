@@ -2368,13 +2368,18 @@ class Simulator(object):
         # If displaying and/or saving an animation during solving, do so.
         if p.plot_while_solving:
             self._anim_cells_while_solving = AnimCellsWhileSolving(
-                sim=self, cells=cells, p=p,
                 label='Vmem',
                 figure_title='Vmem while {}'.format(figure_type_label),
                 colorbar_title='Voltage [mV]',
-                is_color_autoscaled=p.autoscale_Vmem,
                 color_min=p.Vmem_min_clr,
                 color_max=p.Vmem_max_clr,
+                is_color_autoscaled=p.autoscale_Vmem,
+                sim=self, cells=cells, p=p,
+
+                # The number of animation frames is the number of sampled time
+                # steps, as the _replot_loop() method plotting each such frame
+                # is called *ONLY* for each such step.
+                time_step_count=len(tsamples),
             )
         # Else, nullify the object encapsulating this animation for safety.
         else:

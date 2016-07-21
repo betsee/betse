@@ -31,9 +31,6 @@ Matplotlib-based animation classes.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from enum import Enum
-from matplotlib import animation
-from matplotlib import pyplot as plt
-from matplotlib.collections import LineCollection, PolyCollection
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.writer.mplframe import FileFrameWriter
 from betse.science.plot import plot
@@ -42,7 +39,10 @@ from betse.science.plot.anim.animabc import (
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type import types
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, NoneType, SequenceTypes
+from matplotlib import animation
+from matplotlib import pyplot as plt
+from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
 
 #FIXME: Shift functions called only by this module either to a new
@@ -98,6 +98,7 @@ class AnimCellsWhileSolving(AnimCells):
         `True` only if the current frame being animated is the first.
     '''
 
+
     @type_check
     def __init__(
         self,
@@ -125,7 +126,7 @@ class AnimCellsWhileSolving(AnimCells):
         See the superclass `__init__()` method for all remaining parameters.
         '''
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
             # Save in-place animations to a different parent directory than
             # that to which out-of-place animations are saved.
@@ -190,7 +191,7 @@ class AnimCellsWhileSolving(AnimCells):
         return self._p.save_solving_plot
 
     # ..................{ PLOTTERS                           }..................
-    def _plot_frame_figure(self, frame_number: int) -> None:
+    def _plot_frame_figure(self) -> None:
 
         # Upscaled cell data for the current time step.
         cell_data = plot.upscale_data(self._cell_time_series[self._time_step])
@@ -306,11 +307,14 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         Arbitrary cell data as a function of time to be plotted.
     '''
 
+
+    #FIXME: Document the "scaling_series" parameter.
+    @type_check
     def __init__(
         self,
-        time_series: np.ndarray,
+        time_series: SequenceTypes,
         is_ecm_ignored: bool = True,
-        scaling_series: np.ndarray = None,
+        scaling_series: SequenceTypes + (NoneType,) = None,
         *args, **kwargs
     ) -> None:
         '''
@@ -318,27 +322,24 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        time_series : np.ndarray
+        time_series : Sequence
             Arbitrary cell data as a function of time to be plotted.
-        is_ecm_ignored : bool
+        is_ecm_ignored : optional[bool]
             `True` if ignoring extracellular spaces _or_ `False` otherwise.
             Defaults to `True`.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(time_series), (
-            types.assert_not_sequence_nonstr(time_series))
-        assert types.is_bool(is_ecm_ignored), (
-            types.assert_not_bool(is_ecm_ignored))
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
-        # Classify parameters required by the _plot_frame_figure() method.
+        # Classify the passed parameters.
         self._time_series = time_series
         self._is_ecm_ignored = is_ecm_ignored
 
@@ -347,30 +348,26 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         data_verts = np.dot(self._cells.matrixMap2Verts, data_points)
 
         #FIXME: Rename "self.collection" to something more descriptive.
-
         if self._p.showCells is True:
             self.collection, self._axes = pretty_patch_plot(
                 data_verts, self._axes, self._cells, self._p, self._colormap,
                 cmin=self._color_min, cmax=self._color_max)
-
         # Else, plot a smooth continuum approximating the cell cluster.
         else:
             self.collection, self._axes = cell_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
 
-
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._sim.time),
             color_mapping=self.collection,
-            color_series=scaling_series if scaling_series else self._time_series,
+            color_series=(
+                scaling_series if scaling_series else self._time_series),
         )
 
 
-    @type_check
-    def _plot_frame_figure(self, frame_number: int):
+    def _plot_frame_figure(self) -> None:
 
-        zz = self._time_series[frame_number]
+        zz = self._time_series[self._time_step]
         data_verts = np.dot(self._cells.matrixMap2Verts, zz)
 
         #FIXME: This isn't quite right. Most of this code already exists in the
@@ -406,9 +403,11 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
         Meshplot of the current or prior frame's environmental data.
     '''
 
+
+    @type_check
     def __init__(
         self,
-        time_series: np.ndarray,
+        time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
         '''
@@ -416,20 +415,19 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        time_series : np.ndarray
+        time_series : Sequence
             Arbitrary environmental data as a function of time to be plotted.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(time_series), (
-            types.assert_not_sequence_nonstr(time_series))
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
         # Classify parameters required by the _plot_frame_figure() method.
         self._time_series = time_series
@@ -439,17 +437,15 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._sim.time),
             color_mapping=self._mesh_plot,
             color_series=self._time_series,
         )
 
 
-    @type_check
-    def _plot_frame_figure(self, frame_number: int):
+    def _plot_frame_figure(self) -> None:
 
         # Environmental data meshplot for this frame.
-        self._mesh_plot.set_data(self._time_series[frame_number])
+        self._mesh_plot.set_data(self._time_series[self._time_step])
 
 
 class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
@@ -471,10 +467,11 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         Arbitrary gap junction data as a function of time to be overlayed.
     '''
 
+    @type_check
     def __init__(
         self,
-        cell_time_series: list,
-        gapjunc_time_series: list,
+        cell_time_series: SequenceTypes,
+        gapjunc_time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
         '''
@@ -482,24 +479,22 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : list
+        cell_time_series : Sequence
             Arbitrary cell data as a function of time to be underlayed.
-        gapjunc_time_series : list
+        gapjunc_time_series : Sequence
             Arbitrary gap junction data as a function of time to be overlayed.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(cell_time_series), (
-            types.assert_not_sequence_nonstr(cell_time_series))
-        assert types.is_sequence_nonstr(gapjunc_time_series), (
-            types.assert_not_sequence_nonstr(gapjunc_time_series))
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
+            time_step_count=len(gapjunc_time_series),
             # Since this class already plots an overlay, prevent the
             # superclass from plotting another overlay.
             is_current_overlayable=False,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
         # Classify all remaining parameters.
         self._cell_time_series = cell_time_series
@@ -533,20 +528,20 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._gapjunc_time_series),
             color_mapping=self._cell_plot,
             color_series=self._cell_time_series,
         )
 
 
     @type_check
-    def _plot_frame_figure(self, frame_number: int):
+    def _plot_frame_figure(self):
 
         # Update the gap junction plot for this frame.
-        self._gapjunc_plot.set_array(self._gapjunc_time_series[frame_number])
+        self._gapjunc_plot.set_array(
+            self._gapjunc_time_series[self._time_step])
 
         # Cell data series for this frame.
-        zv = self._cell_time_series[frame_number]
+        zv = self._cell_time_series[self._time_step]
         if self._p.showCells is True:
             zz_grid = zv
         else:
@@ -571,13 +566,15 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
     ----------
     _mem_edges : LineCollection
         Membrane edges coloured for the current or prior frame.
-    _time_series : list
+    _time_series : Sequence
         Arbitrary cell membrane data as a function of time to be plotted.
     '''
 
+
+    @type_check
     def __init__(
         self,
-        time_series: np.ndarray,
+        time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
         '''
@@ -585,20 +582,20 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        time_series : list
+        time_series : Sequence
             Arbitrary cell membrane data as a function of time to be plotted.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(time_series), (
-            types.assert_not_sequence_nonstr(time_series))
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
+            time_step_count=len(time_series),
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
         # Classify parameters required by the _plot_frame_figure() method.
         self._time_series = time_series
@@ -614,17 +611,16 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._time_series),
             color_mapping=self._mem_edges,
             color_series=self._time_series,
         )
 
 
-    @type_check
-    def _plot_frame_figure(self, frame_number: int):
+    def _plot_frame_figure(self) -> None:
 
         # Update membrane edges colours for this frame.
-        self._mem_edges.set_array(self._time_series[frame_number])
+        self._mem_edges.set_array(
+            self._time_series[self._time_step])
 
 
 class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
@@ -634,12 +630,14 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
     Parameters
     ----------
-    _cell_time_series : SequenceTypes
+    _cell_time_series : Sequence
         Morphogen concentration in cells as a function of time.
-    _env_time_series : SequenceTypes
+    _env_time_series : Sequence
         Morphogen concentration in the environment as a function of time.
     '''
 
+
+    @type_check
     def __init__(
         self,
         cell_time_series: SequenceTypes,
@@ -651,26 +649,24 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : SequenceTypes
+        cell_time_series : Sequence
             Morphogen concentration in cells as a function of time.
-        env_time_series : SequenceTypes
+        env_time_series : Sequence
             Morphogen concentration in the environment as a function of time.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
-        assert types.is_sequence_nonstr(cell_time_series), (
-            types.assert_not_sequence_nonstr(cell_time_series))
-        assert types.is_sequence_nonstr(env_time_series), (
-            types.assert_not_sequence_nonstr(env_time_series))
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
+            time_step_count=len(cell_time_series),
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
-        # Classify parameters required by the _plot_frame_figure() method.
+        # Classify the passed parameters.
         self._cell_time_series = env_time_series
         self._env_time_series = env_time_series
 
@@ -692,7 +688,6 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._cell_time_series),
             color_mapping=(self.collection, self.bkgPlot),
 
             # If colorbar autoscaling is requested, clip the colorbar to the
@@ -703,12 +698,13 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
         )
 
 
-    @type_check
-    def _plot_frame_figure(self, frame_number: int):
+    def _plot_frame_figure(self) -> None:
 
-        self.collection.set_array(self._cell_time_series[frame_number])
+        self.collection.set_array(
+            self._cell_time_series[self._time_step])
         self.bkgPlot.set_data(
-            self._env_time_series[frame_number].reshape(self._cells.X.shape))
+            self._env_time_series[self._time_step].reshape(
+                self._cells.X.shape))
 
 # ....................{ SUBCLASSES ~ field                 }....................
 class AnimFieldIntracellular(AnimField):
@@ -726,17 +722,14 @@ class AnimFieldIntracellular(AnimField):
 
     def __init__(self, *args, **kwargs) -> None:
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(*args, **kwargs)
 
-        # Number of frames to be animated.
-        frame_count = len(self._sim.time)
-
         # Define electric field arrays for all animation frames.
-        for frame_number in range(0, frame_count):
+        for time_step in range(0, self._time_step_count):
             # Electric field X and Y unit components for this frame.
-            field_x = self._x_time_series[frame_number]
-            field_y = self._y_time_series[frame_number]
+            field_x = self._x_time_series[time_step]
+            field_y = self._y_time_series[time_step]
 
             #FIXME: What's this about then? Buttercups and bitter nightingales!
             if len(field_x) != len(self._cells.cell_i):
@@ -779,27 +772,24 @@ class AnimFieldIntracellular(AnimField):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=frame_count,
             color_mapping=self._mesh_plot,
             color_series=self._magnitude_time_series,
         )
 
 
-    @type_check
-    def _plot_frame_figure(self, frame_number: int):
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+    def _plot_frame_figure(self) -> None:
 
         #FIXME: This is probably code copied from the helpers called above
         #(e.g., cell_mesh()). It'd be great to centralize this code somewhere.
         #Skinny trees fronded with blue ribbons!
         emag_grid = np.zeros(len(self._cells.voronoi_centres))
         emag_grid[self._cells.cell_to_grid] = (
-            self._magnitude_time_series[frame_number])
+            self._magnitude_time_series[self._time_step])
 
         # Electric field streamplot for this frame.
         self._stream_plot.set_UVC(
-            self._unit_x_time_series[frame_number],
-            self._unit_y_time_series[frame_number])
+            self._unit_x_time_series[self._time_step],
+            self._unit_y_time_series[self._time_step])
 
         # Electric field magnitude meshplot for this frame.
         self._mesh_plot.set_array(emag_grid)
@@ -811,10 +801,14 @@ class AnimFieldExtracellular(AnimField):
     the cell cluster.
     '''
 
+
     def __init__(self, *args, **kwargs) -> None:
 
-        # Pass all parameters to our superclass.
-        super().__init__(is_ecm_required=True, *args, **kwargs)
+        # Initialize the superclass.
+        super().__init__(
+            is_ecm_required=True,
+            *args, **kwargs
+        )
 
         # Electric field magnitude.
         efield_mag = np.sqrt(
@@ -841,17 +835,13 @@ class AnimFieldExtracellular(AnimField):
         # manually rescales the colorbar on each frame according to the minimum
         # and maximum electric field magnitude. While non-ideal, every
         # alternative is currently worse.
-        self._animate(
-            frame_count=len(self._sim.time),
-            color_mapping=self.msh,
-        )
+        self._animate(color_mapping=self.msh)
 
 
-    def _plot_frame_figure(self, frame_number: int):
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+    def _plot_frame_figure(self) -> None:
 
-        E_x = self._x_time_series[frame_number]
-        E_y = self._y_time_series[frame_number]
+        E_x = self._x_time_series[self._time_step]
+        E_y = self._y_time_series[self._time_step]
 
         efield_mag = np.sqrt(E_x**2 + E_y**2)
         self.msh.set_data(efield_mag)
@@ -887,17 +877,22 @@ class AnimVelocityIntracellular(AnimVelocity):
         if such field has yet to be streamplotted.
     '''
 
+
     def __init__(self, *args, **kwargs) -> None:
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(*args, **kwargs)
 
         # Define this attribute *BEFORE* streamplotting, which assumes this
         # attribute to exist.
         self._stream_plot = None
 
+        #FIXME: Inefficient. This streamplot will be recreated for the first
+        #time step in the exact same manner; so, it's unclear that we need to
+        #do so here.
+
         # Streamplot the first frame's velocity field.
-        vfield, vnorm = self._plot_stream_velocity_field(frame_number=0)
+        vfield, vnorm = self._plot_stream_velocity_field(time_step=0)
 
         # Meshplot the first frame's velocity field magnitude.
         self._mesh_plot = self._plot_image(
@@ -915,17 +910,13 @@ class AnimVelocityIntracellular(AnimVelocity):
         # manually rescales the colorbar on each frame according to the minimum
         # and maximum velocity field magnitude. While non-ideal, every
         # alternative is currently worse.
-        self._animate(
-            frame_count=len(self._sim.time),
-            color_mapping=self._mesh_plot,
-        )
+        self._animate(color_mapping=self._mesh_plot)
 
 
-    @type_check
-    def _plot_frame_figure(self, frame_number: int):
+    def _plot_frame_figure(self) -> None:
 
         # Streamplot this frame's velocity field.
-        vfield, vnorm = self._plot_stream_velocity_field(frame_number)
+        vfield, vnorm = self._plot_stream_velocity_field(self._time_step)
 
         # Meshplot this frame's velocity field.
         self._mesh_plot.set_data(vfield)
@@ -935,17 +926,18 @@ class AnimVelocityIntracellular(AnimVelocity):
 
 
     @type_check
-    def _plot_stream_velocity_field(self, frame_number: int) -> (
-        np.ndarray, float):
+    def _plot_stream_velocity_field(self, time_step: int) -> tuple:
         '''
         Streamplot the current velocity field for the passed frame and return a
         2-tuple describing this field.
 
         Returns
         ----------
-        `(velocity_field, velocity_field_magnitude_max)`
-            2-element tuple whose:
-            * First element is all velocity field magnitudes for this frame.
+        (Sequence, float)
+            2-element tuple `(velocity_field, velocity_field_magnitude_max)`
+            whose:
+            * First element is the list of all velocity field magnitudes for
+              this frame.
             * Second element is the maximum such magnitude.
         '''
 
@@ -953,19 +945,19 @@ class AnimVelocityIntracellular(AnimVelocity):
             self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
         cell_grid = (self._cells.X, self._cells.Y)
 
-        #FIXME: Ugh. Duplicate code already performed the superclass
+        #FIXME: Ugh. Duplicate code already performed by the superclass
         #AnimCells._init_current_density() method. We clearly need a
         #general-purpose interpolation utility method. Hawkish doves in a cove!
         u_gj_x = self._cells.maskECM * interpolate.griddata(
             cell_centres,
-            self._sim.u_cells_x_time[frame_number],
+            self._sim.u_cells_x_time[time_step],
             cell_grid,
             fill_value=0,
             method=self._p.interp_type,
         )
         u_gj_y = self._cells.maskECM * interpolate.griddata(
             cell_centres,
-            self._sim.u_cells_y_time[frame_number],
+            self._sim.u_cells_y_time[time_step],
             cell_grid,
             fill_value=0,
             method=self._p.interp_type,
@@ -1010,8 +1002,11 @@ class AnimVelocityExtracellular(AnimVelocity):
 
     def __init__(self, *args, **kwargs) -> None:
 
-        # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(is_ecm_required=True, *args, **kwargs)
+        # Initialize the superclass.
+        super().__init__(
+            is_ecm_required=True,
+            *args, **kwargs
+        )
 
         # Time series of all velocity magnitudes.
         self._magnitude_time_series = np.sqrt(
@@ -1040,17 +1035,15 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._sim.time),
             color_mapping=self._mesh_plot,
             color_series=self._magnitude_time_series,
         )
 
 
-    def _plot_frame_figure(self, frame_number: int):
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+    def _plot_frame_figure(self) -> None:
 
         # Velocity field and maximum velocity field value for this frame.
-        vfield = self._magnitude_time_series[frame_number]
+        vfield = self._magnitude_time_series[self._time_step]
         vnorm = np.max(vfield)
 
         # Update the current velocity meshplot.
@@ -1058,8 +1051,9 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Update the current velocity streamplot.
         self._stream_plot.set_UVC(
-                self._sim.u_env_x_time[frame_number] / vnorm,
-                self._sim.u_env_y_time[frame_number] / vnorm)
+            self._sim.u_env_x_time[self._time_step] / vnorm,
+            self._sim.u_env_y_time[self._time_step] / vnorm,
+        )
 
 # ....................{ SUBCLASSES ~ other                 }....................
 class AnimCurrent(AnimCellsAfterSolving):
@@ -1067,14 +1061,16 @@ class AnimCurrent(AnimCellsAfterSolving):
     Animation of current density plotted on the cell cluster.
     '''
 
+
     def __init__(self, *args, **kwargs) -> None:
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
             # Since this class already plots a streamplot, prevent the
             # superclass from plotting another streamplot as an overlay.
             is_current_overlayable=False,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
         # Prefer an alternative colormap *BEFORE* plotting below.
         self._colormap = self._p.background_cm
@@ -1101,20 +1097,18 @@ class AnimCurrent(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._sim.time),
             color_mapping=self._mesh_plot,
             color_series=self._current_density_magnitude_time_series,
         )
 
 
-    def _plot_frame_figure(self, frame_number: int):
-        assert types.is_int(frame_number), types.assert_not_int(frame_number)
+    def _plot_frame_figure(self) -> None:
 
         # Current density magnitudes for this frame in uA/cm2.
-        Jmag_M = self._current_density_magnitude_time_series[frame_number]
+        Jmag_M = self._current_density_magnitude_time_series[self._time_step]
 
         # Streamplot this frame's current density.
-        self._replot_current_density(frame_number)
+        self._replot_current_density(self._time_step)
 
         # Meshplot this frame's current density magnitude.
         self._mesh_plot.set_data(Jmag_M)
@@ -1165,6 +1159,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
         Arbitrary cell data as a function of time to be underlayed.
     '''
 
+
     @type_check
     def __init__(
         self,
@@ -1182,12 +1177,13 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
         See the superclass `__init__()` method for all remaining parameters.
         '''
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        # Initialize the superclass.
         super().__init__(
             # Since this class already plots a streamplot, prevent the
             # superclass from plotting another streamplot as an overlay.
             is_current_overlayable=False,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
         # Classify all remaining parameters.
         self._cell_time_series = cell_time_series
@@ -1221,15 +1217,13 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            frame_count=len(self._sim.time),
             color_mapping=dd_collection,
             color_series=self._cell_time_series,
         )
 
 
     #FIXME: Quite a bit of code duplication. Generalize us up the bomb.
-    @type_check
-    def _plot_frame_figure(self, frame_number: int):
+    def _plot_frame_figure(self):
 
         # Erase the prior frame before plotting this frame.
         # self.ax.patches = []
@@ -1247,15 +1241,15 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
         self._axes.set_ylabel('Spatial distance [um]')
 
         # Arrays of all cell deformation X and Y components for this frame.
-        dx = self._sim.dx_cell_time[frame_number]
-        dy = self._sim.dy_cell_time[frame_number]
+        dx = self._sim.dx_cell_time[self._time_step]
+        dy = self._sim.dy_cell_time[self._time_step]
 
         # Array of all cell Vmem values for this frame.
         if self._p.ani_Deformation_data == 'Vmem':
             if self._p.sim_ECM is False:
-                dd = self._sim.vm_time[frame_number] * 1e3
+                dd = self._sim.vm_time[self._time_step] * 1e3
             else:
-                dd = self._sim.vcell_time[frame_number] * 1e3
+                dd = self._sim.vcell_time[self._time_step] * 1e3
         # Array of all cell deformation magnitudes for this frame.
         elif self._p.ani_Deformation_data == 'Displacement':
             dd = 1e6 * np.sqrt(dx**2 + dy**2)
@@ -1288,6 +1282,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
             stream_plot, self._axes = cell_stream(
                 dx, dy, self._axes, self._cells, self._p,
                 showing_cells=self._p.showCells)
+
 
 #FIXME: Obsoleted. Replace with the existing "AnimDeformTimeSeries" subclass.
 class AnimateDeformation(object):

@@ -15,6 +15,7 @@ configurations, including:
 
 # ....................{ IMPORTS                            }....................
 from betse_test.func.fixture.sim import configapi
+from betse_test.func.fixture.sim.configapi import SimTestState
 from pytest import fixture
 
 # ....................{ FIXTURES                           }....................
@@ -34,7 +35,7 @@ from pytest import fixture
 def betse_sim_config_default(
     request: '_pytest.python.FixtureRequest',
     tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
-) -> 'SimTestState':
+) -> SimTestState:
     '''
     Context manager-driven fixture creating a temporary default simulation
     configuration _and_ returning a test-specific object encapsulating this
@@ -59,7 +60,7 @@ def betse_sim_config_default(
     See Also
     ----------
     _betse_sim_config
-        For further details on return type and method of construction.
+        Further details on this fixture's return value.
     '''
 
     # Test-specific object encapsulating this simulation configuration file.
@@ -67,6 +68,36 @@ def betse_sim_config_default(
 
     # Write the default configuration to disk with only the requisite
     # modifications performed by this fixture (e.g., disabling interactivity).
+    sim_state.config.overwrite()
+
+    # Return this encapsulation object.
+    return sim_state
+
+
+@fixture(scope='session')
+def betse_sim_config_anims(
+    request: '_pytest.python.FixtureRequest',
+    tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
+) -> SimTestState:
+    '''
+    Context manager-driven fixture creating a temporary simulation configuration
+    enabling all supported animations and all features required by these
+    animations _and_ returning a test-specific object encapsulating this
+    configuration.
+
+    See Also
+    ----------
+    betse_sim_config_anims
+        Further details on fixture parameters and return value.
+    '''
+
+    # Test-specific object encapsulating this simulation configuration file.
+    sim_state = configapi.make(request, tmpdir_factory)
+
+    # Enable all supported animations and all features required thereby.
+    sim_state.config.enable_anims()
+
+    # Write this configuration to disk.
     sim_state.config.overwrite()
 
     # Return this encapsulation object.

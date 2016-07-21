@@ -904,13 +904,17 @@ results options:
         min val: -70.0               # maximum colorbar value in mV
 
     Ca Ani:
-        animate Ca2+: True           # 2d animation of cell calcium with time ?
+        animate Ca2+: True           # Plot a 2D animation of calcium in cells?
+                                     # Ignored unless the current ion profile
+                                     # enables calcium (Ca).
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 1000                # maximum colorbar value in nmol/L
         min val: 0                   # minimum colorbar vlue in nmol/L
 
     pH Ani:
-        animate pH: True           # 2d animation of cell pH with time ?
+        animate pH: True             # Plot a 2D animation of pH in cells?
+                                     # Ignored unless the current ion profile
+                                     # enables hydrogen (H).
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 8               # maximum colorbar value in nmol/L
         min val: 6                   # minimum colorbar vlue in nmol/L
@@ -920,65 +924,70 @@ results options:
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 50.0                # maximum colorbar value in mV
         min val: -70.0               # minimum colorbar value in mV
-  
+
     Vcell Ani:
         animate Vcell: True          # Plot a 2D animation of voltage in cells?
+                                     # Ignored unless ECM enabled.
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
 
     Venv Ani:
-        animate Venv: True           # Plot a 2D animation of environmental voltage?
+        animate Venv: True           # Plot a 2D animation of environmental
+                                     # voltage? Ignored unless ECM enabled.
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
-  
+
     P cell Ani:
         animate P cell: True         # Plot a 2D animation of electroosmotic
-                                     # pressure in individual cells?
+                                     # pressure in cells? Ignored unless
+                                     # "include osmotic pressure" enabled.
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
-  
+
     Osmotic P Ani:
         animate Osmotic P: True      # Plot a 2D animation of osmotic pressure
-                                     # difference in individual cells?
+                                     # difference in cells? Ignored unless
+                                     # "include osmotic pressure" enabled.
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 10                  # maximum colorbar value in mV
         min val: -70                 # minimum colorbar value in mV
-  
+
     Force Ani:
-        animate force: True         # 2d animation of body forces in individual cells of the collective?
+        animate force: True          # Plot a 2D animation of hydrostatic body
+                                     # forces in cells? Ignored unless
+                                     # "include osmotic pressure" enabled.
         autoscale colorbar: True     # autoscale colorbar to min max of data set?
         max val: 100                  # maximum colorbar value in N/m3
         min val: 0                 # minimum colorbar value in N/m3
-  
+
     Current Ani:
-        animate current: True       # 2d animation of current in individual cells of the collective?
+        animate current: True        # Plot a 2D animation of current in cells?
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 150                # maximum colorbar value [pA]
         min val: 0                  # minimum colorbar value [pA]
-  
+
     Membrane Ani:
         animate Membrane: True      # Plot a 2D animation of membrane pump
                                     # motion in the cell cluster? Ignored
-                                    # unless "channel electroosmosis" is
-                                    # enabled as well.
+                                    # unless "channel electroosmosis" enabled.
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 1                # maximum colorbar value [pA]
         min val: 0                  # minimum colorbar value [pA]
-  
+
     Efield Ani:
         animate Efield: True        # 2d animation of electric field in extracellullar matrix
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 1500               # max colorbar value [V/m]
         min val: 0                  # min colorbar value [V/m]
-  
+
     Velocity Ani:
         animate Velocity: True      # Plot a 2D animation of the velocity of
                                     # fluid in the cell cluster? Ignored unless
                                     # "include fluid flow" and
-                                    # "include electrostatic pressure" are True.
+                                    # "include electrostatic pressure" enabled.
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 500                # max colorbar value [V/m]
         min val: 0                  # min colorbar value [V/m]
@@ -986,8 +995,7 @@ results options:
 
     Deformation Ani:
         animate Deformation: True   # Plot a 2D animation of cell deformation?
-                                    # Ignored unless "turn on" under
-                                    # "deformation" is True.
+                                    # Ignored unless "deformation" enabled.
         data type: Displacement     # data type can be 'Vmem' or 'Displacement'
         style: streamline           # plot 'streamline' or 'vector' displacements
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
