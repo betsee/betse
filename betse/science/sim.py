@@ -262,7 +262,6 @@ class Simulator(object):
         #
         #     self.gj_rho = 0
 
-
         ion_names = list(p.ions_dict.keys())
 
         for name in ion_names:  # go through ion list/dictionary and initialize all sim structures
@@ -379,7 +378,7 @@ class Simulator(object):
 
             self.ionlabel[self.iH] = 'protons'
 
-            # self.movingIons.append(self.iH)
+            self.movingIons.append(self.iH)
 
             # create concentrations of dissolved carbon dioxide (carbonic acid, non-dissociated):
 
@@ -1564,6 +1563,13 @@ class Simulator(object):
             # get the charge in cells and the environment:
             self.rho_cells = stb.get_charge_density(self.cc_mems, self.z_array, p)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
+
+            # for i, (cc, z) in enumerate(zip(self.cc_mems, self.z_array)):
+            #
+            #     print(self.ionlabel[i], cc.mean(), z.mean())
+            #     print('------')
+            #
+            # print('***********')
 
             # if p.smooth_level > 0.0:
             #     self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()

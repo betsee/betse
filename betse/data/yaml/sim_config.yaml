@@ -107,25 +107,25 @@ general options:
   customized ion profile:      # set user-defined initial values of ion concentrations
                                # for the initialization run
                                # note both extracellular and cytosolic levels of all
-                               # ions must add up to a net positive charge.
-                               # this is because an anion (M-) is used to create
-                               # charge neutrality in each compartment.
+                               # ions must sum to zero charge.
 
     extracellular Na+ concentration: 110.0          # extracellular sodium [mmol/L]
     extracellular K+ concentration: 2.5             # extracellular potassium [mmol/L]
     extracellular Cl- concentration: 100.0          # extracellular chloride [mmol/L]
     extracellular Ca2+ concentration: 2.0           # extracellular calcium [mmol/L]
-    extracellular H+ concentration: 3.98e-5         # extracellular protons [mmol/L]
+    extracellular HCO3- concentration: 10.0         # extracellular bicarbonate [mmol/L]
     extracellular protein- concentration: 0.0       # extracellular protein [mmol/L]
 
     cytosolic Na+ concentration: 11.0                # intracellular sodium [mmol/L]
     cytosolic K+ concentration: 110.00              # intracellular potassium [mmol/L]
     cytosolic Cl- concentration: 45.0                # intracellular chloride [mmol/L]
     cytosolic Ca2+ concentration: 3.0e-3            # intracellular calcium [mmol/L]
-    cytosolic H+ concentration: 3.98e-5             # intracellular protons [mmol/L]
+    cytosolic HCO3- concentration: 10.0             # intracellular bicarbonate [mmol/L]
     cytosolic protein- concentration: 50.0         # intracellular protein [mmol/L]
 
-    endoplasmic reticulum Ca2+: 0.01             # starting level of Ca2+ in the ER store [mmol/L]
+    carbon dioxide pCO2: 40.0                    # partial pressure of carbon dioxide in mmHg (used for pH calculations)
+
+    endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
 
 # ---------------------------------------------------------------------------------------------------------------------
 # WORLD OPTIONS
@@ -633,6 +633,16 @@ variable settings:
       Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
       Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
+
+  env boundary concentrations:   # these concentrations are placed at the global boundary durring init and sim
+                                 # altering these is an easy way to change extracellular ion concentrations
+
+    Na: 145.0    # Na+ concentration at bound [mM]
+    K: 5.0      # K+ concentration at bound [mM]
+    Cl: 110.0    # Cl- concentration at bound [mM]
+    Ca: 1.0     # Ca2+ concentration at bound [mM]
+    P: 10.0      # Protein- concentration at bound [mM]
+    M: 31.0     # Anion (bicarbonate) concentration at bound [mM]
 
   temperature: 310            # system temperature [K]
 

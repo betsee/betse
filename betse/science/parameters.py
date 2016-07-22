@@ -593,6 +593,19 @@ class Parameters(object):
         self.Dm_M = float(self.config['variable settings']['default tissue properties']['Dm_M'])    #  anchor ion [m2/s]
         self.Dm_P = float(self.config['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
 
+        # environmental (global) boundary concentrations:
+        cbnd = self.config.get('env boundary concentrations', None)
+
+        self.cbnd = cbnd # save this to query in sim
+
+        if cbnd is not None:
+            self.cbnd_Na = cbnd['Na']
+            self.cbnd_K = cbnd['K']
+            self.cbnd_Cl = cbnd['Cl']
+            self.cbnd_Ca = cbnd['Ca']
+            self.cbnd_P = cbnd['P']
+            self.cbnd_M = cbnd['M']
+
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = self.config['variable settings']['optional pumps']['HKATPase pump']
 
@@ -888,6 +901,7 @@ class Parameters(object):
         self.Do_M = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
 
+
         # ATP charge in the cell (for metabolism mode off)
         # FIXME add these as options to the config
         self.cATP = 1.5
@@ -1126,10 +1140,10 @@ class Parameters(object):
          # default environmental and cytoplasm values invertebrate cells
         elif self.ion_profile == 'xenopus':
 
-            self.cNa_env = 11.00
-            self.cK_env = 0.25
-            self.cCl_env = 10.0
-            self.cCa_env = 0.20
+            self.cNa_env = 14.50
+            self.cK_env = 0.5
+            self.cCl_env = 10.50
+            self.cCa_env = 0.2
             self.cH_env = 3.98e-5
             self.cP_env = 0.0
 
@@ -1140,21 +1154,20 @@ class Parameters(object):
 
             assert self.z_M_env == -1
 
-            self.cNa_cell = 11.0
-            self.cK_cell = 110.0
-            self.cCl_cell = 45.0
-            self.cCa_cell = 3.0e-3
+            self.cNa_cell = 8.0
+            self.cK_cell = 125.0
+            self.cCl_cell = 20.0
+            self.cCa_cell = 1.0e-3
             self.cH_cell = 3.98e-5
-            self.cP_cell = 50.0
+            self.cP_cell = 100.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
-
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
             assert self.z_M_cell == -1
 
             self.cCa_er = 0.5
-            self.cM_er = -self.cCa_er
+            self.cM_er = - self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
@@ -1162,8 +1175,8 @@ class Parameters(object):
             self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,'P':self.cP_env,'M':self.cM_env}
             self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
             self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
-            self.molar_mass= {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,'H':self.M_H,'P':self.M_P,'M':self.M_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_Cl,'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,'H':self.M_Cl,'P':self.M_P,'M':self.M_M}
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
         elif self.ion_profile == 'scratch':
@@ -1202,8 +1215,6 @@ class Parameters(object):
 
         # user-specified environmental and cytoplasm values (customized)
         elif self.ion_profile == 'customized':
-            self.cCa_er = 0.5
-            self.cM_er = -self.cCa_er
 
             cip = self.config['general options']['customized ion profile']
 
@@ -1226,39 +1237,25 @@ class Parameters(object):
             conc_env = [self.cNa_env,self.cK_env, self.cCl_env, self.cCa_env, self.cH_env, self.cP_env]
             self.cM_env, self.z_M_env = bal_charge(conc_env,zs)
 
-            if self.z_M_env == 1:
-                raise BetseExceptionParameters(
-                    "You have defined a net negative charge profile in the environment: "
-                    "it cannot be charge balanced by an anion. Please try again.")
-
+            assert self.z_M_env == -1
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cH_cell, self.cP_cell]
             self.cM_cell, self.z_M_cell = bal_charge(conc_cell,zs)
 
-            if self.z_M_cell == 1:
-                raise BetseExceptionParameters(
-                    "You have defined a net negative charge profile in the cell: "
-                    "it cannot be charge balanced by an anion. Please try again.")
+            assert self.z_M_cell == -1
 
-            self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
-            self.cM_er = -self.cCa_er
+            self.cCa_er = 0.5
+            self.cM_er = - self.cCa_er
 
             self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
 
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
-                'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
-            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,
-                'P':self.cP_env,'M':self.cM_env}
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,
-                'P':self.Dm_P,'M':self.Dm_M}
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,
-                'M':self.z_M}
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_H,
-                'P':self.Do_P,'M':self.Do_M}
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,'H':self.M_H,
-                'P':self.Do_P,'M':self.Do_M}
-            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons',
-                'P':'proteins','M':'anion'}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,'H':self.cH_env,'P':self.cP_env,'M':self.cM_env}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,'H':self.z_H,'P':self.z_P,'M':self.z_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,'H':self.Do_Cl,'P':self.Do_P,'M':self.Do_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,'H':self.M_Cl,'P':self.M_P,'M':self.M_M}
+            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons','P':'proteins','M':'anion'}
 
         else:
 
