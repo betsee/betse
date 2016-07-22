@@ -1277,12 +1277,12 @@ class Simulator(object):
         self.rho_cells_time.append(self.rho_cells[:])
 
         self.rate_NaKATP_time.append(self.rate_NaKATP[:])
-        self.P_cells_time.append(self.P_cells[:])
+        self.P_cells_time.append(self.P_cells[cells.mem_to_cells])
         self.F_hydro_x_time.append(self.F_hydro_x[:])
         self.F_hydro_y_time.append(self.F_hydro_y[:])
 
         if p.deform_osmo is True:
-            self.osmo_P_delta_time.append(self.osmo_P_delta[:])
+            self.osmo_P_delta_time.append(self.osmo_P_delta[cells.mem_to_cells])
 
         if p.deformation is True and p.run_sim is True:
 

@@ -15,35 +15,35 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     networks using Hagen–Poiseuille "pipe flow" equation.
 
     """
-    # treat osmotic flow, which is mass flow across membranes:
-    if p.deform_osmo is True:
-
-        # u_osmo is negative as it's defined + into the cell in pressures.py
-        u_osmo_cells = -sim.u_net
-
-        if p.sim_ECM is True:
-
-            unetxo = sim.u_net*cells.mem_vects_flat[:,2]
-            unetyo = sim.u_net*cells.mem_vects_flat[:,3]
-
-            unetx = unetxo[cells.map_mem2ecm]
-            unety = unetyo[cells.map_mem2ecm]
-
-            u_osmo_envx = np.zeros(len(cells.xypts))
-            u_osmo_envx[cells.envInds_inClust] = unetx
-
-            u_osmo_envy = np.zeros(len(cells.xypts))
-            u_osmo_envy[cells.envInds_inClust] = unety
-
-            u_osmo_envx = u_osmo_envx.reshape(cells.X.shape)
-            u_osmo_envy = u_osmo_envy.reshape(cells.X.shape)
-
-    else:
-        u_osmo_cells = np.zeros(sim.mdl)
-
-        if p.sim_ECM is True:
-
-            u_osmo_env = np.zeros(sim.edl)
+    # # treat osmotic flow, which is mass flow across membranes:
+    # if p.deform_osmo is True:
+    #
+    #     # u_osmo is negative as it's defined + into the cell in pressures.py
+    #     u_osmo_cells = -sim.u_net
+    #
+    #     if p.sim_ECM is True:
+    #
+    #         unetxo = sim.u_net*cells.mem_vects_flat[:,2]
+    #         unetyo = sim.u_net*cells.mem_vects_flat[:,3]
+    #
+    #         unetx = unetxo[cells.map_mem2ecm]
+    #         unety = unetyo[cells.map_mem2ecm]
+    #
+    #         u_osmo_envx = np.zeros(len(cells.xypts))
+    #         u_osmo_envx[cells.envInds_inClust] = unetx
+    #
+    #         u_osmo_envy = np.zeros(len(cells.xypts))
+    #         u_osmo_envy[cells.envInds_inClust] = unety
+    #
+    #         u_osmo_envx = u_osmo_envx.reshape(cells.X.shape)
+    #         u_osmo_envy = u_osmo_envy.reshape(cells.X.shape)
+    #
+    # else:
+    #     u_osmo_cells = np.zeros(sim.mdl)
+    #
+    #     if p.sim_ECM is True:
+    #
+    #         u_osmo_env = np.zeros(sim.edl)
 
     # First do extracellular space electroosmotic flow--------------------------------------------------------------
 

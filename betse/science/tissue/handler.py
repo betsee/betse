@@ -5,6 +5,7 @@
 # FIXME include other channels in morphogen (dye) dynamics
 
 from random import shuffle
+import copy
 
 import numpy as np
 from scipy import interpolate as interp
@@ -1248,7 +1249,17 @@ class TissueHandler(object):
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
 
             cells.deform_tools(p)
-            logs.log_info('Completed major world-building computations.')
+
+            if p.deformation is True:  # if user desires deformation:
+
+                # create a copy of cells world, to apply deformations to for visualization purposes only:
+                sim.cellso = copy.deepcopy(cells)
+
+                if p.td_deform is True:
+                    # make a laplacian and solver for discrete transfers on closed, irregular cell network
+                    logs.log_info('Creating cell network Poisson solver...')
+                    cells.graphLaplacian(p)
+
 
         if p.sim_eosmosis is True:
 

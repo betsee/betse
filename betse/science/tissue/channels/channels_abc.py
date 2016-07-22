@@ -51,11 +51,9 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         """
 
-        # multiply by the distribution of channels, for the case where electrophoresis/osmosis of channels
-        # is simulated. This will simulate an uneven distribution of the channel on the membrane. Also
         # multiply by the modulator:
 
-        delta_Q = sim.rho_channel*delta_Q*self.modulator
+        delta_Q = delta_Q*self.modulator
 
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the original Hodgkin Huxley equation.

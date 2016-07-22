@@ -185,6 +185,7 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             )
 
     if p.deform_osmo is True:
+
         if p.ani_Pcell is True:
             AnimCellsTimeSeries(
                 sim=sim, cells=cells, p=p,
