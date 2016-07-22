@@ -123,8 +123,6 @@ general options:
     cytosolic HCO3- concentration: 10.0             # intracellular bicarbonate [mmol/L]
     cytosolic protein- concentration: 50.0         # intracellular protein [mmol/L]
 
-    carbon dioxide pCO2: 40.0                    # partial pressure of carbon dioxide in mmHg (used for pH calculations)
-
     endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
 
 # ---------------------------------------------------------------------------------------------------------------------

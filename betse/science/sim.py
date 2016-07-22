@@ -148,8 +148,6 @@ class Simulator(object):
         self.met_concs = None
         self.grn = None
 
-        i = -1  # dynamic index
-
         self.mdl = len(cells.mem_i)  # mems-data-length
         self.cdl = len(cells.cell_i)  # cells-data-length
 
@@ -264,6 +262,8 @@ class Simulator(object):
 
         ion_names = list(p.ions_dict.keys())
 
+        i = -1  # dynamic index
+
         for name in ion_names:  # go through ion list/dictionary and initialize all sim structures
 
             if p.ions_dict[name] == 1:
@@ -286,7 +286,7 @@ class Simulator(object):
                     setattr(self, str_mems, np.zeros(self.mdl))
                     vars(self)[str_mems][:] = p.cell_concs[name]
 
-                    # environmental concentration for the ion
+                    # environmental concentration for the ion:
                     str_env = 'c' + name + '_env'
 
                     setattr(self, str_env, np.zeros(self.edl))
@@ -380,30 +380,21 @@ class Simulator(object):
 
             self.movingIons.append(self.iH)
 
-            # create concentrations of dissolved carbon dioxide (carbonic acid, non-dissociated):
-
+            # create concentration arrays of dissolved carbon dioxide (carbonic acid, non-dissociated):
             self.cHM_mems = np.zeros(self.mdl)
             self.cHM_mems[:] = 0.03 * p.CO2
 
             self.cHM_env = np.zeros(self.edl)
-
             self.cHM_env[:] = 0.03 * p.CO2
 
-            self.cH_mems = np.zeros(self.mdl)
-            self.cH_mems[:] = p.cH_cell
+            # self.cH_mems = np.zeros(self.mdl)
+            # self.cH_mems[:] = p.cH_cell
 
-            # use Henderson-Hasselbach equation to obtain pH and cH concentrations:
-
-            self.pH_cell = 6.1 + np.log10(self.cM_mems / self.cHM_mems)
-            self.cH_mems = (10 ** (-self.pH_cell)) * 1e3  # units mmol/L
-
-            self.pH_env = 6.1 + np.log10(self.cM_env / self.cHM_env)
-            self.cH_env = (10 ** (-self.pH_env)) * 1e3  # units mmol/L
+            self.cH_mems, self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems, self.cc_mems[self.iM])
+            self.cH_env, self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
 
             # initialize diffusion constants
-
             DmH = np.zeros(self.mdl)
-
             DmH[:] = p.Dm_H
 
             self.zH = np.zeros(self.mdl)
@@ -519,6 +510,16 @@ class Simulator(object):
         if p.sim_ECM is True:
             #  Initialize diffusion constants for the extracellular transport:
             self.initDenv(cells,p)
+
+            # re-init global boundary fixed concentrations:
+            if p.cbnd is not None:
+
+                for key, val in p.ions_dict.items():
+
+                    if val == 1 and key != 'H':
+                        ion_i = self.get_ion(key)
+                        # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
+                        self.c_env_bound[ion_i] = p.cbnd[key]
 
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
@@ -1564,13 +1565,6 @@ class Simulator(object):
             self.rho_cells = stb.get_charge_density(self.cc_mems, self.z_array, p)
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
 
-            # for i, (cc, z) in enumerate(zip(self.cc_mems, self.z_array)):
-            #
-            #     print(self.ionlabel[i], cc.mean(), z.mean())
-            #     print('------')
-            #
-            # print('***********')
-
             # if p.smooth_level > 0.0:
             #     self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()
             self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
@@ -1586,72 +1580,9 @@ class Simulator(object):
 
         IdM = np.ones(self.mdl)
 
-
         # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
         self.cc_mems[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems, self.cc_mems[self.iM])
-
         self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
-
-        self.cc_mems[self.iH], self.cc_env[self.iH], _, _, _, _ = stb.molecule_mover(self,
-                                                                 self.cc_mems[self.iH],
-                                                                 self.cc_env[self.iH],
-                                                                 cells, p,
-                                                                 z=self.zs[self.iH],
-                                                                 Dm=self.Dm_cells[self.iH],
-                                                                 Do=self.D_free[self.iH],
-                                                                 c_bound=self.c_env_bound[self.iH],
-                                                                 ignoreECM=False,
-                                                                 smoothECM=False,
-                                                                 ignoreTJ=False,
-                                                                 ignoreGJ=False)
-
-        # # electrofuse the H+ ion between the cytoplasm and the environment
-        # if p.sim_ECM is True:
-        #
-        #     # Electrofuse the H+ ion between the cytoplasm and the ecms.
-        #     f_H1 = stb.electroflux(
-        #         self.cc_env[self.iH][cells.map_mem2ecm],
-        #         self.cc_mems[self.iH],
-        #         self.Dm_cells[self.iH],
-        #         IdM*p.tm,
-        #         IdM*self.zs[self.iH],
-        #         self.vm,
-        #         self.T,
-        #         p,
-        #     )
-        #
-        #     self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H1
-        #
-        #
-        # else:
-        #
-        #     f_H1 = stb.electroflux(self.cc_env[self.iH],self.cc_mems[self.iH],self.Dm_cells[self.iH],IdM*p.tm,
-        #         IdM*self.zs[self.iH],self.vm,self.T,p)
-        #
-        #     self.fluxes_mem[self.iH] = f_H1
-        #
-        # # update H+ in cells and environment, first in absence of bicarbonate buffering:
-        # self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
-        #     self.cc_env[self.iH][:], f_H1, cells, p, ignoreECM = True)
-
-        # self.cc_mems[self.iH], self.cc_mems[self.iM], _, self.pH_cell = stb.bicarb_reaction_buffer(self.cc_mems[self.iH],
-        #                                                                     self.cc_mems[self.iM], p.cCO2, p)
-        #
-        # self.cc_env[self.iH], self.cc_env[self.iM], _, self.pH_cell = stb.bicarb_reaction_buffer(
-        #                                                                 self.cc_env[self.iH],
-        #                                                                 self.cc_env[self.iM], p.cCO2, p)
-
-
-
-        # update concentrations intracellularly:
-        self.cc_mems[self.iH][:], self.cc_cells[self.iH][:], _ = \
-            stb.update_intra(self, cells, self.cc_mems[self.iH][:],
-                self.cc_cells[self.iH][:],
-                self.D_free[self.iH],
-                self.zs[self.iH], p)
-
-        # recalculate the net, unbalanced charge and voltage in each cell:
-        self.update_V(cells,p)
 
         if p.HKATPase_dyn == 1: # if there's an H,K ATPase pump
 
@@ -1675,7 +1606,6 @@ class Simulator(object):
 
             else:
 
-                # if HKATPase pump is desired, run the H-K-ATPase pump:
                 f_H2, f_K2 = stb.pumpHKATP(self.cc_mems[self.iH],self.cc_env[self.iH],self.cc_mems[self.iK],
                     self.cc_env[self.iK],self.vm,self.T,p,self.HKATP_block, met = self.met_concs)
 
@@ -1710,36 +1640,6 @@ class Simulator(object):
 
             self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env,self.cc_env[self.iM])
 
-            # self.cc_mems[self.iH][:], self.cc_env[self.iH][:] = stb.update_Co(self, self.cc_mems[self.iH][:],
-            #     self.cc_env[self.iH][:], f_H2, cells, p, ignoreECM = True)
-
-            # self.cc_env[self.iM] = gaussian_filter(self.cc_env[self.iM].reshape(cells.X.shape),
-            #                                        p.smooth_level).ravel()
-
-            # self.cc_env[self.iK] = gaussian_filter(self.cc_env[self.iK].reshape(cells.X.shape),
-            #                                        p.smooth_level).ravel()
-
-            # self.cc_mems[self.iH], self.cc_mems[self.iM], cCO2, self.pH_cell = stb.bicarb_reaction_buffer(
-            #     self.cc_mems[self.iH],
-            #     self.cc_mems[self.iM], p.cCO2, p)
-            #
-            # self.cc_env[self.iH], self.cc_env[self.iM], cCO2, self.pH_cell = stb.bicarb_reaction_buffer(
-            #     self.cc_env[self.iH],
-            #     self.cc_env[self.iM], p.cCO2, p)
-
-            # # update concentrations intracellularly:
-            # self.cc_mems[self.iK][:], self.cc_cells[self.iK][:], _ = \
-            #     stb.update_intra(self, cells, self.cc_mems[self.iK][:],
-            #         self.cc_cells[self.iK][:],
-            #         self.D_free[self.iK],
-            #         self.zs[self.iK], p)
-            #
-            # # update concentrations intracellularly:
-            # self.cc_mems[self.iH][:], self.cc_cells[self.iH][:], _ = \
-            #     stb.update_intra(self, cells, self.cc_mems[self.iH][:],
-            #         self.cc_cells[self.iH][:],
-            #         self.D_free[self.iH],
-            #         self.zs[self.iH], p)
 
             # recalculate the net, unbalanced charge and voltage in each cell:
             self.update_V(cells,p)
@@ -2235,6 +2135,18 @@ class Simulator(object):
         elif label == 'Cl':
 
             ion = self.iCl
+
+        elif label == 'M':
+
+            ion = self.iM
+
+        elif label == 'H':
+
+            ion = self.iH
+
+        elif label == 'P':
+
+            ion = self.iP
 
         else:
             logs.warning('Oops! Molecule gated ion channel target not found!')
