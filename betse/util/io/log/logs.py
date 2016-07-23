@@ -181,9 +181,11 @@ def log_exception(exception: Exception) -> None:
         # * "exception" is each exception.
         # * "traceback" is each exception's traceback.
         #
-        # Sadly, this list is only gettable via a private module function.
-        exc_parents = traceback._iter_chain(
-            exception, exc_traceback)
+        # Sadly, this list is only gettable via the private
+        # traceback._iter_chain() function in older versions of Python. As this
+        # function is no longer available in newer versions of Python, call a
+        # BETSE-specific compatibility function instead.
+        exc_parents = stderrs._iter_chain(exception, exc_traceback)
 
         # String buffer containing a human-readable synopsis of each
         # exception in this chain, unconditionally output to stderr.
@@ -201,8 +203,7 @@ def log_exception(exception: Exception) -> None:
         exc_full_buffer.write(buffer_header)
 
         # Append each parent exception and that exception's traceback.
-        for exc_parent, exc_parent_traceback in (
-            exc_parents):
+        for exc_parent, exc_parent_traceback in exc_parents:
             # If this exception is a string, append this string to the
             # synopsis buffer as is and continue to the next parent. This is
             # an edge case that should *NEVER* happen... but could.
@@ -346,5 +347,14 @@ def log_exception(exception: Exception) -> None:
     # If this handling raises an exception, catch and print this exception
     # via the standard Python library, guaranteed not to raise exceptions.
     except Exception:
-        stderrs.output_exception(
-            heading='log_exception() recursively raised exception:\n')
+        # Header preceding the exception to be printed.
+        exc_heading = 'log_exception() recursively raised exception:\n'
+
+        # If the stderrs.output_exception() function exists, call that function.
+        if 'stderrs' in locals():
+            stderrs.output_exception(heading=exc_heading)
+        # Else, something has gone horribly wrong. Defer to stock functionality
+        # in the standard "traceback" module.
+        else:
+            print(exc_heading, file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)

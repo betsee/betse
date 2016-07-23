@@ -233,6 +233,7 @@ class CLIABC(metaclass=ABCMeta):
             # Else, perform this logic unprofiled.
             else:
                 self._do()
+            # raise Exception('For testing exception handling.')
 
             # Exit with successful exit status from the current process.
             return SUCCESS
