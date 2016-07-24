@@ -25,6 +25,7 @@ from matplotlib.colors import Colormap
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ BASE                               }....................
+#FIXME: Rename to simply "PlotABC".
 class PlotCells(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting the cell cluster.
@@ -180,8 +181,14 @@ class PlotCells(object, metaclass=ABCMeta):
         # complications arise. These attributes *ALWAYS* provide the expected
         # objects rather than non-deterministically returning "None".
         self._sim = weakref.proxy(sim)
-        self._cells = weakref.proxy(cells)
         self._p = weakref.proxy(p)
+
+        #FIXME: For currently unknown reasons, this object occasionally retains
+        #the only remaining reference to the passed "Cells" instance -- which
+        #*CANNOT* therefore be safely classified as a weak reference. This is
+        #highly unexpected, however, and should thus be investigated.
+        # self._cells = weakref.proxy(cells)
+        self._cells = cells
 
         # Default unpassed parameters.
         if colormap is None:

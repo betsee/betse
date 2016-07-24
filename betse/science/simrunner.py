@@ -170,16 +170,15 @@ class SimRunner(object):
             'The initialization took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
-        if p.turn_all_plots_off is False:
-            # as colormaps are deleted from p prior to saving in sim, create a fresh instance of Parameters:
-            p = Parameters(config_filename = self._config_filename)
+        # As colormaps are deleted from the current Parameters instance "p"
+        # prior to saving in sim, create a fresh instance of Parameters.
+        p = Parameters(config_filename = self._config_filename)
 
-            logs.log_info(
-                'When ready, close all of the figure windows to proceed with '
-                'scheduled simulation runs.')
-
-            plot_all(cells, sim, p, plot_type='init')
-            plt.show()
+        # Create all enabled plots and animations.
+        logs.log_info(
+            'When ready, close all of the figure windows to proceed with '
+            'scheduled simulation runs.')
+        plot_all(cells, sim, p, plot_type='init')
 
     def simulate(self):
         '''
@@ -229,23 +228,20 @@ class SimRunner(object):
             'The simulation took {} seconds to complete.'.format(
                 round(time.time() - start_time, 2)))
 
+        # As colormaps are deleted from the current Parameters instance "p"
+        # prior to saving in sim, create a fresh instance of Parameters.
+        p = Parameters(config_filename=self._config_filename)
 
-        if p.turn_all_plots_off is False:
-
-            # As colormaps are deleted from p prior to saving in sim, create a
-            # fresh instance of Parameters.
-            p = Parameters(config_filename=self._config_filename)
-            plot_all(cells, sim, p, plot_type='sim')
-            logs.log_info(
-                'When ready, close all of the figure windows to end the program.')
-            plt.show()
+        # Create all enabled plots and animations.
+        logs.log_info(
+            'When ready, close all of the figure windows to end the program.')
+        plot_all(cells, sim, p, plot_type='sim')
 
     def sim_brn(self):
-
         '''
-            Test run a bioenergetics reaction network (without bioelectrics) and save it to the
-            initialization cache.
-            '''
+        Test run a bioenergetics reaction network (without bioelectrics) and
+        save it to the initialization cache.
+        '''
 
         logs.log_info(
             'Testing bioenergetics reaction network indicated in configuration file "{}".'.format(

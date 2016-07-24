@@ -2293,7 +2293,7 @@ class Simulator(object):
             len(tsamples),
         ))
 
-        # If displaying and/or saving an animation during solving, do so.
+        # If plotting an animation during simulation computation, do so.
         if p.plot_while_solving:
             self._anim_cells_while_solving = AnimCellsWhileSolving(
                 label='Vmem',
@@ -2324,7 +2324,7 @@ class Simulator(object):
         # Update this animation for the "last frame" if desired, corresponding
         # to the results of the most recently solved time step.
         if p.plot_while_solving:
-            self._anim_cells_while_solving.plot_frame(frame_number=-1)
+            self._anim_cells_while_solving.plot_frame(time_step=-1)
 
     def _deplot_loop(self):
         '''

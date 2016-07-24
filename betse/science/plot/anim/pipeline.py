@@ -19,17 +19,16 @@ from betse.science.plot.anim.anim import (
     AnimEnvTimeSeries,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
-    AnimMorphogenTimeSeries,
     AnimFieldIntracellular,
     AnimFieldExtracellular,
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
 )
 from betse.science.plot import plot
+from betse.util.io.log import logs
 from betse.util.type import types
 
 # ....................{ PIPELINES                          }....................
-
 def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     '''
     Serially (i.e., in series) display and/or save all enabled animations for
@@ -57,6 +56,8 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if not p.createAnimations:
        return
 
+    # Log animation creation.
+    logs.log_info('Creating animations...')
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1:
         AnimCellsTimeSeries(

@@ -756,19 +756,15 @@ variable settings:
 
 results options:
 
-    plot while solving: True     # shows a continuously updating 2d plot of
-                                 # cell Vmems while the sim run is computing
-                                 # options True or False (case sensitive)
+    display plots: True   # Display plots and animations (True) or not (False)?
 
-    save solving plot: True      # save the plot while solving figure
-                                 # as the sim progresses
+    plot while solving: True     # Plot a continuously updating 2D plot of
+                                 # cell voltages during simulation computation
+                                 # (True) or not (False)?
 
-    display plots: True     # Display post-simulation plots and/or animations automatically after solving and
-                             # when plot commands are called (True) or not (False)?
+    save solving plot: True      # Save this plot (True) or not (False)?
 
-    automatically save plots: True     # autosave all still images (as 300 dpi
-                                       # pngs) to the results directory
-                                       # options True or False (case sensitive)
+    automatically save plots: True  # Save all other plots (True) or not (False)?
 
     create all animations: True     # Display and/or save post-simulation
                                     # animations (True) or not (False)?

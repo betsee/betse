@@ -41,18 +41,15 @@ animations.
 #Undomesticated unicorns running into the carefree sunset!
 
 # ....................{ IMPORTS                            }....................
-import os
-
 import numpy as np
+import os
 from matplotlib import pyplot as plt
-from matplotlib.collections import PolyCollection, LineCollection
-
+from matplotlib.collections import LineCollection
 from betse.exceptions import BetseExceptionParameters
 from betse.science.plot import plot as viz
 from betse.science.plot.anim import pipeline
 from betse.util.io.log import logs
 from betse.util.type import types
-
 
 # ....................{ PIPELINES                          }....................
 def plot_all(cells, sim, p, plot_type: str = 'init'):
@@ -82,7 +79,6 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         if plot_type == 'sim':
             images_path = p.sim_results
             p.plot_type = 'sim'
-
         elif plot_type == 'init':
             images_path = p.init_results
             p.plot_type = 'init'
@@ -107,11 +103,8 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
         viz.exportData(cells, sim, p)
 
     if p.exportData2D is True:
-
         for i, t in enumerate(sim.time):
-
             simdata = 1.0e3*sim.vm_ave_time[i]
-
             viz.export2dData(i, simdata, cells, p)
 
     #-------------------------------------------------------------------------------------------------------------------
@@ -843,8 +836,10 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     if p.turn_all_plots_off is False:
         plt.show()
     else:
+        #FIXME: Actually print the directory to which results are exported.
         logs.log_info(
-            'As the config file results option "plot after saving" is set to "True",\n'
-            'plots and data have been exported to the results folder defined in the config\n'
-            'file.'
+            'As the "display plots" option is disabled, '
+            'plots and data have been\n'
+            'exported to the results folder '
+            'defined in the configuration file.'
         )

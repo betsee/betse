@@ -214,9 +214,7 @@ class SimConfigWrapper(object):
         (e.g., tests, scripts) expecting simulations to behave silently.
         '''
 
-        # Disable display of all mid- and post-simulation plots and animations.
-        self._config['results options']['plot while solving'] = False
-        self._config['results options']['plot after solving'] = False
+        self._config['results options']['display plots'] = False
 
     # ..................{ ENABLERS                           }..................
     def enable_anims(self) -> None:

@@ -133,7 +133,12 @@ def init() -> None:
 
             # WebM.
             'webm': [
-                'libvpx-vp9',  # WebM VP-9
+                #FIXME: As of this writing (i.e., mid-2016), VP-9 is poorly
+                #supported in media players (e.g., mpv, vlc) and hence disabled.
+                #Reevaluate and consider enabling this otherwise sensible
+                #default at some future date.
+                # 'libvpx-vp9',  # WebM VP-9
+
                 'libvpx',      # WebM VP-8
             ],
         },

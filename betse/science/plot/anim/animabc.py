@@ -73,6 +73,14 @@ Abstract base classes of all Matplotlib-based animation classes.
 #  plotters, to be defined. Users would then be able to construct arbitrarily
 #  simple or complex animations as required.
 #
+#Note that the "CellsPlotterABC" nomenclature used above is overly ambiguous
+#and hence non-ideal. Non-ambiguous alternative names for this concept include:
+#
+#* "PlottableABC". Yes, we quite appreciate this one. Such objects are
+#  certainly plottable, so this is coherent.
+#* "ComposableABC".
+#* "DrawableABC".
+#
 #So, yes. It's quite a bit of work. But it's absolutely essential as well,
 #particularly for implementing a general-purpose BETSE GUI.
 
@@ -127,6 +135,7 @@ from matplotlib.animation import FuncAnimation
 from scipy import interpolate
 
 # ....................{ BASE                               }....................
+#FIXME: Rename to simply "AnimABC".
 class AnimCells(PlotCells):
     '''
     Abstract base class of all animation classes.
@@ -265,12 +274,17 @@ class AnimCells(PlotCells):
         self._is_current_overlay_only_gj = is_current_overlay_only_gj
         self._time_step_count = time_step_count
 
+        # 0-based index of the last frame to be plotted.
+        self._time_step_last = self._time_step_count - 1
+
         # If this subclass requests a current overlay, do so only if:
         #
         # * Requested by the current simulation configuration via "p.I_overlay".
         # * This configuration is modelling currents via "p.calc_J".
         self._is_overlaying_current = (
             is_current_overlayable and self._p.I_overlay)
+
+        #FIXME: Is this obsolete now? Excise if so, please.
 
         # True if both saving and displaying animation frames.
         self._is_saving_showing = self._is_showing and self._is_saving
@@ -302,14 +316,11 @@ class AnimCells(PlotCells):
         self._writer_frames = None
         self._writer_video = None
 
-        # 0-based index of the current frame, initialized to -1 to ensure the
-        # subsequent incrementation of this integer in the _plot_frame() method
-        # yields 0 (i.e., the index of the first frame).
-        self._time_step = -1
+        # 0-based index of the current frame.
+        self._time_step = 0
 
         # If saving animations, prepare to do so.
-        if self._is_saving:
-            self._init_saving(save_dir_parent_basename=save_dir_parent_basename)
+        self._init_saving(save_dir_parent_basename)
 
         # If overlaying current, prepare to do so.
         if self._is_overlaying_current:
@@ -317,13 +328,10 @@ class AnimCells(PlotCells):
 
 
     @type_check
-    def _init_saving(
-        self,
-        save_dir_parent_basename: str,
-    ) -> None:
+    def _init_saving(self, save_dir_parent_basename: str) -> None:
         '''
-        Initialize this animation for platform-compatible file saving if enabled
-        by the current simulation configuration _or_ noop otherwise.
+        Initialize this animation for platform-compatible file saving if
+        enabled by the current simulation configuration _or_ noop otherwise.
 
         Parameters
         ----------
@@ -333,8 +341,18 @@ class AnimCells(PlotCells):
             simulation configuration. Defaults to a suitably generic basename.
         '''
 
-        # Ensure that the passed directory and file basenames are actually
-        # basenames and hence contain no directory separators.
+        # If this animation is unsaved, noop.
+        if not self._is_saving:
+            return
+
+        #FIXME: This is silly. Rather than prohibiting animation names
+        #containing such separators, simply sanitize this animation's name by
+        #globally replacing all such separators by non-separator characters
+        #guaranteed to be permitted in pathnames for all platforms (e.g., "_"
+        #or "-" characters).
+
+        # If the human-readable name of this animation contains directory
+        # separators and hence is *NOT* a valid basename, raise an exception.
         paths.die_unless_basename(self._label)
 
         #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -476,7 +494,7 @@ class AnimCells(PlotCells):
         #   associated with MPlayer, a popular media player.
         # * "imagemagick", an open-source cross-platform image manipulation
         #   suite supporting *ONLY* creation of animated GIFs.
-        save_video_writer_names = ['ffmpeg_file', 'avconv', 'mencoder']
+        save_video_writer_names = ['ffmpeg', 'avconv', 'mencoder']
 
         #FIXME: Complete comment.
         # List of the encoder-specific names of all codecs with which to encode
@@ -539,7 +557,6 @@ class AnimCells(PlotCells):
             # Object writing animation frames as images.
             self._writer_frames = FileFrameWriter()
 
-            #FIXME: Perform this for video as well.
             # If both saving and displaying animation frames, prepare to do so.
             # If only saving but *NOT* displaying animation frames, the setup()
             # method called below is already called by the MovieWriter.saving()
@@ -547,18 +564,18 @@ class AnimCells(PlotCells):
             # method called below. (No comment on architectural missteps.)
             #
             # See the _save_frame() method for horrid discussion.
-            if self._is_saving_showing:
-                # Log this preparation.
-                logs.log_debug(
-                    'Preparing to save animation frames "%s"...',
-                    self._writer_frames_template)
+            # if self._is_saving_showing:
+            # Log this preparation.
+            logs.log_debug(
+                'Preparing to save animation frames "%s"...',
+                self._writer_frames_template)
 
-                # Prepare to save these animation frames.
-                self._writer_frames.setup(
-                    fig=self._figure,
-                    outfile=self._writer_frames_template,
-                    dpi=self._writer_frames_dpi,
-                )
+            # Prepare to save these animation frames.
+            self._writer_frames.setup(
+                fig=self._figure,
+                outfile=self._writer_frames_template,
+                dpi=self._writer_frames_dpi,
+            )
 
         #FIXME: FFMpeg integration appears to be extremely fragile. To combat
         #this, consider enabling an FFMpeg-specific debug log with the
@@ -602,24 +619,24 @@ class AnimCells(PlotCells):
             )
 
             # If both saving and displaying animation frames, prepare as above.
-            if self._is_saving_showing:
-                # Log this preparation.
-                logs.log_debug(
-                    'Preparing to save animation video "%s"...',
-                    self._writer_video_filename)
+            # if self._is_saving_showing:
+            # Log this preparation.
+            logs.log_debug(
+                'Preparing to save animation video "%s"...',
+                self._writer_video_filename)
 
-                # Prepare to save this animation video. Matplotlib squelches
-                # critical (technically non-fatal but effectively fatal)
-                # warnings and errors emitted by the external command invoked
-                # by this call to the MovieWriter.setup() method *UNLESS* the
-                # current matplotlib-specific verbosity level is "debug".
-                # Temporarily ensure this for the duration of this call.
-                with mpl_config.verbosity_debug_if_helpful():
-                    self._writer_video.setup(
-                        fig=self._figure,
-                        outfile=self._writer_video_filename,
-                        dpi=self._writer_video_dpi,
-                    )
+            # Prepare to save this animation video. Matplotlib squelches
+            # critical (technically non-fatal but effectively fatal)
+            # warnings and errors emitted by the external command invoked
+            # by this call to the MovieWriter.setup() method *UNLESS* the
+            # current matplotlib-specific verbosity level is "debug".
+            # Temporarily ensure this for the duration of this call.
+            with mpl_config.verbosity_debug_if_helpful():
+                self._writer_video.setup(
+                    fig=self._figure,
+                    outfile=self._writer_video_filename,
+                    dpi=self._writer_video_dpi,
+                )
 
 
     # This method has been overridden to support subclasses that manually
@@ -650,23 +667,39 @@ class AnimCells(PlotCells):
 
         Parameters
         ----------
-        All passed parameters are passed to the superclass `__prep_figure()`
-        method.
+        All parameters are passed to the superclass `__prep_figure()` method.
         '''
 
         # Prepare for plotting immediately *BEFORE* plotting the first frame.
         self._prep_figure(*args, **kwargs)
 
-        # 0-based index of the last frame to be plotted.
-        self._time_step_last = self._time_step_count - 1
-
         #FIXME: For efficiency, we should probably be passing "blit=True," to
-        #FuncAnimation(). Lemon grass and dill!
+        #FuncAnimation(). Unfortunately, doing so will necessitate
+        #restructuring animations to conform to blitting-specific requirements,
+        #including:
+        #
+        #* The definition of a new init_frame() method of this class, which
+        #  plots all portions of this animation *NOT* changing between frames.
+        #  Are there any? We have no idea. Axes ticks presumably never change
+        #  between frames for any animation, so there should be *SOMETHING* to
+        #  plot here.
+        #* The passing of this method to the "FuncAnimation" instance defined
+        #  below via the "init_func" parameter: e.g.,
+        #      init_func=self.init_frame,
+        #* Refactoring the plot_frame() method to return the tuple of all
+        #  matplotlib artist objects modified for the current frame. This is
+        #  probably infeasible in a generic manner given the current crusty
+        #  design of this class, but should be trivial (...in theory) after
+        #  redesigning this class to support composoble
+        #
+        #    http://devosoft.org/making-efficient-animations-in-matplotlib-with-blitting
+        #
+        #Lemon grass and dill!
 
         # Create and assign an animation function to a local variable. If the
         # latter is *NOT* done, this function will be garbage collected prior
         # to subsequent plot handling -- in which case only the first plot will
-        # be plotted without explicit warning or error. Die, matplotlib! Die!!
+        # be plotted without explicit warning or error. Die, matplotlib! Die!!!
         self._anim = FuncAnimation(
             # Figure to which the "func" callable plots each frame.
             fig=self._figure,
@@ -677,8 +710,35 @@ class AnimCells(PlotCells):
             # Number of frames to be animated.
             frames=self._time_step_count,
 
-            # Delay in milliseconds between consecutive frames.
-            interval=100,
+            #FIXME: The interval should, ideally, be synchronized with the FPS
+            #used for video encoding. To guarantee this:
+            #
+            #* Generalize the FPS option in the configuration file to *ALL*
+            #  animations. Currently, this option only applies to video
+            #  encoding.
+            #* Convert the currently configured FPS into this interval in
+            #  milliseconds as follows:
+            #
+            #      interval = 1000.0 / fps
+
+            # Delay in milliseconds between consecutive frames. To convert this
+            # delay into the equivalent frames per second (FPS):
+            #
+            #      fps = 1000.0 / interval
+            interval=200,
+
+            #FIXME: This is a bit silly. Ideally, animations should *ALWAYS* be
+            #repeatable. Once we've refactored away usage of the
+            #Animation.save() method, refactor:
+            #
+            #* This parameter to unconditionally enable repeating: e.g.,
+            #      repeat=True,
+            #* The plot_frame() method to conditionally call MovieWriter
+            #  methods (e.g., grab_frame(), finish()) *ONLY* if the current
+            #  call to the plot_frame() method is the first such call for the
+            #  current frame. While this state would be trivial for this class
+            #  to record, perhaps matplotlib's "Animation" base class already
+            #  records this state? Contemplate us up.
 
             # Indefinitely repeat this animation unless saving animations, as
             # doing so under the current implementation would repeatedly (and
@@ -686,37 +746,32 @@ class AnimCells(PlotCells):
             repeat=not self._is_saving,
         )
 
-        #FIXME: It appears that movies can be saved at this exact point via the
-        #following lines:
-        #
-        #    video_filename = 'my_filename.mp4'
-        #    video_encoder_name = 'ffmpeg'
-        #    ani.save(filename=video_filename, writer=video_encoder_name)
-        #
-        #Both the "video_filename" and "video_encoder_name" variables used
-        #above should be initialized from YAML configuration items. The latter
-        #should probably be configured as a list of preferred encoders: e.g.,
-        #
-        #    # List of Matplotlib-specific names of preferred video encoders.
-        #    # The first encoder available on the current $PATH will be used.
-        #    video encoders: ['ffmpeg', 'avconv', 'mencoder']
-        #
-        #Given that, we would then need to iteratively search this list until
-        #finding the first encoder available on the current $PATH. Doesn't look
-        #too hard, actually. Grandest joy in the cornucopia of easy winter!
-        #FIXME: Also note that movie encoders are configurable as follows,
-        #which is probably a better idea than just passing a string above:
-        #
-        #    Writer = animation.writers[video_encoder_name]
-        #    writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-        #    ani.save(filename=video_filename, writer=writer)
-        #
-        #Oh, wait. No, that's overkill. All of the above parameters are also
-        #accepted by the ani.save() function itself, so string name it is!
-
         try:
+            #FIXME: Obsolete. Excise us up.
+            # logs.log_debug('Displaying animation "%s"...', self._label)
+            # pyplot.show()
+
             # If displaying and optionally saving animations...
             if self._is_showing:
+                #FIXME: If the current backend is non-interactive (e.g.,
+                #"Agg"), the following function call reduces to a noop. This is
+                #insane, frankly. In this case, this animation's plot_frame()
+                #is never called! No errors or warnings are logged, so it's
+                #unclear who or what is the culprit here. If the pyplot.show()
+                #function is indeed only supported by interactive backends, we
+                #should do the following here:
+                #
+                #* Detect whether or not the current backend is
+                #  non-interactive.
+                #* If so, either:
+                #  * Emit an explicit warning advising the user that this
+                #    animation will almost certainly be silently ignored. This
+                #    isn't terribly ideal, but it's better than zilch.
+                #  * If this animation is currently being saved, simply perform
+                #    the non-display save logic performed below -- which *DOES*
+                #    behave as expected for non-interactive backends. Clearly,
+                #    the culprit is the pyplot.show() function. Mournful sigh.
+
                 # Do so.
                 pyplot.show()
 
@@ -734,80 +789,59 @@ class AnimCells(PlotCells):
                 # self.close_writers()
             # Else if saving animation frames as...
             elif self._is_saving:
-                #FIXME: If saving both frames and video, the current approach
-                #does technically work but is highly inefficient. It appears to
-                #recreate the animation in-memory twice! A sane alternative is:
-                #
-                #* If soving both frames and video:
-                #  * Create only "self._writer_video". Hence,
-                #    "self._writer_frames" should remain None.
-                #  * Configure "self._writer_video" to write frames. This may
-                #    require us to avoid the more efficient pipe-based method of
-                #    writing video in favour of a temporary file-based method.
-                #    If this is the case, we may also need to manually move all
-                #    temporary files written by "self._writer_video" from the
-                #    temporary directory to which they are written into the
-                #    desired target directory.
-                #
-                #This should be feasible. Research is required, clearly.
-                #FIXME: Actually, there's a far simpler way requiring no changes
-                #to our existing methodology -- which is good. The core issue is
-                #that the Anim.save() and Anim.saving() methods are overly
-                #clumsy wrappers around core "MovieWriter" functions. Since we
-                #already call the latter directly in our _plot_frame() method,
-                #there's absolutely no incentive to calling the former here.
-                #Instead, refactor this approach as follows:
-                #
-                #* Unconditionally call the MovieWriter.setup() method above.
-                #  Specifically:
-                #
-                #      # Refactor conditionals like this...
-                #      if self._is_saving_showing:
-                #          self._writer_frames.setup(...)
-                #
-                #      # ...to merely this.
-                #      self._writer_frames.setup(...)
-                #
-                #* Replace the calls to Anim.save() below with either:
-                #  * Implicit iteration leveraging the existing pyplot.show()
-                #    method call above by hiding this figure. I have no idea
-                #    whether this actually works, but it seems worth a try.
-                #    This is low-hanging fruit and hence preferable:
-                #
-                #      self._figure.canvas.Show(False)
-                #      pyplot.show()
-                #
-                #    What happens? We have no idea. Simple to test, happily.
-                #
-                #  * If the implicit iteration approach fails, explicit
-                #    iteration by essentially duplicating the iteration
-                #    performed by the Anim.save() function below. While also
-                #    trivial, the extra effort involved makes the above
-                #    approach preferable.
+                #FIXME: Is this actually necessary?
+                if self._anim._first_draw_id is not None:
+                    self._figure.canvas.mpl_disconnect(
+                        self._anim._first_draw_id)
 
-                # ...images, do so. Due to non-orthogonality in the Matplotlib
-                # API, all encoding parameters *EXCEPT* dots per inch (DPI) are
-                # passable to the "self._writer_frames" constructor. DPI,
-                # however, is *ONLY* passable to the save() method called below.
-                if self._writer_frames is not None:
-                    self._anim.save(
-                        writer=self._writer_frames,
-                        filename=self._writer_frames_template,
-                        dpi=self._writer_frames_dpi,
-                        savefig_kwargs=self._writer_savefig_kwargs,
-                    )
+                #FIXME: The following logic leverages private functionality and
+                #hence is suboptimal. A forward-compatible alternative would be
+                #to define a new "MovieWriterTee" subclass multiplexing two or
+                #more "MovieWriter" instances. Given such subclass, we could
+                #then create and pass an instance of such subclass aggregating
+                #all required writers to a single self._anim.save() call here.
+                #
+                #Let's do this, please. The current approach takes far too many
+                #liberties with a fragile, private API.
+                #FIXME: Oh! The concept outlined above is fantasmic, but
+                #there's an even easier subclass to make: "NoopWriter". As the
+                #name suggests, it's a writer that does absolutely nothing.
+                #"What's the point?", you may be thinking. Well, we want to
+                #call the Animation.save() method -- but we don't actually want
+                #to pass a writer that does anything. Sadly, that method
+                #requires that a non-None "writer" parameter be passed,
+                #preventing us from simply passing "None". Hence, "NoopWriter".
 
-                # ...video, do so.
-                if self._writer_video is not None:
-                    self._anim.save(
-                        writer=self._writer_video,
-                        filename=self._writer_video_filename,
-                        dpi=self._writer_video_dpi,
-                        savefig_kwargs=self._writer_savefig_kwargs,
-                    )
+                # Clear the initial frame.
+                self._anim._init_draw()
 
-                # Finalize displaying and/or saving this animation.
-                self.close()
+                for frame_data in self._anim.new_saved_frame_seq():
+                    self._anim._draw_next_frame(frame_data, blit=False)
+
+                # # ...images, do so. Due to non-orthogonality in the Matplotlib
+                # # API, all encoding parameters *EXCEPT* dots per inch (DPI) are
+                # # passable to the "self._writer_frames" constructor. DPI,
+                # # however, is *ONLY* passable to the save() method called below.
+                # if self._writer_frames is not None:
+                #     self._anim.save(
+                #         writer=self._writer_frames,
+                #         filename=self._writer_frames_template,
+                #         dpi=self._writer_frames_dpi,
+                #         savefig_kwargs=self._writer_savefig_kwargs,
+                #     )
+                #
+                # # ...video, do so.
+                # if self._writer_video is not None:
+                #     self._anim.save(
+                #         writer=self._writer_video,
+                #         filename=self._writer_video_filename,
+                #         dpi=self._writer_video_dpi,
+                #         savefig_kwargs=self._writer_savefig_kwargs,
+                #     )
+                #
+                # # Finalize displaying and/or saving this animation.
+                # self.close()
+
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
         # This error appears to ignorable and hence is caught and squelched.
@@ -869,9 +903,11 @@ class AnimCells(PlotCells):
             self._writer_video = None
 
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Rename the "frame_number" parameter to "time_step".
+    #FIXME: Insanity. For "PlotAfterSolving"-style plots, the first frame is
+    #uselessly plotted twice. Investigate, please.
+
     @type_check
-    def plot_frame(self, frame_number: int) -> None:
+    def plot_frame(self, time_step: int) -> None:
         '''
         Iterate this animation to the next frame.
 
@@ -891,61 +927,47 @@ class AnimCells(PlotCells):
 
         Parameters
         ----------
-        frame_number : int
+        time_step : int
             0-based index of the frame to be plotted _or_ -1 if the most recent
             frame is to be plotted.
         '''
 
-        # Convert the passed possibly relative index of the frame to be plotted
-        # into an absolute 0-based index.
+        # Absolute 0-based index of the frame to be plotted.
         #
-        # # If this index is the relative index -1...
-        if frame_number == -1:
-            # Increment the current index by 1.
-            self._time_step += 1
-
-            # Assert that the resulting length is equal to the current length
-            # of the list of sampling data points minus 1.
-            assert self._time_step == len(self._sim.time) - 1
+        # If the passed index is -1 and hence relative rather than absolute,
+        # this index is assumed to be the last index of the current
+        # simulation's array of time steps.
+        if time_step == -1:
+            time_step_absolute = len(self._sim.time) - 1
+        # Else, the passed index is already absolute and hence used as is.
         else:
-            #FIXME: Insanity. For "PlotAfterSolving"-style plots, the first
-            #frame is plotted twice. This prevents us from simply incrementing
-            #"self._time_step", as doing so would desynchronize that variable
-            #from the passed frame number. Figure out why the first frame is
-            #being uselessly plotted twice.
-            self._time_step = frame_number
-            # logs.log_debug(
-            #     'time step %d; frame number %d', self._time_step, frame_number)
-            # assert frame_number == -1 or self._time_step == frame_number
+            time_step_absolute = time_step
 
         # Log this animation frame.
         logs.log_debug(
-            'Plotting animation "%s" frame %d...',
-            self._label, self._time_step)
+            'Plotting animation "%s" frame %d / %d...',
+            self._label, time_step_absolute, self._time_step_last)
+
+        # Classify this time step for subsequent access by subclasses.
+        self._time_step = time_step
 
         # If plotting a current overlay, do so.
         if self._is_overlaying_current:
             #FIXME: Refactor _replot_current_density() to use
             #"self._time_step" rather than repass this parameter everywhere.
-            self._replot_current_density(frame_number)
+            self._replot_current_density(self._time_step)
 
         # Update this figure with the current time, rounded to three decimal
         # places for readability.
         self._axes.set_title('{} (time {:.3f}s)'.format(
-            self._axes_title, self._sim.time[frame_number]))
+            self._axes_title, self._sim.time[self._time_step]))
 
         # Plot this frame *AFTER* performing all superclass-specific plotting,
         # permitting the subclass to modify that plotting.
         self._plot_frame_figure()
 
-        # If both saving and displaying animation frames, save this frame. Note
-        # that if only saving but *NOT* displaying animations, this frame will
-        # be handled by our _animate() method. Why? Because Matplotlib will fail
-        # to iterate frames and hence call our _plot_next_frame() method calling
-        # this method *UNLESS* our _animate() method explicitly calls the
-        # FuncAnimation.save() method with the writer name "frame" signifying
-        # our "FileFrameWriter" class to do so. (Look. It's complicated, O.K.?)
-        if self._is_saving_showing:
+        # If saving this animation, save this frame.
+        if self._is_saving:
             # If saving animation frames as images, save this frame as such.
             if self._writer_frames is not None:
                 self._writer_frames.grab_frame(**self._writer_savefig_kwargs)
@@ -958,19 +980,12 @@ class AnimCells(PlotCells):
                     self._writer_video.grab_frame(
                         **self._writer_savefig_kwargs)
 
-            #FIXME: Conditionally do the following *ONLY* if this is the last
-            #frame. That's the trouble, however: how do we determine whether
-            #this is the last frame or not?
-            #FIXME: *UGH.* This now works in all cases except for
-            #"PlotWhileSolving"-style animations, as the "self._time_step_last"
-            #variable is undefined in that case. (Ye Gods.)
-
             # If this is the last frame to be plotted, finalize all writers
-            # saving this animation if any.
-            # print('Here?!? ' + str(self._time_step))
-            # if self._time_step == self._time_step_last:
-            #     print('!!!!!!!!!!!!!!!Closing up shop!')
-            #     self._close_writers()
+            # *AFTER* instructing these writers to write this frame.
+            if time_step_absolute == self._time_step_last:
+                logs.log_debug(
+                    'Finalizing animation "%s" saving...', self._label)
+                self._close_writers()
 
 
     @abstractmethod

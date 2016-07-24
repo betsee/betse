@@ -38,7 +38,6 @@ from betse.science.plot.anim.animabc import (
     AnimCells, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
-from betse.util.type import types
 from betse.util.type.types import type_check, NoneType, SequenceTypes
 from matplotlib import animation
 from matplotlib import pyplot as plt
@@ -137,17 +136,18 @@ class AnimCellsWhileSolving(AnimCells):
             # streamplot, the time series required to plot this overlay is
             # unavailable until after the simulation ends.
             is_current_overlayable=False,
-            *args, **kwargs)
+            *args, **kwargs
+        )
 
         # Classify all remaining parameters.
         self._is_colorbar_autoscaling_telescoped = (
             is_colorbar_autoscaling_telescoped)
 
-        # Unique identifier for the array of cell vertices. (See docstring.)
-        self._cell_verts_id = id(self._cells.cell_verts)
-
         # "True" only if the current frame being animated is the first.
         self._is_time_step_first = True
+
+        # Unique identifier for the array of cell vertices. (See docstring.)
+        self._cell_verts_id = id(self._cells.cell_verts)
 
         # average the voltage to the cell centre
         # FIXME this is a temp change until we get this right
@@ -176,15 +176,17 @@ class AnimCellsWhileSolving(AnimCells):
             color_series=cell_data,
         )
 
-        # Plot this animation's first frame in a non-blocking manner.
-        plt.show(block=False)
+        # Id displaying this animation, do so in a non-blocking manner.
+        if self._is_showing:
+            plt.show(block=False)
 
     # ..................{ PROPERTIES                         }..................
+    #FIXME: Obsolete. Excise, please.
     # In-place animation is governed by different configuration file booleans
     # than are post-simulation animations.
-    @property
-    def _is_showing(self) -> bool:
-        return self._p.plot_while_solving
+    # @property
+    # def _is_showing(self) -> bool:
+    #     return self._p.plot_while_solving
 
     @property
     def _is_saving(self) -> bool:
@@ -206,7 +208,7 @@ class AnimCellsWhileSolving(AnimCells):
         if self._cell_verts_id == id(self._cells.cell_verts):
             # loggers.log_info(
             #     'Updating animation "{}" cell plots...'.format(self._type))
-            self._update_cell_plots(cell_data=cell_data)
+            self._update_cell_plots(cell_data)
         # Else, the cell cluster has fundamentally changed (e.g., due to
         # physical deformations or cutting events) and must be recreated.
         else:
@@ -218,7 +220,7 @@ class AnimCellsWhileSolving(AnimCells):
             self._cell_verts_id = id(self._cells.cell_verts)
 
             # Recreate the cell cluster.
-            self._revive_cell_plots(cell_data=cell_data)
+            self._revive_cell_plots(cell_data)
 
         # Update the color bar with the content of the cell body plot *AFTER*
         # possibly recreating this plot above.
@@ -248,6 +250,8 @@ class AnimCellsWhileSolving(AnimCells):
 
         # If displaying this frame, do so.
         if self._is_showing:
+            logs.log_debug(
+                'Displaying animation "{}" frame...')
             self._figure.canvas.draw()
 
 
@@ -623,6 +627,7 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
             self._time_series[self._time_step])
 
 
+#FIXME: This animation class no longer appears to be used. Consider excising.
 class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
     '''
     Animation of the concentration of an arbitrary morphogen in both cells and

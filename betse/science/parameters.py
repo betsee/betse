@@ -663,8 +663,8 @@ class Parameters(object):
 
         ro = self.config['results options']
 
+        #FIXME: Rename to "is_hiding_plots_and_anims".
         self.turn_all_plots_off = not ro.get('display plots', False)
-
         self.plot_cutlines = ro['plot cutlines']
 
         # Colormaps.

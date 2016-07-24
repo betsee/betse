@@ -7,6 +7,10 @@
 Matplotlib-specific classes writing animations as frames.
 '''
 
+#FIXME: For disambiguity:
+#
+#* Rename this submodule to "mplimage".
+#* Rename this subclass to "ImageWriter".
 #FIXME: Consider contributing most or all of this submodule back to matplotlib.
 
 # ....................{ IMPORTS                            }....................
