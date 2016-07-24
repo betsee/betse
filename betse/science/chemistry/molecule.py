@@ -340,6 +340,24 @@ class MasterOfMolecules(object):
             obj.plot_max = pd['max val']
             obj.plot_min = pd['min val']
 
+    def plot_init(self, config_substances):
+
+        for q, mol_dic in enumerate(config_substances):
+            # get each user-defined name-filed in the dictionary:
+            name = str(mol_dic['name'])
+
+            # get MasterOfMolecules.name
+            obj = getattr(self, name)
+
+            # assign plotting properties
+            pd = mol_dic['plotting']
+            obj.make_plots = pd['plot 2D']
+            obj.make_ani = pd['animate']
+
+            obj.plot_autoscale = pd['autoscale colorbar']
+            obj.plot_max = pd['max val']
+            obj.plot_min = pd['min val']
+
     def read_reactions(self, config_reactions, sim, cells, p):
 
         """

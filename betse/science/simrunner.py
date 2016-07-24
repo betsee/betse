@@ -424,6 +424,9 @@ class SimRunner(object):
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
 
+            # reinit settings for plots, in case they've changed:
+            sim.molecules.plot_init(p.molecules_config)
+
             sim.molecules.init_saving(cells, p, plot_type = 'init')
             sim.molecules.export_all_data(sim, cells, p)
             sim.molecules.plot(sim, cells, p)
@@ -475,6 +478,9 @@ class SimRunner(object):
 
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
+
+            # reinit settings for plots, in case they've changed:
+            sim.molecules.plot_init(p.molecules_config)
 
             sim.molecules.init_saving(cells, p, plot_type = 'sim')
             sim.molecules.export_all_data(sim, cells, p)
