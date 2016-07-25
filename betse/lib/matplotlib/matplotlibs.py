@@ -407,8 +407,8 @@ class MatplotlibConfig(object):
         # these classes by name without having to manually instantiate them.
         # (While it may or may not be necessary to import these classes after
         # establishing the backend, it only seems prudent to do so.)
-        from betse.lib.matplotlib.writer import mplframe
-        if False: mplframe    # silence contemptible IDE warning messages
+        from betse.lib.matplotlib.writer import mplclass
+        if False: mplclass    # silence contemptible IDE warning messages
 
     # ..................{ PROPERTIES ~ rc                    }..................
     @property

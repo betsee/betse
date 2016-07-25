@@ -19,6 +19,19 @@ from betse.util.type import types
 from betse.util.type.types import type_check
 from os import path
 
+# ....................{ CONSTANTS                          }....................
+INVALID_PATHNAME = '\0'
+'''
+Pathname guaranteed to be invalid on all supported platforms.
+
+This pathname consists of a single null byte. The operating system kernels for
+both Windows _and_ all POSIX-compatible platforms (e.g., Linux, OS X) prohibit
+pathnames containing null bytes by returning non-zero failure codes from
+filesystem-centric kernel functions passed such pathnames. Python translates
+these errors into raised exceptions. Under Linux, for example, a `TypeError`
+exception of `"embedded NUL character"` is raised.
+'''
+
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames) -> None:
     '''
@@ -91,6 +104,7 @@ def is_path(pathname: str) -> bool:
     return path.lexists(pathname)
 
 # ....................{ TESTERS                            }....................
+@type_check
 def is_absolute(pathname: str) -> bool:
     '''
     `True` if the passed path is absolute.
@@ -101,8 +115,7 @@ def is_absolute(pathname: str) -> bool:
     * Microsoft Windows, absolute paths are prefixed by an optional drive
       indicator (e.g., `C:`) followed by `\`.
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
+
     return path.isabs(pathname)
 
 
@@ -119,6 +132,7 @@ def is_relative(pathname: str) -> bool:
     return not is_absolute(pathname)
 
 # ....................{ TESTERS ~ pathname                 }....................
+@type_check
 def is_pathname(pathname: str) -> bool:
     '''
     `True` if the passed string is a valid pathname (either absolute or
@@ -139,7 +153,6 @@ def is_pathname(pathname: str) -> bool:
       * The root filesystem is the filesystem to which this instance of Windows
         was installed, also given by the `%HOMEDRIVE%` environment variable.
     '''
-    assert types.is_str(pathname), types.assert_not_str(pathname)
 
     # Avoid circular import dependencies.
     from betse.util.os import windows

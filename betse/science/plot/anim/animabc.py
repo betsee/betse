@@ -125,7 +125,7 @@ from abc import abstractmethod
 from betse.exceptions import BetseExceptionParameters
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
-from betse.lib.matplotlib.writer.mplframe import FileFrameWriter
+from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
 from betse.science.plot.plotabc import PlotCells
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
@@ -195,7 +195,7 @@ class AnimCells(PlotCells):
         0-based sampled time step currently being simulated.
     _time_step_absolute : int
         0-based index of the last frame to be plotted.
-    _writer_frames : MovieWriter
+    _writer_images : MovieWriter
         Matplotlib object saving animation frames as images if doing so _or_
         `None` otherwise.
     _writer_savefig_kwargs : dict
@@ -313,7 +313,7 @@ class AnimCells(PlotCells):
         self._current_density_x_time_series = None
         self._current_density_y_time_series = None
         self._current_density_stream_plot = None
-        self._writer_frames = None
+        self._writer_images = None
         self._writer_video = None
 
         # 0-based index of the current frame.
@@ -410,7 +410,7 @@ class AnimCells(PlotCells):
 
         # Dots per inch (DPI) of each frame image to be saved for this
         # animation. Ignored if `is_saving_frames` is `False`.
-        self._writer_frames_dpi = mpl_config.get_rc_param('savefig.dpi')
+        self._writer_images_dpi = mpl_config.get_rc_param('savefig.dpi')
 
         #FIXME: Change the YAML default to "mkv", please.
 
@@ -544,18 +544,18 @@ class AnimCells(PlotCells):
             #method, where the actual frame count is finally passed.
 
             # Template expanding to the basename of each image to be saved.
-            # The "FileFrameWriter" class subsequently expands the "{{"- and
+            # The "ImageWriter" class subsequently expands the "{{"- and
             # "}}"-delimited substring to the 0-based index of the current
             # frame number.
             save_frame_template_basename = '{}_{{:07d}}.{}'.format(
                 self._label, save_frame_filetype)
 
             # Template expanding to the absolute path of each image to be saved.
-            self._writer_frames_template = paths.join(
+            self._writer_images_template = paths.join(
                 save_dirname, save_frame_template_basename)
 
             # Object writing animation frames as images.
-            self._writer_frames = FileFrameWriter()
+            self._writer_images = ImageWriter()
 
             # If both saving and displaying animation frames, prepare to do so.
             # If only saving but *NOT* displaying animation frames, the setup()
@@ -568,13 +568,13 @@ class AnimCells(PlotCells):
             # Log this preparation.
             logs.log_debug(
                 'Preparing to save animation frames "%s"...',
-                self._writer_frames_template)
+                self._writer_images_template)
 
             # Prepare to save these animation frames.
-            self._writer_frames.setup(
+            self._writer_images.setup(
                 fig=self._figure,
-                outfile=self._writer_frames_template,
-                dpi=self._writer_frames_dpi,
+                outfile=self._writer_images_template,
+                dpi=self._writer_images_dpi,
             )
 
         #FIXME: FFMpeg integration appears to be extremely fragile. To combat
@@ -747,11 +747,7 @@ class AnimCells(PlotCells):
         )
 
         try:
-            #FIXME: Obsolete. Excise us up.
-            # logs.log_debug('Displaying animation "%s"...', self._label)
-            # pyplot.show()
-
-            # If displaying and optionally saving animations...
+            # If displaying and optionally saving this animations, do so.
             if self._is_showing:
                 #FIXME: If the current backend is non-interactive (e.g.,
                 #"Agg"), the following function call reduces to a noop. This is
@@ -772,75 +768,74 @@ class AnimCells(PlotCells):
                 #    behave as expected for non-interactive backends. Clearly,
                 #    the culprit is the pyplot.show() function. Mournful sigh.
 
-                # Do so.
+                # Display and optionally save this animations. Note that,
+                # although this function is called in a blocking manner, the
+                # GUI-driven event loops of some interactive backends appear to
+                # ignore the request for blocking behavior and perform
+                # non-blocking behaviour instead. This, in turn, prevents this
+                # branch from reliably finalizing this animation by calling the
+                # close() method. This differs from the non-interactive
+                # saving-specific branch that follows, which is guaranteed to
+                # behave in a blocking manner and hence *CAN* reliably call the
+                # close() method. tl;dr: GUIs, so random.
                 pyplot.show()
-
-                #FIXME: We need to call the finish() method on writers here,
-                #much as we do in the close() method called below. However, we
-                #can't simply call close() here, as this is a blocking
-                #animation. Presumably, doing so safely requires registering a
-                #finalizer method with the matplotlib backend API. (Possibly.)
-                #FIXME: Ah. Right. Simply conditionally call such finish()
-                #methods when plotting the last frame far below.
-
-                # Finalize all writers saving this animation if any. Do *NOT*
-                # finalize the animation itself here, as the above method is
-                # still plotting this animation in a blocking manner.
-                # self.close_writers()
-            # Else if saving animation frames as...
-            elif self._is_saving:
-                #FIXME: Is this actually necessary?
-                if self._anim._first_draw_id is not None:
-                    self._figure.canvas.mpl_disconnect(
-                        self._anim._first_draw_id)
-
-                #FIXME: The following logic leverages private functionality and
-                #hence is suboptimal. A forward-compatible alternative would be
-                #to define a new "MovieWriterTee" subclass multiplexing two or
-                #more "MovieWriter" instances. Given such subclass, we could
-                #then create and pass an instance of such subclass aggregating
-                #all required writers to a single self._anim.save() call here.
+            # Else if only saving but not displaying this animation *AND* at
+            # least one animation writer doing so is enabled, do so.
+            elif self._is_saving and (
+                self._writer_images is not None or
+                self._writer_video is not None
+            ):
+                # Save this animation by iteratively calling our plot_frame()
+                # method to save each animation frame. Since this method
+                # already manually saves each such frame for the case of both
+                # displaying *AND* saving this animation via the above call to
+                # the pyplot.show() function, such logic is reused here by
+                # preventing this call to the Animation.save() method from
+                # attempting to automatically save each such frame.
                 #
-                #Let's do this, please. The current approach takes far too many
-                #liberties with a fragile, private API.
-                #FIXME: Oh! The concept outlined above is fantasmic, but
-                #there's an even easier subclass to make: "NoopWriter". As the
-                #name suggests, it's a writer that does absolutely nothing.
-                #"What's the point?", you may be thinking. Well, we want to
-                #call the Animation.save() method -- but we don't actually want
-                #to pass a writer that does anything. Sadly, that method
-                #requires that a non-None "writer" parameter be passed,
-                #preventing us from simply passing "None". Hence, "NoopWriter".
-
-                # Clear the initial frame.
-                self._anim._init_draw()
-
-                for frame_data in self._anim.new_saved_frame_seq():
-                    self._anim._draw_next_frame(frame_data, blit=False)
-
-                # # ...images, do so. Due to non-orthogonality in the Matplotlib
-                # # API, all encoding parameters *EXCEPT* dots per inch (DPI) are
-                # # passable to the "self._writer_frames" constructor. DPI,
-                # # however, is *ONLY* passable to the save() method called below.
-                # if self._writer_frames is not None:
-                #     self._anim.save(
-                #         writer=self._writer_frames,
-                #         filename=self._writer_frames_template,
-                #         dpi=self._writer_frames_dpi,
-                #         savefig_kwargs=self._writer_savefig_kwargs,
-                #     )
+                # By default, the Animation.save() method iteratively calls the
+                # MovieWriter.grab_frame() method of the passed "writer" object
+                # to save each such frame. If no such object is passed, this
+                # object defaults to a new writer whose name is the current
+                # value of the "animation.writer" rcparam. Hence, there exists
+                # no means of preventing the Animation.save() method from
+                # writing. However, there also exists no good alternative to
+                # this method that iteratively calls our plot_frame() method
+                # without also writing. For example:
                 #
-                # # ...video, do so.
-                # if self._writer_video is not None:
-                #     self._anim.save(
-                #         writer=self._writer_video,
-                #         filename=self._writer_video_filename,
-                #         dpi=self._writer_video_dpi,
-                #         savefig_kwargs=self._writer_savefig_kwargs,
-                #     )
+                # * The pyplot.show() function iterating frames silently
+                #   reduces to a noop for non-interactive backends and is thus
+                #   inapplicable as a general-purpose solution.
+                # * The frame iteration automatically performed by the
+                #   Animation.save() method is both non-trivial and requires
+                #   calls to private methods of the matplotlib animation API.
+                #   While this iteration could (and actually was, in the first
+                #   implementation of this approach) be reduplicated here,
+                #   doing so would be overly fragile and hence break under
+                #   upstream changes to this private API.
                 #
-                # # Finalize displaying and/or saving this animation.
-                # self.close()
+                # The robust solution is to instead pass the Animation.save()
+                # method a writer reducing to a noop, circumventing conflicts
+                # with the manual saving performed by our plot_frame() method.
+                self._anim.save(
+                    # Note that, since "NoopWriter" maintains no state, a
+                    # singleton "NoopWriter" instance could technically be
+                    # shared amongst all animation classes. However, since
+                    # "NoopWriter" construction is trivially fast, there are no
+                    # demonstrable advantages and arguable disadvantages to
+                    # doing so (e.g., code complexity, space consumption).
+                    writer=NoopWriter(),
+
+                    # Pass an ignorable filename. To guarantee that an
+                    # exception is raised on this method attempting to read or
+                    # write this file, pass a filename guaranteed to be invalid
+                    # on all supported platforms (e.g., containing null bytes).
+                    # For understandable reasons, this parameter is mandatory.
+                    filename=paths.INVALID_PATHNAME,
+                )
+
+                # Finalize saving this animation.
+                self.close()
 
         # plt.show() unreliably raises exceptions on window close resembling:
         #     AttributeError: 'NoneType' object has no attribute 'tk'
@@ -885,12 +880,12 @@ class AnimCells(PlotCells):
         '''
 
         # If saving animation frames as images...
-        if self._writer_frames is not None:
+        if self._writer_images is not None:
             # Finalize doing so.
-            self._writer_frames.finish()
+            self._writer_images.finish()
 
             # Prevent this writer from being reused and break hard cycles.
-            self._writer_frames = None
+            self._writer_images = None
 
         # If saving animation frames as video...
         if self._writer_video is not None:
@@ -969,8 +964,8 @@ class AnimCells(PlotCells):
         # If saving this animation, save this frame.
         if self._is_saving:
             # If saving animation frames as images, save this frame as such.
-            if self._writer_frames is not None:
-                self._writer_frames.grab_frame(**self._writer_savefig_kwargs)
+            if self._writer_images is not None:
+                self._writer_images.grab_frame(**self._writer_savefig_kwargs)
 
             # If saving animation frames as video, save this frame as such.
             if self._writer_video is not None:

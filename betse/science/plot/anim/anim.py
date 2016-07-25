@@ -32,7 +32,7 @@ Matplotlib-based animation classes.
 import numpy as np
 from enum import Enum
 from betse.exceptions import BetseExceptionParameters
-from betse.lib.matplotlib.writer.mplframe import FileFrameWriter
+from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.science.plot import plot
 from betse.science.plot.anim.animabc import (
     AnimCells, AnimCellsAfterSolving, AnimField, AnimVelocity)
@@ -1432,7 +1432,7 @@ class AnimateDeformation(object):
             # Template yielding the basenames of frame image files to be saved.
             # The "{{"- and "}}"-delimited substring will reduce to a "{"- and "}"-
             # delimited substring after formatting, which subsequent formatting
-            # elsewhere (e.g., in the "FileFrameWriter" class) will expand with the
+            # elsewhere (e.g., in the "ImageWriter" class) will expand with the
             # 0-based index of the current frame number.
             save_frame_template_basename = '{}_{{:07d}}.{}'.format(
                 self._type, save_frame_filetype)
@@ -1442,7 +1442,7 @@ class AnimateDeformation(object):
                 save_dirname, save_frame_template_basename)
 
             # Object writing frames from this animation to image files.
-            self._writer_frames = FileFrameWriter()
+            self._writer_frames = ImageWriter()
 
         self.frames = len(sim.time)
         ani = animation.FuncAnimation(self.fig, self.aniFunc,
