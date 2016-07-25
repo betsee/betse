@@ -396,8 +396,12 @@ class MatplotlibConfig(object):
         # Else if the current platform is OS X, default to the "MacOSX" backend.
         elif oses.is_os_x():
             self.backend_name = 'MacOSX'
-        # Else, the current platform is either Linux or Windows. In this case,
-        # default to the "TkAgg" backend.
+        # Else if the current platform is Windows, default to the "Qt4Agg"
+        # backend,
+        elif oses.is_windows():
+            self.backend_name = "Qt4Agg"
+        # Else, the current platform is Linux. In this case, default to the
+        # "TkAgg" backend.
         else:
             self.backend_name = 'TkAgg'
 
