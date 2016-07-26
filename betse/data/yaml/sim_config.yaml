@@ -757,33 +757,44 @@ variable settings:
 results options:
 
     display plots: True   # Display plots and animations (True) or not (False)?
+    plot while solving: True   # Enable a continually updated 2D animation of
+                               # cell voltages during simulation computation?
+    save solving plot: True         # Save the prior animation?
+    automatically save plots: True  # Save post-simulation plots?
+    create all animations: True     # Enable post-simulation animations?
 
-    plot while solving: True     # Plot a continuously updating 2D plot of
-                                 # cell voltages during simulation computation
-                                 # (True) or not (False)?
-
-    save solving plot: True      # Save this plot (True) or not (False)?
-
-    automatically save plots: True  # Save all other plots (True) or not (False)?
-
-    create all animations: True     # Display and/or save post-simulation
-                                    # animations (True) or not (False)?
-
+    #FIXME: Rename to "post-sim animations" and shift all of the above options
+    #specific to post-sim animations (e.g., "create all animations") here.
     save animations:        # Post-simulation animation saving options.
       frames:
         enabled: True       # Save each animation as a series of frame images?
-        filetype: png       # image filetype
-        dpi: 300            # image dots per inch (DPI)
+        filetype: png       # Image filetype.
+        dpi: 300            # Image dots per inch (DPI).
 
-      movie:
-        enabled: False      # save each animation as an encoded movie file?
-        filetype: mp4       # movie filetype
+      video:
+        enabled: False      # Save each animation as an encoded video file?
+        filetype: mp4       # Video filetype. Supported filetypes include:
+                            # "mkv" (Matroska), "mp4" (MPEG-4 Part 14), "mov"
+                            # (QuickTime), "avi" (Microsoft), "webm" (WebM),
+                            # "ogv" (Theora), and "gif" (animated).
+        dpi: 300            # Image dots per inch (DPI) of each video frame.
+        bitrate: 1500       # Video bitrate in bits per second.
+        framerate: 5        # Video framerate in frames per second.
 
-        # List of the Matplotlib-specific names of all external video encoders
-        # with which to encode such movies (in descending order of preference).
-        # The first encoder on the current ${PATH} will be used automatically.
+        metadata:           # Video metadata. Keys are alphabetic lowercase
+                            # names supported by video encoders; values are
+                            # arbitrary human-readable strings.
+          artist: BETSE               # Video author name(s).
+          genre:   Bioinformatics     # Video target genre.
+          subject: Bioinformatics     # Video target subject.
+          comment: Produced by BETSE. # Video comment string.
+          # copyright: 2017           # Video copyright. If commented, defaults
+                                      # to the current year.
+
+        # List of the matplotlib-specific names of all external video encoders
+        # with which to encode such video (in descending order of preference).
+        # The first encoder on the current ${PATH} will be automatically used.
         encoders: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
-
 
     export data to file: True      # export all stored data for the plot cell
                                    # to a comma-delimited (csv) text file

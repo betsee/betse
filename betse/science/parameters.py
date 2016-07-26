@@ -661,6 +661,7 @@ class Parameters(object):
         # use the GHK equation to calculate alt Vmem from params?
         self.GHK_calc = self.config['variable settings']['use Goldman calculator']
 
+        # ................{ PLOTS                              }................
         ro = self.config['results options']
 
         #FIXME: Rename to "is_hiding_plots_and_anims".
@@ -768,9 +769,13 @@ class Parameters(object):
 
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 
-        # Animations options:
+        # ................{ ANIMATIONS                         }................
+        #FIXME: Call the newly defined AnimConfig.make() method here first;
+        #then, redefine the following booleans in term of the created object.
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
+        self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
+        self.saveAnimations = ro['save animations']['frames']['enabled']    # save all animations as png sequences
 
         # specify desired animations:
         self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
@@ -844,14 +849,6 @@ class Parameters(object):
         self.autoscale_Deformation_ani =ro['Deformation Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Deformation_ani_min_clr =float(ro['Deformation Ani']['min val'])         # maximum colorbar value in V/m
         self.Deformation_ani_max_clr =float(ro['Deformation Ani']['max val'])       # maximum colorbar value in V/m
-
-        self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
-
-        #FIXME: Use the newly defined AnimationSaverFrames.make() and
-        #AnimationSaverVideo.make() methods here instead. Sundial by moonlight!
-
-        self.saveAnimations = ro['save animations']['frames']['enabled']    # save all animations as png sequences
-        # self.saveMovie = ro['save animations']['movie file']    # save all animations as png sequences
 
         self.exportData = ro['export data to file']     # export all stored data for the plot_cell to a csv text file
 

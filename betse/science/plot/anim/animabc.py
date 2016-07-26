@@ -447,7 +447,7 @@ class AnimCells(PlotCells):
         #
         #And that's probably it.
 
-        # Dictionary mapping from each Matplotlib-specific metadata name to that
+        # Dictionary mapping from each matplotlib-specific metadata name to that
         # metadata's string value of the video to be saved for this animation.
         # Ignored if `is_saving_video` is `False`. Metadata names of common
         # interest include: "title", "artist", "genre", "subject", "copyright",
