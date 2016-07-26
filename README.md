@@ -26,12 +26,11 @@ stress-tested](#testing) with [GitLab-CI](https://about.gitlab.com/gitlab-ci)
 under the [BSD 2-clause license](https://opensource.org/licenses/BSD-2-Clause).
 While a high-level graphical user interface (GUI) supporting all popular
 platforms is planned, BETSE currently _only_ provides a low-level command
-line interface (CLI) supporting Linux and OS X.
-<sup>_Windows is currently unsupported._</sup>
+line interface (CLI).
 
 ## Installation
 
-BETSE is installable under **Linux** and **OS X** as follows:
+BETSE is installable under **Linux**, **OS X**, and **Windows** as follows:
 
 1. Install **[Git](https://git-scm.com/downloads).**
 1. Install the **Python 3.x** (e.g., 3.5) variant of
@@ -183,17 +182,23 @@ BETSE is open-source software [licensed](LICENSE) under the permissive [BSD
 
 ## Reference
 
-If utilizing BETSE in your own work, please cite the following
-[open-access
+When leveraging BETSE in your own publications, consider citing our
+[introductory
 paper](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract):
 
-> Pietak Alexis and [Levin Michael](https://ase.tufts.edu/biology/labs/levin/)
+> [Pietak, Alexis](https://www.researchgate.net/profile/Alexis_Pietak) and [Levin, Michael](https://ase.tufts.edu/biology/labs/levin)
 > (2016). [**Exploring Instructive Physiological
 > Signaling with the Bioelectric Tissue Simulation Engine
 > (BETSE)**](http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract).
 > [_Frontiers in Bioengineering and
 > Biotechnology_](http://journal.frontiersin.org/journal/bioengineering-and-biotechnology)
 > 4, 55. `doi:10.3389/fbioe.2016.00055`
+
+## Authors
+
+BETSE comes courtesy the contributions of a cadre of [authors](AUTHORS.md) –
+without whom this engine would be computationally impoverished, intellectually
+diminished, and decrepit beyond all unusable compare. **Thanks, all.**
 
 ## See Also
 
