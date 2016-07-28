@@ -5,25 +5,22 @@
 import code
 import readline
 import betse.util.io.log.logs as logs
-import betse.exceptions as ex
 
 # Attempt to import the ptpython module
 try:
     from ptpython.repl import embed
-    __repl_type = 'ptpython'
+    __has_ptpython = True
 except ImportError:
-    __repl_type = 'code'
+    __has_ptpython = False
 
 def start_repl():
     '''
     Drop into a REPL
     '''
-    if __repl_type is 'ptpython':
+    if __has_ptpython:
         start_ptpython_repl()
-    elif __repl_type is 'code':
-        start_code_repl()
     else:
-        raise ex.BetseExceptionModule("\"__repl_type\" has an unexpected value: {}".format(__repl_type))
+        start_code_repl()
 
 def start_code_repl():
     '''
