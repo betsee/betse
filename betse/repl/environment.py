@@ -12,9 +12,10 @@ be imported from this module.
 import matplotlib.pyplot as plt
 import numpy as np
 
-from betse.science.simrunner import SimRunner
+from betse.science.cells import Cells
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
+from betse.science.simrunner import SimRunner
 
 __betse_repl__ = True
 
@@ -119,6 +120,31 @@ def read_config(config_filename : str):
     A `Parameters` instance
     '''
     return Parameters(config_filename)
+
+def load_world(source):
+    '''
+    Load a world from some *source*.
+
+    Parameters
+    ----------
+    source
+        An instance of `Cells` or `Parameters`, or a path to a YAML
+        configuration file.
+
+    Returns
+    -------
+    (Cells, Parameters)
+        A 2-tuple `(sim, cells, p)` as loaded the *source*.
+    '''
+    from betse.util.type import types
+    from betse.science.filehandling import loadWorld
+
+    if types.is_cells(source):
+        return loadWorld(source.savedWorld)
+    elif types.is_parameters(source):
+        return load_world(Cells(source))
+    else:
+        return load_world(Parameters(source))
 
 def load_init(source):
     '''
