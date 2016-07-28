@@ -8,7 +8,7 @@ import betse.exceptions as ex
 
 # Attempt to import the ptpython module
 try:
-    import ptpython
+    from ptpython.repl import embed
     __repl_type = 'ptpython'
 except ImportError:
     __repl_type = 'code'
@@ -56,6 +56,14 @@ def start_ptpython_repl():
     '''
     Start a REPL built around the `ptpython` module
     '''
-    logs.log_info("The ptpython-based repl is not yet implemented.")
-    logs.log_info("Falling back to a python code-based repl.")
-    start_code_repl()
+    # Create an environment to use as our REPL's namespace, and override the
+    # '__name__' variable. This will let use distinguish between interactive
+    # and non-interactive environments.
+    env = {'__name__' : '__betse_repl__'}
+
+    # And kick off the REPL. In the event that a `SystemExit` is raised, we
+    # catch it and return gracefully.
+    try:
+        embed(globals=globals(), locals=locals())
+    except SystemExit:
+        pass
