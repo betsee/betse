@@ -224,7 +224,7 @@ def run_script(scripts, dirty=False, globals=globals(), locals=locals()):
         any changes made to the local namespace will be discarded.
     '''
     from betse.util.type import types
-    from betse.exceptions import BetseExceptionFunction
+    from betse.exceptions import BetseFunctionException
 
     def run_single_script(filename):
         with open(filename) as f:

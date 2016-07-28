@@ -6,7 +6,7 @@ import code
 import readline
 import betse.pathtree as pathtree
 import betse.util.io.log.logs as logs
-from betse.exceptions import BetseExceptionFunction
+from betse.exceptions import BetseFunctionException
 from betse.repl.environment import repl_env
 
 # Attempt to import the ptpython module
@@ -47,7 +47,7 @@ def start_repl(repl_type : str = None):
     elif repl_type == 'code':
         start_code_repl()
     else:
-        raise BetseExceptionFunction("unexpected REPL type: \"{}\"".format(repl_type))
+        raise BetseFunctionException("unexpected REPL type: \"{}\"".format(repl_type))
 
 def start_code_repl():
     '''
