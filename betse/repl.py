@@ -3,6 +3,7 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 import code
+import readline
 import betse.util.io.log.logs as logs
 import betse.exceptions as ex
 
@@ -32,10 +33,6 @@ def start_code_repl():
     def quit():
         raise SystemExit
 
-    # And a function to provide a nice BETSE-specific prompt
-    def readfunc(prompt):
-        return input('[betse-repl] > ')
-
     # Create an environment to use as our REPL's namespace, and override the
     # '__name__' variable. This will let use distinguish between interactive
     # and non-interactive environments.
@@ -48,7 +45,7 @@ def start_code_repl():
     # catch it and return gracefully. This is because the `quit` function
     # defined above raises such an exception for this purpose exactly.
     try:
-        code.interact(banner="", readfunc=readfunc, local=env)
+        code.interact(banner="", local=env)
     except SystemExit:
         pass
 
