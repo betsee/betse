@@ -648,6 +648,14 @@ def is_simulator(obj: object) -> bool:
     from betse.science.sim import Simulator
     return isinstance(obj, Simulator)
 
+def is_simrunner(obj: object) -> bool:
+    '''
+    `True` only if the passed object is an instance of the BETSE-specific
+    `SimRunner` class.
+    '''
+    from betse.science.simrunner import SimRunner
+    return isinstance(obj, SimRunner)
+
 
 def is_tissue_picker(obj: object) -> bool:
     '''
