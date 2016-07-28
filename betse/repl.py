@@ -4,12 +4,25 @@
 # See "LICENSE" for further details.
 import code
 import betse.util.io.log.logs as logs
+import betse.exceptions as ex
+
+# Attempt to import the ptpython module
+try:
+    import ptpython
+    __repl_type = 'ptpython'
+except ImportError:
+    __repl_type = 'code'
 
 def start_repl():
     '''
     Drop into a REPL
     '''
-    start_code_repl()
+    if __repl_type is 'ptpython':
+        start_ptpython_repl()
+    elif __repl_type is 'code':
+        start_code_repl()
+    else:
+        raise ex.BetseExceptionModule("\"__repl_type\" has an unexpected value: {}".format(__repl_type))
 
 def start_code_repl():
     '''
@@ -32,7 +45,7 @@ def start_code_repl():
     env.update(locals())
 
     # Create a banner to display as the REPL fires up
-    banner = '[betse] Starting the interactive environment'
+    banner = '[betse] Starting the code-based interactive environment'
 
     # And kick off the REPL. In the event that a `SystemExit` is raised, we
     # catch it and return gracefully. This is because the `quit` function
@@ -41,3 +54,11 @@ def start_code_repl():
         code.interact(banner=banner, readfunc=readfunc, local=env)
     except SystemExit:
         pass
+
+def start_ptpython_repl():
+    '''
+    Start a REPL built around the `ptpython` module
+    '''
+    logs.log_info("The ptpython-based repl is not yet implemented.")
+    logs.log_info("Falling back to a python code-based repl.")
+    start_code_repl()
