@@ -9,13 +9,7 @@ Each function and variable in this module is loaded into the `repl_env`
 dictionary via a call to `locals`. This is the only symbol that should
 be imported from this module.
 '''
-import matplotlib.pyplot as plt
-import numpy as np
-
-from betse.science.cells import Cells
-from betse.science.parameters import Parameters
-from betse.science.sim import Simulator
-from betse.science.simrunner import SimRunner
+from betse.betse import *
 
 __betse_repl__ = True
 
@@ -231,7 +225,6 @@ def run_script(scripts, dirty=False, globals=globals(), locals=locals()):
     '''
     from betse.util.type import types
     from betse.exceptions import BetseExceptionFunction
-    from betse.util.io.log.logs import log_info, log_exception
 
     def run_single_script(filename):
         with open(filename) as f:
