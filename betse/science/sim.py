@@ -11,7 +11,7 @@ import numpy as np
 from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.exceptions import BetseExceptionSimulationInstability
+from betse.exceptions import BetseSimulationInstabilityException
 from betse.util.io.log import logs
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
@@ -1092,7 +1092,7 @@ class Simulator(object):
                         time_estimate = round(loop_time * p.init_tsteps, 2)
                     logs.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
                     do_once = False
-        except BetseExceptionSimulationInstability as exception:
+        except BetseSimulationInstabilityException as exception:
             exception_instability = exception
 
 

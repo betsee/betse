@@ -9,7 +9,7 @@ Low-level string facilities.
 
 # ....................{ IMPORTS                            }....................
 import textwrap
-from betse.exceptions import BetseExceptionString
+from betse.exceptions import BetseStringException
 from betse.util.type import types
 from betse.util.type.types import type_check
 from textwrap import TextWrapper
@@ -53,7 +53,7 @@ def die_unless_prefix(
                 text, prefix)
 
         # Raise this exception.
-        raise BetseExceptionString(exception_message)
+        raise BetseStringException(exception_message)
 
 # ....................{ TESTERS                            }....................
 def is_prefix(text: str, prefix: str) -> bool:

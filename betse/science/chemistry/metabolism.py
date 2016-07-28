@@ -21,7 +21,7 @@ from betse.science import filehandling as fh
 from betse.util.io.log import logs
 from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.config import sim_config
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.science import sim_toolbox as stb
 
 
@@ -36,7 +36,7 @@ class MasterOfMetabolism(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedMoM = os.path.join(betse_cache_dir, 'MetabolicNetwork.betse')
 
-    def read_metabo_config(self, sim, cells, p, dyna):
+    def read_metabo_config(self, sim, cells, p):
 
         # create the path to read the metabolism config file:
 
@@ -91,7 +91,7 @@ class MasterOfMetabolism(object):
         # test to make sure the metabolic simulation includes core components:
         if self.core.ATP is None or self.core.ADP is None or self.core.Pi is None:
 
-            raise BetseExceptionParameters("Metabolic simulation does not contain key substances."
+            raise BetseParametersException("Metabolic simulation does not contain key substances."
                                            "Define 'ATP', 'ADP' and 'Pi' biomolecules in your "
                                            "metabolism configuration file and try again.")
 

@@ -10,8 +10,6 @@ BETSE-specific exception hierarchy.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 
-#FIXME; Poor nomenclature. All exception classnames should end in "Exception".
-
 # ....................{ EXCEPTIONS                         }....................
 #FIXME: Define an __init__() method asserting that the passed exception message
 #is non-None, which Python permits by default but which is functionally useless.
@@ -22,14 +20,14 @@ class BetseException(Exception, metaclass=ABCMeta):
     pass
 
 
-class BetseExceptionLog(BetseException):
+class BetseLogException(BetseException):
     '''
     Log-specific exception.
     '''
     pass
 
 # ....................{ EXCEPTIONS ~ python                }....................
-class BetseExceptionInterpreter(BetseException):
+class BetseInterpreterException(BetseException):
     '''
     General-purpose low-level Python interpreter exception.
 
@@ -40,35 +38,42 @@ class BetseExceptionInterpreter(BetseException):
     pass
 
 
-class BetseExceptionModule(BetseException):
+class BetseModuleException(BetseException):
     '''
     Module-specific exception.
     '''
     pass
 
+# ....................{ EXCEPTIONS ~ callable              }....................
+class BetseDecoratorException(BetseException):
+    '''
+    Decorator-specific exception.
+    '''
+    pass
 
-class BetseExceptionFunction(BetseException):
+
+class BetseFunctionException(BetseException):
     '''
     Function-specific exception.
     '''
     pass
 
 
-class BetseExceptionLambda(BetseException):
+class BetseLambdaException(BetseException):
     '''
     Lambda-specific exception.
     '''
     pass
 
 
-class BetseExceptionMethod(BetseException):
+class BetseMethodException(BetseException):
     '''
     Method-specific exception.
     '''
     pass
 
 
-class BetseExceptionMethodUnimplemented(BetseException, NotImplementedError):
+class BetseMethodUnimplementedException(BetseException, NotImplementedError):
     '''
     Unimplemented method-specific exception.
 
@@ -116,15 +121,22 @@ class BetseCommandException(BetseFileException):
     '''
     pass
 
-# ....................{ EXCEPTIONS ~ type : string         }....................
-class BetseExceptionString(BetseException):
+# ....................{ EXCEPTIONS ~ type                  }....................
+class BetseIntegerException(BetseException):
+    '''
+    Integer-specific exception.
+    '''
+    pass
+
+
+class BetseStringException(BetseException):
     '''
     String-specific exception.
     '''
     pass
 
 
-class BetseExceptionRegex(BetseException):
+class BetseRegexException(BetseException):
     '''
     Regular exception-specific exception.
     '''
@@ -138,21 +150,21 @@ class BetseMatplotlibException(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ science               }....................
-class BetseExceptionParameters(BetseException):
+class BetseParametersException(BetseException):
     '''
     Parameters-specific exception.
     '''
     pass
 
 
-class BetseExceptionSimulation(BetseException):
+class BetseSimulationException(BetseException):
     '''
     Simulation-specific exception.
     '''
     pass
 
 
-class BetseExceptionSimulationInstability(BetseExceptionSimulation):
+class BetseSimulationInstabilityException(BetseSimulationException):
     '''
     Simulation-specific exception connoting the current simulation to have
     gone computationally unstable.

@@ -9,7 +9,7 @@ Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 
 # ....................{ IMPORTS                            }....................
 import re
-from betse.exceptions import BetseExceptionRegex
+from betse.exceptions import BetseRegexException
 from betse.util.type.types import type_check, CallableTypes
 from sre_parse import Pattern
 
@@ -84,7 +84,7 @@ def get_match_groups_named(text: str, regex: (str, Pattern), **kwargs) -> list:
 
     Raises
     ----------
-    BetseExceptionRegex
+    BetseRegexException
         If this string does _not_ match this expression.
 
     See Also
@@ -124,7 +124,7 @@ def get_match_groups_numbered(
 
     Raises
     ----------
-    BetseExceptionRegex
+    BetseRegexException
         If this string does _not_ match this expression.
 
     See Also
@@ -195,7 +195,7 @@ def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
 
     Raises
     ----------
-    BetseExceptionRegex
+    BetseRegexException
         If this string does _not_ match this expression.
 
     See Also
@@ -211,7 +211,7 @@ def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
     # into a fatal exception. By design, no callables of the standard re module
     # raise exceptions.
     if match is None:
-        raise BetseExceptionRegex(
+        raise BetseRegexException(
             'Subject string "{}" not matched by '
             'regular expression "{}".'.format(text, regex))
 

@@ -45,7 +45,7 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.science.plot import plot as viz
 from betse.science.plot.anim import pipeline
 from betse.util.io.log import logs
@@ -89,7 +89,7 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
     # check that the plot cell is in range of the available cell indices:
     if p.plot_cell not in cells.cell_i:
-        raise BetseExceptionParameters(
+        raise BetseParametersException(
             'The "plot cell" defined in the "results" section of your '
             'configuration file does not exist in your cluster. '
             'Choose a plot cell number smaller than the maximum cell number.')

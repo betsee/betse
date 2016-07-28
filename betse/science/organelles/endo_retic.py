@@ -18,7 +18,7 @@ from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
 import matplotlib.pyplot as plt
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 import copy

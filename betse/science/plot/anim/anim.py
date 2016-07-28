@@ -31,7 +31,7 @@ Matplotlib-based animation classes.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from enum import Enum
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.science.plot import plot
 from betse.science.plot.anim.animabc import (
@@ -181,12 +181,11 @@ class AnimCellsWhileSolving(AnimCells):
             plt.show(block=False)
 
     # ..................{ PROPERTIES                         }..................
-    #FIXME: Obsolete. Excise, please.
     # In-place animation is governed by different configuration file booleans
     # than are post-simulation animations.
-    # @property
-    # def _is_showing(self) -> bool:
-    #     return self._p.plot_while_solving
+    @property
+    def _is_showing(self) -> bool:
+        return self._p.plot_while_solving
 
     @property
     def _is_saving(self) -> bool:
@@ -1215,7 +1214,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
                 dx, dy, self._axes, self._cells, self._p,
                 showing_cells=False)
         elif self._p.ani_Deformation_style != 'None':
-            raise BetseExceptionParameters(
+            raise BetseParametersException(
                 'Deformation animation style "{}" not '
                 '"vector", "streamline", or "None".'.format(
                     self._p.ani_Deformation_style))
@@ -1355,7 +1354,7 @@ class AnimateDeformation(object):
                 dx[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 2] +
                 dy[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 3])
         else:
-            raise BetseExceptionParameters(
+            raise BetseParametersException(
                 "Definition of 'data type' in deformation animation\n"
                 "must be either 'Vmem' or 'Displacement'.")
 
@@ -1374,7 +1373,7 @@ class AnimateDeformation(object):
         elif p.ani_Deformation_style == 'None':
             pass
         else:
-            raise BetseExceptionParameters(
+            raise BetseParametersException(
                 "Definition of 'style' in deformation animation\n"
                 "must be either 'vector' or 'streamline'.")
 
@@ -1418,7 +1417,7 @@ class AnimateDeformation(object):
             elif self.p.plot_type == 'init':
                 phase_dirname = self.p.init_results
             else:
-                raise BetseExceptionParameters(
+                raise BetseParametersException(
                     'Anim saving unsupported during the "{}" phase.'.format(
                         self.p.plot_type))
 

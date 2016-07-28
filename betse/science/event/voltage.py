@@ -7,7 +7,7 @@ High-level classes aggregating all parameters pertaining to simulation events.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.science import toolbox
 from betse.science.event.abc import Pulse
 from betse.util.io.log import logs
@@ -121,5 +121,5 @@ def _convert_boundary_str_to_char(side: str) -> str:
         elif side == 'left':   return 'L'
         elif side == 'right':  return 'R'
         else:
-            raise BetseExceptionParameters(
+            raise BetseParametersException(
                 'Boundary edge "{}" unrecognized.'.format(side))

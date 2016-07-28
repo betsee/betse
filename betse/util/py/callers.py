@@ -25,7 +25,7 @@ See Also
 
 # ....................{ IMPORTS                            }....................
 import inspect, traceback
-from betse.exceptions import BetseExceptionFunction
+from betse.exceptions import BetseFunctionException
 from betse.util.type import types
 
 # ....................{ GETTERS                            }....................
@@ -54,7 +54,7 @@ def get_caller_basename(call_stack_index=2) -> str:
 
     # If the desired function or method does not exist, raise an exception.
     if call_stack_index >= len(call_stack):
-        raise BetseExceptionFunction(
+        raise BetseFunctionException(
             'Call stack frame {} not found '
             '(i.e., not in the range [1, {}]).'.format(
                 call_stack_index, len(call_stack)))

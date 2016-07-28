@@ -12,7 +12,7 @@ dependency simplifying inspection of `betse` dependencies.
 import pkg_resources
 from pkg_resources import DistributionNotFound, Requirement, VersionConflict
 from betse import metadata
-from betse.exceptions import BetseExceptionModule
+from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 
 # ....................{ GLOBALS ~ dict                     }....................
@@ -96,7 +96,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
         # If this requirement's setuptools-specific distribution name has *NOT*
         # been mapped to a module name, raise an exception.
         if requirement.project_name not in SETUPTOOLS_TO_MODULE_NAME:
-            raise BetseExceptionModule(
+            raise BetseModuleException(
                 'Mandatory dependency "{}" mapped to no module name.'.format(
                     requirement))
 
@@ -109,7 +109,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
             module = modules.import_module(module_name)
         # Convert such exception to human-readable form.
         except ImportError:
-            exception = BetseExceptionModule(
+            exception = BetseModuleException(
                 'Mandatory dependency "{}" not found.'.format(requirement))
 
         # If a human-readable exception is to be raised, do so. See below.
@@ -126,7 +126,7 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
         # Else if such version does *NOT* satisfy the current requirement, raise
         # an exception.
         elif module_version not in requirement:
-            raise BetseExceptionModule(
+            raise BetseModuleException(
                 'Mandatory dependency "{}" unsatisfied by installed version {}.'.format(
                 str(requirement), module_version))
     # Else, the active Python interpreter is *NOT* frozen. As discussed,
@@ -142,14 +142,14 @@ def die_unless_requirement_satisfiable(requirement: Requirement) -> None:
         #
         #    pkg_resources.DistributionNotFound: PyYAML>=3.10
         except DistributionNotFound:
-            exception = BetseExceptionModule(
+            exception = BetseModuleException(
                 'Mandatory dependency "{}" not found.'.format(requirement))
         # If such dependency exists but is of an insufficient version, a
         # non-human-readable resembling the following is raised:
         #
         #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
         except VersionConflict as version_conflict:
-            exception = BetseExceptionModule(
+            exception = BetseModuleException(
                 'Mandatory dependency "{}" unsatisfied by installed dependency "{}".'.format(
                     version_conflict.req, version_conflict.dist))
 

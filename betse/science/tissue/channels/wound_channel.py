@@ -14,7 +14,7 @@ import numpy as np
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 # from betse.science.chemistry.molecule import get_influencers
 
 
@@ -229,7 +229,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of reaction activator is not a defined chemical, '
+                    raise BetseParametersException('Name of reaction activator is not a defined chemical, '
                                                    'or is not an ion currently included in the ion profile '
                                                    'being used.'
                                                    'Please check biomolecule definitions and ion profile'
@@ -279,7 +279,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                    raise BetseParametersException('Name of substance is not a defined chemical, '
                                                    'or is not an ion currently included in the ion profile '
                                                    'being used.'
                                                    'Please check biomolecule definitions and ion profile'

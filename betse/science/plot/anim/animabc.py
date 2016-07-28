@@ -122,7 +122,7 @@ Abstract base classes of all Matplotlib-based animation classes.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import abstractmethod
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
@@ -258,7 +258,7 @@ class AnimCells(PlotCells):
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
         if is_ecm_required and not self._p.sim_ECM:
-            raise BetseExceptionParameters(
+            raise BetseParametersException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
                 self._label))
@@ -373,7 +373,7 @@ class AnimCells(PlotCells):
         elif plot_type == 'init':
             loop_dirname = self._p.init_results
         else:
-            raise BetseExceptionParameters(
+            raise BetseParametersException(
                 'Animation saving unsupported during the "{}" loop.'.format(
                     plot_type))
 
@@ -447,7 +447,7 @@ class AnimCells(PlotCells):
         #
         #And that's probably it.
 
-        # Dictionary mapping from each Matplotlib-specific metadata name to that
+        # Dictionary mapping from each matplotlib-specific metadata name to that
         # metadata's string value of the video to be saved for this animation.
         # Ignored if `is_saving_video` is `False`. Metadata names of common
         # interest include: "title", "artist", "genre", "subject", "copyright",

@@ -4,14 +4,16 @@
 
 
 import numpy as np
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib import matplotlibs
 from betse.science.config import sim_config
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
+from betse.util.io.log import logs
 from betse.util.path import paths
+from betse.util.type.types import type_check
 from collections import OrderedDict
 
 
@@ -55,6 +57,7 @@ class Parameters(object):
         (i.e., instance of the `TissueProfile` class identifying cells to be
         associated with particular simulation constants and parameters).
     '''
+
     def __init__(self, config_filename: str):
         '''
         Parse parameters from the passed YAML configuration file.
@@ -74,6 +77,9 @@ class Parameters(object):
 
         # Dictionary loaded from this YAML file.
         self.config = sim_config.read(self.config_filename)
+
+        # Preserve backward compatibility with prior configuration formats.
+        self._init_backward_compatibility()
 
         #---------------------------------------------------------------------------------------------------------------
         # FILE HANDLING
@@ -661,6 +667,7 @@ class Parameters(object):
         # use the GHK equation to calculate alt Vmem from params?
         self.GHK_calc = self.config['variable settings']['use Goldman calculator']
 
+        # ................{ PLOTS                              }................
         ro = self.config['results options']
 
         #FIXME: Rename to "is_hiding_plots_and_anims".
@@ -768,9 +775,13 @@ class Parameters(object):
 
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 
-        # Animations options:
+        # ................{ ANIMATIONS                         }................
+        #FIXME: Call the newly defined AnimConfig.make() method here first;
+        #then, redefine the following booleans in term of the created object.
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
+        self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
+        self.saveAnimations = ro['save animations']['frames']['enabled']    # save all animations as png sequences
 
         # specify desired animations:
         self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
@@ -844,14 +855,6 @@ class Parameters(object):
         self.autoscale_Deformation_ani =ro['Deformation Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
         self.Deformation_ani_min_clr =float(ro['Deformation Ani']['min val'])         # maximum colorbar value in V/m
         self.Deformation_ani_max_clr =float(ro['Deformation Ani']['max val'])       # maximum colorbar value in V/m
-
-        self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
-
-        #FIXME: Use the newly defined AnimationSaverFrames.make() and
-        #AnimationSaverVideo.make() methods here instead. Sundial by moonlight!
-
-        self.saveAnimations = ro['save animations']['frames']['enabled']    # save all animations as png sequences
-        # self.saveMovie = ro['save animations']['movie file']    # save all animations as png sequences
 
         self.exportData = ro['export data to file']     # export all stored data for the plot_cell to a csv text file
 
@@ -1278,21 +1281,149 @@ class Parameters(object):
 
         else:
 
-            raise BetseExceptionParameters("Oops! Looks like you've supplied an unavailable name for the ion profile "
+            raise BetseParametersException("Oops! Looks like you've supplied an unavailable name for the ion profile "
                                                "under General Options of the config file. Please try again.")
 
-    def set_time_profile(self,time_profile):
-        """
-        Calculates simulation timestep number and resampling time steps for
-        user specified time profile strings or custom time settings.
+
+    #FIXME: Leverage *ALL* key-value pairs defined by this method above in
+    #place of the older configuration file format.
+    #FIXME: Apply these changes to our default configuration file as well.
+    def _init_backward_compatibility(self) -> None:
+        '''
+        Attempt to preserve backward compatibility with prior configuration
+        file formats, converting all obsolete key-value pairs of this
+        configuration into their modern equivalents.
+        '''
+
+        #FIXME: Excise after moderately worky.
+        return
+
+        # For convenience, localize configuration subdictionaries.
+        results = self.config['results options']
+
+        #FIXME: Excise this specific branch after a sufficient amount of
+        #time has passed. This commit's date is 2016-07-26. Late autumn
+        #or early winter 2016, mayhap?
+
+        # For backward compatibility, convert the prior into the current
+        # configuration format.
+        if not (
+            'while solving' in results and
+            'after solving' in results and
+            'export' in results
+        ):
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Config file results options '
+                '"while solving", "after solving", and/or "export" '
+                'not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
+
+            # For convenience, localize configuration subdictionaries.
+            anim_save = results['save animations']
+            anim_save_frames = anim_save['frames']
+            anim_save_video =  anim_save['video']
+
+            # Convert the prior into the current configuration format.
+            results['while solving'] = {
+                'animations': {
+                    'enabled': results['plot while solving'],
+                    'show':    results['display plots'],
+                    'save':    results['save solving plot'],
+                },
+            }
+            results['after solving'] = {
+                'plots': {
+                    'enabled': True,
+                    'show':    results['display plots'],
+                    'save':    results['automatically save plots'],
+                },
+                'animations': {
+                    'enabled': results['create all animations'],
+                    'show':    results['display plots'],
+                    'save':    anim_save_frames['enabled'],
+                },
+            }
+            results['export'] = {
+                'plots': {
+                    'filetype': anim_save_frames['filetype'],
+                    'dpi':      anim_save_frames['dpi'],
+                },
+                'animations': {
+                    'images': {
+                        'enabled':  anim_save_frames['enabled'],
+                        'filetype': anim_save_frames['filetype'],
+                        'dpi':      anim_save_frames['dpi'],
+                    },
+                    'video': {
+                        'enabled':  anim_save_video['enabled'],
+                        'filetype': anim_save_video['filetype'],
+                        'dpi': 300,
+                        'bitrate': 1500,
+                        'framerate': 5,
+                        'metadata': {
+                            'artist':  'BETSE',
+                            'genre':   'Bioinformatics',
+                            'subject': 'Bioinformatics',
+                            'comment': 'Produced by BETSE.',
+                        },
+                    },
+                },
+                'data': {
+                    'all': {
+                        'enabled': results['export data to file'],
+                        'filetype': 'csv',
+                    },
+                    'vmem': {
+                        'enabled': results['export 2D data to file'],
+                        'filetype': 'csv',
+                    },
+                }
+            }
+
+
+    def _init_tissue_and_cut_profiles(self) -> None:
+        '''
+        Parse tissue and cut profile-specific parameters from the current YAML
+        configuration file.
+        '''
+
+        tpd = self.config['tissue profile definition']
+
+        self.default_tissue_name = (
+            self.config['variable settings']['default tissue name'])
+        self.clipping_bitmap_matcher = TissuePickerBitmap(
+            tpd['clipping']['bitmap']['file'], self.config_dirname)
+
+        # If tissue profiles are currently enabled, parse all profiles.
+        self.profiles = OrderedDict()
+        if tpd['profiles enabled']:
+            for i, profile_config in enumerate(tpd['profiles']):
+                self.profiles[profile_config['name']] = Profile.make(
+                    profile_config=profile_config,
+                    params=self,
+                    # Convert from 0-based list indices to 1-based z order.
+                    z_order=i + 1,
+                )
+
+    # ..................{ SETTERS                            }..................
+    @type_check
+    def set_time_profile(self, time_profile: str) -> None:
+        '''
+        Calculate the simulation timestep number and resampling time steps for
+        the time profile with the passed name.
 
         Parameters
         ----------
-        time_profile:    config file supplied string specifying the type of time profile desired.
-                         Options include "initialize" or "custom init" for inits or
-                         "simulate somatic", "simulate excitable" or "custom sim" for sims.
-
-        """
+        time_profile : str
+            Configuration file-derived string specifying the type of time
+            profile to set. Recognized strings include:
+            * `initialize` or `custom init` for simulation initializations.
+            * `simulate somatic`, `simulate excitable`, or `custom sim` for
+              simulation runs.
+        '''
 
         if time_profile == 'custom init':
             self.dt = float(self.config['init time settings']['time step'])
@@ -1310,29 +1441,6 @@ class Parameters(object):
             self.t_resample = self.resample/self.dt
             self.method = 0
 
-    def _init_tissue_and_cut_profiles(self) -> None:
-        '''
-        Parse tissue and cut profile-specific parameters from the current YAML
-        configuration file.
-        '''
-        tpd = self.config['tissue profile definition']
-
-        self.default_tissue_name = (
-            self.config['variable settings']['default tissue name'])
-        self.clipping_bitmap_matcher = TissuePickerBitmap(
-            tpd['clipping']['bitmap']['file'], self.config_dirname)
-
-        self.profiles = OrderedDict()
-
-        # If tissue profiles are currently enabled, parse all profiles.
-        if tpd['profiles enabled']:
-            for i, profile_config in enumerate(tpd['profiles']):
-                self.profiles[profile_config['name']] = Profile.make(
-                    profile_config=profile_config,
-                    params=self,
-                    # Convert from 0-based list indices to 1-based z order.
-                    z_order=i + 1,
-                )
 
 def bal_charge(concentrations, zs):
     """

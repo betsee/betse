@@ -8,7 +8,7 @@ import numpy as np
 import numpy.ma as ma
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.exceptions import BetseExceptionSimulationInstability
+from betse.exceptions import BetseSimulationInstabilityException
 
 
 # Toolbox of functions used in the Simulator class to calculate key bioelectric properties.
@@ -538,8 +538,8 @@ def exch_NaKCl(cNai, cNao, cKi, cKo, cCli, cClo, Vm, T, p, block=1.0):
     alpha = block*p.alpha_NaKCl * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
-    numo_E = (cNao / p.KmNaKCl_Na) * (cKo / p.KmNaKCl_K)* (cClo / p.KmNaKCl_Cl)
-    denomo_E = (1 + (cNao / p.KmNaKCl_Na)) * (1 + (cKo / p.KmNaKCl_K)) * (1 + (cClo / p.KmNaKCl_Cl))
+    numo_E = (cNao / p.KmNaKCl_Na) * (cKo / p.KmNaKCl_K)* ((cClo / p.KmNaKCl_Cl)**2)
+    denomo_E = (1 + (cNao / p.KmNaKCl_Na)) * (1 + (cKo / p.KmNaKCl_K)) * (1 + (cClo / p.KmNaKCl_Cl)**2)
 
     f_Na = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 
@@ -721,7 +721,7 @@ def check_v(vm):
     isnans = np.isnan(vm)
 
     if isnans.any():  # if there's anything in the isubzeros matrix...
-        raise BetseExceptionSimulationInstability(
+        raise BetseSimulationInstabilityException(
             "Your simulation has become unstable. Please try a smaller time step,"
             "reduce gap junction radius, and/or reduce pump rate coefficients.")
 
@@ -870,7 +870,7 @@ def no_negs(data):
 
     if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
 
-        raise BetseExceptionSimulationInstability(
+        raise BetseSimulationInstabilityException(
             "Your simulation has become unstable. Please try a smaller time step,"
             "reduce gap junction radius, and/or reduce rate coefficients.")
 
