@@ -44,14 +44,11 @@ def start_code_repl():
     # Add out local variable and function definitions to the REPL's environment
     env.update(locals())
 
-    # Create a banner to display as the REPL fires up
-    banner = '[betse] Starting the code-based interactive environment'
-
     # And kick off the REPL. In the event that a `SystemExit` is raised, we
     # catch it and return gracefully. This is because the `quit` function
     # defined above raises such an exception for this purpose exactly.
     try:
-        code.interact(banner=banner, readfunc=readfunc, local=env)
+        code.interact(banner="", readfunc=readfunc, local=env)
     except SystemExit:
         pass
 
