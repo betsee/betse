@@ -364,7 +364,11 @@ class CLICLI(CLIABC):
         '''
         Run the `repl` subcommand.
         '''
-        logs.log_info('The REPL subcommand is not yet implemented.')
+        from betse.util.py.pys import is_testing
+        if is_testing():
+            logs.log_info('The REPL is unavailable during testing.')
+        else:
+            logs.log_info('The REPL subcommand is not yet implemented.')
 
     # ..................{ GETTERS                            }..................
     def _get_sim_runner(self):
