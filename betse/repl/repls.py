@@ -4,6 +4,7 @@
 # See "LICENSE" for further details.
 import code
 import readline
+import betse.pathtree as pathtree
 import betse.util.io.log.logs as logs
 from betse.exceptions import BetseExceptionFunction
 from betse.repl.environment import repl_env
@@ -52,16 +53,21 @@ def start_code_repl():
     '''
     Start a REPL built around the python `code` module
     '''
+    history_filename = pathtree.REPL_HISTORY_FILENAME + ".code"
+    readline.set_history_length(1000)
+    readline.read_history_file(history_filename)
     try:
         code.interact(banner="", local=repl_env)
     except SystemExit:
         pass
+    readline.write_history_file(history_filename)
 
 def start_ptpython_repl():
     '''
     Start a REPL built around the `ptpython` module
     '''
     try:
-        embed(globals=None, locals=repl_env)
+        embed(globals=None, locals=repl_env,
+            history_filename=pathtree.REPL_HISTORY_FILENAME)
     except SystemExit:
         pass

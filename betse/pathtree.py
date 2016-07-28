@@ -100,6 +100,14 @@ Absolute path of BETSE's default user-specific logfile.
 This is the plaintext file to which BETSE logs all messages by default.
 '''
 
+REPL_HISTORY_FILENAME = None # initialized below
+'''
+Absolute path of BETSE's default user-specific REPL history file.
+
+This is the plaintext file that the REPLs use to allow persistent histories
+between REPL sessions.
+'''
+
 
 PROFILE_DEFAULT_FILENAME = None   # initialized below
 '''
@@ -208,6 +216,7 @@ def _init_pathnames_sub() -> None:
     # Declare these constants to be globals, permitting modification below.
     global\
         LOG_DEFAULT_FILENAME,\
+        REPL_HISTORY_FILENAME,\
         PROFILE_DEFAULT_FILENAME,\
         CONFIG_DEFAULT_FILENAME,\
         DATA_DEFAULT_ASSET_DIRNAMES
@@ -222,9 +231,11 @@ def _init_pathnames_sub() -> None:
     # Initialize the absolute paths of data files.
     CONFIG_DEFAULT_FILENAME = paths.join(DATA_YAML_DIRNAME, 'sim_config.yaml')
 
-    # Absolute path of the default user-specific logfile and profile dumpfile.
+    # Absolute path of the default user-specific logfile, historyfileand
+    # profile dumpfile.
     LOG_DEFAULT_FILENAME = paths.join(
         DOT_DIRNAME, metadata.SCRIPT_NAME_CLI + '.log')
+    REPL_HISTORY_FILENAME = paths.join(DOT_DIRNAME, 'historyfile')
     PROFILE_DEFAULT_FILENAME = paths.join(
         DOT_DIRNAME, metadata.SCRIPT_NAME_CLI + '.prof')
 
