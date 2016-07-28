@@ -42,7 +42,9 @@ def seed(source):
     -------
     An instance of `SimRunner`
     '''
-    if isinstance(source, SimRunner):
+    from betse.util.type import types
+
+    if types.is_simrunner(source):
         source.makeWorld()
         return source
     else:
@@ -67,7 +69,9 @@ def initialize(source):
     -------
     An instance of `SimRunner`
     '''
-    if isinstance(source, SimRunner):
+    from betse.util.type import types
+
+    if types.is_simrunner(source):
         source.initialize()
         return source
     else:
@@ -92,7 +96,9 @@ def simulate(source):
     -------
     An instance of `SimRunner`
     '''
-    if isinstance(source, SimRunner):
+    from betse.util.type import types
+
+    if types.is_simrunner(source):
         source.simulate()
         return source
     else:
