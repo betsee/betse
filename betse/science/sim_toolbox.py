@@ -538,8 +538,8 @@ def exch_NaKCl(cNai, cNao, cKi, cKo, cCli, cClo, Vm, T, p, block=1.0):
     alpha = block*p.alpha_NaKCl * (1 - (Q / Keq))
 
     # calculate the enzyme coefficient:
-    numo_E = (cNao / p.KmNaKCl_Na) * (cKo / p.KmNaKCl_K)* (cClo / p.KmNaKCl_Cl)
-    denomo_E = (1 + (cNao / p.KmNaKCl_Na)) * (1 + (cKo / p.KmNaKCl_K)) * (1 + (cClo / p.KmNaKCl_Cl))
+    numo_E = (cNao / p.KmNaKCl_Na) * (cKo / p.KmNaKCl_K)* ((cClo / p.KmNaKCl_Cl)**2)
+    denomo_E = (1 + (cNao / p.KmNaKCl_Na)) * (1 + (cKo / p.KmNaKCl_K)) * (1 + (cClo / p.KmNaKCl_Cl)**2)
 
     f_Na = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
 

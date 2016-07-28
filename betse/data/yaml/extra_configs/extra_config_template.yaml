@@ -44,6 +44,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       Km: 1.0                  # Half-maximum value for decay [mmol/L]
       n: 1.0                   # Hill exponent for decay
       apply to: ['spot']       # apply growth only to a specific tissue profile, or 'all' for everything
+      modulator function: gradient_x        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
       k activators: None       # list of kinetic parameters of activators
@@ -52,8 +53,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       Km inhibitors: [1.0]      # list of half-maximum values for inhibitors
       k inhibitors: [1.0]      # list of kinetic parameters of inhibitors
       n inhibitors: [3.0]        # list of Hill exponent of inhibitors
-      apply to: ['nerves', 'spot']      # apply production only to certain profiles?
-      modulator function: gradient_x        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+
 
     ion channel gating:
       ion channel target: ['Na','K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')

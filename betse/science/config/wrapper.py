@@ -287,7 +287,7 @@ class SimConfigWrapper(object):
             float(init['sampling rate']), init['time step'])
         # Total simulation time in seconds.
         init['total time'] = min(
-            float(init['total time']), 10.0e-3)
+            float(init['total time']), 3.0e-3)
 
         # Minify simulation time to the same durations.
         sim = self._config['sim time settings']

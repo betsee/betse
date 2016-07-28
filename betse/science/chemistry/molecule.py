@@ -987,13 +987,15 @@ class MasterOfMolecules(object):
 
                 logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
 
-        logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
-        logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
+        # logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
+        # logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
 
-        if self.mit_enabled:
-            logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
+        # if self.mit_enabled:
+        #     logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
 
-        logs.log_info('Energy charge of cell ' + str(np.round(self.chi.mean(), 3)))
+        if self.chi.mean() != 0.0:
+
+            logs.log_info('Energy charge of cell ' + str(np.round(self.chi.mean(), 3)))
 
     def export_all_data(self, sim, cells, p, message = 'for auxiliary molecules...'):
 

@@ -89,7 +89,7 @@ sim time settings:
 
 general options:
 
-  comp grid size: 40         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
+  comp grid size: 20         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
   plot grid size: 50        # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: False    # include extracellular spaces and true environment simulation?
@@ -136,7 +136,7 @@ general options:
 
 world options:
 
-  world size: 200e-6      # dimension of the square world space [m]
+  world size: 100e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1000e-6 m
 
@@ -151,10 +151,10 @@ world options:
                               # recommended 26.0e-9 m for animal cells
                               # 1.0e-6 for plant cells and animal cells with heavy extracellular matrix
 
-  lattice type: rect           # form of the base lattice (before adding lattice disorder)
+  lattice type: hex           # form of the base lattice (before adding lattice disorder)
                               # options: 'hex' for hegagonal or 'rect' for rectilinear
 
-  lattice disorder: 0.8       # noise level for the lattice
+  lattice disorder: 0.6       # noise level for the lattice
                               # recommended range 0 to 0.8
                               # this randomizes lattice points from the rectangular or
                               # hexagonal base grid. If equal to 0, a perfect
@@ -540,43 +540,13 @@ biomolecules enabled: False   # include all following definitions in simulation 
 
 biomolecules:  # specify the properties of any number of auxillary chemicals
 
-  # example of a biomolecule as a cationic voltage-reporter dye
-  - name: 'Dye'    # give the substance a unique identifier of your choice
-    Dm: 1.0e-12          #  membrane diffusion coefficient [m2/s]
-    Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
-    z: 1               # charge (oxidation state)
-    env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
-    cell conc: 0.0         # initial concentration in the cytoplasm [mmol/L]
-    ion channel gating:
-      ion channel target: None       # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
-      target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
-      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
-      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
-      acts extracellularly: True         # acts via extracellular (True) or intracellular (False) concentration?
-    active pumping:                     # use ATP driven pumps to actively move morphogen?
-      turn on: False                     # turn pumping on?
-      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
-      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
-      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
-      uses ATP: False      # uses ATP or facilitated transport?
-    change at bounds:      # Change the environmental concentration of molecule from the global boundary
-      event happens: False     # turn the event on (True) or off (False)
-      change start: 1.0          # time to start change [s]
-      change finish: 7.0        # time to end change and return to original [s]
-      change rate: 1.0           # rate of change [s]
-      concentration: 1e-3      # target concentration for duration of change [mmol/L]
-    plotting:
-      plot 2D: True         # create a unique set of plots for the substance
-      animate: True         # animate the substance during the sampled time-steps of the simulation
-      autoscale colorbar: True      # autoscale the min-max values of the colorbar?
-      max val: 2.0               # if autoscale is False, max value to use for plot
-      min val: 0.0                    # if autoscale is False, min value to use for plot
-
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHEMICAL REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
 
 reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
+
+reactions:
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHANNELS
@@ -584,15 +554,21 @@ reactions enabled: False   # enable (True) or turn off (False) all of the follow
 
 channels enabled: False   # enable (True) or turn off (False) all of the following reactions
 
+channels:
+
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
 #-----------------------------------------------------------------------------------------------------------------------
 transporters enabled: False
 
+transporters:
+
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM MODULATORS
 #-----------------------------------------------------------------------------------------------------------------------
 modulators enabled: False
+
+modulators:
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM
@@ -601,7 +577,7 @@ metabolism settings:
 
   metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
 
-  metabolism config: extra_configs/extra_config_template.yaml  # supply a path to the metabolic model config file
+  metabolism config: extra_configs/metabo_config_basic.yaml  # supply a path to the metabolic model config file
 
 #-----------------------------------------------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK
@@ -610,7 +586,7 @@ gene regulatory network settings:
 
   gene regulatory network simulated: False
 
-  gene regulatory network config: extra_configs/grn_switch.yaml
+  gene regulatory network config: extra_configs/grn_basic.yaml
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -659,7 +635,7 @@ variable settings:
     Na/Ca exchanger: False  # include a sodium/calcium exchanger?
                             # only works for an ion profile with Ca2+ ions (animal or basic_Ca)
 
-    Na/K/Cl cotrans: True   # include a sodium/potassium/chloride co-transporter?
+    Na/K/Cl cotrans: False   # include a sodium/potassium/chloride co-transporter?
 
     Cl/K symporter: False    # include a chloride/potassium symporter?
 
@@ -739,7 +715,7 @@ variable settings:
     M: 1
     P: 1
 
-  adherens junction scaling: 1.0e-1   # factor by which cell-cell junctions scale
+  adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
   cavity open: False  # do internally cut cavities have free env boundaries
@@ -756,7 +732,7 @@ variable settings:
 
 results options:
 
-    display plots: True   # Display plots and animations (True) or not (False)?
+    display plots: False   # Display plots and animations (True) or not (False)?
 
     plot while solving: True   # Enable a continually updated 2D animation of
                                # cell voltages during simulation computation?
@@ -780,9 +756,7 @@ results options:
         bitrate: 1500       # Video bitrate in bits per second.
         framerate: 5        # Video framerate in frames per second.
 
-        metadata:           # Video metadata. Keys are alphabetic lowercase
-                            # names supported by video encoders; values are
-                            # arbitrary human-readable strings.
+        metadata:           # Video metadata.
           artist: BETSE               # Video author name(s).
           genre:   Bioinformatics     # Video target genre.
           subject: Bioinformatics     # Video target subject.
@@ -1072,17 +1046,17 @@ internal parameters:
 
   alpha_NaK:  5.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
-  alpha_Ca:  1.0e-9    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  1.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  alpha_HK:  1.0e-7    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
+  alpha_HK:  1.0e-8    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 
-  alpha_V:  1.0e-7     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
+  alpha_V:  1.0e-8     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
 
-  alpha_NaCa: 1.0e-5    # rate of Na/Ca exchanger [m/mol*s]
+  alpha_NaCa: 1.0e-6    # rate of Na/Ca exchanger [m/mol*s]
 
-  alpha_NaKCl: 1.0e-5   # rate of Na/K/Cl cotransporter [m/mol*s]
+  alpha_NaKCl: 1.0e-6   # rate of Na/K/Cl cotransporter [m/mol*s]
 
-  alpha_ClK: 1.0e-4     # rate of Cl/K symporter [m/mol*s]
+  alpha_ClK: 1.0e-6     # rate of Cl/K symporter [m/mol*s]
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
@@ -1099,7 +1073,6 @@ internal parameters:
   field modulation factor: 1.0e-1    # factor to decrease electrophoretic component of ion mobility
 
   media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
-
 
 
 # Configuration file version that this file conforms to. For reliable

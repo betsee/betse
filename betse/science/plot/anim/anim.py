@@ -181,12 +181,11 @@ class AnimCellsWhileSolving(AnimCells):
             plt.show(block=False)
 
     # ..................{ PROPERTIES                         }..................
-    #FIXME: Obsolete. Excise, please.
     # In-place animation is governed by different configuration file booleans
     # than are post-simulation animations.
-    # @property
-    # def _is_showing(self) -> bool:
-    #     return self._p.plot_while_solving
+    @property
+    def _is_showing(self) -> bool:
+        return self._p.plot_while_solving
 
     @property
     def _is_saving(self) -> bool:

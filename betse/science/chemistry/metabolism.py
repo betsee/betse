@@ -36,7 +36,7 @@ class MasterOfMetabolism(object):
         # Define data paths for saving an initialization and simulation run:
         self.savedMoM = os.path.join(betse_cache_dir, 'MetabolicNetwork.betse')
 
-    def read_metabo_config(self, sim, cells, p, dyna):
+    def read_metabo_config(self, sim, cells, p):
 
         # create the path to read the metabolism config file:
 
