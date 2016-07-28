@@ -757,14 +757,13 @@ variable settings:
 results options:
 
     display plots: True   # Display plots and animations (True) or not (False)?
+
     plot while solving: True   # Enable a continually updated 2D animation of
                                # cell voltages during simulation computation?
     save solving plot: True         # Save the prior animation?
     automatically save plots: True  # Save post-simulation plots?
     create all animations: True     # Enable post-simulation animations?
 
-    #FIXME: Rename to "post-sim animations" and shift all of the above options
-    #specific to post-sim animations (e.g., "create all animations") here.
     save animations:        # Post-simulation animation saving options.
       frames:
         enabled: True       # Save each animation as a series of frame images?

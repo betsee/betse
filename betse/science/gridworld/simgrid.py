@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate as interp
 
-from betse.exceptions import BetseExceptionSimulation
+from betse.exceptions import BetseSimulationException
 from betse.science import filehandling as fh
 from betse.science import toolbox as tb
 from betse.science.finitediff import gradient
@@ -1751,7 +1751,7 @@ def check_v(vm):
     isnans = np.isnan(vm)
 
     if isnans.any():  # if there's anything in the isubzeros matrix...
-        raise BetseExceptionSimulation("Your simulation has become unstable. Please try a smaller time step,"
+        raise BetseSimulationException("Your simulation has become unstable. Please try a smaller time step,"
                                        "reduce gap junction radius, and/or reduce pump rate coefficients.")
 
 def rk4(c,deltac,p):

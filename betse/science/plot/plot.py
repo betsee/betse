@@ -9,7 +9,7 @@ import numpy as np
 import numpy.ma as ma
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.util.path import dirs
 from betse.util.type import types
 from betse.util.io.log import logs
@@ -1449,7 +1449,7 @@ def env_stream(datax,datay,ax,cells,p, cmap=None):
     #         linewidth=lw,color=p.vcolor,arrowsize=1.5)
 
     # else:
-    #     raise BetseExceptionFunction("Data input to env_streams function must be \n shaped as cells.X or cells.Xgrid.")
+    #     raise BetseFunctionException("Data input to env_streams function must be \n shaped as cells.X or cells.Xgrid.")
 
     return streams, ax
 
@@ -1609,7 +1609,7 @@ def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
         images_dirname = os.path.join(p.init_results, ani_obj.saveFolder)
 
     else:
-        raise BetseExceptionParameters(
+        raise BetseParametersException(
             'Anim saving for phase "{}" unsupported.'.format(p.plot_type))
 
     #FIXME: Refactor all calls to os.makedirs() everywhere similarly.

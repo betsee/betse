@@ -23,7 +23,7 @@ from betse.science.tissue.handler import TissueHandler
 from betse.science.event import modulators as mods
 from betse.util.io.log import logs
 import matplotlib.pyplot as plt
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
@@ -650,7 +650,7 @@ class MasterOfMolecules(object):
 
             # check that the plot cell is in range of the available cell indices:
             if p.plot_cell not in cells.cell_i:
-                raise BetseExceptionParameters(
+                raise BetseParametersException(
                     'The "plot cell" defined in the "results" section of your '
                     'configuration file does not exist in your cluster. '
                     'Choose a plot cell number smaller than the maximum cell number.')
@@ -1959,7 +1959,7 @@ class Reaction(object):
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
+                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
                                                    'an ion currently included in the ion profile being used.'
                                                    'Please check biomolecule definitions and ion profile'
                                                    'settings of your config(s) and try again.')
@@ -2001,7 +2001,7 @@ class Reaction(object):
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
+                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
                                                    'an ion currently included in the ion profile being used.'
                                                    'Please check biomolecule definitions and ion profile'
                                                    'settings of your config(s) and try again.')
@@ -2288,7 +2288,7 @@ class Transporter(object):
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
+                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
                                                    'an ion currently included in the ion profile being used.'
                                                    'Please check biomolecule definitions and ion profile'
                                                    'settings of your config(s) and try again.')
@@ -2330,7 +2330,7 @@ class Transporter(object):
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of product is not a defined chemical, or is not'
+                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
                                                    'an ion currently included in the ion profile being used.'
                                                    'Please check biomolecule definitions and ion profile'
                                                    'settings of your config(s) and try again.')
@@ -3024,7 +3024,7 @@ class Channel(object):
 
         else:
 
-            raise BetseExceptionParameters("Substance-modulated ion type not available. "
+            raise BetseParametersException("Substance-modulated ion type not available. "
                                            "Valid choices: Na, K, Ca, NaP, Kir, and Fun")
 
             # create the desired voltage gated sodium channel instance:
@@ -3091,7 +3091,7 @@ class Modulator(object):
 
         else:
 
-            raise BetseExceptionParameters("You have requested a "
+            raise BetseParametersException("You have requested a "
                                            "sim modulator that is not "
                                            "available. Available choices "
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
@@ -3109,7 +3109,7 @@ class Modulator(object):
 
         else:
 
-            raise BetseExceptionParameters("You have requested an unavailable modulator zone."
+            raise BetseParametersException("You have requested an unavailable modulator zone."
                                            "Available choices are 'env' and 'mems'.")
 
         # get the coefficients activating and/or inhibiting the sim structure:
@@ -3152,7 +3152,7 @@ class Modulator(object):
 
         else:
 
-            raise BetseExceptionParameters("You have requested a "
+            raise BetseParametersException("You have requested a "
                                            "sim modulator that is not "
                                            "available. Available choices "
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
@@ -3228,7 +3228,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of reaction activator is not a defined chemical, '
+                    raise BetseParametersException('Name of reaction activator is not a defined chemical, '
                                                    'or is not an ion currently included in the ion profile '
                                                    'being used.'
                                                    'Please check biomolecule definitions and ion profile'
@@ -3279,7 +3279,7 @@ def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_l
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                    raise BetseParametersException('Name of substance is not a defined chemical, '
                                                    'or is not an ion currently included in the ion profile '
                                                    'being used.'
                                                    'Please check biomolecule definitions and ion profile'
@@ -3371,7 +3371,7 @@ def get_influencers_grn(sim, sim_metabo, a_list, k_a_list, Km_a_list, n_a_list, 
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of reaction activator is not a defined chemical, '
+                    raise BetseParametersException('Name of reaction activator is not a defined chemical, '
                                                    'or is not an ion currently included in the ion profile '
                                                    'being used.'
                                                    'Please check biomolecule definitions and ion profile'
@@ -3421,7 +3421,7 @@ def get_influencers_grn(sim, sim_metabo, a_list, k_a_list, Km_a_list, n_a_list, 
 
                 except KeyError:
 
-                    raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                    raise BetseParametersException('Name of substance is not a defined chemical, '
                                                    'or is not an ion currently included in the ion profile '
                                                    'being used.'
                                                    'Please check biomolecule definitions and ion profile'
@@ -3466,7 +3466,7 @@ def get_conc(sim, sim_metabo, name, type_self, type_sim, cells, p):
 
             except KeyError:
 
-                raise BetseExceptionParameters('Name of substance is not a defined chemical, '
+                raise BetseParametersException('Name of substance is not a defined chemical, '
                                                'or is not an ion currently included in the ion profile '
                                                'being used.'
                                                'Please check biomolecule definitions and ion profile'
@@ -3552,7 +3552,7 @@ def get_conc(sim, sim_metabo, name, type_self, type_sim, cells, p):
 #             self.set_prod_concs(obj, sim, cells, p, product_name, j, 'c_mit', 'cc_mit')
 #
 #     else:
-#         raise BetseExceptionParameters("You have requested a reaction zone that does not exist."
+#         raise BetseParametersException("You have requested a reaction zone that does not exist."
 #                                        "Valid options include: 'cell' and 'mitochondria'."
 #                                        "Please check your config(s) settings defining reactions"
 #                                        " and try again. ")

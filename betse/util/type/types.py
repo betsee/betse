@@ -49,6 +49,15 @@ This class is principally useful for annotating both:
 * Callables returning `None` as a valid value.
 '''
 
+
+MappingType = Mapping
+'''
+Abstract interface implemented by all dictionary-like objects.
+
+This class is a synonym of the `collections.abc.Mapping` class, provided merely
+as a convenience to callers preferring to avoid importing that class.
+'''
+
 # ....................{ TUPLES                             }....................
 CallableTypes = (
     BuiltinFunctionType,
@@ -780,6 +789,23 @@ def is_int_ge(obj: object, ge: int) -> bool:
     '''
     assert is_int(ge), assert_not_int(ge)
     return is_int(obj) and obj >= ge
+
+
+def is_int_gt(obj: object, gt: int) -> bool:
+    '''
+    `True` only if the passed object is an integer strictly greater than the
+    second passed integer.
+    '''
+    assert is_int(gt), assert_not_int(gt)
+    return is_int(obj) and obj > gt
+
+
+def is_int_positive(obj: object) -> bool:
+    '''
+    `True` only if the passed object is a **positive integer** (i.e., is
+    strictly greater than 0).
+    '''
+    return is_int_gt(obj, 0)
 
 
 def is_numeric(obj: object) -> bool:

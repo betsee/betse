@@ -8,13 +8,16 @@ Low-level integer facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-# import sys
+from betse.exceptions import BetseIntegerException
+from betse.util.type import types
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ CONSTANTS                          }....................
 BITS_PER_BYTE = 8
 '''
 Number of bits per byte.
 '''
+
 
 # Size denominations in base 2 rather than base 10, for mild efficiency.
 KB = 1 << 10
@@ -28,6 +31,7 @@ BYTE_VALUE_MAX = 255
 Maximum value of unsigned bytes.
 '''
 
+
 INT_VALUE_MAX_32_BIT = 1 << 32
 '''
 Maximum value for integer variables of internal type `Py_ssize_t` on 32-bit
@@ -36,3 +40,50 @@ Python interpreters.
 This value is suitable for comparison with `sys.maxsize`, the maximum value of
 these variables on the current system.
 '''
+
+# ....................{ EXCEPTIONS                         }....................
+def die_unless(*objects) -> None:
+    '''
+    Raise an exception unless all passed objects are integers.
+
+    Parameters
+    ----------
+    objects : tuple
+        Tuple of all objects to be validated.
+
+    Raises
+    ----------
+    BetseIntegerException
+        If any passed object is _not_ an integer.
+    '''
+
+    for obj in objects:
+        if not types.is_int(obj):
+            raise BetseIntegerException(
+                'Object "{}" not an integer.'.format(obj))
+
+
+def die_unless_positive(*numbers) -> None:
+    '''
+    Raise an exception unless all passed objects are positive integers.
+
+    Parameters
+    ----------
+    numbers : tuple
+        Tuple of all objects to be validated.
+
+    Raises
+    ----------
+    BetseIntegerException
+        If any passed integer is _not_ a positive integer.
+    '''
+
+    # For each passed object...
+    for number in numbers:
+        # Validate this object to be an integer.
+        die_unless(number)
+
+        # Validate this integer to be positive.
+        if number <= 0:
+            raise BetseIntegerException(
+                'Integer "{}" not positive.'.format(number))

@@ -14,7 +14,7 @@ import scipy.spatial as sps
 from scipy import interpolate as interp
 from scipy import ndimage
 
-from betse.exceptions import BetseExceptionParameters
+from betse.exceptions import BetseParametersException
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
@@ -412,7 +412,7 @@ class Cells(object):
 
         else:
 
-            raise BetseExceptionParameters("You have chosen a world option lattice type that is "
+            raise BetseParametersException("You have chosen a world option lattice type that is "
                                            "not available. Options are 'hex' and 'rect'."
                                            " Please check your config file and try again.")
 
@@ -1886,7 +1886,7 @@ class Cells(object):
 
         else:
 
-            raise BetseExceptionParameters("Input to cells.curl not defined properly."
+            raise BetseParametersException("Input to cells.curl not defined properly."
                                            "It takes (Fx = 0, Fy=0, phi)  or "
                                            "(Fx,Fy,phi=0). Also, the 0 must"
                                            "be an integer, not 0.0.")

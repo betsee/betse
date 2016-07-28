@@ -16,7 +16,7 @@ Low-level module facilities.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import collections, importlib, sys
-from betse.exceptions import BetseExceptionModule
+from betse.exceptions import BetseModuleException
 from betse.util.type import types
 
 # ....................{ GLOBALS ~ dict                     }....................
@@ -80,7 +80,7 @@ def die_unless_module(
             types.assert_not_str(exception_message))
 
         # Raise this exception.
-        raise BetseExceptionModule(exception_message)
+        raise BetseModuleException(exception_message)
 
 # ....................{ TESTERS                            }....................
 def is_module(module_name: str) -> bool:
@@ -178,7 +178,7 @@ def get_version(mod) -> str:
 
     # If such version does *NOT* exist, raise an exception.
     if module_version is None:
-        raise BetseExceptionModule(
+        raise BetseModuleException(
             'Module "%s" version not found.', str(mod))
 
     return module_version

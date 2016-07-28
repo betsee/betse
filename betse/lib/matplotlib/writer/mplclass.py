@@ -16,6 +16,7 @@ from matplotlib import verbose
 from matplotlib.animation import writers, MovieWriter
 
 # ....................{ CLASSES                            }....................
+#FIXME: Rename to "NullMovieWriter" and the name "noop" to "null".
 @writers.register('noop')
 class NoopWriter(MovieWriter):
     '''

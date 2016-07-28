@@ -8,7 +8,11 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.types import type_check, CallableTypes
+from betse.exceptions import BetseDecoratorException
+from betse.util.type import types
+from betse.util.type.types import (
+    type_check, CallableTypes, FunctionType, MethodType)
+from functools import wraps
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -104,3 +108,5 @@ def iter_fields_nonbuiltin(obj: object):
             attr_value = getattr(obj, attr_name)
             if not callable(attr_value):
                 yield attr_name, attr_value
+
+# ....................{ DECORATORS                         }....................

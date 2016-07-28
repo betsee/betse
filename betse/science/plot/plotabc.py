@@ -14,7 +14,7 @@ Abstract base classes of all Matplotlib-based plotting classes.
 import numpy as np
 import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
-from betse.exceptions import BetseExceptionMethod
+from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.util.type import types, objects
 from betse.util.type.types import (
@@ -481,7 +481,7 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # If the _prep_figure() method has yet to be called, raise an exception.
         if self._color_mappings is None:
-            raise BetseExceptionMethod(
+            raise BetseMethodException(
                 '{class_name}._rescale_colors() called before '
                 '{class_name}._prep_figure().'.format(class_name=type(self)))
 

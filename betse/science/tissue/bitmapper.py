@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 import numpy as np
-from betse.exceptions import BetseExceptionSimulation
+from betse.exceptions import BetseSimulationException
 from betse.util.path import files, paths
 from scipy import interpolate as interp
 from scipy import misc
@@ -76,7 +76,7 @@ class BitMapper(object):
         # bitmap = np.asarray(bitmap, dtype=np.int)
 
         if bitmap.shape[0] != bitmap.shape[1]:
-            raise BetseExceptionSimulation(
+            raise BetseSimulationException(
                 'Bitmap "{}" dimensions non-square '
                 '(i.e., not of the same width and height).'.format(
                     bitmap_matcher.filename))

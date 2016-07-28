@@ -8,7 +8,7 @@ import numpy as np
 import numpy.ma as ma
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.exceptions import BetseExceptionSimulationInstability
+from betse.exceptions import BetseSimulationInstabilityException
 
 
 # Toolbox of functions used in the Simulator class to calculate key bioelectric properties.
@@ -721,7 +721,7 @@ def check_v(vm):
     isnans = np.isnan(vm)
 
     if isnans.any():  # if there's anything in the isubzeros matrix...
-        raise BetseExceptionSimulationInstability(
+        raise BetseSimulationInstabilityException(
             "Your simulation has become unstable. Please try a smaller time step,"
             "reduce gap junction radius, and/or reduce pump rate coefficients.")
 
@@ -870,7 +870,7 @@ def no_negs(data):
 
     if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
 
-        raise BetseExceptionSimulationInstability(
+        raise BetseSimulationInstabilityException(
             "Your simulation has become unstable. Please try a smaller time step,"
             "reduce gap junction radius, and/or reduce rate coefficients.")
 

@@ -6,7 +6,7 @@
 import numpy as np
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.exceptions import BetseExceptionSimulation
+from betse.exceptions import BetseSimulationException
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
 from scipy.interpolate import SmoothBivariateSpline
@@ -142,7 +142,7 @@ def timeDeform(sim, cells, t, p):
     if step_check > 1.0:
         new_ts = (0.9 * 2 * p.rc) / (np.sqrt(p.lame_mu / 1000))
 
-        raise BetseExceptionSimulation(
+        raise BetseSimulationException(
             'Time dependent deformation is tricky business, requiring a small time step! '
             'The time step you are using is too large to bother going further with. '
             'Please set your time step to ' + str(new_ts) + ' and try again.')
