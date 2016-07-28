@@ -29,6 +29,7 @@ _CLI_SIM_SUBCOMMANDS_ARGS = (
     ('plot', 'seed'),
     ('plot', 'init'),
     ('plot', 'sim'),
+    ('repl',),
 )
 '''
 List of all argument lists running simulation-specific BETSE CLI subcommands,

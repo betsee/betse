@@ -291,6 +291,15 @@ directory:
 
 
     CLISubcommandNoArg(
+        name='repl',
+        synopsis='drop into a REPL within an initialized BETSE environment',
+        description='''
+Initialize the BETSE environment and immediately open a REPL. This allows
+interactive manipulation of the simulations and analyses.
+''',),
+
+
+    CLISubcommandNoArg(
         name='info',
         synopsis='show information about {program_name} and the current system',
         description='''

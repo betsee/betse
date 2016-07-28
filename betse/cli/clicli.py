@@ -360,6 +360,12 @@ class CLICLI(CLIABC):
 
         self._get_sim_runner().plot_grn()
 
+    def _do_repl(self) -> None:
+        '''
+        Run the `repl` subcommand.
+        '''
+        logs.log_info('The REPL subcommand is not yet implemented.')
+
     # ..................{ GETTERS                            }..................
     def _get_sim_runner(self):
         '''
