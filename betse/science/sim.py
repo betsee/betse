@@ -557,6 +557,8 @@ class Simulator(object):
         self.P_mod = np.copy(self.P_cells[:])
         self.P_base = np.copy(self.P_cells[:])
 
+        self.div_u_osmo = np.zeros(self.cdl)
+
         # Noise Initialization ---------------------
         # add channel noise to the model:
         self.channel_noise_factor = np.random.random(self.mdl)
