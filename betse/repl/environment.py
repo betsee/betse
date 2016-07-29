@@ -9,7 +9,7 @@ Each function and variable in this module is loaded into the `repl_env`
 dictionary via a call to `locals`. This is the only symbol that should
 be imported from this module.
 '''
-from betse.betse import *
+from betse.script import *
 
 __betse_repl__ = True
 

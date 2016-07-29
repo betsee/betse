@@ -5,7 +5,7 @@
 
 # Issue #2: Feature Request - Interactive REPL + Non-interactive Scripting
 #
-# To facilitate sane non-interactive scripting, the `betse.betse` submodule is
+# To facilitate sane non-interactive scripting, the `betse.script` submodule is
 # created to make BETSE's various submodules easly accessible to scripts and to
 # initialize the BETSE environment.
 #
