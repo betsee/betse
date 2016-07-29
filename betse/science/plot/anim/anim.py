@@ -249,8 +249,6 @@ class AnimCellsWhileSolving(AnimCells):
 
         # If displaying this frame, do so.
         if self._is_showing:
-            logs.log_debug(
-                'Displaying animation "{}" frame...')
             self._figure.canvas.draw()
 
 
@@ -450,6 +448,12 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
         # Environmental data meshplot for this frame.
         self._mesh_plot.set_data(self._time_series[self._time_step])
 
+
+#FIXME: Disable display of the cell-centric time series, leaving only the
+#gap junction-centric time series displayed. Alternately, might it be possible
+#to filter the cell-centric time series with some sort of alpha-based fading
+#effect -- reducing the prominance of that series but not entirely eliminating
+#that series. Contemplate us up, anyways.
 
 class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
     '''

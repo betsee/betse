@@ -377,146 +377,12 @@ class AnimCells(PlotCells):
                 'Animation saving unsupported during the "{}" loop.'.format(
                     plot_type))
 
-        #FIXME: Pull the image filetype from the current YAML configuration
-        #rather than coercing use of ".png".
-        #FIXME: To do so, let's:
-        #
-        #* Create a new "betse.science.plot.anim.config" submodule.
-        #* Create a new "AnimConfig" class in that submodule.
-        #* Define a AnimConfig.make() factory method ala the existing
-        #  betse.science.tissue.picker.TissuePicker.make() factory method. This
-        #  method should deserialize *ALL* settings in the
-        #  "results options/save animations" YAML subsection.
-        #* Refactor all of the following "save_*" locals into public
-        #  "AnimConfig" attributes, which should then be accessed here directly.
-        #* Call that method in the "Parameters" class, capturing the result to a
-        #  new "Parameters.anim" instance variable.
-        #FIXME: Ah, right-o. We already appear to have existing classes
-        #encapsulating these configuration settings in the "saver" submodule.
-        #Frankly, however, that submodule is somewhat too fine-grained. We
-        #probably really only need a single "AnimConfig" class, as suggested
-        #above, rather than a deep class hierarchy. Consider simplifying.
-
-        # `True` only if saving all frames of this animation to disk as images.
-        is_saving_frames = True
-
-        # `True` only if saving all frames of this animation to disk as a video.
-        # is_saving_video = True
-        is_saving_video = False
-
-        # Filetype of each frame image to be saved for this animation. Ignored
-        # if `is_saving_frames` is `False`.
-        save_frame_filetype = 'png'
-
-        # Dots per inch (DPI) of each frame image to be saved for this
-        # animation. Ignored if `is_saving_frames` is `False`.
-        self._writer_images_dpi = mpl_config.get_rc_param('savefig.dpi')
-
-        #FIXME: Change the YAML default to "mkv", please.
-
-        # Filetype of the video to be saved for this animation. Ignored if
-        # `is_saving_video` is `False`. Recognized filetypes include:
-        #
-        # * "mkv" (Matroska), an open-standard audio and video container
-        #   supporting all relevant codecs and hence the default.
-        # * "avi", Microsoft's obsolete proprietary audio and video container.
-        # * "gif", a proprietary image format supporting video animations.
-        # * "ogv" (Theora), Xiph's open-standard audio and video container.
-        # * "mov" (QuickTime), Apple's proprietary audio and video container.
-        # * "mp4" (MPEG-4 Part 14), an open-standard audio and video container.
-        # * "webm" (WebM), Google's proprietary audio and video container.
-        save_video_filetype = 'mkv'
-
-        #FIXME: Set a sane default. Note the following interesting logic in
-        #the "matplotlib.animations" module:
-        #
-        #class MencoderBase(object):
-        #    # Mencoder only allows certain keys, other ones cause the program
-        #    # to fail.
-        #    allowed_metadata = ['name', 'artist', 'genre', 'subject', 'copyright',
-        #                        'srcform', 'comment']
-        #
-        #Hence, we'll probably want to default to something containing at most
-        #such metadata. Maybe? Maybe the empty list is the only sane default.
-        #Ah! Right. We can certainly at least set the:
-        #
-        #* "title" and "name" to the current animation's label. These two
-        #  metadata appear to be synonyms of each other.
-        #* "genre" to "Bioinformatics".
-        #* "copyright" to "@ {}".format(current_year) or some such.
-        #
-        #And that's probably it.
-
-        # Dictionary mapping from each matplotlib-specific metadata name to that
-        # metadata's string value of the video to be saved for this animation.
-        # Ignored if `is_saving_video` is `False`. Metadata names of common
-        # interest include: "title", "artist", "genre", "subject", "copyright",
-        # "srcform", and "comment".
-        save_video_metadata = {}
-        # save_video_metadata = {artist: 'Me'}
-
-        # Dots per inch (DPI) of each frame of the video to be saved for this
-        # animation. Ignored if `is_saving_frames` is `False`.
-        self._writer_video_dpi = mpl_config.get_rc_param('savefig.dpi')
-
-        #FIXME: Set a sane default. There appear to be two Matplotlib defaults
-        #for FPS, depending on object instantiation:
-        #
-        #* For writers instantiated directly, FPS defaults to 5. (Bit low, no?)
-        #* For writers instantiated indirectly, FPS defaults to a formula
-        #  presumably intelligently depending on animation properties:
-        #
-        #      # Convert interval in ms to frames per second
-        #      fps = 1000.0 / self._interval
-        #
-        #While we have no idea how the latter works, it's probably more useful.
-
-        # Frames per second (FPS) of the video to be saved for this animation.
-        # Ignored if `is_saving_video` is `False`.
-        save_video_fps = 5
-
-        # Bitrate of the video to be saved for this animation. Ignored if
-        # `is_saving_video` is `False`.
-        save_video_bitrate = 1500
-        # save_video_bitrate = mpl_config.get_rc_param('animation.bitrate')
-
-        # List of the matplotlib-specific names of all external encoders
-        # supported by matplotlib with which to encode this video (in descending
-        # order of preference), automatically selecting the first encoder found
-        # on the current $PATH. Ignored if `is_saving_video` is `False`.
-        #
-        # Recognized names include:
-        #
-        # * "ffmpeg", an open-source cross-platform audio and video encoder.
-        # * "avconv", an open-source cross-platform audio and video encoder
-        #   forked from (and largely interchangeable with) "ffmpeg".
-        # * "mencoder", an open-source cross-platform audio and video encoder
-        #   associated with MPlayer, a popular media player.
-        # * "imagemagick", an open-source cross-platform image manipulation
-        #   suite supporting *ONLY* creation of animated GIFs.
-        save_video_writer_names = ['ffmpeg', 'avconv', 'mencoder']
-
-        #FIXME: Complete comment.
-        # List of the encoder-specific names of all codecs with which to encode
-        # this video (in descending order of preference), automatically
-        # selecting the first codec supported by the current encoder. If any
-        # such name is `auto`, that name will be substituted by BETSE with the
-        # name of a codec specific to the current encoder and the filetype of
-        # the video being encoded. Ignored if `is_saving_video` is `False`.
-        #
-        # Recognized names include:
-        #
-        # * If the current encoder is either `ffmpeg` or `avconv` and this
-        #   video filetype is:
-        #   * `mp4`:
-        #     *
-        # * If the current encoder is `imagemagick`, a non-fatal warning will
-        #   be printed for any codec except `auto` and summarily ignored.
-        save_video_codec_names = ['auto']
+        # Animation configuration localized for convenience.
+        anim_config = self._p.anim
 
         # If saving animation frames as either images or video, prepare to do so
         # in a manner common to both.
-        if is_saving_frames or is_saving_video:
+        if anim_config.is_images_saving or anim_config.is_video_saving:
             # Dictionary of all keyword arguments to be passed to the
             # `Figure.savefig()` method called to save each animation frame for
             # both images and video.
@@ -535,7 +401,7 @@ class AnimCells(PlotCells):
             save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
 
         # If saving animation frames as images, prepare to do so.
-        if is_saving_frames:
+        if anim_config.is_images_saving:
             #FIXME: This currently defaults to padding frames with six or seven
             #zeroes, on average. Let's make this a bit more aesthetic by padding
             #frames to only as many zeroes are absolutely required by the
@@ -548,46 +414,32 @@ class AnimCells(PlotCells):
             # "}}"-delimited substring to the 0-based index of the current
             # frame number.
             save_frame_template_basename = '{}_{{:07d}}.{}'.format(
-                self._label, save_frame_filetype)
+                self._label, anim_config.image_filetype)
 
             # Template expanding to the absolute path of each image to be saved.
-            self._writer_images_template = paths.join(
+            writer_images_template = paths.join(
                 save_dirname, save_frame_template_basename)
 
             # Object writing animation frames as images.
             self._writer_images = ImageWriter()
 
-            # If both saving and displaying animation frames, prepare to do so.
-            # If only saving but *NOT* displaying animation frames, the setup()
-            # method called below is already called by the MovieWriter.saving()
-            # method called by the Anim.save() method called by the _animate()
-            # method called below. (No comment on architectural missteps.)
-            #
-            # See the _save_frame() method for horrid discussion.
-            # if self._is_saving_showing:
             # Log this preparation.
             logs.log_debug(
                 'Preparing to save animation frames "%s"...',
-                self._writer_images_template)
+                writer_images_template)
 
             # Prepare to save these animation frames.
             self._writer_images.setup(
                 fig=self._figure,
-                outfile=self._writer_images_template,
-                dpi=self._writer_images_dpi,
+                outfile=writer_images_template,
+                dpi=anim_config.image_dpi,
             )
 
-        #FIXME: FFMpeg integration appears to be extremely fragile. To combat
-        #this, consider enabling an FFMpeg-specific debug log with the
-        #following (...although we have no idea where the log actually lives):
-        #
-        #    matplotlib.rcParams['animation.ffmpeg_args'] = '-report'
-
         # If saving animation frames as video, prepare to do so.
-        if is_saving_video:
+        if anim_config.is_video_saving:
             # Name of the first video encoder installed on the current system.
             video_writer_name = mplvideo.get_first_writer_name(
-                save_video_writer_names)
+                anim_config.video_writer_names)
             # print('found video writer: {}'.format(VideoWriterClass))
 
             # Matplotlib animation writer class encapsulating this encoder.
@@ -598,32 +450,30 @@ class AnimCells(PlotCells):
             # video's filetype.
             video_codec_name = mplvideo.get_first_codec_name(
                 writer_name=video_writer_name,
-                container_filetype=save_video_filetype,
-                codec_names=save_video_codec_names,
+                container_filetype=anim_config.video_filetype,
+                codec_names=anim_config.video_codec_names,
             )
 
             # Basename of the video to be written.
             save_video_basename = '{}.{}'.format(
-                self._label, save_video_filetype)
+                self._label, anim_config.video_filetype)
 
             # Absolute path of the video to be written.
-            self._writer_video_filename = paths.join(
+            writer_video_filename = paths.join(
                 save_dirname, save_video_basename)
 
             # Object writing animation frames as video.
             self._writer_video = VideoWriterClass(
-                fps=save_video_fps,
-                bitrate=save_video_bitrate,
+                bitrate=anim_config.video_bitrate,
                 codec=video_codec_name,
-                metadata=save_video_metadata,
+                fps=anim_config.video_framerate,
+                metadata=anim_config.video_metadata,
             )
 
-            # If both saving and displaying animation frames, prepare as above.
-            # if self._is_saving_showing:
             # Log this preparation.
             logs.log_debug(
                 'Preparing to save animation video "%s"...',
-                self._writer_video_filename)
+                writer_video_filename)
 
             # Prepare to save this animation video. Matplotlib squelches
             # critical (technically non-fatal but effectively fatal)
@@ -634,7 +484,7 @@ class AnimCells(PlotCells):
             with mpl_config.verbosity_debug_if_helpful():
                 self._writer_video.setup(
                     fig=self._figure,
-                    outfile=self._writer_video_filename,
+                    outfile=writer_video_filename,
                     dpi=self._writer_video_dpi,
                 )
 

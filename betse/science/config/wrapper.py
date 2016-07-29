@@ -215,6 +215,7 @@ class SimConfigWrapper(object):
         '''
 
         self._config['results options']['display plots'] = False
+        self._config['results options']['plot while solving'] = False
 
     # ..................{ ENABLERS                           }..................
     def enable_anims(self) -> None:
@@ -247,19 +248,32 @@ class SimConfigWrapper(object):
           * Electrostatic pressure.
         '''
 
-        # Disable display of all mid- and post-simulation plots and animations.
-        self._config['general options']['ion profile'] = 'animal'
-        self._config['general options']['simulate extracellular spaces'] = True
-        self._config[
-            'variable settings']['channel electroosmosis']['turn on'] = True
-        self._config[
-            'variable settings']['deformation']['turn on'] = True
-        self._config[
-            'variable settings']['fluid flow']['include fluid flow'] = True
-        self._config[
-            'variable settings']['pressures']['include electrostatic pressure'] = True
-        self._config[
-            'variable settings']['pressures']['include osmotic pressure'] = True
+        # Localize nested dictionaries for convenience.
+        general = self._config['general options']
+        results = self._config['results options']
+        variable = self._config['variable settings']
+
+        # Enable all animations.
+        results['Vmem 2D']['plot Vmem'] = True
+        results['Ca 2D']['plot Ca'] = True
+        results['pH 2D']['plot pH'] = True
+        results['Vcell 2D']['plot Vcell'] = True
+        results['Charge 2D']['plot Charge'] = True
+        results['Efield 2D']['plot Efield'] = True
+        results['Currents 2D']['plot Currents'] = True
+        results['Pressure 2D']['plot Pressure'] = True
+        results['Osmotic Pressure 2D']['plot Osmotic Pressure'] = True
+        results['Velocity 2D']['plot Velocity'] = True
+        results['Electrostatic 2D']['plot Electrostatic'] = True
+
+        # Enable all features required by these animations.
+        general['ion profile'] = 'animal'
+        general['simulate extracellular spaces'] = True
+        variable['channel electroosmosis']['turn on'] = True
+        variable['deformation']['turn on'] = True
+        variable['fluid flow']['include fluid flow'] = True
+        variable['pressures']['include electrostatic pressure'] = True
+        variable['pressures']['include osmotic pressure'] = True
 
     # ..................{ MINIMIZERS                         }..................
     def minify(self) -> None:
@@ -285,7 +299,8 @@ class SimConfigWrapper(object):
         # Interval to sample such steps at in seconds.
         init['sampling rate'] = min(
             float(init['sampling rate']), init['time step'])
-        # Total simulation time in seconds.
+        # Total simulation time in seconds. The first digit effectively defines
+        # the number of sampled time steps, by the above choice of time step.
         init['total time'] = min(
             float(init['total time']), 3.0e-3)
 
