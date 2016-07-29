@@ -6,6 +6,9 @@
 Animation serialization classes.
 '''
 
+#FIXME: Default the "copyright" entry of video metadata to
+#"@ {}".format(current_year)".
+
 #FIXME: Define saving-ordiented methods.
 
 #FIXME: Redefine all animations-oriented "Parameters" booleans excluding
@@ -56,24 +59,28 @@ class AnimConfig(object):
         `True` only if this configuration saves animation frames as video.
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
-        `is_saving_images` is `False`.
+        `is_images_saving` is `False`.
     image_dpi : int
         Dots per inch (DPI) of all image files saved by this configuration.
-        Ignored if `is_saving_images` is `False`.
+        Ignored if `is_images_saving` is `False`.
     video_bitrate : int
         Bitrate in bits per second of all video files saved by this
-        configuration. Ignored if `is_saving_video` is `False`.
+        configuration. Ignored if `is_video_saving` is `False`.
+    video_codec_names : Sequence
+        List of the names of all encoder-specific codecs with which to encode
+        animations (in descending order of preference), automatically:
+        * Selecting the first codec supported by the selected writer.
+        * Replacing any codec named `auto` by the name of a recommended codec
+          specific to the selected writer and filetype. For details, see the
+          `betse.lib.matplotlib.writer.mplvideo.get_first_codec_name()`
+          function.
+        Ignored if `is_video_saving` is `False`.
     video_dpi : int
         Dots per inch (DPI) of all frames of all video files saved by this
-        configuration.  Ignored if `is_saving_images` is `False`.
-    video_encoder_names : Sequence
-        List of the matplotlib-specific names of all video encoders with which
-        to encode animations (in order of descending preference), ignoring all
-        video encoders _not_ installed on the current system. Ignored if
-        `is_saving_video` is `False`.
+        configuration. Ignored if `is_images_saving` is `False`.
     video_filetype : str
         Filetype of all video files saved by this configuration. Ignored if
-        `is_saving_video` is `False`. Supported filetypes include:
+        `is_video_saving` is `False`. Supported filetypes include:
         * `mkv` (Matroska), an open-standard audio and video container
           supporting all relevant codecs and hence the default.
         * `avi`, Microsoft's obsolete proprietary audio and video container.
@@ -84,15 +91,27 @@ class AnimConfig(object):
         * `webm` (WebM), Google's proprietary audio and video container.
     video_framerate : int
         Framerate in frames per second of all video files saved by this
-        configuration. Ignored if `is_saving_video` is `False`.
+        configuration. Ignored if `is_video_saving` is `False`.
     video_metadata : dict
         Dictionary mapping from the alphabetic lowercase name of video metadata
         supported by the active video encoder to that metadata's human-readable
         string to be embedded in all video files saved by this configuration.
-        Ignored if `is_saving_video` is `False`. Supported names include:
+        Ignored if `is_video_saving` is `False`. Supported names include:
         `title`, `artist`, `genre`, `subject`, `copyright`, `srcform`, and
         `comment`. If this dictionary does _not_ contain a `copyright` key, such
         a key will be automatically synthesized from the current year.
+    video_writer_names : Sequence
+        List of the names of all matplotlib animation writers with which to
+        encode animations (in order of descending preference), automatically
+        selecting the first writer installed on the current system. Ignored if
+        `is_video_saving` is `False`. Supported names include:
+        * `ffmpeg`, an open-source cross-platform audio and video encoder.
+        * `avconv`, an open-source cross-platform audio and video encoder
+          forked from (and largely interchangeable with) `ffmpeg`.
+        * `mencoder`, an open-source cross-platform audio and video encoder
+          associated with MPlayer, a popular media player.
+        * `imagemagick`, an open-source cross-platform image manipulation
+          suite supporting _only_ creation of animated GIFs.
     '''
 
     # ..................{ ABSTRACT ~ static                  }..................
@@ -146,11 +165,11 @@ class AnimConfig(object):
             video_filetype=video['filetype'],
             video_framerate=video['framerate'],
             video_metadata=video['metadata'],
-            video_encoder_names=video['encoders'],
+            video_writer_names=video['writers'],
+            video_codec_names=video['codecs'],
         )
 
     # ..................{ CONCRETE ~ public                  }..................
-    #FIXME: Leverage the new @classify_params decorator here.
     @type_check
     def __init__(
         self,
@@ -175,9 +194,32 @@ class AnimConfig(object):
         video_filetype: str,
         video_framerate: int,
         video_metadata: MappingType,
-        video_encoder_names: SequenceTypes,
+        video_writer_names: SequenceTypes,
+        video_codec_names: SequenceTypes,
     ) -> None:
 
         # Validate all passed integers as positive.
         ints.die_unless_positive(
             image_dpi, video_bitrate, video_dpi, video_framerate)
+
+        #FIXME: Repetition is vile and demeaning. Design and leverage a new
+        #@classify_params decorator here instead, please.
+
+        # Classify the passed parameters.
+        self.is_withsim = is_withsim
+        self.is_withsim_showing = is_withsim_showing
+        self.is_withsim_saving = is_withsim_saving
+        self.is_postsim = is_postsim
+        self.is_postsim_showing = is_postsim_showing
+        self.is_postsim_saving = is_postsim_saving
+        self.is_images_saving = is_images_saving
+        self.image_filetype = image_filetype
+        self.image_dpi = image_dpi
+        self.is_video_saving = is_video_saving
+        self.video_bitrate = video_bitrate
+        self.video_dpi = video_dpi
+        self.video_filetype = video_filetype
+        self.video_framerate = video_framerate
+        self.video_metadata = video_metadata
+        self.video_writer_names = video_writer_names
+        self.video_codec_names = video_codec_names

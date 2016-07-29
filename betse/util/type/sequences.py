@@ -5,7 +5,7 @@
 
 '''
 Low-level **non-string sequence** (i.e., non-string object implementing the
-abstract base class `collections.SequenceTypes`) facilities.
+abstract base class `collections.abc.Sequence`) facilities.
 
 See Also
 ----------

@@ -50,6 +50,16 @@ This class is principally useful for annotating both:
 '''
 
 
+IterableType = Iterable
+'''
+Abstract interface implemented by all **iterable objects** (i.e., implementing
+the standard `__iter__()` and `next()` iterable methods).
+
+This class is a synonym of the `collections.abc.Iterable` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
+'''
+
+
 MappingType = Mapping
 '''
 Abstract interface implemented by all dictionary-like objects.

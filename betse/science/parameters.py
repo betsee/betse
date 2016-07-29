@@ -2,21 +2,22 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-
+# ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib import matplotlibs
 from betse.science.config import sim_config
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
+from betse.science.plot.anim.animconfig import AnimConfig
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
 from betse.util.io.log import logs
 from betse.util.path import paths
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
 
-
+# ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
 class Parameters(object):
     '''
@@ -44,10 +45,15 @@ class Parameters(object):
         `True` if overlaying either electric current or concentration flux
         streamlines on appropriate plots and animations _or_ `False` otherwise.
 
+    Attributes (Results)
+    ----------------------------
+    anim : AnimConfig
+        Object encapsulating the configuration of all animations.
+
     Attributes (Tissue)
     ----------------------------
     clipping_bitmap_matcher : TissuePickerBitmap
-        Object describing the bitmap whose colored pixel area specifies the
+        Object encapsulating the bitmap whose colored pixel area specifies the
         global geometry mask to which all tissue profile bitmaps will be
         clipped.
     closed_bound : bool
@@ -776,8 +782,11 @@ class Parameters(object):
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 
         # ................{ ANIMATIONS                         }................
-        #FIXME: Call the newly defined AnimConfig.make() method here first;
-        #then, redefine the following booleans in term of the created object.
+        # Convert low-level dictionary entries configuring animations into a
+        # high-level object.
+        self.anim = AnimConfig.make(self)
+
+        #FIXME: Redefine the following booleans in term of the above object.
 
         self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
         self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
@@ -1295,9 +1304,6 @@ class Parameters(object):
         configuration into their modern equivalents.
         '''
 
-        #FIXME: Excise after moderately worky.
-        return
-
         # For convenience, localize configuration subdictionaries.
         results = self.config['results options']
 
@@ -1312,25 +1318,26 @@ class Parameters(object):
             'after solving' in results and
             'export' in results
         ):
+            #FIXME: Uncomment after formalizing these changes.
+
             # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file results options '
-                '"while solving", "after solving", and/or "export" '
-                'not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
+            # logs.log_warning(
+            #     'Config file results options '
+            #     '"while solving", "after solving", and/or "export" '
+            #     'not found. '
+            #     'Repairing to preserve backward compatibility. '
+            #     'Consider upgrading to the newest config file format!',
+            # )
 
             # For convenience, localize configuration subdictionaries.
             anim_save = results['save animations']
             anim_save_frames = anim_save['frames']
-            anim_save_video =  anim_save['video']
 
             # Convert the prior into the current configuration format.
             results['while solving'] = {
                 'animations': {
                     'enabled': results['plot while solving'],
-                    'show':    results['display plots'],
+                    'show':    results['plot while solving'],
                     'save':    results['save solving plot'],
                 },
             }
@@ -1358,8 +1365,8 @@ class Parameters(object):
                         'dpi':      anim_save_frames['dpi'],
                     },
                     'video': {
-                        'enabled':  anim_save_video['enabled'],
-                        'filetype': anim_save_video['filetype'],
+                        'enabled':  False,
+                        'filetype': 'mp4',
                         'dpi': 300,
                         'bitrate': 1500,
                         'framerate': 5,
@@ -1369,6 +1376,9 @@ class Parameters(object):
                             'subject': 'Bioinformatics',
                             'comment': 'Produced by BETSE.',
                         },
+                        'writers': [
+                            'ffmpeg', 'avconv', 'mencoder', 'imagemagick'],
+                        'codecs': ['auto'],
                     },
                 },
                 'data': {
@@ -1441,26 +1451,35 @@ class Parameters(object):
             self.t_resample = self.resample/self.dt
             self.method = 0
 
-
-def bal_charge(concentrations, zs):
-    """
-    Sums the concentrations of profile ions with their charge state to
-    determine how much net positive charge exists. Returns concentration
+# ....................{ HELPERS                            }....................
+#FIXME: Shift this into a more appropriate math-oriented module. Funny sunning!
+def bal_charge(concentrations: SequenceTypes, zs: SequenceTypes) -> tuple:
+    '''
+    Sum the concentrations of profile ions with their charge state to
+    determine how much net positive charge exists, returning the concentration
     of the charge compensation anion M- needed to have zero net charge.
 
     Parameters
     -------------
-    concentrations:   array defining concentrations of all ions in a space
-    zs:               array (in complementary order to concentrations) of ion valence state
+    concentrations : SequenceType
+        Array defining the concentrations of all ions in a space.
+    zs : SequenceType
+        Array (in complementary order to `concentrations`) of ion valence
+        state.
 
     Returns
     ---------
-    bal_conc         concentration of anion M- to create zero net charge
-    valence          charge of the bal_conc (should be -1)
-    """
+    (float, float)
+        2-tuple `(bal_conc, valence)`, where:
+        * `bal_conc` is the concentration of anion M- to create zero net
+          charge.
+        * `valence` is the charge of the `bal_conc`. Ideally, this should
+          _always_ be -1.
+    '''
+
     q = 0
 
-    for conc,z in zip(concentrations,zs):
+    for conc,z in zip(concentrations, zs):
         q = q+ conc*z
 
         to_zero = -q
@@ -1469,4 +1488,4 @@ def bal_charge(concentrations, zs):
 
         assert bal_conc >= 0
 
-    return bal_conc,valance
+    return bal_conc, valance

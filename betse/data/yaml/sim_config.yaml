@@ -764,10 +764,17 @@ results options:
           # copyright: 2017           # Video copyright. If commented, defaults
                                       # to the current year.
 
-        # List of the matplotlib-specific names of all external video encoders
-        # with which to encode such video (in descending order of preference).
-        # The first encoder on the current ${PATH} will be automatically used.
-        encoders: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
+        # List of the names of all matplotlib animation writers with which to
+        # encode such video (in descending order of preference), automatically
+        # selecting the first writer installed on the current system.
+        writers: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
+
+        # List of the names of all encoder-specific codecs with which to encode
+        # such video (in descending order of preference), automatically:
+        # * Selecting the first codec supported by the selected writer.
+        # * Replacing any codec named "auto" by the name of a recommended codec
+        #   specific to the selected writer and filetype.
+        codecs: ['auto']
 
     export data to file: True      # export all stored data for the plot cell
                                    # to a comma-delimited (csv) text file
