@@ -24,7 +24,7 @@ def start_repl(repl_type : str = None):
     repl_type : str
         The type of REPL to prefer, either `None`, `ptpython` or `code`.
     '''
-    import betse.util.io.log.logs as logs
+    from betse.util.io.log.logs import log_warning
     from betse.exceptions import BetseFunctionException
 
     if repl_type is None:
@@ -36,8 +36,8 @@ def start_repl(repl_type : str = None):
         if __has_ptpython:
             start_ptpython_repl()
         else:
-            logs.log_info("The ptpython module does not appear to be installed.")
-            logs.log_info("Falling back to a code-based REPL.")
+            log_warning("The ptpython module does not appear to be installed.")
+            log_warning("Falling back to a code-based REPL.")
             start_code_repl()
     elif repl_type == 'code':
         start_code_repl()
