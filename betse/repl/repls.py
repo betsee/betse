@@ -8,13 +8,9 @@ import betse.pathtree as pathtree
 import betse.util.io.log.logs as logs
 from betse.exceptions import BetseFunctionException
 from betse.repl.environment import repl_env
+from betse.util.py import modules
 
-# Attempt to import the ptpython module
-try:
-    from ptpython.repl import embed
-    __has_ptpython = True
-except ImportError:
-    __has_ptpython = False
+__has_ptpython = modules.is_module('ptpython')
 
 def start_repl(repl_type : str = None):
     '''
@@ -66,6 +62,7 @@ def start_ptpython_repl():
     '''
     Start a REPL built around the `ptpython` module
     '''
+    from ptpython.repl import embed
     try:
         embed(globals=None, locals=repl_env,
             history_filename=pathtree.REPL_HISTORY_FILENAME)
