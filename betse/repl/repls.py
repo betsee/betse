@@ -3,8 +3,6 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 import betse.pathtree as pathtree
-import betse.util.io.log.logs as logs
-from betse.exceptions import BetseFunctionException
 from betse.repl.environment import repl_env
 from betse.util.py import modules
 
@@ -26,6 +24,9 @@ def start_repl(repl_type : str = None):
     repl_type : str
         The type of REPL to prefer, either `None`, `ptpython` or `code`.
     '''
+    import betse.util.io.log.logs as logs
+    from betse.exceptions import BetseFunctionException
+
     if repl_type is None:
         if __has_ptpython:
             start_ptpython_repl()
