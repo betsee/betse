@@ -4,11 +4,12 @@
 # See "LICENSE" for further details.
 import betse.pathtree as pathtree
 from betse.repl.environment import repl_env
+from betse.util.io.log.logs import log_warning
 from betse.util.py import modules
 from betse.util.type.types import type_check
 from enum import Enum
 
-__has_ptpython = modules.is_module('ptpython')
+__has_ptpython =  modules.is_module('ptpython')
 
 class REPLType(Enum):
     '''
@@ -33,30 +34,48 @@ def start_repl(repl_type : REPLType = REPLType.first_available) -> None:
     repl_type : REPLType
         The type of REPL to prefer
     '''
-    from betse.util.io.log.logs import log_warning
-
     if repl_type is REPLType.first_available:
-        if __has_ptpython:
-            start_ptpython_repl()
-        else:
-            start_code_repl()
+        start_first_repl()
     elif repl_type is REPLType.ptpython:
-        if __has_ptpython:
-            start_ptpython_repl()
-        else:
-            log_warning("The ptpython module does not appear to be installed.")
-            log_warning("Falling back to a code-based REPL.")
-            start_code_repl()
+        start_ptpython_repl()
     elif repl_type is REPLType.code:
         start_code_repl()
     else:
         log_warning("The \"{}\" REPL type is not yet implemented.".format(repl_type.name))
         log_warning("Falling back to the first available REPL.")
-        start_repl()
+        start_first_repl()
+
+def start_first_repl():
+    '''
+    Start the first available REPL.
+    '''
+    if __has_ptpython:
+        start_ptpython_repl()
+    else:
+        start_code_repl()
+
+def start_ptpython_repl():
+    '''
+    Start a REPL built around the `ptpython` module.
+
+    If the `ptpython` module is unavailable, then fall back to the first
+    available REPL.
+    '''
+    if not __has_ptpython:
+        log_warning("The ptpython module does not appear to be installed.")
+        log_warning("Falling back to the first available REPL.")
+        start_first_repl()
+    else:
+        from ptpython.repl import embed
+        try:
+            embed(globals=None, locals=repl_env,
+                history_filename=pathtree.REPL_HISTORY_FILENAME)
+        except SystemExit:
+            pass
 
 def start_code_repl():
     '''
-    Start a REPL built around the python `code` module
+    Start a REPL built around the python `code` module.
     '''
     import code
     import readline
@@ -69,14 +88,3 @@ def start_code_repl():
     except SystemExit:
         pass
     readline.write_history_file(history_filename)
-
-def start_ptpython_repl():
-    '''
-    Start a REPL built around the `ptpython` module
-    '''
-    from ptpython.repl import embed
-    try:
-        embed(globals=None, locals=repl_env,
-            history_filename=pathtree.REPL_HISTORY_FILENAME)
-    except SystemExit:
-        pass
