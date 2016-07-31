@@ -2,8 +2,6 @@
 # --------------------( LICENSE                            )--------------------
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
-import code
-import readline
 import betse.pathtree as pathtree
 import betse.util.io.log.logs as logs
 from betse.exceptions import BetseFunctionException
@@ -49,6 +47,9 @@ def start_code_repl():
     '''
     Start a REPL built around the python `code` module
     '''
+    import code
+    import readline
+
     history_filename = pathtree.REPL_HISTORY_FILENAME + ".code"
     readline.set_history_length(1000)
     readline.read_history_file(history_filename)
