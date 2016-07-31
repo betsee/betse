@@ -4,12 +4,12 @@
 # See "LICENSE" for further details.
 import betse.pathtree as pathtree
 from betse.repl.environment import repl_env
-from betse.util.io.log.logs import log_warning
+from betse.util.io.log.logs import log_info, log_warning
 from betse.util.py import modules
 from betse.util.type.types import type_check
 from enum import Enum
 
-__has_ptpython =  modules.is_module('ptpython')
+__has_ptpython = modules.is_module('ptpython')
 
 class REPLType(Enum):
     '''
@@ -66,6 +66,7 @@ def start_ptpython_repl():
         log_warning("Falling back to the first available REPL.")
         start_first_repl()
     else:
+        log_info("Starting a ptpython-based REPL.")
         from ptpython.repl import embed
         try:
             embed(globals=None, locals=repl_env,
@@ -77,6 +78,8 @@ def start_code_repl():
     '''
     Start a REPL built around the python `code` module.
     '''
+    log_info("Starting a code-based REPL.")
+
     import code
     import readline
 
