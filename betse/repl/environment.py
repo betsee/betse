@@ -18,6 +18,6 @@ def quit():
     '''
     Gracefully exit the REPL, returning control the the caller.
     '''
-    raise SystemExit
+    raise SystemExit(0)
 
 repl_env = locals()

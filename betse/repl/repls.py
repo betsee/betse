@@ -71,8 +71,10 @@ def start_ptpython_repl():
         try:
             embed(globals=None, locals=repl_env,
                 history_filename=pathtree.REPL_HISTORY_FILENAME)
-        except SystemExit:
-            pass
+        except SystemExit as exit:
+            from betse.util.path.command import exits
+            if exits.is_failure(exit.code):
+                raise
 
 def start_code_repl():
     '''
@@ -88,6 +90,8 @@ def start_code_repl():
     readline.read_history_file(history_filename)
     try:
         code.interact(banner="", local=repl_env)
-    except SystemExit:
-        pass
+    except SystemExit as exit:
+        from betse.util.path.command import exits
+        if exits.is_failure(exit.code):
+            raise
     readline.write_history_file(history_filename)
