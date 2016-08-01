@@ -6,8 +6,8 @@
 This module provides the environmental context for BETSE REPLs.
 
 Each function and variable in this module is loaded into the `repl_env`
-dictionary via a call to `locals`. This is the only symbol that should
-be imported from this module.
+dictionary via a call to `locals`. For safety, `repl_env` is the only
+attribute that should be imported from this module.
 '''
 from betse.script import *
 
@@ -34,7 +34,7 @@ or if behavior should differ between hosted and standalone modes:
 
 def quit():
     '''
-    Gracefully exit the REPL, returning control the the caller.
+    Gracefully exit the REPL, returning control to the caller.
     '''
     raise SystemExit(0)
 
@@ -47,7 +47,7 @@ def run_script(script, *args, dirty = False, g = globals(), l = locals()):
 
     .. caution::
         Note that there is no way to ensure that a script will be perfectly
-        "clean" as there can be side-effects beyond those make within the local
+        "clean" as there can be side-effects beyond those made within the local
         python environment. For example, the script could write to one of the
         various simulation files. The author sees no good way to ensure that
         this does not happen.
