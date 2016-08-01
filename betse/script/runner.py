@@ -3,7 +3,7 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-from .argparse import betse_argv
+from .argparse import argv
 
 def run_script(script, *args, dirty = False, globals = globals(), locals = locals()):
     '''
@@ -45,7 +45,7 @@ def run_script(script, *args, dirty = False, globals = globals(), locals = local
 
     log_info("Executing script \"{}\"".format(script))
 
-    betse_argv.set_args(script, *args)
+    argv.set_args(script, *args)
     try:
         with open(script) as f:
             if dirty:
@@ -55,5 +55,5 @@ def run_script(script, *args, dirty = False, globals = globals(), locals = local
     except BetseArgumentParserException:
         pass
     finally:
-        betse_argv.uninitialize()
+        argv.uninitialize()
         print()

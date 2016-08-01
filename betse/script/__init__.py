@@ -48,7 +48,7 @@ from betse import ignition
 ignition.init()
 
 # The following imports facilitate argument parsing by scripts
-from .argparse import ArgumentParser, betse_argv
+from .argparse import ArgumentParser, argv
 
 # The following API imports make scripting cleaner and the REPL easier to use
 from .api import seed, initialize, simulate
