@@ -3,11 +3,11 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-def run_script(scripts, dirty=False, globals=globals(), locals=locals()):
+def run_script(*scripts, dirty = False, globals = globals(), locals = locals()):
     '''
-    Run a script (or sequence of scripts) within the local environment.
+    Run a scripts within the local environment.
     
-    If `scripts` is a sequence of scripts, each is executed in turn. If any
+    If more than one script is provided, each is executed in turn. If any
     script raises an `Exception` then the entire pipeline halts.
 
     .. caution::
@@ -19,7 +19,7 @@ def run_script(scripts, dirty=False, globals=globals(), locals=locals()):
 
     Parameters
     ----------
-    scripts : str or sequence
+    scripts : *str
         The absolute or relative path of the script, or a sequence of such
         paths.
     
@@ -32,29 +32,20 @@ def run_script(scripts, dirty=False, globals=globals(), locals=locals()):
         global namespace for the script.
 
     locals : dict
-        A dictionary of variable, function and module bindings to use as the
+        A dictionary of variables, function and module bindings to use as the
         local namespace for the script. Note that unless `dirty` is `True`,
         any changes made to the local namespace will be discarded.
     '''
-    from betse.util.type import types
-    from betse.exceptions import BetseFunctionException
+    from betse.util.io.log.logs import log_info
 
-    def run_single_script(filename):
-        with open(filename) as f:
-            if dirty:
-                exec(f.read(), globals, locals)
-            else:
-                exec(f.read())
-
-    if types.is_sequence_nonstr(scripts):
+    if scripts is ():
+        log_info("No scripts to execute")
+    else:
         for script in scripts:
             log_info("Executing script: \"{}\"".format(script))
-            run_single_script(script)
+            with open(script) as f:
+                if dirty:
+                    exec(f.read(), globals, locals)
+                else:
+                    exec(f.read())
             print()
-
-    elif types.is_str(scripts):
-        run_single_script(scripts)
-
-    else:
-        msg = "expected a string or sequence of strings as an argument"
-        raise BetseExceptionFunction(msg)
