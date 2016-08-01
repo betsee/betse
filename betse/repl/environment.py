@@ -12,6 +12,25 @@ be imported from this module.
 from betse.script import *
 
 __betse_repl__ = True
+'''
+Signify that the environment is an active REPL.
+
+It is important that scripts be able to tell that they are running in a REPL
+as opposed to standalone mode. For example, if the script's author opts to
+follow the "if main" convention, then the script will only run in standalone
+mode as `__name__ == "betse.repl.environment"` within the REPL. The
+`__betse_repl__` flag makes things a little more concise by allowing:
+
+    if __name__ == '__main__' or __betse_repl__:
+        ...
+
+or if behavior should differ between hosted and standalone modes:
+
+    if __name__ == '__main__':
+        ...
+    elif __betse_repl__:
+        ...
+'''
 
 def quit():
     '''
