@@ -122,6 +122,13 @@ class BetseCommandException(BetseFileException):
     pass
 
 # ....................{ EXCEPTIONS ~ type                  }....................
+class BetseEnumException(BetseException):
+    '''
+    Enumeration-specific exception.
+    '''
+    pass
+
+
 class BetseIntegerException(BetseException):
     '''
     Integer-specific exception.
