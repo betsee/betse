@@ -170,3 +170,10 @@ class BetseSimulationInstabilityException(BetseSimulationException):
     gone computationally unstable.
     '''
     pass
+
+# ....................{ EXCEPTIONS ~ script               }....................
+class BetseArgumentParserException(BetseException):
+    '''
+    ArgumentParser-specific exception signifying that the parse_args failed.
+    '''
+    pass

@@ -4,6 +4,7 @@
 # See "LICENSE" for further details.
 
 import argparse
+from betse.exceptions import BetseArgumentParserException
 
 class BetseScriptArguments(object):
     '''
@@ -57,7 +58,9 @@ class ArgumentParser(argparse.ArgumentParser):
         Parse the arguments *args* within the *namespace*, returing
         *namespace*.
         '''
-        if args is None and betse_argv.is_initialized:
-            return super().parse_args(args=betse_argv, namespace=namespace)
-
-        return super().parse_args(args=args, namespace=namespace)
+        try:
+            if args is None and betse_argv.is_initialized:
+                return super().parse_args(args=betse_argv, namespace=namespace)
+            return super().parse_args(args=args, namespace=namespace)
+        except SystemExit as e:
+            raise BetseArgumentParserException()
