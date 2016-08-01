@@ -100,12 +100,15 @@ Absolute path of BETSE's default user-specific logfile.
 This is the plaintext file to which BETSE logs all messages by default.
 '''
 
-REPL_HISTORY_FILENAME = None # initialized below
+REPL_HISTORY_FILENAMES = {} # initialized below
 '''
 Absolute path of BETSE's default user-specific REPL history file.
 
-This is the plaintext file that the REPLs use to allow persistent histories
-between REPL sessions.
+A dictionary of absolute paths to BETSE's default user-specific REPL history
+files, as indexed by file format.
+
+The history files are plaintext files that the REPLs use to allow persistent
+histories between REPL sessions.
 '''
 
 
@@ -216,7 +219,7 @@ def _init_pathnames_sub() -> None:
     # Declare these constants to be globals, permitting modification below.
     global\
         LOG_DEFAULT_FILENAME,\
-        REPL_HISTORY_FILENAME,\
+        REPL_HISTORY_FILENAMES,\
         PROFILE_DEFAULT_FILENAME,\
         CONFIG_DEFAULT_FILENAME,\
         DATA_DEFAULT_ASSET_DIRNAMES
@@ -231,14 +234,16 @@ def _init_pathnames_sub() -> None:
     # Initialize the absolute paths of data files.
     CONFIG_DEFAULT_FILENAME = paths.join(DATA_YAML_DIRNAME, 'sim_config.yaml')
 
-    # Absolute path of the default user-specific logfile, historyfileand
+    # Absolute path of the default user-specific logfile, historyfile and
     # profile dumpfile.
     LOG_DEFAULT_FILENAME = paths.join(
         DOT_DIRNAME, metadata.SCRIPT_NAME_CLI + '.log')
-    REPL_HISTORY_FILENAME = paths.join(DOT_DIRNAME, 'historyfile')
     PROFILE_DEFAULT_FILENAME = paths.join(
         DOT_DIRNAME, metadata.SCRIPT_NAME_CLI + '.prof')
-
+    REPL_HISTORY_FILENAMES = {
+        'ptpython' : paths.join(DOT_DIRNAME, 'ptpython.hist'),
+        'readline' : paths.join(DOT_DIRNAME, 'readline.hist'),
+    }
 
 def _test_pathnames() -> None:
     '''
