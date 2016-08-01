@@ -172,7 +172,7 @@ class BetseSimulationInstabilityException(BetseSimulationException):
     pass
 
 # ....................{ EXCEPTIONS ~ script               }....................
-class BetseArgumentParserException(BetseException):
+class BetseArgumentParserException(SystemExit):
     '''
     ArgumentParser-specific exception signifying that the parse_args failed.
     '''

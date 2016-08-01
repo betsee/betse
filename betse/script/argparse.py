@@ -66,4 +66,4 @@ class ArgumentParser(argparse.ArgumentParser):
                 return super().parse_args(args=betse_argv[1:], namespace=namespace)
             return super().parse_args(args=args, namespace=namespace)
         except SystemExit as e:
-            raise BetseArgumentParserException()
+            raise BetseArgumentParserException(e.code)
