@@ -50,8 +50,11 @@ class ArgumentParser(argparse.ArgumentParser):
     possible for BETSE scripts to accept arguments both within the BETSE
     runtime and as standalone scripts using exactly the same call.
     '''
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, prog=None, **kwargs):
+        if prog is None and betse_argv.is_initialized:
+            super().__init__(prog=betse_argv[0], **kwargs)
+        else:
+            super().__init__(prog=prog, **kwargs)
 
     def parse_args(self, args=None, namespace=None):
         '''
@@ -60,7 +63,7 @@ class ArgumentParser(argparse.ArgumentParser):
         '''
         try:
             if args is None and betse_argv.is_initialized:
-                return super().parse_args(args=betse_argv, namespace=namespace)
+                return super().parse_args(args=betse_argv[1:], namespace=namespace)
             return super().parse_args(args=args, namespace=namespace)
         except SystemExit as e:
             raise BetseArgumentParserException()
