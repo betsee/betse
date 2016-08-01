@@ -47,6 +47,9 @@ from betse.util.io.log.logs import log_info, log_exception
 from betse import ignition
 ignition.init()
 
+# The following imports facilitate argument parsing by scripts
+from .argparse import ArgumentParser, betse_argv
+
 # The following API imports make scripting cleaner and the REPL easier to use
 from .api import seed, initialize, simulate
 from .api import read_config, load_world, load_init, load_sim
