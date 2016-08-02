@@ -1,4 +1,4 @@
-BETSE Usage
+Usage
 ===========
 
 > **NOTE:** This synopsis is _painfully_ inadequate. For detailed usage

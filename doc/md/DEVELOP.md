@@ -1,4 +1,4 @@
-BETSE Development
+Development
 ===========
 
 For development purposes, BETSE is _editably installable_ (i.e., as a symbolic

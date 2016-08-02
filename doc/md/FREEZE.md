@@ -1,4 +1,4 @@
-BETSE Freezing
+Freezing
 ===========
 
 BETSE is freezable (i.e., convertable to platform-specific executable binaries

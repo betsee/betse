@@ -1,4 +1,4 @@
-BETSE Testing
+Testing
 ===========
 
 BETSE is rigorously tested with a [comprehensive test

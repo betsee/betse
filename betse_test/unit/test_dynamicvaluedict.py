@@ -58,6 +58,7 @@ def betse_dynamicvaluedict() -> 'DynamicValueDict':
 
             # Sadly, lambda expressions prohibit assignment in Python. *URGH!*
             lambda value: setattr(module, 'varda', value),
+            # lambda value: sim.cc_cells.__setindex__(sim.iNa, value)
         ),
         'Yavanna': DynamicValue(
             lambda: yavanna,

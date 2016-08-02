@@ -1,4 +1,4 @@
-BETSE Installation
+Installation
 ===========
 
 BETSE is manually installable and uninstallable as follows.
@@ -388,13 +388,48 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 BETSE optionally leverages (but does _not_ strictly require) the following
 dependencies where available at runtime:
 
+* [NetworkX](https://networkx.github.io) >= 1.10, for optionally analyzing
+  BETSE networks.
+* [ptpython](https://github.com/jonathanslenders/ptpython) >= 0.29, for
+  optionally wrapping the BETSE REPL with an improved interface. <sup>By
+  default, the BETSE REPL leverages the stock Python REPL.</sup>
 * [py.test](http://pytest.org) >= 2.8.0, for optionally running unit tests.
+* [PyDot](https://github.com/erocarrera/pydot) >= 1.0.28 and
+  [GraphViz](http://www.graphviz.org) >= 2.38, for optionally visualizing BETSE
+  networks.
 * [PyInstaller](http://www.pyinstaller.org) >= 3.0, for optionally freezing
   BETSE.
 * [UPX](http://upx.sourceforge.net) (any version), for optionally compressing
   frozen BETSE executables.
 
 These dependencies are installable as follows.
+
+#### NetworkX
+
+To optionally analyze networks (e.g., gene regulatory, biochemical reaction),
+BETSE requires NetworkX, a pure-Python graph theoretic framework. This
+dependency is installable in a system-wide manner as follows:
+
+* Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu):
+
+        $ sudo apt-get install python3-networkx
+
+* Under all other supported platforms: <sup>Under Linux, additionally prefix
+  this command by `sudo`.</sup>
+
+        $ pip3 install networkx
+
+#### `ptpython`
+
+To optionally wrap the BETSE REPL with an improved interface providing syntax
+highlighting, multiline editing, autocompletion, and presumably more, BETSE
+requires `ptpython`, an advanced pure-Python REPL. This dependency is
+installable in a system-wide manner as follows:
+
+* Under all supported platforms: <sup>Under Linux, additionally prefix this
+  command by `sudo`.</sup>
+
+        $ pip3 install ptpython
 
 #### `py.test`
 
@@ -405,9 +440,10 @@ test harness. This dependency is installable in a system-wide manner as follows:
 
         $ sudo apt-get install python3-pytest
 
-* Under Apple OS X:
+* Under all other supported platforms: <sup>Under Linux, additionally prefix
+  this command by `sudo`.</sup>
 
-        $ sudo pip3 install pytest
+        $ pip3 install pytest
 
 ##### `py.test` Plugins
 
@@ -423,7 +459,39 @@ Contributors are strongly encouraged to install these optional dependencies,
 which BETSE's test suite will then implicitly detect and set accordingly.
 These dependencies are installable in a system-wide manner as follows:
 
-    $ sudo pip3 install pytest-xdist
+* Under all other supported platforms: <sup>Under Linux, additionally prefix
+  this command by `sudo`.</sup>
+
+        $ pip3 install pytest-xdist
+
+#### PyDot + GraphViz
+
+To optionally visualize networks (e.g., gene regulatory, biochemical reaction),
+BETSE requires:
+
+* PyDot, a high-level pure-Python GraphViz wrapper.
+* GraphViz, a low-level C-based graph theoretic visualizer.
+
+These dependencies are installable in a system-wide manner as follows:
+
+* For PyDot:
+  * Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu):
+
+            $ sudo apt-get install python3-pydot
+
+  * Under all other supported platforms: <sup>Under Linux, additionally prefix
+    this command by `sudo`.</sup>
+
+            $ pip3 install pydot
+
+* For GraphViz:
+  * Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu):
+
+            $ sudo apt-get install graphviz
+
+  * Under Apple OS X:
+
+            $ brew install graphviz
 
 #### PyInstaller
 
@@ -432,13 +500,10 @@ non-pure-Python cross-platform command-line utility for freezing Python
 applications. This dependency is installable in a system-wide manner as
 follows:
 
-* Under any Linux distribution:
+* Under all supported platforms: <sup>Under Linux, additionally prefix this
+  command by `sudo`.</sup>
 
         $ sudo pip3 install pyinstaller
-
-* Under Apple OS X:
-
-        $ pip3 install pyinstaller
 
 #### UPX (Ultimate Packer for eXecutables)
 
