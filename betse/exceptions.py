@@ -86,7 +86,7 @@ class BetseMethodUnimplementedException(BetseException, NotImplementedError):
     optional methods. Hence, this exception.
     '''
 
-    def __init__():
+    def __init__(self):
         # Avoid circular import dependencies.
         from betse.util.py import callers
         super().__init__(

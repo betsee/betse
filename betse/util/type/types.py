@@ -21,7 +21,8 @@ objects).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import inspect, re
-from collections.abc import Container, Iterable, Mapping, Sequence
+from collections.abc import (
+    Container, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence)
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
@@ -50,12 +51,33 @@ This class is principally useful for annotating both:
 '''
 
 
+HashableType = Hashable
+'''
+Abstract interface implemented by all **hashable objects** (i.e., implementing
+the standard `__hash__()` method required by all dictionary keys).
+
+This class is a synonym of the `collections.abc.Hashable` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
+'''
+
+
 IterableType = Iterable
 '''
 Abstract interface implemented by all **iterable objects** (i.e., implementing
-the standard `__iter__()` and `next()` iterable methods).
+the standard `__iter__()` method returning a new iterator object).
 
 This class is a synonym of the `collections.abc.Iterable` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
+'''
+
+
+IteratorType = Iterator
+'''
+Abstract interface implemented by all **iterator objects** (i.e., implementing
+the standard `__iter__()` and `__next__()` methods implementing iteration over
+some container).
+
+This class is a synonym of the `collections.abc.Iterator` class, provided
 merely as a convenience to callers preferring to avoid importing that class.
 '''
 
@@ -66,6 +88,15 @@ Abstract interface implemented by all dictionary-like objects.
 
 This class is a synonym of the `collections.abc.Mapping` class, provided merely
 as a convenience to callers preferring to avoid importing that class.
+'''
+
+
+MutableMappingType = MutableMapping
+'''
+Abstract interface implemented by all mutable dictionary-like objects.
+
+This class is a synonym of the `collections.abc.MutableMapping` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
 '''
 
 # ....................{ TUPLES                             }....................

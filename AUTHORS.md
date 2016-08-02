@@ -7,6 +7,7 @@ Curry](https://gitlab.com/u/leycec) with **much-appreciated contributions**
 from (_in chronological order of first merge request_):
 
 * [**Douglas Moore**](https://gitlab.com/u/dglmoore) for:
+  * [REPL and scripting support](https://gitlab.com/betse/betse/merge_requests/2).
   * [Windows integration](https://gitlab.com/betse/betse/merge_requests/1).
 
 A rousing thanks to these illustrious contributors, without whom BETSE would
