@@ -3160,13 +3160,6 @@ class Modulator(object):
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                            "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
 
-# class DummyDyna(object):
-#
-#     def __init__(self,cells, p):
-#
-#         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
-#         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
-
 def get_influencers(sim, sim_metabo, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
                     n_i_list, reaction_zone='cell'):
     """
