@@ -6,10 +6,24 @@
 '''
 **Pickling** (i.e., serialization and deserialization of arbitrarily complex
 objects to and from on-disk files) facilities.
+
+Caveats
+----------
+**This submodule leverages the third-party `dill` package rather than the
+standard `pickle` package.** The former conforms to the API of the latter with
+additional support for so-called "exotic" types required by this application,
+including:
+
+* `lambda` expressions.
+* Generators.
+* Ranges.
+* Slices.
+* Numpy `ndarray` subclass objectes.
+* Numpy `unfunc` objects.
 '''
 
 # ....................{ IMPORTS                            }....................
-import pickle
+import dill as pickle
 from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
@@ -30,22 +44,33 @@ competing tradeoffs:
 
 # ....................{ SAVERS                             }....................
 @type_check
-def save(obj: object, filename: str) -> None:
+def save(*objects: object, filename: str) -> None:
     '''
-    Save (i.e., write, pickle, serialize) the passed object to the file with the
-    passed path.
+    Save (i.e., write, pickle, serialize) the tuple of all passed objects to the
+    file with the passed path if two or more objects are passed _or_ the single
+    passed object if only one object is passed.
 
     Parameters
     ----------
-    obj : object
-        Arbitrarily complex object to be serialized. This object and all objects
-        transitively referenced by this object will be serialized to this file.
+    objects : tuple
+        One or more arbitrarily complex object to be serialized. These objects
+        and all objects transitively referenced by this object will be
+        serialized to this file. If:
+        * Only one object is passed, only that object will be saved.
+        * Two or more objects are passed, the tuple of all such objects will be
+          saved.
     filename : str
         Absolute or relative path of this file.
     '''
 
+    # If only one object is passed, save only that object rather than the
+    # 1-tuple consisting only of that object.
+    if len(objects) == 1:
+        objects = objects[0]
+
+    # Save these objects to this file.
     with open(filename, 'wb') as pickle_file:
-        pickle.dump(obj, file=pickle_file, protocol=PROTOCOL)
+        pickle.dump(objects, file=pickle_file, protocol=PROTOCOL)
 
 # ....................{ LOADERS                            }....................
 @type_check

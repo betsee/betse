@@ -1097,29 +1097,23 @@ class Simulator(object):
         except BetseSimulationInstabilityException as exception:
             exception_instability = exception
 
-
         #--------------
-
-        # Find embedded functions that can't be pickled...
-        fh.safe_pickle(self, p)
-
         cells.points_tree = None
 
         # Explicitly close the prior animation to conserve memory.
         self._deplot_loop()
 
-        # save the init or sim and report results of potential interest to the user.
+        # Save this initialization or simulation and report results of
+        # potential interest to the user.
         self.save_and_report(cells, p)
-
-        plt.close()
 
         # If the simulation did not go unstable, inform the user of success.
         if exception_instability is None:
             logs.log_info('Simulation completed successfully.')
-        # Else, inform the user of this instability and re-raise the previously raised
-        # exception to preserve the exact cause of this instability.
+        # Else, inform the user of this instability and re-raise the previously
+        # raised exception to preserve the exact cause of this instability.
         else:
-            logs.log_error('Simulation unstable.')
+            logs.log_error('Simulation prematurely halted due to instability.')
             raise exception_instability
 
     #.................{  INITIALIZERS & FINALIZERS  }............................................
@@ -1365,58 +1359,56 @@ class Simulator(object):
         if p.run_sim is False:
             datadump = [self, cells, p]
             fh.saveSim(self.savedInit, datadump)
-            message_1 = 'Initialization run saved to' + ' ' + p.init_path
-            logs.log_info(message_1)
+            logs.log_info('Initialization saved to "%s".', p.init_path)
         else:
             datadump = [self, cells, p]
             fh.saveSim(self.savedSim, datadump)
-            message_2 = 'Simulation run saved to' + ' ' + p.sim_path
-            logs.log_info(message_2)
+            logs.log_info('Simulation saved to "%s".', p.sim_path)
 
-        # report final output to user:
-        for i in range(0,len(self.ionlabel)):
+        # Report final output to the user.
+        for i in range(0, len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final average cytoplasmic concentration of'+ ' '+ label + ': '
-            logs.log_info(concmess + str(endconc) + ' mmol/L')
+            logs.log_info(
+                'Final average cytoplasmic concentration of %s: %g mmol/L',
+                self.ionlabel[i], endconc)
 
         for i in range(0,len(self.ionlabel)):
             endconc = np.round(np.mean(self.cc_env_time[-1][i]),6)
-            label = self.ionlabel[i]
-            concmess = 'Final environmental concentration of'+ ' '+ label + ': '
-            logs.log_info(concmess + str(endconc) + ' mmol/L')
+            logs.log_info(
+                'Final environmental concentration of %s: %g mmol/L',
+                self.ionlabel[i], endconc)
 
         final_vmean = 1000*np.round(np.mean(self.vm_time[-1]),6)
-        vmess = 'Final average cell Vmem of ' + ': '
-        logs.log_info(vmess + str(final_vmean) + ' mV')
+        logs.log_info(
+            'Final average cell Vmem: %g mV', final_vmean)
 
         if p.GHK_calc is True:
             final_vmean_GHK = 1000*np.round(np.mean(self.vm_GHK_time[-1]),6)
-            vmess = 'Final average cell Vmem calculated using GHK: ' + ': '
-            logs.log_info(vmess + str(final_vmean_GHK) + ' mV')
+            logs.log_info(
+                'Final average cell Vmem calculated using GHK: %s mV',
+                final_vmean_GHK)
 
         if p.ions_dict['H'] == 1:
             final_pH = -np.log10(1.0e-3*np.mean((self.cc_time[-1][self.iH])))
-            logs.log_info('Final average cell pH ' + str(np.round(final_pH, 2)))
+            logs.log_info(
+                'Final average cell pH: %g', np.round(final_pH, 2))
 
             final_pH_env = -np.log10(np.mean(1.0e-3*(self.cc_env_time[-1][self.iH])))
-            logs.log_info('Final environmental pH ' + str(np.round(final_pH_env, 2)))
+            logs.log_info(
+                'Final environmental pH: %g', np.round(final_pH_env, 2))
 
         if p.molecules_enabled:
-
             self.molecules.report(self, p)
 
         if p.metabolism_enabled:
-
             self.metabo.core.report(self, p)
 
         if p.grn_enabled:
-
             self.grn.core.report(self, p)
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
-
-            logs.log_info("Final Ver " + str(np.round(1.0e3*self.endo_retic.Ver.mean(),3)) + " mV")
+            ver_mean = np.round(1.0e3*self.endo_retic.Ver.mean(),3)
+            logs.log_info("Final Ver: %g mV", ver_mean)
 
     def sim_info_report(self,cells,p):
 
@@ -1442,13 +1434,19 @@ class Simulator(object):
         logs.log_info('Electrostatic pressure: ' + str(p.deform_electro))
 
         if p.molecules_enabled:
-            logs.log_info("Auxiliary molecules are enabled from 'biochemistry' section of main config file.")
+            logs.log_info(
+                'Auxiliary molecules are enabled from '
+                '"biochemistry" section of main config file.')
 
         if p.metabolism_enabled:
-            logs.log_info('Metabolism is being simulated using file: ' + p.metabo_config_filename)
+            logs.log_info(
+                'Metabolism is being simulated using file: %s',
+                p.metabo_config_filename)
 
         if p.grn_enabled:
-            logs.log_info('A gene regulatory network is being simulated using file: ' + p.grn_config_filename)
+            logs.log_info(
+                'A gene regulatory network is being simulated using file: %s',
+                p.grn_config_filename)
 
     # ................{ CORE DOERS & GETTERS }...............................................
     def get_Vall(self, cells, p):
@@ -2280,20 +2278,19 @@ class Simulator(object):
         tsamples = set()
         i = 0
         while i < len(tt) - p.t_resample:
-
             i += p.t_resample
             i = int(i)
             tsamples.add(tt[i])
 
         # Log this run.
         logs.log_info(
-            'Your {} is running from 0 to {:.1f} seconds of in-world time '
-            'in {} time-steps ({} sampled).'.format(
+            'Your %s is running from 0 to %.1g s of in-world time '
+            'in %d time steps (%d sampled).',
             loop_type_label,
             loop_seconds_max,
             len(tt),
             len(tsamples),
-        ))
+        )
 
         # If plotting an animation during simulation computation, do so.
         if p.plot_while_solving:
@@ -2337,9 +2334,13 @@ class Simulator(object):
         both this animation and this animation's associated figure.
         '''
 
+        # Close the previously displayed and/or saved animation if any.
         if self._anim_cells_while_solving is not None:
             self._anim_cells_while_solving.close()
             self._anim_cells_while_solving = None
+
+        # For safety, close all remaining plots and animations as well.
+        plt.close()
 
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
@@ -2374,7 +2375,6 @@ class Simulator(object):
 #*AND* seemingly duplicate "p.plot_type" attribute, which should probably
 #receive similar treatment. Wonder temptress at the speed of light and the
 #sound of love!
-
 
 # def update_C(self,ion_i,flux,cells,p):
 #
@@ -2418,30 +2418,3 @@ class Simulator(object):
 #         c_env = c_env + delta_env * p.dt
 #         # assume auto-mixing of environmental concentrations:
 #         self.cc_env[ion_i][:] = c_env.mean()
-
-# FIXME SESS' FIASCO of WUNDERLUST BEGINS hERE---------------------------------
-
-# Example usage:
-#
-# self.met_conc = MetabolicConcentrations(self.metabo.core)
-# self.met_conc.cATP
-
-# class MetabolicConcentrations(object):
-#     def __init__(self, molecule):
-#         self._molecule = molecule
-#
-#     @property
-#     def cATP(self):
-#         return self._molecule.ATP.c_mems
-#
-#     @property
-#     def cADP(self):
-#         return self._molecule.ADP.c_mems
-#
-#     @property
-#     def cPi(self):
-#         return self._molecule.Pi.c_mems
-
-
-
-

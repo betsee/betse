@@ -166,8 +166,9 @@ except ImportError:
     SequenceTypes = (Sequence,)
 
 # ....................{ SETS : private                     }....................
+#FIXME: Type-check variadic keyword arguments as well.
 _PARAMETER_KIND_IGNORED = {
-    Parameter.POSITIONAL_ONLY, Parameter.VAR_POSITIONAL, Parameter.VAR_KEYWORD,
+    Parameter.POSITIONAL_ONLY, Parameter.VAR_KEYWORD,
 }
 '''
 Set of all `inspect.Parameter.kind` constants to be ignored during annotation-
@@ -305,9 +306,30 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                 # passed as a keyword.
                 func_arg_value_key_expr = 'kwargs[{!r}]'.format(func_arg.name)
 
-                # If this parameter is keyword-only, type check this parameter
+                # If this parameter is actually a tuple of positional variadic
+                # parameters, iteratively check all such parameters.
+                if func_arg.kind is Parameter.VAR_POSITIONAL:
+                    #FIXME: "{arg_name!r}" obviously isn't right. We need to
+                    #find some means of obtaining the tuple or slice of all
+                    #positionally passed parameters. No idea how, sadly. Let's
+                    #google up "Parameter.VAR_POSITIONAL", please. Something's
+                    #gotta give.
+                    func_body += '''
+    for __beartype_arg in args[{arg_index!r}:]:
+        if not isinstance(__beartype_arg, {arg_type_expr}):
+            raise TypeError(
+                '{func_name} positional variadic parameter '
+                '{arg_index}={{}} not a {{!r}}'.format(
+                    trim(__beartype_arg), {arg_type_expr}))
+'''.format(
+                        func_name=func_name,
+                        arg_name=func_arg.name,
+                        arg_index=func_arg_index,
+                        arg_type_expr=func_arg_type_expr,
+                    )
+                # Else if this parameter is keyword-only, check this parameter
                 # only by lookup in the variadic "**kwargs" dictionary.
-                if func_arg.kind is Parameter.KEYWORD_ONLY:
+                elif func_arg.kind is Parameter.KEYWORD_ONLY:
                     func_body += '''
     if {arg_name!r} in kwargs and not isinstance(
         {arg_value_key_expr}, {arg_type_expr}):
@@ -322,7 +344,7 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                         arg_value_key_expr=func_arg_value_key_expr,
                     )
                 # Else, this parameter may be passed either positionally or as
-                # a keyword. Type check this parameter both by lookup in the
+                # a keyword. Check this parameter both by lookup in the
                 # variadic "**kwargs" dictionary *AND* by index into the
                 # variadic "*args" tuple.
                 else:

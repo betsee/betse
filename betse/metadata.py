@@ -176,8 +176,7 @@ DEPENDENCIES_RUNTIME = [
     'Numpy >= 1.8.0',
     'SciPy >= 0.12.0',
     'PyYAML >= 3.10',
-    # 'PySide >= 1.2.0',
-    # 'Yamale >= 1.5.0',
+    'dill >= 0.2.3',
 
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
     # missing dependencies in a human-readable manner, these dependencies are

@@ -13,7 +13,6 @@ simulation objects.
 from betse.util.path.file import pickles
 from betse.util.type.types import type_check
 from collections.abc import Sequence
-from scipy import interpolate as interp
 
 # ....................{ SAVERS                             }....................
 #FIXME: Consider replacing all calls to this function with calls to the
@@ -38,47 +37,7 @@ def saveSim(savePath: str, datadump: Sequence) -> None:
         List of all objects to be pickled.
     '''
 
-    pickles.save(obj=datadump, filename=savePath)
-
-
-#FIXME: This definitely works, but it's not quite ideal. Ideally, every object
-#attribute should be pickled as is. There appear to be a number of solutions,
-#each with corresponding tradeoffs:
-#
-#1. Implement the __getstate__() and __setstate__() methods in the "Cells",
-#   "Parameters", and "Simulator" classes -- perhaps by inheriting a superclass
-#   defining these methods. These methods would need to convert unpicklable to
-#   picklable attributes (e.g., strings). See also:
-#   https://docs.python.org/3/library/pickle.html#pickling-class-instances
-#2. Use a third-party library instead of the built-in pickle functionality.
-#   Alternatives supporting pickling of at least lambda functions include
-#   "picloud" and "dill".
-def safe_pickle(sim, p) -> None:
-    '''
-    Renders the the passed simulation object **pickle-able** (i.e., safely
-    passable to the `saveSim()` function).
-
-    This function destructively removes all interpolation functions, colormaps,
-    and lambda functions from the passed simulation. For safety, this function
-    should be passed a copy (either shallow or deep) of the current simulation
-    object rather than this object itself.
-    '''
-
-    sim.gj_funk = None
-
-    # Sanitize the simulation.
-    for key, valu in vars(sim).items():
-        if type(valu) == interp.interp1d or callable(valu):
-            setattr(sim,key,None)
-
-    for key, valu in vars(sim.dyna).items():
-        if type(valu) == interp.interp1d or callable(valu):
-            setattr(sim.dyna,key,None)
-
-    # Sanitize the parameters.
-    for key, valu in vars(p).items():
-        if type(valu) == interp.interp1d or callable(valu):
-            setattr(p,key,None)
+    pickles.save(datadump, filename=savePath)
 
 # ....................{ LOADERS                            }....................
 #FIXME: We should probably perform basic sanity checks on loaded objects --

@@ -30,10 +30,10 @@ def test_type_check_noop() -> None:
     assert khorne('WAAAGH!', '!HGAAAW') == 'WAAAGH!!HGAAAW'
 
 # ....................{ TESTS ~ pass : param               }....................
-def test_type_check_pass_param_keyword_and_positional() -> None:
+def test_type_check_pass_param_positional_and_keyword() -> None:
     '''
-    Test type checking for a function call successfully passed both annotated
-    positional and keyword parameters.
+    Test type checking for a function call successfully passed annotated
+    non-variadic positional and keyword parameters.
     '''
 
     # Import this decorator.
@@ -54,7 +54,7 @@ def test_type_check_pass_param_keyword_and_positional() -> None:
 def test_type_check_pass_param_keyword_only() -> None:
     '''
     Test type checking for a function call successfully passed an annotated
-    keyword-only parameter following an `*` or `*args` parameter.
+    keyword-only parameter following a variadic positional parameter.
     '''
 
     # Import this decorator.
@@ -62,14 +62,19 @@ def test_type_check_pass_param_keyword_only() -> None:
 
     # Function to be type checked.
     @type_check
-    def changer_of_ways(sky_shark: str, *, chaos_spawn: str) -> str:
-        return sky_shark + chaos_spawn
+    def changer_of_ways(
+        sky_shark: str, *dark_chronology: int, chaos_spawn: str) -> str:
+        return (
+            sky_shark +
+            str(dark_chronology[0]) +
+            str(dark_chronology[-1]) +
+            chaos_spawn
+        )
 
-    # Call this function with keyword arguments and assert the expected return
-    # value.
+    # Call this function and assert the expected return value.
     assert changer_of_ways(
-        'Screamers', chaos_spawn="Mith'an'driarkh") == (
-        "ScreamersMith'an'driarkh")
+        'Screamers', 0, 1, 15, 25, chaos_spawn="Mith'an'driarkh") == (
+        "Screamers025Mith'an'driarkh")
 
 
 def test_type_check_pass_param_tuple() -> None:
@@ -94,7 +99,7 @@ def test_type_check_pass_param_tuple() -> None:
 def test_type_check_pass_param_custom() -> None:
     '''
     Test type checking for a function call successfully passed a parameter
-    annotated as a user-defined rather than builtin type.
+    annotated as a user-defined rather than built-in type.
     '''
 
     # Import this decorator.
@@ -179,10 +184,10 @@ def test_type_check_fail_param_name() -> None:
             return weaponsmith + __beartype_func
 
 # ....................{ TESTS ~ fail : type                }....................
-def test_type_check_fail_param_type() -> None:
+def test_type_check_fail_param_nonvariadic_type() -> None:
     '''
-    Test type checking for an annotated function call failing a parameter type
-    check.
+    Test type checking for an annotated function call failing a non-variadic
+    parameter type check.
     '''
 
     # Import this decorator.
@@ -196,6 +201,27 @@ def test_type_check_fail_param_type() -> None:
     # Call this function with an invalid type and assert the expected exception.
     with pytest.raises(TypeError):
         eldar('Mother of the Eldar', 100.100)
+
+
+def test_type_check_fail_param_variadic_type() -> None:
+    '''
+    Test type checking for an annotated function call failing a variadic
+    parameter type check.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Annotated function to be type checked.
+    @type_check
+    def imperium_of_man(
+        space_marines: str, *ceaseless_years: int, primarch: str) -> str:
+        return space_marines + str(ceaseless_years[1]) + primarch
+
+    # Call this function with an invalid type and assert the expected exception.
+    with pytest.raises(TypeError):
+        imperium_of_man(
+            'Legiones Astartes', 30, 31, 36, 'M41', primarch='Leman Russ')
 
 
 def test_type_check_fail_return_type() -> None:

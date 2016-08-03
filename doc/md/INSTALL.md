@@ -48,19 +48,18 @@ installed manually via the system-wide package manager for your current
 operating system:
 
 * Python >= 3.3.
+* [Dill](https://github.com/uqfoundation/dill) >= 0.2.3.
 * [Matplotlib](http://matplotlib.org) >= 1.4.0.
 * [NumPy](http://www.numpy.org) >= 1.8.0.
 * [Pillow](https://python-pillow.github.io) >= 2.3.0.
-* PySide >= 1.1.0.
 * [PyYaml](http://pyyaml.org) >= 3.10.
 * [SciPy](http://www.scipy.org) >= 0.12.0.
-* [Yamale](https://github.com/23andMe/Yamale) >= 1.5.3.
 * [setuptools](https://pythonhosted.org/setuptools) >= 3.3.
 * [six](https://pythonhosted.org/six) >= 1.5.2.
 
 To install these dependencies, the following instructions also install `pip3`,
 the Python 3-specific release of the popular Python package manager `pip`.
-That said, BETSE itself does _not_ require `pip3` at runtime.
+<sup>Naturally, BETSE itself does _not_ require `pip3` at runtime.</sup>
 
 ### Linux
 
@@ -74,8 +73,7 @@ Under Linux, BETSE also requires:
 Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), these
 dependencies are installable in a system-wide manner as follows:
 
-    $ sudo apt-get install python3-dev python3-matplotlib python3-numpy python3-pil python3-pip python3-pyqt5 python3-scipy python3-setuptools python3-six python3-yaml tcl tk &&
-      sudo pip3 install yamale
+    $ sudo apt-get install python3-dev python3-dill python3-matplotlib python3-numpy python3-pil python3-pip python3-pyqt5 python3-scipy python3-setuptools python3-six python3-yaml tcl tk
 
 Under some (especially older) Debian-based Linux distributions, the above
 instructions may not entirely suffice to satisfy all installation-time or
@@ -156,7 +154,8 @@ For simplicity, the following instructions assume use of Homebrew:
    10.9.5).
 1. Register as an [Apple Developer](https://developer.apple.com). While free,
    registration requires an existing Apple ID and hence ownership of an existing
-   Apple product. (We don't make the awful rules. We only complain about them.)
+   Apple product. <sup>_We don't make the awful rules. We only complain about
+   them._</sup>
 1. If an older version of the XCode Command Line Tools (CLT) has already been
    installed, manually uninstall it _before_ proceeding. While XCode itself is
    safely upgradable merely by installing a new version, the CLT is generally
@@ -251,7 +250,7 @@ For simplicity, the following instructions assume use of Homebrew:
           brew install pyside --with-python3 --without-python &&
           brew install scipy --with-python3 --without-python &&
           brew install libyaml &&
-          pip3 install pyyaml yamale
+          pip3 install dill pyyaml
 
 Note that Homebrew is a source-based package manager and hence relatively slow.
 Expect the installation process to require anywhere from several hours to
@@ -259,7 +258,12 @@ several days, depending on hardware performance. We wish we were kidding.
 
 #### Microsoft Windows
 
-These dependencies are installable under both Microsoft Windows *and* Wine
+Under Windows, BETSE additionally requires:
+
+* [Qt4](https://www.qt.io).
+* Matplotlib compiled with Qt4 support (i.e., the `qt4agg` backend).
+
+These dependencies are installable under both Microsoft Windows _and_ Wine
 prefixes emulating Windows on non-Windows systems (e.g., Linux, OS X).
 
 ##### Native
@@ -300,7 +304,7 @@ For simplicity, the following instructions assume use of the
 
 1. Install Python dependencies via `conda`, Miniconda's package manager:
 
-        $ conda install numpy matplotlib pyside pyyaml pywin32 scipy
+        $ conda install dill numpy matplotlib pyside pyyaml pywin32 scipy
 
 1. Symbolically link the Python 3 executable `python.exe` installed by Miniconda
    to `python3`. For disambiguity, numerous core scripts including BETSE's
@@ -312,10 +316,10 @@ For simplicity, the following instructions assume use of the
 
 ##### Wine
 
-**FIXME:** While BETSE may indeed be installable _and_ runnable under Wine,
-there's little point in doing so, as the resulting PyInstaller-frozen binaries
-are likely to embed Wine-specific shared libraries unlikely to behave as
-expected under actual Windows systems. Excise this entire subsection, please.
+> **NOTE** While BETSE may indeed be installable _and_ runnable under Wine,
+> there's little point in doing so, as the resulting PyInstaller-frozen binaries
+> are likely to embed Wine-specific shared libraries unlikely to behave as
+> expected under actual Windows systems. Excise this entire subsection, please.
 
 Under non-Windows systems, these dependencies are installable in a system-wide
 manner via Wine emulation. This emulation requires the following packages:
