@@ -172,13 +172,13 @@ class SimRunner(object):
 
         # As colormaps are deleted from the current Parameters instance "p"
         # prior to saving in sim, create a fresh instance of Parameters.
-        p = Parameters(config_filename = self._config_filename)
-
-        # Create all enabled plots and animations.
-        logs.log_info(
-            'When ready, close all of the figure windows to proceed with '
-            'scheduled simulation runs.')
-        plot_all(cells, sim, p, plot_type='init')
+        # p = Parameters(config_filename = self._config_filename)
+        #
+        # # Create all enabled plots and animations.
+        # logs.log_info(
+        #     'When ready, close all of the figure windows to proceed with '
+        #     'scheduled simulation runs.')
+        # plot_all(cells, sim, p, plot_type='init')
 
     def simulate(self):
         '''
@@ -232,10 +232,10 @@ class SimRunner(object):
         # prior to saving in sim, create a fresh instance of Parameters.
         p = Parameters(config_filename=self._config_filename)
 
-        # Create all enabled plots and animations.
-        logs.log_info(
-            'When ready, close all of the figure windows to end the program.')
-        plot_all(cells, sim, p, plot_type='sim')
+        # # Create all enabled plots and animations.
+        # logs.log_info(
+        #     'When ready, close all of the figure windows to end the program.')
+        # plot_all(cells, sim, p, plot_type='sim')
 
     def sim_brn(self):
         '''

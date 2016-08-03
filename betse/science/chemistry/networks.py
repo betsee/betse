@@ -16,6 +16,7 @@ from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
+from collections import OrderedDict
 from matplotlib import colors
 from matplotlib import cm
 
@@ -38,6 +39,12 @@ class MasterOfNetworks(object):
         config_settings     List of dictionaries storing key settings (p.molecules_config)
         p                   An instance of params
         """
+
+        # Initialize dictionary mapping from molecule names to Molecule objects
+        self.molecules = {}
+        # Initialize a list that keeps the Reaction objects:
+        self.reactions = {}
+
         # all metabolic simulations require ATP, ADP and Pi. Initialize these fields to None so that we can test
         # for their presence in metabolic sims:
         self.ATP = None
@@ -51,14 +58,18 @@ class MasterOfNetworks(object):
         self.read_substances(sim, cells, config_substances, p)
         self.tissue_init(sim, cells, config_substances, p)
 
+        # write substance growth and decay equations:
+        self.write_growth_and_decay()
+
         self.ave_cell_vol = cells.cell_vol.mean()  # average cell volume
 
-        self.reaction_names = []
-        self.transporter_names = []
-        self.channel_names = []
-        self.modulator_names = []
-
+        # colormap for plotting series of 1D lines:
         self.plot_cmap = 'viridis'
+
+        self.globals = globals()
+        self.locals = locals()
+
+    #------------Initializers-------------------------------------------------------------------------------------------
 
     def read_substances(self, sim, cells, config_substances, p):
         """
@@ -69,8 +80,7 @@ class MasterOfNetworks(object):
 
         """
 
-        # Initialize dictionary mapping from molecule names to Molecule objects
-        self.molecules = {}
+
         # Initialize a dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
         cell_concs_mapping = {}
         mem_concs_mapping = {}
@@ -195,6 +205,9 @@ class MasterOfNetworks(object):
         else:
             self.mit_concs = None
 
+        # transform self.molecules into an ordered dictionary so that we have guaranteed indices and order:
+        self.molecules = OrderedDict(self.molecules)
+
     def tissue_init(self, sim, cells, config_substances, p):
         """
         Completes the initialization process of each molecule with additional
@@ -229,7 +242,7 @@ class MasterOfNetworks(object):
 
                 mol.TJ_factor = float(mol_dic['TJ factor'])
 
-                # factors involving auto-catalytic growth and decay (gad) in the cytoplasm
+                # factors involving growth and decay (gad) in the cytoplasm
                 gad = mol_dic.get('growth and decay', None)
 
                 if gad != 'None' and gad is not None:
@@ -370,6 +383,31 @@ class MasterOfNetworks(object):
             mol.plot_max = pd['max val']
             mol.plot_min = pd['min val']
 
+    def init_saving(self, cells, p, plot_type='init', nested_folder_name='Molecules'):
+
+        # init files
+        if p.autosave is True:
+
+            if plot_type == 'sim':
+                results_path = os.path.join(p.sim_results, nested_folder_name)
+                p.plot_type = 'sim'
+
+            elif plot_type == 'init':
+                results_path = os.path.join(p.init_results, nested_folder_name)
+                p.plot_type = 'init'
+
+            self.resultsPath = os.path.expanduser(results_path)
+            os.makedirs(self.resultsPath, exist_ok=True)
+
+            self.imagePath = os.path.join(self.resultsPath, 'fig_')
+
+        # check that the plot cell is in range of the available cell indices:
+        if p.plot_cell not in cells.cell_i:
+            raise BetseParametersException(
+                'The "plot cell" defined in the "results" section of your '
+                'configuration file does not exist in your cluster. '
+                'Choose a plot cell number smaller than the maximum cell number.')
+
     def read_reactions(self, config_reactions, sim, cells, p):
 
         """
@@ -378,9 +416,6 @@ class MasterOfNetworks(object):
           config_options:  dictionary containing BETSE reaction template fields
 
           """
-
-        # Initialize a list that keeps the Reaction objects:
-        self.reactions = {}
 
         for q, react_dic in enumerate(config_reactions):
 
@@ -431,7 +466,43 @@ class MasterOfNetworks(object):
             else:
                 obj.mit_enabled = False
 
-            # now we want to load the right concentration data arrays for reactants into the Reaction object:
+            # Finally, make the self.reactions into an ordered dictionary, so we can guarantee indices:
+            self.reactions = OrderedDict(self.reactions)
+
+    def write_growth_and_decay(self):
+
+        for mol_name in self.molecules:
+
+            if self.molecules[mol_name].simple_growth is True:
+
+                cc = "(self.molecules['{}'].c_cells / self.molecules['{}'].Kgd)".format(mol_name, mol_name)
+
+                # get activators and inhibitors and associated data:
+
+                a_list = self.molecules[mol_name].growth_activators_list
+                Km_a_list = self.molecules[mol_name].growth_activators_Km
+                n_a_list = self.molecules[mol_name].growth_activators_n
+                i_list = self.molecules[mol_name].growth_inhibitors_list
+                Km_i_list = self.molecules[mol_name].growth_inhibitors_Km
+                n_i_list = self.molecules[mol_name].growth_inhibitors_n
+
+                activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+                    n_i_list, reaction_zone='cell')
+
+                # definine remaining portion of substance's growth and decay expression:
+
+                mod_funk = "(self.molecules['{}'].growth_mod_function_cells)".format(mol_name)
+                r_prod =  "(self.molecules['{}'].r_production)".format(mol_name)
+                r_decay = "(self.molecules['{}'].r_decay)".format(mol_name)
+
+                gad_eval_string = mod_funk + "*" + r_prod + "*" + inhibitor_alpha + "*" + activator_alpha + "-" + \
+                                  r_decay + "*" + cc
+
+                self.molecules[mol_name].gad_eval_string = gad_eval_string
+
+            else:
+
+                self.molecules[mol_name].gad_eval_string = "np.zeros(sim.cdl)"
 
     def write_reactions(self):
         """
@@ -441,8 +512,9 @@ class MasterOfNetworks(object):
 
         """
 
-
         for reaction_name in self.reactions:
+
+        # define aliases for convenience:
 
             reactant_names = self.reactions[reaction_name].reactants_list
             reactant_coeff = self.reactions[reaction_name].reactants_coeff
@@ -451,6 +523,14 @@ class MasterOfNetworks(object):
             product_names = self.reactions[reaction_name].products_list
             product_coeff = self.reactions[reaction_name].products_coeff
             product_Km = self.reactions[reaction_name].Km_products_list
+
+            # activator/inhibitor lists and associated data:
+            a_list = self.reactions[reaction_name].reaction_activators_list
+            Km_a_list = self.reactions[reaction_name].reaction_activators_Km
+            n_a_list = self.reactions[reaction_name].reaction_activators_n
+            i_list = self.reactions[reaction_name].reaction_inhibitors_list
+            Km_i_list = self.reactions[reaction_name].reaction_inhibitors_Km
+            n_i_list = self.reactions[reaction_name].reaction_inhibitors_n
 
             # first calculate a reaction coefficient Q, as a string expression
             numo_string_Q = "("
@@ -524,12 +604,811 @@ class MasterOfNetworks(object):
 
                     backward_coeff += ")"
 
-            #self.reactions[reaction_name].reaction_eval_string = numo_string + '/' + denomo_string
+            # if reaction is reversible deal calculate an equilibrium constant:
+            if self.reactions[reaction_name].delta_Go is not None:
+
+                # define the reaction equilibrium coefficient expression:
+                Keqm = "(np.exp(-self.reactions['{}'].delta_Go / (p.R * sim.T)))".format(reaction_name)
+
+            else:
+
+                Q = "0"
+                backward_coeff = "0"
+                Keqm = "1"
+
+            # Put it all together into a final reaction string (+max rate):
+
+            reversed_term = "(" + Q + "/" + Keqm + ")"
+
+            activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+                n_i_list, reaction_zone='cell')
+
+            vmax = "self.reactions['{}'].vmax".format(reaction_name)
+
+            reaction_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + "(" + \
+                                   forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
+
+            # reaction_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + forward_coeff + \
+            #                        "*" + "(" + "1 - " + reversed_term  + ")"
+
+            # add the composite string describing the reaction math to a new field:
+            self.reactions[reaction_name].reaction_eval_string = reaction_eval_string
 
             # call statement to evaluate:
             # eval(self.reactions['consume_ATP'].reaction_eval_string, globals(), locals())
 
+    def create_reaction_matrix(self):
+
+        """
+        Creates a matrix representation of the system of coupled
+        differential equations underlying the reaction network.
+
+        """
+        n_reacts = len(self.molecules) + len(self.reactions)
+        n_mols = len(self.molecules)
+
+        # initialize the network's reaction matrix:
+        self.reaction_matrix = np.zeros((n_mols, n_reacts))
+
+        molecule_keys = list(self.molecules.keys())
+
+        for i, name in enumerate(self.molecules):
+            # add in terms referencing the self-growth and decay reaction for each substance
+            self.reaction_matrix[i, i] = 1
+
+        for jo, reaction_name in enumerate(self.reactions):
+
+            j = jo + n_mols
+
+            for react_name, coeff in zip(self.reactions[reaction_name].reactants_list,
+                self.reactions[reaction_name].reactants_coeff):
+                i = molecule_keys.index(react_name)
+
+                self.reaction_matrix[i, j] = coeff
+
+            for prod_name, coeff in zip(self.reactions[reaction_name].products_list,
+                self.reactions[reaction_name].products_coeff):
+                i = molecule_keys.index(prod_name)
+
+                self.reaction_matrix[i, j] = -coeff
+
+    #------runners------------------------------------------------------------------------------------------------------
+
+    def run_loop(self, t, sim, cells, p):
+        """
+        Runs the main simulation loop steps for each of the molecules included in the simulation.
+
+        """
+
+        # calculate rates of growth/decay:
+        gad_rates = np.asarray(
+            [eval(self.molecules[mol].gad_eval_string, self.globals, self.locals) for mol in self.molecules])
+
+        # ... and rates of chemical reactions:
+        self.reaction_rates = np.asarray(
+            [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
+
+        # stack into an integrated data structure:
+        all_rates = np.vstack((gad_rates, self.reaction_rates))
+
+        # calculate concentration rate of change using linear algebra:
+        self.delta_conc = np.dot(self.reaction_matrix, all_rates)
+
+        # Initialize arrays for substance charge contribution:
+        net_Q_cell = 0
+        net_Q_env = 0
+
+        # get the name of the specific substance:
+        for name, deltac in zip(self.molecules, self.delta_conc):
+
+            obj = self.molecules[name]
+
+            # update concentration due to growth/decay and chemical reactions:
+            obj.c_cells = obj.c_cells + deltac*p.dt
+
+            # if pumping is enabled:
+            if obj.active_pumping:
+                obj.pump(sim, cells, p)
+
+            if p.run_sim is True:
+                # use the substance as a gating ligand (if desired)
+                if obj.ion_channel_gating:
+                    obj.gating(sim, self, cells, p)
+
+                # update the global boundary (if desired)
+                if obj.change_bounds:
+                    obj.update_boundary(t, p)
+
+            # transport the molecule through gap junctions and environment:
+            obj.transport(sim, cells, p)
+
+            # update the substance on the inside of the cell:
+            obj.updateIntra(sim, self, cells, p)
+
+            # calculate energy charge in the cell:
+            self.energy_charge(sim)
+
+            # ensure no negs:
+            stb.no_negs(obj.c_mems)
+
+            # calculate the charge density this substance contributes to cell and environment:
+            obj_Q_cell = p.F * obj.c_mems * obj.z
+
+            obj_Q_env = p.F * obj.c_env * obj.z
+            # add that contribution to the total sum:
+            net_Q_cell = net_Q_cell + obj_Q_cell
+            net_Q_env = net_Q_env + obj_Q_env
+
+        if p.substances_affect_charge:
+            # update charge in the cell and environment of the main bioelectric simulator:
+            sim.rho_cells = sim.rho_cells + net_Q_cell
+            sim.rho_env = sim.rho_env + net_Q_env
+
+        if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
+
+            self.mit.update(sim, cells, p)
+
+        # manage pH in cells, environment and mitochondria:
+        self.pH_handling(sim, cells, p)
+
+    def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
+
+        # get the object corresponding to the specific transporter:
+        for i, name in enumerate(self.transporter_names):
+            # get the Reaction object:
+            obj = getattr(self, name)
+
+            # compute the new reactants and products
+            obj.rate = obj.compute_reaction(sim, sim_metabo, cells, p)
+
+    def run_loop_channels(self, sim, sim_metabo, cells, p):
+
+        # get the object corresponding to the specific transporter:
+        for i, name in enumerate(self.channel_names):
+            # get the Reaction object:
+            obj = getattr(self, name)
+
+            # compute the channel activity
+            obj.run_channel(sim, sim_metabo, cells, p)
+
+    def run_loop_modulators(self, sim, sim_metabo, cells, p):
+
+        # get the object corresponding to the specific transporter:
+        for i, name in enumerate(self.modulator_names):
+            # get the Reaction object:
+            obj = getattr(self, name)
+
+            # compute the channel activity
+            obj.run_modulator(sim, sim_metabo, cells, p)
+
     # ------Utility Methods---------------------------------------------------------------------------------------------
+    def pH_handling(self, sim, cells, p):
+        """
+        Molecules may contain dissolved carbon dioxide as a substance,
+        and reactions/transporters may act on H+ levels via bicarbonate
+        (M-). Therefore, update pH in cells, environment, and
+        if enabled, mitochondria.
+
+        """
+
+        if 'CO2' in self.molecules:
+
+            if p.ions_dict['H'] == 1:
+
+                # if the simulation contains sim.cHM_mems, use it and update it!
+                sim.cHM_mems = self.CO2.c_cells
+                sim.cHM_env = self.CO2.c_env
+
+                # update the cH and pH fields of sim with potentially new value of sim.iM
+                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(self.CO2.c_cells,
+                    sim.cc_cells[sim.iM])
+                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(self.CO2.c_env, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(self.CO2.c_mit, sim.cc_mit[sim.iM])
+
+            elif p.ions_dict['H'] != 1:
+
+                # update the cH and pH fields of sim with potentially new value of M ion:
+                _, sim.pH_cell = stb.bicarbonate_buffer(self.CO2.c_cells, sim.cc_cells[sim.iM])
+                _, sim.pH_env = stb.bicarbonate_buffer(self.CO2.c_env, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    _, sim.pH_mit = stb.bicarbonate_buffer(self.CO2.c_mit, sim.cc_mit[sim.iM])
+
+        else:  # if we're not using CO2 in the simulator, use the default p.CO2*0.03
+
+            CO2 = p.CO2 * 0.03  # get the default concentration of CO2
+
+            if p.ions_dict['H'] == 1:
+
+                # update the cH and pH fields of sim with potentially new value of sim.iM
+                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
+                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+
+            elif p.ions_dict['H'] != 1:
+
+                # update the cH and pH fields of sim with potentially new value of sim.iM
+                _, sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
+                _, sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
+
+                if self.mit_enabled:
+                    # update the cH and pH fields of sim with potentially new value of sim.iM
+                    _, sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+
+    def energy_charge(self, sim):
+
+        if 'AMP' in self.molecules:
+
+            numo = (self.ATP.c_cells + 0.5 * self.ADP.c_cells)
+            denomo = (self.ATP.c_cells + self.ADP.c_cells + self.AMP.c_cells)
+
+            self.chi = numo / denomo
+
+        else:
+
+            self.chi = np.zeros(sim.cdl)
+
+    def updateInside(self, sim, cells, p):
+        """
+        Runs the main simulation loop steps for each of the molecules included in the simulation.
+
+        """
+
+        # get the name of the specific substance:
+        for name in self.molecules:
+            obj = self.molecules[name]
+            obj.updateIntra(sim, self, cells, p)
+
+    def mod_after_cut_event(self, target_inds_cell, target_inds_mem, sim, cells, p, met_tag=False):
+
+        # get the name of the specific substance:
+        for name in self.molecules:
+
+            obj = self.molecules[name]
+
+            obj.remove_cells(target_inds_cell, target_inds_mem, sim, cells, p)
+
+        if self.mit_enabled:
+            self.mit.remove_mits(sim, target_inds_cell)
+
+        if sim.met_concs is not None and met_tag is True:  # update metabolism object if it's being simulated
+            sim.met_concs = {'cATP': self.ATP.c_mems,
+                'cADP': self.ADP.c_mems,
+                'cPi': self.Pi.c_mems}
+
+        for name in self.transporter_names:
+            obj = getattr(self, name)
+
+            obj.update_transporter(sim, cells, p)
+
+        for name in self.channel_names:
+            obj = getattr(self, name)
+
+            obj.update_channel(sim, cells, p)
+
+    def clear_cache(self):
+        """
+        Initializes or clears the time-storage vectors at the beginning of init and sim runs.
+
+        """
+
+        # get the name of the specific substance:
+        for name in self.molecule_names:
+            obj = getattr(self, name)
+
+            obj.c_mems_time = []
+            obj.c_cells_time = []
+            obj.c_env_time = []
+
+            if self.mit_enabled:
+                obj.c_mit_time = []
+
+        for name in self.transporter_names:
+            obj = getattr(self, name)
+
+            obj.rate_time = []
+
+        for name in self.reaction_names:
+            obj = getattr(self, name)
+
+            obj.rate_time = []
+
+        if self.mit_enabled:
+            self.vmit_time = []
+            self.pH_mit_time = []
+
+        self.pH_cells_time = []
+        self.pH_env_time = []
+
+        self.chi_time = []
+
+    def write_data(self, sim, p):
+        """
+        Writes concentration data from a time-step to time-storage vectors.
+
+        """
+
+        # get the name of the specific substance:
+        for name in self.molecule_names:
+            obj = getattr(self, name)
+
+            obj.c_mems_time.append(obj.c_mems)
+            obj.c_cells_time.append(obj.c_cells)
+            obj.c_env_time.append(obj.c_env)
+
+            if self.mit_enabled:
+                obj.c_mit_time.append(obj.c_mit)
+
+        # save rates of transporters and reactions
+        for name in self.transporter_names:
+            obj = getattr(self, name)
+
+            if obj.rate is not None:
+                obj.rate_time.append(obj.rate)
+
+        for name in self.reaction_names:
+            obj = getattr(self, name)
+
+            if obj.rate is not None:
+                obj.rate_time.append(obj.rate)
+
+        if self.mit_enabled:
+            self.vmit_time.append(self.mit.Vmit[:])
+            self.pH_mit_time.append(sim.pH_mit)
+
+        self.pH_cells_time.append(sim.pH_cell)
+        self.pH_env_time.append(sim.pH_env)
+
+        self.chi_time.append(self.chi)
+
+    def report(self, sim, p):
+        """
+        At the end of the simulation, tell user about mean, final concentrations of each molecule.
+
+        """
+
+        for name in self.molecule_names:
+
+            obj = getattr(self, name)
+
+            if self.mit_enabled:
+                logs.log_info('Average concentration of ' + str(name) + ' in the mitochondria: ' +
+                              str(np.round(obj.c_mit.mean(), 4)) + ' mmol/L')
+
+            logs.log_info('Average concentration of ' + str(name) + ' in the cell: ' +
+                          str(np.round(obj.c_cells.mean(), 4)) + ' mmol/L')
+
+            # logs.log_info('Average concentration of ' + str(name) + ' in the environment: ' +
+            #                               str(np.round(obj.c_env.mean(), 4)) + ' mmol/L')
+
+        if self.mit_enabled:
+            logs.log_info('Average Vmit: ' + str(np.round(1.0e3 * self.mit.Vmit.mean(), 4)) + ' mV')
+
+            if 'ETC' in self.transporter_names:
+
+                rate = 0.5 * 3600 * 1e15 * self.mit.mit_vol.mean() * self.ETC.rate.mean()
+
+                if 'ETC_ROS' in self.transporter_names:
+                    rate = rate + 3600 * 1e15 * self.mit.mit_vol.mean() * self.ETC_ROS.rate.mean()
+
+                logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
+
+        # logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
+        # logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
+
+        # if self.mit_enabled:
+        #     logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
+
+        if self.chi.mean() != 0.0:
+            logs.log_info('Energy charge of cell ' + str(np.round(self.chi.mean(), 3)))
+
+    def export_all_data(self, sim, cells, p, message='for auxiliary molecules...'):
+
+        """
+
+        Exports concentration data from each molecule to a file for a single cell
+        (plot cell defined in params) as a function of time.
+
+        """
+        logs.log_info('Exporting raw data for ' + message)
+        # get the name of the specific substance:
+        for name in self.molecule_names:
+            obj = getattr(self, name)
+
+            obj.export_data(sim, cells, p, self.resultsPath)
+
+        if self.mit_enabled:
+            # FIXME we should also save vmit to a file? and pH and vm?
+            pass
+
+    def plot(self, sim, cells, p, message='for auxiliary molecules...'):
+        """
+        Creates plots for each molecule included in the simulation.
+
+        """
+
+        logs.log_info('Plotting 1D and 2D data for ' + message)
+
+        # get the name of the specific substance:
+        for name in self.molecule_names:
+            obj = getattr(self, name)
+
+            if p.plot_single_cell_graphs:
+                # create line graphs for the substance
+                obj.plot_1D(sim, p, self.imagePath)
+
+            # create 2D maps for the substance
+            obj.plot_cells(sim, cells, p, self.imagePath)
+
+            # if there's a real environment, plot 2D concentration in the environment
+            if p.sim_ECM:
+                obj.plot_env(sim, cells, p, self.imagePath)
+
+        # ---------------cell everything plot---------------------------------------------
+        data_all1D = []
+        fig_all1D = plt.figure()
+        ax_all1D = plt.subplot(111)
+
+        # set up the color vector (for plotting complex line graphs)
+        maxlen = len(self.molecule_names)
+
+        lineplots_cm = plt.get_cmap(self.plot_cmap)
+        cNorm = colors.Normalize(vmin=0, vmax=maxlen)
+        c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
+
+        for i, name in enumerate(self.molecule_names):
+            obj = getattr(self, name)
+
+            c_cells = [arr[p.plot_cell] for arr in obj.c_cells_time]
+
+            ax_all1D.plot(sim.time, c_cells, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+
+        legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+        ax_all1D.set_xlabel('Time [s]')
+        ax_all1D.set_ylabel('Concentration [mmol/L]')
+        ax_all1D.set_title('Concentration of all substances in cell ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'AllCellConcentrations_' + str(p.plot_cell) + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        # -------------environment everything plot-------------------------------------------------
+        data_all1D = []
+        fig_all1D = plt.figure()
+        ax_all1D = plt.subplot(111)
+
+        # get a random selection of our chosen colors in the length of our data set:
+        # c_names = np.random.choice(self.c_string, len(self.molecule_names))
+
+        for i, name in enumerate(self.molecule_names):
+            obj = getattr(self, name)
+
+            if p.sim_ECM is True:
+                c_env = [arr[cells.map_cell2ecm][p.plot_cell] for arr in obj.c_env_time]
+
+            else:
+
+                mem_i = cells.cell_to_mems[p.plot_cell][0]
+
+                c_env = [arr[mem_i] for arr in obj.c_env_time]
+
+            ax_all1D.plot(sim.time, c_env, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+
+        legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+        ax_all1D.set_xlabel('Time [s]')
+        ax_all1D.set_ylabel('Concentration [mmol/L]')
+        ax_all1D.set_title('Concentration of all substances in environment of cell ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'AllEnvConcentrations_' + str(p.plot_cell) + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        # ------------------------------------------------------------------------------------------
+        if self.mit_enabled:
+
+            # 1 D plot of mitochondrial voltage--------------------------------------------------------
+            vmit = [1e3 * arr[p.plot_cell] for arr in self.vmit_time]
+
+            figVmit = plt.figure()
+            axVmit = plt.subplot(111)
+
+            axVmit.plot(sim.time, vmit)
+
+            axVmit.set_xlabel('Time [s]')
+            axVmit.set_ylabel('Vmit [mV]')
+            axVmit.set_title('Mitochondrial transmembrane voltage in cell: ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'Vmit_cell_' + str(p.plot_cell) + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            # 2D plot of mitochondrial voltage ---------------------------------------------------
+
+            fig, ax, cb = viz.plotPolyData(sim, cells, p,
+                zdata=self.mit.Vmit * 1e3, number_cells=p.enumerate_cells, clrmap=p.default_cm)
+
+            ax.set_title('Final Mitochondrial Transmembrane Voltage')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+            cb.set_label('Vmit [mV]')
+
+            if p.autosave is True:
+                savename = self.imagePath + '2DVmit.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            # plot of all substances in the mitochondria:----------------------------------------------
+
+            data_all1D = []
+            fig_all1D = plt.figure()
+            ax_all1D = plt.subplot(111)
+
+            # get a random selection of our chosen colors in the length of our data set:
+            # c_names = np.random.choice(self.c_string, len(self.molecule_names))
+
+            for i, name in enumerate(self.molecule_names):
+                obj = getattr(self, name)
+
+                c_mit = [arr[p.plot_cell] for arr in obj.c_mit_time]
+
+                ax_all1D.plot(sim.time, c_mit, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+
+            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+            ax_all1D.set_xlabel('Time [s]')
+            ax_all1D.set_ylabel('Concentration [mmol/L]')
+            ax_all1D.set_title('Substances in mitochondria of cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'AllMitConcentrations_' + str(p.plot_cell) + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+        # ------pH plot------------------------------------------------------------------------------
+
+        # 1 D plot of pH in cell, env and mit ------------------------------------------------------
+        pHcell = [arr[p.plot_cell] for arr in self.pH_cells_time]
+
+        if p.sim_ECM:
+            pHenv = [arr[cells.map_cell2ecm][p.plot_cell] for arr in self.pH_env_time]
+
+        else:
+            avPh = [np.dot(cells.M_sum_mems, arr) / cells.num_mems for arr in self.pH_env_time]
+            pHenv = [arr[p.plot_cell] for arr in avPh]
+
+        if self.mit_enabled:
+            pHmit = [arr[p.plot_cell] for arr in self.pH_mit_time]
+
+        else:
+            pHmit = np.zeros(len(sim.time))
+
+        figpH = plt.figure()
+        axpH = plt.subplot(111)
+
+        axpH.plot(sim.time, pHcell, label='cell')
+        axpH.plot(sim.time, pHmit, label='mitochondria')
+        axpH.plot(sim.time, pHenv, label='env')
+
+        axpH.set_xlabel('Time [s]')
+        axpH.set_ylabel('pH')
+        axpH.set_title('pH in/near cell : ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'pH_' + str(p.plot_cell) + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        # -------Reaction rate plot and data export----------------------------------------
+
+        if len(self.reaction_names):
+
+            # create a suite of single reaction line plots:
+            for i, name in enumerate(self.reaction_names):
+                # get the reaction object field
+                obj = getattr(self, name)
+
+                # make a 1D plot of this reaction rate:
+                obj.plot_1D(sim, cells, p, self.imagePath)
+
+            # now create the "everything" plot and export data to file:
+
+            react_dataM = []
+            react_header = 'Time [s], '
+
+            react_dataM.append(sim.time)
+
+            data_all1D = []
+            fig_all1D = plt.figure()
+            ax_all1D = plt.subplot(111)
+
+            # set up the color vector (for plotting complex line graphs)
+            maxlen = len(self.reaction_names)
+
+            lineplots_cm = plt.get_cmap(self.plot_cmap)
+            cNorm = colors.Normalize(vmin=0, vmax=maxlen)
+            c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
+
+            for i, name in enumerate(self.reaction_names):
+                # get the reaction object field
+                obj = getattr(self, name)
+
+                if len(obj.rate_time) > 0:
+                    r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+
+                    ax_all1D.plot(sim.time, r_rate, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+
+                    react_dataM.append(r_rate)
+                    react_header = react_header + name + ' [mM/s]' + ','
+
+            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+            ax_all1D.set_xlabel('Time [s]')
+            ax_all1D.set_ylabel('Rate [mM/s]')
+            ax_all1D.set_title('Reaction rates in cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'AllReactionRates_' + str(p.plot_cell) + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            react_dataM = np.asarray(react_dataM)
+
+            saveName = 'AllReactionRatesData_' + str(p.plot_cell) + '.csv'
+
+            saveDataReact = os.path.join(self.resultsPath, saveName)
+
+            np.savetxt(saveDataReact, react_dataM.T, delimiter=',', header=react_header)
+
+        # ---Transporter rate plot and data export ------------------------------------------------------
+
+        if len(self.transporter_names):
+
+            transp_dataM = []
+            transp_header = 'Time [s], '
+
+            transp_dataM.append(sim.time)
+
+            # set up the color vector (for plotting complex line graphs)
+            maxlen = len(self.transporter_names)
+
+            lineplots_cm = plt.get_cmap(self.plot_cmap)
+            cNorm = colors.Normalize(vmin=0, vmax=maxlen)
+            c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
+
+            for i, name in enumerate(self.transporter_names):
+                obj = getattr(self, name)
+
+                # make a 1D plot of this reaction rate:
+                obj.plot_1D(sim, cells, p, self.imagePath)
+
+                if len(obj.rate_time) > 0:
+
+                    # check the data structure size for this transporter:
+                    if len(obj.rate_time[0]) == sim.cdl:
+
+                        t_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+
+                    elif len(obj.rate_time[0]) == sim.mdl:
+                        mem_i = cells.cell_to_mems[p.plot_cell][0]
+                        t_rate = [arr[mem_i] for arr in obj.rate_time]
+
+                    else:
+                        t_rate = np.zeros(len(sim.time))
+
+                    data_all1D = []
+                    fig_all1D = plt.figure()
+                    ax_all1D = plt.subplot(111)
+
+                    ax_all1D.plot(sim.time, t_rate, color=c_names.to_rgba(i), linewidth=2.0, label=name)
+
+                    transp_dataM.append(t_rate)
+                    transp_header = transp_header + name + ' [mM/s]' + ','
+
+            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+
+            ax_all1D.set_xlabel('Time [s]')
+            ax_all1D.set_ylabel('Rate [mM/s]')
+            ax_all1D.set_title('Transporter rates in cell ' + str(p.plot_cell))
+
+            if p.autosave is True:
+                savename = self.imagePath + 'AllTransporterRates_' + str(p.plot_cell) + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
+            saveName = 'AllTransporterRatesData_' + str(p.plot_cell) + '.csv'
+
+            saveDataTransp = os.path.join(self.resultsPath, saveName)
+
+            transp_dataM = np.asarray(transp_dataM)
+
+            np.savetxt(saveDataTransp, transp_dataM.T, delimiter=',', header=transp_header)
+
+        # energy charge plots:----------------------------------------------------------
+        # 1 D plot of mitochondrial voltage--------------------------------------------------------
+        chio = [arr[p.plot_cell] for arr in self.chi_time]
+
+        figChi = plt.figure()
+        axChi = plt.subplot(111)
+
+        axChi.plot(sim.time, chio)
+
+        axChi.set_xlabel('Time [s]')
+        axChi.set_ylabel('Energy charge')
+        axChi.set_title('Energy charge in cell: ' + str(p.plot_cell))
+
+        if p.autosave is True:
+            savename = self.imagePath + 'EnergyCharge_cell_' + str(p.plot_cell) + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        # ---2D plot--------------------------------------------------------------------
+
+
+
+        fig, ax, cb = viz.plotPolyData(sim, cells, p,
+            zdata=self.chi, number_cells=p.enumerate_cells, clrmap=p.default_cm)
+
+        ax.set_title('Final Energy Charge of Cell')
+        ax.set_xlabel('Spatial distance [um]')
+        ax.set_ylabel('Spatial distance [um]')
+        cb.set_label('Energy Charge')
+
+        if p.autosave is True:
+            savename = self.imagePath + '2DEnergyCharge.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+    def anim(self, sim, cells, p, message='for auxiliary molecules...'):
+        """
+        Animates 2D data for each molecule in the simulation.
+
+        """
+
+        logs.log_info('Animating data for ' + message)
+        # get the name of the specific substance:
+        for name in self.molecule_names:
+
+            obj = getattr(self, name)
+
+            if p.createAnimations is True and obj.make_ani is True:
+
+                # create 2D animations for the substance in cells
+                obj.anim_cells(sim, cells, p)
+
+                # create 2D animations for the substance in the environment
+                if p.sim_ECM:
+                    obj.anim_env(sim, cells, p)
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
         n_i_list, reaction_zone='cell'):
@@ -655,8 +1534,6 @@ class Molecule(object):
 
         self.dummy_dyna = TissueHandler(sim, cells, p)
         self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
-
-
 
         # Set all fields to None -- these will be dynamically set by MasterOfMolecules
 
@@ -846,32 +1723,6 @@ class Molecule(object):
 
             self.growth_targets_cell = cells.cell_i
             self.growth_targets_mem = cells.mem_i
-
-    def growth_and_decay(self, super_self, sim, cells, p):
-        """
-        Grows and/or decays the molecule concentration in the cell cytosol using a simple rate equation
-        representing saturating autocatalytic production/decay via Michaelis-Menten kinetics.
-
-        """
-
-        cc = self.c_cells/self.Kgd
-
-        activator_alpha, inhibitor_alpha = get_influencers_grn(sim, super_self, self.growth_activators_list,
-            self.growth_activators_k, self.growth_activators_Km, self.growth_activators_n,
-            self.growth_inhibitors_list, self.growth_inhibitors_k, self.growth_inhibitors_Km,
-            self.growth_inhibitors_n, reaction_zone='cell')
-
-        delta_cells = self.growth_mod_function_cells*self.r_production*inhibitor_alpha*activator_alpha - self.r_decay*cc
-
-
-        self.c_cells[self.growth_targets_cell] = self.c_cells[self.growth_targets_cell] + \
-                                                 delta_cells[self.growth_targets_cell]*p.dt
-
-        self.c_mems[self.growth_targets_mem] = self.c_mems[self.growth_targets_mem] + \
-                                               delta_cells[cells.mem_to_cells][self.growth_targets_mem]*p.dt
-
-        # make sure the concs inside the cell are evenly mixed after production/decay:
-        # self.updateIntra(sim, cells, p)
 
     def remove_cells(self, target_inds_cell, target_inds_mem, sim, cells, p):
         """
@@ -1158,18 +2009,6 @@ class Reaction(object):
 
         self.reaction_zone = None
 
-        self.c_reactants = []  # concentrations of reactions, defined on cell-centres
-        self.z_reactants = []  # charge of reactants
-        self.inds_react = []  # indices to each reactant, to keep their order
-        self.c_products = []  # concentrations of reactions, defined on cell-centres
-        self.z_products = []  # charge of products
-        self.inds_prod = []  # indices to each reactant, to keep their order
-
-        self.product_source_object = []  # object from which product concentrations come from
-        self.product_source_type = []    # type of product concentrations sourced from object
-        self.reactant_source_object = []  # object from which reactants concentrations come from
-        self.reactant_source_type = []  # type of reactant concentrations sourced from object
-
         # activator and inhibitors of the reaction
         self.reaction_activators_list = None
         self.reaction_activators_Km = None
@@ -1177,262 +2016,6 @@ class Reaction(object):
         self.reaction_inhibitors_list = None
         self.reaction_inhibitors_Km = None
         self.reaction_inhibitors_n = None
-
-    def get_reactants(self, sim, sim_metabo, reactant_type_self, reactant_type_sim):
-
-        """
-        Get updated concentrations direct from sources for chemical reaction's reactants.
-
-        sim:                    An instance of simulator
-        sim_metabo:             Sim instance of reaction block (sim.metabo or sim.reacto for general reactions)
-        reactant_type_self:     Data type to retrieve: c_cells, c_mems, c_mit
-        reactant_type_sim:      Data typpe to retrieve: cc_cells, cc_mems, cc_mit
-
-        """
-
-        self.c_reactants = []
-
-        for reactant_name in self.reactants_list:
-
-            label = 'i' + reactant_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                try:
-                    obj_reactant = getattr(sim_metabo, reactant_name)
-                    c_react = getattr(obj_reactant, reactant_type_self)
-                    self.c_reactants.append(c_react)
-
-                except KeyError:
-
-                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
-                                                   'an ion currently included in the ion profile being used.'
-                                                   'Please check biomolecule definitions and ion profile'
-                                                   'settings of your config(s) and try again.')
-
-            else:
-
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conco = getattr(sim, reactant_type_sim)
-
-                sim_conc = sim_conco[ion_check]
-
-                self.c_reactants.append(sim_conc)
-
-    def get_products(self, sim, sim_metabo, product_type_self, product_type_sim):
-
-        """
-        Get updated concentrations direct from sources for chemical reaction's products.
-
-        sim:                    An instance of simulator
-        sim_metabo:             Sim instance of reaction block (sim.metabo or sim.reacto for general reactions)
-        product_type_self:     Data type to retrieve: c_cells, c_mems, c_mit
-        product_type_sim:      Data typpe to retrieve: cc_cells, cc_mems, cc_mit
-
-        """
-
-        self.c_products = []
-
-        for product_name in self.products_list:
-
-            label = 'i' + product_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                try:
-                    obj_prod = getattr(sim_metabo, product_name)
-                    c_prod = getattr(obj_prod, product_type_self)
-                    self.c_products.append(c_prod)
-
-                except KeyError:
-
-                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
-                                                   'an ion currently included in the ion profile being used.'
-                                                   'Please check biomolecule definitions and ion profile'
-                                                   'settings of your config(s) and try again.')
-
-            else:
-
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conco = getattr(sim, product_type_sim)
-
-                sim_conc = sim_conco[ion_check]
-
-                self.c_products.append(sim_conc)
-
-    def set_reactant_c(self, deltac, sim, sim_metabo, reactant_type_self, reactant_type_sim):
-
-        for i, reactant_name in enumerate(self.reactants_list):
-
-            conc = self.c_reactants[i] - deltac*self.reactants_coeff[i]
-
-            label = 'i' + reactant_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                obj_reactant = getattr(sim_metabo, reactant_name)
-                setattr(obj_reactant, reactant_type_self, conc)
-
-            else:
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conc = getattr(sim, reactant_type_sim)
-
-                sim_conc[ion_check] = conc
-
-    def set_product_c(self, deltac, sim, sim_metabo, product_type_self, product_type_sim):
-
-        for i, product_name in enumerate(self.products_list):
-
-            conc = self.c_products[i] + deltac*self.products_coeff[i]
-
-            label = 'i' + product_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                obj_reactant = getattr(sim_metabo, product_name)
-                setattr(obj_reactant, product_type_self, conc)
-
-            else:
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conc = getattr(sim, product_type_sim)
-
-                sim_conc[ion_check] = conc
-
-    def compute_reaction(self, sim, sim_metabo, cells, p):
-
-
-        # get up-to-date concentration data for the reaction:
-        if self.reaction_zone == 'cell':
-
-            self.get_reactants(sim, sim_metabo, 'c_cells', 'cc_cells')
-            self.get_products(sim, sim_metabo, 'c_cells', 'cc_cells')
-
-        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
-
-            self.get_reactants(sim, sim_metabo, 'c_mit', 'cc_mit')
-            self.get_products(sim, sim_metabo, 'c_mit', 'cc_mit')
-
-        # if reaction is reversible, calculate reaction quotient Q, the equilibrium constant, and backwards rate
-        if self.delta_Go is not None:
-
-            # define the reaction equilibrium coefficient:
-            Keqm = np.exp(-self.delta_Go/(p.R*sim.T))
-
-            # calculate the MM rate coefficient for the backwards reaction direction and Q:
-            backwards_term = []
-            Q_deno_list = []
-            Q_numo_list = []
-
-            for i, prod in enumerate(self.c_products):
-                # calculate a factor in the backwards rate term:
-                coeff = self.products_coeff[i]
-                Km = self.Km_products_list[i]
-                cs = (prod / Km) ** coeff
-                term = cs / (1 + cs)
-                backwards_term.append(term)
-
-                # calculate a factor in the reaction quotient numerator term:
-                ci = prod**coeff
-                Q_numo_list.append(ci)
-
-            backwards_term = np.asarray(backwards_term)
-
-            backwards_rate = self.vmax * np.prod(backwards_term, axis=0)
-
-            for j, react in enumerate(self.c_reactants):
-                # calculate a factor in the reaction quotient denominator term:
-                coeff = self.reactants_coeff[j]
-                cj = react**coeff
-                Q_deno_list.append(cj)
-
-            # get the numerator and denomenator of the reaction quotient:
-            Q_deno = np.prod(Q_deno_list, axis=0)
-            Q_numo = np.prod(Q_numo_list, axis=0)
-
-            inds_neg = (Q_deno == 0).nonzero()
-            Q_deno[inds_neg] = 1.0e-15  # ensure no division by zero
-
-            # finally, *the* reaction quotient:
-            Q = Q_numo/Q_deno
-
-        else:
-
-            Q  = 0
-            backwards_rate = 0
-            Keqm = 1
-
-        # Next, calculate the MM rate coefficient for the forward reaction direction:
-        forward_term = []
-
-        for i, react in enumerate(self.c_reactants):
-
-            coeff = self.reactants_coeff[i]
-            Km = self.Km_reactants_list[i]
-            cs = (react/Km)**coeff
-
-            term = cs/(1 + cs)
-
-            forward_term.append(term)
-
-        forward_term = np.asarray(forward_term)
-
-        forward_rate = self.vmax*np.prod(forward_term, axis=0)
-
-        reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
-
-        if self.reaction_zone == 'cell':
-
-            tag = 'cell'
-
-        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
-
-            tag = 'mitochondria'
-
-        else:
-
-            tag = None
-
-        if tag is not None:
-
-            # get net effect of any activators or inhibitors of the reaction:
-            activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.reaction_activators_list,
-                self.reaction_activators_Km, self.reaction_activators_n, self.reaction_inhibitors_list,
-                self.reaction_inhibitors_Km, self.reaction_inhibitors_n, reaction_zone=tag)
-
-            # final degree of change, returned for use elsewhere (?):
-            flux = activator_alpha*inhibitor_alpha*reaction_rate
-            deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
-
-            if self.reaction_zone == 'cell':
-
-                self.set_reactant_c(deltaC, sim, sim_metabo,'c_cells', 'cc_cells')
-
-                # re-obtain updated concentrations:
-                self.get_reactants(sim, sim_metabo, 'c_cells', 'cc_cells')
-                self.get_products(sim, sim_metabo, 'c_cells', 'cc_cells')
-
-                self.set_product_c(deltaC, sim, sim_metabo, 'c_cells', 'cc_cells')
-
-
-            if self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
-
-                self.set_reactant_c(deltaC, sim, sim_metabo,'c_mit', 'cc_mit')
-
-                # obtain updated concentrations:
-                self.get_reactants(sim, sim_metabo, 'c_mit', 'cc_mit')
-                self.get_products(sim, sim_metabo, 'c_mit', 'cc_mit')
-
-                self.set_product_c(deltaC, sim, sim_metabo, 'c_mit', 'cc_mit')
-
-        else:
-
-            flux = None
-
-        return flux
 
     def plot_1D(self, sim, cells, p, saveImagePath):
 
@@ -1446,7 +2029,7 @@ class Reaction(object):
             ax.set_ylabel('Rate [mM/s]')
             ax.set_title('Rate of ' + self.name + ' in cell ' + str(p.plot_cell))
 
-        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
+        elif self.reaction_zone == 'mit' and self.mit_enabled is True:
 
             r_rate = [arr[p.plot_cell] for arr in self.rate_time]
             fig = plt.figure()
