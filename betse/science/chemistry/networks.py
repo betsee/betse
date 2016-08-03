@@ -435,62 +435,219 @@ class MasterOfNetworks(object):
 
     def write_reactions(self):
         """
-        Reactions are now constructed *once* as strings that are evaluated in eval calls in each time-step.
+        Reactions are now constructed during the init as strings that are evaluated in eval calls in each time-step.
         This function constructs the evaluation strings for each reaction, given the metadata stored
-        in each reaction object (e.g. lists of reactants,
-        products, etc)
+        in each reaction object (e.g. lists of reactants, products, etc).
 
         """
 
-        # first calculate a reaction coefficient Q for each reaction, as a string
-        for reaction_name in self.reactions:
 
-            numo_string = "("
-            denomo_string = "("
+        for reaction_name in self.reactions:
 
             reactant_names = self.reactions[reaction_name].reactants_list
             reactant_coeff = self.reactions[reaction_name].reactants_coeff
-            # reactant_Km = self.reactions[reaction_name].Km_reactants_list
+            reactant_Km = self.reactions[reaction_name].Km_reactants_list
 
             product_names = self.reactions[reaction_name].products_list
             product_coeff = self.reactions[reaction_name].products_coeff
-            # product_Km = self.reactions[reaction_name].Km_products_list
+            product_Km = self.reactions[reaction_name].Km_products_list
+
+            # first calculate a reaction coefficient Q, as a string expression
+            numo_string_Q = "("
+            denomo_string_Q = "("
 
             for i, (name, coeff) in enumerate(zip(reactant_names, reactant_coeff)):
 
-                denomo_string += "(network.cell_concs['{}']".format(name)
-                denomo_string += "**{})".format(coeff)
+                denomo_string_Q += "(self.cell_concs['{}']".format(name)
+                denomo_string_Q += "**{})".format(coeff)
 
                 if i < len(reactant_names) - 1:
 
-                    denomo_string += "*"
+                    denomo_string_Q += "*"
 
                 else:
 
-                    denomo_string += ")"
+                    denomo_string_Q += ")"
 
             for i, (name, coeff) in enumerate(zip(product_names, product_coeff)):
 
-                numo_string += "(network.cell_concs['{}']".format(name)
-                numo_string += "**{})".format(coeff)
+                numo_string_Q += "(self.cell_concs['{}']".format(name)
+                numo_string_Q += "**{})".format(coeff)
 
                 if i < len(product_names) - 1:
 
-                    numo_string += "*"
+                    numo_string_Q += "*"
 
                 else:
 
-                    numo_string += ")"
+                    numo_string_Q += ")"
 
             # define the final reaction quotient string, Q:
-            Q = numo_string + '/' + denomo_string
+            Q = "(" + numo_string_Q + '/' + denomo_string_Q + ")"
 
-            # next calculate the forward-rate reaction coefficient:
+            # next calculate the forward and backward reaction rate coefficients:---------------------------------------
+
+            forward_coeff = "("
+            backward_coeff = "("
+
+            for i, (name, n, Km) in enumerate(zip(reactant_names, reactant_coeff, reactant_Km)):
+
+                numo_string_r = "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                denomo_string_r = "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                term = "(" + numo_string_r + "/" + denomo_string_r + ")"
+
+                forward_coeff += term
+
+                if i < len(reactant_names) - 1:
+
+                    forward_coeff += "*"
+
+                else:
+
+                    forward_coeff += ")"
+
+            for i, (name, n, Km) in enumerate(zip(product_names, product_coeff, product_Km)):
+
+                numo_string_p = "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                denomo_string_p = "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                term = "(" + numo_string_p + "/" + denomo_string_p + ")"
+
+                backward_coeff += term
+
+                if i < len(product_names) - 1:
+
+                    backward_coeff += "*"
+
+                else:
+
+                    backward_coeff += ")"
 
             #self.reactions[reaction_name].reaction_eval_string = numo_string + '/' + denomo_string
 
             # call statement to evaluate:
             # eval(self.reactions['consume_ATP'].reaction_eval_string, globals(), locals())
+
+    # ------Utility Methods---------------------------------------------------------------------------------------------
+
+    def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+        n_i_list, reaction_zone='cell'):
+
+        """
+        Given lists of activator and inhibitor names, with associated
+        Km and n data, this function constructs string expressions
+        representing the net effect of the activators and inhibitors.
+        This output can be used as a multiplier for another rate equation.
+
+        a_list:          List of substance names defined in MasterOfNetworks.molecules which serve as activators
+        Km_a_list:       List of Hill-function Km's to the activators
+        n_a_list:        List of Hill-function exponents (n) to the activators
+        i_list:          List of substance names defined in MasterOfNetworks.molecules which serve as inhibitors
+        Km_i_list:       List of Hill-function Km's to the inhibitors
+        n_i_list:        List of Hill-function exponents (n) to the inhibitors
+        reaction_zone:   Where the reaction takes place ('cell', 'mit', 'mem', or 'env')
+
+        Returns
+        --------
+        activator_alpha, inhibitor_alpha     string expressions representing the activator and inhibitor coeffs
+
+        """
+
+        # initialize string expressions for product of all activators and inhibitors
+        activator_alpha = "("
+        inhibitor_alpha = "("
+
+        if a_list is not None and a_list != 'None' and len(a_list) > 0:
+
+            # Begin with construction of the activator effects term:
+            for i, (name, Km, n) in enumerate(zip(a_list, Km_a_list, n_a_list)):
+
+                # initialize string expressions for activator and inhibitor, respectively
+                numo_string_a = ""
+                denomo_string_a = ""
+
+                if reaction_zone == 'cell':
+
+                    numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif reaction_zone == 'mem':
+
+                    numo_string_a += "((self.mem_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_a += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif reaction_zone == 'env':
+
+                    numo_string_a += "((self.env_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_a += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif reaction_zone == 'mit':
+
+                    numo_string_a += "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_a += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
+
+                term = "(" + numo_string_a + "/" + denomo_string_a + ")"
+
+                activator_alpha += term
+
+                if i < len(a_list) - 1:
+
+                    activator_alpha += "*"
+
+                else:
+
+                    activator_alpha += ")"
+        else:
+
+            activator_alpha += "1)"
+
+        if i_list is not None and i_list != 'None' and len(i_list) > 0:
+
+            # Next, construct the inhibitors net effect term:
+            for i, (name, Km, n) in enumerate(zip(i_list, Km_i_list, n_i_list)):
+
+                # initialize string expressions for activator and inhibitor, respectively
+                numo_string_i = ""
+                denomo_string_i = ""
+
+                if reaction_zone == 'cell':
+
+                    numo_string_i += "1"
+                    denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif reaction_zone == 'mem':
+
+                    numo_string_i += "1"
+                    denomo_string_i += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif reaction_zone == 'env':
+
+                    numo_string_i += "1"
+                    denomo_string_i += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif reaction_zone == 'mit':
+
+                    numo_string_i += "1"
+                    denomo_string_i += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
+
+                term = "(" + numo_string_i + "/" + denomo_string_i + ")"
+
+                inhibitor_alpha += term
+
+                if i < len(i_list) - 1:
+
+                    inhibitor_alpha += "*"
+
+                else:
+
+                    inhibitor_alpha += ")"
+
+        else:
+
+            inhibitor_alpha += "1)"
+
+        return activator_alpha, inhibitor_alpha
 
 class Molecule(object):
 
@@ -1305,3 +1462,5 @@ class Reaction(object):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
+
