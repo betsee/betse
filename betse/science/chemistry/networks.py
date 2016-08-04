@@ -67,6 +67,7 @@ class MasterOfNetworks(object):
         self.read_substances(sim, cells, config_substances, p)
         self.tissue_init(sim, cells, config_substances, p)
 
+
         # write substance growth and decay equations:
         self.write_growth_and_decay()
 
@@ -89,6 +90,7 @@ class MasterOfNetworks(object):
 
         """
 
+        logs.log_info("Reading additional substance data...")
 
         # Initialize a dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
         cell_concs_mapping = {}
@@ -226,6 +228,8 @@ class MasterOfNetworks(object):
 
         """
 
+        logs.log_info("Initializing substances/reaction network...")
+
         for q, mol_dic in enumerate(config_substances):
             # get each user-defined name-filed in the dictionary:
             name = str(mol_dic['name'])
@@ -268,12 +272,12 @@ class MasterOfNetworks(object):
                     modulator_function_name = gad.get('modulator function', None)
 
                     mol.growth_activators_list = gad.get('activators', None)
-                    mol.growth_activators_k = gad.get('k activators', None)
+                    mol.growth_activators_zone = gad.get('zone activators', None)
                     mol.growth_activators_Km = gad.get('Km activators', None)
 
                     mol.growth_activators_n = gad.get('k activators', None)
                     mol.growth_inhibitors_list = gad.get('inhibitors', None)
-                    mol.growth_inhibitors_k = gad.get('k inhibitors', None)
+                    mol.growth_inhibitors_zone = gad.get('zone inhibitors', None)
                     mol.growth_inhibitors_Km = gad.get('Km inhibitors', None)
                     mol.growth_inhibitors_n = gad.get('k inhibitors', None)
 
@@ -426,6 +430,8 @@ class MasterOfNetworks(object):
 
           """
 
+        logs.log_info("Reading reaction input data...")
+
         for q, react_dic in enumerate(config_reactions):
 
             # get each user-defined name-filed in the dictionary:
@@ -466,9 +472,13 @@ class MasterOfNetworks(object):
             obj.reaction_activators_list = react_dic.get('reaction activators', None)
             obj.reaction_activators_Km = react_dic.get('activator Km', None)
             obj.reaction_activators_n = react_dic.get('activator n', None)
+            obj.reaction_activators_zone = react_dic.get('activator zone', None)
+
             obj.reaction_inhibitors_list = react_dic.get('reaction inhibitors', None)
             obj.reaction_inhibitors_Km = react_dic.get('inhibitor Km', None)
             obj.reaction_inhibitors_n = react_dic.get('inhibitor n', None)
+            obj.reaction_inhibitors_zone = react_dic.get('inhibitor zone', None)
+
 
             if self.mit_enabled:
                 obj.mit_enabled = True
@@ -486,6 +496,8 @@ class MasterOfNetworks(object):
             config_options:  dictionary containing BETSE transporter template fields
 
             """
+
+        logs.log_info("Reading transporter input data...")
 
         for q, trans_dic in enumerate(config_transporters):
             # get each user-defined name-filed in the dictionary:
@@ -536,10 +548,12 @@ class MasterOfNetworks(object):
             obj.transporter_activators_list = trans_dic.get('transporter activators', None)
             obj.transporter_activators_Km = trans_dic.get('activator Km', None)
             obj.transporter_activators_n = trans_dic.get('activator n', None)
+            obj.transporter_activators_zone = trans_dic.get('activator zone', None)
 
             obj.transporter_inhibitors_list = trans_dic.get('transporter inhibitors', None)
             obj.transporter_inhibitors_Km = trans_dic.get('inhibitor Km', None)
             obj.transporter_inhibitors_n = trans_dic.get('inhibitor n', None)
+            obj.transporter_inhibitors_zone = trans_dic.get('inhibitor zone', None)
 
             if self.mit_enabled:
                 obj.mit_enabled = True
@@ -547,6 +561,8 @@ class MasterOfNetworks(object):
                 obj.mit_enabled = False
 
     def read_channels(self, config_channels, sim, cells, p):
+
+        logs.log_info("Reading channel input data...")
 
         for q, chan_dic in enumerate(config_channels):
             # get each user-defined name-filed in the dictionary:
@@ -574,13 +590,17 @@ class MasterOfNetworks(object):
             obj.channel_activators_list = chan_dic.get('channel activators', None)
             obj.channel_activators_Km = chan_dic.get('activator Km', None)
             obj.channel_activators_n = chan_dic.get('activator n', None)
+            obj.channel_activators_zone = chan_dic.get('activator zone', None)
             obj.channel_inhibitors_list = chan_dic.get('channel inhibitors', None)
             obj.channel_inhibitors_Km = chan_dic.get('inhibitor Km', None)
             obj.channel_inhibitors_n = chan_dic.get('inhibitor n', None)
+            obj.channel_inhibitors_zone = chan_dic.get('inhibitor zone', None)
 
             obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
     def read_modulators(self, config_modulators, sim, cells, p):
+
+        logs.log_info("Reading modulator input data...")
 
         for q, mod_dic in enumerate(config_modulators):
 
@@ -600,13 +620,17 @@ class MasterOfNetworks(object):
             obj.modulator_activators_list = mod_dic.get('activators', None)
             obj.modulator_activators_Km = mod_dic.get('activator Km', None)
             obj.modulator_activators_n = mod_dic.get('activator n', None)
+            obj.modulator_activators_zone = mod_dic.get('activator zone', None)
             obj.modulator_inhibitors_list = mod_dic.get('inhibitors', None)
             obj.modulator_inhibitors_Km = mod_dic.get('inhibitor Km', None)
             obj.modulator_inhibitors_n = mod_dic.get('inhibitor n', None)
+            obj.modulator_inhibitors_zone = mod_dic.get('inhibitor zone', None)
 
             obj.init_modulator(sim, cells, p)
 
     def write_growth_and_decay(self):
+
+        logs.log_info("Writing substance growth/decay equations...")
 
         for mol_name in self.molecules:
 
@@ -648,6 +672,8 @@ class MasterOfNetworks(object):
         in each reaction object (e.g. lists of reactants, products, etc).
 
         """
+
+        logs.log_info("Writing reaction equations...")
 
         for reaction_name in self.reactions:
 
@@ -774,13 +800,15 @@ class MasterOfNetworks(object):
             # call statement to evaluate:
             # eval(self.reactions['consume_ATP'].reaction_eval_string, globals(), locals())
 
-    def write_transporters(self):  # FIXME work in progress -- need to implement Vmem effect on membrane transporters!
+    def write_transporters(self, cells):
         """
         Reactions are now constructed during the init as strings that are evaluated in eval calls in each time-step.
         This function constructs the evaluation strings for each reaction, given the metadata stored
         in each reaction object (e.g. lists of reactants, products, etc).
 
         """
+
+        logs.log_info("Writing transporter equations...")
 
         for transp_name in self.transporters:
 
@@ -807,15 +835,43 @@ class MasterOfNetworks(object):
             transport_out_list = self.transporters[transp_name].transport_out_list
             transport_in_list = self.transporters[transp_name].transport_in_list
 
+            # specific tissue profile regions where the transporter is active:
+            targ_mems = self.transporters[transp_name].transporter_targets_mem
+            targ_cell = self.transporters[transp_name].transporter_targets_cell
+            targ_env = self.transporters[transp_name].transporter_targets_env
+
         # initialize lists to hold the reactants and product transfer tags (initialized to default zone):
             react_transfer_tag = ['mem_concs' for x in reactant_names]
             prod_transfer_tag = ['mem_concs' for x in product_names]
+
+        # list holding terms affecting free energy via transfer of charged item across membrane:
+            echem_terms_list = []
 
             if reaction_zone == 'cell':
 
                 type_out = 'env_concs'
 
                 vmem = "sim.vm"   # get the transmembrane voltage for this category
+
+                in_delta_term_react = "-self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
+                in_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
+
+                if self.transporters[transp_name].ignore_ECM_transporter is True:
+
+                    out_delta_term_react = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                                           "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
+
+                    out_delta_term_prod = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                                          "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
+
+                else:
+                    out_delta_term_react = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                                           "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
+                                            .format(transp_name)
+
+                    out_delta_term_prod = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                                          "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
+                                            .format(transp_name)
 
             elif reaction_zone == 'mit' and self.mit_enabled is True:
 
@@ -827,7 +883,23 @@ class MasterOfNetworks(object):
 
                 vmem = "sim.metabo.mit.Vmit"  # get the transmembrane voltage for this category
 
-            # calculate a reactants zone tag list:
+                in_delta_term_react = "-self.transporters['{}'].flux*(sim.metabo.mit_sa/sim.metabo.mit_vol)".\
+                                                                        format(transp_name)
+
+                in_delta_term_prod = "self.transporters['{}'].flux*(sim.metabo.mit_sa/sim.metabo.mit_vol)".\
+                                                                format(transp_name)
+
+                out_delta_term_react = "-self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
+                                                                        format(transp_name)
+
+                out_delta_term_prod = "self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
+                                                                     format(transp_name)
+
+        # initialize list that will hold expression for calculating net concentration change
+            delta_strings_reactants = [in_delta_term_react for x in reactant_names]
+            delta_strings_products = [in_delta_term_prod for x in product_names]
+
+            # calculate a reactants zone tag list and terms affecting transporter free energy via Vmem:
             if transport_out_list != 'None':
 
                 for out_name in transport_out_list:
@@ -837,12 +909,48 @@ class MasterOfNetworks(object):
 
                     prod_transfer_tag[prod_i] = type_out
 
+                    coeff = product_coeff[prod_i]
+
+                    # calculate the effect of transfer on transporter's free energy:
+                    eterm = "-{}*self.molecules['{}'].z*p.F*{}".format(coeff, out_name, vmem)
+
+                    echem_terms_list.append(eterm)
+
+                    # update delta string for correct transfer:
+                    delta_strings_products[prod_i] = out_delta_term_prod
+
+
             if transport_in_list != 'None':
 
                 for in_name in transport_in_list:
 
+                    # get the index for the substance in the molecules database
                     react_i = reactant_names.index(in_name)
                     react_transfer_tag[react_i] = type_out
+
+                    coeff = reactant_coeff[react_i]
+
+                    # calculate the effect of transfer on transporter's free energy:
+                    eterm = "{}*self.molecules['{}'].z*p.F*{}".format(coeff, in_name, vmem)
+
+                    echem_terms_list.append(eterm)
+
+                    # update delta string for correct transfer:
+                    delta_strings_products[react_i] = out_delta_term_react
+
+
+            # create the eterms string expression describing net effect of trans-membrane fluxes on free energy:
+            echem_string = "("
+            for i, et in enumerate(echem_terms_list):
+
+                echem_string += et
+
+                if i < len(echem_terms_list) -1:
+
+                    echem_string += "+"
+
+                else:
+                    echem_string += ")"
 
             # first calculate a reaction coefficient Q, as a string expression
             numo_string_Q = "("
@@ -850,7 +958,12 @@ class MasterOfNetworks(object):
 
             for i, (name, coeff, tag) in enumerate(zip(reactant_names, reactant_coeff, react_transfer_tag)):
 
-                denomo_string_Q += "(self.{}['{}']".format(tag, name)
+                if tag != 'env_concs':
+                    denomo_string_Q += "(self.{}['{}']".format(tag, name)
+
+                else: # get the concentration from the environment, mapped to respective membranes:
+                    denomo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+
                 denomo_string_Q += "**{})".format(coeff)
 
                 if i < len(reactant_names) - 1:
@@ -863,7 +976,13 @@ class MasterOfNetworks(object):
 
             for i, (name, coeff, tag) in enumerate(zip(product_names, product_coeff, prod_transfer_tag)):
 
-                numo_string_Q += "(self.{}['{}']".format(tag, name)
+                if tag != 'env_concs':
+
+                    numo_string_Q += "(self.{}['{}']".format(tag, name)
+
+                else: # get the concentration from the environment mapped to the respective membranes:
+                    numo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+
                 numo_string_Q += "**{})".format(coeff)
 
                 if i < len(product_names) - 1:
@@ -884,8 +1003,15 @@ class MasterOfNetworks(object):
 
             for i, (name, n, Km, tag) in enumerate(zip(reactant_names, reactant_coeff, reactant_Km, react_transfer_tag)):
 
-                numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
-                denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                if tag != 'env_concs':
+
+                    numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                    denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+
+                else:
+
+                    numo_string_r = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+                    denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
 
                 term = "(" + numo_string_r + "/" + denomo_string_r + ")"
 
@@ -901,8 +1027,16 @@ class MasterOfNetworks(object):
 
             for i, (name, n, Km, tag) in enumerate(zip(product_names, product_coeff, product_Km, prod_transfer_tag)):
 
-                numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
-                denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                if tag != 'env_concs':
+
+                    numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                    denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+
+                else:
+
+                    numo_string_p = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+                    denomo_string_p = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+
 
                 term = "(" + numo_string_p + "/" + denomo_string_p + ")"
 
@@ -917,13 +1051,11 @@ class MasterOfNetworks(object):
                     backward_coeff += ")"
 
             # if reaction is reversible deal calculate an equilibrium constant:
-            if self.transporters[transp_name].delta_Go is not None: # FIXME need to put Vmem in here!
+            if self.transporters[transp_name].delta_Go is not None:
 
                 # define the reaction equilibrium coefficient expression:
-                Keqm = "(np.exp(-self.transporters['{}'].delta_Go / (p.R * sim.T)))".format(transp_name)
-
-                # FIXME fixing this won't be trivial!
-
+                Keqm = "(np.exp(-(self.transporters['{}'].delta_Go + {})/ (p.R * sim.T)))".format(transp_name,
+                                                                                                    echem_string)
             else:
 
                 Q = "0"
@@ -942,16 +1074,22 @@ class MasterOfNetworks(object):
             transporter_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + "(" + \
                                    forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
 
-            # reaction_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + forward_coeff + \
-            #                        "*" + "(" + "1 - " + reversed_term  + ")"
-
             # add the composite string describing the reaction math to a new field:
+            # Evaluate this expression to assign self.transporters[transp_name].flux field
             self.transporters[transp_name].transporter_eval_string = transporter_eval_string
 
-            # FIXME need to deal with volumes of transfer spaces....
+            # evaluate these expressions to get the correct change in concentration to each reactant/product
+            # after assigning .flux as described above
+            self.transporters[transp_name].delta_react_eval_strings = delta_strings_reactants
+            self.transporters[transp_name].delta_prod_eval_strings = delta_strings_products
 
-            # call statement to evaluate:
-            # eval(self.reactions['consume_ATP'].reaction_eval_string, globals(), locals())
+            # finally, expressions to do the concentration change after assigning transporters.delta_react
+            # and transporters.delta_prod:
+            self.transporters[transp_name].concr_update_eval_strings = conc_strings_reactants
+            self.transporters[transp_name].concp_update_eval_strings = conc_strings_products
+
+
+
 
     def create_reaction_matrix(self):
 
@@ -960,6 +1098,8 @@ class MasterOfNetworks(object):
         differential equations underlying the reaction network.
 
         """
+
+        logs.log_info("Writing reaction network matrix...")
         n_reacts = len(self.molecules) + len(self.reactions)
         n_mols = len(self.molecules)
 
@@ -980,13 +1120,13 @@ class MasterOfNetworks(object):
                 self.reactions[reaction_name].reactants_coeff):
                 i = molecule_keys.index(react_name)
 
-                self.reaction_matrix[i, j] = coeff
+                self.reaction_matrix[i, j] = -coeff
 
             for prod_name, coeff in zip(self.reactions[reaction_name].products_list,
                 self.reactions[reaction_name].products_coeff):
                 i = molecule_keys.index(prod_name)
 
-                self.reaction_matrix[i, j] = -coeff
+                self.reaction_matrix[i, j] = coeff
 
     #------runners------------------------------------------------------------------------------------------------------
 
@@ -1069,13 +1209,31 @@ class MasterOfNetworks(object):
 
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
 
-        # get the object corresponding to the specific transporter:
-        for i, name in enumerate(self.transporters):
-            # get the Reaction object:
-            obj = self.transporters[name]
+        # call statement to evaluate:
+        for name in self.transporters:
 
-            # compute the new reactants and products
-            obj.rate = obj.compute_reaction(sim, sim_metabo, cells, p)
+            # calculate the flux
+            self.transporters[name].flux = eval(self.transporters[name].transporter_eval_string,
+                self.globals, self.locals)
+
+            # finally, update the concentrations using the final eval statements:
+            for i, (delc, coeff) in enumerate(zip(self.transporters[name].concr_update_eval_strings,
+                self.transporters[name].reactants_coeff)):
+                # obtain the change for each reactant
+                self.transporters[name].delta_react = coeff * eval(self.transporters[name].delta_react_eval_strings[i],
+                    self.globals, self.locals)
+
+                # finally, update the concentrations using the final eval statements:
+                eval(delc, self.globals, self.locals)
+
+            for i, (delc, coeff) in enumerate(zip(self.transporters[name].concp_update_eval_strings,
+                self.transporters[name].products_coeff)):
+                # obtain the change for each product
+                self.transporters[name].delta_prod = coeff * eval(self.transporters[name].delta_prod_eval_strings[i],
+                    self.globals, self.locals)
+
+                # finally, update the concentrations using the final eval statements:
+                eval(delc, self.globals, self.locals)
 
     def run_loop_channels(self, sim, sim_metabo, cells, p):
 
@@ -1229,7 +1387,7 @@ class MasterOfNetworks(object):
         for name in self.transporters:
             obj = self.transporters[name]
 
-            obj.rate_time = []
+            obj.flux_time = []
 
         for name in self.reactions:
             obj = self.reactions[name]
@@ -1267,8 +1425,8 @@ class MasterOfNetworks(object):
         for name in self.transporters:
             obj = self.transporters[name]
 
-            if obj.rate is not None:
-                obj.rate_time.append(obj.rate)
+            if obj.flux is not None:
+                obj.flux_time.append(obj.flux)
 
         for i, name in enumerate(self.reactions):
             obj = self.reactions[name]
@@ -2405,398 +2563,7 @@ class Transporter(object):
         self.transport_out_list = None
         self.transport_in_list = None
 
-    def get_reactants(self, sim, sim_metabo, reactant_type_self, reactant_type_sim):
-
-        """
-        Get updated concentrations direct from sources for chemical reaction's reactants.
-
-        sim:                    An instance of simulator
-        sim_metabo:             Sim instance of reaction block (sim.metabo or sim.reacto for general reactions)
-        reactant_type_self:     Data type to retrieve: c_cells, c_mems, c_mit
-        reactant_type_sim:      Data typpe to retrieve: cc_cells, cc_mems, cc_mit
-
-        """
-
-        self.c_reactants = []
-
-        for reactant_name in self.reactants_list:
-
-            label = 'i' + reactant_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                try:
-                    obj_reactant = getattr(sim_metabo, reactant_name)
-                    c_react = getattr(obj_reactant, reactant_type_self)
-                    self.c_reactants.append(c_react)
-
-                except KeyError:
-
-                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
-                                                   'an ion currently included in the ion profile being used.'
-                                                   'Please check biomolecule definitions and ion profile'
-                                                   'settings of your config(s) and try again.')
-
-            else:
-
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conco = getattr(sim, reactant_type_sim)
-
-                sim_conc = sim_conco[ion_check]
-
-                self.c_reactants.append(sim_conc)
-
-    def get_products(self, sim, sim_metabo, product_type_self, product_type_sim):
-
-        """
-        Get updated concentrations direct from sources for chemical reaction's products.
-
-        sim:                    An instance of simulator
-        sim_metabo:             Sim instance of reaction block (sim.metabo or sim.reacto for general reactions)
-        product_type_self:     Data type to retrieve: c_cells, c_mems, c_mit
-        product_type_sim:      Data typpe to retrieve: cc_cells, cc_mems, cc_mit
-
-        """
-
-        self.c_products = []
-
-        for product_name in self.products_list:
-
-            label = 'i' + product_name
-            ion_check = getattr(sim, label, None)
-
-            if ion_check is None:
-
-                try:
-                    obj_prod = getattr(sim_metabo, product_name)
-                    c_prod = getattr(obj_prod, product_type_self)
-                    self.c_products.append(c_prod)
-
-                except KeyError:
-
-                    raise BetseParametersException('Name of product is not a defined chemical, or is not'
-                                                   'an ion currently included in the ion profile being used.'
-                                                   'Please check biomolecule definitions and ion profile'
-                                                   'settings of your config(s) and try again.')
-
-            else:
-
-                # define the reactant as the ion concentration from the cell concentrations object in sim:
-                sim_conco = getattr(sim, product_type_sim)
-
-                sim_conc = sim_conco[ion_check]
-
-                self.c_products.append(sim_conc)
-
-    def set_reactant_c(self, deltaMoles, sim, sim_metabo, reactant_tags, cells, p, ignoreECM = True):
-
-        targ_cells = self.transporter_targets_cell
-        targ_mems = self.transporter_targets_mem
-        targ_env = self.transporter_targets_env
-
-        for i, reactant_name in enumerate(self.reactants_list):
-
-            type_tag = reactant_tags[i]
-
-            if type_tag != 'c_env':
-
-                if type_tag == 'c_mems':
-
-                    deltaC = deltaMoles/cells.mem_vol
-
-                    conc = np.zeros(sim.mdl)
-
-                    conc[targ_mems] = self.c_reactants[i][targ_mems] - deltaC[targ_mems]*self.reactants_coeff[i]
-
-                    label = 'i' + reactant_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_reactant = getattr(sim_metabo, reactant_name)
-                        setattr(obj_reactant, 'c_mems', conc)
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_mems')
-                        sim_conc[ion_check] = conc
-
-                elif type_tag == 'c_cells':
-
-                    deltaC = deltaMoles / cells.cell_vol
-
-                    conc = np.zeros(sim.cdl)
-
-                    conc[targ_cells] = self.c_reactants[i][targ_cells] - deltaC[targ_cells]*self.reactants_coeff[i]
-
-                    label = 'i' + reactant_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_reactant = getattr(sim_metabo, reactant_name)
-                        setattr(obj_reactant, 'c_cells', conc)
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_cells')
-
-                        sim_conc[ion_check] = conc
-
-                elif type_tag == 'c_mit':
-
-                    deltaC = deltaMoles / sim_metabo.mit.mit_vol
-
-                    conc = np.zeros(sim.cdl)
-
-                    conc[targ_cells] = self.c_reactants[i][targ_cells] - deltaC[targ_cells] * self.reactants_coeff[i]
-
-                    label = 'i' + reactant_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        # print('setting mitochondria reactant')
-                        obj_reactant = getattr(sim_metabo, reactant_name)
-                        setattr(obj_reactant, 'c_mit', conc)
-                        # print('obj_reactant')
-                        # print('-----------')
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_mit')
-                        sim_conc[ion_check] = conc
-
-            elif type_tag == 'c_env':
-
-                if p.sim_ECM is False:
-
-                    deltaC = deltaMoles/cells.mem_sa
-
-                    conc = np.zeros(sim.mdl)
-
-                    conc[targ_mems] = self.c_reactants[i][targ_mems] - deltaC[targ_mems] * self.reactants_coeff[i]
-
-                    mean_conc = conc.mean()
-                    conc[:] = mean_conc
-
-                    label = 'i' + reactant_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_reactant = getattr(sim_metabo, reactant_name)
-                        setattr(obj_reactant, 'c_env', conc)
-
-                    else:
-
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_env')
-                        sim_conc[ion_check] = conc
-
-
-                elif p.sim_ECM is True:
-
-                    flux = deltaMoles/cells.mem_sa
-
-                    flux_env = np.zeros(sim.edl)
-                    flux_env[cells.map_mem2ecm] = flux
-
-                    # save values at the cluster boundary:
-                    bound_vals = flux_env[cells.ecm_bound_k]
-
-                    # set the values of the global environment to zero:
-                    flux_env[cells.inds_env] = 0
-
-                    # finally, ensure that the boundary values are restored:
-                    flux_env[cells.ecm_bound_k] = bound_vals
-
-                    if ignoreECM is True:
-
-                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
-
-                    else:
-
-                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-
-                    label = 'i' + reactant_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_reactant = getattr(sim_metabo, reactant_name)
-
-                        conco = np.zeros(sim.edl)
-
-                        conco[targ_env] = obj_reactant.c_env[targ_env] - delta_env[targ_env]*self.reactants_coeff[i]
-
-                        setattr(obj_reactant, 'c_env', conco)
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_env')
-
-                        conco = np.zeros(sim.edl)
-
-                        conco[targ_env] = sim_conc[ion_check][targ_env] - delta_env[targ_env]*self.reactants_coeff[i]
-
-                        sim_conc[ion_check] = conco[:]
-
-    def set_product_c(self, deltaMoles, sim, sim_metabo, product_tags, cells, p, ignoreECM = True):
-
-        targ_cells = self.transporter_targets_cell
-        targ_mems = self.transporter_targets_mem
-        targ_env = self.transporter_targets_env
-
-        for i, product_name in enumerate(self.products_list):
-
-            type_tag = product_tags[i]
-
-            if type_tag != 'c_env':
-
-                if type_tag == 'c_mems':
-
-                    deltaC = deltaMoles / cells.mem_vol
-
-                    conc = np.zeros(sim.mdl)
-
-                    conc[targ_mems] = self.c_products[i][targ_mems] + deltaC[targ_mems] * self.products_coeff[i]
-
-                    label = 'i' + product_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_product = getattr(sim_metabo, product_name)
-                        setattr(obj_product, 'c_mems', conc)
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_mems')
-
-                        sim_conc[ion_check] = conc
-
-                if type_tag == 'c_cells':
-
-                    deltaC = deltaMoles / cells.cell_vol
-
-                    conc = np.zeros(sim.cdl)
-
-                    conc[targ_cells] = self.c_products[i][targ_cells] + deltaC[targ_cells] * self.products_coeff[i]
-
-                    label = 'i' + product_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_product = getattr(sim_metabo, product_name)
-                        setattr(obj_product, 'c_cells', conc)
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_cells')
-
-                        sim_conc[ion_check] = conc
-
-                elif type_tag == 'c_mit':
-
-                    deltaC = deltaMoles / sim_metabo.mit.mit_vol
-
-                    conc = np.zeros(sim.cdl)
-
-                    conc[targ_cells] = self.c_products[i][targ_cells] + deltaC * self.products_coeff[i]
-
-                    label = 'i' + product_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_product = getattr(sim_metabo, product_name)
-                        setattr(obj_product, 'c_mit', conc)
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_mit')
-
-                        sim_conc[ion_check] = conc
-
-            elif type_tag == 'c_env':
-
-                if p.sim_ECM is False:
-
-                    deltaC = deltaMoles / cells.mem_sa
-
-                    conc = np.zeros(sim.mdl)
-
-                    conc[targ_mems] = self.c_products[i][targ_mems] + deltaC[targ_mems] * self.products_coeff[i]
-
-                    # mean_conc = conc.mean()
-                    # conc[:] = mean_conc
-
-                    label = 'i' + product_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_product = getattr(sim_metabo, product_name)
-                        setattr(obj_product, 'c_env', conc)
-
-                    else:
-
-
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_env')
-                        sim_conc[ion_check] = conc
-
-
-
-                elif p.sim_ECM is True:
-
-                    flux = deltaMoles / cells.mem_sa
-
-                    flux_env = np.zeros(sim.edl)
-                    flux_env[cells.map_mem2ecm] = flux
-
-                    # save values at the cluster boundary:
-                    bound_vals = flux_env[cells.ecm_bound_k]
-
-                    # set the values of the global environment to zero:
-                    flux_env[cells.inds_env] = 0
-
-                    # finally, ensure that the boundary values are restored:
-                    flux_env[cells.ecm_bound_k] = bound_vals
-
-                    if ignoreECM is True:
-
-                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
-
-                    else:
-
-                        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-
-                    label = 'i' + product_name
-                    ion_check = getattr(sim, label, None)
-
-                    if ion_check is None:
-
-                        obj_product = getattr(sim_metabo, product_name)
-
-                        conco = np.zeros(sim.edl)
-
-                        conco[targ_env] = obj_product.c_env[targ_env] + delta_env[targ_env]*self.products_coeff[i]
-
-                        setattr(obj_product, 'c_env', conco)
-
-                    else:
-                        # define the reactant as the ion concentration from the cell concentrations object in sim:
-                        sim_conc = getattr(sim, 'cc_env')
-
-                        conco = np.zeros(sim.edl)
-
-                        conco[targ_env] = sim_conc[ion_check][targ_env] + delta_env[targ_env] * self.products_coeff[i]
-
-                        sim_conc[ion_check] = conco[:]
+        self.flux = None
 
     def init_reaction(self,cells, p):
 
@@ -2823,264 +2590,13 @@ class Transporter(object):
             self.transporter_targets_cell = cells.cell_i
             self.transporter_targets_env = [x for x in range(0, len(cells.xypts))]
 
-    def compute_reaction(self, sim, sim_metabo, cells, p):
-
-        if self.reaction_zone == 'cell':
-
-
-            type_self_out = 'c_env'
-            type_sim_out = 'cc_env'
-
-            type_self_in = 'c_mems'
-            type_sim_in = 'cc_mems'
-
-            type_self = 'c_mems'
-            type_sim = 'cc_mems'
-
-            vmem = sim.vm   # get the transmembrane voltage for this category
-
-        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
-            type_self_out = 'c_cells'
-            type_sim_out = 'cc_cells'
-
-            type_self_in = 'c_mit'
-            type_sim_in = 'cc_mit'
-
-            type_self = 'c_mit'
-            type_sim = 'cc_mit'
-
-            vmem = sim_metabo.mit.Vmit  # get the transmembrane voltage for this category
-
-        else:
-            return  # don't proceed any further, get out of this function.
-
-        echem_terms = []
-        c_reactants_trans = []   # substances transferred across membrane -- start state concs
-        c_products_trans = []    # substances transferred across membrane -- end state concs
-        trans_react_index = []
-        trans_prod_index = []
-        react_transfer_tag = []
-        prod_transfer_tag = []
-
-        if self.transport_out_list != None:
-
-            for out_name in self.transport_out_list:
-
-                _, c_in = get_conc(sim, sim_metabo, out_name, type_self_in, type_sim_in, cells, p)
-                z_out, c_out = get_conc(sim, sim_metabo, out_name, type_self_out, type_sim_out, cells, p)
-
-                c_reactants_trans.append(c_in)
-                react_transfer_tag.append(type_self_in)
-
-                c_products_trans.append(c_out)
-                prod_transfer_tag.append(type_self_out)
-
-                ind_r = self.reactants_list.index(out_name)
-                coeff = self.reactants_coeff[ind_r]
-
-                ind_p = self.products_list.index(out_name)
-
-                trans_react_index.append(ind_r)
-                trans_prod_index.append(ind_p)
-
-                # get the electrochemical potential term for this reagent
-                # it's negative because it starts inside the cell
-                out_term = -z_out*coeff*vmem*p.F
-
-                echem_terms.append(out_term)
-
-        if self.transport_in_list != None:
-
-            for in_name in self.transport_in_list:
-
-                z_in, c_in = get_conc(sim, sim_metabo, in_name, type_self_in, type_sim_in, cells, p)
-                _, c_out = get_conc(sim, sim_metabo, in_name, type_self_out, type_sim_out, cells, p)
-
-                c_reactants_trans.append(c_out)
-                react_transfer_tag.append(type_self_out)
-
-                c_products_trans.append(c_in)
-                prod_transfer_tag.append(type_self_in)
-
-                ind_r = self.reactants_list.index(in_name)
-                coeff = self.reactants_coeff[ind_r]
-
-                ind_p = self.products_list.index(in_name)
-
-                trans_react_index.append(ind_r)
-                trans_prod_index.append(ind_p)
-
-                # get the electrochemical potential term for this reagent
-                # it's positive because it ends inside the cell
-                in_term = z_in*coeff*vmem*p.F
-
-                echem_terms.append(in_term)
-
-        echem_terms = np.asarray(echem_terms)
-        vmem_term = np.sum(echem_terms, axis = 0)
-
-        # modification factor for the equilibrium constant due to transfer of charged item across
-        #  transmembrane voltage:
-
-        # Kmod = np.exp(-vmem_term/(p.R*sim.T))
-
-        deltaGi = -vmem_term/(p.R * sim.T)
-
-        # get up-to-date concentration data for the reaction:
-        self.get_reactants(sim, sim_metabo, type_self, type_sim)
-        self.get_products(sim, sim_metabo, type_self, type_sim)
-
-        if self.reaction_zone == 'cell':
-
-            self.reactant_transfer_tag = ['c_mems' for x in range(0, len(self.c_reactants))]
-            self.product_transfer_tag = ['c_mems' for x in range(0, len(self.c_products))]
-
-        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
-
-            self.reactant_transfer_tag = ['c_mit' for x in range(0, len(self.c_reactants))]
-            self.product_transfer_tag = ['c_mit' for x in range(0, len(self.c_products))]
-
-        for i, ind_r in enumerate(trans_react_index):
-
-            self.c_reactants[ind_r] = c_reactants_trans[i]
-            self.reactant_transfer_tag[ind_r] = react_transfer_tag[i]
-
-        for j, ind_p in enumerate(trans_prod_index):
-
-            self.c_products[ind_p] = c_products_trans[j]
-            self.product_transfer_tag[ind_p] = prod_transfer_tag[j]
-
-        # define the reaction equilibrium coefficient:
-        # Ko = np.exp(-self.delta_Go/(p.R*sim.T))
-
-        Keqm = np.exp(-self.delta_Go/(p.R*sim.T) + deltaGi)
-
-        # if self.name == 'ETC':
-        #
-        #     print(Keqm.min(), Keqm.max(), Keqm.mean())
-            # print(deltaGi.mean())
-        #
-        #     deltaGo = -self.delta_Go / (p.R * sim.T)
-        #     deltaGi = - vmem_term / (p.R * sim.T)
-        #     deltaGG = -self.delta_Go / (p.R * sim.T) - vmem_term / (p.R * sim.T)
-        #
-        #     print(deltaGo)
-
-            # print(deltaGi.min(), deltaGi.max(), deltaGi.mean())
-
-            # print(Keqm.min(), Keqm.max(), Keqm.mean())
-            # print(Ko.min(), Ko.max(), Ko.mean())
-            # print(Kmod.min(), Kmod.max(), Kmod.mean())
-
-        # calculate the MM rate coefficient for the backwards reaction direction and Q:
-        backwards_term = []
-        Q_deno_list = []
-        Q_numo_list = []
-
-        for i, prod in enumerate(self.c_products):
-            # calculate a factor in the backwards rate term:
-            coeff = self.products_coeff[i]
-            Km = self.Km_products_list[i]
-            cs = (prod / Km) ** coeff
-            term = cs / (1 + cs)
-            backwards_term.append(term)
-
-            # calculate a factor in the reaction quotient numerator term:
-            ci = prod**coeff
-            Q_numo_list.append(ci)
-
-        backwards_term = np.asarray(backwards_term)
-
-        backwards_rate = self.vmax * np.prod(backwards_term, axis=0)
-
-        for j, react in enumerate(self.c_reactants):
-            # calculate a factor in the reaction quotient denominator term:
-            coeff = self.reactants_coeff[j]
-            cj = react**coeff
-            Q_deno_list.append(cj)
-
-        # get the numerator and denomenator of the reaction quotient:
-        Q_deno = np.prod(Q_deno_list, axis=0)
-        Q_numo = np.prod(Q_numo_list, axis=0)
-
-        inds_neg = (Q_deno == 0).nonzero()
-        Q_deno[inds_neg] = 1.0e-15   # ensure no division by zero
-
-        # finally, *the* reaction quotient:
-        Q = Q_numo/Q_deno
-
-        # Next, calculate the MM rate coefficient for the forward reaction direction:
-        forward_term = []
-
-        for i, react in enumerate(self.c_reactants):
-
-            coeff = self.reactants_coeff[i]
-            Km = self.Km_reactants_list[i]
-            cs = (react/Km)**coeff
-
-            term = cs/(1 + cs)
-
-            forward_term.append(term)
-
-        forward_term = np.asarray(forward_term)
-
-        forward_rate = self.vmax*np.prod(forward_term, axis=0)
-
-        reaction_rate = forward_rate - (Q/Keqm)*backwards_rate
-
-        # get net effect of any activators or inhibitors of the reaction:
-
-        if self.reaction_zone == 'cell':
-
-            tag = 'mems'
-
-        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
-
-            tag = 'mitochondria'
-
-
-        activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.transporter_activators_list,
-            self.transporter_activators_Km, self.transporter_activators_n, self.transporter_inhibitors_list,
-            self.transporter_inhibitors_Km, self.transporter_inhibitors_n, reaction_zone=tag)
-
-
-        deltaC = activator_alpha*inhibitor_alpha*reaction_rate*p.dt
-
-        # multiply by compartment volume to get a mole transfer:
-        if self.reaction_zone == 'cell':
-            deltaMoles = deltaC*cells.mem_vol
-
-        elif self.reaction_zone == 'mitochondria' and self.mit_enabled is True:
-            deltaMoles = deltaC*sim_metabo.mit.mit_vol
-
-        else:
-            deltaMoles = None
-
-
-        if deltaMoles is not None:
-
-            self.set_reactant_c(deltaMoles, sim, sim_metabo,self.reactant_transfer_tag, cells, p,
-                                ignoreECM = self.ignore_ECM_transporter)
-
-            # get up-to-date concentration data for the reaction:
-            self.get_reactants(sim, sim_metabo, type_self, type_sim)
-            self.get_products(sim, sim_metabo, type_self, type_sim)
-
-            self.set_product_c(deltaMoles, sim, sim_metabo, self.product_transfer_tag, cells, p,
-                               ignoreECM = self.ignore_ECM_transporter)
-
-        else:
-            deltaC = None
-
-        return deltaC
-
     def plot_1D(self, sim, cells, p, saveImagePath):
 
-        if len(self.rate_time) > 0:
+        if len(self.flux_time) > 0:
 
-            if len(self.rate_time[0]) == sim.cdl:
+            if len(self.flux_time[0]) == sim.cdl:
 
-                r_rate = [arr[p.plot_cell] for arr in self.rate_time]
+                r_rate = [arr[p.plot_cell] for arr in self.flux_time]
 
             else:
                 mem_i = cells.cell_to_mems[p.plot_cell][0]
