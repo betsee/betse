@@ -27,6 +27,7 @@ from betse.science.physics.deform import (
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
 from betse.science.chemistry.molecule import MasterOfMolecules
+from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.organelles.endo_retic import EndoRetic
@@ -229,9 +230,6 @@ class Simulator(object):
             self.envV = np.zeros(self.mdl)
             self.envV[:] = p.vol_env
 
-            # # Initialize membrane thickness:
-            # self.tm = np.zeros(self.mdl)
-            # self.tm[:] = p.tm
 
         if p.fluid_flow is True:
             # Electroosmosis Initialization:
@@ -251,14 +249,6 @@ class Simulator(object):
             self.d_cells_x = np.zeros(self.cdl)
             self.d_cells_y = np.zeros(self.cdl)
 
-        #
-        # if p.gj_flux_sensitive is True:
-        #
-        #     self.gj_rho = np.zeros(len(cells.nn_i))
-        #
-        # else:
-        #
-        #     self.gj_rho = 0
 
         ion_names = list(p.ions_dict.keys())
 
@@ -386,9 +376,6 @@ class Simulator(object):
 
             self.cHM_env = np.zeros(self.edl)
             self.cHM_env[:] = 0.03 * p.CO2
-
-            # self.cH_mems = np.zeros(self.mdl)
-            # self.cH_mems[:] = p.cH_cell
 
             self.cH_mems, self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems, self.cc_mems[self.iM])
             self.cH_env, self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
@@ -605,23 +592,26 @@ class Simulator(object):
         #(only do these initializations if they haven't been done yet)
         if p.molecules_enabled and self.molecules is None:
 
-            self.molecules = MasterOfMolecules(self, cells, p.molecules_config,p)
+            # self.molecules = MasterOfMolecules(self, cells, p.molecules_config,p)
+            self.molecules = MasterOfNetworks(self, cells, p.molecules_config, p)
 
             if p.reactions_enabled:
 
                 self.molecules.read_reactions(p.reactions_config, self, cells, p)
+                self.molecules.write_reactions()
+                self.molecules.create_reaction_matrix()
 
-            if p.transporters_enabled:
-
-                self.molecules.read_transporters(p.transporters_config, self, cells, p)
-
-            if p.channels_enabled:
-
-                self.molecules.read_channels(p.channels_config, self, cells, p)
-
-            if p.modulators_enabled:
-
-                self.molecules.read_modulators(p.modulators_config, self, cells, p)
+            # if p.transporters_enabled:
+            #
+            #     self.molecules.read_transporters(p.transporters_config, self, cells, p)
+            #
+            # if p.channels_enabled:
+            #
+            #     self.molecules.read_channels(p.channels_config, self, cells, p)
+            #
+            # if p.modulators_enabled:
+            #
+            #     self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
         elif p.molecules_enabled and self.molecules is not None:
         # don't declare a whole new object, but re-read in parts that user may have changed:
@@ -630,14 +620,14 @@ class Simulator(object):
             if p.reactions_enabled:
                 self.molecules.read_reactions(p.reactions_config, self, cells, p)
 
-            if p.transporters_enabled:
-                self.molecules.read_transporters(p.transporters_config, self, cells, p)
-
-            if p.channels_enabled:
-                self.molecules.read_channels(p.channels_config, self, cells, p)
-
-            if p.modulators_enabled:
-                self.molecules.read_modulators(p.modulators_config, self, cells, p)
+            # if p.transporters_enabled:
+            #     self.molecules.read_transporters(p.transporters_config, self, cells, p)
+            #
+            # if p.channels_enabled:
+            #     self.molecules.read_channels(p.channels_config, self, cells, p)
+            #
+            # if p.modulators_enabled:
+            #     self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
 
         #-----metabolism initialization -----------------------------------
@@ -929,21 +919,21 @@ class Simulator(object):
                 # update the molecules handler-----------------------------------------------------------------
                 if p.molecules_enabled:
 
-                    if p.reactions_enabled:
-
-                        self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
-
-                    if p.transporters_enabled:
-
-                        self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
-
-                    if p.channels_enabled:
-
-                        self.molecules.run_loop_channels(self, self.molecules, cells, p)
-
-                    if p.modulators_enabled:
-
-                        self.molecules.run_loop_modulators(self, self.molecules, cells, p)
+                    # if p.reactions_enabled:
+                    #
+                    #     self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
+                    #
+                    # if p.transporters_enabled:
+                    #
+                    #     self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
+                    #
+                    # if p.channels_enabled:
+                    #
+                    #     self.molecules.run_loop_channels(self, self.molecules, cells, p)
+                    #
+                    # if p.modulators_enabled:
+                    #
+                    #     self.molecules.run_loop_modulators(self, self.molecules, cells, p)
 
                     self.molecules.run_loop(t, self, cells, p)
 
@@ -1122,7 +1112,6 @@ class Simulator(object):
         Re-initializes time storage vectors at the begining of a sim or init.
 
         """
-
 
         # clear mass flux storage vectors:
         self.fluxes_gj  = np.zeros(self.fluxes_gj.shape)

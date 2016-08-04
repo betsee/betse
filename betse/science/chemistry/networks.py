@@ -42,8 +42,17 @@ class MasterOfNetworks(object):
 
         # Initialize dictionary mapping from molecule names to Molecule objects
         self.molecules = {}
-        # Initialize a list that keeps the Reaction objects:
+        # Initialize a dict that keeps the Reaction objects:
         self.reactions = {}
+        # Initialize a dict of Transporter objects:
+        self.transporters = {}
+        # Initialize a dict of Channels:
+        self.channels = {}
+        # Initialize a dict of modulators:
+        self.modulators = {}
+
+        # Initialize reaction rates array to None (filled in later, if applicable):
+        self.reaction_rates = None
 
         # all metabolic simulations require ATP, ADP and Pi. Initialize these fields to None so that we can test
         # for their presence in metabolic sims:
@@ -372,7 +381,7 @@ class MasterOfNetworks(object):
             name = str(mol_dic['name'])
 
             # assign alias for convenience
-            mol = self.molecules['name']
+            mol = self.molecules[name]
 
             # assign plotting properties
             pd = mol_dic['plotting']
@@ -754,9 +763,9 @@ class MasterOfNetworks(object):
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
 
         # get the object corresponding to the specific transporter:
-        for i, name in enumerate(self.transporter_names):
+        for i, name in enumerate(self.transporters):
             # get the Reaction object:
-            obj = getattr(self, name)
+            obj = self.transporters[name]
 
             # compute the new reactants and products
             obj.rate = obj.compute_reaction(sim, sim_metabo, cells, p)
@@ -764,9 +773,9 @@ class MasterOfNetworks(object):
     def run_loop_channels(self, sim, sim_metabo, cells, p):
 
         # get the object corresponding to the specific transporter:
-        for i, name in enumerate(self.channel_names):
+        for i, name in enumerate(self.channels):
             # get the Reaction object:
-            obj = getattr(self, name)
+            obj = self.channels[name]
 
             # compute the channel activity
             obj.run_channel(sim, sim_metabo, cells, p)
@@ -774,9 +783,9 @@ class MasterOfNetworks(object):
     def run_loop_modulators(self, sim, sim_metabo, cells, p):
 
         # get the object corresponding to the specific transporter:
-        for i, name in enumerate(self.modulator_names):
+        for i, name in enumerate(self.modulators):
             # get the Reaction object:
-            obj = getattr(self, name)
+            obj = self.modulators[name]
 
             # compute the channel activity
             obj.run_modulator(sim, sim_metabo, cells, p)
@@ -883,13 +892,13 @@ class MasterOfNetworks(object):
                 'cADP': self.ADP.c_mems,
                 'cPi': self.Pi.c_mems}
 
-        for name in self.transporter_names:
-            obj = getattr(self, name)
+        for name in self.transporters:
+            obj = self.transporters[name]
 
             obj.update_transporter(sim, cells, p)
 
-        for name in self.channel_names:
-            obj = getattr(self, name)
+        for name in self.channels:
+            obj = self.channels[name]
 
             obj.update_channel(sim, cells, p)
 
@@ -900,8 +909,8 @@ class MasterOfNetworks(object):
         """
 
         # get the name of the specific substance:
-        for name in self.molecule_names:
-            obj = getattr(self, name)
+        for name in self.molecules:
+            obj = self.molecules[name]
 
             obj.c_mems_time = []
             obj.c_cells_time = []
@@ -910,13 +919,13 @@ class MasterOfNetworks(object):
             if self.mit_enabled:
                 obj.c_mit_time = []
 
-        for name in self.transporter_names:
-            obj = getattr(self, name)
+        for name in self.transporters:
+            obj = self.transporters[name]
 
             obj.rate_time = []
 
-        for name in self.reaction_names:
-            obj = getattr(self, name)
+        for name in self.reactions:
+            obj = self.reactions[name]
 
             obj.rate_time = []
 
@@ -936,8 +945,9 @@ class MasterOfNetworks(object):
         """
 
         # get the name of the specific substance:
-        for name in self.molecule_names:
-            obj = getattr(self, name)
+        for name in self.molecules:
+
+            obj = self.molecules[name]
 
             obj.c_mems_time.append(obj.c_mems)
             obj.c_cells_time.append(obj.c_cells)
@@ -947,17 +957,17 @@ class MasterOfNetworks(object):
                 obj.c_mit_time.append(obj.c_mit)
 
         # save rates of transporters and reactions
-        for name in self.transporter_names:
-            obj = getattr(self, name)
+        for name in self.transporters:
+            obj = self.transporters[name]
 
             if obj.rate is not None:
                 obj.rate_time.append(obj.rate)
 
-        for name in self.reaction_names:
-            obj = getattr(self, name)
+        for i, name in enumerate(self.reactions):
+            obj = self.reactions[name]
 
-            if obj.rate is not None:
-                obj.rate_time.append(obj.rate)
+            if self.reaction_rates is not None:
+                obj.rate_time.append(self.reaction_rates[i])
 
         if self.mit_enabled:
             self.vmit_time.append(self.mit.Vmit[:])
@@ -974,9 +984,9 @@ class MasterOfNetworks(object):
 
         """
 
-        for name in self.molecule_names:
+        for name in self.molecules:
 
-            obj = getattr(self, name)
+            obj = self.molecules[name]
 
             if self.mit_enabled:
                 logs.log_info('Average concentration of ' + str(name) + ' in the mitochondria: ' +
@@ -991,11 +1001,11 @@ class MasterOfNetworks(object):
         if self.mit_enabled:
             logs.log_info('Average Vmit: ' + str(np.round(1.0e3 * self.mit.Vmit.mean(), 4)) + ' mV')
 
-            if 'ETC' in self.transporter_names:
+            if 'ETC' in self.transporters:
 
                 rate = 0.5 * 3600 * 1e15 * self.mit.mit_vol.mean() * self.ETC.rate.mean()
 
-                if 'ETC_ROS' in self.transporter_names:
+                if 'ETC_ROS' in self.transporters:
                     rate = rate + 3600 * 1e15 * self.mit.mit_vol.mean() * self.ETC_ROS.rate.mean()
 
                 logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
@@ -1019,8 +1029,8 @@ class MasterOfNetworks(object):
         """
         logs.log_info('Exporting raw data for ' + message)
         # get the name of the specific substance:
-        for name in self.molecule_names:
-            obj = getattr(self, name)
+        for name in self.molecules:
+            obj = self.molecules[name]
 
             obj.export_data(sim, cells, p, self.resultsPath)
 
@@ -1037,8 +1047,9 @@ class MasterOfNetworks(object):
         logs.log_info('Plotting 1D and 2D data for ' + message)
 
         # get the name of the specific substance:
-        for name in self.molecule_names:
-            obj = getattr(self, name)
+        for name in self.molecules:
+
+            obj = self.molecules[name]
 
             if p.plot_single_cell_graphs:
                 # create line graphs for the substance
@@ -1057,14 +1068,14 @@ class MasterOfNetworks(object):
         ax_all1D = plt.subplot(111)
 
         # set up the color vector (for plotting complex line graphs)
-        maxlen = len(self.molecule_names)
+        maxlen = len(self.molecules)
 
         lineplots_cm = plt.get_cmap(self.plot_cmap)
         cNorm = colors.Normalize(vmin=0, vmax=maxlen)
         c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
 
-        for i, name in enumerate(self.molecule_names):
-            obj = getattr(self, name)
+        for i, name in enumerate(self.molecules):
+            obj = self.molecules[name]
 
             c_cells = [arr[p.plot_cell] for arr in obj.c_cells_time]
 
@@ -1089,10 +1100,10 @@ class MasterOfNetworks(object):
         ax_all1D = plt.subplot(111)
 
         # get a random selection of our chosen colors in the length of our data set:
-        # c_names = np.random.choice(self.c_string, len(self.molecule_names))
 
-        for i, name in enumerate(self.molecule_names):
-            obj = getattr(self, name)
+        for i, name in enumerate(self.molecules):
+
+            obj = self.molecules[name]
 
             if p.sim_ECM is True:
                 c_env = [arr[cells.map_cell2ecm][p.plot_cell] for arr in obj.c_env_time]
@@ -1164,10 +1175,9 @@ class MasterOfNetworks(object):
             ax_all1D = plt.subplot(111)
 
             # get a random selection of our chosen colors in the length of our data set:
-            # c_names = np.random.choice(self.c_string, len(self.molecule_names))
 
-            for i, name in enumerate(self.molecule_names):
-                obj = getattr(self, name)
+            for i, name in enumerate(self.molecules):
+                obj = self.molecules[name]
 
                 c_mit = [arr[p.plot_cell] for arr in obj.c_mit_time]
 
@@ -1223,12 +1233,12 @@ class MasterOfNetworks(object):
 
         # -------Reaction rate plot and data export----------------------------------------
 
-        if len(self.reaction_names):
+        if len(self.reactions):
 
             # create a suite of single reaction line plots:
-            for i, name in enumerate(self.reaction_names):
+            for i, name in enumerate(self.reactions):
                 # get the reaction object field
-                obj = getattr(self, name)
+                obj = self.reactions[name]
 
                 # make a 1D plot of this reaction rate:
                 obj.plot_1D(sim, cells, p, self.imagePath)
@@ -1245,15 +1255,15 @@ class MasterOfNetworks(object):
             ax_all1D = plt.subplot(111)
 
             # set up the color vector (for plotting complex line graphs)
-            maxlen = len(self.reaction_names)
+            maxlen = len(self.reactions)
 
             lineplots_cm = plt.get_cmap(self.plot_cmap)
             cNorm = colors.Normalize(vmin=0, vmax=maxlen)
             c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
 
-            for i, name in enumerate(self.reaction_names):
+            for i, name in enumerate(self.reactions):
                 # get the reaction object field
-                obj = getattr(self, name)
+                obj = self.reactions[name]
 
                 if len(obj.rate_time) > 0:
                     r_rate = [arr[p.plot_cell] for arr in obj.rate_time]
@@ -1286,7 +1296,7 @@ class MasterOfNetworks(object):
 
         # ---Transporter rate plot and data export ------------------------------------------------------
 
-        if len(self.transporter_names):
+        if len(self.transporters):
 
             transp_dataM = []
             transp_header = 'Time [s], '
@@ -1294,14 +1304,14 @@ class MasterOfNetworks(object):
             transp_dataM.append(sim.time)
 
             # set up the color vector (for plotting complex line graphs)
-            maxlen = len(self.transporter_names)
+            maxlen = len(self.transporters)
 
             lineplots_cm = plt.get_cmap(self.plot_cmap)
             cNorm = colors.Normalize(vmin=0, vmax=maxlen)
             c_names = cm.ScalarMappable(norm=cNorm, cmap=lineplots_cm)
 
-            for i, name in enumerate(self.transporter_names):
-                obj = getattr(self, name)
+            for i, name in enumerate(self.transporters):
+                obj = self.transporters[name]
 
                 # make a 1D plot of this reaction rate:
                 obj.plot_1D(sim, cells, p, self.imagePath)
@@ -1397,9 +1407,9 @@ class MasterOfNetworks(object):
 
         logs.log_info('Animating data for ' + message)
         # get the name of the specific substance:
-        for name in self.molecule_names:
+        for name in self.molecules:
 
-            obj = getattr(self, name)
+            obj = self.molecules[name]
 
             if p.createAnimations is True and obj.make_ani is True:
 
