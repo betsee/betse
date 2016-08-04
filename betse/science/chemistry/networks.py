@@ -835,8 +835,6 @@ class MasterOfNetworks(object):
             transport_out_list = self.transporters[transp_name].transport_out_list
             transport_in_list = self.transporters[transp_name].transport_in_list
 
-
-
         # initialize lists to hold the reactants and product transfer tags (initialized to default zone):
             react_transfer_tag = ['mem_concs' for x in reactant_names]
             prod_transfer_tag = ['mem_concs' for x in product_names]
@@ -964,10 +962,12 @@ class MasterOfNetworks(object):
             for i, (name, coeff, tag) in enumerate(zip(reactant_names, reactant_coeff, react_transfer_tag)):
 
                 if tag != 'env_concs' or p.sim_ECM is False:
+
                     denomo_string_Q += "(self.{}['{}']".format(tag, name)
 
                 # get the concentration from the environment, mapped to respective membranes:
-                elif tag == 'env_concs' and p.sim_ECM is True:
+                else:
+
                     denomo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
 
                 denomo_string_Q += "**{})".format(coeff)
@@ -987,7 +987,7 @@ class MasterOfNetworks(object):
                     numo_string_Q += "(self.{}['{}']".format(tag, name)
 
                 # get the concentration from the environment mapped to the respective membranes:
-                elif tag == 'env concs' and p.sim_ECM is True:
+                else:
                     numo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
 
                 numo_string_Q += "**{})".format(coeff)
@@ -1015,10 +1015,10 @@ class MasterOfNetworks(object):
                     numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
 
-                elif tag == 'env_concs' and p.sim_ECM is True:
+                else:
 
                     numo_string_r = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
-                    denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+                    denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm])/{})**{})".format(tag, name, Km, n)
 
                 term = "(" + numo_string_r + "/" + denomo_string_r + ")"
 
@@ -1039,7 +1039,7 @@ class MasterOfNetworks(object):
                     numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
 
-                elif tag == 'env_concs' and p.sim_ECM is True:
+                else:
 
                     numo_string_p = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
                     denomo_string_p = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
@@ -1094,7 +1094,6 @@ class MasterOfNetworks(object):
             # and transporters.delta_prod:
             self.transporters[transp_name].react_transport_tag = react_transfer_tag
             self.transporters[transp_name].prod_transport_tag = prod_transfer_tag
-
 
     def create_reaction_matrix(self):
 
@@ -1220,6 +1219,7 @@ class MasterOfNetworks(object):
             # specific tissue profile regions where the transporter is active:
             targ_mem = self.transporters[name].transporter_targets_mem
             targ_cell = self.transporters[name].transporter_targets_cell
+            targ_env = self.transporters[name].transporter_targets_env
 
             # calculate the flux
             self.transporters[name].flux = eval(self.transporters[name].transporter_eval_string,
@@ -1243,9 +1243,12 @@ class MasterOfNetworks(object):
 
                     if p.sim_ECM is True:
 
-                        self.env_concs[self.transporters[name].reactants_list[i]][cells.map_mem2ecm][targ_mem] = \
-                            self.env_concs[self.transporters[name].reactants_list[i]][cells.map_mem2ecm][targ_mem] + \
-                            delta_react[targ_mem]*p.dt
+                        delta_react_expanded = np.zeros(sim.edl)
+                        delta_react_expanded[cells.map_mem2ecm] = delta_react[:]
+
+                        self.env_concs[self.transporters[name].reactants_list[i]][targ_env] = \
+                            self.env_concs[self.transporters[name].reactants_list[i]][targ_env] + \
+                            delta_react_expanded[targ_env]*p.dt
 
                     else:
 
@@ -1286,9 +1289,12 @@ class MasterOfNetworks(object):
 
                     if p.sim_ECM is True:
 
-                        self.env_concs[self.transporters[name].products_list[i]][cells.map_mem2ecm][targ_mem] = \
-                            self.env_concs[self.transporters[name].products_list[i]][cells.map_mem2ecm][targ_mem] + \
-                            delta_prod[targ_mem]*p.dt
+                        delta_prod_expanded = np.zeros(sim.edl)
+                        delta_prod_expanded[cells.map_mem2ecm] = delta_prod[:]
+
+                        self.env_concs[self.transporters[name].products_list[i]][targ_env] = \
+                            self.env_concs[self.transporters[name].products_list[i]][targ_env] + \
+                            delta_prod_expanded[targ_env]*p.dt
 
                     else:
 
