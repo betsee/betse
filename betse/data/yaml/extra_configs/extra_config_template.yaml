@@ -126,7 +126,7 @@ transporters:
 
   - name: MCT         # unique identifier for the transporter
 
-    reaction zone: cell    # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reaction zone: cell    # reaction zone identifier: 'cell' or 'mit'; where reaction takes place
     reactants: ['Pyr']   # list of reagents; must be from set of names defined for biomolecules in above
     reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
     Km reactants: [0.1]   # list of half-max coefficients for reagents, in same order as reagents list
