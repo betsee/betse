@@ -382,7 +382,7 @@ class AnimCells(PlotCells):
 
         # If saving animation frames as either images or video, prepare to do so
         # in a manner common to both.
-        if anim_config.is_images_saving or anim_config.is_video_saving:
+        if anim_config.is_images_save or anim_config.is_video_save:
             # Dictionary of all keyword arguments to be passed to the
             # `Figure.savefig()` method called to save each animation frame for
             # both images and video.
@@ -401,7 +401,7 @@ class AnimCells(PlotCells):
             save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
 
         # If saving animation frames as images, prepare to do so.
-        if anim_config.is_images_saving:
+        if anim_config.is_images_save:
             #FIXME: This currently defaults to padding frames with six or seven
             #zeroes, on average. Let's make this a bit more aesthetic by padding
             #frames to only as many zeroes are absolutely required by the
@@ -436,7 +436,7 @@ class AnimCells(PlotCells):
             )
 
         # If saving animation frames as video, prepare to do so.
-        if anim_config.is_video_saving:
+        if anim_config.is_video_save:
             # Name of the first video encoder installed on the current system.
             video_writer_name = mplvideo.get_first_writer_name(
                 anim_config.video_writer_names)
@@ -502,8 +502,12 @@ class AnimCells(PlotCells):
 
     # ..................{ PROPERTIES                         }..................
     @property
+    def _is_showing(self) -> bool:
+        return self._p.anim.is_after_sim_show
+
+    @property
     def _is_saving(self) -> bool:
-        return self._p.saveAnimations
+        return self._p.anim.is_after_sim_save
 
     # ..................{ ANIMATORS                          }..................
     @type_check

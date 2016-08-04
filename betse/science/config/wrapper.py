@@ -214,6 +214,12 @@ class SimConfigWrapper(object):
         (e.g., tests, scripts) expecting simulations to behave silently.
         '''
 
+        #FIXME: Replace the uncommented lines below with the commented lines
+        #below *AFTER* improving the default configuration file.
+        # results = self._config['results options']
+        # results['while solving']['animations']['show'] = False
+        # results['after solving']['plots']['show'] = False
+        # results['after solving']['animations']['show'] = False
         self._config['results options']['display plots'] = False
         self._config['results options']['plot while solving'] = False
 

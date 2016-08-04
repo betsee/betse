@@ -1394,7 +1394,7 @@ class MasterOfMolecules(object):
 
             obj = getattr(self, name)
 
-            if p.createAnimations is True and obj.make_ani is True:
+            if p.anim.is_after_sim and obj.make_ani is True:
 
                 # create 2D animations for the substance in cells
                 obj.anim_cells(sim, cells, p)

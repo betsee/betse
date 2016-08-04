@@ -260,10 +260,7 @@ class Parameters(object):
         self.wound_channel_inhibitors_Km = wc.get('Km inhibitors', None)
         self.wound_channel_inhibitors_n = wc.get('n inhibitors', None)
 
-
-
         self.scheduled_options['cuts'] = ActionCut.make(self)
-
 
         #---------------------------------------------------------------------------------------------------------------
         # GLOBAL INTERVENTIONS
@@ -677,7 +674,9 @@ class Parameters(object):
         ro = self.config['results options']
 
         #FIXME: Rename to "is_hiding_plots_and_anims".
-        self.turn_all_plots_off = not ro.get('display plots', False)
+        self.turn_all_plots_off = not ro['after solving']['plots']['show']
+        self.autosave =               ro['after solving']['plots']['save']  # autosave all still images to a results directory
+
         self.plot_cutlines = ro['plot cutlines']
 
         # Colormaps.
@@ -689,10 +688,6 @@ class Parameters(object):
 
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
-
-        self.plot_while_solving = ro['plot while solving']  # create a 2d plot of cell vmems while solution is taking place
-
-        self.save_solving_plot = ro['save solving plot']   # save the 2d plot generated while solving
 
         # True if numbering cells in plots and animations.
         self.enumerate_cells = ro['enumerate cells']
@@ -786,12 +781,6 @@ class Parameters(object):
         # high-level object.
         self.anim = AnimConfig.make(self)
 
-        #FIXME: Redefine the following booleans in term of the above object.
-
-        self.createAnimations = ro['create all animations']   # create all animations = True; turn off = False
-        self.autosave = ro['automatically save plots']  # autosave all still images to a results directory
-        self.saveAnimations = ro['save animations']['frames']['enabled']    # save all animations as png sequences
-
         # specify desired animations:
         self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
         self.autoscale_Vmem_ani = ro['Vmem Ani']['autoscale colorbar']
@@ -865,11 +854,11 @@ class Parameters(object):
         self.Deformation_ani_min_clr =float(ro['Deformation Ani']['min val'])         # maximum colorbar value in V/m
         self.Deformation_ani_max_clr =float(ro['Deformation Ani']['max val'])       # maximum colorbar value in V/m
 
-        self.exportData = ro['export data to file']     # export all stored data for the plot_cell to a csv text file
-
-        self.exportData2D = ro['export 2D data to file']
-
         self.clip = 20e-6
+
+        # ................{ DATA                               }................
+        self.exportData = ro['export']['data']['all']['enabled']     # export all stored data for the plot_cell to a csv text file
+        self.exportData2D = ro['export']['data']['vmem']['enabled']
 
         #--------------------------------------------------------------------------------------------------------------
         # INTERNAL USE ONLY
@@ -1336,14 +1325,20 @@ class Parameters(object):
             # Convert the prior into the current configuration format.
             results['while solving'] = {
                 'animations': {
-                    'enabled': results['plot while solving'],
+                    'enabled': (
+                               results['plot while solving'] or
+                               results['save solving plot']
+                    ),
                     'show':    results['plot while solving'],
                     'save':    results['save solving plot'],
                 },
             }
             results['after solving'] = {
                 'plots': {
-                    'enabled': True,
+                    'enabled': (
+                               results['display plots'] or
+                               results['automatically save plots']
+                    ),
                     'show':    results['display plots'],
                     'save':    results['automatically save plots'],
                 },

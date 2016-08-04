@@ -6,6 +6,8 @@
 High-level facilities for displaying and/or saving all enabled animations.
 '''
 
+#FIXME: Rename this submodule to "animpipe".
+
 #FIXME: This module would be a *GREAT* candidate for testing out Python 3.5-
 #based asynchronicity and parallelization. Ideally, we'd be able to segregate
 #the generation of each animation to its own Python process. Verdant shimmers!
@@ -29,7 +31,7 @@ from betse.util.io.log import logs
 from betse.util.type import types
 
 # ....................{ PIPELINES                          }....................
-def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
+def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     '''
     Serially (i.e., in series) display and/or save all enabled animations for
     the current simulation phase if animations are enabled _or_ noop otherwise.
@@ -52,8 +54,8 @@ def anim_all(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     assert types.is_cells(cells), types.assert_not_parameters(cells)
     assert types.is_parameters(p), types.assert_not_parameters(p)
 
-    # If animations are disabled, noop.
-    if not p.createAnimations:
+    # If post-simulation animations are disabled, noop.
+    if not p.anim.is_after_sim:
        return
 
     # Log animation creation.
@@ -296,7 +298,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         AnimateDeformation(
             sim, cells, p,
             ani_repeat=True,
-            save=p.saveAnimations,
+            save=p.anim.is_after_sim_save,
         )
 
         # if p.ani_Deformation_type == 'Displacement':

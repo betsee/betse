@@ -181,15 +181,13 @@ class AnimCellsWhileSolving(AnimCells):
             plt.show(block=False)
 
     # ..................{ PROPERTIES                         }..................
-    # In-place animation is governed by different configuration file booleans
-    # than are post-simulation animations.
     @property
     def _is_showing(self) -> bool:
-        return self._p.plot_while_solving
+        return self._p.anim.is_while_sim_show
 
     @property
     def _is_saving(self) -> bool:
-        return self._p.save_solving_plot
+        return self._p.anim.is_while_sim_save
 
     # ..................{ PLOTTERS                           }..................
     def _plot_frame_figure(self) -> None:
@@ -1406,7 +1404,7 @@ class AnimateDeformation(object):
             cb.set_label('Voltage [mV]')
 
         # If animation saving is enabled, prepare to do so.
-        if self.p.saveAnimations is True:
+        if self.p.anim.is_images_save:
             self._type = 'Deformation'
 
             # Ensure that the passed directory and file basenames are actually
@@ -1455,7 +1453,7 @@ class AnimateDeformation(object):
             if p.turn_all_plots_off is False:
                 plt.show()
             # Else if saving animation frames, do so.
-            elif self.p.saveAnimations is True:
+            elif self.p.anim.is_images_save is True:
                 logs.log_info(
                     'Saving animation "{}" frames...'.format(self._type))
                 ani.save(

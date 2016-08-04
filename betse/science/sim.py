@@ -2282,7 +2282,7 @@ class Simulator(object):
         )
 
         # If plotting an animation during simulation computation, do so.
-        if p.plot_while_solving:
+        if p.anim.is_while_sim:
             self._anim_cells_while_solving = AnimCellsWhileSolving(
                 label='Vmem',
                 figure_title='Vmem while {}'.format(figure_type_label),
@@ -2311,7 +2311,7 @@ class Simulator(object):
 
         # Update this animation for the "last frame" if desired, corresponding
         # to the results of the most recently solved time step.
-        if p.plot_while_solving:
+        if p.anim.is_while_sim:
             self._anim_cells_while_solving.plot_frame(time_step=-1)
 
     def _deplot_loop(self):
@@ -2334,37 +2334,6 @@ class Simulator(object):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
-#FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
-#attribute appears to be internally set by the Simulator.run_phase_sans_ecm()
-#method. That makes sense; however, what's the parallel "p.run_sim" attribute
-#for, then?  Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
-#
-#* To "False" if an initialization is being performed.
-#* To "True" if a simulation is being performed.
-#
-#This doesn't seem quite ideal, however. Ideally, there would exist one and only
-#one attribute whose value is an instance of a multi-state "PhaseEnum" class
-#rather than two binary boolean attributes. Possible enum values might include:
-#
-#* "PhaseEnum.seed" when seeding a new cluster.
-#* "PhaseEnum.init" when initializing a seeded cluster.
-#* "PhaseEnum.sim" when simulation an initialized cluster.
-#
-#This attribute would probably exist in the "Simulator" class -- say, as
-#"sim.phase". In light of that, consider the following refactoring:
-#
-#* Define a new "PhaseEnum" class in the "sim" module with the above attributes.
-#* Define a new "Simulator.phase" attribute initialized to None.
-#* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
-#  "sim.phase" instead. Note that only the:
-#  * "SimRunner" class sets "p.run_sim".
-#  * "Simulator" class sets "sim.run_sim".
-#
-#Note also the "plot_type" parameter passed to the pipeline.plot_all() function
-#*AND* seemingly duplicate "p.plot_type" attribute, which should probably
-#receive similar treatment. Wonder temptress at the speed of light and the
-#sound of love!
-
 # def update_C(self,ion_i,flux,cells,p):
 #
 #     c_cells = self.cc_cells[ion_i][:]

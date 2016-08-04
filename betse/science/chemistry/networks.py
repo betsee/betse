@@ -1709,17 +1709,15 @@ class MasterOfNetworks(object):
     def anim(self, sim, cells, p, message='for auxiliary molecules...'):
         """
         Animates 2D data for each molecule in the simulation.
-
         """
 
-        logs.log_info('Animating data for ' + message)
+        logs.log_info('Animating data for %s', message)
+
         # get the name of the specific substance:
         for name in self.molecules:
-
             obj = self.molecules[name]
 
-            if p.createAnimations is True and obj.make_ani is True:
-
+            if p.anim.is_after_sim and obj.make_ani is True:
                 # create 2D animations for the substance in cells
                 obj.anim_cells(sim, cells, p)
 

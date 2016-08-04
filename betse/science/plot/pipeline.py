@@ -7,6 +7,8 @@ High-level facilities for displaying and/or saving all enabled plots _and_
 animations.
 '''
 
+#FIXME: Rename this submodule to "plotpipe".
+
 #FIXME: For safety, most "== 1"-style tests in this module should be converted
 #to "is True"-style tests instead. Into the trackless reaches of ice and snow!
 #FIXME: I believe I've finally tracked down the issue relating to the following
@@ -47,15 +49,65 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 from betse.exceptions import BetseParametersException
 from betse.science.plot import plot as viz
-from betse.science.plot.anim import pipeline
+from betse.science.plot.anim.pipeline import pipeline_anims
 from betse.util.io.log import logs
 from betse.util.type import types
 
 # ....................{ PIPELINES                          }....................
-def plot_all(cells, sim, p, plot_type: str = 'init'):
+#FIXME: Refactor the "plot_type" parameter to be somewhat less crazy. This
+#parameter is passed by the "simrunner" submodule. Ideally, this parameter
+#should be a typesafe enum rather than a non-typesafe string or, preferably,
+#simply go away entirely. Related commentary follows on how to best achieve the
+#latter goal.
+#FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
+#attribute appears to be internally set by the Simulator.run_phase_sans_ecm()
+#method. That makes sense; however, what's the parallel "p.run_sim" attribute
+#for, then?  Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
+#
+#* To "False" if an initialization is being performed.
+#* To "True" if a simulation is being performed.
+#
+#This doesn't seem quite ideal, however. Ideally, there would exist one and only
+#one attribute whose value is an instance of a multi-state "PhaseType" class
+#rather than two binary boolean attributes. Possible enum values might include:
+#
+#* "PhaseType.seed" when seeding a new cluster.
+#* "PhaseType.init" when initializing a seeded cluster.
+#* "PhaseType.sim" when simulation an initialized cluster.
+#
+#This attribute would probably exist in the "Simulator" class -- say, as
+#"sim.phase". In light of that, consider the following refactoring:
+#
+#* Define a new "PhaseType" class in the "sim" module with the above attributes.
+#* Define a new "Simulator.phase" attribute initialized to None.
+#* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
+#  "sim.phase" instead. Note that only the:
+#  * "SimRunner" class sets "p.run_sim".
+#  * "Simulator" class sets "sim.run_sim".
+#
+#Note also the:
+#
+#* "plot_type" parameter passed to the pipeline_plots() function by the
+#  "SimRunner" class.
+#* The seemingly duplicate "p.plot_type" attribute internally set by the
+#  pipeline_plots() function, which is frankly crazy.
+#
+#Both parameters should probably receive similar treatment and be replaced
+#entirely by use of the new "sim.phase" attribute.
+#
+#Wonder temptress at the speed of light and the sound of love!
+
+#FIXME: Shift this function into a new "betse.science.simpipe" submodule.
+
+def pipeline_results(
+    sim: 'Simulator',
+    cells: 'Cells',
+    p: 'Parameters',
+    plot_type: str = 'init',
+) -> None:
     '''
-    Serially (i.e., in series) plot all enabled plots and animations for the
-    passed simulation phase (e.g., `init`, `sim`).
+    Serially (i.e., in series) display and/or save all enabled plots and
+    animations for the passed simulation phase (e.g., `init`, `sim`).
 
     Parameters
     ----------------------------
@@ -75,13 +127,67 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
     assert types.is_cells(cells), types.assert_not_parameters(cells)
     assert types.is_parameters(p), types.assert_not_parameters(p)
 
+    #FIXME: This is terrible. I don't even.
+    p.plot_type = plot_type
+
+    # Display and/or save all plots.
+    pipeline_plots(sim, cells, p)
+
+    # Display and/or save all animations.
+    pipeline_anims(sim, cells, p)
+
+    # If displaying plots and animations, display... something? I guess?
+    if p.turn_all_plots_off is False:
+        plt.show()
+    # Else, log the directory to which results were exported.
+    else:
+        #FIXME: This is terrible. I don't even. For one, this logic is
+        #duplicated below by the pipeline_plots() function. For another, the
+        #"p.sim_results" and "p.sim_results" parameters should probably simply
+        #be aggregated into a single "sim.export_dirname" parameter
+        #corresponding to the export directory for the current phase.
+        if p.plot_type == 'sim':
+            export_dirname = p.sim_results
+        elif p.plot_type == 'init':
+            export_dirname = p.init_results
+
+        logs.log_info('Results exported to: %s', export_dirname)
+
+# ....................{ PIPELINES ~ plots                  }....................
+def pipeline_plots(
+    sim: 'Simulator',
+    cells: 'Cells',
+    p: 'Parameters',
+) -> None:
+    '''
+    Serially (i.e., in series) display and/or save all enabled plots for the
+    current simulation phase if animations are enabled _or_ noop otherwise.
+
+    Parameters
+    ----------------------------
+    sim : Simulator
+        Current simulation.
+    cells : Cells
+        Current cell cluster.
+    p : Parameters
+        Current simulation configuration.
+    '''
+    assert types.is_simulator(sim), types.assert_not_simulator(sim)
+    assert types.is_cells(cells), types.assert_not_parameters(cells)
+    assert types.is_parameters(p), types.assert_not_parameters(p)
+
+    #FIXME: After improving our default configuration file with the appropriate
+    #options *AND* defining a new "betse.science.plot.plotconfig" submodule and
+    #corresponding "PlotConfig" class in such submodule, uncomment this:
+    # # If post-simulation plots are disabled, noop.
+    # if not p.plot.is_after_sim:
+    #    return
+
     if p.autosave is True:
-        if plot_type == 'sim':
+        if p.plot_type == 'sim':
             images_path = p.sim_results
-            p.plot_type = 'sim'
-        elif plot_type == 'init':
+        elif p.plot_type == 'init':
             images_path = p.init_results
-            p.plot_type = 'init'
 
         image_cache_dir = os.path.expanduser(images_path)
         os.makedirs(image_cache_dir, exist_ok=True)
@@ -828,18 +934,3 @@ def plot_all(cells, sim, p, plot_type: str = 'init'):
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
-
-    # Display and/or save all animations.
-    pipeline.anim_all(sim, cells, p)
-
-    # If displaying plots, display... something? I guess?
-    if p.turn_all_plots_off is False:
-        plt.show()
-    else:
-        #FIXME: Actually print the directory to which results are exported.
-        logs.log_info(
-            'As the "display plots" option is disabled, '
-            'plots and data have been\n'
-            'exported to the results folder '
-            'defined in the configuration file.'
-        )

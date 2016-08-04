@@ -11,14 +11,6 @@ Animation serialization classes.
 
 #FIXME: Define saving-ordiented methods.
 
-#FIXME: Redefine all animations-oriented "Parameters" booleans excluding
-#"Parameters.turn_all_plots_off" (which applies to plots as well and hence is
-#more general than merely animations) in terms of high-level instance variables
-#of the "AnimConfig" class rather than in terms of low-level subdictionaries of
-#the "Parameters.config" dictionary. For example, redefine:
-#
-#* "Parameters.createAnimations" in terms of "AnimConfig.is_postsim".
-
 # ....................{ IMPORTS                            }....................
 from betse.util.type import ints, types
 from betse.util.type.types import type_check, MappingType, SequenceTypes
@@ -35,37 +27,37 @@ class AnimConfig(object):
 
     Attributes
     ----------
-    is_withsim : bool
+    is_while_sim : bool
         `True` only if this configuration enables (but _not_ necessarily
         displays or saves) in-simulation animations.
-    is_withsim_showing : bool
+    is_while_sim_show : bool
         `True` only if this configuration displays in-simulation animations.
-        Ignored if `is_withsim` is `False`.
-    is_withsim_saving : bool
+        Ignored if `is_while_sim` is `False`.
+    is_while_sim_save : bool
         `True` only if this configuration saves in-simulation animations.
         Ignored if `is_midsim` is `False`.
-    is_postsim : bool
+    is_after_sim : bool
         `True` only if this configuration enables (but _not_ necessarily
         displays or saves) post-simulation animations.
-    is_postsim_showing : bool
+    is_after_sim_show : bool
         `True` only if this configuration displays post-simulation animations.
-        Ignored if `is_postsim` is `False`.
-    is_postsim_saving : bool
+        Ignored if `is_after_sim` is `False`.
+    is_after_sim_save : bool
         `True` only if this configuration saves post-simulation animations.
-        Ignored if `is_postsim` is `False`.
-    is_images_saving : bool
+        Ignored if `is_after_sim` is `False`.
+    is_images_save : bool
         `True` only if this configuration saves animation frames as images.
-    is_video_saving : bool
+    is_video_save : bool
         `True` only if this configuration saves animation frames as video.
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
-        `is_images_saving` is `False`.
+        `is_images_save` is `False`.
     image_dpi : int
         Dots per inch (DPI) of all image files saved by this configuration.
-        Ignored if `is_images_saving` is `False`.
+        Ignored if `is_images_save` is `False`.
     video_bitrate : int
         Bitrate in bits per second of all video files saved by this
-        configuration. Ignored if `is_video_saving` is `False`.
+        configuration. Ignored if `is_video_save` is `False`.
     video_codec_names : Sequence
         List of the names of all encoder-specific codecs with which to encode
         animations (in descending order of preference), automatically:
@@ -74,13 +66,13 @@ class AnimConfig(object):
           specific to the selected writer and filetype. For details, see the
           `betse.lib.matplotlib.writer.mplvideo.get_first_codec_name()`
           function.
-        Ignored if `is_video_saving` is `False`.
+        Ignored if `is_video_save` is `False`.
     video_dpi : int
         Dots per inch (DPI) of all frames of all video files saved by this
-        configuration. Ignored if `is_images_saving` is `False`.
+        configuration. Ignored if `is_images_save` is `False`.
     video_filetype : str
         Filetype of all video files saved by this configuration. Ignored if
-        `is_video_saving` is `False`. Supported filetypes include:
+        `is_video_save` is `False`. Supported filetypes include:
         * `mkv` (Matroska), an open-standard audio and video container
           supporting all relevant codecs and hence the default.
         * `avi`, Microsoft's obsolete proprietary audio and video container.
@@ -91,12 +83,12 @@ class AnimConfig(object):
         * `webm` (WebM), Google's proprietary audio and video container.
     video_framerate : int
         Framerate in frames per second of all video files saved by this
-        configuration. Ignored if `is_video_saving` is `False`.
+        configuration. Ignored if `is_video_save` is `False`.
     video_metadata : dict
         Dictionary mapping from the alphabetic lowercase name of video metadata
         supported by the active video encoder to that metadata's human-readable
         string to be embedded in all video files saved by this configuration.
-        Ignored if `is_video_saving` is `False`. Supported names include:
+        Ignored if `is_video_save` is `False`. Supported names include:
         `title`, `artist`, `genre`, `subject`, `copyright`, `srcform`, and
         `comment`. If this dictionary does _not_ contain a `copyright` key, such
         a key will be automatically synthesized from the current year.
@@ -104,7 +96,7 @@ class AnimConfig(object):
         List of the names of all matplotlib animation writers with which to
         encode animations (in order of descending preference), automatically
         selecting the first writer installed on the current system. Ignored if
-        `is_video_saving` is `False`. Supported names include:
+        `is_video_save` is `False`. Supported names include:
         * `ffmpeg`, an open-source cross-platform audio and video encoder.
         * `avconv`, an open-source cross-platform audio and video encoder
           forked from (and largely interchangeable with) `ffmpeg`.
@@ -144,22 +136,22 @@ class AnimConfig(object):
         # Create and return this instance.
         return AnimConfig(
             # In-simulation animations.
-            is_withsim=while_solving['enabled'],
-            is_withsim_showing=while_solving['show'],
-            is_withsim_saving=while_solving['save'],
+            is_while_sim=while_solving['enabled'],
+            is_while_sim_show=while_solving['show'],
+            is_while_sim_save=while_solving['save'],
 
             # Post-simulation animations.
-            is_postsim=after_solving['enabled'],
-            is_postsim_showing=after_solving['show'],
-            is_postsim_saving=after_solving['save'],
+            is_after_sim=after_solving['enabled'],
+            is_after_sim_show=after_solving['show'],
+            is_after_sim_save=after_solving['save'],
 
             # Image saving.
-            is_images_saving=images['enabled'],
+            is_images_save=images['enabled'],
             image_filetype=images['filetype'],
             image_dpi=images['dpi'],
 
             # Video saving.
-            is_video_saving=video['enabled'],
+            is_video_save=video['enabled'],
             video_bitrate=video['bitrate'],
             video_dpi=video['dpi'],
             video_filetype=video['filetype'],
@@ -173,22 +165,22 @@ class AnimConfig(object):
     @type_check
     def __init__(
         self,
-        is_withsim: bool,
-        is_withsim_showing: bool,
-        is_withsim_saving: bool,
+        is_while_sim: bool,
+        is_while_sim_show: bool,
+        is_while_sim_save: bool,
 
         # Post-simulation animations.
-        is_postsim: bool,
-        is_postsim_showing: bool,
-        is_postsim_saving: bool,
+        is_after_sim: bool,
+        is_after_sim_show: bool,
+        is_after_sim_save: bool,
 
         # Image saving.
-        is_images_saving: bool,
+        is_images_save: bool,
         image_filetype: str,
         image_dpi: int,
 
         # Video saving.
-        is_video_saving: bool,
+        is_video_save: bool,
         video_bitrate: int,
         video_dpi: int,
         video_filetype: str,
@@ -206,16 +198,16 @@ class AnimConfig(object):
         #@classify_params decorator here instead, please.
 
         # Classify the passed parameters.
-        self.is_withsim = is_withsim
-        self.is_withsim_showing = is_withsim_showing
-        self.is_withsim_saving = is_withsim_saving
-        self.is_postsim = is_postsim
-        self.is_postsim_showing = is_postsim_showing
-        self.is_postsim_saving = is_postsim_saving
-        self.is_images_saving = is_images_saving
+        self.is_while_sim = is_while_sim
+        self.is_while_sim_show = is_while_sim_show
+        self.is_while_sim_save = is_while_sim_save
+        self.is_after_sim = is_after_sim
+        self.is_after_sim_show = is_after_sim_show
+        self.is_after_sim_save = is_after_sim_save
+        self.is_images_save = is_images_save
+        self.is_video_save = is_video_save
         self.image_filetype = image_filetype
         self.image_dpi = image_dpi
-        self.is_video_saving = is_video_saving
         self.video_bitrate = video_bitrate
         self.video_dpi = video_dpi
         self.video_filetype = video_filetype

@@ -245,10 +245,14 @@ class CLICLI(CLIABC):
         else:
             self._do_config()
 
-        # Initialize and run such simulation.
+        # Run all general-purposes phases, thus excluding network-specific
+        # phases (e.g., "_do_sim_brn", "_do_sim_grn"), in the expected order.
         self._do_seed()
         self._do_init()
         self._do_sim()
+        self._do_plot_seed()
+        self._do_plot_init()
+        self._do_plot_sim()
 
 
     def _do_config(self) -> None:
