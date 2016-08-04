@@ -1283,8 +1283,6 @@ class Parameters(object):
                                                "under General Options of the config file. Please try again.")
 
 
-    #FIXME: Leverage *ALL* key-value pairs defined by this method above in
-    #place of the older configuration file format.
     #FIXME: Apply these changes to our default configuration file as well.
     def _init_backward_compatibility(self) -> None:
         '''

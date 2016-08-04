@@ -1141,8 +1141,22 @@ class MasterOfNetworks(object):
         """
 
         # calculate rates of growth/decay:
-        gad_rates = np.asarray(
+        gad_rates_o = np.asarray(
             [eval(self.molecules[mol].gad_eval_string, self.globals, self.locals) for mol in self.molecules])
+
+        gad_targs = [self.molecules[mol].growth_targets_cell for mol in self.molecules]
+
+        init_rates = [np.zeros(sim.cdl) for mol in self.molecules]
+
+        gad_rates = []
+
+        for mat, trgs, rts in zip(init_rates, gad_targs, gad_rates_o):
+
+            mat[trgs] = rts[trgs]
+
+            gad_rates.append(mat)
+
+        gad_rates = np.asarray(gad_rates)
 
         # ... and rates of chemical reactions:
         self.reaction_rates = np.asarray(
@@ -1864,16 +1878,16 @@ class MasterOfNetworks(object):
                 # make a 1D plot of this reaction rate:
                 obj.plot_1D(sim, cells, p, self.imagePath)
 
-                if len(obj.rate_time) > 0:
+                if len(obj.flux_time) > 0:
 
                     # check the data structure size for this transporter:
-                    if len(obj.rate_time[0]) == sim.cdl:
+                    if len(obj.flux_time[0]) == sim.cdl:
 
-                        t_rate = [arr[p.plot_cell] for arr in obj.rate_time]
+                        t_rate = [arr[p.plot_cell] for arr in obj.flux_time]
 
-                    elif len(obj.rate_time[0]) == sim.mdl:
+                    elif len(obj.flux_time[0]) == sim.mdl:
                         mem_i = cells.cell_to_mems[p.plot_cell][0]
-                        t_rate = [arr[mem_i] for arr in obj.rate_time]
+                        t_rate = [arr[mem_i] for arr in obj.flux_time]
 
                     else:
                         t_rate = np.zeros(len(sim.time))
@@ -2136,6 +2150,8 @@ class Molecule(object):
         self.growth_inhibitors_k = None
         self.growth_inhibitors_Km = None
         self.growth_inhibitors_n = None
+
+        self.growth_targets_cell = cells.cell_i
 
     def transport(self, sim, cells, p):
         """
@@ -2683,7 +2699,7 @@ class Transporter(object):
 
             else:
                 mem_i = cells.cell_to_mems[p.plot_cell][0]
-                r_rate = [arr[mem_i] for arr in self.rate_time]
+                r_rate = [arr[mem_i] for arr in self.flux_time]
 
             fig = plt.figure()
             ax = plt.subplot(111)

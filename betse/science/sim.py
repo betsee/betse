@@ -601,17 +601,18 @@ class Simulator(object):
                 self.molecules.write_reactions()
                 self.molecules.create_reaction_matrix()
 
-            # if p.transporters_enabled:
-            #
-            #     self.molecules.read_transporters(p.transporters_config, self, cells, p)
-            #
-            # if p.channels_enabled:
-            #
-            #     self.molecules.read_channels(p.channels_config, self, cells, p)
-            #
-            # if p.modulators_enabled:
-            #
-            #     self.molecules.read_modulators(p.modulators_config, self, cells, p)
+            if p.transporters_enabled:
+
+                self.molecules.read_transporters(p.transporters_config, self, cells, p)
+                self.molecules.write_transporters(cells,p)
+
+            if p.channels_enabled:
+
+                self.molecules.read_channels(p.channels_config, self, cells, p)
+
+            if p.modulators_enabled:
+
+                self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
         elif p.molecules_enabled and self.molecules is not None:
         # don't declare a whole new object, but re-read in parts that user may have changed:
@@ -919,21 +920,17 @@ class Simulator(object):
                 # update the molecules handler-----------------------------------------------------------------
                 if p.molecules_enabled:
 
-                    # if p.reactions_enabled:
-                    #
-                    #     self.molecules.run_loop_reactions(t, self, self.molecules, cells, p)
-                    #
-                    # if p.transporters_enabled:
-                    #
-                    #     self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
-                    #
-                    # if p.channels_enabled:
-                    #
-                    #     self.molecules.run_loop_channels(self, self.molecules, cells, p)
-                    #
-                    # if p.modulators_enabled:
-                    #
-                    #     self.molecules.run_loop_modulators(self, self.molecules, cells, p)
+                    if p.transporters_enabled:
+
+                        self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
+
+                    if p.channels_enabled:
+
+                        self.molecules.run_loop_channels(self, self.molecules, cells, p)
+
+                    if p.modulators_enabled:
+
+                        self.molecules.run_loop_modulators(self, self.molecules, cells, p)
 
                     self.molecules.run_loop(t, self, cells, p)
 
