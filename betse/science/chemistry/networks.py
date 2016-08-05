@@ -399,20 +399,20 @@ class MasterOfNetworks(object):
     def init_saving(self, cells, p, plot_type='init', nested_folder_name='Molecules'):
 
         # init files
-        if p.autosave is True:
+        # if p.autosave is True:
 
-            if plot_type == 'sim':
-                results_path = os.path.join(p.sim_results, nested_folder_name)
-                p.plot_type = 'sim'
+        if plot_type == 'sim':
+            results_path = os.path.join(p.sim_results, nested_folder_name)
+            p.plot_type = 'sim'
 
-            elif plot_type == 'init':
-                results_path = os.path.join(p.init_results, nested_folder_name)
-                p.plot_type = 'init'
+        elif plot_type == 'init':
+            results_path = os.path.join(p.init_results, nested_folder_name)
+            p.plot_type = 'init'
 
-            self.resultsPath = os.path.expanduser(results_path)
-            os.makedirs(self.resultsPath, exist_ok=True)
+        self.resultsPath = os.path.expanduser(results_path)
+        os.makedirs(self.resultsPath, exist_ok=True)
 
-            self.imagePath = os.path.join(self.resultsPath, 'fig_')
+        self.imagePath = os.path.join(self.resultsPath, 'fig_')
 
         # check that the plot cell is in range of the available cell indices:
         if p.plot_cell not in cells.cell_i:
