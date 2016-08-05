@@ -80,7 +80,6 @@ class MasterOfNetworks(object):
         self.locals = locals()
 
     #------------Initializers-------------------------------------------------------------------------------------------
-
     def read_substances(self, sim, cells, config_substances, p):
         """
             Initializes all core data structures and concentration variables
@@ -397,9 +396,6 @@ class MasterOfNetworks(object):
             mol.plot_min = pd['min val']
 
     def init_saving(self, cells, p, plot_type='init', nested_folder_name='Molecules'):
-
-        # init files
-        # if p.autosave is True:
 
         if plot_type == 'sim':
             results_path = os.path.join(p.sim_results, nested_folder_name)
@@ -1159,22 +1155,28 @@ class MasterOfNetworks(object):
                 self.reaction_matrix[i, j] = coeff
 
     #------runners------------------------------------------------------------------------------------------------------
-
     def run_loop(self, t, sim, cells, p):
         """
         Runs the main simulation loop steps for each of the molecules included in the simulation.
 
         """
 
-        # calculate rates of growth/decay:
-        gad_rates_o = np.asarray(
-            [eval(self.molecules[mol].gad_eval_string, self.globals, self.locals) for mol in self.molecules])
+        gad_rates_o = []
 
-        gad_targs = [self.molecules[mol].growth_targets_cell for mol in self.molecules]
+        gad_targs = []
 
-        init_rates = [np.zeros(sim.cdl) for mol in self.molecules]
+        init_rates = []
 
         gad_rates = []
+
+        for mol in self.molecules:
+
+            # calculate rates of growth/decay:
+            gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, self.globals, self.locals))
+
+            gad_targs.append(self.molecules[mol].growth_targets_cell)
+
+            init_rates.append(np.zeros(sim.cdl))
 
         for mat, trgs, rts in zip(init_rates, gad_targs, gad_rates_o):
 
@@ -1417,7 +1419,6 @@ class MasterOfNetworks(object):
                                                "available. Available choices "
                                                "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                                "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
-
 
     # ------Utility Methods---------------------------------------------------------------------------------------------
     def pH_handling(self, sim, cells, p):
@@ -2226,7 +2227,7 @@ class MasterOfNetworks(object):
         return graphicus_maximus
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-        n_i_list, reaction_zone='cell'):
+        n_i_list, reaction_zone='cell', influence_zone_tags = None):
 
         """
         Given lists of activator and inhibitor names, with associated
