@@ -26,7 +26,6 @@ from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
-from betse.science.chemistry.molecule import MasterOfMolecules
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.gene import MasterOfGenes
@@ -620,15 +619,18 @@ class Simulator(object):
 
             if p.reactions_enabled:
                 self.molecules.read_reactions(p.reactions_config, self, cells, p)
+                self.molecules.write_reactions()
+                self.molecules.create_reaction_matrix()
 
-            # if p.transporters_enabled:
-            #     self.molecules.read_transporters(p.transporters_config, self, cells, p)
-            #
-            # if p.channels_enabled:
-            #     self.molecules.read_channels(p.channels_config, self, cells, p)
-            #
-            # if p.modulators_enabled:
-            #     self.molecules.read_modulators(p.modulators_config, self, cells, p)
+            if p.transporters_enabled:
+                self.molecules.read_transporters(p.transporters_config, self, cells, p)
+                self.molecules.write_transporters(cells, p)
+
+            if p.channels_enabled:
+                self.molecules.read_channels(p.channels_config, self, cells, p)
+
+            if p.modulators_enabled:
+                self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
 
         #-----metabolism initialization -----------------------------------
@@ -642,11 +644,9 @@ class Simulator(object):
             self.metabo.read_metabo_config(self, cells, p)
 
             # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
-            self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
-                              'cADP': self.metabo.core.ADP.c_mems,
-                              'cPi': self.metabo.core.Pi.c_mems}
-
-        # FIXME these should be alterable after initing too -- fix later
+            self.met_concs = {'cATP': self.metabo.core.mem_concs['ATP'],
+                              'cADP': self.metabo.core.mem_concs['ADP'],
+                              'cPi': self.metabo.core.mem_concs['Pi']}
 
 
         #-----gene regulatory network initialization-------------------------
@@ -820,10 +820,6 @@ class Simulator(object):
                     # update ATP concentrations after pump action:
                     self.metabo.update_ATP(fNa_NaK, self, cells, p)
 
-                    self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
-                        'cADP': self.metabo.core.ADP.c_mems,
-                        'cPi': self.metabo.core.Pi.c_mems}
-
 
                 # update the concentrations of Na and K in cells and environment:
                 self.cc_mems[self.iNa][:],  self.cc_env[self.iNa][:] =  stb.update_Co(self, self.cc_mems[self.iNa][:],
@@ -832,19 +828,6 @@ class Simulator(object):
 
                 self.cc_mems[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_mems[self.iK][:],
                     self.cc_env[self.iK][:], fK_NaK, cells, p, ignoreECM = False)
-
-                # # update the concentrations intra-cellularly:
-                # self.cc_mems[self.iNa][:],  self.cc_cells[self.iNa][:], _ = \
-                #     stb.update_intra(self, cells, self.cc_mems[self.iNa][:],
-                #                      self.cc_cells[self.iNa][:],
-                #                      self.D_free[self.iNa],
-                #                      self.zs[self.iNa], p)
-                #
-                # self.cc_mems[self.iK][:],  self.cc_cells[self.iK][:], _ = \
-                #     stb.update_intra(self, cells, self.cc_mems[self.iK][:],
-                #                      self.cc_cells[self.iK][:],
-                #                      self.D_free[self.iK],
-                #                      self.zs[self.iK], p)
 
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
@@ -938,8 +921,6 @@ class Simulator(object):
 
                 if p.metabolism_enabled:
 
-                    self.metabo.core.run_loop_reactions(t, self, self.metabo.core, cells, p)
-
                     if self.metabo.transporters:
                         self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
 
@@ -956,9 +937,6 @@ class Simulator(object):
                 # update gene regulatory network handler--------------------------------------------------------
 
                 if p.grn_enabled:
-
-                    if self.grn.reactions:
-                        self.grn.core.run_loop_reactions(t, self, self.grn.core, cells, p)
 
                     if self.grn.transporters:
                         self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
@@ -1603,9 +1581,6 @@ class Simulator(object):
                 # update ATP concentrations after pump action:
                 self.metabo.update_ATP(f_H2, self, cells, p)
 
-                self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
-                    'cADP': self.metabo.core.ADP.c_mems,
-                    'cPi': self.metabo.core.Pi.c_mems}
 
             # update the concentration in cells (assume environment steady and constant supply of ions)
             # update bicarbonate instead of H+, assuming buffer action holds:
@@ -1658,10 +1633,6 @@ class Simulator(object):
             if p.metabolism_enabled:
                 # update ATP concentrations after pump action:
                 self.metabo.update_ATP(f_H3, self, cells, p)
-
-                self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
-                    'cADP': self.metabo.core.ADP.c_mems,
-                    'cPi': self.metabo.core.Pi.c_mems}
 
             # Calculate the new pH and H+ concentration:
              # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
@@ -1781,10 +1752,6 @@ class Simulator(object):
         if p.metabolism_enabled:
             # update ATP concentrations after pump action:
             self.metabo.update_ATP(f_CaATP, self, cells, p)
-
-            self.met_concs = {'cATP': self.metabo.core.ATP.c_mems,
-                'cADP': self.metabo.core.ADP.c_mems,
-                'cPi': self.metabo.core.Pi.c_mems}
 
         # # update calcium concentrations in cell and ecm:
 

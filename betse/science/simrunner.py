@@ -485,9 +485,6 @@ class SimRunner(object):
         # Display and/or save all enabled plots and animations.
         pipeline.pipeline_results(sim, cells, p, plot_type='sim')
 
-        #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
-        # set up, it's not possible to readily fix it. Grrrrrr.....
-
         #FIXME: Shift into the plotting and animation pipelines.
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:

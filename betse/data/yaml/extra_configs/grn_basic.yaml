@@ -43,11 +43,9 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
-      k activators: None       # list of kinetic parameters of activators
       n activators: None       # list of Hill exponent of activators
       inhibitors: ['Gene 3']   # list of defined substances or simulation ions inhibiting expression
-      Km inhibitors: [1]      # list of half-maximum values for inhibitors
-      k inhibitors: [100]      # list of kinetic parameters of inhibitors
+      Km inhibitors: [0.01]      # list of half-maximum values for inhibitors
       n inhibitors: [1]        # list of Hill exponent of inhibitors
 
     plotting:
@@ -78,11 +76,9 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
       activators: ['Gene 1']      # list of defined substances or simulation ions activating expression
       Km activators: [1]      # list of half-maximum values for activators
-      k activators: [1.0]        # list of kinetic parameters of activators
       n activators: [1]          # list of Hill exponent of activators
       inhibitors: None            # list of defined substances or simulation ions inhibiting expression
       Km inhibitors: [1]      # list of half-maximum values for inhibitors
-      k inhibitors: None          # list of kinetic parameters of inhibitors
       n inhibitors: None           # list of Hill exponent of inhibitors
     plotting:
       plot 2D: False         # create a unique set of plots for the substance
@@ -112,11 +108,9 @@ biomolecules:  # specify the properties of any number of auxillary chemicals
       modulator function: None        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
       activators: ['Gene 1', 'Gene 2']   # list of defined substances or simulation ions activating expression
       Km activators: [1, 1]      # list of half-maximum values for activators
-      k activators: [1.0, 1.0]          # list of kinetic parameters of activators
       n activators: [1, 1]              # list of Hill exponent of activators
       inhibitors: None                   # list of defined substances or simulation ions inhibiting expression
       Km inhibitors: None      # list of half-maximum values for inhibitors
-      k inhibitors: None                 # list of kinetic parameters of inhibitors
       n inhibitors: None                # list of Hill exponent of inhibition
     plotting:
       plot 2D: False         # create a unique set of plots for the substance

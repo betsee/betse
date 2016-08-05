@@ -124,7 +124,6 @@ reactions:
 # Positive flux moves out of the cell
 transporters:
 
-
   - name: MCT         # unique identifier for the transporter
 
     reaction zone: cell    # reaction zone identifier: 'cell' or 'mit'; where reaction takes place

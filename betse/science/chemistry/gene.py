@@ -16,7 +16,7 @@ import os.path
 import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
-from betse.science.chemistry.molecule import MasterOfMolecules
+from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import sim_config
 
 
@@ -49,19 +49,25 @@ class MasterOfGenes(object):
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
-        self.core = MasterOfMolecules(sim, cells, substances_config, p)
+        self.core = MasterOfNetworks(sim, cells, substances_config, p)
 
         if reactions_config is not None:
             # initialize the reactions of metabolism:
             self.core.read_reactions(reactions_config, sim, cells, p)
+            self.core.write_reactions()
+            self.core.create_reaction_matrix()
+
             self.reactions = True
 
         else:
+            self.core.create_reaction_matrix()
             self.reactions = False
 
         # initialize transporters, if defined:
         if transporters_config is not None:
             self.core.read_transporters(transporters_config, sim, cells, p)
+            self.core.write_transporters(cells, p)
+
             self.transporters = True
 
         else:
@@ -86,7 +92,7 @@ class MasterOfGenes(object):
 
     def run_core_sim(self, sim, cells, p):
 
-        # sim.vm = -50e-3*np.ones(sim.mdl)
+        sim.vm = -50e-3*np.ones(sim.mdl)
 
         # specify a time vector
         loop_time_step_max = p.init_tsteps
@@ -106,10 +112,6 @@ class MasterOfGenes(object):
         self.time = []
 
         for t in tt:
-
-            if self.reactions:
-
-                self.core.run_loop_reactions(t, sim, self.core, cells, p)
 
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)

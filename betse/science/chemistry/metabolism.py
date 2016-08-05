@@ -19,7 +19,7 @@ import os.path
 import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
-from betse.science.chemistry.molecule import MasterOfMolecules
+from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import sim_config
 from betse.exceptions import BetseParametersException
 from betse.science import sim_toolbox as stb
@@ -50,21 +50,32 @@ class MasterOfMetabolism(object):
 
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']
-        reactions_config = self.config_dic['reactions']
+        reactions_config = self.config_dic.get('reactions', None)
         transporters_config = self.config_dic.get('transporters', None)
         channels_config = self.config_dic.get('channels', None)
         modulators_config = self.config_dic.get('modulators', None)
 
         # initialize the substances of metabolism in a core field encapsulating
         # Master of Molecules:
-        self.core = MasterOfMolecules(sim, cells, substances_config, p, mit_enabled=self.mit_enabled)
+        self.core = MasterOfNetworks(sim, cells, substances_config, p, mit_enabled=self.mit_enabled)
 
-        # initialize the reactions of metabolism:
-        self.core.read_reactions(reactions_config, sim, cells, p)
+        if reactions_config is not None:
+
+            # initialize the reactions of metabolism:
+            self.core.read_reactions(reactions_config, sim, cells, p)
+            self.core.write_reactions()
+            self.core.create_reaction_matrix()
+
+            self.reactions = True
+
+        else:
+            self.core.create_reaction_matrix()
+            self.reactions = False
 
         # initialize transporters, if defined:
-        if transporters_config is not None:
+        if transporters_config is not None and len(channels_config) >0:
             self.core.read_transporters(transporters_config, sim, cells, p)
+            self.core.write_transporters(cells, p)
             self.transporters = True
 
         else:
@@ -72,7 +83,7 @@ class MasterOfMetabolism(object):
 
         # initialize any custom channels:-------------
 
-        if channels_config is not None:
+        if channels_config is not None and len(channels_config) > 0:
             self.core.read_channels(channels_config, sim, cells, p)
             self.channels = True
 
@@ -81,7 +92,7 @@ class MasterOfMetabolism(object):
 
         # initialize any modulators------------------
 
-        if modulators_config is not None:
+        if modulators_config is not None and len(modulators_config) > 0:
             self.core.read_modulators(modulators_config, sim, cells, p)
             self.modulators = True
 
@@ -89,22 +100,31 @@ class MasterOfMetabolism(object):
             self.modulators = False
 
         # test to make sure the metabolic simulation includes core components:
-        if self.core.ATP is None or self.core.ADP is None or self.core.Pi is None:
+        if 'ATP' not in self.core.molecules or 'ADP' not in self.core.molecules or 'Pi' not in self.core.molecules:
 
-            raise BetseParametersException("Metabolic simulation does not contain key substances."
-                                           "Define 'ATP', 'ADP' and 'Pi' biomolecules in your "
+            raise BetseParametersException("This metabolic simulation does not contain key substances."
+                                           "Please define 'ATP', 'ADP' and 'Pi' biomolecules in your "
                                            "metabolism configuration file and try again.")
 
     def run_core_sim(self, sim, cells, p):
+        """
+        Runs a simulation of the biochemical reaction network only, with a dummy sim and dyna module.
+        This allows the user to test the reaction network without the influence of bioelectrical dynamics.
 
-        # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
+        This method is called in the BETSE CLI command betse sim-brn my_yaml.yaml and data plotted via
+        betse plot sim-brn my_yaml.yaml
 
+        """
+
+        # point sim.metabo to this object
         sim.metabo = self
 
-        sim.met_concs = {'cATP': self.core.ATP.c_mems,
-            'cADP': self.core.ADP.c_mems,
-            'cPi': self.core.Pi.c_mems}
+        # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
+        sim.met_concs = {'cATP': self.core.mem_concs['ATP'],
+            'cADP': self.core.mem_concs['ADP'],
+            'cPi': self.core.mem_concs['Pi']}
 
+        # initialize Vmem to an initial value common to many cell types:
         sim.vm = -50e-3*np.ones(sim.mdl)
 
         # specify a time vector
@@ -126,8 +146,6 @@ class MasterOfMetabolism(object):
         self.time = []
 
         for t in tt:
-
-            self.core.run_loop_reactions(t, sim, self.core, cells, p)
 
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)
@@ -173,21 +191,28 @@ class MasterOfMetabolism(object):
         concentration change defined on membranes or cell
         centres.
 
-        deltac:        Concentration change [mol/m3], - consumes ATP; array must be of length sim.cdl or sim.mdl
+        This method is typically called in sim after ATPase pumps are run.
+
+        flux        concentration flux [mol/m2 s], negative consumes ATP; array must be of length sim.mdl
 
         """
 
-        cATP = self.core.ATP.c_mems
-        cADP = self.core.ADP.c_mems
-        cPi = self.core.Pi.c_mems
+        cATP = self.core.mem_concs['ATP']
+        cADP = self.core.mem_concs['ADP']
+        cPi = self.core.mem_concs['Pi']
 
         deltac = ((flux*cells.mem_sa)/cells.mem_vol)*p.dt
 
-        self.core.ATP.c_mems = cATP + deltac
-        self.core.ADP.c_mems = cADP - deltac
-        self.core.Pi.c_mems = cPi - deltac
+        self.core.mem_concs['ATP'] = cATP + deltac
+        self.core.mem_concs['ADP'] = cADP - deltac
+        self.core.mem_concs['Pi'] = cPi - deltac
 
-        # self.core.updateInside(sim, cells, p)
+        sim.met_concs = {'cATP': self.core.mem_concs['ATP'],
+            'cADP': self.core.mem_concs['ADP'],
+            'cPi': self.core.mem_concs['Pi']}
+
+
+
 
 
 

@@ -54,19 +54,12 @@ class MasterOfNetworks(object):
         # Initialize reaction rates array to None (filled in later, if applicable):
         self.reaction_rates = None
 
-        # all metabolic simulations require ATP, ADP and Pi. Initialize these fields to None so that we can test
-        # for their presence in metabolic sims:
-        self.ATP = None
-        self.ADP = None
-        self.Pi = None
-
         # set the key controlling presence of mitochondria:
         self.mit_enabled = mit_enabled
 
         # read in substance properties from the config file, and initialize basic properties:
         self.read_substances(sim, cells, config_substances, p)
         self.tissue_init(sim, cells, config_substances, p)
-
 
         # write substance growth and decay equations:
         self.write_growth_and_decay()
@@ -273,12 +266,12 @@ class MasterOfNetworks(object):
                     mol.growth_activators_list = gad.get('activators', None)
                     mol.growth_activators_zone = gad.get('zone activators', None)
                     mol.growth_activators_Km = gad.get('Km activators', None)
+                    mol.growth_activators_n = gad.get('n activators', None)
 
-                    mol.growth_activators_n = gad.get('k activators', None)
                     mol.growth_inhibitors_list = gad.get('inhibitors', None)
                     mol.growth_inhibitors_zone = gad.get('zone inhibitors', None)
                     mol.growth_inhibitors_Km = gad.get('Km inhibitors', None)
-                    mol.growth_inhibitors_n = gad.get('k inhibitors', None)
+                    mol.growth_inhibitors_n = gad.get('n inhibitors', None)
 
                     mol.init_growth(cells, p)
 
@@ -661,7 +654,6 @@ class MasterOfNetworks(object):
                 cc = "(self.molecules['{}'].c_cells / self.molecules['{}'].Kgd)".format(mol_name, mol_name)
 
                 # get activators and inhibitors and associated data:
-
                 a_list = self.molecules[mol_name].growth_activators_list
                 Km_a_list = self.molecules[mol_name].growth_activators_Km
                 n_a_list = self.molecules[mol_name].growth_activators_n
@@ -672,7 +664,7 @@ class MasterOfNetworks(object):
                 activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
                     n_i_list, reaction_zone='cell')
 
-                # definine remaining portion of substance's growth and decay expression:
+                # define remaining portion of substance's growth and decay expression:
 
                 mod_funk = "(self.molecules['{}'].growth_mod_function_cells)".format(mol_name)
                 r_prod =  "(self.molecules['{}'].r_production)".format(mol_name)
@@ -1191,7 +1183,11 @@ class MasterOfNetworks(object):
             [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
 
         # stack into an integrated data structure:
-        all_rates = np.vstack((gad_rates, self.reaction_rates))
+        if len(self.reaction_rates) > 0:
+            all_rates = np.vstack((gad_rates, self.reaction_rates))
+
+        else:
+            all_rates = gad_rates
 
         # calculate concentration rate of change using linear algebra:
         self.delta_conc = np.dot(self.reaction_matrix, all_rates)

@@ -570,7 +570,7 @@ class MasterOfMolecules(object):
             obj = getattr(self, name)
 
             obj.target_label = str(mod_dic['target'])
-            obj.zone = str(mod_dic['zone'])
+            obj.zone = str(mod_dic.get('zone', 'cell'))
             obj.max_val = float(mod_dic['max effect'])
             obj.modulator_activators_list = mod_dic.get('activators', None)
             obj.modulator_activators_Km = mod_dic.get('activator Km', None)
