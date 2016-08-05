@@ -732,294 +732,327 @@ variable settings:
 
 results options:
 
-    display plots: False   # Display plots and animations (True) or not (False)?
+  while solving:     # Results produced during simulation computation.
+    animations:      # Animations produced during simulation computation.
+      enabled: True  # Produce animations during simulation computation?
+      show: True     # Display animations during simulation computation?
+                     # Ignored if "enabled" is False.
+      save: True     # Save animations with the animation saving options
+                     # specified below during simulation computation? 
+                     # Ignored if "enabled" is False.
 
-    plot while solving: True   # Enable a continually updated 2D animation of
-                               # cell voltages during simulation computation?
-    save solving plot: True         # Save the prior animation?
-    automatically save plots: True  # Save post-simulation plots?
-    create all animations: True     # Enable post-simulation animations?
+  after solving:     # Results produced after simulation computation.
+    plots:           # Plots produced after simulation computation.
+      enabled: True  # Produce plots after simulation computation?
+      show: True     # Display plots after simulation computation?
+                     # Ignored if "enabled" is False.
+      save: True     # Save plots with the plot saving options specified below 
+                     # after simulation computation? 
+                     # Ignored if "enabled" is False.
 
-    save animations:        # Post-simulation animation saving options.
-      frames:
-        enabled: True       # Save each animation as a series of frame images?
-        filetype: png       # Image filetype.
-        dpi: 300            # Image dots per inch (DPI).
+    animations:      # Animations produced after simulation computation.
+      enabled: False # Produce animations after simulation computation?
+      show: True     # Display animations after simulation computation?
+                     # Ignored if "enabled" is False.
+      save: True     # Save animations with the animation saving options
+                     # specified below after simulation computation? 
+                     # Ignored if "enabled" is False.
 
-      video:
-        enabled: False      # Save each animation as an encoded video file?
-        filetype: mp4       # Video filetype. Supported filetypes include:
-                            # "mkv" (Matroska), "mp4" (MPEG-4 Part 14), "mov"
-                            # (QuickTime), "avi" (Microsoft), "webm" (WebM),
-                            # "ogv" (Theora), and "gif" (animated).
-        dpi: 300            # Image dots per inch (DPI) of each video frame.
-        bitrate: 1500       # Video bitrate in bits per second.
-        framerate: 5        # Video framerate in frames per second.
+  save:                 # Saving options for result types enabled above.
+    plots:              # Saving options for plots enabled above.
+                        # Ignored if plot saving is disabled above.
+      filetype: png     # Image filetype.
+      dpi:      300     # Image dots per inch (DPI).
 
-        metadata:           # Video metadata.
+    animations:         # Saving options for animations enabled above.
+                        # Ignored if animation saving is disabled above.
+      images:           # Animation frames saved as a series of images.
+        enabled: True   # Save animation frames as a series of images?
+        filetype: png   # Image filetype.
+        dpi: 300        # Image dots per inch (DPI).
+
+      video:            # Animation frames encoded as a compressed video.
+        enabled: False  # Encode animation frames as a compressed video?
+        filetype: mkv   # Video filetype. Supported filetypes include:
+                        # "mkv" (Matroska), "mp4" (MPEG-4 Part 14), "mov"
+                        # (QuickTime), "avi" (Microsoft), "webm" (WebM),
+                        # "ogv" (Theora), and "gif" (animated).
+        dpi: 300        # Image dots per inch (DPI) of each video frame.
+        bitrate: 1500   # Video bitrate in bits per second.
+        framerate: 5    # Video framerate in frames per second.
+
+        metadata:       # Video metadata embedded in each video file.
           artist: BETSE               # Video author name(s).
           genre:   Bioinformatics     # Video target genre.
           subject: Bioinformatics     # Video target subject.
           comment: Produced by BETSE. # Video comment string.
-          # copyright: 2017           # Video copyright. If commented, defaults
-                                      # to the current year.
+          # copyright: 2017           # Video copyright. If commented,
+                                      # defaults to the current year.
 
         # List of the names of all matplotlib animation writers with which to
-        # encode such video (in descending order of preference), automatically
-        # selecting the first writer installed on the current system.
+        # encode video (in descending order of preference), automatically
+        # selecting the first writer installed on the current system. All
+        # supported names are listed here.
         writers: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
 
-        # List of the names of all encoder-specific codecs with which to encode
-        # such video (in descending order of preference), automatically:
-        # * Selecting the first codec supported by the selected writer.
-        # * Replacing any codec named "auto" by the name of a recommended codec
-        #   specific to the selected writer and filetype.
+        # List of the names of all encoder-specific codecs with which to
+        # encode video (in descending order of preference), automatically:
+        # * Selecting the first codec supported by the selected writer above.
+        # * Replacing any codec named "auto" with the name of a recommended
+        #   codec specific to the selected writer and video filetype.
+        # To show all available codecs at the command line:
+        # * For "ffmpeg" and "mencoder", run "ffmpeg -encoders".
+        # * For "avconv", run "avconv -encoders".
         codecs: ['auto']
 
-    plot networks: True            # export any implemented regulatory networks to an interconnected graph image
+    data:              # Saving options for spreadsheet-compatible data.
+      all:             # All data points for all cells for all time steps.
+        enabled: True  # Save this data to disk?
+        filetype: csv  # Data filetype. Supported filetypes include:
+                       # "csv" (comma-separated values).
 
-    export data to file: True      # export all stored data for the plot cell
-                                   # to a comma-delimited (csv) text file
-                                   # options True or False (case sensitive)
+      vmem:            # All Vmem data points for all cells for all time steps
+                       # as a 3-tuple "(x, y, Vmem)".
+        enabled: True  # Save this data to disk?
+        filetype: csv  # Data filetype. Supported filetypes include:
+                       # "csv" (comma-separated values).
 
-    export 2D data to file: False   # export 2D Vmem (for all cells at each time) to .csv file as x, y, Vmem
+  plot networks: True            # export any implemented regulatory networks to an interconnected graph image
 
-    enumerate cells: False         # number the cells on 2D plots with their simulation index?
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
 
 
-    plot cell index: 0              # State the cell index to use for single-cell time plots
-                                    # the index of cells can be seen using enumerate cells feature.
+  plot cell index: 0              # State the cell index to use for single-cell time plots
+                                  # the index of cells can be seen using enumerate cells feature.
 
-    plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
-                                    # (the plot cell) as a function of simulation time
+  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
+                                  # (the plot cell) as a function of simulation time
 
-    show cells: True                # if True, plots and animations show individual cells,
-                                    # each displayed with color-coded data.
+  show cells: True                # if True, plots and animations show individual cells,
+                                  # each displayed with color-coded data.
   
-    overlay currents: False         # overlay electric current or concentration
-                                    # flux streamlines on 2D plotted data?
+  overlay currents: False         # overlay electric current or concentration
+                                  # flux streamlines on 2D plotted data?
   
-    streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
+  streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
   
-    plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
-                                    # total current if true, plot gap junction current if false
+  plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
+                                  # total current if true, plot gap junction current if false
   
-    plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
+  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
   
-    plot masked geometry: True      # plot the geometry using the overall shape as a mask
+  plot masked geometry: True      # plot the geometry using the overall shape as a mask
 
 
-    default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
-                                 # options include
-                                 # coolwarm, hot, rainbow, jet, Blues, Greens, bone
-                                 # to reverse a colormap add _r to the name (e.g. cm.jet_r)
-                                 # for all options please see
-                                 # http://matplotlib.org/examples/color/colormaps_reference.html
+  default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
+                               # options include
+                               # coolwarm, hot, rainbow, jet, Blues, Greens, bone
+                               # to reverse a colormap add _r to the name (e.g. cm.jet_r)
+                               # for all options please see
+                               # http://matplotlib.org/examples/color/colormaps_reference.html
 
-    background colormap: Blues     # Specify colormap to be used for data with vector overlays and 0 --> + data,
-                                      # including:
-                                      # currents, flow, electric field and deformation.
+  background colormap: Blues     # Specify colormap to be used for data with vector overlays and 0 --> + data,
+                                    # including:
+                                    # currents, flow, electric field and deformation.
 
-    network colormap: coolwarm       # colormap used for concentration nodes of reaction network graphs
+  network colormap: coolwarm       # colormap used for concentration nodes of reaction network graphs
 
-    gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
+  gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
 
-    vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
-                                   # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
+  vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
+                                 # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
 
-    #-------2D plots---------------------------------------------------------------------------------------------------
+  #-------2D plots---------------------------------------------------------------------------------------------------
   
-    Vmem 2D:
-      plot Vmem: True              # 2d plot of final vmem ?
+  Vmem 2D:
+    plot Vmem: True              # 2d plot of final vmem ?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
+    max val: 10.0                # maximum colorbar value in mV
+    min val: -70.0               # minimum colorbar value in mV
+  
+  Ca 2D:
+    plot Ca: True                # 2d plot of final cell calcium (if Ca2+ present in ion profile)?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
+    max val: 1000                 # maximum colorbar value in nmol/L
+    min val: 0                    # minimum colorbar value in nmol/L
+  
+  pH 2D:
+    plot pH: True                # 2d plot of final pH (if H+ present in ion profile) ?
+    autoscale colorbar: True    # autoscale colorbar to min max of data set?
+    max val: 8                 # maximum colorbar value in pH units
+    min val: 6                    # minimum colorbar value pH units
+  
+  Vcell 2D:
+    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
+    autoscale colorbar: True       # autoscale colorbar to min max of data set?
+    max val: 10                    # maximum colorbar value in mV
+    min val: -70                   # minimum colorbar value in mV
+  
+  Venv 2D:
+    plot Venv: True                # 2d plot of voltage in environmental spaces of the collective?
+    autoscale colorbar: True       # autoscale colorbar to min max of data set?
+    max val: 10                    # maximum colorbar value in mV
+    min val: -70                   # minimum colorbar value in mV
+  
+  Charge 2D:
+    plot Charge: True                # 2d plot of net ionic charge in collective?
+    autoscale colorbar: True       # autoscale colorbar to min max of data set?
+    max val: 10                    # maximum colorbar value in mV
+    min val: -70                   # minimum colorbar value in mV
+  
+  Efield 2D:
+    plot Efield: True              # 2d plot of electric field
+    autoscale colorbar: True        # autoscale colorbar to min max of data set?
+    max val: 900                   # maximum colorbar value in V/m
+    min val: 0                      # maximum colorbar value in V/m
+  
+  Currents 2D:
+    plot Currents: True               # 2d plot of net current flow in the collective?
+    autoscale colorbar: True          # autoscale colorbar to min max of data set?
+    max val: 150                    # maximum colorbar value [pA]
+    min val: 0                        # minimum colorbar value [A]
+    colormap: coolwarm                    # colorbar for the currents
+  
+  Pressure 2D:                      # 2D plot of pressure in the cluster
+    plot Pressure: True
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+  
+  Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
+    plot Osmotic Pressure: True
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+  
+  Velocity 2D:
+    plot Velocity: True          # 2D plot of the velocity of electrostatic
+                                 # fluid in the cell cluster? Ignored unless
+                                 # "include fluid flow" and
+                                 # "include electrostatic pressure" are True.
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+  
+  Electrostatic 2D:                      # 2D plot of electrostatic force in the cluster
+    plot Electrostatic: True
+    autoscale colorbar: True
+    max val: 15
+    min val: -15
+
+  # World-related plotting options------------------------------------------------------------------------------------
+
+  plot cell cluster: True     # 'plot seed' creates a plot showing tissue and cut profiles
+
+  plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
+
+  plot cluster mask: True  # 'plot seed' creates a plot showing the logarithm of environmental diffusion
+
+  #---------Animations -----------------------------------------------------------------------------------------------
+
+  Vmem Ani:
+      animate Vmem: True           # 2d animation of vmem with time?
       autoscale colorbar: True    # autoscale colorbar to min max of data set?
       max val: 10.0                # maximum colorbar value in mV
+      min val: -70.0               # maximum colorbar value in mV
+
+  Ca Ani:
+      animate Ca2+: True           # Plot a 2D animation of calcium in cells?
+                                   # Ignored unless the current ion profile
+                                   # enables calcium (Ca).
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 1000                # maximum colorbar value in nmol/L
+      min val: 0                   # minimum colorbar vlue in nmol/L
+
+  pH Ani:
+      animate pH: True             # Plot a 2D animation of pH in cells?
+                                   # Ignored unless the current ion profile
+                                   # enables hydrogen (H).
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 8               # maximum colorbar value in nmol/L
+      min val: 6                   # minimum colorbar vlue in nmol/L
+
+  Vmem GJ Ani:
+      animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 50.0                # maximum colorbar value in mV
       min val: -70.0               # minimum colorbar value in mV
-  
-    Ca 2D:
-      plot Ca: True                # 2d plot of final cell calcium (if Ca2+ present in ion profile)?
+
+  Vcell Ani:
+      animate Vcell: True          # Plot a 2D animation of voltage in cells?
+                                   # Ignored unless ECM enabled.
+      autoscale colorbar: True     # autoscale colorbar to min max of data set?
+      max val: 10                  # maximum colorbar value in mV
+      min val: -70                 # minimum colorbar value in mV
+
+  Venv Ani:
+      animate Venv: True           # Plot a 2D animation of environmental
+                                   # voltage? Ignored unless ECM enabled.
+      autoscale colorbar: True     # autoscale colorbar to min max of data set?
+      max val: 10                  # maximum colorbar value in mV
+      min val: -70                 # minimum colorbar value in mV
+
+  P cell Ani:
+      animate P cell: True         # Plot a 2D animation of electroosmotic
+                                   # pressure in cells? Ignored unless
+                                   # "include osmotic pressure" enabled.
+      autoscale colorbar: True     # autoscale colorbar to min max of data set?
+      max val: 10                  # maximum colorbar value in mV
+      min val: -70                 # minimum colorbar value in mV
+
+  Osmotic P Ani:
+      animate Osmotic P: True      # Plot a 2D animation of osmotic pressure
+                                   # difference in cells? Ignored unless
+                                   # "include osmotic pressure" enabled.
+      autoscale colorbar: True     # autoscale colorbar to min max of data set?
+      max val: 10                  # maximum colorbar value in mV
+      min val: -70                 # minimum colorbar value in mV
+
+  Force Ani:
+      animate force: True          # Plot a 2D animation of hydrostatic body
+                                   # forces in cells? Ignored unless
+                                   # "include osmotic pressure" enabled.
+      autoscale colorbar: True     # autoscale colorbar to min max of data set?
+      max val: 100                  # maximum colorbar value in N/m3
+      min val: 0                 # minimum colorbar value in N/m3
+
+  Current Ani:
+      animate current: True        # Plot a 2D animation of current in cells?
       autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 1000                 # maximum colorbar value in nmol/L
-      min val: 0                    # minimum colorbar value in nmol/L
-  
-    pH 2D:
-      plot pH: True                # 2d plot of final pH (if H+ present in ion profile) ?
+      max val: 150                # maximum colorbar value [pA]
+      min val: 0                  # minimum colorbar value [pA]
+
+  Membrane Ani:
+      animate Membrane: True      # Plot a 2D animation of membrane pump
+                                  # motion in the cell cluster? Ignored
+                                  # unless "channel electroosmosis" enabled.
       autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 8                 # maximum colorbar value in pH units
-      min val: 6                    # minimum colorbar value pH units
-  
-    Vcell 2D:
-      plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
-      autoscale colorbar: True       # autoscale colorbar to min max of data set?
-      max val: 10                    # maximum colorbar value in mV
-      min val: -70                   # minimum colorbar value in mV
-  
-    Venv 2D:
-      plot Venv: True                # 2d plot of voltage in environmental spaces of the collective?
-      autoscale colorbar: True       # autoscale colorbar to min max of data set?
-      max val: 10                    # maximum colorbar value in mV
-      min val: -70                   # minimum colorbar value in mV
-  
-    Charge 2D:
-      plot Charge: True                # 2d plot of net ionic charge in collective?
-      autoscale colorbar: True       # autoscale colorbar to min max of data set?
-      max val: 10                    # maximum colorbar value in mV
-      min val: -70                   # minimum colorbar value in mV
-  
-    Efield 2D:
-      plot Efield: True              # 2d plot of electric field
-      autoscale colorbar: True        # autoscale colorbar to min max of data set?
-      max val: 900                   # maximum colorbar value in V/m
-      min val: 0                      # maximum colorbar value in V/m
-  
-    Currents 2D:
-      plot Currents: True               # 2d plot of net current flow in the collective?
-      autoscale colorbar: True          # autoscale colorbar to min max of data set?
-      max val: 150                    # maximum colorbar value [pA]
-      min val: 0                        # minimum colorbar value [A]
-      colormap: coolwarm                    # colorbar for the currents
-  
-    Pressure 2D:                      # 2D plot of pressure in the cluster
-      plot Pressure: True
-      autoscale colorbar: True
-      max val: 15
-      min val: -15
-  
-    Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
-      plot Osmotic Pressure: True
-      autoscale colorbar: True
-      max val: 15
-      min val: -15
-  
-    Velocity 2D:
-      plot Velocity: True          # 2D plot of the velocity of electrostatic
-                                   # fluid in the cell cluster? Ignored unless
-                                   # "include fluid flow" and
-                                   # "include electrostatic pressure" are True.
-      autoscale colorbar: True
-      max val: 15
-      min val: -15
-  
-    Electrostatic 2D:                      # 2D plot of electrostatic force in the cluster
-      plot Electrostatic: True
-      autoscale colorbar: True
-      max val: 15
-      min val: -15
+      max val: 1                # maximum colorbar value [pA]
+      min val: 0                  # minimum colorbar value [pA]
 
-    # World-related plotting options------------------------------------------------------------------------------------
+  Efield Ani:
+      animate Efield: True        # 2d animation of electric field in extracellullar matrix
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 1500               # max colorbar value [V/m]
+      min val: 0                  # min colorbar value [V/m]
 
-    plot cell cluster: True     # 'plot seed' creates a plot showing tissue and cut profiles
+  Velocity Ani:
+      animate Velocity: True      # Plot a 2D animation of the velocity of
+                                  # fluid in the cell cluster? Ignored unless
+                                  # "include fluid flow" and
+                                  # "include electrostatic pressure" enabled.
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 500                # max colorbar value [V/m]
+      min val: 0                  # min colorbar value [V/m]
 
-    plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
-
-    plot cluster mask: True  # 'plot seed' creates a plot showing the logarithm of environmental diffusion
-
-
-    #---------Animations -----------------------------------------------------------------------------------------------
-
-    Vmem Ani:
-        animate Vmem: True           # 2d animation of vmem with time?
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 10.0                # maximum colorbar value in mV
-        min val: -70.0               # maximum colorbar value in mV
-
-    Ca Ani:
-        animate Ca2+: True           # Plot a 2D animation of calcium in cells?
-                                     # Ignored unless the current ion profile
-                                     # enables calcium (Ca).
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 1000                # maximum colorbar value in nmol/L
-        min val: 0                   # minimum colorbar vlue in nmol/L
-
-    pH Ani:
-        animate pH: True             # Plot a 2D animation of pH in cells?
-                                     # Ignored unless the current ion profile
-                                     # enables hydrogen (H).
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 8               # maximum colorbar value in nmol/L
-        min val: 6                   # minimum colorbar vlue in nmol/L
-
-    Vmem GJ Ani:
-        animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 50.0                # maximum colorbar value in mV
-        min val: -70.0               # minimum colorbar value in mV
-
-    Vcell Ani:
-        animate Vcell: True          # Plot a 2D animation of voltage in cells?
-                                     # Ignored unless ECM enabled.
-        autoscale colorbar: True     # autoscale colorbar to min max of data set?
-        max val: 10                  # maximum colorbar value in mV
-        min val: -70                 # minimum colorbar value in mV
-
-    Venv Ani:
-        animate Venv: True           # Plot a 2D animation of environmental
-                                     # voltage? Ignored unless ECM enabled.
-        autoscale colorbar: True     # autoscale colorbar to min max of data set?
-        max val: 10                  # maximum colorbar value in mV
-        min val: -70                 # minimum colorbar value in mV
-
-    P cell Ani:
-        animate P cell: True         # Plot a 2D animation of electroosmotic
-                                     # pressure in cells? Ignored unless
-                                     # "include osmotic pressure" enabled.
-        autoscale colorbar: True     # autoscale colorbar to min max of data set?
-        max val: 10                  # maximum colorbar value in mV
-        min val: -70                 # minimum colorbar value in mV
-
-    Osmotic P Ani:
-        animate Osmotic P: True      # Plot a 2D animation of osmotic pressure
-                                     # difference in cells? Ignored unless
-                                     # "include osmotic pressure" enabled.
-        autoscale colorbar: True     # autoscale colorbar to min max of data set?
-        max val: 10                  # maximum colorbar value in mV
-        min val: -70                 # minimum colorbar value in mV
-
-    Force Ani:
-        animate force: True          # Plot a 2D animation of hydrostatic body
-                                     # forces in cells? Ignored unless
-                                     # "include osmotic pressure" enabled.
-        autoscale colorbar: True     # autoscale colorbar to min max of data set?
-        max val: 100                  # maximum colorbar value in N/m3
-        min val: 0                 # minimum colorbar value in N/m3
-
-    Current Ani:
-        animate current: True        # Plot a 2D animation of current in cells?
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 150                # maximum colorbar value [pA]
-        min val: 0                  # minimum colorbar value [pA]
-
-    Membrane Ani:
-        animate Membrane: True      # Plot a 2D animation of membrane pump
-                                    # motion in the cell cluster? Ignored
-                                    # unless "channel electroosmosis" enabled.
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 1                # maximum colorbar value [pA]
-        min val: 0                  # minimum colorbar value [pA]
-
-    Efield Ani:
-        animate Efield: True        # 2d animation of electric field in extracellullar matrix
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 1500               # max colorbar value [V/m]
-        min val: 0                  # min colorbar value [V/m]
-
-    Velocity Ani:
-        animate Velocity: True      # Plot a 2D animation of the velocity of
-                                    # fluid in the cell cluster? Ignored unless
-                                    # "include fluid flow" and
-                                    # "include electrostatic pressure" enabled.
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 500                # max colorbar value [V/m]
-        min val: 0                  # min colorbar value [V/m]
-
-
-    Deformation Ani:
-        animate Deformation: True   # Plot a 2D animation of cell deformation?
-                                    # Ignored unless "deformation" enabled.
-        data type: Displacement     # data type can be 'Vmem' or 'Displacement'
-        style: streamline           # plot 'streamline' or 'vector' displacements
-        autoscale colorbar: True    # autoscale colorbar to min max of data set?
-        max val: 10                 # max colorbar value [um] when autoscale is False
-        min val: 0                  # min colorbar value [um] when autoscale is False
+  Deformation Ani:
+      animate Deformation: True   # Plot a 2D animation of cell deformation?
+                                  # Ignored unless "deformation" enabled.
+      data type: Displacement     # data type can be 'Vmem' or 'Displacement'
+      style: streamline           # plot 'streamline' or 'vector' displacements
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 10                 # max colorbar value [um] when autoscale is False
+      min val: 0                  # min colorbar value [um] when autoscale is False
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERNAL USE ONLY

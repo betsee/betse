@@ -485,7 +485,7 @@ class AnimCells(PlotCells):
                 self._writer_video.setup(
                     fig=self._figure,
                     outfile=writer_video_filename,
-                    dpi=self._writer_video_dpi,
+                    dpi=anim_config.video_dpi,
                 )
 
 

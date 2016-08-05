@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Animation serialization classes.
+Animation configuration and serialization classes.
 '''
 
 #FIXME: Default the "copyright" entry of video metadata to
@@ -19,8 +19,7 @@ from betse.util.type.types import type_check, MappingType, SequenceTypes
 class AnimConfig(object):
     '''
     Object encapsulating both the configuration and writing of all animations
-    (both mid- and post-simulation), as configured by the current tissue
-    simulation's configuration file.
+    (both in- and post-simulation), parsed from the current configuration file.
 
     This object saves (i.e., writes, serializes) in-memory animations to on-disk
     cache, image, and/or video files configured by this configuration.
@@ -129,9 +128,9 @@ class AnimConfig(object):
         results = params.config['results options']
         while_solving = results['while solving']['animations']
         after_solving = results['after solving']['animations']
-        export = results['export']['animations']
-        images = export['images']
-        video = export['video']
+        save = results['save']['animations']
+        images = save['images']
+        video = save['video']
 
         # Create and return this instance.
         return AnimConfig(
@@ -165,6 +164,8 @@ class AnimConfig(object):
     @type_check
     def __init__(
         self,
+
+        # In-simulation animations.
         is_while_sim: bool,
         is_while_sim_show: bool,
         is_while_sim_save: bool,

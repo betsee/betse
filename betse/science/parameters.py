@@ -9,6 +9,7 @@ from betse.lib.matplotlib import matplotlibs
 from betse.science.config import sim_config
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
+from betse.science.plot.plotconfig import PlotConfig
 from betse.science.plot.anim.animconfig import AnimConfig
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
@@ -671,6 +672,12 @@ class Parameters(object):
         self.GHK_calc = self.config['variable settings']['use Goldman calculator']
 
         # ................{ PLOTS                              }................
+        #FIXME: Replace the "turn_all_plots_off" and "autosave" attributes
+        #defined below by the corresponding attributes of this object.
+
+        # Object encapsulating plot configuration.
+        self.plot = PlotConfig.make(self)
+
         ro = self.config['results options']
 
         #FIXME: Rename to "is_hiding_plots_and_anims".
@@ -781,8 +788,7 @@ class Parameters(object):
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 
         # ................{ ANIMATIONS                         }................
-        # Convert low-level dictionary entries configuring animations into a
-        # high-level object.
+        # Object encapsulating animation configuration.
         self.anim = AnimConfig.make(self)
 
         # specify desired animations:
@@ -861,8 +867,8 @@ class Parameters(object):
         self.clip = 20e-6
 
         # ................{ DATA                               }................
-        self.exportData = ro['export']['data']['all']['enabled']     # export all stored data for the plot_cell to a csv text file
-        self.exportData2D = ro['export']['data']['vmem']['enabled']
+        self.exportData = ro['save']['data']['all']['enabled']     # export all stored data for the plot_cell to a csv text file
+        self.exportData2D = ro['save']['data']['vmem']['enabled']
 
         #--------------------------------------------------------------------------------------------------------------
         # INTERNAL USE ONLY
@@ -1307,18 +1313,15 @@ class Parameters(object):
         if not (
             'while solving' in results and
             'after solving' in results and
-            'export' in results
+            'save' in results
         ):
-            #FIXME: Uncomment after formalizing these changes.
-
             # Log a non-fatal warning.
-            # logs.log_warning(
-            #     'Config file results options '
-            #     '"while solving", "after solving", and/or "export" '
-            #     'not found. '
-            #     'Repairing to preserve backward compatibility. '
-            #     'Consider upgrading to the newest config file format!',
-            # )
+            logs.log_warning(
+                'Config file results options '
+                '"while solving", "after solving", and/or "save" not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
 
             # For convenience, localize configuration subdictionaries.
             anim_save = results['save animations']
@@ -1350,7 +1353,7 @@ class Parameters(object):
                     'save':    anim_save_frames['enabled'],
                 },
             }
-            results['export'] = {
+            results['save'] = {
                 'plots': {
                     'filetype': anim_save_frames['filetype'],
                     'dpi':      anim_save_frames['dpi'],
@@ -1363,7 +1366,7 @@ class Parameters(object):
                     },
                     'video': {
                         'enabled':  False,
-                        'filetype': 'mp4',
+                        'filetype': 'mkv',
                         'dpi': 300,
                         'bitrate': 1500,
                         'framerate': 5,
