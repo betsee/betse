@@ -422,7 +422,9 @@ class SimRunner(object):
         # Display and/or save all enabled plots and animations.
         pipeline.pipeline_results(sim, cells, p, plot_type='init')
 
-        #FIXME: Shift into the plotting and animation pipelines.
+        #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
+        # set up, it's not possible to readily fix it. Grrrrrr.....
+
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
 
@@ -434,7 +436,7 @@ class SimRunner(object):
             sim.molecules.plot(sim, cells, p)
             sim.molecules.anim(sim, cells, p)
 
-        #FIXME: Shift into the plotting and animation pipelines.
+
         if p.metabolism_enabled and sim.metabo is not None:
 
             sim.metabo.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
@@ -442,7 +444,6 @@ class SimRunner(object):
             sim.metabo.core.plot(sim, cells, p, message = 'for metabolic molecules...')
             sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
 
-        #FIXME: Shift into the plotting and animation pipelines.
         if p.grn_enabled and sim.grn is not None:
 
             sim.grn.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
@@ -450,13 +451,13 @@ class SimRunner(object):
             sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
             sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
 
-        #FIXME: Shift into the plotting pipeline for simulations.
+
         if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
 
             sim.endo_retic.init_saving(cells, p, plot_type = 'init', nested_folder_name = 'ER')
             sim.endo_retic.plot_er(sim, cells, p)
 
-        #FIXME: Ideally, this shouldn't be required. Contemplate removing.
+
         if p.turn_all_plots_off is False:
             plt.show()
 
@@ -484,6 +485,9 @@ class SimRunner(object):
         # Display and/or save all enabled plots and animations.
         pipeline.pipeline_results(sim, cells, p, plot_type='sim')
 
+        #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
+        # set up, it's not possible to readily fix it. Grrrrrr.....
+
         #FIXME: Shift into the plotting and animation pipelines.
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
@@ -504,7 +508,7 @@ class SimRunner(object):
             sim.metabo.core.plot(sim, cells, p)
             sim.metabo.core.anim(sim, cells, p)
 
-        #FIXME: Shift into the plotting and animation pipelines.
+
         if p.grn_enabled and sim.grn is not None:
 
             sim.grn.core.init_saving(cells, p, plot_type='sim', nested_folder_name='GRN')
@@ -512,13 +516,13 @@ class SimRunner(object):
             sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
             sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
 
-        #FIXME: Shift into the plotting pipeline for simulations.
+
         if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
 
             sim.endo_retic.init_saving(cells, p, plot_type = 'sim', nested_folder_name = 'ER')
             sim.endo_retic.plot_er(sim, cells, p)
 
-        #FIXME: Ideally, this shouldn't be required. Contemplate removing.
+
         if p.turn_all_plots_off is False:
             plt.show()
 

@@ -686,6 +686,10 @@ class Parameters(object):
         # Colormap for plotting gj currents on top of default colormap.
         self.gj_cm = matplotlibs.get_colormap(ro['gj colormap'])
 
+        # new options for plotting reaction network graphs:
+        self.plot_network = ro.get('plot networks', False)
+        self.network_cm = matplotlibs.get_colormap(ro.get('network colormap', 'coolwarm'))
+
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
 

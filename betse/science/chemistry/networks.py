@@ -1675,6 +1675,13 @@ class MasterOfNetworks(object):
 
         logs.log_info('Plotting 1D and 2D data for ' + message)
 
+        # network plot
+        if p.plot_network is True:
+            whole_graph = self.plot_network(p)
+            savename = self.imagePath + 'NetworkGraph_Cell_' + str(p.plot_cell) + '.svg'
+            whole_graph.write_svg(savename)
+
+
         # get the name of the specific substance:
         for name in self.molecules:
 
@@ -2037,6 +2044,7 @@ class MasterOfNetworks(object):
 
         # get the name of the specific substance:
         for name in self.molecules:
+
             obj = self.molecules[name]
 
             if p.anim.is_after_sim and obj.make_ani is True:
@@ -2046,6 +2054,176 @@ class MasterOfNetworks(object):
                 # create 2D animations for the substance in the environment
                 if p.sim_ECM:
                     obj.anim_env(sim, cells, p)
+
+    def plot_network(self, p):
+        """
+        Uses pydot to create and return a directed graph representing all chemical reactions and
+        activation/inhibition relationships considered in this reaction network object.
+
+        """
+
+        import pydot
+
+        vals = np.asarray([v.c_cells.min() for (c, v) in self.molecules.items()])
+        minc = vals.min()
+        maxc = vals.max()
+        normc = colors.Normalize(vmin=minc, vmax=maxc)
+
+        graphicus_maximus = pydot.Dot(graph_type='digraph')
+
+        # add each substance as a node in the graph:
+        for i, name in enumerate(self.molecules):
+            node_color = colors.rgb2hex(p.network_cm(self.molecules[name].c_cells[p.plot_cell]))
+
+            nde = pydot.Node(name, style='filled', color=node_color)
+            graphicus_maximus.add_node(nde)
+
+        if len(self.reactions) > 0:
+
+            for i, name in enumerate(self.reactions):
+                nde = pydot.Node(name, style='filled', shape='rect')
+                graphicus_maximus.add_node(nde)
+
+        # if there are any channels, plot their type and ion in the graph: ---------------------------------------
+        if len(self.channels) > 0:
+
+            for i, name in enumerate(self.channels):
+
+                chan = self.channels[name]
+
+                chan_class = self.channels[name].channel_class
+                channel_name = self.channels[name].channel_type
+
+                if chan_class == 'Na':
+                    ion_name = ['Na']
+
+                elif chan_class == 'K':
+                    ion_name = ['K']
+
+                elif chan_class == 'Kir':
+                    ion_name = ['K']
+
+                elif chan_class == 'Fun':
+                    ion_name = ['Na', 'K']
+
+                elif chan_class == 'Ca':
+                    ion_name = ['Ca']
+
+                elif chan_class == 'NaP':
+                    ion_name = ['Na']
+
+                elif chan_class == 'Cat':
+                    ion_name = ['Na', 'K', 'Ca']
+
+                # add the channel to the diagram
+                nde = pydot.Node(name, style='filled')
+                graphicus_maximus.add_node(nde)
+
+                for ion_n in ion_name:
+                    node_color = colors.rgb2hex(p.network_cm(self.cell_concs[ion_n][p.plot_cell]))
+                    nde = pydot.Node(ion_n, style='filled', color=node_color)
+                    graphicus_maximus.add_node(nde)
+
+                    graphicus_maximus.add_edge(pydot.Edge(name, ion_n, arrowhead='normal'))
+
+                if chan.channel_activators_list != 'None' and chan.channel_activators_list is not None:
+
+                    for act_name in chan.channel_activators_list:
+                        graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
+
+                if chan.channel_inhibitors_list != 'None' and chan.channel_inhibitors_list is not None:
+
+                    for inh_name in chan.channel_inhibitors_list:
+                        graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
+
+        for i, name in enumerate(self.molecules):
+
+            mol = self.molecules[name]
+            # add regulatory as nodes in the graph:
+
+            if mol.simple_growth is True and mol.growth_activators_list != 'None' and mol.growth_activators_list is not None:
+
+                for act_name in mol.growth_activators_list:
+                    graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
+
+            if mol.simple_growth is True and mol.growth_inhibitors_list != 'None' and mol.growth_inhibitors_list is not None:
+
+                for inh_name in mol.growth_inhibitors_list:
+                    graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
+
+        # if there are any reactions, plot them on the graph---------------------------------------------------------------------------
+
+        if len(self.reactions) > 0:
+
+            for i, name in enumerate(self.reactions):
+
+                rea = self.reactions[name]
+
+                for react_name in rea.reactants_list:
+                    graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+
+                for prod_name in rea.products_list:
+                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+
+                if rea.reaction_activators_list != 'None' and rea.reaction_activators_list is not None:
+
+                    for act_name in rea.reaction_activators_list:
+                        graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
+
+                if rea.reaction_inhibitors_list != 'None' and rea.reaction_inhibitors_list is not None:
+
+                    for inh_name in rea.reaction_inhibitors_list:
+                        graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
+
+        # if there are any transporters, plot them on the graph:
+        if len(self.transporters) > 0:
+
+            for name in self.transporters:
+                nde = pydot.Node(name, style='filled', shape='rect')
+                graphicus_maximus.add_node(nde)
+
+            for name in self.transporters:
+
+                trans = self.transporters[name]
+
+                for react_name, tag in zip(trans.reactants_list, trans.react_transport_tag):
+
+                    if tag == 'cell_concs' or tag == 'mem_concs':
+
+                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+
+                    else:
+
+                        if tag == 'env_concs':
+                            react_name += '_env'
+
+                        elif tag == 'mit_concs':
+                            react_name += '_mit'
+
+                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+
+                for prod_name, tag in zip(trans.products_list, trans.prod_transport_tag):
+
+                    if tag == 'cell_concs' or tag == 'mem_concs':
+
+                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+
+                    else:
+
+                        if tag == 'env_concs':
+                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_env[p.plot_cell]))
+                            prod_name += '_env'
+
+                        elif tag == 'mit_concs':
+                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_mit[p.plot_cell]))
+                            prod_name += '_mit'
+
+                        nde = pydot.Node(prod_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
+
+                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+
+        return graphicus_maximus
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
         n_i_list, reaction_zone='cell'):

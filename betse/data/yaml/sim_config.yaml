@@ -776,6 +776,8 @@ results options:
         #   specific to the selected writer and filetype.
         codecs: ['auto']
 
+    plot networks: True            # export any implemented regulatory networks to an interconnected graph image
+
     export data to file: True      # export all stored data for the plot cell
                                    # to a comma-delimited (csv) text file
                                    # options True or False (case sensitive)
@@ -805,6 +807,27 @@ results options:
     plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
   
     plot masked geometry: True      # plot the geometry using the overall shape as a mask
+
+
+    default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
+                                 # options include
+                                 # coolwarm, hot, rainbow, jet, Blues, Greens, bone
+                                 # to reverse a colormap add _r to the name (e.g. cm.jet_r)
+                                 # for all options please see
+                                 # http://matplotlib.org/examples/color/colormaps_reference.html
+
+    background colormap: Blues     # Specify colormap to be used for data with vector overlays and 0 --> + data,
+                                      # including:
+                                      # currents, flow, electric field and deformation.
+
+    network colormap: coolwarm       # colormap used for concentration nodes of reaction network graphs
+
+    gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
+
+    vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
+                                   # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
+
+    #-------2D plots---------------------------------------------------------------------------------------------------
   
     Vmem 2D:
       plot Vmem: True              # 2d plot of final vmem ?
@@ -883,6 +906,7 @@ results options:
       min val: -15
 
     # World-related plotting options------------------------------------------------------------------------------------
+
     plot cell cluster: True     # 'plot seed' creates a plot showing tissue and cut profiles
 
     plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
@@ -996,22 +1020,6 @@ results options:
         autoscale colorbar: True    # autoscale colorbar to min max of data set?
         max val: 10                 # max colorbar value [um] when autoscale is False
         min val: 0                  # min colorbar value [um] when autoscale is False
-  
-    default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
-                                 # options include
-                                 # coolwarm, hot, rainbow, jet, Blues, Greens, bone
-                                 # to reverse a colormap add _r to the name (e.g. cm.jet_r)
-                                 # for all options please see
-                                 # http://matplotlib.org/examples/color/colormaps_reference.html
-  
-    background colormap: Blues     # Specify colormap to be used for data with vector overlays and 0 --> + data,
-                                      # including:
-                                      # currents, flow, electric field and deformation.
-  
-    gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
-  
-    vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
-                                   # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERNAL USE ONLY
