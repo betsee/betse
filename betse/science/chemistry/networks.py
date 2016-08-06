@@ -19,6 +19,7 @@ from betse.util.type.mappings import DynamicValue, DynamicValueDict
 from collections import OrderedDict
 from matplotlib import colors
 from matplotlib import cm
+from scipy.optimize import root
 
 from betse.science.tissue.channels import vg_na as vgna
 from betse.science.tissue.channels import vg_nap as vgnap
@@ -433,7 +434,11 @@ class MasterOfNetworks(object):
             if mol.simple_growth is True:
                 rea_name = mol_name + '_growth'
 
-                self.react_handler[rea_name] = mol.gad_eval_string
+                self.react_handler[rea_name] = mol.gad_eval_string_growth
+
+                rea_name = mol_name + '_decay'
+
+                self.react_handler[rea_name] = mol.gad_eval_string_decay
 
         for rea_name in self.reactions:
             self.react_handler[rea_name] = self.reactions[rea_name].reaction_eval_string
@@ -749,11 +754,20 @@ class MasterOfNetworks(object):
                 gad_eval_string = mod_funk + "*" + r_prod + "*" + inhibitor_alpha + "*" + activator_alpha + "-" + \
                                   r_decay + "*" + cc
 
+                gad_eval_string_growth = inhibitor_alpha + "*" + activator_alpha
+                gad_eval_string_decay = cc
+
                 self.molecules[mol_name].gad_eval_string = gad_eval_string
+
+                # add in the separate growth decay eval strings for case of optimization:
+                self.molecules[mol_name].gad_eval_string_growth = gad_eval_string_growth
+                self.molecules[mol_name].gad_eval_string_decay = gad_eval_string_decay
 
             else:
 
                 self.molecules[mol_name].gad_eval_string = "np.zeros(sim.cdl)"
+                self.molecules[mol_name].gad_eval_string_growth = "np.zeros(sim.cdl)"
+                self.molecules[mol_name].gad_eval_string_decay = "np.zeros(sim.cdl)"
 
     def write_reactions(self):
         """
@@ -2395,12 +2409,21 @@ class MasterOfNetworks(object):
 
             if mol.simple_growth:
 
+                # add node & edge for growth reaction component:
                 rea_name = name + '_growth'
                 rea_node = pydot.Node(rea_name, style = 'filled', shape = 'rect')
                 graphicus_maximus.add_node(rea_node)
+
+                # if the substance has autocatalytic growth capacity add the edge in:
+                graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal'))
+
+                # add node & edge for decay reaction component:
+                rea_name = name + '_decay'
+                rea_node = pydot.Node(rea_name, style = 'filled', shape = 'rect')
+                graphicus_maximus.add_node(rea_node)
+
                 # if the substance has autocatalytic growth capacity add the edge in:
                 graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal'))
-                graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal'))
 
 
         if len(self.reactions) > 0:
@@ -2600,7 +2623,7 @@ class MasterOfNetworks(object):
 
         return activator_alpha, inhibitor_alpha
 
-    def optimization(self, sim, cells, p):
+    def optimizer(self, sim, cells, p):
         """
         Runs an optimization routine returning reaction maximum rates (for growth and decay,
         chemical reactions, and transporters) that match to a user-specified set of target
@@ -2612,19 +2635,75 @@ class MasterOfNetworks(object):
         optimized_config       optimized config file
 
         """
+        # FIXME split up constants of growth and decay as separate reactions and get vmax for each
 
-        import pydot
+        # import pydot
         import networkx as nx
+
+        self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
 
         self.build_indices()
 
         # create a complete graph using pydot and the network plotting method:
         grapha = self.build_reaction_network(p)
 
-        grapha.write_svg('network.svg')
+        # if saving is enabled, export a graph of the network used in the optimization:
+        if p.autosave is True and p.plot_network is True:
+            savename = self.imagePath + 'OptimizedNetworkGraph' + '.svg'
+            grapha.write_svg(savename)
 
         # convert the graph into a networkx format so it's easy to manipulate
         network = nx.from_pydot(grapha)
+
+        # build a network matrix in order to perform the optimization:
+        self.network_opt_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
+
+        for node_a, node_b in network.edges():
+
+            node_type_a = network.node[node_a].get('shape', None)
+            node_type_b = network.node[node_b].get('shape', None)
+
+            if node_type_a is None and node_type_b == 'rect':
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1  # FIXME *coeff!
+
+            elif node_type_a == 'rect' and node_type_b is None:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1  # FIXME *coeff!
+
+        # calculate the reaction rates at the target concentrations:
+        r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
+
+        # initial guess for reaction rates:
+        vmax_o = 1 * np.ones(len(self.react_handler))
+
+        # define the optimization callable function
+        def opt_funk(vmax):
+            """
+            Expression for the callable function used to optimize max rate expressions for the
+            reaction network
+
+            """
+
+            delta_c = np.dot(self.network_opt_M, vmax * r_base)
+
+            return delta_c
+
+        sol = root(opt_funk, vmax_o, method='lm')
+
+        for reaction, valmax in zip(self.react_handler.keys(), sol.x):
+
+            print(reaction, valmax)
+
+
+
+
 
 class Molecule(object):
 
