@@ -380,6 +380,72 @@ class MasterOfNetworks(object):
                 mol.plot_max = pd['max val']
                 mol.plot_min = pd['min val']
 
+    def build_indices(self):
+
+        # build indices-----------------------------------------------------------------------------------------
+        self.molecule_index = {}
+
+        for i, mol_name in enumerate(self.molecules):
+            self.molecule_index[mol_name] = i
+
+        self.reaction_index = {}
+
+        for i, rea_name in enumerate(self.reactions):
+            self.reaction_index[rea_name] = i
+
+        self.transporter_index = {}
+
+        for i, trans_name in enumerate(self.transporters):
+            self.transporter_index[trans_name] = i
+
+        # build a global dictionary of target concentrations:--------------------------------------------------
+        self.conc_handler = OrderedDict({})
+        for mol_name in self.molecules:
+
+            env_name = mol_name + '_env'
+
+            self.conc_handler[mol_name] = self.molecules[mol_name].c_cello
+            self.conc_handler[env_name] = self.molecules[mol_name].c_envo
+
+            if self.mit_enabled:
+
+                mit_name = mol_name + '_mit'
+
+                if self.molecules.c_mito is None:
+
+                    self.conc_handler['mit_name'] = 0
+
+                else:
+                    self.conc_handler['mit_name'] = self.molecules[mol_name].c_mito
+
+        self.conc_handler_index = {}
+
+        for i, conc_name in enumerate(self.conc_handler):
+            self.conc_handler_index[conc_name] = i
+
+        # build a global dictionary of all reactions:---------------------------------------------------------
+        self.react_handler = OrderedDict({})
+
+        for mol_name in self.molecules:
+
+            mol = self.molecules[mol_name]
+
+            if mol.simple_growth is True:
+                rea_name = mol_name + '_growth'
+
+                self.react_handler[rea_name] = mol.gad_eval_string
+
+        for rea_name in self.reactions:
+            self.react_handler[rea_name] = self.reactions[rea_name].reaction_eval_string
+
+        for trans_name in self.transporters:
+            self.react_handler[trans_name] = self.transporters[trans_name].transporter_eval_string
+
+        self.react_handler_index = {}
+
+        for i, rea_name in enumerate(self.react_handler):
+            self.react_handler_index[rea_name] = i
+
     def plot_init(self, config_substances):
 
         for q, mol_dic in enumerate(config_substances):
@@ -2070,6 +2136,9 @@ class MasterOfNetworks(object):
 
         """
 
+        #FIXME if reaction zones are mit, need to add mit_conc distinction!
+        # FIXME add in activators/inhibitors for transporters!
+
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
 
@@ -2192,7 +2261,6 @@ class MasterOfNetworks(object):
                     for inh_name in chan.channel_inhibitors_list:
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
-
         # deal with activators and inhibitors for substance growth------------------------------------------------
 
         for i, name in enumerate(self.molecules):
@@ -2220,7 +2288,7 @@ class MasterOfNetworks(object):
                 for inh_name in mol.ion_inhibitors_list:
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, mol.gating_channel_name, arrowhead='tee', color='red'))
 
-        # if there are any reactions, plot them on the graph---------------------------------------------------------------------------
+        # if there are any reactions, plot their edges on the graph--------------------------------------------------
 
         if len(self.reactions) > 0:
 
@@ -2243,6 +2311,117 @@ class MasterOfNetworks(object):
 
                     for inh_name in rea.reaction_inhibitors_list:
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
+
+        # if there are any transporters, plot them on the graph:
+        if len(self.transporters) > 0:
+
+            for name in self.transporters:
+                nde = pydot.Node(name, style='filled', shape='rect')
+                graphicus_maximus.add_node(nde)
+
+            for name in self.transporters:
+
+                trans = self.transporters[name]
+
+                for react_name, tag in zip(trans.reactants_list, trans.react_transport_tag):
+
+                    if tag == 'cell_concs' or tag == 'mem_concs':
+
+                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+
+                    else:
+
+                        if tag == 'env_concs':
+                            react_name += '_env'
+
+                        elif tag == 'mit_concs':
+                            react_name += '_mit'
+
+                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+
+                for prod_name, tag in zip(trans.products_list, trans.prod_transport_tag):
+
+                    if tag == 'cell_concs' or tag == 'mem_concs':
+
+                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+
+                    else:
+
+                        if tag == 'env_concs':
+                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_env[p.plot_cell]))
+                            prod_name += '_env'
+
+                        elif tag == 'mit_concs':
+                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_mit[p.plot_cell]))
+                            prod_name += '_mit'
+
+                        nde = pydot.Node(prod_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
+
+                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+
+        return graphicus_maximus
+
+    def build_reaction_network(self, p):
+        """
+        Uses pydot to create and return a directed graph representing only growth/decay and chemical reactions,
+        omitting any channels and activation/inhibition relationships considered in this reaction network object.
+
+        """
+
+        #FIXME if reaction zones are mit, need to add mit_conc distinction!
+
+        # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
+        import pydot
+
+        # define some basic colormap scaling properties for the dataset:
+        vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
+        minc = vals.min()
+        maxc = vals.max()
+        normc = colors.Normalize(vmin=minc, vmax=maxc)
+
+        # create a graph object
+        graphicus_maximus = pydot.Dot(graph_type='digraph')
+
+        # add each substance as a node in the graph:
+        for i, name in enumerate(self.molecules):
+
+            mol = self.molecules[name]
+
+            node_color = colors.rgb2hex(p.network_cm(mol.c_cells[p.plot_cell]))
+
+            nde = pydot.Node(name, style='filled', color=node_color)
+            graphicus_maximus.add_node(nde)
+
+            if mol.simple_growth:
+
+                rea_name = name + '_growth'
+                rea_node = pydot.Node(rea_name, style = 'filled', shape = 'rect')
+                graphicus_maximus.add_node(rea_node)
+                # if the substance has autocatalytic growth capacity add the edge in:
+                graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal'))
+                graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal'))
+
+
+        if len(self.reactions) > 0:
+
+            for i, name in enumerate(self.reactions):
+                nde = pydot.Node(name, style='filled', shape='rect')
+                graphicus_maximus.add_node(nde)
+
+        # if there are any reactions, plot their edges on the graph--------------------------------------------------
+
+        if len(self.reactions) > 0:
+
+            for i, name in enumerate(self.reactions):
+
+                rea = self.reactions[name]
+
+                for react_name in rea.reactants_list:
+                    graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+
+                for prod_name in rea.products_list:
+                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
 
         # if there are any transporters, plot them on the graph:
         if len(self.transporters) > 0:
@@ -2420,6 +2599,32 @@ class MasterOfNetworks(object):
             inhibitor_alpha += dl
 
         return activator_alpha, inhibitor_alpha
+
+    def optimization(self, sim, cells, p):
+        """
+        Runs an optimization routine returning reaction maximum rates (for growth and decay,
+        chemical reactions, and transporters) that match to a user-specified set of target
+        concentrations for all substances at steady-state.
+
+        Returns
+        ---------
+        vmax_vect              Array of maximum reaction rates
+        optimized_config       optimized config file
+
+        """
+
+        import pydot
+        import networkx as nx
+
+        self.build_indices()
+
+        # create a complete graph using pydot and the network plotting method:
+        grapha = self.build_reaction_network(p)
+
+        grapha.write_svg('network.svg')
+
+        # convert the graph into a networkx format so it's easy to manipulate
+        network = nx.from_pydot(grapha)
 
 class Molecule(object):
 
