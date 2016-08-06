@@ -53,6 +53,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       n inhibitors: [3.0]        # list of Hill exponent of inhibitors
 
     ion channel gating:
+      channel name: P2X          # supply a unique name for this channel (for inclusion on graph)
       ion channel target: ['Na','K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
       target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve

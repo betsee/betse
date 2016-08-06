@@ -598,7 +598,8 @@ class Simulator(object):
 
                 self.molecules.read_reactions(p.reactions_config, self, cells, p)
                 self.molecules.write_reactions()
-                self.molecules.create_reaction_matrix()
+
+            self.molecules.create_reaction_matrix()
 
             if p.transporters_enabled:
 
@@ -620,7 +621,8 @@ class Simulator(object):
             if p.reactions_enabled:
                 self.molecules.read_reactions(p.reactions_config, self, cells, p)
                 self.molecules.write_reactions()
-                self.molecules.create_reaction_matrix()
+
+            self.molecules.create_reaction_matrix()
 
             if p.transporters_enabled:
                 self.molecules.read_transporters(p.transporters_config, self, cells, p)
@@ -631,7 +633,6 @@ class Simulator(object):
 
             if p.modulators_enabled:
                 self.molecules.read_modulators(p.modulators_config, self, cells, p)
-
 
         #-----metabolism initialization -----------------------------------
         if p.metabolism_enabled and self.metabo is None:
@@ -648,6 +649,27 @@ class Simulator(object):
                               'cADP': self.metabo.core.mem_concs['ADP'],
                               'cPi': self.metabo.core.mem_concs['Pi']}
 
+        elif p.metabolism_enabled and self.metabo is not None:
+
+            self.metabo.core.tissue_init(self, cells, self.metabo.config_dic['biomolecules'])
+
+            if self.metabo.reactions is True and len(self.metabo.config_dic['reactions']):
+                # initialize the reactions of metabolism:
+                self.metabo.core.read_reactions(self.metabo.config_dic['reactions'], self, cells, p)
+                self.metabo.core.write_reactions()
+
+            self.metabo.core.create_reaction_matrix()
+
+            if self.metabo.transporters and len(self.metabo.config_dic['transporters']):
+                self.metabo.core.read_transporters(self.metabo.config_dic['transporters'], self, cells, p)
+                self.metabo.core.write_transporters(cells, p)
+
+            if self.metabo.channels and len(self.metabo.config_dic['channels']):
+                self.metabo.core.read_channels(self.metabo.config_dic['channels'], self, cells, p)
+
+            if self.metabo.modulators and len(self.metabo.config_dic['modulators']):
+                self.metabo.core.read_modulators(self.metabo.config_dic['modulators'], self, cells, p)
+
 
         #-----gene regulatory network initialization-------------------------
         if p.grn_enabled and self.grn is None:
@@ -658,6 +680,27 @@ class Simulator(object):
             self.grn = MasterOfGenes(p)
             # read in the configuration settings for the metabolism simulator:
             self.grn.read_gene_config(self, cells, p)
+
+        elif p.grn_enabled and self.grn is not None:
+
+            self.grn.core.tissue_init(self, cells, self.grn.config_dic['biomolecules'])
+
+            if self.grn.reactions is True and len(self.grn.config_dic['reactions']):
+                # initialize the reactions of metabolism:
+                self.grn.core.read_reactions(self.grn.config_dic['reactions'], self, cells, p)
+                self.grn.core.write_reactions()
+
+            self.grn.core.create_reaction_matrix()
+
+            if self.grn.transporters and len(self.grn.config_dic['transporters']):
+                self.grn.core.read_transporters(self.grn.config_dic['transporters'], self, cells, p)
+                self.grn.core.write_transporters(cells, p)
+
+            if self.grn.channels and len(self.grn.config_dic['channels']):
+                self.grn.core.read_channels(self.grn.config_dic['channels'], self, cells, p)
+
+            if self.grn.modulators and len(self.grn.config_dic['modulators']):
+                self.grn.core.read_modulators(self.grn.config_dic['modulators'], self, cells, p)
 
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------

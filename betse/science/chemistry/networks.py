@@ -299,14 +299,16 @@ class MasterOfNetworks(object):
 
                     mol.ion_channel_gating = True
 
-                    gating_ion_o = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
+                    mol.gating_channel_name = icg.get('channel name', 'Gated channel')
 
-                    if gating_ion_o != 'None':
+                    mol.gating_ion_name = icg['ion channel target']  # get a target ion label to gate membrane to (or 'None')
+
+                    if mol.gating_ion_name != 'None':
                         mol.use_gating_ligand = True
 
                         mol.gating_ion = []
 
-                        for ion_o in gating_ion_o:
+                        for ion_o in mol.gating_ion_name:
                             mol.gating_ion.append(sim.get_ion(ion_o))
 
                     else:
@@ -319,13 +321,21 @@ class MasterOfNetworks(object):
                     mol.gating_extracell = icg['acts extracellularly']
 
                     # get any optional activators and inhibitors for the channel:
-                    mol.activators_list = icg.get('activators', None)
-                    mol.activators_Km = icg.get('Km activators', None)
-                    mol.activators_n = icg.get('n activators', None)
+                    mol.ion_activators_list = icg.get('activators', None)
+                    mol.ion_activators_Km = icg.get('Km activators', None)
+                    mol.ion_activators_n = icg.get('n activators', None)
 
-                    mol.inhibitors_list = icg.get('inhibitors', None)
-                    mol.inhibitors_Km = icg.get('Km inhibitors', None)
-                    mol.inhibitors_n = icg.get('n inhibitors', None)
+                    mol.ion_inhibitors_list = icg.get('inhibitors', None)
+                    mol.ion_inhibitors_Km = icg.get('Km inhibitors', None)
+                    mol.ion_inhibitors_n = icg.get('n inhibitors', None)
+
+                    # define the modulating coefficients:
+                    alpha_activator_ion, alpha_inhibitor_ion = self.get_influencers(mol.ion_activators_list,
+                                                                        mol.ion_activators_Km, mol.ion_activators_n,
+                                                                        mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
+                                                                        mol.ion_inhibitors_n)
+
+                    mol.gating_mod_eval_string = "(" + alpha_activator_ion + alpha_inhibitor_ion + ")"
 
                 else:
 
@@ -1211,6 +1221,7 @@ class MasterOfNetworks(object):
             if p.run_sim is True:
                 # use the substance as a gating ligand (if desired)
                 if obj.ion_channel_gating:
+                    obj.gating_mod = eval(obj.gating_mod_eval_string, self.globals, self.locals)
                     obj.gating(sim, self, cells, p)
 
                 # update the global boundary (if desired)
@@ -2059,21 +2070,69 @@ class MasterOfNetworks(object):
 
         """
 
+        # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
 
-        vals = np.asarray([v.c_cells.min() for (c, v) in self.molecules.items()])
+        # define some basic colormap scaling properties for the dataset:
+        vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
         minc = vals.min()
         maxc = vals.max()
         normc = colors.Normalize(vmin=minc, vmax=maxc)
 
+        # create a graph object
         graphicus_maximus = pydot.Dot(graph_type='digraph')
 
         # add each substance as a node in the graph:
         for i, name in enumerate(self.molecules):
-            node_color = colors.rgb2hex(p.network_cm(self.molecules[name].c_cells[p.plot_cell]))
+
+            mol = self.molecules[name]
+
+            node_color = colors.rgb2hex(p.network_cm(mol.c_cells[p.plot_cell]))
 
             nde = pydot.Node(name, style='filled', color=node_color)
             graphicus_maximus.add_node(nde)
+
+            if mol.simple_growth:
+                # if the substance has autocatalytic growth capacity add the edge in:
+                graphicus_maximus.add_edge(pydot.Edge(name, name, arrowhead='normal'))
+
+
+            if mol.ion_channel_gating:
+
+                # if this substance gates for ion channels:
+
+                # define a node corresponding to the ion channel:
+                gated_node = pydot.Node(mol.gating_channel_name, style = 'filled', shape = 'diamond')
+                graphicus_maximus.add_node(gated_node)
+
+                # add the edges for substance gating channel (this is a regulatory edge, not a reaction path):
+                if mol.gating_extracell is True:
+                    substance_name = name + "_env"
+
+                    node_color = colors.rgb2hex(p.network_cm(mol.c_env[p.plot_cell]))
+
+                    nde = pydot.Node(name, style='filled', color=node_color)
+                    graphicus_maximus.add_node(nde)
+
+                else:
+                    substance_name = name
+
+
+                graphicus_maximus.add_edge(pydot.Edge(substance_name, gated_node, arrowhead='dot', color='blue'))
+
+                for ion_name in mol.gating_ion_name:
+
+                    # get the concentration of the ion:
+                    ion_node_color = colors.rgb2hex(p.network_cm(self.cell_concs[ion_name][p.plot_cell]))
+
+                    # define the ion node of the channel
+                    ion_node = pydot.Node(ion_name, style = 'filled', color = ion_node_color)
+                    graphicus_maximus.add_node(ion_node)
+
+                    # add the edges for channel effect on ion concentration:
+                    graphicus_maximus.add_edge(pydot.Edge(gated_node, ion_node,  arrowhead='normal'))
+
+                    # add activators and inhibitors
 
         if len(self.reactions) > 0:
 
@@ -2113,7 +2172,7 @@ class MasterOfNetworks(object):
                     ion_name = ['Na', 'K', 'Ca']
 
                 # add the channel to the diagram
-                nde = pydot.Node(name, style='filled')
+                nde = pydot.Node(name, style='filled', shape = 'diamond')
                 graphicus_maximus.add_node(nde)
 
                 for ion_n in ion_name:
@@ -2133,6 +2192,9 @@ class MasterOfNetworks(object):
                     for inh_name in chan.channel_inhibitors_list:
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
+
+        # deal with activators and inhibitors for substance growth------------------------------------------------
+
         for i, name in enumerate(self.molecules):
 
             mol = self.molecules[name]
@@ -2147,6 +2209,16 @@ class MasterOfNetworks(object):
 
                 for inh_name in mol.growth_inhibitors_list:
                     graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
+
+            if mol.ion_channel_gating is True and mol.ion_activators_list != 'None' and mol.ion_activators_list is not None:
+
+                for act_name in mol.ion_activators_list:
+                    graphicus_maximus.add_edge(pydot.Edge(act_name, mol.gating_channel_name, arrowhead='dot', color='blue'))
+
+            if mol.ion_channel_gating is True and mol.ion_inhibitors_list != 'None' and mol.ion_inhibitors_list is not None:
+
+                for inh_name in mol.ion_inhibitors_list:
+                        graphicus_maximus.add_edge(pydot.Edge(inh_name, mol.gating_channel_name, arrowhead='tee', color='red'))
 
         # if there are any reactions, plot them on the graph---------------------------------------------------------------------------
 
@@ -2394,15 +2466,22 @@ class Molecule(object):
         self.n_production = None
 
         self.growth_activators_list = None
-        self.growth_activators_k = None
         self.growth_activators_Km = None
         self.growth_activators_n = None
         self.growth_inhibitors_list = None
-        self.growth_inhibitors_k = None
         self.growth_inhibitors_Km = None
         self.growth_inhibitors_n = None
 
+        self.ion_activators_list = None
+        self.ion_activators_Km = None
+        self.ion_activators_n = None
+        self.ion_inhibitors_list = None
+        self.ion_inhibitors_Km = None
+        self.ion_inhibitors_n = None
+
         self.growth_targets_cell = cells.cell_i
+
+        self.gating_mod = 1.0
 
     def transport(self, sim, cells, p):
         """
@@ -2504,10 +2583,6 @@ class Molecule(object):
         if self.use_gating_ligand:
 
             # calculate any activators and/or inhibitor effects:
-            activator_alpha, inhibitor_alpha = get_influencers(sim, sim_metabo, self.activators_list,
-                self.activators_Km, self.activators_n, self.inhibitors_list,
-                self.inhibitors_Km, self.inhibitors_n, reaction_zone='mems')
-
 
             if self.gating_extracell is False:
 
@@ -2516,7 +2591,7 @@ class Molecule(object):
                     Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
                                                                             self.gating_Hill_K,self.gating_Hill_n)
 
-                    sim.Dm_morpho[ion_tag] = sim.rho_channel*Dm_mod_mol*activator_alpha*inhibitor_alpha
+                    sim.Dm_morpho[ion_tag] = sim.rho_channel*Dm_mod_mol*self.gating_mod
 
             elif self.gating_extracell is True and p.sim_ECM is True:
 
@@ -2524,7 +2599,7 @@ class Molecule(object):
 
                     Dm_mod_mol = self.gating_max_val*tb.hill(self.c_env,self.gating_Hill_K,self.gating_Hill_n)
 
-                    sim.Dm_morpho[ion_tag] = (activator_alpha*inhibitor_alpha*sim.rho_channel*
+                    sim.Dm_morpho[ion_tag] = (self.gating_mod*sim.rho_channel*
                                               Dm_mod_mol[cells.map_mem2ecm])
 
     def init_growth(self,cells, p):
