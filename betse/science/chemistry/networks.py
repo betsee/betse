@@ -15,6 +15,8 @@ from betse.exceptions import BetseParametersException
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
+from betse.util.path import paths
+from betse.lib.yaml import yamls
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
 from collections import OrderedDict
 from matplotlib import colors
@@ -2415,7 +2417,7 @@ class MasterOfNetworks(object):
                 graphicus_maximus.add_node(rea_node)
 
                 # if the substance has autocatalytic growth capacity add the edge in:
-                graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal'))
+                graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal', coeff = 1.0))
 
                 # add node & edge for decay reaction component:
                 rea_name = name + '_decay'
@@ -2423,7 +2425,7 @@ class MasterOfNetworks(object):
                 graphicus_maximus.add_node(rea_node)
 
                 # if the substance has autocatalytic growth capacity add the edge in:
-                graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal'))
+                graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal', coeff =1.0))
 
 
         if len(self.reactions) > 0:
@@ -2440,28 +2442,32 @@ class MasterOfNetworks(object):
 
                 rea = self.reactions[name]
 
-                for react_name in rea.reactants_list:
-                    graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+                for i, react_name in enumerate(rea.reactants_list):
+                    rea_coeff = rea.reactants_coeff[i]
+                    graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff = rea_coeff))
 
-                for prod_name in rea.products_list:
-                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+                for j, prod_name in enumerate(rea.products_list):
+                    prod_coeff = rea.products_coeff[j]
+                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff))
 
         # if there are any transporters, plot them on the graph:
         if len(self.transporters) > 0:
 
             for name in self.transporters:
-                nde = pydot.Node(name, style='filled', shape='rect')
+                nde = pydot.Node(name, style='filled', shape='diamond')
                 graphicus_maximus.add_node(nde)
 
             for name in self.transporters:
 
                 trans = self.transporters[name]
 
-                for react_name, tag in zip(trans.reactants_list, trans.react_transport_tag):
+                for i, (react_name, tag) in enumerate(zip(trans.reactants_list, trans.react_transport_tag)):
+
+                    rea_coeff = trans.reactants_coeff[i]
 
                     if tag == 'cell_concs' or tag == 'mem_concs':
 
-                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff = rea_coeff))
 
                     else:
 
@@ -2471,13 +2477,15 @@ class MasterOfNetworks(object):
                         elif tag == 'mit_concs':
                             react_name += '_mit'
 
-                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+                        graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff=rea_coeff))
 
-                for prod_name, tag in zip(trans.products_list, trans.prod_transport_tag):
+                for j, (prod_name, tag) in enumerate(zip(trans.products_list, trans.prod_transport_tag)):
+
+                    prod_coeff = trans.products_coeff[j]
 
                     if tag == 'cell_concs' or tag == 'mem_concs':
 
-                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff= prod_coeff))
 
                     else:
 
@@ -2492,7 +2500,7 @@ class MasterOfNetworks(object):
                         nde = pydot.Node(prod_name, style='filled', color=node_color)
                         graphicus_maximus.add_node(nde)
 
-                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+                        graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff))
 
         return graphicus_maximus
 
@@ -2640,6 +2648,9 @@ class MasterOfNetworks(object):
         # import pydot
         import networkx as nx
 
+        # set the vmem to a generalized value common to many cell types:
+        sim.vm[:] = -50e-3
+
         self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
 
         self.build_indices()
@@ -2660,6 +2671,8 @@ class MasterOfNetworks(object):
 
         for node_a, node_b in network.edges():
 
+            edge_coeff = network.edge[node_a][node_b][0]['coeff']
+
             node_type_a = network.node[node_a].get('shape', None)
             node_type_b = network.node[node_b].get('shape', None)
 
@@ -2668,14 +2681,41 @@ class MasterOfNetworks(object):
                 row_i = self.conc_handler_index[node_a]
                 col_j = self.react_handler_index[node_b]
 
-                self.network_opt_M[row_i, col_j] = -1  # FIXME *coeff!
+                self.network_opt_M[row_i, col_j] = -1*edge_coeff
 
             elif node_type_a == 'rect' and node_type_b is None:
 
                 row_i = self.conc_handler_index[node_b]
                 col_j = self.react_handler_index[node_a]
 
-                self.network_opt_M[row_i, col_j] = 1  # FIXME *coeff!
+                self.network_opt_M[row_i, col_j] = 1*edge_coeff
+
+            elif node_type_a is None and node_type_b == 'diamond':
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0*edge_coeff
+
+            elif node_type_a == 'diamond' and node_type_b is None:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0*edge_coeff
+
+        # set all pre-existing reaction maxima to 1.0:
+        for mol_name in self.molecules:
+
+            mol = self.molecules[mol_name]
+            mol.r_production = 1.0
+            mol.r_decay = 1.0
+
+        for rea_name in self.reactions:
+            self.reactions[rea_name].vmax = 1.0
+
+        for trans_name in self.transporters:
+            self.transporters[trans_name].vmax = 1.0
 
         # calculate the reaction rates at the target concentrations:
         r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
@@ -2697,13 +2737,30 @@ class MasterOfNetworks(object):
 
         sol = root(opt_funk, vmax_o, method='lm')
 
-        for reaction, valmax in zip(self.react_handler.keys(), sol.x):
+        self.sol_x = sol.x
 
-            print(reaction, valmax)
+        solution_dic = {}
+
+        for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x):
+
+            solution_dic[rea_name] = vmax
+
+        # Absolute path of the YAML file to write this solution to.
+        saveData = paths.join(self.resultsPath, 'OptimizedReactionRates.yaml')
+
+        # Write this solution to this YAML file.
+        yamls.save(solution_dic, saveData)
 
 
 
-
+        # logs.log_info("Optimization-recommended reaction rates: ")
+        # logs.log_info("-----------------------------------------")
+        #
+        # for reaction, valmax in zip(self.react_handler.keys(), sol.x):
+        #
+        #     logs.log_info(reaction, valmax)
+        #
+        # logs.log_info("-----------------------------------------")
 
 class Molecule(object):
 

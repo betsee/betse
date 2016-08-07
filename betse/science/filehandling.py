@@ -10,9 +10,11 @@ simulation objects.
 #FIXME: For clarity, rename this module to "simsaver.py".
 
 # ....................{ IMPORTS                            }....................
-from betse.util.path.file import pickles
-from betse.util.type.types import type_check
 from collections.abc import Sequence
+
+from betse.lib.pickle import pickles
+from betse.util.type.types import type_check
+
 
 # ....................{ SAVERS                             }....................
 #FIXME: Consider replacing all calls to this function with calls to the
