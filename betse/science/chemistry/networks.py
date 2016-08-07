@@ -276,6 +276,13 @@ class MasterOfNetworks(object):
                     mol.growth_inhibitors_Km = gad.get('Km inhibitors', None)
                     mol.growth_inhibitors_n = gad.get('n inhibitors', None)
 
+                    # Fill in the blanks if zones aren't supplied:
+                    mol.growth_activators_zone, mol.growth_inhibitors_zone = self.default_zones(
+                                                                            mol.growth_activators_zone,
+                                                                            mol.growth_inhibitors_zone,
+                                                                            mol.growth_activators_list,
+                                                                            mol.growth_inhibitors_list)
+
                     mol.init_growth(cells, p)
 
                     # the modulator function, if requested, makes gad occur modulated by a function.
@@ -327,18 +334,30 @@ class MasterOfNetworks(object):
                     mol.ion_activators_list = icg.get('activators', None)
                     mol.ion_activators_Km = icg.get('Km activators', None)
                     mol.ion_activators_n = icg.get('n activators', None)
+                    mol.ion_activators_zone = icg.get('zone activators', None)
 
                     mol.ion_inhibitors_list = icg.get('inhibitors', None)
                     mol.ion_inhibitors_Km = icg.get('Km inhibitors', None)
                     mol.ion_inhibitors_n = icg.get('n inhibitors', None)
+                    mol.ion_inhibitors_zone = icg.get('zone inhibitors', None)
+
+                    # Fill in the blanks if zones aren't supplied:
+                    mol.ion_activators_zone, mol.ion_inhibitors_zone = self.default_zones(
+                                                                            mol.ion_activators_zone,
+                                                                            mol.ion_inhibitors_zone,
+                                                                            mol.ion_activators_list,
+                                                                            mol.ion_inhibitors_list)
 
                     # define the modulating coefficients:
                     alpha_activator_ion, alpha_inhibitor_ion = self.get_influencers(mol.ion_activators_list,
                                                                         mol.ion_activators_Km, mol.ion_activators_n,
                                                                         mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
-                                                                        mol.ion_inhibitors_n)
+                                                                        mol.ion_inhibitors_n, reaction_zone='mem',
+                                                                        zone_tags_a=mol.ion_activators_zone,
+                                                                        zone_tags_i=mol.ion_inhibitors_zone)
 
-                    mol.gating_mod_eval_string = "(" + alpha_activator_ion + alpha_inhibitor_ion + ")"
+                    mol.gating_mod_eval_string = "(" + alpha_activator_ion + "*" + alpha_inhibitor_ion + ")"
+
 
                 else:
 
@@ -551,6 +570,13 @@ class MasterOfNetworks(object):
             obj.reaction_inhibitors_n = react_dic.get('inhibitor n', None)
             obj.reaction_inhibitors_zone = react_dic.get('inhibitor zone', None)
 
+            # Fill in the blanks if zones aren't supplied:
+            obj.reaction_activators_zone, obj.reaction_inhibitors_zone = self.default_zones(
+                obj.reaction_activators_zone,
+                obj.reaction_inhibitors_zone,
+                obj.reaction_activators_list,
+                obj.reaction_inhibitors_list)
+
 
             if self.mit_enabled:
                 obj.mit_enabled = True
@@ -627,6 +653,15 @@ class MasterOfNetworks(object):
             obj.transporter_inhibitors_n = trans_dic.get('inhibitor n', None)
             obj.transporter_inhibitors_zone = trans_dic.get('inhibitor zone', None)
 
+            # Fill in the blanks if zones aren't supplied:
+            obj.transporter_activators_zone, obj.transporter_inhibitors_zone = self.default_zones(
+                obj.transporter_activators_zone,
+                obj.transporter_inhibitors_zone,
+                obj.transporter_activators_list,
+                obj.transporter_inhibitors_list)
+
+
+
             if self.mit_enabled:
                 obj.mit_enabled = True
             else:
@@ -663,6 +698,7 @@ class MasterOfNetworks(object):
             obj.channel_activators_Km = chan_dic.get('activator Km', None)
             obj.channel_activators_n = chan_dic.get('activator n', None)
             obj.channel_activators_zone = chan_dic.get('activator zone', None)
+
             obj.channel_inhibitors_list = chan_dic.get('channel inhibitors', None)
             obj.channel_inhibitors_Km = chan_dic.get('inhibitor Km', None)
             obj.channel_inhibitors_n = chan_dic.get('inhibitor n', None)
@@ -670,16 +706,27 @@ class MasterOfNetworks(object):
 
             obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, sim, cells, p)
 
+            # Fill in the blanks if zones aren't supplied:
+            obj.channel_activators_zone, obj.channel_inhibitors_zone = self.default_zones(
+                obj.channel_activators_zone,
+                obj.channel_inhibitors_zone,
+                obj.channel_activators_list,
+                obj.channel_inhibitors_list)
+
             # activator/inhibitor lists and associated data:
             a_list = obj.channel_activators_list
             Km_a_list = obj.channel_activators_Km
             n_a_list = obj.channel_activators_n
+            zone_a = obj.channel_activators_zone
+
             i_list = obj.channel_inhibitors_list
             Km_i_list = obj.channel_inhibitors_Km
             n_i_list = obj.channel_inhibitors_n
+            zone_i = obj.channel_inhibitors_zone
+
 
             activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                n_i_list, reaction_zone='mem')
+                n_i_list, reaction_zone='mem', zone_tags_a=zone_a, zone_tags_i=zone_i)
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
 
@@ -706,10 +753,18 @@ class MasterOfNetworks(object):
             obj.modulator_activators_Km = mod_dic.get('activator Km', None)
             obj.modulator_activators_n = mod_dic.get('activator n', None)
             obj.modulator_activators_zone = mod_dic.get('activator zone', None)
+
             obj.modulator_inhibitors_list = mod_dic.get('inhibitors', None)
             obj.modulator_inhibitors_Km = mod_dic.get('inhibitor Km', None)
             obj.modulator_inhibitors_n = mod_dic.get('inhibitor n', None)
             obj.modulator_inhibitors_zone = mod_dic.get('inhibitor zone', None)
+
+            # Fill in the blanks if zones aren't supplied:
+            obj.modulator_activators_zone, obj.modulator_inhibitors_zone = self.default_zones(
+                obj.modulator_activators_zone,
+                obj.modulator_inhibitors_zone,
+                obj.modulator_activators_list,
+                obj.modulator_inhibitors_list)
 
             obj.init_modulator(sim, cells, p)
 
@@ -717,12 +772,15 @@ class MasterOfNetworks(object):
             a_list = obj.modulator_activators_list
             Km_a_list = obj.modulator_activators_Km
             n_a_list = obj.modulator_activators_n
+            zone_a = obj.modulator_activators_zone
+
             i_list = obj.modulator_inhibitors_list
             Km_i_list = obj.modulator_inhibitors_Km
             n_i_list = obj.modulator_inhibitors_n
+            zone_i = obj.modulator_inhibitors_zone
 
             activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                n_i_list, reaction_zone='mem')
+                n_i_list, reaction_zone='mem', zone_tags_a = zone_a, zone_tags_i=zone_i)
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
 
@@ -740,12 +798,15 @@ class MasterOfNetworks(object):
                 a_list = self.molecules[mol_name].growth_activators_list
                 Km_a_list = self.molecules[mol_name].growth_activators_Km
                 n_a_list = self.molecules[mol_name].growth_activators_n
+                zone_a = self.molecules[mol_name].growth_activators_zone
+
                 i_list = self.molecules[mol_name].growth_inhibitors_list
                 Km_i_list = self.molecules[mol_name].growth_inhibitors_Km
                 n_i_list = self.molecules[mol_name].growth_inhibitors_n
+                zone_i = self.molecules[mol_name].growth_inhibitors_zone
 
                 activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                    n_i_list, reaction_zone='cell')
+                    n_i_list, reaction_zone='cell', zone_tags_a=zone_a, zone_tags_i=zone_i)
 
                 # define remaining portion of substance's growth and decay expression:
 
@@ -797,9 +858,14 @@ class MasterOfNetworks(object):
             a_list = self.reactions[reaction_name].reaction_activators_list
             Km_a_list = self.reactions[reaction_name].reaction_activators_Km
             n_a_list = self.reactions[reaction_name].reaction_activators_n
+            zone_a = self.reactions[reaction_name].reaction_activators_zone
+
             i_list = self.reactions[reaction_name].reaction_inhibitors_list
             Km_i_list = self.reactions[reaction_name].reaction_inhibitors_Km
             n_i_list = self.reactions[reaction_name].reaction_inhibitors_n
+            zone_i = self.reactions[reaction_name].reaction_inhibitors_zone
+
+            r_zone = self.reactions[reaction_name].reaction_zone
 
             # first calculate a reaction coefficient Q, as a string expression
             numo_string_Q = "("
@@ -807,7 +873,13 @@ class MasterOfNetworks(object):
 
             for i, (name, coeff) in enumerate(zip(reactant_names, reactant_coeff)):
 
-                denomo_string_Q += "(self.cell_concs['{}']".format(name)
+                if r_zone == 'cell':
+                    denomo_string_Q += "(self.cell_concs['{}']".format(name)
+
+                elif r_zone == 'mit' and self.mit_enabled is True:
+                    denomo_string_Q += "(self.mit_concs['{}']".format(name)
+
+
                 denomo_string_Q += "**{})".format(coeff)
 
                 if i < len(reactant_names) - 1:
@@ -820,7 +892,12 @@ class MasterOfNetworks(object):
 
             for i, (name, coeff) in enumerate(zip(product_names, product_coeff)):
 
-                numo_string_Q += "(self.cell_concs['{}']".format(name)
+                if r_zone == 'cell':
+                    numo_string_Q += "(self.cell_concs['{}']".format(name)
+
+                elif r_zone == 'mit' and self.mit_enabled is True:
+                    numo_string_Q += "(self.mit_concs['{}']".format(name)
+
                 numo_string_Q += "**{})".format(coeff)
 
                 if i < len(product_names) - 1:
@@ -841,8 +918,13 @@ class MasterOfNetworks(object):
 
             for i, (name, n, Km) in enumerate(zip(reactant_names, reactant_coeff, reactant_Km)):
 
-                numo_string_r = "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
-                denomo_string_r = "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                if r_zone == 'cell':
+                    numo_string_r = "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_r = "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif r_zone == 'mit' and self.mit_enabled is True:
+                    numo_string_r = "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_r = "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
 
                 term = "(" + numo_string_r + "/" + denomo_string_r + ")"
 
@@ -858,8 +940,13 @@ class MasterOfNetworks(object):
 
             for i, (name, n, Km) in enumerate(zip(product_names, product_coeff, product_Km)):
 
-                numo_string_p = "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
-                denomo_string_p = "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                if r_zone == 'cell':
+                    numo_string_p = "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_p = "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                elif r_zone == 'mit' and self.mit_enabled is True:
+                    numo_string_p = "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_p = "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
 
                 term = "(" + numo_string_p + "/" + denomo_string_p + ")"
 
@@ -890,7 +977,7 @@ class MasterOfNetworks(object):
             reversed_term = "(" + Q + "/" + Keqm + ")"
 
             activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                n_i_list, reaction_zone='cell')
+                n_i_list, reaction_zone= r_zone, zone_tags_a=zone_a, zone_tags_i=zone_i)
 
             vmax = "self.reactions['{}'].vmax".format(reaction_name)
 
@@ -954,7 +1041,6 @@ class MasterOfNetworks(object):
 
                 vmem = "sim.vm"   # get the transmembrane voltage for this category
 
-
                 in_delta_term_react = "-self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
                 in_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
 
@@ -982,6 +1068,9 @@ class MasterOfNetworks(object):
 
                     out_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
 
+                activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+                                                                        n_i_list, reaction_zone='mem')
+
             elif reaction_zone == 'mit' and self.mit_enabled is True:
 
                 # initialize lists to hold the reactants and product transfer tags (initialized to zone):
@@ -1003,6 +1092,9 @@ class MasterOfNetworks(object):
 
                 out_delta_term_prod = "self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
                                                                      format(transp_name)
+
+                activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
+                                                                        n_i_list, reaction_zone='mit')
 
         # initialize list that will hold expression for calculating net concentration change
             delta_strings_reactants = [in_delta_term_react for x in reactant_names]
@@ -1179,8 +1271,7 @@ class MasterOfNetworks(object):
 
             reversed_term = "(" + Q + "/" + Keqm + ")"
 
-            activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                n_i_list, reaction_zone='mem')
+
 
             vmax = "self.transporters['{}'].vmax".format(transp_name)
 
@@ -1240,13 +1331,47 @@ class MasterOfNetworks(object):
 
     # FIXME finish these:
 
-    def optimize_and_init(self):
+    def optimize_and_init(self, sim, cells, p, main_config):
 
-        pass
+        self.init_sequence(sim, cells, p, main_config)
 
-    def init_sequence(self):
+        self.optimizer(sim, cells, p)
 
-        pass
+        self.tissue_init(sim, cells, config_substances, p)
+
+    def init_sequence(self, sim, cells, p, main_config):
+
+        # Initialize dictionary mapping from molecule names to Molecule objects
+        self.molecules = OrderedDict({})
+        # Initialize a dict that keeps the Reaction objects:
+        self.reactions = OrderedDict({})
+        # Initialize a dict of Transporter objects:
+        self.transporters = OrderedDict({})
+        # Initialize a dict of Channels:
+        self.channels = OrderedDict({})
+        # Initialize a dict of modulators:
+        self.modulators = OrderedDict({})
+
+        # Initialize reaction rates array to None (filled in later, if applicable):
+        self.reaction_rates = None
+
+        # set the key controlling presence of mitochondria:
+        self.mit_enabled = mit_enabled
+
+        # read in substance properties from the config file, and initialize basic properties:
+        self.read_substances(sim, cells, config_substances, p)
+        self.tissue_init(sim, cells, config_substances, p)
+
+        # write substance growth and decay equations:
+        self.write_growth_and_decay()
+
+        self.ave_cell_vol = cells.cell_vol.mean()  # average cell volume
+
+        # colormap for plotting series of 1D lines:
+        self.plot_cmap = 'viridis'
+
+        self.globals = globals()
+        self.locals = locals()
 
     #------runners------------------------------------------------------------------------------------------------------
     def run_loop(self, t, sim, cells, p):
@@ -1519,7 +1644,8 @@ class MasterOfNetworks(object):
                                                "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                                "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
 
-    # ------Utility Methods---------------------------------------------------------------------------------------------
+    # ------Utility Methods--------------------------------------------------------------------------------------------
+
     def pH_handling(self, sim, cells, p):
         """
         Molecules may contain dissolved carbon dioxide as a substance,
@@ -2155,6 +2281,20 @@ class MasterOfNetworks(object):
                 if p.sim_ECM:
                     obj.anim_env(sim, cells, p)
 
+    def default_zones(self, zone_tags_a, zone_tags_i, a_list, i_list):
+
+        # if zone tag lists aren't supplied or are invalid entries, create defaults:
+        if zone_tags_a is None or zone_tags_a == 'None' or len(zone_tags_a) == 0:
+            if a_list is not None and a_list != 'None' and len(a_list)>0:
+                zone_tags_a = ['cell' for x in a_list]
+
+        if zone_tags_i is None or zone_tags_i == 'None' or len(zone_tags_i) == 0:
+
+            if i_list is not None and i_list != 'None' and len(i_list) > 0:
+                zone_tags_i = ['cell' for x in i_list]
+
+        return zone_tags_a, zone_tags_i
+
     def plot_network(self, p):
         """
         Uses pydot to create and return a directed graph representing all chemical reactions and
@@ -2164,6 +2304,8 @@ class MasterOfNetworks(object):
 
         #FIXME if reaction zones are mit, need to add mit_conc distinction!
         # FIXME add in activators/inhibitors for transporters!
+
+        # FIXME add in Vmem relationships, at least for channels, possibly using optional comment sting for transporters
 
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
@@ -2293,7 +2435,6 @@ class MasterOfNetworks(object):
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
         # deal with activators and inhibitors for substance growth------------------------------------------------
-
         for i, name in enumerate(self.molecules):
 
             mol = self.molecules[name]
@@ -2301,26 +2442,41 @@ class MasterOfNetworks(object):
 
             if mol.simple_growth is True and mol.growth_activators_list != 'None' and mol.growth_activators_list is not None:
 
-                for act_name in mol.growth_activators_list:
+                for act_name, zone_a in zip(mol.growth_activators_list, mol.growth_activators_zone):
+
+                    if zone_a == 'env':
+                        act_name = act_name + '_env'
+
                     graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
 
             if mol.simple_growth is True and mol.growth_inhibitors_list != 'None' and mol.growth_inhibitors_list is not None:
 
-                for inh_name in mol.growth_inhibitors_list:
+                for inh_name, zone_i in zip(mol.growth_inhibitors_list, mol.growth_inhibitors_zone):
+
+                    if zone_i == 'env':
+                        inh_name = inh_name + '_env'
+
                     graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
             if mol.ion_channel_gating is True and mol.ion_activators_list != 'None' and mol.ion_activators_list is not None:
 
-                for act_name in mol.ion_activators_list:
+                for act_name, zone_a in zip(mol.ion_activators_list, mol.ion_activators_zone):
+
+                    if zone_a == 'env':
+                        act_name = act_name + '_env'
+
                     graphicus_maximus.add_edge(pydot.Edge(act_name, mol.gating_channel_name, arrowhead='dot', color='blue'))
 
             if mol.ion_channel_gating is True and mol.ion_inhibitors_list != 'None' and mol.ion_inhibitors_list is not None:
 
-                for inh_name in mol.ion_inhibitors_list:
-                        graphicus_maximus.add_edge(pydot.Edge(inh_name, mol.gating_channel_name, arrowhead='tee', color='red'))
+                for inh_name, inh_zone in zip(mol.ion_inhibitors_list, mol.ion_inhibitors_zone):
+
+                    if inh_zone == 'env':
+                        inh_name = inh_name + '_env'
+
+                    graphicus_maximus.add_edge(pydot.Edge(inh_name, mol.gating_channel_name, arrowhead='tee', color='red'))
 
         # if there are any reactions, plot their edges on the graph--------------------------------------------------
-
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
@@ -2333,18 +2489,30 @@ class MasterOfNetworks(object):
                 for prod_name in rea.products_list:
                     graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
 
+
                 if rea.reaction_activators_list != 'None' and rea.reaction_activators_list is not None:
 
-                    for act_name in rea.reaction_activators_list:
+                    for act_name, zone_a in zip(rea.reaction_activators_list, rea.reaction_activators_zone):
+
+                        if zone_a == 'env':
+                            act_name += '_env'
+
                         graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
 
                 if rea.reaction_inhibitors_list != 'None' and rea.reaction_inhibitors_list is not None:
 
-                    for inh_name in rea.reaction_inhibitors_list:
+                    for inh_name, zone_i in zip(rea.reaction_inhibitors_list, rea.reaction_inhibitors_zone):
+
+                        if zone_i == 'env':
+
+                            inh_name += '_env'
+
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
         # if there are any transporters, plot them on the graph:
         if len(self.transporters) > 0:
+
+            # FIXME activators and inhibitors, + zon tags
 
             for name in self.transporters:
                 nde = pydot.Node(name, style='filled', shape= transporter_shape)
@@ -2390,6 +2558,25 @@ class MasterOfNetworks(object):
                         graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+
+                if trans.transporter_activators_list != 'None' and trans.transporter_activators_list is not None:
+
+                    for act_name, zone_a in zip(trans.transporter_activators_list, trans.transporter_activators_zone):
+
+                        if zone_a == 'env':
+                            act_name += '_env'
+
+                        graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
+
+                if trans.transporter_inhibitors_list != 'None' and trans.transporter_inhibitors_list is not None:
+
+                    for inh_name, zone_i in zip(trans.transporter_inhibitors_list, trans.transporter_inhibitors_zone):
+
+                        if zone_i == 'env':
+
+                            inh_name += '_env'
+
+                        graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
         return graphicus_maximus
 
@@ -2520,7 +2707,7 @@ class MasterOfNetworks(object):
         return graphicus_maximus
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-        n_i_list, reaction_zone='cell', influence_zone_tags = None):
+        n_i_list, reaction_zone='cell', zone_tags_a = None, zone_tags_i = None):
 
         """
         Given lists of activator and inhibitor names, with associated
@@ -2534,7 +2721,12 @@ class MasterOfNetworks(object):
         i_list:          List of substance names defined in MasterOfNetworks.molecules which serve as inhibitors
         Km_i_list:       List of Hill-function Km's to the inhibitors
         n_i_list:        List of Hill-function exponents (n) to the inhibitors
-        reaction_zone:   Where the reaction takes place ('cell', 'mit', 'mem', or 'env')
+        reaction_zone:   Where the reaction/transporter/growth takes place ('cell', 'mit', 'mem')
+        zone_tags_a:     Place where the activator concentration works from ('cell' or 'env'). See *.
+        zone_tags_i:     Place where the inhibitor concentration works from ('cell' or 'env'). See *.
+
+        * zone tags only apply to reactions occuring in 'cell' or 'mem' regions. For 'mit', the activator and inhibitor
+        concentrations are always assumed to be inside the mitochondria, so are always also 'mit.
 
         Returns
         --------
@@ -2542,23 +2734,29 @@ class MasterOfNetworks(object):
 
         """
 
+        # if zone tag lists aren't supplied or are invalid entries, create defaults:
+
+        zone_tags_a, zone_tags_i = self.default_zones(zone_tags_a, zone_tags_i, a_list, i_list)
+
         # initialize string expressions for product of all activators and inhibitors
         activator_alpha = "("
         inhibitor_alpha = "("
 
+        # set the appropriate value for the absence of an activator or inhibitor expression:
         if reaction_zone == 'cell':
             dl = "np.ones(sim.cdl))"
 
         elif reaction_zone == 'mem':
             dl = "np.ones(sim.mdl))"
 
-        elif reaction_zone == 'env':
-            dl = "np.ones(sim.edl))"
+        elif reaction_zone == 'mit':
+            dl = 'np.ones(sim.cdl)'
+
 
         if a_list is not None and a_list != 'None' and len(a_list) > 0:
 
             # Begin with construction of the activator effects term:
-            for i, (name, Km, n) in enumerate(zip(a_list, Km_a_list, n_a_list)):
+            for i, (name, Km, n, zone_tag) in enumerate(zip(a_list, Km_a_list, n_a_list, zone_tags_a)):
 
                 # initialize string expressions for activator and inhibitor, respectively
                 numo_string_a = ""
@@ -2566,18 +2764,27 @@ class MasterOfNetworks(object):
 
                 if reaction_zone == 'cell':
 
-                    numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
-                    denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                    if zone_tag == 'cell':
+
+                        numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                        denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                    elif zone_tag == 'env':
+
+                        numo_string_a += "((self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
+                        denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
 
                 elif reaction_zone == 'mem':
 
-                    numo_string_a += "((self.mem_concs['{}']/{})**{})".format(name, Km, n)
-                    denomo_string_a += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
+                    if zone_tag == 'cell':
 
-                elif reaction_zone == 'env':
+                        numo_string_a += "((self.mem_concs['{}']/{})**{})".format(name, Km, n)
+                        denomo_string_a += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
 
-                    numo_string_a += "((self.env_concs['{}']/{})**{})".format(name, Km, n)
-                    denomo_string_a += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+                    elif zone_tag == 'env':
+
+                        numo_string_a += "((self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
+                        denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
 
                 elif reaction_zone == 'mit':
 
@@ -2602,7 +2809,7 @@ class MasterOfNetworks(object):
         if i_list is not None and i_list != 'None' and len(i_list) > 0:
 
             # Next, construct the inhibitors net effect term:
-            for i, (name, Km, n) in enumerate(zip(i_list, Km_i_list, n_i_list)):
+            for i, (name, Km, n, zone_tag) in enumerate(zip(i_list, Km_i_list, n_i_list, zone_tags_i)):
 
                 # initialize string expressions for activator and inhibitor, respectively
                 numo_string_i = ""
@@ -2610,18 +2817,27 @@ class MasterOfNetworks(object):
 
                 if reaction_zone == 'cell':
 
-                    numo_string_i += "1"
-                    denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                    if zone_tag == 'cell':
+
+                        numo_string_i += "1"
+                        denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+
+                    elif zone_tag == 'env':
+
+                        numo_string_i += "1"
+                        denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
 
                 elif reaction_zone == 'mem':
 
-                    numo_string_i += "1"
-                    denomo_string_i += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
+                    if zone_tag == 'cell':
 
-                elif reaction_zone == 'env':
+                        numo_string_i += "1"
+                        denomo_string_i += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
 
-                    numo_string_i += "1"
-                    denomo_string_i += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+                    elif zone_tag == 'env':
+
+                        numo_string_i += "1"
+                        denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
 
                 elif reaction_zone == 'mit':
 
