@@ -1238,6 +1238,16 @@ class MasterOfNetworks(object):
 
                 self.reaction_matrix[i, j] = coeff
 
+    # FIXME finish these:
+
+    def optimize_and_init(self):
+
+        pass
+
+    def init_sequence(self):
+
+        pass
+
     #------runners------------------------------------------------------------------------------------------------------
     def run_loop(self, t, sim, cells, p):
         """
@@ -2158,6 +2168,11 @@ class MasterOfNetworks(object):
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
 
+        alpha_val = 0.5 # alpha value to help tone down node colors
+        reaction_shape = 'rect'
+        transporter_shape = 'diamond'
+        channel_shape = 'pentagon'
+
         # define some basic colormap scaling properties for the dataset:
         vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
         minc = vals.min()
@@ -2172,7 +2187,7 @@ class MasterOfNetworks(object):
 
             mol = self.molecules[name]
 
-            node_color = colors.rgb2hex(p.network_cm(mol.c_cells[p.plot_cell]))
+            node_color = rgba2hex(p.network_cm(mol.c_cells[p.plot_cell]), alpha_val)
 
             nde = pydot.Node(name, style='filled', color=node_color)
             graphicus_maximus.add_node(nde)
@@ -2187,14 +2202,14 @@ class MasterOfNetworks(object):
                 # if this substance gates for ion channels:
 
                 # define a node corresponding to the ion channel:
-                gated_node = pydot.Node(mol.gating_channel_name, style = 'filled', shape = 'diamond')
+                gated_node = pydot.Node(mol.gating_channel_name, style = 'filled', shape = channel_shape)
                 graphicus_maximus.add_node(gated_node)
 
                 # add the edges for substance gating channel (this is a regulatory edge, not a reaction path):
                 if mol.gating_extracell is True:
                     substance_name = name + "_env"
 
-                    node_color = colors.rgb2hex(p.network_cm(mol.c_env[p.plot_cell]))
+                    node_color = rgba2hex(p.network_cm(mol.c_env[p.plot_cell]), alpha_val)
 
                     nde = pydot.Node(name, style='filled', color=node_color)
                     graphicus_maximus.add_node(nde)
@@ -2208,7 +2223,7 @@ class MasterOfNetworks(object):
                 for ion_name in mol.gating_ion_name:
 
                     # get the concentration of the ion:
-                    ion_node_color = colors.rgb2hex(p.network_cm(self.cell_concs[ion_name][p.plot_cell]))
+                    ion_node_color = rgba2hex(p.network_cm(self.cell_concs[ion_name][p.plot_cell]), alpha_val)
 
                     # define the ion node of the channel
                     ion_node = pydot.Node(ion_name, style = 'filled', color = ion_node_color)
@@ -2222,7 +2237,7 @@ class MasterOfNetworks(object):
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
-                nde = pydot.Node(name, style='filled', shape='rect')
+                nde = pydot.Node(name, style='filled', shape = reaction_shape)
                 graphicus_maximus.add_node(nde)
 
         # if there are any channels, plot their type and ion in the graph: ---------------------------------------
@@ -2257,11 +2272,11 @@ class MasterOfNetworks(object):
                     ion_name = ['Na', 'K', 'Ca']
 
                 # add the channel to the diagram
-                nde = pydot.Node(name, style='filled', shape = 'diamond')
+                nde = pydot.Node(name, style='filled', shape = channel_shape)
                 graphicus_maximus.add_node(nde)
 
                 for ion_n in ion_name:
-                    node_color = colors.rgb2hex(p.network_cm(self.cell_concs[ion_n][p.plot_cell]))
+                    node_color = rgba2hex(p.network_cm(self.cell_concs[ion_n][p.plot_cell]), alpha_val)
                     nde = pydot.Node(ion_n, style='filled', color=node_color)
                     graphicus_maximus.add_node(nde)
 
@@ -2332,7 +2347,7 @@ class MasterOfNetworks(object):
         if len(self.transporters) > 0:
 
             for name in self.transporters:
-                nde = pydot.Node(name, style='filled', shape='rect')
+                nde = pydot.Node(name, style='filled', shape= transporter_shape)
                 graphicus_maximus.add_node(nde)
 
             for name in self.transporters:
@@ -2643,7 +2658,6 @@ class MasterOfNetworks(object):
         optimized_config       optimized config file
 
         """
-        # FIXME split up constants of growth and decay as separate reactions and get vmax for each
 
         # import pydot
         import networkx as nx
@@ -2741,14 +2755,6 @@ class MasterOfNetworks(object):
 
         solution_dic = {}
 
-        #FIXME: Morning, beautiful! I've significantly improved the
-        #yamls.save() function called below to implicitly support all Numpy
-        #types, including Numpy arrays and scalars. It's all been extensively
-        #tested -- so, in theory, it might actually work.
-        #
-        #In other words, you shouldn't have to change anything here at all to
-        #produce human-readable YAML anymore. Everything should already work
-        #"out-of-the-box" as is. Cheery star cheeks of a little cheeky starlet!
         for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x):
             solution_dic[rea_name] = vmax
 
@@ -2759,14 +2765,16 @@ class MasterOfNetworks(object):
         yamls.save(solution_dic, saveData)
 
 
-        # logs.log_info("Optimization-recommended reaction rates: ")
-        # logs.log_info("-----------------------------------------")
-        #
-        # for reaction, valmax in zip(self.react_handler.keys(), sol.x):
-        #
-        #     logs.log_info(reaction, valmax)
-        #
-        # logs.log_info("-----------------------------------------")
+        logs.log_info("Optimization-recommended reaction rates: ")
+        logs.log_info("-----------------------------------------")
+
+        for reaction, valmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
+
+            message = reaction + ": " + str(round(valmax,4))
+
+            logs.log_info(message)
+
+        logs.log_info("-----------------------------------------")
 
 class Molecule(object):
 
@@ -3515,6 +3523,45 @@ class Modulator(object):
                                            "available. Available choices "
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                            "and 'V-ATPase' ")
+
+
+def rgba2hex(rgb_col, alpha_val):
+    """
+    Convert an rgb tuple into a hex color
+    code, with a desired alpha value added.
+
+    The format of the returned hex color code
+    works with GraphViz.
+
+    Parameters
+    -----------
+    rgb_col     tuple of rgb alpha scaled 0 to 1
+    alpha_val   float of alpha value, scaled 0 to 1
+
+    Returns
+    ----------
+    hex_string   Hex color code with alpha value added.
+                 Code string created for GraphViz color
+                 specifications.
+
+    """
+
+    # convert the tuple into a list:
+    rgb_col = list(rgb_col)
+
+    # add the alpha value:
+    rgb_col[-1] = alpha_val
+
+    # convert the fractions into 255 color values:
+    rgb_conv = [rg * 255 for rg in rgb_col]
+
+    # write the string:
+    hex_list = [format(int(rg), '02X') for rg in rgb_conv]
+
+    # hex_string = "#" + hex_list[-1] + hex_list[0] + hex_list[1] + hex_list[2]
+    hex_string = "#" + hex_list[0] + hex_list[1] + hex_list[2] + hex_list[3]
+
+    return hex_string
 
 
 
