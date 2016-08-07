@@ -34,9 +34,11 @@ def init() -> None:
 
     # Avoid circular import dependencies.
     from betse.lib.matplotlib.matplotlibs import mpl_config
+    from betse.lib.yaml import yamls
 
     # Configure these dependencies.
     mpl_config.init()
+    yamls.init()
 
 # ....................{ GETTERS                            }....................
 def get_metadata() -> OrderedDict:

@@ -2741,8 +2741,15 @@ class MasterOfNetworks(object):
 
         solution_dic = {}
 
+        #FIXME: Morning, beautiful! I've significantly improved the
+        #yamls.save() function called below to implicitly support all Numpy
+        #types, including Numpy arrays and scalars. It's all been extensively
+        #tested -- so, in theory, it might actually work.
+        #
+        #In other words, you shouldn't have to change anything here at all to
+        #produce human-readable YAML anymore. Everything should already work
+        #"out-of-the-box" as is. Cheery star cheeks of a little cheeky starlet!
         for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x):
-
             solution_dic[rea_name] = vmax
 
         # Absolute path of the YAML file to write this solution to.
@@ -2750,7 +2757,6 @@ class MasterOfNetworks(object):
 
         # Write this solution to this YAML file.
         yamls.save(solution_dic, saveData)
-
 
 
         # logs.log_info("Optimization-recommended reaction rates: ")
