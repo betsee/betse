@@ -2303,7 +2303,6 @@ class MasterOfNetworks(object):
         """
 
         #FIXME if reaction zones are mit, need to add mit_conc distinction!
-        # FIXME add in activators/inhibitors for transporters!
 
         # FIXME add in Vmem relationships, at least for channels, possibly using optional comment sting for transporters
 
@@ -2314,6 +2313,7 @@ class MasterOfNetworks(object):
         reaction_shape = 'rect'
         transporter_shape = 'diamond'
         channel_shape = 'pentagon'
+        vmem_shape = 'ellipse'
 
         # define some basic colormap scaling properties for the dataset:
         vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
@@ -2330,8 +2330,8 @@ class MasterOfNetworks(object):
             mol = self.molecules[name]
 
             node_color = rgba2hex(p.network_cm(mol.c_cells[p.plot_cell]), alpha_val)
-
             nde = pydot.Node(name, style='filled', color=node_color)
+
             graphicus_maximus.add_node(nde)
 
             if mol.simple_growth:
@@ -2340,6 +2340,10 @@ class MasterOfNetworks(object):
 
 
             if mol.ion_channel_gating:
+
+                # add Vmem node to the diagram
+                nde = pydot.Node('Vmem', style='filled', shape=vmem_shape)
+                graphicus_maximus.add_node(nde)
 
                 # if this substance gates for ion channels:
 
@@ -2374,7 +2378,18 @@ class MasterOfNetworks(object):
                     # add the edges for channel effect on ion concentration:
                     graphicus_maximus.add_edge(pydot.Edge(gated_node, ion_node,  arrowhead='normal'))
 
-                    # add activators and inhibitors
+                    # detail how the ion effects Vmem:
+                    if ion_name == 'Na':
+                        graphicus_maximus.add_edge(pydot.Edge(ion_name, 'Vmem', arrowhead='dot', color='blue'))
+
+                    elif ion_name == 'K':
+                        graphicus_maximus.add_edge(pydot.Edge(ion_name, 'Vmem', arrowhead='tee', color='red'))
+
+                    elif ion_name == 'Ca':
+                        graphicus_maximus.add_edge(pydot.Edge(ion_name, 'Vmem', arrowhead='dot', color='blue'))
+
+                    elif ion_name == 'Cl':
+                        graphicus_maximus.add_edge(pydot.Edge(ion_name, 'Vmem', arrowhead='dot', color='blue'))
 
         if len(self.reactions) > 0:
 
@@ -2382,8 +2397,12 @@ class MasterOfNetworks(object):
                 nde = pydot.Node(name, style='filled', shape = reaction_shape)
                 graphicus_maximus.add_node(nde)
 
-        # if there are any channels, plot their type and ion in the graph: ---------------------------------------
+        # if there are any channels, plot their type, ion  and Vmem relationships in the graph: -----------------------
         if len(self.channels) > 0:
+
+            # add Vmem node to the diagram
+            nde = pydot.Node('Vmem', style='filled', shape=vmem_shape)
+            graphicus_maximus.add_node(nde)
 
             for i, name in enumerate(self.channels):
 
@@ -2395,20 +2414,35 @@ class MasterOfNetworks(object):
                 if chan_class == 'Na':
                     ion_name = ['Na']
 
+                    if channel_name != 'NaLeak':
+                        graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color = 'blue'))
+
                 elif chan_class == 'K':
                     ion_name = ['K']
+
+                    if channel_name != 'KLeak':
+                        graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Kir':
                     ion_name = ['K']
 
+                    graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
+
                 elif chan_class == 'Fun':
                     ion_name = ['Na', 'K']
+
+                    graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Ca':
                     ion_name = ['Ca']
 
+                    if channel_name != 'CaLeak':
+                        graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
+
                 elif chan_class == 'NaP':
                     ion_name = ['Na']
+
+                    graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Cat':
                     ion_name = ['Na', 'K', 'Ca']
@@ -2423,6 +2457,17 @@ class MasterOfNetworks(object):
                     graphicus_maximus.add_node(nde)
 
                     graphicus_maximus.add_edge(pydot.Edge(name, ion_n, arrowhead='normal'))
+
+                    # detail how the ion effects Vmem:
+                    if ion_n == 'Na':
+                        graphicus_maximus.add_edge(pydot.Edge(ion_n, 'Vmem', arrowhead='dot', color='blue'))
+
+                    elif ion_n == 'K':
+                        graphicus_maximus.add_edge(pydot.Edge(ion_n, 'Vmem', arrowhead='tee', color='red'))
+
+                    elif ion_n == 'Ca':
+                        graphicus_maximus.add_edge(pydot.Edge(ion_n, 'Vmem', arrowhead='dot', color='blue'))
+
 
                 if chan.channel_activators_list != 'None' and chan.channel_activators_list is not None:
 
@@ -2484,18 +2529,40 @@ class MasterOfNetworks(object):
                 rea = self.reactions[name]
 
                 for react_name in rea.reactants_list:
+
+                    if rea.reaction_zone == 'mit':
+                        node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
+                        react_name += '_mit'
+                        nde = pydot.Node(react_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
+
                     graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
 
                 for prod_name in rea.products_list:
-                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
 
+                    if rea.reaction_zone == 'mit':
+                        node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
+                        prod_name += '_mit'
+                        nde = pydot.Node(prod_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
+
+                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
 
                 if rea.reaction_activators_list != 'None' and rea.reaction_activators_list is not None:
 
                     for act_name, zone_a in zip(rea.reaction_activators_list, rea.reaction_activators_zone):
 
+                        if rea.reaction_zone == 'mit':
+                            node_color = rgba2hex(p.network_cm(self.mit_concs[act_name][p.plot_cell]), alpha_val)
+                            act_name += '_mit'
+                            nde = pydot.Node(act_name, style='filled', color=node_color)
+                            graphicus_maximus.add_node(nde)
+
                         if zone_a == 'env':
+                            node_color = rgba2hex(p.network_cm(self.env_concs[act_name][p.plot_cell]), alpha_val)
                             act_name += '_env'
+                            nde = pydot.Node(act_name, style='filled', color=node_color)
+                            graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
 
@@ -2503,16 +2570,22 @@ class MasterOfNetworks(object):
 
                     for inh_name, zone_i in zip(rea.reaction_inhibitors_list, rea.reaction_inhibitors_zone):
 
-                        if zone_i == 'env':
+                        if rea.reaction_zone == 'mit':
+                            node_color = rgba2hex(p.network_cm(self.mit_concs[inh_name][p.plot_cell]), alpha_val)
+                            inh_name += '_mit'
+                            nde = pydot.Node(inh_name, style='filled', color=node_color)
+                            graphicus_maximus.add_node(nde)
 
+                        if zone_i == 'env':
+                            node_color = rgba2hex(p.network_cm(self.env_concs[inh_name][p.plot_cell]), alpha_val)
                             inh_name += '_env'
+                            nde = pydot.Node(inh_name, style='filled', color=node_color)
+                            graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
         # if there are any transporters, plot them on the graph:
         if len(self.transporters) > 0:
-
-            # FIXME activators and inhibitors, + zon tags
 
             for name in self.transporters:
                 nde = pydot.Node(name, style='filled', shape= transporter_shape)
@@ -2750,7 +2823,7 @@ class MasterOfNetworks(object):
             dl = "np.ones(sim.mdl))"
 
         elif reaction_zone == 'mit':
-            dl = 'np.ones(sim.cdl)'
+            dl = 'np.ones(sim.cdl))'
 
 
         if a_list is not None and a_list != 'None' and len(a_list) > 0:
@@ -3739,7 +3812,6 @@ class Modulator(object):
                                            "available. Available choices "
                                            "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                            "and 'V-ATPase' ")
-
 
 def rgba2hex(rgb_col, alpha_val):
     """
