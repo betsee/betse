@@ -4,6 +4,8 @@
 
 import os
 import os.path
+import math
+import csv
 import numpy as np
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
@@ -348,13 +350,16 @@ class MasterOfNetworks(object):
                                                                             mol.ion_activators_list,
                                                                             mol.ion_inhibitors_list)
 
+                    tex_vars = []
+
                     # define the modulating coefficients:
-                    alpha_activator_ion, alpha_inhibitor_ion, alpha_tex = self.get_influencers(mol.ion_activators_list,
-                                                                        mol.ion_activators_Km, mol.ion_activators_n,
-                                                                        mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
-                                                                        mol.ion_inhibitors_n, reaction_zone='mem',
-                                                                        zone_tags_a=mol.ion_activators_zone,
-                                                                        zone_tags_i=mol.ion_inhibitors_zone)
+                    alpha_activator_ion, alpha_inhibitor_ion, alpha_tex, tex_vars = \
+                        self.get_influencers(mol.ion_activators_list,
+                        mol.ion_activators_Km, mol.ion_activators_n,
+                        mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
+                        mol.ion_inhibitors_n, reaction_zone='mem', tex_list = tex_vars,
+                        zone_tags_a=mol.ion_activators_zone,
+                        zone_tags_i=mol.ion_inhibitors_zone)
 
                     mol.gating_mod_eval_string = "(" + alpha_activator_ion + "*" + alpha_inhibitor_ion + ")"
 
@@ -724,8 +729,13 @@ class MasterOfNetworks(object):
             n_i_list = obj.channel_inhibitors_n
             zone_i = obj.channel_inhibitors_zone
 
-            activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
-                                     Km_i_list, n_i_list, reaction_zone='mem', zone_tags_a=zone_a, zone_tags_i=zone_i)
+            tex_vars = []
+
+            activator_alpha, inhibitor_alpha, alpha_tex, tex_vars = self.get_influencers(
+                                                                    a_list, Km_a_list, n_a_list, i_list,
+                                                                    Km_i_list, n_i_list, tex_list = tex_vars,
+                                                                    reaction_zone='mem', zone_tags_a=zone_a,
+                                                                    zone_tags_i=zone_i)
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
 
@@ -778,26 +788,48 @@ class MasterOfNetworks(object):
             n_i_list = obj.modulator_inhibitors_n
             zone_i = obj.modulator_inhibitors_zone
 
-            activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
-                                  Km_i_list, n_i_list, reaction_zone='mem', zone_tags_a = zone_a, zone_tags_i=zone_i)
+            tex_vars = []
+
+            activator_alpha, inhibitor_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list,
+                                                                    n_a_list, i_list,
+                                                                    Km_i_list, n_i_list, tex_list=tex_vars,
+                                                                    reaction_zone='mem', zone_tags_a = zone_a,
+                                                                    zone_tags_i=zone_i)
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
 
     def write_growth_and_decay(self):
 
-        # FIXME have a tex variables list as well
-        # FIXME forgotten the n exponent in the expression for decay
-
         logs.log_info("Writing substance growth/decay equations...")
 
         for mol_name in self.molecules:
 
+
             if self.molecules[mol_name].simple_growth is True:
+
+                # initialize an empty list that will hold strings defining fixed parameter values as LaTeX math string
+                gad_tex_var_list = []
+
 
                 cc = "(self.molecules['{}'].c_cells / self.molecules['{}'].Kgd)**self.molecules['{}'].n_decay".\
                                                                                     format(mol_name, mol_name, mol_name)
 
                 cc_tex = r"\left(\frac{[%s]}{K_{%s}^{decay}}\right)^{n_{%s}^{decay}}" % (mol_name, mol_name, mol_name)
+
+                Kgd = self.molecules[mol_name].Kgd
+                n_d = self.molecules[mol_name].n_decay
+
+                # write fixed parameter values to LaTeX:
+                kval = tex_val(Kgd)
+                Kgd_tex = "K_{%s}^{decay} & =" % (mol_name)
+                Kgd_tex += kval
+
+                nval = tex_val(n_d)
+                n_d_tex = "n_{%s}^{decay} & =" % (mol_name)
+                n_d_tex += nval
+
+                gad_tex_var_list.append(Kgd_tex)
+                gad_tex_var_list.append(n_d_tex)
 
                 # get activators and inhibitors and associated data:
                 a_list = self.molecules[mol_name].growth_activators_list
@@ -810,8 +842,10 @@ class MasterOfNetworks(object):
                 n_i_list = self.molecules[mol_name].growth_inhibitors_n
                 zone_i = self.molecules[mol_name].growth_inhibitors_zone
 
-                activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list,
-                             i_list, Km_i_list, n_i_list, reaction_zone='cell', zone_tags_a=zone_a, zone_tags_i=zone_i)
+                activator_alpha, inhibitor_alpha, alpha_tex, gad_tex_var_list = \
+                             self.get_influencers(a_list, Km_a_list, n_a_list,
+                             i_list, Km_i_list, n_i_list, tex_list = gad_tex_var_list,reaction_zone='cell',
+                             zone_tags_a=zone_a, zone_tags_i=zone_i)
 
                 # define remaining portion of substance's growth and decay expression:
 
@@ -822,10 +856,28 @@ class MasterOfNetworks(object):
                 gad_eval_string = mod_funk + "*" + r_prod + "*" + inhibitor_alpha + "*" + activator_alpha + "-" + \
                                   r_decay + "*" + cc
 
+                # Formatting for LaTeX equation export ---------------------------------------
+
                 r_prod_tex = r"r_{%s}^{max}\," % mol_name
                 r_dec_tex = r" - \delta_{%s} \," % mol_name
 
-                gad_tex_string = r_prod_tex + alpha_tex + r_dec_tex + cc_tex
+                gad_tex_initial = "r_{%s}=" % mol_name
+
+                gad_tex_string = gad_tex_initial + r_prod_tex + alpha_tex + r_dec_tex + cc_tex
+
+                # write fixed parameter names and values to the LaTeX storage list:
+                rpval = tex_val(self.molecules[mol_name].r_production)
+                r_p_tex = "r_{%s}^{max} & =" % (mol_name)
+                r_p_tex += rpval
+
+                rdval = tex_val(self.molecules[mol_name].r_decay)
+                r_d_tex = r"\delta_{%s} & =" % (mol_name)
+                r_d_tex += rdval
+
+                gad_tex_var_list.append(r_p_tex)
+                gad_tex_var_list.append(r_d_tex)
+
+                #------------------------------------------------------------------------------
 
                 gad_eval_string_growth = inhibitor_alpha + "*" + activator_alpha
                 gad_eval_string_decay = cc
@@ -838,6 +890,23 @@ class MasterOfNetworks(object):
 
                 # add in the tex string describing the growth and decay expression:
                 self.molecules[mol_name].gad_tex_string = gad_tex_string
+
+                # finalize the fixed parameters LaTeX list:
+                tex_params = r"\begin{aligned}"
+
+                for i, tex_str in enumerate(gad_tex_var_list):
+
+                    tex_params += tex_str
+
+                    if i < len(gad_tex_var_list) -1:
+
+                        tex_params += r"\\"
+
+                    else:
+
+                        tex_params += r"\end{aligned}"
+
+                self.molecules[mol_name].gad_tex_vars = tex_params
 
             else:
 
@@ -991,8 +1060,12 @@ class MasterOfNetworks(object):
 
             reversed_term = "(" + Q + "/" + Keqm + ")"
 
-            activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
-                                Km_i_list, n_i_list, reaction_zone= r_zone, zone_tags_a=zone_a, zone_tags_i=zone_i)
+            tex_vars = []
+
+            activator_alpha, inhibitor_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list, n_a_list,
+                                                                    i_list, Km_i_list, n_i_list, tex_list = tex_vars,
+                                                                    reaction_zone= r_zone, zone_tags_a=zone_a,
+                                                                    zone_tags_i=zone_i)
 
             vmax = "self.reactions['{}'].vmax".format(reaction_name)
 
@@ -1083,8 +1156,12 @@ class MasterOfNetworks(object):
 
                     out_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
 
-                activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
-                                                                Km_i_list, n_i_list, reaction_zone='mem')
+                tex_vars = []
+
+                activator_alpha, inhibitor_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list,
+                                                                n_a_list, i_list,
+                                                                Km_i_list, n_i_list, tex_list=tex_vars,
+                                                                reaction_zone='mem')
 
             elif reaction_zone == 'mit' and self.mit_enabled is True:
 
@@ -1108,8 +1185,11 @@ class MasterOfNetworks(object):
                 out_delta_term_prod = "self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
                                                                      format(transp_name)
 
-                activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
-                                                                Km_i_list, n_i_list, reaction_zone='mit')
+                tex_vars = []
+
+                activator_alpha, inhibitor_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
+                                                                Km_i_list, n_i_list, reaction_zone='mit',
+                                                                tex_list=tex_vars)
 
         # initialize list that will hold expression for calculating net concentration change
             delta_strings_reactants = [in_delta_term_react for x in reactant_names]
@@ -2795,7 +2875,7 @@ class MasterOfNetworks(object):
         return graphicus_maximus
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-        n_i_list, reaction_zone='cell', zone_tags_a = None, zone_tags_i = None):
+        n_i_list, tex_list = None, reaction_zone='cell', zone_tags_a = None, zone_tags_i = None):
 
         """
         Given lists of activator and inhibitor names, with associated
@@ -2822,6 +2902,10 @@ class MasterOfNetworks(object):
         alpha_tex                            string of combined activator_alpha, inhibitor_alpha in LaTeX format
 
         """
+
+        # in case it's not supplied, initialize a list to hold LaTeX string expressions for parameters
+        if tex_list is None:
+            tex_list = []
 
         # if zone tag lists aren't supplied or are invalid entries, create defaults:
 
@@ -2905,7 +2989,22 @@ class MasterOfNetworks(object):
 
                 term = "(" + numo_string_a + "/" + denomo_string_a + ")"
 
+                # write term as LaTeX expression:
                 tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_a, denomo_tex_a)
+
+                # write fixed parameter values to LaTeX----------
+                kval = tex_val(Km)
+                Ka_tex = "K_{%s}^{a} & =" % (tex_name)
+                Ka_tex += kval
+
+                nval = tex_val(n)
+                n_a_tex = "n_{%s}^{a} & =" % (tex_name)
+                n_a_tex += nval
+
+                tex_list.append(Ka_tex)
+                tex_list.append(n_a_tex)
+
+                #-------------------------------------------------
 
                 activator_alpha += term
 
@@ -2981,6 +3080,21 @@ class MasterOfNetworks(object):
 
                 tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_i, denomo_tex_i)
 
+                # write fixed parameter values to LaTeX----------
+                kval = tex_val(Km)
+                Ki_tex = "K_{%s}^{i} & =" % (tex_name)
+                Ki_tex += kval
+
+                nval = tex_val(n)
+                n_i_tex = "n_{%s}^{i} & =" % (tex_name)
+                n_i_tex += nval
+
+                tex_list.append(Ki_tex)
+                tex_list.append(n_i_tex)
+
+                #-------------------------------------------------
+
+
                 inhibitor_alpha += term
 
                 inhibitor_alpha_tex += tex_term
@@ -3003,9 +3117,7 @@ class MasterOfNetworks(object):
         # finalize the LaTeX math string:
         alpha_tex = activator_alpha_tex + inhibitor_alpha_tex
 
-
-
-        return activator_alpha, inhibitor_alpha, alpha_tex
+        return activator_alpha, inhibitor_alpha, alpha_tex, tex_list
 
     def optimizer(self, sim, cells, p):
         """
@@ -3922,6 +4034,36 @@ def rgba2hex(rgb_col, alpha_val):
     hex_string = "#" + hex_list[0] + hex_list[1] + hex_list[2] + hex_list[3]
 
     return hex_string
+
+def tex_val(v):
+    """
+    Checks a float value to see if
+    it needs to be written in decimal or
+    scientific notation, and returns
+    a string representing the float in
+    LaTeX math formalism.
+
+    Parameters
+    -------------
+    v:         Float
+
+    Returns
+    --------
+    v_str      String expressing float in normal or sci notation
+
+    """
+
+    v_check = int(math.log10(v))
+
+    if v_check >= 3 or v_check <= -2:
+
+        v_str = "%.2e" % (v)
+
+    else:
+
+        v_str = "%.2f" % (v)
+
+    return v_str
 
 
 
