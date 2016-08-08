@@ -260,7 +260,7 @@ class MasterOfNetworks(object):
                     mol.r_production = gad['production rate']
                     mol.r_decay = gad['decay rate']
                     mol.Kgd = gad['Km']
-                    mol.n_production = gad['n']
+                    mol.n_decay = gad['n']
 
                     mol.growth_profiles_list = gad['apply to']
 
@@ -349,7 +349,7 @@ class MasterOfNetworks(object):
                                                                             mol.ion_inhibitors_list)
 
                     # define the modulating coefficients:
-                    alpha_activator_ion, alpha_inhibitor_ion = self.get_influencers(mol.ion_activators_list,
+                    alpha_activator_ion, alpha_inhibitor_ion, alpha_tex = self.get_influencers(mol.ion_activators_list,
                                                                         mol.ion_activators_Km, mol.ion_activators_n,
                                                                         mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
                                                                         mol.ion_inhibitors_n, reaction_zone='mem',
@@ -724,9 +724,8 @@ class MasterOfNetworks(object):
             n_i_list = obj.channel_inhibitors_n
             zone_i = obj.channel_inhibitors_zone
 
-
-            activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                n_i_list, reaction_zone='mem', zone_tags_a=zone_a, zone_tags_i=zone_i)
+            activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
+                                     Km_i_list, n_i_list, reaction_zone='mem', zone_tags_a=zone_a, zone_tags_i=zone_i)
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
 
@@ -779,12 +778,15 @@ class MasterOfNetworks(object):
             n_i_list = obj.modulator_inhibitors_n
             zone_i = obj.modulator_inhibitors_zone
 
-            activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                n_i_list, reaction_zone='mem', zone_tags_a = zone_a, zone_tags_i=zone_i)
+            activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
+                                  Km_i_list, n_i_list, reaction_zone='mem', zone_tags_a = zone_a, zone_tags_i=zone_i)
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
 
     def write_growth_and_decay(self):
+
+        # FIXME have a tex variables list as well
+        # FIXME forgotten the n exponent in the expression for decay
 
         logs.log_info("Writing substance growth/decay equations...")
 
@@ -792,7 +794,10 @@ class MasterOfNetworks(object):
 
             if self.molecules[mol_name].simple_growth is True:
 
-                cc = "(self.molecules['{}'].c_cells / self.molecules['{}'].Kgd)".format(mol_name, mol_name)
+                cc = "(self.molecules['{}'].c_cells / self.molecules['{}'].Kgd)**self.molecules['{}'].n_decay".\
+                                                                                    format(mol_name, mol_name, mol_name)
+
+                cc_tex = r"\left(\frac{[%s]}{K_{%s}^{decay}}\right)^{n_{%s}^{decay}}" % (mol_name, mol_name, mol_name)
 
                 # get activators and inhibitors and associated data:
                 a_list = self.molecules[mol_name].growth_activators_list
@@ -805,8 +810,8 @@ class MasterOfNetworks(object):
                 n_i_list = self.molecules[mol_name].growth_inhibitors_n
                 zone_i = self.molecules[mol_name].growth_inhibitors_zone
 
-                activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                    n_i_list, reaction_zone='cell', zone_tags_a=zone_a, zone_tags_i=zone_i)
+                activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list,
+                             i_list, Km_i_list, n_i_list, reaction_zone='cell', zone_tags_a=zone_a, zone_tags_i=zone_i)
 
                 # define remaining portion of substance's growth and decay expression:
 
@@ -817,6 +822,11 @@ class MasterOfNetworks(object):
                 gad_eval_string = mod_funk + "*" + r_prod + "*" + inhibitor_alpha + "*" + activator_alpha + "-" + \
                                   r_decay + "*" + cc
 
+                r_prod_tex = r"r_{%s}^{max}\," % mol_name
+                r_dec_tex = r" - \delta_{%s} \," % mol_name
+
+                gad_tex_string = r_prod_tex + alpha_tex + r_dec_tex + cc_tex
+
                 gad_eval_string_growth = inhibitor_alpha + "*" + activator_alpha
                 gad_eval_string_decay = cc
 
@@ -826,11 +836,16 @@ class MasterOfNetworks(object):
                 self.molecules[mol_name].gad_eval_string_growth = gad_eval_string_growth
                 self.molecules[mol_name].gad_eval_string_decay = gad_eval_string_decay
 
+                # add in the tex string describing the growth and decay expression:
+                self.molecules[mol_name].gad_tex_string = gad_tex_string
+
             else:
 
                 self.molecules[mol_name].gad_eval_string = "np.zeros(sim.cdl)"
                 self.molecules[mol_name].gad_eval_string_growth = "np.zeros(sim.cdl)"
                 self.molecules[mol_name].gad_eval_string_decay = "np.zeros(sim.cdl)"
+
+                self.molecules[mol_name].gad_tex_string = ""
 
     def write_reactions(self):
         """
@@ -976,8 +991,8 @@ class MasterOfNetworks(object):
 
             reversed_term = "(" + Q + "/" + Keqm + ")"
 
-            activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                n_i_list, reaction_zone= r_zone, zone_tags_a=zone_a, zone_tags_i=zone_i)
+            activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
+                                Km_i_list, n_i_list, reaction_zone= r_zone, zone_tags_a=zone_a, zone_tags_i=zone_i)
 
             vmax = "self.reactions['{}'].vmax".format(reaction_name)
 
@@ -1068,8 +1083,8 @@ class MasterOfNetworks(object):
 
                     out_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
 
-                activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                                                                        n_i_list, reaction_zone='mem')
+                activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
+                                                                Km_i_list, n_i_list, reaction_zone='mem')
 
             elif reaction_zone == 'mit' and self.mit_enabled is True:
 
@@ -1093,8 +1108,8 @@ class MasterOfNetworks(object):
                 out_delta_term_prod = "self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
                                                                      format(transp_name)
 
-                activator_alpha, inhibitor_alpha = self.get_influencers(a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-                                                                        n_i_list, reaction_zone='mit')
+                activator_alpha, inhibitor_alpha, alpha_tex = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
+                                                                Km_i_list, n_i_list, reaction_zone='mit')
 
         # initialize list that will hold expression for calculating net concentration change
             delta_strings_reactants = [in_delta_term_react for x in reactant_names]
@@ -2804,6 +2819,7 @@ class MasterOfNetworks(object):
         Returns
         --------
         activator_alpha, inhibitor_alpha     string expressions representing the activator and inhibitor coeffs
+        alpha_tex                            string of combined activator_alpha, inhibitor_alpha in LaTeX format
 
         """
 
@@ -2814,6 +2830,12 @@ class MasterOfNetworks(object):
         # initialize string expressions for product of all activators and inhibitors
         activator_alpha = "("
         inhibitor_alpha = "("
+
+        # activator_alpha_tex = r"\left("
+        # inhibitor_alpha_tex = r"\left("
+
+        activator_alpha_tex = ""
+        inhibitor_alpha_tex = ""
 
         # set the appropriate value for the absence of an activator or inhibitor expression:
         if reaction_zone == 'cell':
@@ -2835,6 +2857,9 @@ class MasterOfNetworks(object):
                 numo_string_a = ""
                 denomo_string_a = ""
 
+                numo_tex_a = ""
+                denomo_tex_a = ""
+
                 if reaction_zone == 'cell':
 
                     if zone_tag == 'cell':
@@ -2842,7 +2867,12 @@ class MasterOfNetworks(object):
                         numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
                         denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
 
+                        tex_name = name
+
+
                     elif zone_tag == 'env':
+
+                        tex_name = name + '_{env}'
 
                         numo_string_a += "((self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
                         denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
@@ -2854,27 +2884,44 @@ class MasterOfNetworks(object):
                         numo_string_a += "((self.mem_concs['{}']/{})**{})".format(name, Km, n)
                         denomo_string_a += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
 
+                        tex_name = name
+
                     elif zone_tag == 'env':
+
+                        tex_name = name + '_{env}'
 
                         numo_string_a += "((self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
                         denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
 
                 elif reaction_zone == 'mit':
 
+                    tex_name = name + '_{mit}'
+
                     numo_string_a += "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
                     denomo_string_a += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
 
+                numo_tex_a = r"\left(\frac{[%s]}{K_{%s}^{a}}\right)^{n_{%s}^{a}}" % (tex_name, tex_name, tex_name)
+                denomo_tex_a = r"1+\left(\frac{[%s]}{K_{%s}^{a}}\right)^{n_{%s}^{a}}" % (tex_name, tex_name, tex_name)
+
                 term = "(" + numo_string_a + "/" + denomo_string_a + ")"
 
+                tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_a, denomo_tex_a)
+
                 activator_alpha += term
+
+                activator_alpha_tex += tex_term
 
                 if i < len(a_list) - 1:
 
                     activator_alpha += "*"
 
+                    activator_alpha_tex += r"\,"
+
                 else:
 
                     activator_alpha += ")"
+                    activator_alpha_tex += r"\,"
+                    # activator_alpha_tex += r"\right)"
         else:
 
             activator_alpha += dl
@@ -2892,10 +2939,14 @@ class MasterOfNetworks(object):
 
                     if zone_tag == 'cell':
 
+                        tex_name = name
+
                         numo_string_i += "1"
                         denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
 
                     elif zone_tag == 'env':
+
+                        tex_name = name + '_{env}'
 
                         numo_string_i += "1"
                         denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
@@ -2904,36 +2955,57 @@ class MasterOfNetworks(object):
 
                     if zone_tag == 'cell':
 
+                        tex_name = name
+
                         numo_string_i += "1"
                         denomo_string_i += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
 
                     elif zone_tag == 'env':
+
+                        tex_name = name + '_{env}'
 
                         numo_string_i += "1"
                         denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
 
                 elif reaction_zone == 'mit':
 
+                    tex_name = name + '_{mit}'
+
                     numo_string_i += "1"
                     denomo_string_i += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
 
+                numo_tex_i = "1"
+                denomo_tex_i = r"1+\left(\frac{[%s]}{K_{%s}^{i}}\right)^{n_{%s}^{i}}" % (tex_name, tex_name, tex_name)
+
                 term = "(" + numo_string_i + "/" + denomo_string_i + ")"
 
+                tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_i, denomo_tex_i)
+
                 inhibitor_alpha += term
+
+                inhibitor_alpha_tex += tex_term
 
                 if i < len(i_list) - 1:
 
                     inhibitor_alpha += "*"
+                    inhibitor_alpha_tex += "\,"
 
                 else:
 
                     inhibitor_alpha += ")"
+                    inhibitor_alpha_tex += "\,"
+                    # inhibitor_alpha_tex += "\right)"
 
         else:
 
             inhibitor_alpha += dl
 
-        return activator_alpha, inhibitor_alpha
+        # finalize the LaTeX math string:
+        alpha_tex = activator_alpha_tex + inhibitor_alpha_tex
+
+
+
+        return activator_alpha, inhibitor_alpha, alpha_tex
 
     def optimizer(self, sim, cells, p):
         """
@@ -3107,7 +3179,7 @@ class Molecule(object):
 
         self.r_production = None
         self.r_decay = None
-        self.n_production = None
+        self.n_decay = None
 
         self.growth_activators_list = None
         self.growth_activators_Km = None
