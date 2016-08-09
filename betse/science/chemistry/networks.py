@@ -972,7 +972,7 @@ class MasterOfNetworks(object):
 
                 elif r_zone == 'mit' and self.mit_enabled is True:
 
-                    tex_name = name + '_mit'
+                    tex_name = name + '_{mit}'
 
                     denomo_string_Q += "(self.mit_concs['{}']".format(name)
 
@@ -1000,7 +1000,7 @@ class MasterOfNetworks(object):
 
                 elif r_zone == 'mit' and self.mit_enabled is True:
 
-                    tex_name = name + "_mit"
+                    tex_name = name + "_{mit}"
                     numo_string_Q += "(self.mit_concs['{}']".format(name)
 
                 numo_string_Q += "**{})".format(coeff)
@@ -1039,7 +1039,7 @@ class MasterOfNetworks(object):
 
                 elif r_zone == 'mit' and self.mit_enabled is True:
 
-                    tex_name = name + "_mit"
+                    tex_name = name + "_{mit}"
 
                     numo_string_r = "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
                     denomo_string_r = "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
@@ -1088,7 +1088,8 @@ class MasterOfNetworks(object):
 
                 elif r_zone == 'mit' and self.mit_enabled is True:
 
-                    tex_name = 'mit'
+                    tex_name = name + '_{mit}'
+
                     numo_string_p = "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
                     denomo_string_p = "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
 
@@ -1130,11 +1131,11 @@ class MasterOfNetworks(object):
                 # define the reaction equilibrium coefficient expression:
                 Keqm = "(np.exp(-self.reactions['{}'].delta_Go / (p.R * sim.T)))".format(reaction_name)
 
-                Keqm_tex = r"exp\left(-\frac{\triangle G_{%s}^{o}}{R\,T}\right)" % reaction_name
+                Keqm_tex = r"exp\left(-\frac{deltaG_{%s}^{o}}{R\,T}\right)" % reaction_name
 
                 # write fixed parameter names and values to the LaTeX storage list:
                 gval = tex_val(self.reactions[reaction_name].delta_Go)
-                g_tex = "\triangle G_{%s}^{o} & =" % reaction_name
+                g_tex = "deltaG_{%s}^{o} & =" % reaction_name
                 g_tex += gval
                 rea_tex_var_list.append(g_tex)
 
@@ -1187,17 +1188,11 @@ class MasterOfNetworks(object):
 
             # finalize the fixed parameters LaTeX list:
             tex_params = r"\begin{aligned}"
-
             for i, tex_str in enumerate(rea_tex_var_list):
-
                 tex_params += tex_str
-
                 if i < len(rea_tex_var_list) - 1:
-
                     tex_params += r"\\"
-
                 else:
-
                     tex_params += r"\end{aligned}"
 
             self.reactions[reaction_name].reaction_tex_vars = tex_params
@@ -1207,7 +1202,6 @@ class MasterOfNetworks(object):
             self.reactions[reaction_name].reaction_eval_string = reaction_eval_string
 
             self.reactions[reaction_name].reaction_tex_string = reaction_tex_string
-
 
     def write_transporters(self, cells, p):
         """
@@ -1221,8 +1215,10 @@ class MasterOfNetworks(object):
 
         for transp_name in self.transporters:
 
-        # define aliases for convenience:
+            # initialize an empty list that will hold strings defining fixed parameter values as LaTeX math string
+            trans_tex_var_list = []
 
+            # define aliases for convenience:
             reactant_names = self.transporters[transp_name].reactants_list
             reactant_coeff = self.transporters[transp_name].reactants_coeff
             reactant_Km = self.transporters[transp_name].Km_reactants_list
@@ -1253,9 +1249,14 @@ class MasterOfNetworks(object):
 
             if reaction_zone == 'cell':
 
+                tex_in = ""
+                tex_out = "_{env}"
+
                 type_out = 'env_concs'
 
                 vmem = "sim.vm"   # get the transmembrane voltage for this category
+
+                vmem_tex = "V_{mem}"
 
                 in_delta_term_react = "-self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
                 in_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
@@ -1284,14 +1285,17 @@ class MasterOfNetworks(object):
 
                     out_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
 
-                tex_vars = []
-
-                activator_alpha, inhibitor_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list,
+                activator_alpha, inhibitor_alpha, alpha_tex, trans_tex_var_list = self.get_influencers(a_list, Km_a_list,
                                                                 n_a_list, i_list,
-                                                                Km_i_list, n_i_list, tex_list=tex_vars,
+                                                                Km_i_list, n_i_list, tex_list=trans_tex_var_list,
                                                                 reaction_zone='mem')
 
             elif reaction_zone == 'mit' and self.mit_enabled is True:
+
+                tex_in = "_{mit}"
+                tex_out = ""
+
+                vmem_tex = "V_{mit}"
 
                 # initialize lists to hold the reactants and product transfer tags (initialized to zone):
                 react_transfer_tag = ['mit_concs' for x in reactant_names]
@@ -1313,17 +1317,18 @@ class MasterOfNetworks(object):
                 out_delta_term_prod = "self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
                                                                      format(transp_name)
 
-                tex_vars = []
-
-                activator_alpha, inhibitor_alpha, alpha_tex, tex_vars = self.get_influencers(a_list, Km_a_list, n_a_list, i_list,
+                activator_alpha, inhibitor_alpha, alpha_tex, trans_tex_var_list = self.get_influencers(a_list, Km_a_list,
+                                                                n_a_list, i_list,
                                                                 Km_i_list, n_i_list, reaction_zone='mit',
-                                                                tex_list=tex_vars)
+                                                                tex_list=trans_tex_var_list)
 
         # initialize list that will hold expression for calculating net concentration change
             delta_strings_reactants = [in_delta_term_react for x in reactant_names]
             delta_strings_products = [in_delta_term_prod for x in product_names]
 
             # calculate a reactants zone tag list and terms affecting transporter free energy via Vmem:
+            echem_tex_string = ""
+
             if transport_out_list != 'None':
 
                 for out_name in transport_out_list:
@@ -1339,6 +1344,16 @@ class MasterOfNetworks(object):
                     eterm = "-{}*self.molecules['{}'].z*p.F*{}".format(coeff, out_name, vmem)
 
                     echem_terms_list.append(eterm)
+
+                    # LaTeX version:
+                    eterm_tex = r"-%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, out_name, out_name, vmem_tex)
+                    echem_tex_string += eterm_tex
+
+                    # write fixed parameter names and values to the LaTeX storage list:
+                    zval = tex_val(self.molecules[out_name].z)
+                    z_tex = "z_{%s} & =" % (out_name)
+                    z_tex += zval
+                    trans_tex_var_list.append(z_tex)
 
                     # update delta string for correct transfer:
                     delta_strings_products[prod_i] = out_delta_term_prod
@@ -1359,9 +1374,18 @@ class MasterOfNetworks(object):
 
                     echem_terms_list.append(eterm)
 
+                    # LaTeX version:
+                    eterm_tex = r"%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, in_name, in_name, vmem_tex)
+                    echem_tex_string += eterm_tex
+
+                    # write fixed parameter names and values to the LaTeX storage list:
+                    zval = tex_val(self.molecules[in_name].z)
+                    z_tex = "z_{%s} & =" % (in_name)
+                    z_tex += zval
+                    trans_tex_var_list.append(z_tex)
+
                     # update delta string for correct transfer:
                     delta_strings_reactants[react_i] = out_delta_term_react
-
 
             # create the eterms string expression describing net effect of trans-membrane fluxes on free energy:
             echem_string = "("
@@ -1380,22 +1404,36 @@ class MasterOfNetworks(object):
             numo_string_Q = "("
             denomo_string_Q = "("
 
+            numo_tex = ""
+            deno_tex = ""
+
             for i, (name, coeff, tag) in enumerate(zip(reactant_names, reactant_coeff, react_transfer_tag)):
 
                 if tag != 'env_concs' or p.sim_ECM is False:
 
                     denomo_string_Q += "(self.{}['{}']".format(tag, name)
 
+                    if tag == 'mit_concs':
+                        tex_name = name + '_{mit}'
+
+                    else:
+                        tex_name = name
+
                 # get the concentration from the environment, mapped to respective membranes:
                 else:
 
                     denomo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
 
+                    tex_name = name + '_{env}'
+
                 denomo_string_Q += "**{})".format(coeff)
+
+                deno_tex += "[%s]^{%s}" % (tex_name, coeff)
 
                 if i < len(reactant_names) - 1:
 
                     denomo_string_Q += "*"
+                    deno_tex += r"\,"
 
                 else:
 
@@ -1407,15 +1445,27 @@ class MasterOfNetworks(object):
 
                     numo_string_Q += "(self.{}['{}']".format(tag, name)
 
+                    if tag == 'mit_concs':
+                        tex_name = name + "_{mit}"
+
+                    else:
+                        tex_name = name
+
                 # get the concentration from the environment mapped to the respective membranes:
                 else:
                     numo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
 
+                    tex_name = name + "_{env}"
+
                 numo_string_Q += "**{})".format(coeff)
+
+                numo_tex += "[%s]^{%s}" % (tex_name, coeff)
 
                 if i < len(product_names) - 1:
 
                     numo_string_Q += "*"
+
+                    numo_tex += r"\,"
 
                 else:
 
@@ -1424,10 +1474,14 @@ class MasterOfNetworks(object):
             # define the final reaction quotient string, Q:
             Q = "(" + numo_string_Q + '/' + denomo_string_Q + ")"
 
-            # next calculate the forward and backward reaction rate coefficients:---------------------------------------
+            Q_tex = r"\frac{%s}{%s}" % (numo_tex, deno_tex)
 
+            # next calculate the forward and backward reaction rate coefficients:---------------------------------------
             forward_coeff = "("
             backward_coeff = "("
+
+            fwd_tex_coeff = ""
+            bwd_tex_coeff = ""
 
             for i, (name, n, Km, tag) in enumerate(zip(reactant_names, reactant_coeff, reactant_Km, react_transfer_tag)):
 
@@ -1436,22 +1490,45 @@ class MasterOfNetworks(object):
                     numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
 
+                    if tag == 'mit_concs':
+                        tex_name = name + "_{mit}"
+                    else:
+                        tex_name = name
+
                 else:
 
                     numo_string_r = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
                     denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm])/{})**{})".format(tag, name, Km, n)
 
+                    tex_name = name + "_{env}"
+
                 term = "(" + numo_string_r + "/" + denomo_string_r + ")"
 
                 forward_coeff += term
 
+                cc_tex = r"\left(\frac{[%s]}{K_{%s_f}^{%s}}\right)^{n_{%s_f}^{%s}}" % (tex_name, transp_name, tex_name,
+                                                                                    transp_name, tex_name)
+                fwd_tex_coeff += r"\left(\frac{%s}{1+%s}\right)" % (cc_tex, cc_tex)
+
                 if i < len(reactant_names) - 1:
 
                     forward_coeff += "*"
+                    fwd_tex_coeff += r"\,"
 
                 else:
 
                     forward_coeff += ")"
+
+                # write fixed parameter names and values to the LaTeX storage list:
+                kval = tex_val(Km)
+                k_tex = "K_{%s}^{%s} & =" % (transp_name, tex_name)
+                k_tex += kval
+                trans_tex_var_list.append(k_tex)
+
+                nval = tex_val(n)
+                n_tex = "n_{%s}^{%s} & =" % (transp_name, tex_name)
+                n_tex += nval
+                trans_tex_var_list.append(n_tex)
 
             for i, (name, n, Km, tag) in enumerate(zip(product_names, product_coeff, product_Km, prod_transfer_tag)):
 
@@ -1460,50 +1537,121 @@ class MasterOfNetworks(object):
                     numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
 
+                    if tag == 'mit_concs':
+                        tex_name = name + "_{mit}"
+                    else:
+                        tex_name = name
+
                 else:
 
                     numo_string_p = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
                     denomo_string_p = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+
+                    tex_name = name + "_{env}"
 
 
                 term = "(" + numo_string_p + "/" + denomo_string_p + ")"
 
                 backward_coeff += term
 
+                # LaTeX version:
+                cc_tex = r"\left(\frac{[%s]}{K_{%s_r}^{%s}}\right)^{n_{%s_r}^{%s}}" % (tex_name, transp_name, tex_name,
+                                                                                    transp_name, tex_name)
+                bwd_tex_coeff += r"\left(\frac{%s}{1+%s}\right)" % (cc_tex, cc_tex)
+
                 if i < len(product_names) - 1:
 
                     backward_coeff += "*"
+
+                    bwd_tex_coeff += r"\,"
 
                 else:
 
                     backward_coeff += ")"
 
-            # if reaction is reversible deal calculate an equilibrium constant:
+                if self.transporters[transp_name].delta_Go is not None:
+
+                    # write fixed parameter names and values to the LaTeX storage list:
+                    kval = tex_val(Km)
+                    k_tex = "K_{%s}^{%s} & =" % (transp_name, tex_name)
+                    k_tex += kval
+                    trans_tex_var_list.append(k_tex)
+
+                    nval = tex_val(n)
+                    n_tex = "n_{%s}^{%s} & =" % (transp_name, tex_name)
+                    n_tex += nval
+                    trans_tex_var_list.append(n_tex)
+
+            # if reaction is reversible, calculate an equilibrium constant:
             if self.transporters[transp_name].delta_Go is not None:
 
                 # define the reaction equilibrium coefficient expression:
                 Keqm = "(np.exp(-(self.transporters['{}'].delta_Go + {})/ (p.R * sim.T)))".format(transp_name,
                                                                                                     echem_string)
+
+                Keqm_tex = r"\frac{exp(-deltaG_{%s}^{o} + %s)}{R\,T}" % (transp_name, echem_tex_string)
+
+                # write fixed parameter names and values to the LaTeX storage list:
+                gval = tex_val(self.transporters[transp_name].delta_Go)
+                g_tex = "deltaG_{%s}^{o} & =" % (transp_name)
+                g_tex += gval
+                trans_tex_var_list.append(g_tex)
+
             else:
 
                 Q = "0"
                 backward_coeff = "0"
                 Keqm = "1"
 
-            # Put it all together into a final reaction string (+max rate):
+                Keqm_tex = ""
 
+            # Put it all together into a final reaction string (+max rate):
             reversed_term = "(" + Q + "/" + Keqm + ")"
 
-
+            rev_term_tex = r"\frac{%s}{%s}" % (Q_tex, Keqm_tex)
 
             vmax = "self.transporters['{}'].vmax".format(transp_name)
 
+            # Write the LaTeX version and append fixed parameter name to tex list:
+            v_texo = "r_{%s}^{max}" % (transp_name)
+            vm_tex = "r_{%s}" % (transp_name)
+            vval = tex_val(self.transporters[transp_name].vmax)
+            v_tex = "v_{%s}^{max} & =" % (transp_name)
+            v_tex += vval
+            trans_tex_var_list.append(v_tex)
+
+            # calculate the evaluation string expression for the transporter:
             transporter_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + "(" + \
                                    forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
+
+            # write the final LaTeX expressions:
+            if self.transporters[transp_name].delta_Go is not None:
+
+                transporter_tex_string = vm_tex + " = " + v_texo + r"\," + alpha_tex + r"\,\left(" + fwd_tex_coeff + \
+                                         "-" + rev_term_tex + r"\," + bwd_tex_coeff + r"\right)"
+            else:
+                transporter_tex_string = vm_tex + " = " + v_tex + r"\," + alpha_tex + r"\," + fwd_tex_coeff
+
+
+            # finalize the fixed parameters LaTeX list:
+            tex_params = r"\begin{aligned}"
+
+            for i, tex_str in enumerate(trans_tex_var_list):
+
+                tex_params += tex_str
+
+                if i < len(trans_tex_var_list)-1:
+                    tex_params += r"\\"
+                elif i == len(trans_tex_var_list)-1:
+                    tex_params += r"\end{aligned}"
 
             # add the composite string describing the reaction math to a new field:
             # Evaluate this expression to assign self.transporters[transp_name].flux field
             self.transporters[transp_name].transporter_eval_string = transporter_eval_string
+
+            # write LaTeX expression for transporter:
+            self.transporters[transp_name].transporter_tex_string = transporter_tex_string
+            self.transporters[transp_name].transporter_tex_vars = tex_params
 
             # evaluate these expressions to get the correct change in concentration to each reactant/product
             # after assigning .flux as described above
@@ -2115,6 +2263,9 @@ class MasterOfNetworks(object):
         if self.mit_enabled:
             # FIXME we should also save vmit to a file? and pH and vm?
             pass
+
+        # write all network model LaTeX equations to a text file:
+        self.export_equations(p)
 
     def plot(self, sim, cells, p, message='for auxiliary molecules...'):
         """
@@ -2875,6 +3026,37 @@ class MasterOfNetworks(object):
                         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
         return graphicus_maximus
+
+    def export_equations(self, p):
+
+        # Absolute path of the YAML file to write this solution to.
+        saveData = paths.join(self.resultsPath, 'NetworkModelEquations.csv')
+
+        with open(saveData, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                quotechar='|', quoting=csv.QUOTE_NONE)
+
+            for mol in self.molecules:
+
+                if self.molecules[mol].simple_growth is True:
+                    text_var = self.molecules[mol].gad_tex_vars
+                    eq_var = self.molecules[mol].gad_tex_string
+
+                    eqwriter.writerow([mol, eq_var, text_var])
+
+            for rea in self.reactions:
+                text_var = self.reactions[rea].reaction_tex_vars
+                eq_var = self.reactions[rea].reaction_tex_string
+
+                eqwriter.writerow([rea, eq_var, text_var])
+
+            for trans in self.transporters:
+
+                text_var = self.transporters[trans].transporter_tex_vars
+                eq_var = self.transporters[trans].transporter_tex_string
+
+                eqwriter.writerow([trans, eq_var, text_var])
+
 
     def build_reaction_network(self, p):
         """
@@ -4181,7 +4363,12 @@ def tex_val(v):
 
     """
 
-    v_check = int(math.log10(v))
+    if v != 0.0:
+
+        v_check = int(math.log10(abs(v)))
+
+    else:
+        v_check = 0
 
     if v_check >= 3 or v_check <= -2:
 
