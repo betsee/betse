@@ -46,34 +46,55 @@ NAME = 'BETSE'
 Human-readable program name.
 '''
 
-
-DESCRIPTION = ''.join((
-    NAME, ', the [B]io[E]lectric [T]issue [S]imulation [E]ngine: '
-    'bio-realistic modelling of dynamic electrochemical phenomena in '
-    'gap junction-networked cell collectives, ',
-    'with a focus on spatio-temporal pattern formation.',
-))
-'''
-Human-readable program description.
-'''
-
-
-AUTHORS = 'Alexis Pietak, Cecil Curry'
-# AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
-'''
-Human-readable program authors as a comma-delimited list.
-'''
-
 # ....................{ PYTHON ~ version                   }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: When modifying the minimum version of Python required by this
+# application below, document:
+#
+# * The justification for doing so in the "Python Version" subsection of this
+#   submodule's docstring above.
+# * The newly required version in front-facing documentation, including:
+#   * "README.md".
+#   * "doc/md/INSTALL.md".
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+PYTHON_VERSION_MIN = '3.4.0'
+'''
+Human-readable minimum version of Python required by this application as a
+`.`-delimited string.
+'''
+
+
+def _get_version_parts_from_str(version_str: str) -> tuple:
+    '''
+    Convert the passed human-readable `.`-delimited version string into a
+    machine-readable version tuple of corresponding integers.
+    '''
+    assert isinstance(version_str, str), (
+        '"{}" not a version string.'.format(version_str))
+
+    return tuple(
+        int(version_part) for version_part in version_str.split('.'))
+
+
+PYTHON_VERSION_MIN_PARTS = _get_version_parts_from_str(
+    PYTHON_VERSION_MIN)
+'''
+Machine-readable minimum version of Python required by this application as a
+tuple of integers.
+'''
+
+
 # Validate the version of the active Python interpreter *BEFORE* subsequent code
 # possibly depending on such version. Since such version should be validated
 # both at setuptools-based install time and post-install runtime *AND* since
 # this module is imported sufficiently early by both, stash such validation here
 # to avoid duplication of such logic and hence the hardcoded Python version.
 #
-# The "sys" module exposes three version-related constants for such purpose:
+# The "sys" module exposes three version-related constants for this purpose:
 #
-# * "hexversion", an integer intended to be used in hexadecimal format: e.g.,
+# * "hexversion", an integer intended to be specified in an obscure (albeit
+#   both efficient and dependable) hexadecimal format: e.g.,
 #    >>> sys.hexversion
 #    33883376
 #    >>> '%x' % sys.hexversion
@@ -82,27 +103,123 @@ Human-readable program authors as a comma-delimited list.
 #    >>> sys.version
 #    2.5.2 (r252:60911, Jul 31 2008, 17:28:52)
 #    [GCC 4.2.3 (Ubuntu 4.2.3-2ubuntu7)]
-# * "version_info", a tuple of three or more integers or strings: e.g.,
+# * "version_info", a tuple of three or more integers *OR* strings: e.g.,
 #    >>> sys.version_info
 #    (2, 5, 2, 'final', 0)
 #
-# Only the first lends itself to reliable comparison.
+# For sanity, this application will *NEVER* conditionally depend upon the
+# string-formatted release type of the current Python version exposed via the
+# fourth element of the "version_info" tuple. Since the first three elements of
+# that tuple are guaranteed to be integers *AND* since a comparable 3-tuple of
+# integers is declared above, comparing the former and latter yield the simplest
+# and most reliable Python version test.
 #
 # Note that the nearly decade-old and officially accepted PEP 345 proposed a new
 # field "requires_python" configured via a key-value pair passed to the call to
-# setup() in "setup.py" (e.g., "requires_python = ['>=2.2.1'],"), such field has
-# yet to be integrated into either disutils or setuputils. Hence, such field is
+# setup() in "setup.py" (e.g., "requires_python = ['>=2.2.1'],"), that field has
+# yet to be integrated into either disutils or setuputils. Hence, that field is
 # validated manually in the typical way. Behead the infidel setuptools!
-#
-# WARNING: When modifying this, please document the justification for doing so
-# in the "Python Version" subsection of this module's docstring above.
-if sys.hexversion < 0x03040000:
-    raise RuntimeError(''.join((
-        NAME, ' ',
-        'requires at least Python 3.4, ',
-        'but the active Python interpreter is only\n',
-        'Python ', sys.version, '. We feel sadness for you.',
-    )))
+if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
+    # Human-readable current version of Python. "sys.version" is sufficiently
+    # overly verbose as to be unusuable, sadly.
+    PYTHON_VERSION = '.'.join(
+        str(version_part) for version_part in sys.version_info[:3])
+
+    # Die ignominiously.
+    raise RuntimeError(
+        '{} requires at least Python {}, but the active Python interpreter '
+        'is only Python {}. We feel deep sadness for you.'.format(
+            NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
+
+# ....................{ METADATA ~ versions                }....................
+__version__ = '0.4.0'
+'''
+Human-readable current version of this application as a `.`-delimited string.
+
+For PEP 8 compliance, this specifier is exposed as the canonical variable
+`__variable__` rather than a typical constant (e.g., `VERSION_STR`).
+'''
+
+
+__version_info__ = _get_version_parts_from_str(__version__)
+'''
+Machine-readable current version of this application as a tuple of integers.
+
+For PEP 8 compliance, this specifier is exposed as the canonical variable
+`__variable_info__` rather than a typical constant (e.g., `VERSION_PARTS`).
+'''
+
+# ....................{ METADATA ~ description             }....................
+SYNOPSIS = 'BETSE, the [B]io [E]lectric [T]issue [S]imulation [E]ngine.'
+'''
+Human-readable single-line description of this application.
+
+By PyPI design, this string must _not_ span multiple lines or paragraphs.
+'''
+
+
+DESCRIPTION = (
+    'BETSE ([B]io [E]lectric [T]issue [S]imulation [E]ngine) is a '
+    'cross-platform finite volume simulator for 2D computational multiphysics '
+    'problems in the life sciences – including electrodiffusion, '
+    'electro-osmosis, galvanotaxis, voltage-gated ion channels, '
+    'gene regulatory networks, and biochemical reaction networks (e.g., '
+    'metabolism).\n'
+    'BETSE is portably implemented in pure Python 3, continuously '
+    'stress-tested with GitLab-CI + py.test, and permissively distributed '
+    'under the BSD 2-clause license. While a high-level graphical user '
+    'interface (GUI) supporting all popular platforms is planned, BETSE '
+    'currently only provides a low-level command line interface (CLI).\n'
+    'BETSE is associated with the Paul Allen Discovery Center at Tufts '
+    'University and is supported by a Paul Allen Discovery Center award from '
+    'the Paul G. Allen Frontiers Group.'
+)
+'''
+Human-readable multiline description of this application.
+
+By PyPI design, this string may (and typically should) span both multiple lines
+and paragraphs.
+'''
+
+# ....................{ METADATA ~ authors                 }....................
+AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
+'''
+Human-readable list of all principal authors of this application as a
+comma-delimited string.
+
+For brevity, this string _only_ lists authors explicitly assigned copyrights.
+For the list of all contributors regardless of copyright assignment or
+attribution, see the top-level `AUTHORS.md` file.
+'''
+
+
+AUTHOR_EMAIL = 'alexis.pietak@gmail.com'
+'''
+Email address of the principal corresponding author (i.e., the principal author
+responding to public correspondence).
+'''
+
+# ....................{ METADATA ~ urls                    }....................
+URL_HOMEPAGE = 'https://gitlab.com/betse/betse'
+'''
+URL of this application's homepage.
+'''
+
+
+URL_DOWNLOAD = (
+    'https://gitlab.com/betse/betse/repository/archive.tar.gz?ref=v{}'.format(
+        __version__,
+    )
+)
+'''
+URL of the source tarball for the current version of this application.
+
+This URL assumes a tag whose name is `v{VERSION}` where `{VERSION}` is the
+human-readable current version of this application (e.g., `v0.4.0`) to exist.
+Typically, no such tag exists for live versions of this application -- which
+have yet to be stabilized and hence tagged. Hence, this URL is typically valid
+_only_ for previously released (rather than live) versions of this application.
+'''
 
 # ....................{ METADATA ~ packages                }....................
 PACKAGE_NAME = NAME.lower()
@@ -123,25 +240,6 @@ Basename of the GUI-specific Python script wrapper created by `setuptools`
 installation.
 '''
 
-# ....................{ METADATA ~ versions                }....................
-__version__ = '0.4.0'
-'''
-Version specifier.
-
-For PEP 8 compliance, such specifier is exposed as the canonical variable
-`__variable__` rather than a typical constant (e.g., `VARIABLE`).
-'''
-
-# Program version as a tuple adhering to this semi-standard version specifier.
-__version_info__ = tuple(
-    int(version_part) for version_part in __version__.split('.'))
-'''
-Version specifier as a tuple of integers rather than `.`-delimited string.
-
-For PEP 8 compliance, such specifier is exposed as the canonical variable
-`__variable_info__` rather than a typical constant (e.g., `VARIABLE_PARTS`).
-'''
-
 # ....................{ METADATA ~ setuptools              }....................
 # setuptools-specific metadata required outside of setuptools-based
 # installations, typically for performing runtime validation of the current
@@ -158,6 +256,7 @@ with `setuptools` rather than the `setuptools` package itself. Since there
 appears to exist no means of asserting a dependency on only `pkg_resources`,
 we pretend to require `setuptools` itself. This is non-ideal, of course.
 '''
+
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Changes to this list *MUST* be synchronized with:
@@ -204,6 +303,7 @@ See Also
 README.md
     Human-readable list of these dependencies.
 '''
+
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Changes to this list *MUST* be synchronized with:

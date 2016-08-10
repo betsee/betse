@@ -8,8 +8,8 @@ BETSE's `setuptools`-based makefile.
 '''
 
 #FIXME; Add "pyside-uic" integration. This is feasible as demonstrated by the
-#following URL, which appears to be the only online reference to such practice.
-#We could leverage such logic by defining a new "setup_pyside.py" file in the
+#following URL, which appears to be the only online reference for this practice.
+#We could leverage this logic by defining a new "setup_pyside.py" file in the
 #same directory as this file containing the class defined by:
 #
 #   https://gist.github.com/ivanalejandro0/6758741
@@ -19,9 +19,6 @@ BETSE's `setuptools`-based makefile.
 #files. See the useful answer here concerning usage from the Python perspective:
 #
 #    https://stackoverflow.com/questions/22508491/a-py-file-which-compiled-from-qrc-file-using-pyside-rcc-does-not-work
-
-#FIXME: Specify all setup() metadata keys listed here:
-#https://docs.python.org/3/distutils/setupscript.html#additional-meta-data
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -50,55 +47,119 @@ import setuptools
 from betse import metadata
 from betse_setup import build, freeze, symlink, test
 
+# ....................{ METADATA                           }....................
+# PyPI-specific metadata declared here rather than in "betse.metadata" to reduce
+# both space and time complexity for BETSE startup. This metadata is effectively
+# setuptools-specific and hence irrelevant in the main codebase.
+
+_PYTHON_VERSION_MINOR_MAX = 5
+'''
+Maximum minor stable version of this major version of Python currently released
+(e.g., `5` if Python 3.5 is the most recent stable version of Python 3.x).
+'''
+
+
+_KEYWORDS = ['biology', 'multiphysics', 'science', 'simulation',]
+'''
+List of all lowercase alphabetic keywords synopsising this application.
+
+These keywords may be arbitrarily selected so as to pretend to improve search
+engine optimization (SEO). In actuality, they do absolutely nothing.
+'''
+
+# To minimize desynchronization woes, all
+# "Programming Language :: Python :: "-prefixed strings are dynamically appended
+# to this list by the init() function below.
+_CLASSIFIERS = [
+    #FIXME: Replace with the following after the "1.0.0" release:
+    #    'Development Status :: 5 - Production/Stable',
+
+    # PyPI-specific version type. The number specified here is a magic constant
+    # with no relation to this application's version numbering scheme. *sigh*
+    'Development Status :: 4 - Beta',
+
+    # Sublist of all supported platform-specific CLI and GUI components.
+    'Environment :: Console',
+    'Environment :: MacOS X',
+    'Environment :: Win32 (MS Windows)',
+    'Environment :: X11 Applications',
+
+    # Miscellaneous metadata.
+    'Intended Audience :: Science/Research',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Topic :: Scientific/Engineering',
+
+    #FIXME: Define us up!
+    # 'License :: ???',
+]
+'''
+List of all PyPI-specific classifier strings synopsizing this application.
+
+Each such string _must_ be contain either two or three ` :: ` substrings
+delimiting human-readable capitalized English words formally recognized by PyPI.
+
+See Also
+----------
+https://pypi.python.org/pypi?%3Aaction=list_classifiers
+    Plaintext list of all classifier strings recognized by PyPI.
+'''
+
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Finalize the definition of all globals declared by this module.
+    '''
+
+    # Major version of Python required by this application.
+    PYTHON_VERSION_MAJOR = metadata.PYTHON_VERSION_MIN_PARTS[0]
+
+    # For each minor version of Python 3.x supported by this application,
+    # formally classify this version as such.
+    for python_version_minor in range(
+        metadata.PYTHON_VERSION_MIN_PARTS[1],
+        _PYTHON_VERSION_MINOR_MAX + 1):
+        _CLASSIFIERS.append(
+            'Programming Language :: Python :: {}.{}'.format(
+                PYTHON_VERSION_MAJOR, python_version_minor,))
+    # print('classifiers: {}'.format(_CLASSIFIERS))
+
+
+# Finalize the definition of all globals declared by this module.
+init()
+
 # ....................{ OPTIONS                            }....................
 # Setuptools-specific options. Keywords not explicitly recognized by either
 # setuptools or distutils must be added to the above dictionary instead.
 setup_options = {
     # ..................{ CORE                               }..................
-    # Self-explanatory metadata. Since the "NAME" constant provided by
-    # "betse.info" is uppercase *AND* since setuptools-installed package names
-    # are commonly lowercase, such constant is coerced to lowercase.
-    'name': metadata.NAME.lower(),
-    'version': metadata.__version__,
-    'description': metadata.DESCRIPTION,
-    'author': metadata.AUTHORS,
-    'author_email': 'alexis.pietak@gmail.com',
-    'url': 'https://gitlab.com/betse/betse',
+    # Self-explanatory metadata.
+    'name':             metadata.PACKAGE_NAME,
+    'version':          metadata.__version__,
+    'description':      metadata.SYNOPSIS,
 
+    #FIXME: Probably wrong. Shouldn't this be culled from our "README.md"? In
+    #such case, remove "metadata.DESCRIPTION" entirely.
+    'long_description': metadata.DESCRIPTION,
+
+    'author':           metadata.AUTHORS,
+    'author_email':     metadata.AUTHOR_EMAIL,
+    'url':              metadata.URL_HOMEPAGE,
+    'download_url':     metadata.URL_DOWNLOAD,
+
+    # ..................{ PYPI                               }..................
     # PyPi-specific metadata.
-    'keywords': 'science research visualization',
-    'classifiers': [
-        'Intended Audience :: Science/Research',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Topic :: Scientific/Engineering :: Visualization',
-        # 'License :: ???',
-    ],
+    'keywords':    _KEYWORDS,
+    'classifiers': _CLASSIFIERS,
 
-    # ..................{ COMMAND                            }..................
-    # Set of all custom setuptools subcommands specific to this makefile (e.g.,
-    # "sudo python3 setup.py symlink"), defaulting to the empty set. Each
-    # subsequent call to the add_setup_commands() function iteratively performed
-    # below adds one or more such subcommands to this set.
-    'cmdclass': {},
+    # ..................{ DEPENDENCIES                       }..................
+    # Runtime dependencies.
+    'install_requires': metadata.DEPENDENCIES_RUNTIME,
 
-    # ..................{ PATH                               }..................
-    # Cross-platform script wrappers dynamically created at installation time.
-    'entry_points': {
-        # CLI-specific scripts.
-        'console_scripts': [
-            metadata.SCRIPT_NAME_CLI + ' = betse.cli.__main__:main',
-        ],
-        # 'console_scripts': [SCRIPT_NAME_CLI + ' = betse.cli.clicli:main',],
+    # Testing dependencies.
+    'tests_require': metadata.DEPENDENCIES_TESTING,
 
-        #FIXME: After creating a BETSE GUI, uncomment the following logic.
-        # GUI-specific scripts.
-        #'gui_scripts':  [
-        #     metadata.SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',
-        #],
-    },
-
+    # ..................{ PACKAGES                           }..................
     # List of all Python packages (i.e., directories containing zero or more
     # Python modules) to be installed. Currently, this includes the "betse"
     # package and all subpackages of this package excluding:
@@ -112,13 +173,27 @@ setup_options = {
     # * "old", providing obsolete code to be shortly put to pasture.
     'packages': setuptools.find_packages(
         exclude = [
-            # 'betse.data', 'betse.data.*',
             'betse_test', 'betse_test.*',
             'betse_setup', 'betse_setup.*',
             'freeze',
             'old',
         ],
     ),
+
+    # ..................{ PATHS                              }..................
+    # Cross-platform script wrappers dynamically created at installation time.
+    'entry_points': {
+        # CLI-specific scripts.
+        'console_scripts': [
+            metadata.SCRIPT_NAME_CLI + ' = betse.cli.__main__:main',
+        ],
+
+        #FIXME: After creating a BETSE GUI, uncomment the following logic.
+        # GUI-specific scripts.
+        #'gui_scripts':  [
+        #     metadata.SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',
+        #],
+    },
 
     #FIXME; This isn't quite true. Undesirable files are excludable in this
     #file via the whitelist approach of "package_data" and/or blacklist approach
@@ -164,20 +239,12 @@ setup_options = {
     # due to preemptive SIGKILLs), compressed archives are inherently fragile.
     'zip_safe': False,
 
-    # ..................{ DEPENDENCY                         }..................
-    # Runtime dependencies.
-    'install_requires': metadata.DEPENDENCIES_RUNTIME,
-
-    #FIXME; Switch to "py.test". Setuptools integration isn't terribly arduous,
-    #but does require some unctuous boilerplate:
-    #    https://pytest.org/latest/goodpractices.html
-
-    # Testing dependencies.
-    'tests_require': metadata.DEPENDENCIES_TESTING,
-
-    # ..................{ TEST                               }..................
-    # Name of the package running unit tests.
-    # 'test_suite': 'nose.collector',
+    # ..................{ COMMANDS                           }..................
+    # Set of all custom setuptools subcommands specific to this makefile (e.g.,
+    # "sudo python3 setup.py symlink"), defaulting to the empty set. Each
+    # subsequent call to the add_setup_commands() function iteratively performed
+    # below adds one or more such subcommands to this set.
+    'cmdclass': {},
 }
 '''
 Dictionary passed to the subsequent call to `setup()`.

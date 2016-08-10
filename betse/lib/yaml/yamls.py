@@ -8,6 +8,9 @@ High-level support facilities for Yet Another Markup Language (YAML), the
 file format encapsulating most input and output data for this application.
 '''
 
+#FIXME: Consider contributing various portions of this submodule back to
+#"ruamel.yaml".
+
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To permit YAML implementations to be conditionally imported at
@@ -215,7 +218,17 @@ def _ignore_aliases_monkeypatch(self, data):
           if data in [None, ()]:
     '''
 
-    if data is None or data is ():
+    # Refactor the default test of "if data in [None, ()]:" in the stock
+    # ignore_aliases() method to avoid the future warning detailed above. To do
+    # so safely, note that testing the passed "data" parameter against:
+    #
+    # * The singleton "None" object with the "is" operator is required.
+    # * The non-singleton () object with the "==" rather than "is" operator is
+    #   required. Bizarrely, despite the empty tuple being frozen, Python
+    #   documentation notes that "...two occurrences of the empty tuple may or
+    #   may not yield the same object". Hence, the comparison "data is ()" could
+    #   unsafely return "False" even when "data" is the empty tuple!
+    if data is None or data == ():
         return True
     if isinstance(data, (str, bytes, bool, int, float)):
         return True
@@ -269,6 +282,9 @@ def init() -> None:
     yaml.add_representer(numpy.complex_, _represent_numpy_complex)
     yaml.add_representer(numpy.float_, _represent_numpy_float)
     yaml.add_representer(numpy.int_, _represent_numpy_int)
+
+    #FIXME: Perform this *ONLY* if the selected YAML implementation is PyYAML.
+    #ruamel.yaml already fixes all Numpy-specific warnings.
 
     # Monkeypatch this PyYAML method to eliminate Numpy-specific warnings.
     SafeRepresenter.ignore_aliases = _ignore_aliases_monkeypatch
