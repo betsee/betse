@@ -2,6 +2,7 @@
 # --------------------( LICENSE                            )--------------------
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
+
 '''
 This module provides the environmental context for BETSE REPLs.
 
@@ -9,17 +10,20 @@ Each function and variable in this module is loaded into the `repl_env`
 dictionary via a call to `locals`. For safety, `repl_env` is the only
 attribute that should be imported from this module.
 '''
-from betse.script import *
 
+# ....................{ IMPORTS                            }....................
+from betse.util.type.types import type_check
+
+# ....................{ GLOBALS                            }....................
 __betse_repl__ = True
 '''
-Signify that the environment is an active REPL.
+`True` only if the current environment is an active REPL.
 
 It is important that scripts be able to tell that they are running in a REPL
 as opposed to standalone mode. For example, if the script's author opts to
 follow the "if main" convention, then the script will only run in standalone
-mode as `__name__ == "betse.repl.environment"` within the REPL. The
-`__betse_repl__` flag makes things a little more concise by allowing:
+mode as `__name__ == "betse.repl.environment"` within the REPL. This boolean
+simplifies matters by allowing logic resembling:
 
     if __name__ == '__main__' or __betse_repl__:
         ...
@@ -32,64 +36,111 @@ or if behavior should differ between hosted and standalone modes:
         ...
 '''
 
-def quit():
+# ....................{ FUNCTIONS                          }....................
+def quit() -> None:
     '''
-    Gracefully exit the REPL, returning control to the caller.
+    Gracefully exit the current REPL, returning control to the caller.
     '''
-    raise SystemExit(0)
 
-def run_script(script, *args, dirty = False, g = globals(), l = locals()):
+    # Avoid polluting the module namespace captured into the "repl_env" global
+    # below with these function-specific attributes.
+    from betse.util.path.command import exits
+
+    # Exit us up.
+    raise exits.raise_success()
+
+
+#FIXME: Single-letter parameters cause me to poke my eyes out. Would it be
+#feasible to rename these to "globals" and "locals" or... well, pretty much
+#anything other than "g" and "l"?
+@type_check
+def run_script(
+    script: str,
+    *args: str,
+    dirty: bool = False,
+    g: dict = None,
+    l: dict = None
+) -> None:
     '''
-    Run a script within the local environment, passing *args* as arguments
+    Run a script within the local environment passed the passed arguments.
 
     If more than one script is provided, each is executed in turn. If any
-    script raises an `Exception` then the entire pipeline halts.
+    script raises an exception then the entire pipeline halts.
 
     .. caution::
         Note that there is no way to ensure that a script will be perfectly
         "clean" as there can be side-effects beyond those made within the local
-        python environment. For example, the script could write to one of the
-        various simulation files. The author sees no good way to ensure that
-        this does not happen.
+        Python environment. For example, the script could write to one of the
+        various simulation files. Cleanliness is, ultimately, a responsibility
+        of the caller.
 
     Parameters
     ----------
     script : str
-        The absolute or relative path of the script
-
-    args : *str
-        The arguments to pass to the script
-
-    dirty : bool
-        `True` if local changes made in the script should propagate back to
-        the caller, or `False` if they should be discarded.
-
-    g : dict
-        A dictionary of variable, function and module bindings to use as the
-        global namespace for the script.
-
-    l : dict
-        A dictionary of variables, function and module bindings to use as the
-        local namespace for the script. Note that unless `dirty` is `True`,
-        any changes made to the local namespace will be discarded.
+        Absolute or relative path of the script to be run.
+    args : tuple
+        Argument list to be passed to this script.
+    dirty : optional[bool]
+        If:
+        * `True`, local changes made by this script will propagate back to the
+          caller _after_ this script halts.
+        * `False`, such changes will be discarded.
+        Defaults to `False`.
+    g : optional[dict]
+        Dictionary of variable, function and module bindings to use as the
+        global namespace for this script. Defaults to `None`, in which case the
+        current :func:`globals` dictionary will be used.
+    l : optional[dict]
+        Dictionary of variables, function and module bindings to use as the
+        local namespace for this script. Note that unless `dirty` is `True`,
+        any changes made to this namespace will be discarded. Defaults to
+        `None`, in which case the current :data:`repl_env` dictionary will be
+        used.
     '''
+
+    # Avoid polluting the module namespace captured into the "repl_env" global
+    # below with these function-specific attributes.
     from betse.exceptions import BetseArgumentParserException
     from betse.script import argv
     from betse.util.io.log.logs import log_info
 
-    log_info("Executing script \"{}\"".format(script))
+    # Log this script execution.
+    log_info('Running script: %s', script)
 
+    # Record the passed argument list for subsequent retrieval by scripts.
     argv.set_args(script, *args)
+
+    # Run this script.
     try:
-        with open(script) as f:
+        with open(script) as script_file:
             if dirty:
-                exec(f.read(), g, l)
+                # Default the passed globals and locals if needed. Due to the
+                # default parameter trap, these defaults must *NOT* be defined
+                # in this function's signature.
+                if g is None:
+                    g = globals()
+                if l is None:
+                    l = repl_env
+
+                # Run this script with access to these globals and locals.
+                exec(script_file.read(), g, l)
             else:
-                exec(f.read())
+                exec(script_file.read())
     except BetseArgumentParserException:
         pass
     finally:
         argv.uninitialize()
         print()
 
+# ....................{ GLOBALS ~ env                      }....................
+# Defer importing all attributes defined by the scripting API until immediately
+# *BEFORE* capturing these attributes into the "repl_env" global. Why? Because
+# the star-import prevents sane code analysis (e.g., by IDEs) and hence should
+# be deferred as long as feasible.
+from betse.script import *
+
 repl_env = locals()
+'''
+Dictionary mapping from the names to values of all attributes defined by this
+submodule, including those defined by the :mod:`betse.script` subpackage.
+'''

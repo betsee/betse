@@ -132,6 +132,34 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 
 # ....................{ METADATA ~ versions                }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: When modifying the current version of this application below,
+# consider adhering to the Semantic Versioning schema. Specifically, the version
+# should consist of three "."-delimited integers "{major}.{minor}.{patch}",
+# where:
+#
+# * "{major}" specifies the major version, incremented only when either:
+#   * Breaking configuration file backward compatibility. Since this
+#     application's public API is its configuration file format rather than a
+#     subset of the code itself (e.g., public subpackages, submodules, classes),
+#     no change to the code itself can be considered to break backward
+#     compatibility unless that change breaks the configuration file format.
+#   * Implementing headline-worthy functionality (e.g., a GUI). Technically,
+#     this condition breaks the Semantic Versioning schema, which stipulates
+#     that *ONLY* changes breaking backward compatibility warrant major bumps.
+#     But this is the real world. In the real world, significant improvements
+#     are rewarded with significant version changes.
+#   In either case, the minor and patch versions both reset to 0.
+# * "{minor}" specifies the minor version, incremented only when implementing
+#   customary functionality in a manner preserving such compatibility. In this
+#   case, the patch version resets to 0.
+# * "{patch}" specifies the patch version, incremented only when correcting
+#   outstanding issues in a manner preserving such compatibility.
+#
+# When in doubt, increment only the minor version and reset the patch version.
+# For further details, see http://semver.org.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 __version__ = '0.4.0'
 '''
 Human-readable current version of this application as a `.`-delimited string.
@@ -149,36 +177,33 @@ For PEP 8 compliance, this specifier is exposed as the canonical variable
 `__variable_info__` rather than a typical constant (e.g., `VERSION_PARTS`).
 '''
 
-# ....................{ METADATA ~ description             }....................
-SYNOPSIS = 'BETSE, the [B]io [E]lectric [T]issue [S]imulation [E]ngine.'
+# ....................{ METADATA ~ synopsis                }....................
+# Note that a human-readable multiline description is exposed via the top-level
+# "setup.py" script. This description is inefficiently culled from the contents
+# of the top-level "README.rst" file and hence omitted here. (Doing so here
+# would significantly increase program startup costs with little to no benefit.)
+SYNOPSIS = 'BeTSE: the [B]io[e]lectric [T]issue [S]imulation [E]ngine'
 '''
-Human-readable single-line description of this application.
+Human-readable single-line ASCII synopsis of this application.
 
 By PyPI design, this string must _not_ span multiple lines or paragraphs.
 '''
 
 
 DESCRIPTION = (
-    'BETSE ([B]io [E]lectric [T]issue [S]imulation [E]ngine) is a '
-    'cross-platform finite volume simulator for 2D computational multiphysics '
-    'problems in the life sciences – including electrodiffusion, '
-    'electro-osmosis, galvanotaxis, voltage-gated ion channels, '
-    'gene regulatory networks, and biochemical reaction networks (e.g., '
-    'metabolism).\n'
-    'BETSE is portably implemented in pure Python 3, continuously '
-    'stress-tested with GitLab-CI + py.test, and permissively distributed '
-    'under the BSD 2-clause license. While a high-level graphical user '
-    'interface (GUI) supporting all popular platforms is planned, BETSE '
-    'currently only provides a low-level command line interface (CLI).\n'
-    'BETSE is associated with the Paul Allen Discovery Center at Tufts '
-    'University and is supported by a Paul Allen Discovery Center award from '
-    'the Paul G. Allen Frontiers Group.'
+    'BeTSE ([B]io[e]lectric [T]issue [S]imulation [E]ngine) is a '
+    'finite volume simulator for 2D computational multiphysics problems in '
+    'the life sciences -- including electrodiffusion, electro-osmosis, '
+    'galvanotaxis, voltage-gated ion channels, gene regulatory networks, '
+    'and biochemical reaction networks (e.g., metabolism).'
 )
 '''
-Human-readable multiline description of this application.
+Human-readable multiline ASCII description of this application.
 
-By PyPI design, this string may (and typically should) span both multiple lines
-and paragraphs.
+By :mod:`argparse` design, this string may (and typically should) span both
+multiple lines and paragraphs. Note this string is _not_ published to PyPI,
+which accepts reStructuredText (rst) and is hence passed the contents of the
+top-level :doc:`/README` file.
 '''
 
 # ....................{ METADATA ~ authors                 }....................

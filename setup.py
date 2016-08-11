@@ -52,10 +52,20 @@ from betse_setup import build, freeze, symlink, test
 # both space and time complexity for BETSE startup. This metadata is effectively
 # setuptools-specific and hence irrelevant in the main codebase.
 
-_PYTHON_VERSION_MINOR_MAX = 5
+_PYTHON_VERSION_MINOR_MAX = 6
 '''
 Maximum minor stable version of this major version of Python currently released
 (e.g., `5` if Python 3.5 is the most recent stable version of Python 3.x).
+'''
+
+
+_DESCRIPTION = None
+'''
+Human-readable multiline description of this application in reStructuredText
+(rst) format.
+
+To minimize synchronization woes, this description is identical to the contents
+of the `README.rst` file.
 '''
 
 
@@ -86,12 +96,10 @@ _CLASSIFIERS = [
 
     # Miscellaneous metadata.
     'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
     'Natural Language :: English',
     'Operating System :: OS Independent',
-    'Topic :: Scientific/Engineering',
-
-    #FIXME: Define us up!
-    # 'License :: ???',
+    'Topic :: Scientific/Engineering :: Bio-Informatics',
 ]
 '''
 List of all PyPI-specific classifier strings synopsizing this application.
@@ -111,6 +119,9 @@ def init() -> None:
     Finalize the definition of all globals declared by this module.
     '''
 
+    # Global variables assigned to below.
+    global _DESCRIPTION
+
     # Major version of Python required by this application.
     PYTHON_VERSION_MAJOR = metadata.PYTHON_VERSION_MIN_PARTS[0]
 
@@ -124,6 +135,17 @@ def init() -> None:
                 PYTHON_VERSION_MAJOR, python_version_minor,))
     # print('classifiers: {}'.format(_CLASSIFIERS))
 
+    #FIXME: Uncomment after converting "README.md" to "README.rst".
+    # _DESCRIPTION_FILENAME = 'README.rst'
+    # try:
+    #     with open(_DESCRIPTION_FILENAME) as readme:
+    #         _DESCRIPTION = readme.read()
+    # except:
+    #     from betse.util.io.stderrs
+    #     stderrs.output(
+    #         'Description file "{}" not found.'.format(_DESCRIPTION_FILENAME))
+    _DESCRIPTION = metadata.DESCRIPTION
+
 
 # Finalize the definition of all globals declared by this module.
 init()
@@ -136,14 +158,10 @@ setup_options = {
     # Self-explanatory metadata.
     'name':             metadata.PACKAGE_NAME,
     'version':          metadata.__version__,
-    'description':      metadata.SYNOPSIS,
-
-    #FIXME: Probably wrong. Shouldn't this be culled from our "README.md"? In
-    #such case, remove "metadata.DESCRIPTION" entirely.
-    'long_description': metadata.DESCRIPTION,
-
     'author':           metadata.AUTHORS,
     'author_email':     metadata.AUTHOR_EMAIL,
+    'description':      metadata.SYNOPSIS,
+    'long_description': _DESCRIPTION,
     'url':              metadata.URL_HOMEPAGE,
     'download_url':     metadata.URL_DOWNLOAD,
 

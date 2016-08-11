@@ -9,15 +9,16 @@ Low-level external process facilities.
 
 # ....................{ IMPORTS                            }....................
 import sys
-
 from betse.util.io.log import logs
 from betse.util.type import types
+from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
 SUCCESS = 0
 '''
 Exit status signifying a process to have terminated successfully.
 '''
+
 
 FAILURE_DEFAULT = 1
 '''
@@ -28,48 +29,69 @@ While any exit status in the range `[1, 255]` signifies failure, this exit
 status is the most common and hence preferred default.
 '''
 
+# ....................{ EXCEPTIONS                         }....................
+def raise_success() -> None:
+    '''
+    Raise the `SystemExit` exception with the success exit status (i.e.,
+    `SUCCESS`), thus halting the current process with this status if uncaught.
+    '''
+
+    raise SystemExit(SUCCESS)
+
+
 # ....................{ TESTERS                            }....................
+@type_check
 def is_success(exit_status: int) -> bool:
     '''
     `True` only if the passed exit status signifies success.
     '''
-    assert types.is_int(exit_status), types.assert_not_int(exit_status)
+
     return exit_status == SUCCESS
 
 
+@type_check
 def is_failure(exit_status: int) -> bool:
     '''
     `True` only if the passed exit status signifies failure.
     '''
-    assert types.is_int(exit_status), types.assert_not_int(exit_status)
+
     return exit_status != SUCCESS
 
 # ....................{ EXITERS                            }....................
-def exit_with_failure(error_message: str = '') -> None:
+def exit_with_success(error_message: str = '') -> None:
     '''
-    Exit from the current process with the default exit status for failure
-    (i.e., `FAILURE_DEFAULT`), logging the passed error message if
-    nonempty _or_ exiting silently otherwise.
+    Halt the current process with the success exit status (i.e., `SUCCESS`),
+    logging the passed error message if nonempty _or_ exiting silently
+    otherwise.
     '''
 
     exit(exit_status=FAILURE_DEFAULT, exit_message=error_message)
 
 
+def exit_with_failure(error_message: str = '') -> None:
+    '''
+    Halt the current process with the default exit status for failure (i.e.,
+    `FAILURE_DEFAULT`), logging the passed error message if nonempty _or_
+    exiting silently otherwise.
+    '''
+
+    exit(exit_status=FAILURE_DEFAULT, exit_message=error_message)
+
+
+@type_check
 def exit(
     exit_status: int = FAILURE_DEFAULT,
     exit_message: str = ''
 ) -> None:
     '''
-    Exit from the current process with the passed exit status, logging the
-    passed message if nonempty _or_ exiting silently otherwise.
+    Halt the current process with the passed exit status, logging the passed
+    message if nonempty _or_ exiting silently otherwise.
 
     This message will be logged with level:
 
     * `INFO` if this exit status signifies success.
     * `ERROR` otherwise.
     '''
-    assert types.is_str(exit_message), (
-        types.assort_not_str(exit_message, 'Exit message'))
 
     # Log this message if nonempty.
     if exit_message:

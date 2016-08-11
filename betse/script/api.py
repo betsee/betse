@@ -3,34 +3,39 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# ....................{ IMPORTS                            }....................
 from betse.science.cells import Cells
+from betse.science.filehandling import loadWorld, loadSim
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
 from betse.science.simrunner import SimRunner
 from betse.util.type import types
 from betse.util.type.types import type_check
 
-from betse.science.filehandling import loadWorld, loadSim
-
+# ....................{ PHASES                             }....................
 @type_check
-def seed(source : (SimRunner, str)) -> SimRunner:
+def seed(source: (SimRunner, str)) -> SimRunner:
     '''
-    Seed a simulation returning a `SimRunner` instance.
+    Seed a simulation and return the `SimRunner` instance used to do so.
 
-    If *source* is an instance of `SimRunner`, then it is used to seed the
-    world. Otherwise *source* is expected to be a path to a YAML configuration
-    file, and is used to initialize a `SimRunner` which is then used to seed.
+    If `source` is a `SimRunner` instance, this is used to seed; else, `source`
+    _must_ be a path to a YAML-formatted simulation configuration file used to
+    instantiate a `SimRunner` instance then used to seed.
 
     Parameters
     ----------
-    source
-        Either an instance of `SimRunner` or the path to a YAML configuration
-        file
+    source : (SimRunner, str)
+        Either:
+        * An instance of `SimRunner`.
+        * The absolute or relative path of a YAML-formatted simulation
+          configuration file.
 
     Returns
     -------
-    An instance of `SimRunner`
+    SimRunner
+        Simulation runner running this phase.
     '''
+
     if types.is_simrunner(source):
         source.makeWorld()
         return source

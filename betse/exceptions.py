@@ -156,6 +156,25 @@ class BetseMatplotlibException(BetseException):
     '''
     pass
 
+# ....................{ EXCEPTIONS ~ arg                  }....................
+#FIXME: Raise this exception throughout the "betse.cli" subpackage.
+class BetseArgumentException(BetseException):
+    '''
+    Argument-specific exception.
+    '''
+
+    pass
+
+
+class BetseArgumentParserException(SystemExit):
+    '''
+    :class:`betse.script.argparse.ArgumentParser`-specific exception connoting
+    the :meth:`betse.script.argparse.parse_args` to have unsuccessfully parsed
+    the argument list passed to the current BETSE script.
+    '''
+
+    pass
+
 # ....................{ EXCEPTIONS ~ science               }....................
 class BetseParametersException(BetseException):
     '''
@@ -175,12 +194,5 @@ class BetseSimulationInstabilityException(BetseSimulationException):
     '''
     Simulation-specific exception connoting the current simulation to have
     gone computationally unstable.
-    '''
-    pass
-
-# ....................{ EXCEPTIONS ~ script               }....................
-class BetseArgumentParserException(SystemExit):
-    '''
-    ArgumentParser-specific exception signifying that the parse_args failed.
     '''
     pass
