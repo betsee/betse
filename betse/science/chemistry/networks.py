@@ -1693,7 +1693,7 @@ class MasterOfNetworks(object):
 
             for react_name, coeff in zip(self.reactions[reaction_name].reactants_list,
                 self.reactions[reaction_name].reactants_coeff):
-                i = molecule_keys.index(react_name) # (Big) FIxME these need to include ions like calcium!
+                i = molecule_keys.index(react_name)
 
                 self.reaction_matrix[i, j] += -coeff
 
@@ -3220,7 +3220,7 @@ class MasterOfNetworks(object):
         zone_tags_a:     Place where the activator concentration works from ('cell' or 'env'). See *.
         zone_tags_i:     Place where the inhibitor concentration works from ('cell' or 'env'). See *.
 
-        * zone tags only apply to reactions occuring in 'cell' or 'mem' regions. For 'mit', the activator and inhibitor
+        * zone tags only apply to reactions occurring in 'cell' or 'mem' regions. For 'mit', the activator and inhibitor
         concentrations are always assumed to be inside the mitochondria, so are always also 'mit.
 
         Returns
