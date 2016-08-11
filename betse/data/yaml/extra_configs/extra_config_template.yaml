@@ -140,7 +140,6 @@ transporters:
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
     apply to: ['nerves', 'spot']      # apply transporter only on certain profiles?
     ignore ECM: True
-
     transporter activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
     activator n: None

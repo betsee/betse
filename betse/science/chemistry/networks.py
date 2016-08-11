@@ -2712,6 +2712,7 @@ class MasterOfNetworks(object):
         # create a graph object
         self.graphicus_maximus = pydot.Dot(graph_type='digraph')
 
+
         # add each substance as a node in the graph:
         for i, name in enumerate(self.molecules):
 
@@ -2723,8 +2724,10 @@ class MasterOfNetworks(object):
             self.graphicus_maximus.add_node(nde)
 
             if mol.simple_growth:
-                # if the substance has autocatalytic growth capacity add the edge in:
-                self.graphicus_maximus.add_edge(pydot.Edge(name, name, arrowhead='normal'))
+                if mol.growth_activators_list == None or mol.growth_activators_list is None \
+                    or len(mol.growth_activators_list) == 0:
+                    # if the substance has self-growth capacity add the edge in:
+                    self.graphicus_maximus.add_edge(pydot.Edge(name, name, arrowhead='normal'))
 
             if mol.ion_channel_gating:
 
@@ -2778,6 +2781,23 @@ class MasterOfNetworks(object):
                     elif ion_name == 'Cl':
                         self.graphicus_maximus.add_edge(pydot.Edge(ion_name, 'Vmem', arrowhead='dot', color='blue'))
 
+        # add on relationship between IP3 and Ca, if p.Ca_dyn is enabled
+        if 'IP3' in self.molecules and p.Ca_dyn is True:
+
+            # add node for calcium:
+            node_color = rgba2hex(p.network_cm(self.cell_concs['Ca'][p.plot_cell]), alpha_val)
+            nde = pydot.Node('Ca', style='filled', color=node_color)
+            self.graphicus_maximus.add_node(nde)
+
+            # add the CICR channel to the diagram
+            nde = pydot.Node('CICR', style='filled', shape=channel_shape)
+            self.graphicus_maximus.add_node(nde)
+
+            self.graphicus_maximus.add_edge(pydot.Edge('IP3', 'CICR', arrowhead='normal'))
+            self.graphicus_maximus.add_edge(pydot.Edge('CICR', 'Ca', arrowhead='normal'))
+
+
+
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
@@ -2802,34 +2822,34 @@ class MasterOfNetworks(object):
                     ion_name = ['Na']
 
                     if channel_name != 'NaLeak':
-                        graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color = 'blue'))
+                        self.graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color = 'blue'))
 
                 elif chan_class == 'K':
                     ion_name = ['K']
 
                     if channel_name != 'KLeak':
-                        graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
+                        self.graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Kir':
                     ion_name = ['K']
 
-                    graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
+                    self.graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Fun':
                     ion_name = ['Na', 'K']
 
-                    graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
+                    self.graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Ca':
                     ion_name = ['Ca']
 
                     if channel_name != 'CaLeak':
-                        graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
+                        self.graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'NaP':
                     ion_name = ['Na']
 
-                    graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
+                    self.graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Cat':
                     ion_name = ['Na', 'K', 'Ca']

@@ -687,7 +687,12 @@ class Simulator(object):
 
         elif p.grn_enabled and self.grn is not None:
 
-            self.grn.core.tissue_init(self, cells, self.grn.config_dic['biomolecules'])
+            logs.log_info("Reinitializing the gene regulatory network for simulation...")
+
+            # re-read the config file again to capture any user updates:
+            self.grn.config_dic = sim_config.read_metabo(self.grn.configPath)
+
+            self.grn.core.tissue_init(self, cells, self.grn.config_dic['biomolecules'], p)
 
             if self.grn.reactions is True and len(self.grn.config_dic['reactions']):
                 # initialize the reactions of metabolism:
