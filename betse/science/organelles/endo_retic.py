@@ -58,9 +58,9 @@ class EndoRetic(object):
 
     def update(self, sim, cells, p):
 
-        if p.run_sim:
+        # if p.run_sim:
 
-            self.channels(sim, cells, p)
+        self.channels(sim, cells, p)
 
         # run SERCA pump:
         f_CaATP = stb.pumpCaER(sim.cc_er[sim.iCa], sim.cc_cells[sim.iCa], self.Ver, sim.T, p)
@@ -92,12 +92,22 @@ class EndoRetic(object):
 
         Dm_mod_mol = (cCa_act/(1+cCa_act))*(1/(1+cCa_inh))
 
-        if p.molecules_enabled:
 
-            if 'IP3' in sim.molecules.molecule_names:
-                cIP3_act = (sim.molecules.IP3.c_cells/p.act_Km_IP3)**p.act_n_IP3
+        if sim.molecules is not None or sim.metabo is not None or sim.grn is not None:
 
-                Dm_mod_mol = (cCa_act/(1 + cCa_act))*(1/(1 + cCa_inh))*(cIP3_act/(1+cIP3_act))
+            if sim.molecules is not None and 'IP3' in sim.molecules:
+                cIP3_act = (sim.molecules.cell_concs['IP3']/p.act_Km_IP3)**p.act_n_IP3
+
+            elif sim.metabo is not None and 'IP3' in sim.metabo.core.cell_concs:
+                cIP3_act = (sim.metabo.core.cell_concs['IP3'] / p.act_Km_IP3) ** p.act_n_IP3
+
+            elif sim.grn is not None and 'IP3' in sim.grn.core.cell_concs:
+                cIP3_act = (sim.grn.core.cell_concs['IP3'] / p.act_Km_IP3) ** p.act_n_IP3
+
+            else:
+                cIP3_act = np.zeros(sim.cdl)
+
+            Dm_mod_mol = (cCa_act/(1 + cCa_act))*(1/(1 + cCa_inh))*(cIP3_act/(1+cIP3_act))
 
         self.Dm_channels[sim.iCa] = p.max_er*Dm_mod_mol
 
@@ -160,7 +170,6 @@ class EndoRetic(object):
             os.makedirs(self.resultsPath, exist_ok=True)
 
             self.imagePath = os.path.join(self.resultsPath, 'fig_')
-
 
     def remove_ers(self, sim, target_inds_cell):
 

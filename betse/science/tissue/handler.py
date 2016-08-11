@@ -967,7 +967,6 @@ class TissueHandler(object):
 
         sim.P_cells = sim.P_mod + sim.P_base
 
-
     #FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
     def removeCells(self,tissue_picker, sim, cells, p) -> None:
         '''
@@ -1018,9 +1017,9 @@ class TissueHandler(object):
             # if running metabolism, make a situation where the cells burst out their ATP:
             if sim.metabo is not None:
                 # get concentration of ATP in cells to be removed:
-                cell_ATP = sim.metabo.core.ATP.c_cells[target_inds_cell]*cells.cell_vol[target_inds_cell]
+                cell_ATP = sim.metabo.core.cell_concs['ATP'][target_inds_cell]*cells.cell_vol[target_inds_cell]
                 # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
-                sim.metabo.core.ATP.c_env[ecm_targs_cell] = cell_ATP/(p.cell_height*cells.delta**2)
+                sim.metabo.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP/(p.cell_height*cells.delta**2)
 
             # redo environmental diffusion matrices by
             # setting the environmental spaces around cut world to the free value -- if desired!:
@@ -1157,7 +1156,6 @@ class TissueHandler(object):
                         setattr(sim, name, data2)
 
 
-
         if p.Ca_dyn is True and sim.endo_retic is not None:
 
             sim.endo_retic.remove_ers(sim, target_inds_cell)
@@ -1220,7 +1218,6 @@ class TissueHandler(object):
         # if running voltage gated gap junctions, reinnitialize them:
         if p.v_sensitive_gj:
             sim.gj_funk.init(sim, cells, p)
-
 
         # delete data from molecules objects:
         if p.molecules_enabled:

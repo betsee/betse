@@ -13,6 +13,7 @@ from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 from betse.exceptions import BetseSimulationInstabilityException
 from betse.util.io.log import logs
+from betse.science.config import sim_config
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
@@ -651,7 +652,10 @@ class Simulator(object):
 
         elif p.metabolism_enabled and self.metabo is not None:
 
-            self.metabo.core.tissue_init(self, cells, self.metabo.config_dic['biomolecules'])
+            #re-read the config file:
+            self.metabo.config_dic = sim_config.read_metabo(self.metabo.configPath)
+
+            self.metabo.core.tissue_init(self, cells, self.metabo.config_dic['biomolecules'], p)
 
             if self.metabo.reactions is True and len(self.metabo.config_dic['reactions']):
                 # initialize the reactions of metabolism:

@@ -66,8 +66,8 @@ class MasterOfNetworks(object):
         self.read_substances(sim, cells, config_substances, p)
         self.tissue_init(sim, cells, config_substances, p)
 
-        # write substance growth and decay equations:
-        self.write_growth_and_decay()
+        # # write substance growth and decay equations:
+        # self.write_growth_and_decay()
 
         self.ave_cell_vol = cells.cell_vol.mean()  # average cell volume
 
@@ -235,7 +235,6 @@ class MasterOfNetworks(object):
 
                 logs.log_warning("WARNING: You've added a new substance, which was not in your initialization."
                                  "It will be ignored. Please re-run an init to see all your substances in action.")
-
 
             else:
                 # otherwise, get the name of the Molecule instance we're looking for as an alias:
@@ -406,6 +405,10 @@ class MasterOfNetworks(object):
                 mol.plot_autoscale = pd['autoscale colorbar']
                 mol.plot_max = pd['max val']
                 mol.plot_min = pd['min val']
+
+        # write substance growth and decay equations:
+        self.write_growth_and_decay()
+
 
     def build_indices(self):
 
@@ -1682,7 +1685,7 @@ class MasterOfNetworks(object):
 
         for i, name in enumerate(self.molecules):
             # add in terms referencing the self-growth and decay reaction for each substance
-            self.reaction_matrix[i, i] = 1
+            self.reaction_matrix[i, i] += 1
 
         for jo, reaction_name in enumerate(self.reactions):
 
@@ -1690,15 +1693,15 @@ class MasterOfNetworks(object):
 
             for react_name, coeff in zip(self.reactions[reaction_name].reactants_list,
                 self.reactions[reaction_name].reactants_coeff):
-                i = molecule_keys.index(react_name)
+                i = molecule_keys.index(react_name) # (Big) FIxME these need to include ions like calcium!
 
-                self.reaction_matrix[i, j] = -coeff
+                self.reaction_matrix[i, j] += -coeff
 
             for prod_name, coeff in zip(self.reactions[reaction_name].products_list,
                 self.reactions[reaction_name].products_coeff):
                 i = molecule_keys.index(prod_name)
 
-                self.reaction_matrix[i, j] = coeff
+                self.reaction_matrix[i, j] += coeff
 
     # FIXME finish these:
 
@@ -2114,9 +2117,9 @@ class MasterOfNetworks(object):
             self.mit.remove_mits(sim, target_inds_cell)
 
         if sim.met_concs is not None and met_tag is True:  # update metabolism object if it's being simulated
-            sim.met_concs = {'cATP': self.ATP.c_mems,
-                'cADP': self.ADP.c_mems,
-                'cPi': self.Pi.c_mems}
+            sim.met_concs = {'cATP': self.mem_concs['ATP'],
+                'cADP': self.mem_concs['ADP'],
+                'cPi': self.mem_concs['Pi']}
 
         for name in self.transporters:
             obj = self.transporters[name]
@@ -2712,7 +2715,6 @@ class MasterOfNetworks(object):
                 # if the substance has autocatalytic growth capacity add the edge in:
                 graphicus_maximus.add_edge(pydot.Edge(name, name, arrowhead='normal'))
 
-
             if mol.ion_channel_gating:
 
                 # add Vmem node to the diagram
@@ -2859,39 +2861,55 @@ class MasterOfNetworks(object):
             mol = self.molecules[name]
             # add regulatory as nodes in the graph:
 
-            if mol.simple_growth is True and mol.growth_activators_list != 'None' and mol.growth_activators_list is not None:
+            if mol.simple_growth is True and mol.growth_activators_list != 'None' and \
+                    mol.growth_activators_list is not None:
 
                 for act_name, zone_a in zip(mol.growth_activators_list, mol.growth_activators_zone):
 
                     if zone_a == 'env':
+                        node_color = rgba2hex(p.network_cm(self.env_concs[act_name].mean()), alpha_val)
                         act_name = act_name + '_env'
+                        nde = pydot.Node(act_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
 
                     graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
 
-            if mol.simple_growth is True and mol.growth_inhibitors_list != 'None' and mol.growth_inhibitors_list is not None:
+            if mol.simple_growth is True and mol.growth_inhibitors_list != 'None' and \
+                    mol.growth_inhibitors_list is not None:
 
                 for inh_name, zone_i in zip(mol.growth_inhibitors_list, mol.growth_inhibitors_zone):
 
                     if zone_i == 'env':
+                        node_color = rgba2hex(p.network_cm(self.env_concs[inh_name].mean()), alpha_val)
                         inh_name = inh_name + '_env'
+                        nde = pydot.Node(inh_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
 
                     graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
-            if mol.ion_channel_gating is True and mol.ion_activators_list != 'None' and mol.ion_activators_list is not None:
+            if mol.ion_channel_gating is True and mol.ion_activators_list != 'None' and \
+                    mol.ion_activators_list is not None:
 
                 for act_name, zone_a in zip(mol.ion_activators_list, mol.ion_activators_zone):
 
                     if zone_a == 'env':
+                        node_color = rgba2hex(p.network_cm(self.env_concs[act_name].mean()), alpha_val)
                         act_name = act_name + '_env'
+                        nde = pydot.Node(act_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
 
                     graphicus_maximus.add_edge(pydot.Edge(act_name, mol.gating_channel_name, arrowhead='dot', color='blue'))
 
-            if mol.ion_channel_gating is True and mol.ion_inhibitors_list != 'None' and mol.ion_inhibitors_list is not None:
+            if mol.ion_channel_gating is True and mol.ion_inhibitors_list != 'None' and \
+                    mol.ion_inhibitors_list is not None:
 
                 for inh_name, inh_zone in zip(mol.ion_inhibitors_list, mol.ion_inhibitors_zone):
 
                     if inh_zone == 'env':
+                        node_color = rgba2hex(p.network_cm(self.env_concs[inh_name].mean()), alpha_val)
                         inh_name = inh_name + '_env'
+                        nde = pydot.Node(inh_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
 
                     graphicus_maximus.add_edge(pydot.Edge(inh_name, mol.gating_channel_name, arrowhead='tee', color='red'))
 
@@ -3056,7 +3074,6 @@ class MasterOfNetworks(object):
                 eq_var = self.transporters[trans].transporter_tex_string
 
                 eqwriter.writerow([trans, eq_var, text_var])
-
 
     def build_reaction_network(self, p):
         """
@@ -3293,6 +3310,11 @@ class MasterOfNetworks(object):
 
                     numo_string_a += "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
                     denomo_string_a += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
+
+                else:
+                    raise BetseParametersException("You've asked for a reaction zone (probably mitochondria)"
+                                                   "that doesn't exist. Enable mitochondria or ensure all"
+                                                   "reaction and transporter zones are 'cell'.")
 
                 numo_tex_a = r"\left(\frac{[%s]}{K_{%s}^{a}}\right)^{n_{%s}^{a}}" % (tex_name, tex_name, tex_name)
                 denomo_tex_a = r"1+\left(\frac{[%s]}{K_{%s}^{a}}\right)^{n_{%s}^{a}}" % (tex_name, tex_name, tex_name)
