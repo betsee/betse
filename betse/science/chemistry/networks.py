@@ -596,6 +596,11 @@ class MasterOfNetworks(object):
             # # Finally, make the self.reactions into an ordered dictionary, so we can guarantee indices:
             # self.reactions = OrderedDict(self.reactions)
 
+        for name in self.reactions:
+
+            msg = "Including the network reaction: {}".format(name)
+            logs.log_info(msg)
+
     def read_transporters(self, config_transporters, sim, cells, p):
 
         """
@@ -673,12 +678,15 @@ class MasterOfNetworks(object):
                 obj.transporter_activators_list,
                 obj.transporter_inhibitors_list)
 
-
-
             if self.mit_enabled:
                 obj.mit_enabled = True
             else:
                 obj.mit_enabled = False
+
+        for name in self.transporters:
+
+            msg = "Including the network transporter: {}".format(name)
+            logs.log_info(msg)
 
     def read_channels(self, config_channels, sim, cells, p):
 
@@ -750,6 +758,11 @@ class MasterOfNetworks(object):
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
 
+        for name in self.channels:
+
+            msg = "Including the network channel: {}".format(name)
+            logs.log_info(msg)
+
     def read_modulators(self, config_modulators, sim, cells, p):
 
         logs.log_info("Reading modulator input data...")
@@ -811,6 +824,10 @@ class MasterOfNetworks(object):
                                                                     zone_tags_i=zone_i)
 
             obj.alpha_eval_string = "(" + activator_alpha + "*" + inhibitor_alpha + ")"
+
+        for name in self.modulators:
+            msg = "Including the modulation: {}".format(name)
+            logs.log_info(msg)
 
     def write_growth_and_decay(self):
 
@@ -1260,6 +1277,7 @@ class MasterOfNetworks(object):
 
         # list holding terms affecting free energy via transfer of charged item across membrane:
             echem_terms_list = []
+            echem_terms_list_tex = []
 
             if reaction_zone == 'cell':
 
@@ -1342,7 +1360,6 @@ class MasterOfNetworks(object):
             delta_strings_products = [in_delta_term_prod for x in product_names]
 
             # calculate a reactants zone tag list and terms affecting transporter free energy via Vmem:
-            echem_tex_string = ""
 
             if transport_out_list != 'None':
 
@@ -1364,6 +1381,9 @@ class MasterOfNetworks(object):
                             # calculate the effect of transfer on transporter's free energy:
                             eterm = "-{}*sim.zs[{}]*p.F*{}".format(coeff, ion_ind, vmem)
 
+                            # LaTeX version:
+                            eterm_tex = r"-%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, out_name, out_name, vmem_tex)
+
                             # write fixed parameter names and values to the LaTeX storage list:
                             zval = tex_val(sim.zs[ion_ind])
                             z_tex = "z_{%s} & =" % (out_name)
@@ -1381,6 +1401,9 @@ class MasterOfNetworks(object):
                         # calculate the effect of transfer on transporter's free energy:
                         eterm = "-{}*self.molecules['{}'].z*p.F*{}".format(coeff, out_name, vmem)
 
+                        # LaTeX version:
+                        eterm_tex = r"-%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, out_name, out_name, vmem_tex)
+
                         # write fixed parameter names and values to the LaTeX storage list:
                         zval = tex_val(self.molecules[out_name].z)
                         z_tex = "z_{%s} & =" % (out_name)
@@ -1389,10 +1412,7 @@ class MasterOfNetworks(object):
                     trans_tex_var_list.append(z_tex)
 
                     echem_terms_list.append(eterm)
-
-                    # LaTeX version:
-                    eterm_tex = r"-%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, out_name, out_name, vmem_tex)
-                    echem_tex_string += eterm_tex
+                    echem_terms_list_tex.append(eterm_tex)
 
                     # update delta string for correct transfer:
                     delta_strings_products[prod_i] = out_delta_term_prod
@@ -1417,6 +1437,9 @@ class MasterOfNetworks(object):
                             # calculate the effect of transfer on transporter's free energy:
                             eterm = "{}*sim.zs[{}]*p.F*{}".format(coeff, ion_ind, vmem)
 
+                            # LaTeX version:
+                            eterm_tex = r"%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, in_name, in_name, vmem_tex)
+
                             # write fixed parameter names and values to the LaTeX storage list:
                             zval = tex_val(sim.zs[ion_ind])
                             z_tex = "z_{%s} & =" % (in_name)
@@ -1433,6 +1456,9 @@ class MasterOfNetworks(object):
                         # calculate the effect of transfer on transporter's free energy:
                         eterm = "{}*self.molecules['{}'].z*p.F*{}".format(coeff, in_name, vmem)
 
+                        # LaTeX version:
+                        eterm_tex = r"%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, in_name, in_name, vmem_tex)
+
                         # write fixed parameter names and values to the LaTeX storage list:
                         zval = tex_val(self.molecules[in_name].z)
                         z_tex = "z_{%s} & =" % (in_name)
@@ -1441,23 +1467,25 @@ class MasterOfNetworks(object):
                     trans_tex_var_list.append(z_tex)
 
                     echem_terms_list.append(eterm)
-
-                    # LaTeX version:
-                    eterm_tex = r"%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, in_name, in_name, vmem_tex)
-                    echem_tex_string += eterm_tex
+                    echem_terms_list_tex.append(eterm_tex)
 
                     # update delta string for correct transfer:
                     delta_strings_reactants[react_i] = out_delta_term_react
 
             # create the eterms string expression describing net effect of trans-membrane fluxes on free energy:
             echem_string = "("
-            for i, et in enumerate(echem_terms_list):
+            echem_tex_string = ""
+
+            for i, (et, etx) in enumerate(zip(echem_terms_list, echem_terms_list_tex)):
 
                 echem_string += et
+                echem_tex_string += etx
 
                 if i < len(echem_terms_list) -1:
 
                     echem_string += "+"
+                    echem_tex_string += "+"
+
 
                 else:
                     echem_string += ")"
@@ -1670,7 +1698,7 @@ class MasterOfNetworks(object):
             # Put it all together into a final reaction string (+max rate):
             reversed_term = "(" + Q + "/" + Keqm + ")"
 
-            rev_term_tex = r"\frac{%s}{%s}" % (Q_tex, Keqm_tex)
+            rev_term_tex = r"\left(\frac{%s}{%s}\right)" % (Q_tex, Keqm_tex)
 
             vmax = "self.transporters['{}'].vmax".format(transp_name)
 
@@ -1691,7 +1719,7 @@ class MasterOfNetworks(object):
 
                 # calculate the evaluation string expression for the transporter:
                 transporter_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + "(" + \
-                                          forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
+                                          forward_coeff + "-"  + reversed_term + "*" + backward_coeff  + ")"
 
 
             else:
@@ -2851,7 +2879,6 @@ class MasterOfNetworks(object):
             self.graphicus_maximus.add_edge(pydot.Edge('CICR', 'Ca', arrowhead='normal'))
 
 
-
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
@@ -3034,6 +3061,8 @@ class MasterOfNetworks(object):
                 nde = pydot.Node(name, style='filled', shape= transporter_shape)
                 self.graphicus_maximus.add_node(nde)
 
+            # check and see if any reactants or products are
+
             for name in self.transporters:
 
                 trans = self.transporters[name]
@@ -3042,17 +3071,29 @@ class MasterOfNetworks(object):
 
                     if tag == 'cell_concs' or tag == 'mem_concs':
 
+                        # if we're dealing with an ion, add it to the graph:
+                        if react_name in p.ions_dict and p.ions_dict[react_name] == 1:
+                            node_color = rgba2hex(p.network_cm(self.cell_concs[react_name][p.plot_cell]), alpha_val)
+                            nde = pydot.Node(react_name, style='filled', color=node_color)
+                            self.graphicus_maximus.add_node(nde)
+
+
                         self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
 
                     else:
 
                         if tag == 'env_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.env_concs[react_name][p.plot_cell]))
+                            node_color = rgba2hex(p.network_cm(self.env_concs[react_name][p.plot_cell]), alpha_val)
                             react_name += '_env'
+                            nde = pydot.Node(react_name, style='filled', color=node_color)
+                            self.graphicus_maximus.add_node(nde)
+
 
                         elif tag == 'mit_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]))
+                            node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
                             react_name += '_mit'
+                            nde = pydot.Node(react_name, style='filled', color=node_color)
+                            self.graphicus_maximus.add_node(nde)
 
                         self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
 
@@ -3060,16 +3101,22 @@ class MasterOfNetworks(object):
 
                     if tag == 'cell_concs' or tag == 'mem_concs':
 
+                        # if we're dealing with an ion, add it to the graph:
+                        if prod_name in p.ions_dict and p.ions_dict[prod_name] == 1:
+                            node_color = rgba2hex(p.network_cm(self.cell_concs[prod_name][p.plot_cell]), alpha_val)
+                            nde = pydot.Node(prod_name, style='filled', color=node_color)
+                            self.graphicus_maximus.add_node(nde)
+
                         self.graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
 
                     else:
 
                         if tag == 'env_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.env_concs[prod_name][p.plot_cell]))
+                            node_color = rgba2hex(p.network_cm(self.env_concs[prod_name][p.plot_cell]), alpha_val)
                             prod_name += '_env'
 
                         elif tag == 'mit_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]))
+                            node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
                             prod_name += '_mit'
 
                         nde = pydot.Node(prod_name, style='filled', color=node_color)
@@ -3149,6 +3196,9 @@ class MasterOfNetworks(object):
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
 
+        # alpha value to decrease saturation of graph node colors
+        alpha_val = 0.5
+
         # define some basic colormap scaling properties for the dataset:
         vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
         minc = vals.min()
@@ -3163,7 +3213,7 @@ class MasterOfNetworks(object):
 
             mol = self.molecules[name]
 
-            node_color = colors.rgb2hex(p.network_cm(mol.c_cells[p.plot_cell]))
+            node_color = rgba2hex(p.network_cm(mol.c_cells[p.plot_cell]), alpha_val)
 
             nde = pydot.Node(name, style='filled', color=node_color)
             graphicus_maximus.add_node(nde)
@@ -3249,11 +3299,11 @@ class MasterOfNetworks(object):
                     else:
 
                         if tag == 'env_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_env[p.plot_cell]))
+                            node_color = rgba2hex(p.network_cm(self.molecules[prod_name].c_env[p.plot_cell]), alpha_val)
                             prod_name += '_env'
 
                         elif tag == 'mit_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_mit[p.plot_cell]))
+                            node_color = rgba2hex(p.network_cm(self.molecules[prod_name].c_mit[p.plot_cell]), alpha_val)
                             prod_name += '_mit'
 
                         nde = pydot.Node(prod_name, style='filled', color=node_color)
@@ -3307,7 +3357,7 @@ class MasterOfNetworks(object):
         # activator_alpha_tex = r"\left("
         # inhibitor_alpha_tex = r"\left("
 
-        activator_alpha_tex = r"\left("
+        activator_alpha_tex = ""
         inhibitor_alpha_tex = ""
 
         # set the appropriate value for the absence of an activator or inhibitor expression:
@@ -3440,8 +3490,7 @@ class MasterOfNetworks(object):
 
                     # cap things off with a final parens:
                     activator_alpha += ")"
-                    # activator_alpha_tex += r"\,"
-                    activator_alpha_tex += r"\right)"
+                    activator_alpha_tex += r"\,"
         else:
 
             activator_alpha += dl

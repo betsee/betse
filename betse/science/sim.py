@@ -652,27 +652,11 @@ class Simulator(object):
 
         elif p.metabolism_enabled and self.metabo is not None:
 
-            #re-read the config file:
-            self.metabo.config_dic = sim_config.read_metabo(self.metabo.configPath)
+            logs.log_info("Reinitializing the metabolism reaction network for simulation...")
 
-            self.metabo.core.tissue_init(self, cells, self.metabo.config_dic['biomolecules'], p)
-
-            if self.metabo.reactions is True and len(self.metabo.config_dic['reactions']):
-                # initialize the reactions of metabolism:
-                self.metabo.core.read_reactions(self.metabo.config_dic['reactions'], self, cells, p)
-                self.metabo.core.write_reactions()
-
-            self.metabo.core.create_reaction_matrix()
-
-            if self.metabo.transporters and len(self.metabo.config_dic['transporters']):
-                self.metabo.core.read_transporters(self.metabo.config_dic['transporters'], self, cells, p)
-                self.metabo.core.write_transporters(self, cells, p)
-
-            if self.metabo.channels and len(self.metabo.config_dic['channels']):
-                self.metabo.core.read_channels(self.metabo.config_dic['channels'], self, cells, p)
-
-            if self.metabo.modulators and len(self.metabo.config_dic['modulators']):
-                self.metabo.core.read_modulators(self.metabo.config_dic['modulators'], self, cells, p)
+            # re-read the config file again and reassign everything except for concentrations,
+            #  to capture any user updates:
+            self.metabo.reinitialize(self, cells, p)
 
 
         #-----gene regulatory network initialization-------------------------
@@ -680,7 +664,7 @@ class Simulator(object):
 
             logs.log_info("Initializing gene regulatory network...")
 
-            # create an instance of the metabolism simulator
+            # create an instance of the gene network simulator
             self.grn = MasterOfGenes(p)
             # read in the configuration settings for the metabolism simulator:
             self.grn.read_gene_config(self, cells, p)
@@ -689,33 +673,9 @@ class Simulator(object):
 
             logs.log_info("Reinitializing the gene regulatory network for simulation...")
 
-            # re-read the config file again to capture any user updates:
-            self.grn.config_dic = sim_config.read_metabo(self.grn.configPath)
-
-            self.grn.core.tissue_init(self, cells, self.grn.config_dic['biomolecules'], p)
-
-            react_dic = self.grn.config_dic.get('reactions', None)
-            trans_dic = self.grn.config_dic.get('transporters', None)
-            chan_dic = self.grn.config_dic.get('channels', None)
-            mod_dic = self.grn.config_dic.get('modulators', None)
-
-            if react_dic is not None and len(react_dic) > 0:
-
-                # initialize the reactions of metabolism:
-                self.grn.core.read_reactions(self.grn.config_dic['reactions'], self, cells, p)
-                self.grn.core.write_reactions()
-
-            self.grn.core.create_reaction_matrix()
-
-            if trans_dic is not None and len(trans_dic)>0:
-                self.grn.core.read_transporters(self.grn.config_dic['transporters'], self, cells, p)
-                self.grn.core.write_transporters(self, cells, p)
-
-            if chan_dic is not None and len(chan_dic)>0:
-                self.grn.core.read_channels(self.grn.config_dic['channels'], self, cells, p)
-
-            if mod_dic is not None and len(mod_dic)>0:
-                self.grn.core.read_modulators(self.grn.config_dic['modulators'], self, cells, p)
+            # re-read the config file again and reassign everything except for concentrations,
+            #  to capture any user updates:
+            self.grn.reinitialize(self, cells, p)
 
 
         #-----dynamic creation/anhilation of large Laplacian matrix computators!------------------

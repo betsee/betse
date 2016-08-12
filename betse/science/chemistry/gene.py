@@ -90,6 +90,63 @@ class MasterOfGenes(object):
         else:
             self.modulators = False
 
+    def reinitialize(self, sim, cells, p):
+
+        # create the path to read the metabolism config file:
+
+        self.configPath = os.path.join(p.config_dirname, p.grn_config_filename)
+
+        # read the config file into a dictionary:
+        self.config_dic = sim_config.read_metabo(self.configPath)
+
+        # obtain specific sub-dictionaries from the config file:
+        substances_config = self.config_dic['biomolecules']
+        reactions_config = self.config_dic.get('reactions', None)
+        transporters_config = self.config_dic.get('transporters', None)
+        channels_config = self.config_dic.get('channels', None)
+        modulators_config = self.config_dic.get('modulators', None)
+
+        self.core.tissue_init(sim, cells, substances_config, p)
+
+        if reactions_config is not None:
+            # initialize the reactions of metabolism:
+            self.core.read_reactions(reactions_config, sim, cells, p)
+            self.core.write_reactions()
+            self.core.create_reaction_matrix()
+
+            self.reactions = True
+
+        else:
+            self.core.create_reaction_matrix()
+            self.reactions = False
+
+        # initialize transporters, if defined:
+        if transporters_config is not None:
+            self.core.read_transporters(transporters_config, sim, cells, p)
+            self.core.write_transporters(sim, cells, p)
+
+            self.transporters = True
+
+        else:
+            self.transporters = False
+
+        # initialize channels, if desired:
+        if channels_config is not None:
+            self.core.read_channels(channels_config, sim, cells, p)
+            self.channels = True
+
+        else:
+            self.channels = False
+
+        # initialize modulators, if desired:
+        if modulators_config is not None:
+            self.core.read_modulators(modulators_config, sim, cells, p)
+            self.modulators = True
+
+        else:
+            self.modulators = False
+
+
     def run_core_sim(self, sim, cells, p):
 
         sim.vm = -50e-3*np.ones(sim.mdl)

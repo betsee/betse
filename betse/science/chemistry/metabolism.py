@@ -106,6 +106,75 @@ class MasterOfMetabolism(object):
                                            "Please define 'ATP', 'ADP' and 'Pi' biomolecules in your "
                                            "metabolism configuration file and try again.")
 
+    def reinitialize(self, sim, cells, p):
+
+        # create the path to read the metabolism config file:
+
+        self.configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
+
+        # read the config file into a dictionary:
+        self.config_dic = sim_config.read_metabo(self.configPath)
+
+        # determine if mitochondria are enabled:
+        self.mit_enabled = self.config_dic['enable mitochondria']
+
+        # obtain specific sub-dictionaries from the config file:
+        substances_config = self.config_dic['biomolecules']
+        reactions_config = self.config_dic.get('reactions', None)
+        transporters_config = self.config_dic.get('transporters', None)
+        channels_config = self.config_dic.get('channels', None)
+        modulators_config = self.config_dic.get('modulators', None)
+
+        # initialize the substances of metabolism in a core field encapsulating
+        # Master of Molecules:
+        self.core.tissue_init(sim, cells, substances_config, p)
+
+        if reactions_config is not None and len(reactions_config)>0:
+
+            # initialize the reactions of metabolism:
+            self.core.read_reactions(reactions_config, sim, cells, p)
+            self.core.write_reactions()
+            self.core.create_reaction_matrix()
+
+            self.reactions = True
+
+        else:
+            self.core.create_reaction_matrix()
+            self.reactions = False
+
+        # initialize transporters, if defined:
+        if transporters_config is not None and len(channels_config) > 0:
+            self.core.read_transporters(transporters_config, sim, cells, p)
+            self.core.write_transporters(self, cells, p)
+            self.transporters = True
+
+        else:
+            self.transporters = False
+
+        # initialize any custom channels:-------------
+
+        if channels_config is not None and len(channels_config) > 0:
+            self.core.read_channels(channels_config, sim, cells, p)
+            self.channels = True
+
+        else:
+            self.channels = False
+
+        # initialize any modulators------------------
+
+        if modulators_config is not None and len(modulators_config) > 0:
+            self.core.read_modulators(modulators_config, sim, cells, p)
+            self.modulators = True
+
+        else:
+            self.modulators = False
+
+        # test to make sure the metabolic simulation includes core components:
+        if 'ATP' not in self.core.molecules or 'ADP' not in self.core.molecules or 'Pi' not in self.core.molecules:
+            raise BetseParametersException("This metabolic simulation does not contain key substances."
+                                           "Please define 'ATP', 'ADP' and 'Pi' biomolecules in your "
+                                           "metabolism configuration file and try again.")
+
     def run_core_sim(self, sim, cells, p):
         """
         Runs a simulation of the biochemical reaction network only, with a dummy sim and dyna module.
