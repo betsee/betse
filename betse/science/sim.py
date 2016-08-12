@@ -605,7 +605,7 @@ class Simulator(object):
             if p.transporters_enabled:
 
                 self.molecules.read_transporters(p.transporters_config, self, cells, p)
-                self.molecules.write_transporters(cells,p)
+                self.molecules.write_transporters(self, cells,p)
 
             if p.channels_enabled:
 
@@ -627,7 +627,7 @@ class Simulator(object):
 
             if p.transporters_enabled:
                 self.molecules.read_transporters(p.transporters_config, self, cells, p)
-                self.molecules.write_transporters(cells, p)
+                self.molecules.write_transporters(self, cells, p)
 
             if p.channels_enabled:
                 self.molecules.read_channels(p.channels_config, self, cells, p)
@@ -666,7 +666,7 @@ class Simulator(object):
 
             if self.metabo.transporters and len(self.metabo.config_dic['transporters']):
                 self.metabo.core.read_transporters(self.metabo.config_dic['transporters'], self, cells, p)
-                self.metabo.core.write_transporters(cells, p)
+                self.metabo.core.write_transporters(self, cells, p)
 
             if self.metabo.channels and len(self.metabo.config_dic['channels']):
                 self.metabo.core.read_channels(self.metabo.config_dic['channels'], self, cells, p)
@@ -694,21 +694,27 @@ class Simulator(object):
 
             self.grn.core.tissue_init(self, cells, self.grn.config_dic['biomolecules'], p)
 
-            if self.grn.reactions is True and len(self.grn.config_dic['reactions']):
+            react_dic = self.grn.config_dic.get('reactions', None)
+            trans_dic = self.grn.config_dic.get('transporters', None)
+            chan_dic = self.grn.config_dic.get('channels', None)
+            mod_dic = self.grn.config_dic.get('modulators', None)
+
+            if react_dic is not None and len(react_dic) > 0:
+
                 # initialize the reactions of metabolism:
                 self.grn.core.read_reactions(self.grn.config_dic['reactions'], self, cells, p)
                 self.grn.core.write_reactions()
 
             self.grn.core.create_reaction_matrix()
 
-            if self.grn.transporters and len(self.grn.config_dic['transporters']):
+            if trans_dic is not None and len(trans_dic)>0:
                 self.grn.core.read_transporters(self.grn.config_dic['transporters'], self, cells, p)
-                self.grn.core.write_transporters(cells, p)
+                self.grn.core.write_transporters(self, cells, p)
 
-            if self.grn.channels and len(self.grn.config_dic['channels']):
+            if chan_dic is not None and len(chan_dic)>0:
                 self.grn.core.read_channels(self.grn.config_dic['channels'], self, cells, p)
 
-            if self.grn.modulators and len(self.grn.config_dic['modulators']):
+            if mod_dic is not None and len(mod_dic)>0:
                 self.grn.core.read_modulators(self.grn.config_dic['modulators'], self, cells, p)
 
 

@@ -66,7 +66,7 @@ class MasterOfGenes(object):
         # initialize transporters, if defined:
         if transporters_config is not None:
             self.core.read_transporters(transporters_config, sim, cells, p)
-            self.core.write_transporters(cells, p)
+            self.core.write_transporters(sim, cells, p)
 
             self.transporters = True
 

@@ -1217,7 +1217,7 @@ class MasterOfNetworks(object):
 
             self.reactions[reaction_name].reaction_tex_string = reaction_tex_string
 
-    def write_transporters(self, cells, p):
+    def write_transporters(self, sim, cells, p):
         """
         Reactions are now constructed during the init as strings that are evaluated in eval calls in each time-step.
         This function constructs the evaluation strings for each reaction, given the metadata stored
@@ -1337,6 +1337,7 @@ class MasterOfNetworks(object):
                                                                 tex_list=trans_tex_var_list)
 
         # initialize list that will hold expression for calculating net concentration change
+
             delta_strings_reactants = [in_delta_term_react for x in reactant_names]
             delta_strings_products = [in_delta_term_prod for x in product_names]
 
@@ -1347,27 +1348,51 @@ class MasterOfNetworks(object):
 
                 for out_name in transport_out_list:
 
-                    # get the index for the substance in the molecules database
-                    prod_i = product_names.index(out_name)
+                    if out_name in p.ions_dict:
 
-                    prod_transfer_tag[prod_i] = type_out
+                        if p.ions_dict[out_name] == 1:
 
-                    coeff = product_coeff[prod_i]
+                            ion_ind = sim.get_ion(out_name)
 
-                    # calculate the effect of transfer on transporter's free energy:
-                    eterm = "-{}*self.molecules['{}'].z*p.F*{}".format(coeff, out_name, vmem)
+                            # get the index for the substance in the molecules database
+                            prod_i = product_names.index(out_name)
+
+                            prod_transfer_tag[prod_i] = type_out
+
+                            coeff = product_coeff[prod_i]
+
+                            # calculate the effect of transfer on transporter's free energy:
+                            eterm = "-{}*sim.zs[{}]*p.F*{}".format(coeff, ion_ind, vmem)
+
+                            # write fixed parameter names and values to the LaTeX storage list:
+                            zval = tex_val(sim.zs[ion_ind])
+                            z_tex = "z_{%s} & =" % (out_name)
+                            z_tex += zval
+
+                    else:
+
+                        # get the index for the substance in the molecules database
+                        prod_i = product_names.index(out_name)
+
+                        prod_transfer_tag[prod_i] = type_out
+
+                        coeff = product_coeff[prod_i]
+
+                        # calculate the effect of transfer on transporter's free energy:
+                        eterm = "-{}*self.molecules['{}'].z*p.F*{}".format(coeff, out_name, vmem)
+
+                        # write fixed parameter names and values to the LaTeX storage list:
+                        zval = tex_val(self.molecules[out_name].z)
+                        z_tex = "z_{%s} & =" % (out_name)
+                        z_tex += zval
+
+                    trans_tex_var_list.append(z_tex)
 
                     echem_terms_list.append(eterm)
 
                     # LaTeX version:
                     eterm_tex = r"-%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, out_name, out_name, vmem_tex)
                     echem_tex_string += eterm_tex
-
-                    # write fixed parameter names and values to the LaTeX storage list:
-                    zval = tex_val(self.molecules[out_name].z)
-                    z_tex = "z_{%s} & =" % (out_name)
-                    z_tex += zval
-                    trans_tex_var_list.append(z_tex)
 
                     # update delta string for correct transfer:
                     delta_strings_products[prod_i] = out_delta_term_prod
@@ -1377,26 +1402,49 @@ class MasterOfNetworks(object):
 
                 for in_name in transport_in_list:
 
-                    # get the index for the substance in the molecules database
-                    react_i = reactant_names.index(in_name)
-                    react_transfer_tag[react_i] = type_out
+                    if in_name in p.ions_dict:
 
-                    coeff = reactant_coeff[react_i]
+                        if p.ions_dict[in_name] == 1:
 
-                    # calculate the effect of transfer on transporter's free energy:
-                    eterm = "{}*self.molecules['{}'].z*p.F*{}".format(coeff, in_name, vmem)
+                            ion_ind = sim.get_ion(in_name)
+
+                            # get the index for the substance in the molecules database
+                            react_i = reactant_names.index(in_name)
+                            react_transfer_tag[react_i] = type_out
+
+                            coeff = reactant_coeff[react_i]
+
+                            # calculate the effect of transfer on transporter's free energy:
+                            eterm = "{}*sim.zs[{}]*p.F*{}".format(coeff, ion_ind, vmem)
+
+                            # write fixed parameter names and values to the LaTeX storage list:
+                            zval = tex_val(sim.zs[ion_ind])
+                            z_tex = "z_{%s} & =" % (in_name)
+                            z_tex += zval
+
+                    else:
+
+                        # get the index for the substance in the molecules database
+                        react_i = reactant_names.index(in_name)
+                        react_transfer_tag[react_i] = type_out
+
+                        coeff = reactant_coeff[react_i]
+
+                        # calculate the effect of transfer on transporter's free energy:
+                        eterm = "{}*self.molecules['{}'].z*p.F*{}".format(coeff, in_name, vmem)
+
+                        # write fixed parameter names and values to the LaTeX storage list:
+                        zval = tex_val(self.molecules[in_name].z)
+                        z_tex = "z_{%s} & =" % (in_name)
+                        z_tex += zval
+
+                    trans_tex_var_list.append(z_tex)
 
                     echem_terms_list.append(eterm)
 
                     # LaTeX version:
                     eterm_tex = r"%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, in_name, in_name, vmem_tex)
                     echem_tex_string += eterm_tex
-
-                    # write fixed parameter names and values to the LaTeX storage list:
-                    zval = tex_val(self.molecules[in_name].z)
-                    z_tex = "z_{%s} & =" % (in_name)
-                    z_tex += zval
-                    trans_tex_var_list.append(z_tex)
 
                     # update delta string for correct transfer:
                     delta_strings_reactants[react_i] = out_delta_term_react
@@ -1512,7 +1560,7 @@ class MasterOfNetworks(object):
                 else:
 
                     numo_string_r = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
-                    denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm])/{})**{})".format(tag, name, Km, n)
+                    denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
 
                     tex_name = name + "_{env}"
 
@@ -1634,17 +1682,23 @@ class MasterOfNetworks(object):
             v_tex += vval
             trans_tex_var_list.append(v_tex)
 
-            # calculate the evaluation string expression for the transporter:
-            transporter_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + "(" + \
-                                   forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
 
             # write the final LaTeX expressions:
             if self.transporters[transp_name].delta_Go is not None:
 
                 transporter_tex_string = vm_tex + " = " + v_texo + r"\," + alpha_tex + r"\,\left(" + fwd_tex_coeff + \
                                          "-" + rev_term_tex + r"\," + bwd_tex_coeff + r"\right)"
+
+                # calculate the evaluation string expression for the transporter:
+                transporter_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + "(" + \
+                                          forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
+
+
             else:
                 transporter_tex_string = vm_tex + " = " + v_tex + r"\," + alpha_tex + r"\," + fwd_tex_coeff
+
+                # calculate the evaluation string expression for the transporter:
+                transporter_eval_string = vmax + "*" + activator_alpha + "*" + inhibitor_alpha + "*" + forward_coeff
 
 
             # finalize the fixed parameters LaTeX list:
@@ -2993,9 +3047,11 @@ class MasterOfNetworks(object):
                     else:
 
                         if tag == 'env_concs':
+                            node_color = colors.rgb2hex(p.network_cm(self.env_concs[react_name][p.plot_cell]))
                             react_name += '_env'
 
                         elif tag == 'mit_concs':
+                            node_color = colors.rgb2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]))
                             react_name += '_mit'
 
                         self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
@@ -3009,11 +3065,11 @@ class MasterOfNetworks(object):
                     else:
 
                         if tag == 'env_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_env[p.plot_cell]))
+                            node_color = colors.rgb2hex(p.network_cm(self.env_concs[prod_name][p.plot_cell]))
                             prod_name += '_env'
 
                         elif tag == 'mit_concs':
-                            node_color = colors.rgb2hex(p.network_cm(self.molecules[prod_name].c_mit[p.plot_cell]))
+                            node_color = colors.rgb2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]))
                             prod_name += '_mit'
 
                         nde = pydot.Node(prod_name, style='filled', color=node_color)

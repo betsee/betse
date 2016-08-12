@@ -75,7 +75,7 @@ class MasterOfMetabolism(object):
         # initialize transporters, if defined:
         if transporters_config is not None and len(channels_config) >0:
             self.core.read_transporters(transporters_config, sim, cells, p)
-            self.core.write_transporters(cells, p)
+            self.core.write_transporters(self, cells, p)
             self.transporters = True
 
         else:
