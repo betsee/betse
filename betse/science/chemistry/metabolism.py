@@ -106,6 +106,14 @@ class MasterOfMetabolism(object):
                                            "Please define 'ATP', 'ADP' and 'Pi' biomolecules in your "
                                            "metabolism configuration file and try again.")
 
+        # after primary initialization, check and see if optimization required:
+        opti = self.config_dic.get('optimize network', False)
+
+        if opti is True:
+            logs.log_info("The Metabolic Network is being analyzed for optimal rates...")
+            self.core.optimizer(sim, cells, p)
+            self.reinitialize(sim, cells, p)
+
     def reinitialize(self, sim, cells, p):
 
         # create the path to read the metabolism config file:

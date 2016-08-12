@@ -90,6 +90,14 @@ class MasterOfGenes(object):
         else:
             self.modulators = False
 
+        # after primary initialization, check and see if optimization required:
+        opti = self.config_dic.get('optimize network', False)
+
+        if opti is True:
+            logs.log_info("The Gene Network is being analyzed for optimal rates...")
+            self.core.optimizer(sim, cells, p)
+            self.reinitialize(sim, cells, p)
+
     def reinitialize(self, sim, cells, p):
 
         # create the path to read the metabolism config file:
@@ -145,7 +153,6 @@ class MasterOfGenes(object):
 
         else:
             self.modulators = False
-
 
     def run_core_sim(self, sim, cells, p):
 

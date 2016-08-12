@@ -23,7 +23,7 @@ from betse.util.type.mappings import DynamicValue, DynamicValueDict
 from collections import OrderedDict
 from matplotlib import colors
 from matplotlib import cm
-from scipy.optimize import root
+from scipy.optimize import minimize
 
 from betse.science.tissue.channels import vg_na as vgna
 from betse.science.tissue.channels import vg_nap as vgnap
@@ -1795,50 +1795,6 @@ class MasterOfNetworks(object):
                 i = molecule_keys.index(prod_name)
 
                 self.reaction_matrix[i, j] += coeff
-
-    # FIXME finish these:
-
-    def optimize_and_init(self, sim, cells, p, main_config):
-
-        self.init_sequence(sim, cells, p, main_config)
-
-        self.optimizer(sim, cells, p)
-
-        self.tissue_init(sim, cells, config_substances, p)
-
-    def init_sequence(self, sim, cells, p, main_config):
-
-        # Initialize dictionary mapping from molecule names to Molecule objects
-        self.molecules = OrderedDict({})
-        # Initialize a dict that keeps the Reaction objects:
-        self.reactions = OrderedDict({})
-        # Initialize a dict of Transporter objects:
-        self.transporters = OrderedDict({})
-        # Initialize a dict of Channels:
-        self.channels = OrderedDict({})
-        # Initialize a dict of modulators:
-        self.modulators = OrderedDict({})
-
-        # Initialize reaction rates array to None (filled in later, if applicable):
-        self.reaction_rates = None
-
-        # set the key controlling presence of mitochondria:
-        self.mit_enabled = mit_enabled
-
-        # read in substance properties from the config file, and initialize basic properties:
-        self.read_substances(sim, cells, config_substances, p)
-        self.tissue_init(sim, cells, config_substances, p)
-
-        # write substance growth and decay equations:
-        self.write_growth_and_decay()
-
-        self.ave_cell_vol = cells.cell_vol.mean()  # average cell volume
-
-        # colormap for plotting series of 1D lines:
-        self.plot_cmap = 'viridis'
-
-        self.globals = globals()
-        self.locals = locals()
 
     #------runners------------------------------------------------------------------------------------------------------
     def run_loop(self, t, sim, cells, p):
@@ -3760,24 +3716,30 @@ class MasterOfNetworks(object):
 
             """
 
-            delta_c = np.dot(self.network_opt_M, vmax * r_base)
+            square = ((np.dot(self.network_opt_M, vmax * r_base))**2).sum()
 
-            return delta_c
+            return square
 
-        sol = root(opt_funk, vmax_o, method='lm')
+        # FIXME if having trouble with optimization, try switching out the method for something else...
+        sol = minimize(opt_funk, vmax_o, method ="Nelder-Mead")
 
         self.sol_x = sol.x
 
-        solution_dic = {}
-
-        for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x):
-            solution_dic[rea_name] = vmax
-
         # Absolute path of the YAML file to write this solution to.
-        saveData = paths.join(self.resultsPath, 'OptimizedReactionRates.yaml')
+        saveData = paths.join(self.resultsPath, 'OptimizedReactionRates.csv')
 
-        # Write this solution to this YAML file.
-        yamls.save(solution_dic, saveData)
+
+        with open(saveData, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                quotechar='|', quoting=csv.QUOTE_NONE)
+
+            for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
+
+                if rea_name in self.transporters:
+                    corc= cells.cell_vol.mean() / cells.cell_sa.mean()
+                    vmax = vmax*corc
+
+                eqwriter.writerow([rea_name, vmax])
 
 
         logs.log_info("Optimization-recommended reaction rates: ")
@@ -3785,7 +3747,14 @@ class MasterOfNetworks(object):
 
         for reaction, valmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
 
-            message = reaction + ": " + str(round(valmax,4))
+            if reaction in self.transporters:
+                corc = cells.cell_vol.mean() / cells.cell_sa.mean()
+                valmax = valmax * corc
+                message = reaction + ": " + str(round(valmax, 8))
+
+            else:
+
+                message = reaction + ": " + str(round(valmax,4))
 
             logs.log_info(message)
 
