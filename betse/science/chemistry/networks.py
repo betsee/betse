@@ -202,16 +202,68 @@ class MasterOfNetworks(object):
             else:
                 mol.mit_enabled = False
 
+
         self.cell_concs = DynamicValueDict(cell_concs_mapping)
         self.mem_concs = DynamicValueDict(mem_concs_mapping)
         self.env_concs = DynamicValueDict(env_concs_mapping)
         self.bound_concs = DynamicValueDict(bound_concs_mapping)
 
+        #------------------------------------------
+        # add the charge compensation anion (M-) which doubles as bicarbonate (HCO3-) to molecules for use in
+        # reactions:
+        # self.molecules['M'] = Molecule(sim, cells, p)
+        # self.molecules['M'].name = 'M'
+        #
+        # # set basic transport properties -- diffusion set to 0 as it's handled in sim.
+        #
+        # self.molecules['M'].Dm = 0  # membrane diffusion coefficient [m2/s]
+        # self.molecules['M'].Do = 0  # free diffusion constant in extra and intracellular spaces [m2/s]
+        # self.molecules['M'].z = -1  # charge (oxidation state)
+        #
+        # self.molecules['M'].ignore_ECM_pump = False
+        #
+        # self.molecules['M'].ignoreTJ = False  # ignore TJ?
+        # self.molecules['M'].ignoreGJ = True  # ignore GJ?
+        #
+        # self.molecules['M'].TJ_factor = 1.0
+        #
+        # self.molecules['M'].c_envo = p.env_concs['M']  # initial concentration in the environment [mmol/L]
+        # self.molecules['M'].c_cello = p.cell_concs['M']  # initial concentration in the cytoplasm [mmol/L]
+        #
+        # self.molecules['M'].c_mito = p.cell_concs['M']  # initialized to None if optional fields not present
+        #
+        # # create concentration data arrays. Since 'M' is always defined as an ion in sim, we link the concs:
+        # self.molecules['M'].c_cells = self.cell_concs['M']
+        # self.molecules['M'].c_mems = self.mem_concs['M']
+        # self.molecules['M'].c_env = self.env_concs['M']
+        #
+        # self.molecules['M'].simple_growth = False
+        #
+        # self.molecules['M'].ion_channel_gating = False
+        # self.molecules['M'].active_pumping = False
+        # self.molecules['M'].change_bounds = False
+        #
+        # self.molecules['M'].make_plots = False
+        # self.molecules['M'].make_ani = False
+        #
+        # self.molecules['M'].plot_autoscale = True
+        # self.molecules['M'].plot_max = 0
+        # self.molecules['M'].plot_min = 1
+        #
+        # if self.mit_enabled:
+        #     self.molecules['M'].mit_enabled = True
+        # else:
+        #     self.molecules['M'].mit_enabled = False
+
+        #------------------------------------------
+
         if self.mit_enabled:
             self.mit_concs = DynamicValueDict(mit_concs_mapping)
+            # self.molecules['M'].c_mit = self.mit_concs['M']
 
         else:
             self.mit_concs = None
+            # self.molecules['M'].c_mit = np.zeros(sim.cdl)
 
         # # transform self.molecules into an ordered dictionary so that we have guaranteed indices and order:
         # self.molecules = OrderedDict(self.molecules)
@@ -2078,32 +2130,32 @@ class MasterOfNetworks(object):
 
         """
 
-        if 'CO2' in self.molecules:
+        if 'CO2' in self.molecules:  # FIXME !!! CHECK SYNTAX for stb.bicarbonate_buffer!
 
             if p.ions_dict['H'] == 1:
 
                 # if the simulation contains sim.cHM_mems, use it and update it!
-                sim.cHM_mems = self.CO2.c_cells
-                sim.cHM_env = self.CO2.c_env
+                sim.cHM_mems = self.cell_concs['CO2']
+                sim.cHM_env = self.env_concs['CO2']
 
                 # update the cH and pH fields of sim with potentially new value of sim.iM
-                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(self.CO2.c_cells,
+                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'],
                     sim.cc_cells[sim.iM])
-                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(self.CO2.c_env, sim.cc_env[sim.iM])
+                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
 
                 if self.mit_enabled:
                     # update the cH and pH fields of sim with potentially new value of sim.iM
-                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(self.CO2.c_mit, sim.cc_mit[sim.iM])
+                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
 
             elif p.ions_dict['H'] != 1:
 
                 # update the cH and pH fields of sim with potentially new value of M ion:
-                _, sim.pH_cell = stb.bicarbonate_buffer(self.CO2.c_cells, sim.cc_cells[sim.iM])
-                _, sim.pH_env = stb.bicarbonate_buffer(self.CO2.c_env, sim.cc_env[sim.iM])
+                _, sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'], sim.cc_cells[sim.iM])
+                _, sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
 
                 if self.mit_enabled:
                     # update the cH and pH fields of sim with potentially new value of sim.iM
-                    _, sim.pH_mit = stb.bicarbonate_buffer(self.CO2.c_mit, sim.cc_mit[sim.iM])
+                    _, sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
 
         else:  # if we're not using CO2 in the simulator, use the default p.CO2*0.03
 
@@ -2133,8 +2185,8 @@ class MasterOfNetworks(object):
 
         if 'AMP' in self.molecules:
 
-            numo = (self.ATP.c_cells + 0.5 * self.ADP.c_cells)
-            denomo = (self.ATP.c_cells + self.ADP.c_cells + self.AMP.c_cells)
+            numo = (self.cell_concs['ATP'] + 0.5 * self.cell_concs['ADP'])
+            denomo = (self.cell_concs['ATP'] + self.cell_concs['ADP'] + self.cell_concs['AMP'])
 
             self.chi = numo / denomo
 
@@ -2296,6 +2348,8 @@ class MasterOfNetworks(object):
 
         if self.chi.mean() != 0.0:
             logs.log_info('Energy charge of cell ' + str(np.round(self.chi.mean(), 3)))
+
+        logs.log_info("-------------------------------------------------------------------")
 
     def export_all_data(self, sim, cells, p, message='for auxiliary molecules...'):
 
@@ -3720,8 +3774,13 @@ class MasterOfNetworks(object):
 
             return square
 
+
+        # set bounds for variables:
+        bounds = tuple([(0.0, 100.0) for v in vmax_o])
+
         # FIXME if having trouble with optimization, try switching out the method for something else...
-        sol = minimize(opt_funk, vmax_o, method ="Nelder-Mead")
+        # sol = minimize(opt_funk, vmax_o, method ="COBYLA")
+        sol = minimize(opt_funk, vmax_o, method = 'TNC', bounds=bounds)
 
         self.sol_x = sol.x
 

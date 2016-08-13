@@ -158,6 +158,9 @@ class MasterOfGenes(object):
 
         sim.vm = -50e-3*np.ones(sim.mdl)
 
+        # set molecules to not affect charge for sim-grn test-drives:
+        p.substances_affect_charge = False
+
         # specify a time vector
         loop_time_step_max = p.init_tsteps
         # Maximum number of seconds simulated by the current run.

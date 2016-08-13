@@ -73,7 +73,7 @@ class MasterOfMetabolism(object):
             self.reactions = False
 
         # initialize transporters, if defined:
-        if transporters_config is not None and len(channels_config) >0:
+        if transporters_config is not None and len(transporters_config) >0:
             self.core.read_transporters(transporters_config, sim, cells, p)
             self.core.write_transporters(self, cells, p)
             self.transporters = True
@@ -151,7 +151,7 @@ class MasterOfMetabolism(object):
             self.reactions = False
 
         # initialize transporters, if defined:
-        if transporters_config is not None and len(channels_config) > 0:
+        if transporters_config is not None and len(transporters_config) > 0:
             self.core.read_transporters(transporters_config, sim, cells, p)
             self.core.write_transporters(self, cells, p)
             self.transporters = True
@@ -203,6 +203,8 @@ class MasterOfMetabolism(object):
 
         # initialize Vmem to an initial value common to many cell types:
         sim.vm = -50e-3*np.ones(sim.mdl)
+
+        p.substances_affect_charge = False
 
         # specify a time vector
         loop_time_step_max = p.init_tsteps
