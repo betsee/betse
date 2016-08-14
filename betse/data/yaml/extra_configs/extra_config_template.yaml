@@ -26,7 +26,7 @@ enable mitochondria: True
 
 biomolecules:  # specify the properties of all molecules participating in metabolism
 
-  - name: 'ATP'    # adenosine tri-phosphate
+  - name: 'ATP'    # adenosine tri-phosphate **DO NOT** end name with '_cell', '_env' or '_mit' !
 
     Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
@@ -97,7 +97,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
 
 reactions:
 
-  - name: consume_ATP              # unique identifier for the reaction
+  - name: consume_ATP              # unique identifier for the reaction **DO NOT** end with '_growth' or '_decay'
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
     reactants: ['ATP']              # list of reagents; must be from set of names defined for biomolecules in above
@@ -126,7 +126,7 @@ reactions:
 # Positive flux moves out of the cell
 transporters:
 
-  - name: MCT         # unique identifier for the transporter
+  - name: MCT         # unique identifier for the transporter **DO NOT** end with '_growth' or '_decay'
 
     reaction zone: cell    # reaction zone identifier: 'cell' or 'mit'; where reaction takes place
     reactants: ['Pyr']   # list of reagents; must be from set of names defined for biomolecules in above

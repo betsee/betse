@@ -493,10 +493,10 @@ class MasterOfNetworks(object):
 
                 if self.molecules.c_mito is None:
 
-                    self.conc_handler['mit_name'] = 0
+                    self.conc_handler[mit_name] = 0
 
                 else:
-                    self.conc_handler['mit_name'] = self.molecules[mol_name].c_mito
+                    self.conc_handler[mit_name] = self.molecules[mol_name].c_mito
 
         self.conc_handler_index = {}
 
@@ -3258,6 +3258,8 @@ class MasterOfNetworks(object):
 
             for i, name in enumerate(self.reactions):
 
+                # FIXME need to deal with reaction zone == mit!
+
                 rea = self.reactions[name]
 
                 for i, react_name in enumerate(rea.reactants_list):
@@ -3676,17 +3678,29 @@ class MasterOfNetworks(object):
         chemical reactions, and transporters) that match to a user-specified set of target
         concentrations for all substances at steady-state.
 
-        Returns
-        ---------
-        vmax_vect              Array of maximum reaction rates
-        optimized_config       optimized config file
+        The optimization uses basin-hopping, a randomized function optimization technique
+        similar/analogous to genetic algorithm searching.
+
+        The optimization is performed using cell, environmental, and mitochondrial
+        concentrations defined in the network config file as targets to fit to.
+
+        The optimization aims to find the global minimum of the network, which represents the
+        steady state. Specifically, it minimizes the chi-square value of the set of calculated vs
+        target concentrations given a certain maximum rate vector.
+
+        Calling this method will write a csv file containing the optimized reaction rates
+        to the results folder of the main simulation. It also prints these values to the
+        screen, and generates a graph of the reaction network that has been optimized.
+
 
         """
+
+        # FIXME need to deal with mitochondrial reactions and transporters
 
         # import pydot
         import networkx as nx
 
-        mssg = "Optimizing with {} in {} timesteps".format(self.opti_method, self.opti_N)
+        mssg = "Optimizing with {} in {} itterations".format(self.opti_method, self.opti_N)
         logs.log_info(mssg)
 
         # set the vmem to a generalized value common to many cell types:
@@ -3745,6 +3759,49 @@ class MasterOfNetworks(object):
 
                 self.network_opt_M[row_i, col_j] = 1.0*edge_coeff
 
+        # initialize guess vector for reaction rates (they will be extracted from file):
+        vmax_o = np.ones(len(self.react_handler))
+
+        for i, rea_name in enumerate(self.react_handler):
+
+            if rea_name.endswith('_growth'):
+
+                name = rea_name[:-7]
+
+                vmax_o[i] = self.molecules[name].r_production
+
+            elif rea_name.endswith('_decay'):
+
+                name = rea_name[:-6]
+
+                vmax_o[i] = self.molecules[name].r_decay
+
+            elif rea_name in self.reactions:
+
+                # FIXME deal wtih mitochondria
+
+                vmax_o[i] = self.reactions[rea_name].vmax
+
+            elif rea_name in self.transporters:
+
+                # FIXME deal with mitochondrial
+
+                corc = cells.cell_sa.mean()/cells.cell_vol.mean()
+
+                vmax_o[i] = self.transporters[rea_name].vmax*corc
+
+        logs.log_info("Initiating optimization with reaction rates: ")
+        logs.log_info("-----------------------------------------")
+
+        # tell the user what initial values they're using:
+        for i, nme in enumerate(self.react_handler):
+
+            msg = "{}: {}".format(nme, vmax_o[i])
+
+            logs.log_info(msg)
+
+        logs.log_info("-----------------------------------------")
+
         # set all pre-existing reaction maxima to 1.0:
         for mol_name in self.molecules:
 
@@ -3763,8 +3820,14 @@ class MasterOfNetworks(object):
         # calculate the reaction rates at the target concentrations:
         r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
 
-        # initial guess for reaction rates:
-        vmax_o = 1 * np.ones(len(self.react_handler))
+        # create a vector of target concentrations:
+        c_base = np.asarray([self.conc_handler[cname] for cname in self.conc_handler])
+        c_fix = np.ones(len(self.conc_handler))
+
+        # get rid of zeros so it's not dividing by zero:
+        zero_c = (c_base == 0.0).nonzero()
+        c_base[zero_c] = 1.0
+        c_fix[zero_c] = 0.0
 
         # define the optimization callable function
         def opt_funk(vmax):
@@ -3774,26 +3837,41 @@ class MasterOfNetworks(object):
 
             """
 
-            square = ((np.dot(self.network_opt_M, np.abs(vmax)*r_base))**2).sum()
+            chi_val = (((np.dot(self.network_opt_M, np.abs(vmax)*r_base))**2)/c_base)*c_fix
 
-            return square
+            chi_square = chi_val.sum()
+
+            return chi_square
+
+
+        def print_fun(x, f, accepted):
+            mssg = "at minimum {} accepted {}".format(f, accepted)
+            logs.log_info(mssg)
 
         sol = basinhopping(opt_funk, vmax_o, T=1.0, stepsize=0.5, niter=self.opti_N,
-            minimizer_kwargs={'method': self.opti_method})
+            minimizer_kwargs={'method': self.opti_method}, callback=print_fun, niter_success=500)
 
         self.sol_x = np.abs(sol.x)
 
         # Absolute path of the YAML file to write this solution to.
         saveData = paths.join(self.resultsPath, 'OptimizedReactionRates.csv')
 
+        finalmess = "Final Chi Square value: {}".format(sol.fun)
+        logs.log_info(finalmess)
+
 
         with open(saveData, 'w', newline='') as csvfile:
             eqwriter = csv.writer(csvfile, delimiter='\t',
                 quotechar='|', quoting=csv.QUOTE_NONE)
 
+            eqwriter.writerow(['Chi square value', sol.fun])
+
             for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
 
+
                 if rea_name in self.transporters:
+
+                    # FIXME deal with mitochondria
                     corc= cells.cell_vol.mean() / cells.cell_sa.mean()
                     vmax = vmax*corc
 
