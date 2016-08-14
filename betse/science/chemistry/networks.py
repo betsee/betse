@@ -18,12 +18,11 @@ from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from betse.util.path import paths
-from betse.lib.yaml import yamls
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
 from collections import OrderedDict
 from matplotlib import colors
 from matplotlib import cm
-from scipy.optimize import minimize
+from scipy.optimize import basinhopping
 
 from betse.science.tissue.channels import vg_na as vgna
 from betse.science.tissue.channels import vg_nap as vgnap
@@ -1949,8 +1948,8 @@ class MasterOfNetworks(object):
 
             self.mit.update(sim, cells, p)
 
-        # manage pH in cells, environment and mitochondria:
-        self.pH_handling(sim, cells, p)
+        # # manage pH in cells, environment and mitochondria:
+        # self.pH_handling(sim, cells, p)
 
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
 
@@ -2121,65 +2120,65 @@ class MasterOfNetworks(object):
 
     # ------Utility Methods--------------------------------------------------------------------------------------------
 
-    def pH_handling(self, sim, cells, p):
-        """
-        Molecules may contain dissolved carbon dioxide as a substance,
-        and reactions/transporters may act on H+ levels via bicarbonate
-        (M-). Therefore, update pH in cells, environment, and
-        if enabled, mitochondria.
-
-        """
-
-        if 'CO2' in self.molecules:  # FIXME !!! CHECK SYNTAX for stb.bicarbonate_buffer!
-
-            if p.ions_dict['H'] == 1:
-
-                # if the simulation contains sim.cHM_mems, use it and update it!
-                sim.cHM_mems = self.cell_concs['CO2']
-                sim.cHM_env = self.env_concs['CO2']
-
-                # update the cH and pH fields of sim with potentially new value of sim.iM
-                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'],
-                    sim.cc_cells[sim.iM])
-                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
-
-                if self.mit_enabled:
-                    # update the cH and pH fields of sim with potentially new value of sim.iM
-                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
-
-            elif p.ions_dict['H'] != 1:
-
-                # update the cH and pH fields of sim with potentially new value of M ion:
-                _, sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'], sim.cc_cells[sim.iM])
-                _, sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
-
-                if self.mit_enabled:
-                    # update the cH and pH fields of sim with potentially new value of sim.iM
-                    _, sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
-
-        else:  # if we're not using CO2 in the simulator, use the default p.CO2*0.03
-
-            CO2 = p.CO2 * 0.03  # get the default concentration of CO2
-
-            if p.ions_dict['H'] == 1:
-
-                # update the cH and pH fields of sim with potentially new value of sim.iM
-                sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
-                sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
-
-                if self.mit_enabled:
-                    # update the cH and pH fields of sim with potentially new value of sim.iM
-                    sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
-
-            elif p.ions_dict['H'] != 1:
-
-                # update the cH and pH fields of sim with potentially new value of sim.iM
-                _, sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
-                _, sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
-
-                if self.mit_enabled:
-                    # update the cH and pH fields of sim with potentially new value of sim.iM
-                    _, sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+    # def pH_handling(self, sim, cells, p):
+    #     """
+    #     Molecules may contain dissolved carbon dioxide as a substance,
+    #     and reactions/transporters may act on H+ levels via bicarbonate
+    #     (M-). Therefore, update pH in cells, environment, and
+    #     if enabled, mitochondria.
+    #
+    #     """
+    #
+    #     if 'CO2' in self.molecules:  # FIXME !!! CHECK SYNTAX for stb.bicarbonate_buffer!
+    #
+    #         if p.ions_dict['H'] == 1:
+    #
+    #             # if the simulation contains sim.cHM_mems, use it and update it!
+    #             sim.cHM_mems = self.cell_concs['CO2']
+    #             sim.cHM_env = self.env_concs['CO2']
+    #
+    #             # update the cH and pH fields of sim with potentially new value of sim.iM
+    #             sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'],
+    #                 sim.cc_cells[sim.iM])
+    #             sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
+    #
+    #             if self.mit_enabled:
+    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
+    #                 sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
+    #
+    #         elif p.ions_dict['H'] != 1:
+    #
+    #             # update the cH and pH fields of sim with potentially new value of M ion:
+    #             _, sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'], sim.cc_cells[sim.iM])
+    #             _, sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
+    #
+    #             if self.mit_enabled:
+    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
+    #                 _, sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
+    #
+    #     else:  # if we're not using CO2 in the simulator, use the default p.CO2*0.03
+    #
+    #         CO2 = p.CO2 * 0.03  # get the default concentration of CO2
+    #
+    #         if p.ions_dict['H'] == 1:
+    #
+    #             # update the cH and pH fields of sim with potentially new value of sim.iM
+    #             sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
+    #             sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
+    #
+    #             if self.mit_enabled:
+    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
+    #                 sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+    #
+    #         elif p.ions_dict['H'] != 1:
+    #
+    #             # update the cH and pH fields of sim with potentially new value of sim.iM
+    #             _, sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
+    #             _, sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
+    #
+    #             if self.mit_enabled:
+    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
+    #                 _, sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
 
     def energy_charge(self, sim):
 
@@ -3687,6 +3686,9 @@ class MasterOfNetworks(object):
         # import pydot
         import networkx as nx
 
+        mssg = "Optimizing with {} in {} timesteps".format(self.opti_method, self.opti_N)
+        logs.log_info(mssg)
+
         # set the vmem to a generalized value common to many cell types:
         sim.vm[:] = -50e-3
 
@@ -3747,8 +3749,10 @@ class MasterOfNetworks(object):
         for mol_name in self.molecules:
 
             mol = self.molecules[mol_name]
-            mol.r_production = 1.0
-            mol.r_decay = 1.0
+
+            if mol.simple_growth is True:
+                mol.r_production = 1.0
+                mol.r_decay = 1.0
 
         for rea_name in self.reactions:
             self.reactions[rea_name].vmax = 1.0
@@ -3770,19 +3774,14 @@ class MasterOfNetworks(object):
 
             """
 
-            square = ((np.dot(self.network_opt_M, vmax * r_base))**2).sum()
+            square = ((np.dot(self.network_opt_M, np.abs(vmax)*r_base))**2).sum()
 
             return square
 
+        sol = basinhopping(opt_funk, vmax_o, T=1.0, stepsize=0.5, niter=self.opti_N,
+            minimizer_kwargs={'method': self.opti_method})
 
-        # set bounds for variables:
-        bounds = tuple([(0.0, 100.0) for v in vmax_o])
-
-        # FIXME if having trouble with optimization, try switching out the method for something else...
-        # sol = minimize(opt_funk, vmax_o, method ="COBYLA")
-        sol = minimize(opt_funk, vmax_o, method = 'TNC', bounds=bounds)
-
-        self.sol_x = sol.x
+        self.sol_x = np.abs(sol.x)
 
         # Absolute path of the YAML file to write this solution to.
         saveData = paths.join(self.resultsPath, 'OptimizedReactionRates.csv')
