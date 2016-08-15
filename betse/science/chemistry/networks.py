@@ -1058,6 +1058,11 @@ class MasterOfNetworks(object):
 
                     denomo_string_Q += "(self.mit_concs['{}']".format(name)
 
+                else:
+                    logs.log_warning("Reaction defined on zone 'mit', but mitochondria disabled!")
+                    logs.log_warning("Running reaction in cell zone!")
+                    tex_name = name
+
 
                 denomo_string_Q += "**{})".format(coeff)
 
@@ -1388,10 +1393,10 @@ class MasterOfNetworks(object):
 
                 vmem = "self.mit.Vmit"  # get the transmembrane voltage for this category
 
-                in_delta_term_react = "-self.transporters['{}'].flux*(self.mit_sa/self.mit_vol)".\
+                in_delta_term_react = "-self.transporters['{}'].flux*(self.mit.mit_sa/self.mit.mit_vol)".\
                                                                         format(transp_name)
 
-                in_delta_term_prod = "self.transporters['{}'].flux*(self.mit_sa/self.mit_vol)".\
+                in_delta_term_prod = "self.transporters['{}'].flux*(self.mit.mit_sa/self.mit.mit_vol)".\
                                                                 format(transp_name)
 
                 out_delta_term_react = "-self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
@@ -1818,6 +1823,8 @@ class MasterOfNetworks(object):
 
         """
 
+        # FIXME! This is totally f%^%ed up -- it will only work for reactions in the cell zone!
+
         logs.log_info("Writing reaction network matrix...")
         n_reacts = len(self.molecules) + len(self.reactions)
         n_mols = len(self.molecules)
@@ -1900,7 +1907,7 @@ class MasterOfNetworks(object):
         # get the name of the specific substance:
         for name, deltac in zip(self.molecules, self.delta_conc):
 
-            obj = self.molecules[name]
+            obj = self.molecules[name]  # FIXME this will only work for reaction zone cell!
 
             # update concentration due to growth/decay and chemical reactions:
             obj.c_cells = obj.c_cells + deltac*p.dt
@@ -1931,6 +1938,8 @@ class MasterOfNetworks(object):
             # ensure no negs:
             stb.no_negs(obj.c_mems)
 
+        if p.substances_affect_charge:
+
             # calculate the charge density this substance contributes to cell and environment:
             obj_Q_cell = p.F * obj.c_mems * obj.z
 
@@ -1938,8 +1947,6 @@ class MasterOfNetworks(object):
             # add that contribution to the total sum:
             net_Q_cell = net_Q_cell + obj_Q_cell
             net_Q_env = net_Q_env + obj_Q_env
-
-        if p.substances_affect_charge:
             # update charge in the cell and environment of the main bioelectric simulator:
             sim.rho_cells = sim.rho_cells + net_Q_cell
             sim.rho_env = sim.rho_env + net_Q_env
@@ -3782,7 +3789,9 @@ class MasterOfNetworks(object):
 
         # set the vmem and Vmit to generalized values common to many cell types:
         sim.vm[:] = -50e-3
-        self.mit.Vmit[:] = -175.0e-3
+
+        if self.mit_enabled:
+            self.mit.Vmit[:] = -175.0e-3
 
         self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
 

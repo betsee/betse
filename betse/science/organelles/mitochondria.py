@@ -24,9 +24,9 @@ class Mito(object):
     def __init__(self, sim, cells, p):
 
         # init basic fields
-        self.mit_vol = 0.3*cells.cell_vol     # mit volume
+        self.mit_vol = 0.15*cells.cell_vol     # mit volume
         self.mit_sa = 0.3*cells.cell_sa      # mit surface areas
-        self.Vmit = -150.0e-3*np.ones(sim.cdl)   # initial transmembrane voltage for mit
+        self.Vmit = -100.0e-3*np.ones(sim.cdl)   # initial transmembrane voltage for mit
         self.Q = np.zeros(sim.cdl)     # total charge in mit
         self.cm_mit = self.mit_sa*p.cm    # mit membrane capacitance
 
@@ -48,7 +48,7 @@ class Mito(object):
     def get_v(self, sim, p):
 
         self.Q = stb.get_charge(sim.cc_mit, self.zmit, self.mit_vol, p)
-        self.Vmit = 0.1*(1/self.cm_mit)*self.Q
+        self.Vmit = (1/self.cm_mit)*self.Q
 
     def update(self, sim, cells, p):
 
