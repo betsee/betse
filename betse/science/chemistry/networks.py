@@ -491,7 +491,7 @@ class MasterOfNetworks(object):
 
                 mit_name = mol_name + '_mit'
 
-                if self.molecules.c_mito is None:
+                if self.molecules[mol_name].c_mito is None:
 
                     self.conc_handler[mit_name] = 0
 
@@ -1386,12 +1386,12 @@ class MasterOfNetworks(object):
 
                 type_out = 'cell_concs'
 
-                vmem = "sim.metabo.mit.Vmit"  # get the transmembrane voltage for this category
+                vmem = "self.mit.Vmit"  # get the transmembrane voltage for this category
 
-                in_delta_term_react = "-self.transporters['{}'].flux*(sim.metabo.mit_sa/sim.metabo.mit_vol)".\
+                in_delta_term_react = "-self.transporters['{}'].flux*(self.mit_sa/self.mit_vol)".\
                                                                         format(transp_name)
 
-                in_delta_term_prod = "self.transporters['{}'].flux*(sim.metabo.mit_sa/sim.metabo.mit_vol)".\
+                in_delta_term_prod = "self.transporters['{}'].flux*(self.mit_sa/self.mit_vol)".\
                                                                 format(transp_name)
 
                 out_delta_term_react = "-self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
@@ -1951,6 +1951,75 @@ class MasterOfNetworks(object):
         # # manage pH in cells, environment and mitochondria:
         # self.pH_handling(sim, cells, p)
 
+    def run_dummy_loop(self,t,sim,cells,p):
+
+        gad_rates_o = []
+
+        gad_targs = []
+
+        init_rates = []
+
+        gad_rates = []
+
+        for mol in self.molecules:
+
+            # calculate rates of growth/decay:
+            gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, self.globals, self.locals))
+
+            gad_targs.append(self.molecules[mol].growth_targets_cell)
+
+            init_rates.append(np.zeros(sim.cdl))
+
+        for mat, trgs, rts in zip(init_rates, gad_targs, gad_rates_o):
+
+            mat[trgs] = rts[trgs]
+
+            gad_rates.append(mat)
+
+        gad_rates = np.asarray(gad_rates)
+
+        # ... and rates of chemical reactions:
+        self.reaction_rates = np.asarray(
+            [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
+
+        # stack into an integrated data structure:
+        if len(self.reaction_rates) > 0:
+            all_rates = np.vstack((gad_rates, self.reaction_rates))
+
+        else:
+            all_rates = gad_rates
+
+        # calculate concentration rate of change using linear algebra:
+        self.delta_conc = np.dot(self.reaction_matrix, all_rates)
+
+        # get the name of the specific substance:
+        for name, deltac in zip(self.molecules, self.delta_conc):
+
+            obj = self.molecules[name]
+
+            # update concentration due to growth/decay and chemical reactions:
+            obj.c_cells = obj.c_cells + deltac*p.dt
+
+            # if pumping is enabled:
+            if obj.active_pumping:
+                obj.pump(sim, cells, p)
+
+            # update the substance on the inside of the cell:
+            obj.updateIntra(sim, self, cells, p)
+
+            # calculate energy charge in the cell:
+            self.energy_charge(sim)
+
+            # average the environmental concs instead of costly diffusion:
+            self.env_concs[name][:] = self.env_concs[name].mean()
+
+            # ensure no negs:
+            stb.no_negs(obj.c_mems)
+
+        if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
+
+            self.mit.update(sim, cells, p)
+
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
 
         # call statement to evaluate:
@@ -2332,10 +2401,10 @@ class MasterOfNetworks(object):
 
             if 'ETC' in self.transporters:
 
-                rate = 0.5 * 3600 * 1e15 * self.mit.mit_vol.mean() * self.ETC.rate.mean()
+                rate = 0.5 * 3600 * 1e15 * self.mit.mit_vol.mean() * self.transporters['ETC'].rate.mean()
 
                 if 'ETC_ROS' in self.transporters:
-                    rate = rate + 3600 * 1e15 * self.mit.mit_vol.mean() * self.ETC_ROS.rate.mean()
+                    rate = rate + 3600 * 1e15 * self.mit.mit_vol.mean() * self.transporters['ETC_ROS'].rate.mean()
 
                 logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
 
@@ -3003,7 +3072,7 @@ class MasterOfNetworks(object):
                         node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
                         react_name += '_mit'
                         nde = pydot.Node(react_name, style='filled', color=node_color)
-                        graphicus_maximus.add_node(nde)
+                        self.graphicus_maximus.add_node(nde)
 
                     self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
 
@@ -3013,7 +3082,7 @@ class MasterOfNetworks(object):
                         node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
                         prod_name += '_mit'
                         nde = pydot.Node(prod_name, style='filled', color=node_color)
-                        graphicus_maximus.add_node(nde)
+                        self.graphicus_maximus.add_node(nde)
 
                     self.graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
 
@@ -3263,10 +3332,18 @@ class MasterOfNetworks(object):
                 rea = self.reactions[name]
 
                 for i, react_name in enumerate(rea.reactants_list):
+
+                    if rea.reaction_zone == 'mit':
+                        react_name += '_mit'
+
                     rea_coeff = rea.reactants_coeff[i]
                     graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff = rea_coeff))
 
                 for j, prod_name in enumerate(rea.products_list):
+
+                    if rea.reaction_zone == 'mit':
+                        prod_name += '_mit'
+
                     prod_coeff = rea.products_coeff[j]
                     graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff))
 
@@ -3703,41 +3780,51 @@ class MasterOfNetworks(object):
         mssg = "Optimizing with {} in {} itterations".format(self.opti_method, self.opti_N)
         logs.log_info(mssg)
 
-        # set the vmem to a generalized value common to many cell types:
+        # set the vmem and Vmit to generalized values common to many cell types:
         sim.vm[:] = -50e-3
+        self.mit.Vmit[:] = -175.0e-3
 
         self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
 
+        # create the reaction and concentration handlers, which organize different kinds of reactions and
+        # concentrations:
         self.build_indices()
 
         # create a complete graph using pydot and the network plotting method:
         grapha = self.build_reaction_network(p)
 
-        # if saving is enabled, export a graph of the network used in the optimization:
+        # if saving is enabled, export the graph of the network used in the optimization:
         if p.autosave is True and p.plot_network is True:
             savename = self.imagePath + 'OptimizedNetworkGraph' + '.svg'
             grapha.write_svg(savename)
 
-        # convert the graph into a networkx format so it's easy to manipulate
+        # convert the graph into a networkx format so it's easy to manipulate:
         network = nx.from_pydot(grapha)
 
-        # build a network matrix in order to perform the optimization:
+        # build a network matrix in order to easily organize reaction relationships needed for the optimization:
         self.network_opt_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
 
+        # build the reaction matrix based on the network reaction graph:
         for node_a, node_b in network.edges():
 
+            # get the coefficient of stoichiometry used in the reaction relationship:
             edge_coeff = network.edge[node_a][node_b][0]['coeff']
 
+            # when building the graph, the node shape was used to signify the item:
             node_type_a = network.node[node_a].get('shape', None)
             node_type_b = network.node[node_b].get('shape', None)
 
+            # if node a is a concentration and b is a reaction, we must be dealing with a reactant:
             if node_type_a is None and node_type_b == 'rect':
 
+                # find the numerical index of the reactant (node_a) and reaction (node_b) in the handlers:
                 row_i = self.conc_handler_index[node_a]
                 col_j = self.react_handler_index[node_b]
 
+                # add them to the optimization matrix:
                 self.network_opt_M[row_i, col_j] = -1*edge_coeff
 
+            # perform a similar type of reasoning for the opposite relationship (indicating a product):
             elif node_type_a == 'rect' and node_type_b is None:
 
                 row_i = self.conc_handler_index[node_b]
@@ -3745,6 +3832,8 @@ class MasterOfNetworks(object):
 
                 self.network_opt_M[row_i, col_j] = 1*edge_coeff
 
+            # the next two blocks to do exactly the same thing as above, except with transporters, which
+            # have a diamond shape as they're treated differently:
             elif node_type_a is None and node_type_b == 'diamond':
 
                 row_i = self.conc_handler_index[node_a]
@@ -3759,7 +3848,7 @@ class MasterOfNetworks(object):
 
                 self.network_opt_M[row_i, col_j] = 1.0*edge_coeff
 
-        # initialize guess vector for reaction rates (they will be extracted from file):
+        # initialize guess vector for reaction rates (they will be extracted from user vmax settings in file):
         vmax_o = np.ones(len(self.react_handler))
 
         for i, rea_name in enumerate(self.react_handler):
@@ -3778,15 +3867,21 @@ class MasterOfNetworks(object):
 
             elif rea_name in self.reactions:
 
-                # FIXME deal wtih mitochondria
-
                 vmax_o[i] = self.reactions[rea_name].vmax
 
             elif rea_name in self.transporters:
 
-                # FIXME deal with mitochondrial
+                if self.transporters[rea_name].reaction_zone == 'cell':
 
-                corc = cells.cell_sa.mean()/cells.cell_vol.mean()
+                    corc = cells.cell_sa.mean()/cells.cell_vol.mean()
+
+                elif self.transporters[rea_name].reaction_zone == 'mit' and self.mit_enabled is True:
+
+                    corc = self.mit.mit_sa.mean()/self.mit.mit_vol.mean()
+
+                else:
+                    corc = cells.cell_sa.mean() / cells.cell_vol.mean()
+                    logs.log_warning("Transporter reaction zone defined as 'mit', yet mitochondria disabled!")
 
                 vmax_o[i] = self.transporters[rea_name].vmax*corc
 
@@ -3824,7 +3919,7 @@ class MasterOfNetworks(object):
         c_base = np.asarray([self.conc_handler[cname] for cname in self.conc_handler])
         c_fix = np.ones(len(self.conc_handler))
 
-        # get rid of zeros so it's not dividing by zero:
+        # get rid of zeros so the optimization function calculation of chi squared is not dividing by zero:
         zero_c = (c_base == 0.0).nonzero()
         c_base[zero_c] = 1.0
         c_fix[zero_c] = 0.0
@@ -3843,23 +3938,43 @@ class MasterOfNetworks(object):
 
             return chi_square
 
+        # initialize a list that will hold alternative solutions:
+        alt_sols = []
 
+        # and a messaging function to give feedback to the user on basin hopping progress:
         def print_fun(x, f, accepted):
+
             mssg = "at minimum {} accepted {}".format(f, accepted)
             logs.log_info(mssg)
 
-        sol = basinhopping(opt_funk, vmax_o, T=1.0, stepsize=0.5, niter=self.opti_N,
-            minimizer_kwargs={'method': self.opti_method}, callback=print_fun, niter_success=500)
+            if f <= 0.01:
+            # save alternative solutions with exceptional chi sqr values
+                alt_sols.append(x)
 
+        # run the basin hopping algorithm (...and cross fingers; this is "lucky algorithm"!)
+        sol = basinhopping(opt_funk, vmax_o, T=1.0, stepsize=0.5, niter=self.opti_N,
+            minimizer_kwargs={'method': self.opti_method}, callback=print_fun)
+
+        rkeys = list(self.react_handler.keys())
+
+        # Absolute path to  write alt solutions:
+        saveAlts = paths.join(self.resultsPath, 'AlternativeSolutions.csv')
+        with open(saveAlts, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                quotechar='|', quoting=csv.QUOTE_NONE)
+            for soli in alt_sols:
+                for ss, rk in zip(soli, rkeys):
+                    ss = np.abs(ss)
+                    eqwriter.writerow([rk, ss])
+                eqwriter.writerow(['------------'])
+
+        # define the solution vector in a convenient way so we can save and print it:
         self.sol_x = np.abs(sol.x)
 
         # Absolute path of the YAML file to write this solution to.
         saveData = paths.join(self.resultsPath, 'OptimizedReactionRates.csv')
 
-        finalmess = "Final Chi Square value: {}".format(sol.fun)
-        logs.log_info(finalmess)
-
-
+        # save the results to file:
         with open(saveData, 'w', newline='') as csvfile:
             eqwriter = csv.writer(csvfile, delimiter='\t',
                 quotechar='|', quoting=csv.QUOTE_NONE)
@@ -3868,15 +3983,29 @@ class MasterOfNetworks(object):
 
             for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
 
-
                 if rea_name in self.transporters:
 
-                    # FIXME deal with mitochondria
+                    if self.transporters[rea_name].reaction_zone == 'cell':
+
+                        corc = cells.cell_vol.mean() / cells.cell_sa.mean()
+
+                    elif self.transporters[rea_name].reaction_zone == 'mit' and self.mit_enabled is True:
+
+                        corc = self.mit.mit_vol.mean() / self.mit.mit_sa.mean()
+
+                    else:
+
+                        corc = cells.cell_vol.mean() / cells.cell_sa.mean()
+                        logs.log_warning("Transporter reaction zone defined as 'mit', yet mitochondria disabled.")
+
                     corc= cells.cell_vol.mean() / cells.cell_sa.mean()
                     vmax = vmax*corc
 
                 eqwriter.writerow([rea_name, vmax])
 
+        # give the user a message about the results of basin hopping optimization:
+        finalmess = "Final Chi Square value: {}".format(sol.fun)
+        logs.log_info(finalmess)
 
         logs.log_info("Optimization-recommended reaction rates: ")
         logs.log_info("-----------------------------------------")

@@ -75,7 +75,7 @@ class MasterOfMetabolism(object):
         # initialize transporters, if defined:
         if transporters_config is not None and len(transporters_config) >0:
             self.core.read_transporters(transporters_config, sim, cells, p)
-            self.core.write_transporters(self, cells, p)
+            self.core.write_transporters(sim, cells, p)
             self.transporters = True
 
         else:
@@ -155,7 +155,7 @@ class MasterOfMetabolism(object):
         # initialize transporters, if defined:
         if transporters_config is not None and len(transporters_config) > 0:
             self.core.read_transporters(transporters_config, sim, cells, p)
-            self.core.write_transporters(self, cells, p)
+            self.core.write_transporters(sim, cells, p)
             self.transporters = True
 
         else:
@@ -195,8 +195,8 @@ class MasterOfMetabolism(object):
 
         """
 
-        # point sim.metabo to this object
-        sim.metabo = self
+        # # point sim.metabo to this object
+        # sim.metabo = self
 
         # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
         sim.met_concs = {'cATP': self.core.mem_concs['ATP'],
@@ -231,23 +231,23 @@ class MasterOfMetabolism(object):
             if self.transporters:
                 self.core.run_loop_transporters(t, sim, self.core, cells, p)
 
-            if self.channels:
-                self.core.run_loop_channels(sim, self.core, cells, p)
+            # if self.channels:
+            #     self.core.run_loop_channels(sim, self.core, cells, p)
+            #
+            # if self.modulators:
+            #     self.core.run_loop_modulators(sim, self.core, cells, p)
 
-            if self.modulators:
-                self.core.run_loop_modulators(sim, self.core, cells, p)
+            self.core.run_dummy_loop(t, sim, cells, p)
 
-            self.core.run_loop(t, sim, cells, p)
-
-            # update core ions in sim:
-            for i in sim.movingIons:
-
-                # update the ion concentration intra-cellularly:
-                sim.cc_mems[i][:], sim.cc_cells[i][:], _ = \
-                    stb.update_intra(sim, cells, sim.cc_mems[i][:],
-                        sim.cc_cells[i][:],
-                        sim.D_free[i],
-                        sim.zs[i], p)
+            # # update core ions in sim:
+            # for i in sim.movingIons:
+            #
+            #     # update the ion concentration intra-cellularly:
+            #     sim.cc_mems[i][:], sim.cc_cells[i][:], _ = \
+            #         stb.update_intra(sim, cells, sim.cc_mems[i][:],
+            #             sim.cc_cells[i][:],
+            #             sim.D_free[i],
+            #             sim.zs[i], p)
 
 
             if t in tsamples:
