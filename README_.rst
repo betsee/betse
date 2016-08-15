@@ -80,62 +80,52 @@ BETSE simulates biorealistic electrochemical phenomena in `gap junction`_\
    -  Cell cluster regions localizing `ion channel`_ activity, typically
       signifying disparate types of adjacent tissue.
 
-BETSE offers a rich biological toolset for aggregating simple concepts
-into complex simulations.
+To assemble simple concepts into complex simulations, BETSE provides a rich
+biological toolset consisting of:
 
 Ions
 ----
 
-Simulations may enable arbitrary combinations of the seven principal
-ions underpinning bioelectrical signals:
-`Na+ <https://en.wikipedia.org/wiki/Sodium_in_biology>`__,
-`K+ <https://en.wikipedia.org/wiki/Potassium_in_biology>`__,
-`Cl- <https://en.wikipedia.org/wiki/Chloride>`__,
-`Ca2+ <https://en.wikipedia.org/wiki/Calcium_in_biology>`__,
-`H+ <https://en.wikipedia.org/wiki/Hydron_(chemistry)>`__,
-`HCO3- <https://en.wikipedia.org/wiki/Bicarbonate_transporter_protein>`__,
-and `anionic proteins
-(P-) <https://en.wikipedia.org/wiki/Gibbs%E2%80%93Donnan_effect>`__.
+Simulations may enable arbitrary combinations of the principal ions implicated
+in bioelectrical signaling – including:
+
+- Calcium_ (*Ca*\ :sup:`2+`).
+- Chloride_ (*Cl*\ :sup:`-`).
+- Hydron_ (*H*\ :sup:`+`).
+- Potassium_ (*K*\ :sup:`+`).
+- Sodium_ (*Na*\ :sup:`+`).
+- `Anionic protein`_ (*P*\ :sup:`-`).
+- `Bicarbonate transporter protein`_ (*HCO*\ :sup:`-`\ :sub:`3`).
 
 Ion Channels
 ------------
 
 Individual cells in simulations may enable arbitrary combinations of
-`voltage-gated ion
-channels <https://en.wikipedia.org/wiki/Voltage-gated_ion_channel>`__
-implementing the `Hodgkin-Huxley (HH)
-formalism <https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model>`__
-with experimentally-derived variables sourced from
-`Channelpedia <http://channelpedia.epfl.ch>`__. Currently implemented
-channel types include
-`Nav1.2 <http://channelpedia.epfl.ch/ionchannels/121>`__,
-`Nav1.3 <http://channelpedia.epfl.ch/ionchannels/122>`__,
-`Nav1.6 <http://channelpedia.epfl.ch/ionchannels/125>`__,
-`Kv1.1 <http://channelpedia.epfl.ch/ionchannels/1>`__,
-`Kv1.2 <http://channelpedia.epfl.ch/ionchannels/2>`__,
-`Kv1.5 <http://channelpedia.epfl.ch/ionchannels/5>`__,
-`Kv3.3 <http://channelpedia.epfl.ch/ionchannels/13>`__,
-`Kv3.4 <http://channelpedia.epfl.ch/ionchannels/14>`__,
-`Kir2.1 <http://channelpedia.epfl.ch/ionchannels/42>`__, `L-type
-Ca <http://channelpedia.epfl.ch/ionchannels/212>`__, `T-type
-Ca <https://en.wikipedia.org/wiki/T-type_calcium_channel>`__, `P/Q-type
-Ca <http://channelpedia.epfl.ch/ionchannels/78>`__,
-`HCN1 <http://channelpedia.epfl.ch/ionchannels/61>`__,
-`HCN2 <http://channelpedia.epfl.ch/ionchannels/62>`__, and
-`HCN4 <http://channelpedia.epfl.ch/ionchannels/64>`__. Built-in and
-custom `leak <https://en.wikipedia.org/wiki/Leak_channel>`__ and
-`ligand-gated
-channels <https://en.wikipedia.org/wiki/Ligand-gated_ion_channel>`__ are
-available, including `calcium-gated K+
-channels <https://en.wikipedia.org/wiki/Voltage-dependent_calcium_channel>`__.
+`voltage-gated ion channels`_, each implementing the `Hodgkin-Huxley (HH)
+formalism`_ with experimentally-derived parameters sourced from reputable
+`knowledge-based systems`_ (e.g., Channelpedia_). Explicitly supported channel
+types include:
 
-For added control over bioelectric cell dynamics, notable ion pumps and
-exchangers such as
-`Na+/K+-ATPase <https://en.wikipedia.org/wiki/Na%2B/K%2B-ATPase>`__,
-`H+/K+-ATPase <https://en.wikipedia.org/wiki/Hydrogen_potassium_ATPase>`__,
-`V-ATPase <https://en.wikipedia.org/wiki/V-ATPase>`__, and
-`Ca2+-ATPase <https://en.wikipedia.org/wiki/Calcium_ATPase>`__ are also
-available.
+- HCN1_, HCN2_, and HCN4_.
+- `L-type Ca`_, `T-type Ca`_, and |P/Q-type Ca|_.
+- Kir2.1_.
+- Kv1.1_, Kv1.2_, Kv1.5_. Kv3.3_, and Kv3.4_.
+- Nav1.2_, Nav1.3_, and Nav1.6_.
+- Built-in and custom `leak <leak channels_>`__ and `ligand-gated channels`_,
+  including:
+
+  - |Calcium-gated K+ channels|_.
+
+Ion Pumps and Exchangers
+------------------------
+
+For fine-grained control over cell dynamics, notable ion pumps and exchangers
+may also be selectively enabled – including:
+
+- |Ca2+-ATPase|_.
+- |H+/K+-ATPase|_.
+- |Na+/K+-ATPase|_.
+- V-ATPase_.
 
 Extracellular Space
 -------------------
@@ -204,28 +194,18 @@ license <https://opensource.org/licenses/BSD-2-Clause>`__.
 Reference
 =========
 
-When leveraging BETSE in your own publications, consider citing our
-`introductory
-paper <http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract>`__:
+If leveraging BETSE in your own work, consider citing our `introductory
+paper`_:
 
-    `Pietak,
-    Alexis <https://www.researchgate.net/profile/Alexis_Pietak>`__ and
-    `Levin, Michael <https://ase.tufts.edu/biology/labs/levin>`__
-    (2016). |article name|_ |journal name|_ 4, 55.
-    ``doi:10.3389/fbioe.2016.00055``
-
-.. |article name| replace:: **Exploring Instructive Physiological Signaling with the Bioelectric Tissue Simulation Engine (BETSE).**
-.. _article name: http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
-.. |journal name| replace:: *Frontiers in Bioengineering and Biotechnology.*
-.. _journal name: http://journal.frontiersin.org/journal/bioengineering-and-biotechnology
+    `Pietak, Alexis`_ and `Levin, Michael`_ (\ *2016*\ ). |article name|_
+    |journal name|_ 4, 55. ``doi:10.3389/fbioe.2016.00055``
 
 Authors
 =======
 
-BETSE comes courtesy the contributions of a cadre of
-`authors <AUTHORS.md>`__ – without whom this engine would be
-computationally impoverished, intellectually diminished, and decrepit
-beyond all unusable compare. **Thanks, all.**
+BETSE comes courtesy a dedicated community of authors_ and contributors_ –
+without whom this project would be computationally impoverished, intellectually
+bankrupt, and unusable beyond reason. **Thanks, all.**
 
 See Also
 ========
@@ -250,6 +230,12 @@ For prospective contributors:
    binaries.
 
 .. # ------------------( LINKS ~ academia                   )------------------
+.. _Pietak, Alexis:
+   https://www.researchgate.net/profile/Alexis_Pietak
+.. _Levin, Michael:
+   https://ase.tufts.edu/biology/labs/levin
+.. _Channelpedia:
+   http://channelpedia.epfl.ch
 .. _Paul Allen Discovery Center:
    http://www.alleninstitute.org/what-we-do/frontiers-group/discovery-centers/allen-discovery-center-tufts-university
 .. _Paul Allen Discovery Center award:
@@ -259,7 +245,26 @@ For prospective contributors:
 .. _Tufts University:
    https://www.tufts.edu
 
+.. # ------------------( LINKS ~ citation                   )------------------
+.. _introductory paper:
+   http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
+
+.. |article name| replace::
+   **Exploring Instructive Physiological Signaling with the Bioelectric Tissue
+   Simulation Engine (BETSE).**
+.. _article name:
+   http://journal.frontiersin.org/article/10.3389/fbioe.2016.00055/abstract
+
+.. |journal name| replace::
+   *Frontiers in Bioengineering and Biotechnology.*
+.. _journal name:
+   http://journal.frontiersin.org/journal/bioengineering-and-biotechnology
+
 .. # ------------------( LINKS ~ project                    )------------------
+.. _authors:
+   AUTHORS.md
+.. _contributors:
+   https://gitlab.com/betse/betse/graphs/master
 .. _testing:
    https://gitlab.com/betse/betse/pipelines
 .. _codebase:
@@ -282,10 +287,68 @@ For prospective contributors:
    https://en.wikipedia.org/wiki/Gap_junction
 .. _gene regulatory networks:
    https://en.wikipedia.org/wiki/Gene_regulatory_network
+.. _Hodgkin-Huxley (HH) formalism:
+   https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
+.. _knowledge-based systems:
+   https://en.wikipedia.org/wiki/Knowledge-based_systems
+
+.. # ------------------( LINKS ~ science : ions             )------------------
+.. _calcium:   https://en.wikipedia.org/wiki/Calcium_in_biology
+.. _chloride:  https://en.wikipedia.org/wiki/Chloride
+.. _hydron:    https://en.wikipedia.org/wiki/Hydron_(chemistry)
+.. _sodium:    https://en.wikipedia.org/wiki/Sodium_in_biology
+.. _potassium: https://en.wikipedia.org/wiki/Potassium_in_biology
+.. _anionic protein:
+   https://en.wikipedia.org/wiki/Gibbs%E2%80%93Donnan_effect
+.. _bicarbonate transporter protein:
+   https://en.wikipedia.org/wiki/Bicarbonate_transporter_protein
+
+.. # ------------------( LINKS ~ science : channels         )------------------
 .. _ion channel:
    https://en.wikipedia.org/wiki/Ion_channel
+.. _leak channels:
+   https://en.wikipedia.org/wiki/Leak_channel
+.. _ligand-gated channels:
+   https://en.wikipedia.org/wiki/Ligand-gated_ion_channel
 .. _voltage-gated ion channels:
    https://en.wikipedia.org/wiki/Voltage-gated_ion_channel
+
+.. |calcium-gated K+ channels| replace::
+   Calcium-gated K\ :sup:`+` channels
+.. _calcium-gated K+ channels:
+   https://en.wikipedia.org/wiki/Calcium-activated_potassium_channel
+
+.. # ------------------( LINKS ~ science : channels : type  )------------------
+.. _HCN1:   http://channelpedia.epfl.ch/ionchannels/61
+.. _HCN2:   http://channelpedia.epfl.ch/ionchannels/62
+.. _HCN4:   http://channelpedia.epfl.ch/ionchannels/64
+.. _Kir2.1: http://channelpedia.epfl.ch/ionchannels/42
+.. _Kv1.1:  http://channelpedia.epfl.ch/ionchannels/1
+.. _Kv1.2:  http://channelpedia.epfl.ch/ionchannels/2
+.. _Kv1.5:  http://channelpedia.epfl.ch/ionchannels/5
+.. _Kv3.3:  http://channelpedia.epfl.ch/ionchannels/13
+.. _Kv3.4:  http://channelpedia.epfl.ch/ionchannels/14
+.. _Nav1.2: http://channelpedia.epfl.ch/ionchannels/121
+.. _Nav1.3: http://channelpedia.epfl.ch/ionchannels/122
+.. _Nav1.6: http://channelpedia.epfl.ch/ionchannels/125
+.. _L-type Ca:   http://channelpedia.epfl.ch/ionchannels/212
+.. _T-type Ca:   https://en.wikipedia.org/wiki/T-type_calcium_channel
+
+.. |P/Q-type Ca| replace:: :sup:`P`\ /\ :sub:`Q`-type Ca
+.. _P/Q-type Ca:
+   http://channelpedia.epfl.ch/ionchannels/78
+
+.. # ------------------( LINKS ~ science : pumps : type     )------------------
+.. _V-ATPase: https://en.wikipedia.org/wiki/V-ATPase
+
+.. |Ca2+-ATPase| replace:: Ca\ :sup:`2+`-ATPase
+.. _Ca2+-ATPase: https://en.wikipedia.org/wiki/Calcium_ATPase
+
+.. |H+/K+-ATPase| replace:: H\ :sup:`+`/K\ :sup:`+`-ATPase
+.. _H+/K+-ATPase: https://en.wikipedia.org/wiki/Hydrogen_potassium_ATPase
+
+.. |Na+/K+-ATPase| replace:: Na\ :sup:`+`/K\ :sup:`+`-ATPase
+.. _Na+/K+-ATPase: https://en.wikipedia.org/wiki/Na%2B/K%2B-ATPase
 
 .. # ------------------( LINKS ~ software                   )------------------
 .. _Anaconda:
