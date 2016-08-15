@@ -66,6 +66,10 @@ class MasterOfMetabolism(object):
             self.core.write_reactions()
             self.core.create_reaction_matrix()
 
+            if self.mit_enabled is True:
+                self.core.write_reactions_mit()
+                self.core.create_reaction_matrix_mit()
+
             self.reactions = True
 
         else:
@@ -145,6 +149,10 @@ class MasterOfMetabolism(object):
             self.core.read_reactions(reactions_config, sim, cells, p)
             self.core.write_reactions()
             self.core.create_reaction_matrix()
+
+            if self.mit_enabled is True:
+                self.core.write_reactions_mit()
+                self.core.create_reaction_matrix_mit()
 
             self.reactions = True
 

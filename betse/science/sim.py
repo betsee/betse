@@ -158,6 +158,10 @@ class Simulator(object):
         else:
             self.edl = len(cells.mem_i)
 
+        # initialize two extra arrays that allow additional substances (defined outside of sim) to affect Vmem:
+        self.extra_rho_cells = np.zeros(self.mdl)
+        self.extra_rho_env = np.zeros(self.edl)
+
         self.vgj = np.zeros(self.mdl)
 
         self.gj_block = 1 # will update this according to user preferences in self.init_tissue()
@@ -1544,8 +1548,8 @@ class Simulator(object):
 
         if p.sim_ECM is True:
             # get the charge in cells and the environment:
-            self.rho_cells = stb.get_charge_density(self.cc_mems, self.z_array, p)
-            self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p)
+            self.rho_cells = stb.get_charge_density(self.cc_mems, self.z_array, p) + self.extra_rho_cells
+            self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p) + self.extra_rho_env
 
             # if p.smooth_level > 0.0:
             #     self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape),p.smooth_level).ravel()

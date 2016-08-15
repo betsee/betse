@@ -26,12 +26,14 @@ class Mito(object):
         # init basic fields
         self.mit_vol = 0.15*cells.cell_vol     # mit volume
         self.mit_sa = 0.3*cells.cell_sa      # mit surface areas
-        self.Vmit = -100.0e-3*np.ones(sim.cdl)   # initial transmembrane voltage for mit
+        self.Vmit = np.zeros(sim.cdl)   # initial transmembrane voltage for mit
         self.Q = np.zeros(sim.cdl)     # total charge in mit
         self.cm_mit = self.mit_sa*p.cm    # mit membrane capacitance
 
         sim.cc_mit = copy.deepcopy(sim.cc_cells)    # ion concentrations
         self.Dm_mit = copy.deepcopy(sim.cc_cells)    # membrane permeability
+
+        self.extra_rho = 0   # charge density supplied by additional substances in mitochondria
 
         for arr in self.Dm_mit:
 
@@ -47,12 +49,12 @@ class Mito(object):
 
     def get_v(self, sim, p):
 
-        self.Q = stb.get_charge(sim.cc_mit, self.zmit, self.mit_vol, p)
+        self.Q = stb.get_charge(sim.cc_mit, self.zmit, self.mit_vol, p) + self.extra_rho*self.mit_vol
         self.Vmit = (1/self.cm_mit)*self.Q
 
     def update(self, sim, cells, p):
 
-        self.channels(sim, cells, p)
+        # self.channels(sim, cells, p)
 
         for i in sim.movingIons:
 
@@ -67,9 +69,9 @@ class Mito(object):
 
         self.get_v(sim, p)
 
-    def channels(self, sim, cells, p):
-
-        pass   # FIXME finish this
+    # def channels(self, sim, cells, p):
+    #
+    #     pass   # FIXME finish this
 
     def remove_mits(self, sim, target_inds_cell):
 
