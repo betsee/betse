@@ -54,7 +54,7 @@ Human-readable program name.
 # * The justification for doing so in the "Python Version" subsection of this
 #   submodule's docstring above.
 # * The newly required version in front-facing documentation, including:
-#   * "README.md".
+#   * "README.rst".
 #   * "doc/md/INSTALL.md".
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -285,7 +285,7 @@ we pretend to require `setuptools` itself. This is non-ideal, of course.
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Changes to this list *MUST* be synchronized with:
-# * Front-facing documentation (e.g., the top-level "README.md").
+# * Front-facing documentation (e.g., the top-level "README.rst").
 # * The "betse.util.py.modules.SETUPTOOLS_PROJECT_TO_MODULE_NAME" dictionary,
 #   converting between the setuptools-specific names listed below and the
 #   Python-specific module names imported by BETSE.
@@ -325,14 +325,14 @@ requirements strings whose:
 
 See Also
 ----------
-README.md
+:download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
 '''
 
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Changes to this list *MUST* be synchronized with:
-# * Front-facing documentation (e.g., the top-level "README.md").
+# * Front-facing documentation (e.g., the top-level "README.rst").
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_TESTING = [
     # For simplicity, py.test should remain the only hard dependency for testing
@@ -349,7 +349,7 @@ requirements strings in the same manner as `DEPENDENCIES_RUNTIME`.
 
 See Also
 ----------
-README.md
+:download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
 '''
 

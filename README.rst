@@ -1,7 +1,9 @@
-|build-status|
+.. # ------------------( BADGES                             )------------------
+.. image::  https://gitlab.com/betse/betse/badges/master/build.svg
+   :target: https://gitlab.com/betse/betse/pipelines
+   :alt: Build Status
 
-.. |build-status| image:: https://gitlab.com/betse/betse/badges/master/build.svg
-   :target: https://gitlab.com/betse/betse/commits/master
+.. # ------------------( DOCUMENT                           )------------------
 
 =====
 BETSE
@@ -33,7 +35,7 @@ follows:
 
 #. Install Git_.
 #. Install the **Python 3.x** (e.g., 3.5) variant of Anaconda_. :sup:`Do not
-   install the Python 2.7 variant of Anaconda_. BETSE requires Python 3.x.`
+   install the Python 2.7 variant of Anaconda. BETSE requires Python 3.x.`
 #. Run the following commands from within a command-line terminal:
 
    #. Download the live version of BETSE.
@@ -48,7 +50,7 @@ follows:
    
          cd betse && sudo python3 setup.py install
 
-   #. *(Optional)* Test BETSE by running a sample simulation.
+   #. (\ *Optional*\ ) Test BETSE by running a sample simulation.
 
       .. code:: bash
    
@@ -64,24 +66,33 @@ BETSE simulates biorealistic electrochemical phenomena in `gap junction`_\
 -networked 2D cellular collectives. To predict `bioelectric patterns
 <bioelectricity_>`__ and their spatio-temporal dynamics, BETSE:
 
--  Models `ion channel`_ and `gap junction`_ activity.
--  Tracks changes in ion concentration and net ionic charge.
--  Calculates endogenous voltages and currents.
--  Exports simulation results to a variety of output formats, including:
+- Models `ion channel`_ and `gap junction`_ activity.
+- Tracks changes in ion concentration and net ionic charge.
+- Calculates endogenous voltages and currents.
+- Accepts simulation parameters, variables, and options as human-readable,
+  well-commented configuration files in YAML_ format.
+- Exports simulation results to a variety of output formats, including:
 
-   -  Publication-quality plots and graphs.
-   -  Internet-friendly compressed video.
-   -  Post-processable tabular data (e.g., `comma-separated values
-      (CSV) <https://en.wikipedia.org/wiki/Comma-separated_values>`__).
+   - Publication-quality:
+     
+     - Plots, charts, and animations driven by Matplotlib_, the industry
+       standard for open-source plot visualization.
+     - `Directed graphs`_ (i.e., networks) driven by Graphviz_, the industry
+       standard for open-source graph visualization.
 
--  Imports bitmask images defining the shapes of:
+   - Internet-friendly compressed video driven by any of various popular
+     open-source video encoders, including FFmpeg_, Libav_, and MEncoder_.
+   - Post-processable tabular data (e.g., `comma-separated values (CSV)
+     <comma-separated values_>`__).
 
-   -  Cell clusters.
-   -  Cell cluster regions localizing `ion channel`_ activity, typically
-      signifying disparate types of adjacent tissue.
+- Imports bitmask images defining the shapes of:
 
-To assemble simple concepts into complex simulations, BETSE provides a rich
-biological toolset consisting of:
+   - Cell clusters.
+   - Cell cluster regions localizing `ion channel`_ activity, typically
+     signifying disparate types of adjacent tissue.
+
+To assemble simple concepts into complex simulations, BETSE supplies a richly
+configurable, highly scalable biological toolset consisting of:
 
 Ions
 ----
@@ -111,10 +122,12 @@ types include:
 - Kir2.1_.
 - Kv1.1_, Kv1.2_, Kv1.5_. Kv3.3_, and Kv3.4_.
 - Nav1.2_, Nav1.3_, and Nav1.6_.
-- Built-in and custom `leak <leak channels_>`__ and `ligand-gated channels`_,
-  including:
+- `Leak <leak channels_>`__ and `ligand-gated channels`_, including:
 
   - |Calcium-gated K+ channels|_.
+  
+Custom ion channels parametrized by user-selected constants may be trivially
+defined in the same manner (e.g., via a YAML_\ -formatted configuration file).
 
 Ion Pumps and Exchangers
 ------------------------
@@ -127,74 +140,62 @@ may also be selectively enabled – including:
 - |Na+/K+-ATPase|_.
 - V-ATPase_.
 
+Custom ion pumps and exchangers parametrized by user-selected constants may be
+trivially defined in the same manner (e.g., via a YAML_\ -formatted
+configuration file).
+
 Extracellular Space
 -------------------
 
-Cells form interconnected intracellular networks via `voltage-sensitive
-gap junction
-connections <(https://en.wikipedia.org/wiki/Gap_junction)>`__ embedded
-within an `extracellular
-space <https://en.wikipedia.org/wiki/Extracellular>`__ maintained by
-`tight junctions <https://en.wikipedia.org/wiki/Tight_junction>`__ at
-the cell cluster periphery. Simulation of the extracellular environment
-enables exploration of `local field
-potentials <https://en.wikipedia.org/wiki/Local_field_potential>`__, the
-`transepithelial
-potential <https://en.wikipedia.org/wiki/Transepithelial_potential_difference>`__,
-and `ephaptic
-coupling <https://en.wikipedia.org/wiki/Ephaptic_coupling>`__ between
+Cells form interconnected intracellular networks via voltage-sensitive `gap
+junction connections <gap junction_>`__ embedded within an `extracellular
+space`_, maintained by `tight junctions`_ at the cell cluster periphery.
+Simulation of the extracellular environment enables exploration of `local field
+potentials`_, `transepithelial potential`_, and `ephaptic coupling`_ between
 cells.
 
-Networks
---------
+Biological Networks
+-------------------
 
-Built-in and custom `gene regulatory
-networks <(https://en.wikipedia.org/wiki/Gene_regulatory_network)>`__
-and `biochemical reaction
-networks <(http://www.nature.com/subjects/biochemical-reaction-networks)>`__
-(emphasizing metabolism) are fully supported. To unite these powerful
-control systems with bioelectrical signaling, the activity-modulated
-interaction between `gene
-products <https://en.wikipedia.org/wiki/Gene_product>`__ and other
-biochemicals is fully integrated with `ion
-channels <https://en.wikipedia.org/wiki/Ion_channel>`__,
-`pumps <https://en.wikipedia.org/wiki/Active_transport>`__, and `gap
-junctions <https://en.wikipedia.org/wiki/Gap_junction>`__.
+Simulation of `gene regulatory <gene regulatory networks_>`__ and `biochemical
+reaction networks`_ at both the cellular and mitochondrial level supports deep
+spatial analysis of otherwise intractable biological processes. Metabolism,
+disease, aging, and other `genetic <genetics_>`__ and `epigenetic
+<epigenetics_>`__ phenomena commonly associated with quasi-`Big Data`_ are all
+valid targets for exhaustive study with BETSE.
+
+To integrate these potent control systems with bioelectrical signaling, the
+`activity <enzyme activity_>`__-modulated interaction between `gene products`_
+and similar biochemicals is fully integrated with `ion channels`_, `ion pumps`_,
+and `gap junctions`_.
 
 Validation
 ==========
 
-BETSE is peer-reviewed software continuing to receive evidence-based
-scrutiny. Simulation output is reproducibly synchronized with
-experimental observations on `membrane
-permeability <https://en.wikipedia.org/wiki/Cell_membrane#Permeability>`__,
-`resting potential <https://en.wikipedia.org/wiki/Resting_potential>`__,
-ion concentration, and adjunct biophysical quantities. Predictable
-outcomes have been demonstrated for well-known cases, including:
+BETSE is peer-reviewed software receiving continual evidence-based scrutiny.
+Simulation output is reproducibly synchronized with experimental observations on
+`membrane permeability`_, `resting potential`_, ion concentration, and similar
+real-world biophysical quantities. Predictable outcomes have been demonstrated
+for such well-known cases as:
 
--  Prediction of the correct `transmembrane
-   voltage <https://en.wikipedia.org/wiki/Membrane_potential>`__ changes
-   on perturbations to single cell membrane states and environmental ion
-   concentrations.
--  Development of realistic `transepithelial potential differences
-   (TEPD) <https://en.wikipedia.org/wiki/Transepithelial_potential_difference>`__.
--  Development of realistic bioelectric signals on large-scale cellular
-   wounds.
+-  `Transmembrane voltage changes <transmembrane voltage_>`__ on perturbations
+   to single cell membrane states and environmental ion concentrations.
+-  `Transepithelial potential differences (TEPD) <transepithelial
+   potential_>`__.
+-  Bioelectrical signals at large-scale cellular wound sites.
 
-For details, see our recently published `introductory
-paper <#reference>`__.
+For details, see our recently published `introductory paper <Reference_>`__.
 
 License
 =======
 
-BETSE is open-source software `licensed <LICENSE>`__ under the
-permissive `BSD 2-clause
-license <https://opensource.org/licenses/BSD-2-Clause>`__.
+BETSE is open-source software `released <LICENSE>`__ under the permissive `BSD
+2-clause license`_.
 
 Reference
 =========
 
-If leveraging BETSE in your own work, consider citing our `introductory
+When leveraging BETSE in your own work, consider citing our `introductory
 paper`_:
 
     `Pietak, Alexis`_ and `Levin, Michael`_ (\ *2016*\ ). |article name|_
@@ -205,29 +206,28 @@ Authors
 
 BETSE comes courtesy a dedicated community of authors_ and contributors_ –
 without whom this project would be computationally impoverished, intellectually
-bankrupt, and unusable beyond reason. **Thanks, all.**
+neglected, and unmentionably unusable.
+
+**Thanks, all.**
 
 See Also
 ========
 
 For prospective users:
 
--  `Installation <doc/md/INSTALL.md>`__, detailing BETSE's
-   installation with exhaustive platform-specific instructions.
--  `Usage <doc/md/USAGE.md>`__, detailing BETSE's command-line
-   interface (CLI) with human-readable explanation and examples.
+-  `Installation <doc/md/INSTALL.md>`__, detailing BETSE's installation with
+   exhaustive platform-specific instructions.
+-  `Usage <doc/md/USAGE.md>`__, detailing BETSE's command-line interface (CLI)
+   with human-readable explanation and examples.
 
 For prospective contributors:
 
--  `Development <doc/md/DEVELOP.md>`__, detailing development of the
-   BETSE codebase – philosophy, workflow, and otherwise.
--  `Testing <doc/md/TEST.md>`__, detailing testing of the BETSE
-   codebase – `continuous integration
-   (CI) <https://en.wikipedia.org/wiki/Continuous_integration>`__,
-   manual testing, and otherwise.
--  `Freezing <doc/md/FREEZE.md>`__, detailing conversion of the
-   BETSE codebase into redistributable platform-specific executable
-   binaries.
+-  `Development <doc/md/DEVELOP.md>`__, detailing development of the BETSE
+   codebase – philosophy, workflow, and otherwise.
+-  `Testing <doc/md/TEST.md>`__, detailing testing of the BETSE codebase –
+   `continuous integration`_, manual testing, and otherwise.
+-  `Freezing <doc/md/FREEZE.md>`__, detailing conversion of the BETSE codebase
+   into redistributable platform-specific executable binaries.
 
 .. # ------------------( LINKS ~ academia                   )------------------
 .. _Pietak, Alexis:
@@ -260,7 +260,7 @@ For prospective contributors:
 .. _journal name:
    http://journal.frontiersin.org/journal/bioengineering-and-biotechnology
 
-.. # ------------------( LINKS ~ project                    )------------------
+.. # ------------------( LINKS ~ codebase                   )------------------
 .. _authors:
    AUTHORS.md
 .. _contributors:
@@ -279,18 +279,41 @@ For prospective contributors:
    https://en.wikipedia.org/wiki/Nernst%E2%80%93Planck_equation
 .. _electro-osmosis:
    https://en.wikipedia.org/wiki/Electro-osmosis
+.. _enzyme activity:
+   https://en.wikipedia.org/wiki/Enzyme_assay
+.. _ephaptic coupling:
+   https://en.wikipedia.org/wiki/Ephaptic_coupling
+.. _epigenetics:
+   https://en.wikipedia.org/wiki/Epigenetics
+.. _extracellular space:
+   https://en.wikipedia.org/wiki/Extracellular
 .. _finite volume:
    https://en.wikipedia.org/wiki/Finite_volume_method
 .. _galvanotaxis:
    https://en.wiktionary.org/wiki/galvanotaxis
 .. _gap junction:
+.. _gap junctions:
    https://en.wikipedia.org/wiki/Gap_junction
+.. _gene products:
+   https://en.wikipedia.org/wiki/Gene_product
 .. _gene regulatory networks:
    https://en.wikipedia.org/wiki/Gene_regulatory_network
+.. _genetics:
+   https://en.wikipedia.org/wiki/Genetics
 .. _Hodgkin-Huxley (HH) formalism:
    https://en.wikipedia.org/wiki/Hodgkin%E2%80%93Huxley_model
-.. _knowledge-based systems:
-   https://en.wikipedia.org/wiki/Knowledge-based_systems
+.. _local field potentials:
+   https://en.wikipedia.org/wiki/Local_field_potential
+.. _membrane permeability:
+   https://en.wikipedia.org/wiki/Cell_membrane
+.. _resting potential:
+   https://en.wikipedia.org/wiki/Resting_potential
+.. _tight junctions:
+   https://en.wikipedia.org/wiki/Tight_junction
+.. _transmembrane voltage:
+   https://en.wikipedia.org/wiki/Membrane_potential
+.. _transepithelial potential:
+   https://en.wikipedia.org/wiki/Transepithelial_potential_difference
 
 .. # ------------------( LINKS ~ science : ions             )------------------
 .. _calcium:   https://en.wikipedia.org/wiki/Calcium_in_biology
@@ -305,6 +328,7 @@ For prospective contributors:
 
 .. # ------------------( LINKS ~ science : channels         )------------------
 .. _ion channel:
+.. _ion channels:
    https://en.wikipedia.org/wiki/Ion_channel
 .. _leak channels:
    https://en.wikipedia.org/wiki/Leak_channel
@@ -339,6 +363,10 @@ For prospective contributors:
    http://channelpedia.epfl.ch/ionchannels/78
 
 .. # ------------------( LINKS ~ science : pumps : type     )------------------
+.. _ion pumps:
+   https://en.wikipedia.org/wiki/Active_transport
+
+.. # ------------------( LINKS ~ science : pumps : type     )------------------
 .. _V-ATPase: https://en.wikipedia.org/wiki/V-ATPase
 
 .. |Ca2+-ATPase| replace:: Ca\ :sup:`2+`-ATPase
@@ -351,15 +379,39 @@ For prospective contributors:
 .. _Na+/K+-ATPase: https://en.wikipedia.org/wiki/Na%2B/K%2B-ATPase
 
 .. # ------------------( LINKS ~ software                   )------------------
+.. _Big Data:
+   https://en.wikipedia.org/wiki/Big_data
+.. _comma-separated values:
+   https://en.wikipedia.org/wiki/Comma-separated_values
+.. _continuous integration:
+   https://en.wikipedia.org/wiki/Continuous_integration
+.. _directed graphs:
+   https://en.wikipedia.org/wiki/Directed_graph
+.. _knowledge-based systems:
+   https://en.wikipedia.org/wiki/Knowledge-based_systems
+
+.. # ------------------( LINKS ~ software ~ type            )------------------
 .. _Anaconda:
    https://www.continuum.io/downloads
 .. _BSD 2-clause license:
    https://opensource.org/licenses/BSD-2-Clause
+.. _FFmpeg:
+   https://ffmpeg.org
 .. _Git:
    https://git-scm.com/downloads
 .. _GitLab-CI:
    https://about.gitlab.com/gitlab-ci
+.. _Graphviz:
+   http://www.graphviz.org
+.. _Libav:
+   https://libav.org
+.. _Matplotlib:
+   http://matplotlib.org
+.. _MEncoder:
+   https://en.wikipedia.org/wiki/MEncoder
 .. _Python 3:
    https://www.python.org
 .. _py.test:
    http://pytest.org
+.. _YAML:
+   http://yaml.org

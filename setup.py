@@ -45,6 +45,7 @@ BETSE's `setuptools`-based makefile.
 
 import setuptools
 from betse import metadata
+from betse.util.io import stderrs
 from betse_setup import build, freeze, symlink, test
 
 # ....................{ METADATA                           }....................
@@ -62,10 +63,11 @@ Maximum minor stable version of this major version of Python currently released
 _DESCRIPTION = None
 '''
 Human-readable multiline description of this application in reStructuredText
-(rst) format.
+(reST) format.
 
 To minimize synchronization woes, this description is identical to the contents
-of the `README.rst` file.
+of the `README.rst` file. When submitting this application package to PyPI,
+this description is used verbatim as this package's front matter.
 '''
 
 
@@ -125,6 +127,10 @@ def init() -> None:
     # Major version of Python required by this application.
     PYTHON_VERSION_MAJOR = metadata.PYTHON_VERSION_MIN_PARTS[0]
 
+    # Relative path of this application's front-facing documentation in
+    # reStructuredText format, required by PyPI.
+    DESCRIPTION_FILENAME = 'README.rst'
+
     # For each minor version of Python 3.x supported by this application,
     # formally classify this version as such.
     for python_version_minor in range(
@@ -135,16 +141,18 @@ def init() -> None:
                 PYTHON_VERSION_MAJOR, python_version_minor,))
     # print('classifiers: {}'.format(_CLASSIFIERS))
 
-    #FIXME: Uncomment after converting "README.md" to "README.rst".
-    # _DESCRIPTION_FILENAME = 'README.rst'
-    # try:
-    #     with open(_DESCRIPTION_FILENAME) as readme:
-    #         _DESCRIPTION = readme.read()
-    # except:
-    #     from betse.util.io.stderrs
-    #     stderrs.output(
-    #         'Description file "{}" not found.'.format(_DESCRIPTION_FILENAME))
-    _DESCRIPTION = metadata.DESCRIPTION
+    # Description read from this description file.
+    try:
+        with open(DESCRIPTION_FILENAME) as readme:
+            _DESCRIPTION = readme.read()
+    # If this file is *NOT* readable, print a non-fatal warning and reduce this
+    # description to the empty string. While unfortunate, this description is
+    # *NOT* required for most operations and hence mostly ignorable.
+    except Exception as exception:
+        _DESCRIPTION = ''
+        stderrs.output(
+            'Description file "{}" not found or not readable:\n{}'.format(
+                DESCRIPTION_FILENAME, exception))
 
 
 # Finalize the definition of all globals declared by this module.
