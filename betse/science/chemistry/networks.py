@@ -60,6 +60,9 @@ class MasterOfNetworks(object):
         # Initialize reaction rates array to None (filled in later, if applicable):
         self.reaction_rates = None
 
+        # boolean so that charge will only ever be balanced once:
+        self.charge_has_been_balanced = False
+
         # set the key controlling presence of mitochondria:
         self.mit_enabled = mit_enabled
 
@@ -213,7 +216,6 @@ class MasterOfNetworks(object):
 
         else:
             self.mit_concs = None
-
 
     def tissue_init(self, sim, cells, config_substances, p):
         """
@@ -406,7 +408,7 @@ class MasterOfNetworks(object):
                 mol.plot_min = pd['min val']
 
         # balance charge in cells, env, and mits
-        if p.substances_affect_charge:
+        if p.substances_affect_charge and self.charge_has_been_balanced is False:
             # calculate the net charge in cells
             Qcells = 0
             Qenv = 0
@@ -427,6 +429,8 @@ class MasterOfNetworks(object):
 
             if self.mit_enabled:
                 self.bal_charge(Qmit, sim, 'mit', p)
+
+            self.charge_has_been_balanced = True
 
         # write substance growth and decay equations:
         self.write_growth_and_decay()
@@ -1427,12 +1431,12 @@ class MasterOfNetworks(object):
             if self.reactions_mit[reaction_name].delta_Go is not None:
 
                 # define the reaction equilibrium coefficient expression:
-                Keqm = "(np.exp(-self.reactions['{}'].delta_Go / (p.R * sim.T)))".format(reaction_name)
+                Keqm = "(np.exp(-self.reactions_mit['{}'].delta_Go / (p.R * sim.T)))".format(reaction_name)
 
                 Keqm_tex = r"exp\left(-\frac{deltaG_{%s}^{o}}{R\,T}\right)" % reaction_name
 
                 # write fixed parameter names and values to the LaTeX storage list:
-                gval = tex_val(self.reactions[reaction_name].delta_Go)
+                gval = tex_val(self.reactions_mit[reaction_name].delta_Go)
                 g_tex = "deltaG_{%s}^{o} & =" % reaction_name
                 g_tex += gval
                 rea_tex_var_list.append(g_tex)
@@ -2154,10 +2158,6 @@ class MasterOfNetworks(object):
             # calculate concentration rate of change using linear algebra:
             self.delta_conc_mit = np.dot(self.reaction_matrix_mit, self.reaction_rates_mit)
 
-        # Initialize arrays for substance charge contribution:
-        net_Q_cell = 0
-        net_Q_env = 0
-
         for ii, (name, deltac) in enumerate(zip(self.molecules, self.delta_conc)):
 
             obj = self.molecules[name]
@@ -2168,6 +2168,8 @@ class MasterOfNetworks(object):
             if self.mit_enabled and len(self.reactions_mit)>0:
                 # update concentration due to chemical reactions in mitochondria:
                 obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
+                # ensure no negative values:
+                stb.no_negs(obj.c_mit)
 
             # if pumping is enabled:
             if obj.active_pumping:
@@ -2247,6 +2249,7 @@ class MasterOfNetworks(object):
         self.reaction_rates = np.asarray(
             [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
 
+
         # stack into an integrated data structure:
         if len(self.reaction_rates) > 0:
             all_rates = np.vstack((gad_rates, self.reaction_rates))
@@ -2257,13 +2260,28 @@ class MasterOfNetworks(object):
         # calculate concentration rate of change using linear algebra:
         self.delta_conc = np.dot(self.reaction_matrix, all_rates)
 
+        if self.mit_enabled and len(self.reactions_mit)>0:
+            # ... rates of chemical reactions in mitochondria:
+            self.reaction_rates_mit = np.asarray(
+                [eval(self.reactions_mit[rn].reaction_eval_string, self.globals, self.locals) for
+                    rn in self.reactions_mit])
+
+            # calculate concentration rate of change using linear algebra:
+            self.delta_conc_mit = np.dot(self.reaction_matrix_mit, self.reaction_rates_mit)
+
         # get the name of the specific substance:
-        for name, deltac in zip(self.molecules, self.delta_conc):
+        for ii, (name, deltac) in enumerate(zip(self.molecules, self.delta_conc)):
 
             obj = self.molecules[name]
 
             # update concentration due to growth/decay and chemical reactions:
             obj.c_cells = obj.c_cells + deltac*p.dt
+
+            if self.mit_enabled and len(self.reactions_mit)>0:
+                # update concentration due to chemical reactions in mitochondria:
+                obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
+                # ensure no negative values:
+                stb.no_negs(obj.c_mit)
 
             # if pumping is enabled:
             if obj.active_pumping:
@@ -2673,14 +2691,14 @@ class MasterOfNetworks(object):
         if self.mit_enabled:
             logs.log_info('Average Vmit: ' + str(np.round(1.0e3 * self.mit.Vmit.mean(), 4)) + ' mV')
 
-            if 'ETC' in self.transporters:
-
-                rate = 0.5 * 3600 * 1e15 * self.mit.mit_vol.mean() * self.transporters['ETC'].rate.mean()
-
-                if 'ETC_ROS' in self.transporters:
-                    rate = rate + 3600 * 1e15 * self.mit.mit_vol.mean() * self.transporters['ETC_ROS'].rate.mean()
-
-                logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
+            # if 'ETC' in self.transporters:
+            #
+            #     rate = 0.5 * 3600 * 1e15 * self.mit.mit_vol.mean() * self.transporters['ETC'].rate.mean()
+            #
+            #     if 'ETC_ROS' in self.transporters:
+            #         rate = rate + 3600 * 1e15 * self.mit.mit_vol.mean() * self.transporters['ETC_ROS'].rate.mean()
+            #
+            #     logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
 
 
         if self.chi.mean() != 0.0:
@@ -3548,10 +3566,17 @@ class MasterOfNetworks(object):
                 # if the substance has autocatalytic growth capacity add the edge in:
                 graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal', coeff =1.0))
 
-
+        # if there are any reactions in the cytosol, add them to the graph
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
+                nde = pydot.Node(name, style='filled', shape='rect')
+                graphicus_maximus.add_node(nde)
+
+        # if there are any reactions in the mitochondria, add them to the graph
+        if len(self.reactions_mit) > 0:
+
+            for i, name in enumerate(self.reactions_mit):
                 nde = pydot.Node(name, style='filled', shape='rect')
                 graphicus_maximus.add_node(nde)
 
@@ -3561,22 +3586,45 @@ class MasterOfNetworks(object):
 
             for i, name in enumerate(self.reactions):
 
-                # FIXME need to deal with reaction zone == mit!
-
                 rea = self.reactions[name]
 
                 for i, react_name in enumerate(rea.reactants_list):
-
-                    if rea.reaction_zone == 'mit':
-                        react_name += '_mit'
 
                     rea_coeff = rea.reactants_coeff[i]
                     graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff = rea_coeff))
 
                 for j, prod_name in enumerate(rea.products_list):
 
-                    if rea.reaction_zone == 'mit':
-                        prod_name += '_mit'
+                    prod_coeff = rea.products_coeff[j]
+                    graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff))
+
+        # if there are any mitochondria zone reactions, plot their edges on the graph (and react/prod nodes):
+        if len(self.reactions_mit) > 0:
+
+            for i, name in enumerate(self.reactions_mit):
+
+                rea = self.reactions_mit[name]
+
+                for i, react_name in enumerate(rea.reactants_list):
+
+                    node_color = rgba2hex(p.network_cm(self.molecules[react_name].c_mit[p.plot_cell]), alpha_val)
+
+                    react_name += '_mit'
+
+                    nde = pydot.Node(react_name, style='filled', color=node_color)
+                    graphicus_maximus.add_node(nde)
+
+                    rea_coeff = rea.reactants_coeff[i]
+                    graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff = rea_coeff))
+
+                for j, prod_name in enumerate(rea.products_list):
+
+                    node_color = rgba2hex(p.network_cm(self.molecules[prod_name].c_mit[p.plot_cell]), alpha_val)
+
+                    prod_name += '_mit'
+
+                    nde = pydot.Node(prod_name, style='filled', color=node_color)
+                    graphicus_maximus.add_node(nde)
 
                     prod_coeff = rea.products_coeff[j]
                     graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff))
@@ -3603,10 +3651,15 @@ class MasterOfNetworks(object):
                     else:
 
                         if tag == 'env_concs':
+                            node_color = rgba2hex(p.network_cm(self.molecules[react_name].c_env[p.plot_cell]), alpha_val)
                             react_name += '_env'
 
                         elif tag == 'mit_concs':
+                            node_color = rgba2hex(p.network_cm(self.molecules[react_name].c_mit[p.plot_cell]), alpha_val)
                             react_name += '_mit'
+
+                        nde = pydot.Node(react_name, style='filled', color=node_color)
+                        graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff=rea_coeff))
 
