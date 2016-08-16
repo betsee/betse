@@ -55,6 +55,8 @@ class MasterOfNetworks(object):
         # Initialize a dict of modulators:
         self.modulators = OrderedDict({})
 
+        self.reactions_mit = OrderedDict({})
+
         # Initialize reaction rates array to None (filled in later, if applicable):
         self.reaction_rates = None
 
@@ -201,71 +203,17 @@ class MasterOfNetworks(object):
             else:
                 mol.mit_enabled = False
 
-
         self.cell_concs = DynamicValueDict(cell_concs_mapping)
         self.mem_concs = DynamicValueDict(mem_concs_mapping)
         self.env_concs = DynamicValueDict(env_concs_mapping)
         self.bound_concs = DynamicValueDict(bound_concs_mapping)
 
-        #------------------------------------------
-        # add the charge compensation anion (M-) which doubles as bicarbonate (HCO3-) to molecules for use in
-        # reactions:
-        # self.molecules['M'] = Molecule(sim, cells, p)
-        # self.molecules['M'].name = 'M'
-        #
-        # # set basic transport properties -- diffusion set to 0 as it's handled in sim.
-        #
-        # self.molecules['M'].Dm = 0  # membrane diffusion coefficient [m2/s]
-        # self.molecules['M'].Do = 0  # free diffusion constant in extra and intracellular spaces [m2/s]
-        # self.molecules['M'].z = -1  # charge (oxidation state)
-        #
-        # self.molecules['M'].ignore_ECM_pump = False
-        #
-        # self.molecules['M'].ignoreTJ = False  # ignore TJ?
-        # self.molecules['M'].ignoreGJ = True  # ignore GJ?
-        #
-        # self.molecules['M'].TJ_factor = 1.0
-        #
-        # self.molecules['M'].c_envo = p.env_concs['M']  # initial concentration in the environment [mmol/L]
-        # self.molecules['M'].c_cello = p.cell_concs['M']  # initial concentration in the cytoplasm [mmol/L]
-        #
-        # self.molecules['M'].c_mito = p.cell_concs['M']  # initialized to None if optional fields not present
-        #
-        # # create concentration data arrays. Since 'M' is always defined as an ion in sim, we link the concs:
-        # self.molecules['M'].c_cells = self.cell_concs['M']
-        # self.molecules['M'].c_mems = self.mem_concs['M']
-        # self.molecules['M'].c_env = self.env_concs['M']
-        #
-        # self.molecules['M'].simple_growth = False
-        #
-        # self.molecules['M'].ion_channel_gating = False
-        # self.molecules['M'].active_pumping = False
-        # self.molecules['M'].change_bounds = False
-        #
-        # self.molecules['M'].make_plots = False
-        # self.molecules['M'].make_ani = False
-        #
-        # self.molecules['M'].plot_autoscale = True
-        # self.molecules['M'].plot_max = 0
-        # self.molecules['M'].plot_min = 1
-        #
-        # if self.mit_enabled:
-        #     self.molecules['M'].mit_enabled = True
-        # else:
-        #     self.molecules['M'].mit_enabled = False
-
-        #------------------------------------------
-
         if self.mit_enabled:
             self.mit_concs = DynamicValueDict(mit_concs_mapping)
-            # self.molecules['M'].c_mit = self.mit_concs['M']
 
         else:
             self.mit_concs = None
-            # self.molecules['M'].c_mit = np.zeros(sim.cdl)
 
-        # # transform self.molecules into an ordered dictionary so that we have guaranteed indices and order:
-        # self.molecules = OrderedDict(self.molecules)
 
     def tissue_init(self, sim, cells, config_substances, p):
         """
@@ -456,6 +404,29 @@ class MasterOfNetworks(object):
                 mol.plot_autoscale = pd['autoscale colorbar']
                 mol.plot_max = pd['max val']
                 mol.plot_min = pd['min val']
+
+        # balance charge in cells, env, and mits
+        if p.substances_affect_charge:
+            # calculate the net charge in cells
+            Qcells = 0
+            Qenv = 0
+            Qmit = 0
+
+            for name in self.molecules:
+
+                mol = self.molecules[name]
+
+                Qcells += mol.c_cello * mol.z
+                Qenv += mol.c_envo * mol.z
+
+                if self.mit_enabled:
+                    Qmit += mol.c_mito * mol.z
+
+            self.bal_charge(Qcells, sim, 'cell', p)
+            self.bal_charge(Qenv, sim, 'env', p)
+
+            if self.mit_enabled:
+                self.bal_charge(Qmit, sim, 'mit', p)
 
         # write substance growth and decay equations:
         self.write_growth_and_decay()
@@ -671,10 +642,12 @@ class MasterOfNetworks(object):
             msg = "Including the cell-zone reaction: {}".format(name)
             logs.log_info(msg)
 
-        for name in self.reactions_mit:
+        if self.mit_enabled is True:
 
-            msg = "Including the mit-zone reaction: {}".format(name)
-            logs.log_info(msg)
+            for name in self.reactions_mit:
+
+                msg = "Including the mit-zone reaction: {}".format(name)
+                logs.log_info(msg)
 
     def read_transporters(self, config_transporters, sim, cells, p):
 
@@ -2119,7 +2092,8 @@ class MasterOfNetworks(object):
                 self.reactions_mit[reaction_name].products_coeff):
                 i = molecule_keys.index(prod_name)
 
-                self.reaction_matrix[i, j] += coeff
+                self.reaction_matrix_mit[i, j] += coeff
+
 
     #------runners------------------------------------------------------------------------------------------------------
     def run_loop(self, t, sim, cells, p):
@@ -2171,7 +2145,7 @@ class MasterOfNetworks(object):
         # calculate concentration rate of change using linear algebra:
         self.delta_conc = np.dot(self.reaction_matrix, all_rates)
 
-        if self.mit_enabled:
+        if self.mit_enabled and len(self.reactions_mit)>0:
             # ... rates of chemical reactions in mitochondria:
             self.reaction_rates_mit = np.asarray(
                 [eval(self.reactions_mit[rn].reaction_eval_string, self.globals, self.locals) for
@@ -2191,7 +2165,7 @@ class MasterOfNetworks(object):
             # update concentration due to growth/decay and chemical reactions:
             obj.c_cells = obj.c_cells + deltac*p.dt
 
-            if self.mit_enabled:
+            if self.mit_enabled and len(self.reactions_mit)>0:
                 # update concentration due to chemical reactions in mitochondria:
                 obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
 
@@ -2234,13 +2208,9 @@ class MasterOfNetworks(object):
             sim.extra_rho_cells = self.extra_rho_cells[:]
             sim.extra_rho_env = self.extra_rho_env[:]
 
-
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
             self.mit.extra_rho = self.extra_rho_mit[:]
             self.mit.update(sim, cells, p)
-
-        # # manage pH in cells, environment and mitochondria:
-        # self.pH_handling(sim, cells, p)
 
     def run_dummy_loop(self,t,sim,cells,p):
 
@@ -2251,6 +2221,10 @@ class MasterOfNetworks(object):
         init_rates = []
 
         gad_rates = []
+
+        self.extra_rho_cells = np.zeros(sim.mdl)
+        self.extra_rho_env = np.zeros(sim.edl)
+        self.extra_rho_mit = np.zeros(sim.cdl)
 
         for mol in self.molecules:
 
@@ -2307,8 +2281,21 @@ class MasterOfNetworks(object):
             # ensure no negs:
             stb.no_negs(obj.c_mems)
 
-        if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
+            if p.substances_affect_charge:
+                # calculate the charge density this substance contributes to cell and environment:
+                self.extra_rho_cells[:] += p.F*obj.c_mems*obj.z
+                self.extra_rho_env[:] += p.F*obj.c_env*obj.z
 
+                if self.mit_enabled:
+                    # calculate the charge density this substance contributes to mit:
+                    self.extra_rho_mit[:] += p.F*obj.c_mit*obj.z
+
+        if p.substances_affect_charge:
+            sim.extra_rho_cells = self.extra_rho_cells[:]
+            sim.extra_rho_env = self.extra_rho_env[:]
+
+        if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
+            self.mit.extra_rho = self.extra_rho_mit[:]
             self.mit.update(sim, cells, p)
 
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
@@ -2479,66 +2466,70 @@ class MasterOfNetworks(object):
                                                "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
 
     # ------Utility Methods--------------------------------------------------------------------------------------------
+    def bal_charge(self, Q, sim, tag, p):
 
-    # def pH_handling(self, sim, cells, p):
-    #     """
-    #     Molecules may contain dissolved carbon dioxide as a substance,
-    #     and reactions/transporters may act on H+ levels via bicarbonate
-    #     (M-). Therefore, update pH in cells, environment, and
-    #     if enabled, mitochondria.
-    #
-    #     """
-    #
-    #     if 'CO2' in self.molecules:  # FIXME !!! CHECK SYNTAX for stb.bicarbonate_buffer!
-    #
-    #         if p.ions_dict['H'] == 1:
-    #
-    #             # if the simulation contains sim.cHM_mems, use it and update it!
-    #             sim.cHM_mems = self.cell_concs['CO2']
-    #             sim.cHM_env = self.env_concs['CO2']
-    #
-    #             # update the cH and pH fields of sim with potentially new value of sim.iM
-    #             sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'],
-    #                 sim.cc_cells[sim.iM])
-    #             sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
-    #
-    #             if self.mit_enabled:
-    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
-    #                 sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
-    #
-    #         elif p.ions_dict['H'] != 1:
-    #
-    #             # update the cH and pH fields of sim with potentially new value of M ion:
-    #             _, sim.pH_cell = stb.bicarbonate_buffer(self.cell_concs['CO2'], sim.cc_cells[sim.iM])
-    #             _, sim.pH_env = stb.bicarbonate_buffer(self.env_concs['CO2'], sim.cc_env[sim.iM])
-    #
-    #             if self.mit_enabled:
-    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
-    #                 _, sim.pH_mit = stb.bicarbonate_buffer(self.mit_concs['CO2'], sim.cc_mit[sim.iM])
-    #
-    #     else:  # if we're not using CO2 in the simulator, use the default p.CO2*0.03
-    #
-    #         CO2 = p.CO2 * 0.03  # get the default concentration of CO2
-    #
-    #         if p.ions_dict['H'] == 1:
-    #
-    #             # update the cH and pH fields of sim with potentially new value of sim.iM
-    #             sim.cc_cells[sim.iH], sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
-    #             sim.cc_env[sim.iH], sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
-    #
-    #             if self.mit_enabled:
-    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
-    #                 sim.cc_mit[sim.iH], sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
-    #
-    #         elif p.ions_dict['H'] != 1:
-    #
-    #             # update the cH and pH fields of sim with potentially new value of sim.iM
-    #             _, sim.pH_cell = stb.bicarbonate_buffer(CO2, sim.cc_cells[sim.iM])
-    #             _, sim.pH_env = stb.bicarbonate_buffer(CO2, sim.cc_env[sim.iM])
-    #
-    #             if self.mit_enabled:
-    #                 # update the cH and pH fields of sim with potentially new value of sim.iM
-    #                 _, sim.pH_mit = stb.bicarbonate_buffer(CO2, sim.cc_mit[sim.iM])
+        if tag == 'cell':
+
+            if Q < 0 and np.abs(Q) <= sim.cc_mems[sim.iP].mean():  # if net charge is anionic
+                sim.cc_mems[sim.iP] = sim.cc_mems[sim.iP] - np.abs(Q)
+                sim.cc_cells[sim.iP] = sim.cc_cells[sim.iP] - np.abs(Q)
+
+            elif Q > 0 and np.abs(Q) <= sim.cc_mems[sim.iK].mean():
+                sim.cc_mems[sim.iK] = sim.cc_mems[sim.iK] - np.abs(Q)
+                sim.cc_cells[sim.iK] = sim.cc_cells[sim.iK] - np.abs(Q)
+
+            elif Q < 0 and np.abs(Q) > sim.cc_mems[sim.iP].mean():  # if net charge is anionic
+                raise BetseParametersException("You've defined way more anionic charge in"
+                                               "the extra substances than we can "
+                                               "compensate for. Either turn 'substances "
+                                               "affect Vmem' off, or try again.")
+            elif Q > 0 and np.abs(Q) > sim.cc_cells[sim.iK].mean():
+                raise BetseParametersException("You've defined way more cationic charge in"
+                                               "the extra substances than we can "
+                                               "compensate for. Either turn 'substances "
+                                               "affect Vmem' off, or try again.")
+
+            sim.extra_rho_cells = p.F*Q*np.ones(sim.mdl)
+
+        elif tag == 'env':
+
+            if Q < 0 and np.abs(Q) <= sim.cc_env[sim.iP].mean():  # if net charge is anionic
+                sim.cc_env[sim.iP] = sim.cc_env[sim.iP] - np.abs(Q)
+            elif Q > 0 and np.abs(Q) <= sim.cc_env[sim.iK].mean():
+                sim.cc_env[sim.iK] = sim.cc_env[sim.iK] - np.abs(Q)
+            elif Q < 0 and np.abs(Q) > sim.cc_env[sim.iP].mean():  # if net charge is anionic
+                raise BetseParametersException("You've defined way more anionic charge in"
+                                               "the extra substances than we can "
+                                               "compensate for. Either turn 'substances "
+                                               "affect Vmem' off, or try again.")
+            elif Q > 0 and np.abs(Q) > sim.cc_env[sim.iK].mean():
+                raise BetseParametersException("You've defined way more cationic charge in"
+                                               "the extra substances than we can "
+                                               "compensate for. Either turn 'substances "
+                                               "affect Vmem' off, or try again.")
+
+            sim.extra_rho_env = p.F*Q*np.ones(sim.edl)
+
+        elif tag == 'mit':
+
+            if Q < 0 and np.abs(Q) <= sim.cc_mit[sim.iP].mean():  # if net charge is anionic
+                sim.cc_mit[sim.iP] = sim.cc_mit[sim.iP] - np.abs(Q)
+
+            elif Q > 0 and np.abs(Q) <= sim.cc_mit[sim.iK].mean():
+                sim.cc_mit[sim.iK] = sim.cc_mit[sim.iK] - np.abs(Q)
+
+            elif Q < 0 and np.abs(Q) > sim.cc_mit[sim.iP].mean():  # if net charge is anionic
+                raise BetseParametersException("You've defined way more anionic charge in"
+                                               "the extra substances than we can "
+                                               "compensate for. Either turn 'substances "
+                                               "affect Vmem' off, or try again.")
+            elif Q > 0 and np.abs(Q) > sim.cc_mit[sim.iK].mean():
+                raise BetseParametersException("You've defined way more cationic charge in"
+                                               "the extra substances than we can "
+                                               "compensate for. Either turn 'substances "
+                                               "affect Vmem' off, or try again.")
+
+            self.mit.extra_rho = p.F*Q*np.ones(sim.cdl)
 
     def energy_charge(self, sim):
 
@@ -2620,10 +2611,6 @@ class MasterOfNetworks(object):
 
         if self.mit_enabled:
             self.vmit_time = []
-            self.pH_mit_time = []
-
-        self.pH_cells_time = []
-        self.pH_env_time = []
 
         self.chi_time = []
 
@@ -2658,12 +2645,8 @@ class MasterOfNetworks(object):
             if self.reaction_rates is not None:
                 obj.rate_time.append(self.reaction_rates[i])
 
-        # if self.mit_enabled:
-        #     self.vmit_time.append(self.mit.Vmit[:])
-        #     self.pH_mit_time.append(sim.pH_mit)
-        #
-        # self.pH_cells_time.append(sim.pH_cell)
-        # self.pH_env_time.append(sim.pH_env)
+        if self.mit_enabled:
+            self.vmit_time.append(self.mit.Vmit[:])
 
         self.chi_time.append(self.chi)
 
@@ -2699,11 +2682,6 @@ class MasterOfNetworks(object):
 
                 logs.log_info('Average O2 consumption rate: ' + str(rate) + ' fmol/cell/hr')
 
-        # logs.log_info('Average pH in cell: ' + str(np.round(sim.pH_cell.mean(), 4)))
-        # logs.log_info('Average pH in env: ' + str(np.round(sim.pH_env.mean(), 4)))
-
-        # if self.mit_enabled:
-        #     logs.log_info('Average pH in mitochondria: ' + str(np.round(sim.pH_mit.mean(), 4)))
 
         if self.chi.mean() != 0.0:
             logs.log_info('Energy charge of cell ' + str(np.round(self.chi.mean(), 3)))
@@ -2896,41 +2874,6 @@ class MasterOfNetworks(object):
 
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
-        # ------pH plot------------------------------------------------------------------------------
-
-        # 1 D plot of pH in cell, env and mit ------------------------------------------------------
-        pHcell = [arr[p.plot_cell] for arr in self.pH_cells_time]
-
-        if p.sim_ECM:
-            pHenv = [arr[cells.map_cell2ecm][p.plot_cell] for arr in self.pH_env_time]
-
-        else:
-            avPh = [np.dot(cells.M_sum_mems, arr) / cells.num_mems for arr in self.pH_env_time]
-            pHenv = [arr[p.plot_cell] for arr in avPh]
-
-        if self.mit_enabled:
-            pHmit = [arr[p.plot_cell] for arr in self.pH_mit_time]
-
-        else:
-            pHmit = np.zeros(len(sim.time))
-
-        figpH = plt.figure()
-        axpH = plt.subplot(111)
-
-        axpH.plot(sim.time, pHcell, label='cell')
-        axpH.plot(sim.time, pHmit, label='mitochondria')
-        axpH.plot(sim.time, pHenv, label='env')
-
-        axpH.set_xlabel('Time [s]')
-        axpH.set_ylabel('pH')
-        axpH.set_title('pH in/near cell : ' + str(p.plot_cell))
-
-        if p.autosave is True:
-            savename = self.imagePath + 'pH_' + str(p.plot_cell) + '.png'
-            plt.savefig(savename, format='png', transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
 
         # -------Reaction rate plot and data export----------------------------------------
 

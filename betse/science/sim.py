@@ -590,6 +590,14 @@ class Simulator(object):
         self.CaATP_block = np.ones(self.mdl)  # initialize CaATP blocking vector
         self.NaCaExch_block = np.ones(self.mdl)  # initialize CaATP blocking vector
 
+        # initialize calcium dynamics if desired:
+        if p.ions_dict['Ca'] == 1 and p.Ca_dyn is True:
+            self.endo_retic = EndoRetic(self, cells, p)
+
+        else:
+            self.endo_retic = None
+
+
         # -----auxiliary molecules initialization -------------------------
 
         # create and initialize the auxiliary-molecules handler for this simulation:
@@ -738,13 +746,6 @@ class Simulator(object):
             self.rho_pump = 1  # else just define it as identity.
             self.rho_channel = 1
 
-        # initialize calcium dynamics if desired:
-        if p.ions_dict['Ca'] == 1 and p.Ca_dyn is True:
-
-            self.endo_retic = EndoRetic(self, cells, p)
-
-        else:
-            self.endo_retic = None
 
         # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)

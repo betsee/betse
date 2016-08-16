@@ -143,7 +143,7 @@ class MasterOfMetabolism(object):
         # Master of Molecules:
         self.core.tissue_init(sim, cells, substances_config, p)
 
-        if reactions_config is not None and len(reactions_config)>0:
+        if reactions_config is not None and len(reactions_config):
 
             # initialize the reactions of metabolism:
             self.core.read_reactions(reactions_config, sim, cells, p)
@@ -214,7 +214,7 @@ class MasterOfMetabolism(object):
         # initialize Vmem to an initial value common to many cell types:
         sim.vm = -50e-3*np.ones(sim.mdl)
 
-        p.substances_affect_charge = False
+        # p.substances_affect_charge = False
 
         # specify a time vector
         loop_time_step_max = p.init_tsteps
