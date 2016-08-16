@@ -2742,7 +2742,6 @@ class MasterOfNetworks(object):
             savename = self.imagePath + 'NetworkGraph_Cell_' + str(p.plot_cell) + '.svg'
             whole_graph.write_svg(savename)
 
-
         # get the name of the specific substance:
         for name in self.molecules:
 
@@ -3122,8 +3121,8 @@ class MasterOfNetworks(object):
         normc = colors.Normalize(vmin=minc, vmax=maxc)
 
         # create a graph object
-        self.graphicus_maximus = pydot.Dot(graph_type='digraph')
-
+        self.graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True, rankdir = 'LR',
+            overlap = 'compress', splines = True)
 
         # add each substance as a node in the graph:
         for i, name in enumerate(self.molecules):
@@ -3486,8 +3485,8 @@ class MasterOfNetworks(object):
 
     def export_equations(self, p):
 
-        # Absolute path of the YAML file to write this solution to.
-        saveData = paths.join(self.resultsPath, 'NetworkModelEquations.csv')
+        # Absolute path of the text file to write this solution to:
+        saveData = paths.join(self.resultsPath, 'NetworkModelLatexEquations.csv')
 
         with open(saveData, 'w', newline='') as csvfile:
             eqwriter = csv.writer(csvfile, delimiter='\t',
@@ -3507,12 +3506,53 @@ class MasterOfNetworks(object):
 
                 eqwriter.writerow([rea, eq_var, text_var])
 
+            for rea in self.reactions_mit:
+                text_var = self.reactions_mit[rea].reaction_tex_vars
+                eq_var = self.reactions_mit[rea].reaction_tex_string
+
+                eqwriter.writerow([rea, eq_var, text_var])
+
             for trans in self.transporters:
 
                 text_var = self.transporters[trans].transporter_tex_vars
                 eq_var = self.transporters[trans].transporter_tex_string
 
                 eqwriter.writerow([trans, eq_var, text_var])
+
+    def export_eval_strings(self, p):
+
+        results_path = os.path.join(p.init_results, 'model_eval_strings')
+
+        self.resultsPath = os.path.expanduser(results_path)
+        os.makedirs(self.resultsPath, exist_ok=True)
+
+        # Absolute path of the text file to write this solution to:
+        saveData = paths.join(self.resultsPath, 'NetworkModelEvalStrings.csv')
+
+        with open(saveData, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                quotechar='|', quoting=csv.QUOTE_NONE)
+
+            for mol in self.molecules:
+
+                if self.molecules[mol].simple_growth is True:
+                    eq_var = self.molecules[mol].gad_eval_string
+
+                    eqwriter.writerow([mol, eq_var])
+
+            for rea in self.reactions:
+                eq_var = self.reactions[rea].reaction_eval_string
+
+                eqwriter.writerow([rea, eq_var])
+
+            for rea in self.reactions_mit:
+                eq_var = self.reactions_mit[rea].reaction_eval_string
+                eqwriter.writerow([rea, eq_var])
+
+            for trans in self.transporters:
+                eq_var = self.transporters[trans].transporter_eval_string
+
+                eqwriter.writerow([trans, eq_var])
 
     def build_reaction_network(self, p):
         """
@@ -3536,7 +3576,8 @@ class MasterOfNetworks(object):
         normc = colors.Normalize(vmin=minc, vmax=maxc)
 
         # create a graph object
-        graphicus_maximus = pydot.Dot(graph_type='digraph')
+        graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True, rankdir = 'LR',
+            overlap = 'compress', splines = True)
 
         # add each substance as a node in the graph:
         for i, name in enumerate(self.molecules):
@@ -4071,7 +4112,7 @@ class MasterOfNetworks(object):
         sim.vm[:] = -50e-3
 
         if self.mit_enabled:
-            self.mit.Vmit[:] = -175.0e-3
+            self.mit.Vmit[:] = -150.0e-3
 
         self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
 
@@ -4085,7 +4126,7 @@ class MasterOfNetworks(object):
         # if saving is enabled, export the graph of the network used in the optimization:
         if p.autosave is True and p.plot_network is True:
             savename = self.imagePath + 'OptimizedNetworkGraph' + '.svg'
-            grapha.write_svg(savename)
+            grapha.write_svg(savename, prog = 'dot')
 
         # convert the graph into a networkx format so it's easy to manipulate:
         network = nx.from_pydot(grapha)

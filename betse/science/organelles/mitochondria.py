@@ -26,14 +26,17 @@ class Mito(object):
         # init basic fields
         self.mit_vol = 0.15*cells.cell_vol     # mit volume
         self.mit_sa = 1.0*cells.cell_sa      # mit surface areas
-        self.Vmit = np.zeros(sim.cdl)   # initial transmembrane voltage for mit
+        # self.Vmit = np.zeros(sim.cdl)   # initial transmembrane voltage for mit
+        self.Vmit = -150e-3 * np.ones(sim.cdl)  # initial transmembrane voltage for mit
         self.Q = np.zeros(sim.cdl)     # total charge in mit
         self.cm_mit = self.mit_sa*p.cm    # mit membrane capacitance
 
         sim.cc_mit = copy.deepcopy(sim.cc_cells)    # ion concentrations
         self.Dm_mit = copy.deepcopy(sim.cc_cells)    # membrane permeability
 
-        # self.extra_rho = 0   # charge density supplied by additional substances in mitochondria
+        # set calcium concentration in mitochondria to an initially low value:
+        if p.ions_dict['Ca'] == 1:
+            sim.cc_mit[sim.iCa] = 100.0e-6  # [100 nM]
 
         for arr in self.Dm_mit:
 

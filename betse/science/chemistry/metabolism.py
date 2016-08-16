@@ -268,6 +268,7 @@ class MasterOfMetabolism(object):
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
         fh.saveSim(self.savedMoM, datadump)
+        self.core.export_eval_strings(p)
         message = 'Metabolic network simulation saved to' + ' ' + self.savedMoM
         logs.log_info(message)
 
