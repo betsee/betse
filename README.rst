@@ -3,7 +3,7 @@
    :target: https://gitlab.com/betse/betse/pipelines
    :alt: Build Status
 
-.. # ------------------( DOCUMENT                           )------------------
+.. # ------------------( SYNOPSIS                           )------------------
 
 =====
 BETSE
@@ -24,8 +24,12 @@ distributed <License_>`__ under the `BSD 2-clause license`_. While a high-level
 graphical user interface (GUI) supporting all popular platforms is planned,
 BETSE currently *only* provides a low-level command line interface (CLI).
 
+.. # ------------------( TABLE OF CONTENTS                  )------------------
 .. # Table of contents, excluding the document heading above.
-.. contents:: :local:
+.. contents:: Contents
+   :local:
+
+.. # ------------------( DESCRIPTION                        )------------------
 
 Installation
 ============
@@ -73,23 +77,23 @@ BETSE simulates biorealistic electrochemical phenomena in `gap junction`_\
   well-commented configuration files in YAML_ format.
 - Exports simulation results to a variety of output formats, including:
 
-   - Publication-quality:
-     
-     - Plots, charts, and animations driven by Matplotlib_, the industry
-       standard for open-source plot visualization.
-     - `Directed graphs`_ (i.e., networks) driven by Graphviz_, the industry
-       standard for open-source graph visualization.
+  - Publication-quality:
 
-   - Internet-friendly compressed video driven by any of various popular
-     open-source video encoders, including FFmpeg_, Libav_, and MEncoder_.
-   - Post-processable tabular data (e.g., `comma-separated values (CSV)
-     <comma-separated values_>`__).
+    - Plots, charts, and animations driven by Matplotlib_, the industry
+      standard for open-source plot visualization.
+    - `Directed graphs`_ (i.e., networks) driven by Graphviz_, the industry
+      standard for open-source graph visualization.
+
+  - Internet-friendly compressed video driven by any of various popular
+    open-source video encoders, including FFmpeg_, Libav_, and MEncoder_.
+  - Post-processable tabular data (e.g., `comma-separated values (CSV)
+    <comma-separated values_>`__).
 
 - Imports bitmask images defining the shapes of:
 
-   - Cell clusters.
-   - Cell cluster regions localizing `ion channel`_ activity, typically
-     signifying disparate types of adjacent tissue.
+  - Cell clusters.
+  - Cell cluster regions localizing `ion channel`_ activity, typically
+    signifying disparate types of adjacent tissue.
 
 To assemble simple concepts into complex simulations, BETSE supplies a richly
 configurable, highly scalable biological toolset consisting of:
