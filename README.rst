@@ -25,8 +25,16 @@ graphical user interface (GUI) supporting all popular platforms is planned,
 BETSE currently *only* provides a low-level command line interface (CLI).
 
 .. # ------------------( TABLE OF CONTENTS                  )------------------
-.. # Table of contents, excluding the document heading above.
-.. contents:: Contents
+.. # Blank line. By default, Docutils appears to only separate the subsequent
+.. # table of contents heading from the prior paragraph by less than a single
+.. # blank line, hampering this table's readability and aesthetic comeliness.
+|
+
+.. # Table of contents, excluding the above document heading. While the
+.. # official reStructuredText documentation suggests that a language-specific
+.. # heading will automatically prepend this table, this does *NOT* appear to
+.. # be the case. Instead, this heading must be explicitly declared.
+.. contents:: **Contents**
    :local:
 
 .. # ------------------( DESCRIPTION                        )------------------
