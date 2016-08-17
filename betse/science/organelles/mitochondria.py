@@ -74,6 +74,8 @@ class Mito(object):
         self.get_v(sim, p)
 
     # def channels(self, sim, cells, p):
+
+    # FIXME major useful channel would be the Ca2+ uniporter, which opens with 1 - 5 um cytosolic calcium
     #
     #     pass   # FIXME finish this
 

@@ -3101,9 +3101,7 @@ class MasterOfNetworks(object):
 
         """
 
-        #FIXME if reaction zones are mit, need to add mit_conc distinction!
-
-        # FIXME add in Vmem relationships, at least for channels, possibly using optional comment sting for transporters
+        # FIXME add in Vmem relationships, at least for channels, possibly using optional comment string for transporters
 
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
@@ -3214,6 +3212,12 @@ class MasterOfNetworks(object):
                 nde = pydot.Node(name, style='filled', shape = reaction_shape)
                 self.graphicus_maximus.add_node(nde)
 
+        if len(self.reactions_mit) > 0:
+
+            for i, name in enumerate(self.reactions_mit):
+                nde = pydot.Node(name, style='filled', shape=reaction_shape)
+                self.graphicus_maximus.add_node(nde)
+
         # if there are any channels, plot their type, ion  and Vmem relationships in the graph: -----------------------
         if len(self.channels) > 0:
 
@@ -3319,21 +3323,79 @@ class MasterOfNetworks(object):
 
                 for react_name in rea.reactants_list:
 
-                    if rea.reaction_zone == 'mit':
-                        node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
-                        react_name += '_mit'
-                        nde = pydot.Node(react_name, style='filled', color=node_color)
-                        self.graphicus_maximus.add_node(nde)
+                    self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
+
+                for prod_name in rea.products_list:
+
+                    self.graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
+
+                self.graph_influencers(name, rea.reaction_activators_list,
+                rea.reaction_inhibitors_list, p, reaction_zone = rea.reaction_zone,
+                zone_tags_a = rea.reaction_activators_zone,
+                zone_tags_i = rea.reaction_inhibitors_zone, alpha_val = alpha_val)
+
+
+                # if rea.reaction_activators_list != 'None' and rea.reaction_activators_list is not None:
+                #
+                #     for act_name, zone_a in zip(rea.reaction_activators_list, rea.reaction_activators_zone):
+                #
+                #         if act_name.endswith('!'):  # if activator indicated to be independent
+                #             # make the name in accordance with its actual identifier
+                #             act_name = act_name[:-1]
+                #
+                #         if rea.reaction_zone == 'mit':
+                #             node_color = rgba2hex(p.network_cm(self.mit_concs[act_name][p.plot_cell]), alpha_val)
+                #             act_name += '_mit'
+                #             nde = pydot.Node(act_name, style='filled', color=node_color)
+                #             graphicus_maximus.add_node(nde)
+                #
+                #         if zone_a == 'env':
+                #             node_color = rgba2hex(p.network_cm(self.env_concs[act_name][p.plot_cell]), alpha_val)
+                #             act_name += '_env'
+                #             nde = pydot.Node(act_name, style='filled', color=node_color)
+                #             graphicus_maximus.add_node(nde)
+                #
+                #         graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
+                #
+                # if rea.reaction_inhibitors_list != 'None' and rea.reaction_inhibitors_list is not None:
+                #
+                #     for inh_name, zone_i in zip(rea.reaction_inhibitors_list, rea.reaction_inhibitors_zone):
+                #
+                #         if rea.reaction_zone == 'mit':
+                #             node_color = rgba2hex(p.network_cm(self.mit_concs[inh_name][p.plot_cell]), alpha_val)
+                #             inh_name += '_mit'
+                #             nde = pydot.Node(inh_name, style='filled', color=node_color)
+                #             graphicus_maximus.add_node(nde)
+                #
+                #         if zone_i == 'env':
+                #             node_color = rgba2hex(p.network_cm(self.env_concs[inh_name][p.plot_cell]), alpha_val)
+                #             inh_name += '_env'
+                #             nde = pydot.Node(inh_name, style='filled', color=node_color)
+                #             graphicus_maximus.add_node(nde)
+                #
+                #         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
+
+        if len(self.reactions_mit) > 0:
+
+            for i, name in enumerate(self.reactions_mit):
+
+                rea = self.reactions_mit[name]
+
+                for react_name in rea.reactants_list:
+
+                    node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
+                    react_name += '_mit'
+                    nde = pydot.Node(react_name, style='filled', color=node_color)
+                    self.graphicus_maximus.add_node(nde)
 
                     self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
 
                 for prod_name in rea.products_list:
 
-                    if rea.reaction_zone == 'mit':
-                        node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
-                        prod_name += '_mit'
-                        nde = pydot.Node(prod_name, style='filled', color=node_color)
-                        self.graphicus_maximus.add_node(nde)
+                    node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
+                    prod_name += '_mit'
+                    nde = pydot.Node(prod_name, style='filled', color=node_color)
+                    self.graphicus_maximus.add_node(nde)
 
                     self.graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
 
@@ -3560,8 +3622,6 @@ class MasterOfNetworks(object):
         omitting any channels and activation/inhibition relationships considered in this reaction network object.
 
         """
-
-        #FIXME if reaction zones are mit, need to add mit_conc distinction!
 
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
@@ -4099,8 +4159,6 @@ class MasterOfNetworks(object):
 
 
         """
-
-        # FIXME need to deal with mitochondrial reactions and transporters
 
         # import pydot
         import networkx as nx
