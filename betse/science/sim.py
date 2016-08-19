@@ -2260,7 +2260,7 @@ class Simulator(object):
 
         # Log this run.
         logs.log_info(
-            'Your %s is running from 0 to %.1g s of in-world time '
+            'Your %s is running from 0 to %.2f s of in-world time '
             'in %d time steps (%d sampled).',
             loop_type_label,
             loop_seconds_max,

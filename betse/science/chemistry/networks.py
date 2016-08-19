@@ -2098,7 +2098,6 @@ class MasterOfNetworks(object):
 
                 self.reaction_matrix_mit[i, j] += coeff
 
-
     #------runners------------------------------------------------------------------------------------------------------
     def run_loop(self, t, sim, cells, p):
         """
@@ -2196,6 +2195,7 @@ class MasterOfNetworks(object):
 
             # ensure no negs:
             stb.no_negs(obj.c_mems)
+            stb.no_negs(obj.c_env)
 
             if p.substances_affect_charge:
                 # calculate the charge density this substance contributes to cell and environment:
@@ -3114,8 +3114,10 @@ class MasterOfNetworks(object):
 
         # define some basic colormap scaling properties for the dataset:
         vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
-        minc = vals.min()
-        maxc = vals.max()
+        # minc = vals.min()
+        # maxc = vals.max()
+        minc = 0.0
+        maxc = 1.0
         normc = colors.Normalize(vmin=minc, vmax=maxc)
 
         # create a graph object
@@ -3157,7 +3159,7 @@ class MasterOfNetworks(object):
                     node_color = rgba2hex(p.network_cm(mol.c_env[p.plot_cell]), alpha_val)
 
                     nde = pydot.Node(name, style='filled', color=node_color)
-                    graphicus_maximus.add_node(nde)
+                    self.graphicus_maximus.add_node(nde)
 
                 else:
                     substance_name = name
@@ -3823,7 +3825,6 @@ class MasterOfNetworks(object):
             tex_list = []
 
         # if zone tag lists aren't supplied or are invalid entries, create defaults:
-
         zone_tags_a, zone_tags_i = self.default_zones(zone_tags_a, zone_tags_i, a_list, i_list)
 
         # initialize string expressions for product of all activators and inhibitors

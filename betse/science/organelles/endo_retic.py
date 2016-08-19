@@ -95,7 +95,7 @@ class EndoRetic(object):
 
         if sim.molecules is not None or sim.metabo is not None or sim.grn is not None:
 
-            if sim.molecules is not None and 'IP3' in sim.molecules:
+            if sim.molecules is not None and 'IP3' in sim.molecules.molecules:
                 cIP3_act = (sim.molecules.cell_concs['IP3']/p.act_Km_IP3)**p.act_n_IP3
 
             elif sim.metabo is not None and 'IP3' in sim.metabo.core.cell_concs:
