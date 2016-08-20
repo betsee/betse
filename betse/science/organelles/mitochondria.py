@@ -34,13 +34,14 @@ class Mito(object):
         sim.cc_mit = copy.deepcopy(sim.cc_cells)    # ion concentrations
         self.Dm_mit = copy.deepcopy(sim.cc_cells)    # membrane permeability
 
-        # set calcium concentration in mitochondria to an initially low value:
-        if p.ions_dict['Ca'] == 1:
-            sim.cc_mit[sim.iCa] = 100.0e-6  # [100 nM]
-
         for arr in self.Dm_mit:
 
             arr[:] = 1.0e-18                 # membrane permeability altered so all are minimal
+
+        # set calcium concentration in mitochondria to an initially low value:
+        if p.ions_dict['Ca'] == 1:
+            self.Dm_mit[sim.iCa] = 1.0e-16  # add a mitochondrial calcium uniporter set
+            sim.cc_mit[sim.iCa] = 10.0e-6  # [100 nM]
 
         self.Dm_mit_base = copy.deepcopy(self.Dm_mit)  # copies of Dm for ion channel dynamics
         self.Dm_channels = copy.deepcopy(self.Dm_mit)

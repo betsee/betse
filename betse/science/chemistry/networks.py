@@ -2164,6 +2164,8 @@ class MasterOfNetworks(object):
             # update concentration due to growth/decay and chemical reactions:
             obj.c_cells = obj.c_cells + deltac*p.dt
 
+            obj.c_mems = obj.c_mems + deltac[cells.mem_to_cells]*p.dt
+
             if self.mit_enabled and len(self.reactions_mit)>0:
                 # update concentration due to chemical reactions in mitochondria:
                 obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
@@ -2276,6 +2278,7 @@ class MasterOfNetworks(object):
 
             # update concentration due to growth/decay and chemical reactions:
             obj.c_cells = obj.c_cells + deltac*p.dt
+            obj.c_mems = obj.c_mems + deltac[cells.mem_to_cells]*p.dt
 
             if self.mit_enabled and len(self.reactions_mit)>0:
                 # update concentration due to chemical reactions in mitochondria:
@@ -2298,6 +2301,7 @@ class MasterOfNetworks(object):
 
             # ensure no negs:
             stb.no_negs(obj.c_mems)
+            stb.no_negs(obj.c_env)
 
             if p.substances_affect_charge:
                 # calculate the charge density this substance contributes to cell and environment:
@@ -3121,8 +3125,10 @@ class MasterOfNetworks(object):
         normc = colors.Normalize(vmin=minc, vmax=maxc)
 
         # create a graph object
-        self.graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True, rankdir = 'LR',
-            overlap = 'compress', splines = True)
+        self.graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True,
+            overlap = 'compress', splines = True, nodesep = 0.1, ranksep =0.3)
+
+        #rankdir = 'LR'
 
         # add each substance as a node in the graph:
         for i, name in enumerate(self.molecules):
@@ -3638,7 +3644,7 @@ class MasterOfNetworks(object):
         normc = colors.Normalize(vmin=minc, vmax=maxc)
 
         # create a graph object
-        graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True, rankdir = 'LR',
+        graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True, nodesep = 0.1, ranksep = 0.3,
             overlap = 'compress', splines = True)
 
         # add each substance as a node in the graph:
@@ -3959,7 +3965,11 @@ class MasterOfNetworks(object):
                     # add any independently acting terms from the list:
                     for indt, indtex in zip(independent_terms, independent_terms_tex):
 
-                        if activator_alpha.endswith('*'):
+                        if activator_alpha == "(": # if nothing has been added to the activator alpha string
+                            activator_alpha = '(1'
+                            activator_alpha_tex = '1'
+
+                        elif activator_alpha.endswith('*'): # otherwise, if it's a running list, remove the * operator
                             activator_alpha = activator_alpha[:-1]
 
                         activator_alpha += "+" + indt
@@ -3976,6 +3986,10 @@ class MasterOfNetworks(object):
 
             # Next, construct the inhibitors net effect term:
             for i, (name, Km, n, zone_tag) in enumerate(zip(i_list, Km_i_list, n_i_list, zone_tags_i)):
+
+                if name.endswith('!'): # remove any bangs a user might specify; inhibitors always act multiplicatively
+
+                    name = name[:-1]
 
                 # initialize string expressions for activator and inhibitor, respectively
                 numo_string_i = ""
@@ -4040,8 +4054,6 @@ class MasterOfNetworks(object):
                 tex_list.append(n_i_tex)
 
                 #-------------------------------------------------
-
-
                 inhibitor_alpha += term
 
                 inhibitor_alpha_tex += tex_term
@@ -4168,10 +4180,10 @@ class MasterOfNetworks(object):
         logs.log_info(mssg)
 
         # set the vmem and Vmit to generalized values common to many cell types:
-        sim.vm[:] = -50e-3
+        sim.vm[:] = -70e-3
 
         if self.mit_enabled:
-            self.mit.Vmit[:] = -150.0e-3
+            self.mit.Vmit[:] = -175.0e-3
 
         self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
 
