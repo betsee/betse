@@ -17,31 +17,11 @@ Low-level module facilities.
 
 import collections, importlib, sys
 from betse.exceptions import BetseModuleException
+from betse.util.io.log import logs
 from betse.util.type import types
+from betse.util.type.types import type_check, ModuleType
 
 # ....................{ GLOBALS ~ dict                     }....................
-SETUPTOOLS_PROJECT_TO_MODULE_NAME = {
-    'Matplotlib': 'matplotlib',
-    'Numpy': 'numpy',
-    'Pillow': 'PIL',
-    'PyYAML': 'yaml',
-    'SciPy': 'numpy',
-    'setuptools': 'setuptools',
-    'six': 'six',
-    'yamale': 'yamale',
-}
-'''
-Dictionary mapping each relevant `setuptools`-specific project name (e.g.,
-`PyYAML`) to the fully-qualified name of the corresponding top-level module or
-package providing that project (e.g., `yaml`).
-
-This dictionary is principally used to validate the importability of runtime
-dependencies at startup. For consistency, the size of this dictionary should be
-greater than or equal to the size of the `betse.metadata.DEPENDENCIES_RUNTIME`
-list.
-'''
-
-
 MODULE_TO_VERSION_ATTR_NAME = collections.defaultdict(
     # Default attribute name to be returned for all unmapped modules.
     lambda: '__version__',
@@ -79,8 +59,11 @@ def die_unless_module(
         assert types.is_str(exception_message), (
             types.assert_not_str(exception_message))
 
-        # Raise this exception.
-        raise BetseModuleException(exception_message)
+        # Raise this exception. To permit callers to transparently handle
+        # importation errors in the conventional way, raise the conventional
+        # exception rather than a BETSE-specific exception (e.g.,
+        # "BetseModuleException").
+        raise ImportError(exception_message)
 
 # ....................{ TESTERS                            }....................
 def is_module(module_name: str) -> bool:
@@ -149,34 +132,36 @@ def is_imported(*module_names) -> bool:
     return True
 
 # ....................{ GETTERS                            }....................
-def get_dirname(mod) -> str:
+@type_check
+def get_dirname(mod: ModuleType) -> str:
     '''
     Get the absolute path of the directory containing the file from which the
     passed module was previously imported.
     '''
-    assert hasattr(mod, '__file__'), '"{}" not a module.'.format(mod)
 
     # Avoid circular import dependencies.
     from betse.util.path import paths
 
-    # Get such dirname.
+    # Get this dirname.
     return paths.get_dirname(mod.__file__)
 
 # ....................{ GETTERS ~ version                  }....................
-def get_version(mod) -> str:
+@type_check
+def get_version(mod: (str, ModuleType)) -> str:
     '''
     Get the version specifier of the passed module.
 
-    If that module provides no version specifier, an exception is raised.
+    If this module provides no version specifier, an exception is raised.
 
     See Also
     ----------
-    `get_version_or_none`
-        For further details on the passed parameter.
+    :func:`get_version_or_none`
+        Further details on the passed parameter.
     '''
+
     module_version = get_version_or_none(mod)
 
-    # If such version does *NOT* exist, raise an exception.
+    # If this version does *NOT* exist, raise an exception.
     if module_version is None:
         raise BetseModuleException(
             'Module "%s" version not found.', str(mod))
@@ -184,7 +169,7 @@ def get_version(mod) -> str:
     return module_version
 
 
-def get_version_or_none(mod) -> str:
+def get_version_or_none(mod: (str, ModuleType)) -> str:
     '''
     Get the version specifier of the passed module if that module provides a
     version specifier _or_ `None` otherwise.
@@ -198,19 +183,27 @@ def get_version_or_none(mod) -> str:
 
     # If a module name was passed, dynamically import this module.
     if types.is_str(mod):
-        assert types.is_str_nonempty(mod), (
-            types.assert_not_str_nonempty(mod, 'Module name'))
         mod = import_module(mod)
 
     # Name of the version specifier attribute defined by that module. For sane
     # modules, this is "__version__". Insane modules, however, exist.
-    version_attr_name = MODULE_TO_VERSION_ATTR_NAME[mod.__name__]
+    mod_version_attr_name = MODULE_TO_VERSION_ATTR_NAME[mod.__name__]
 
-    # Get such attribute from such module if defined or None otherwise.
-    return getattr(mod, version_attr_name, None)
+    # This attribute defined by this module if any or "None" otherwise.
+    mod_version = getattr(mod, mod_version_attr_name, None)
+
+    # If this version is undefined, log a non-fatal warning.
+    if mod_version is None:
+        logs.log_warning(
+            'Package "%s" version not found.', mod.__name__)
+
+    # Return this version.
+    return mod_version
 
 # ....................{ IMPORTERS                          }....................
-def import_module(module_name: str, exception_message: str = None) -> type(sys):
+@type_check
+def import_module(
+    module_name: str, exception_message: str = None) -> ModuleType:
     '''
     Dynamically import and return the module, package, or C extension with the
     passed fully-qualified name.
@@ -218,8 +211,6 @@ def import_module(module_name: str, exception_message: str = None) -> type(sys):
     If this module is unimportable, an exception with the passed message is
     raised.
     '''
-    assert types.is_str_nonempty(module_name), (
-        types.assert_not_str_nonempty(module_name, 'Module name'))
 
     # If this module is unimportable, raise an exception.
     die_unless_module(module_name, exception_message)

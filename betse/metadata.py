@@ -265,7 +265,7 @@ Basename of the GUI-specific Python script wrapper created by `setuptools`
 installation.
 '''
 
-# ....................{ METADATA ~ setuptools              }....................
+# ....................{ METADATA ~ dependencies : setuptoo }....................
 # setuptools-specific metadata required outside of setuptools-based
 # installations, typically for performing runtime validation of the current
 # Python environment.
@@ -274,44 +274,44 @@ DEPENDENCY_SETUPTOOLS = 'setuptools >= 3.3'
 '''
 Version of `setuptools` required by `betse` at both install and runtime.
 
-For simplicity, such version is a `setuptools`-specific requirements string.
+For simplicity, this version is a `setuptools`-specific requirements string.
 
 Note that `betse` only requires the `pkg_resources` package installed along
 with `setuptools` rather than the `setuptools` package itself. Since there
 appears to exist no means of asserting a dependency on only `pkg_resources`,
-we pretend to require `setuptools` itself. This is non-ideal, of course.
+we pretend to require `setuptools` itself. Although non-ideal, so is life.
 '''
 
-
+# ....................{ METADATA ~ dependencies : runtime  }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Changes to this list *MUST* be synchronized with:
-# * Front-facing documentation (e.g., the top-level "README.rst").
-# * The "betse.util.py.modules.SETUPTOOLS_PROJECT_TO_MODULE_NAME" dictionary,
-#   converting between the setuptools-specific names listed below and the
-#   Python-specific module names imported by BETSE.
+# * Front-facing documentation (e.g., "doc/md/INSTALL.md").
+# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
+#   between the setuptools-specific names listed below and the Python-specific
+#   module names imported by BETSE.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DEPENDENCIES_RUNTIME = [
+DEPENDENCIES_RUNTIME_MANDATORY = (
     # setuptools is currently required at both install and runtime. At runtime,
-    # setuptools is used to validate that required dependencies are available.
+    # setuptools is used to validate that dependencies are available.
     DEPENDENCY_SETUPTOOLS,
 
     # Dependencies directly required by BETSE.
     'Matplotlib >= 1.4.0',
     'Numpy >= 1.8.0',
-    'SciPy >= 0.12.0',
     'PyYAML >= 3.10',
+    'SciPy >= 0.12.0',
     'dill >= 0.2.3',
 
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
     # missing dependencies in a human-readable manner, these dependencies are
     # explicitly listed as well.
-    'six >= 1.5.2',      # required by everything that should not be
     'Pillow >= 2.3.0',   # required by the "scipy.misc.imread" module
-]
+    'six >= 1.5.2',  # required by everything that should not be
+)
 '''
 Set of all mandatory runtime dependencies for `betse`.
 
-For simplicity, this set is formatted as a list of `setuptools`-specific
+For simplicity, this set is formatted as a tuple of `setuptools`-specific
 requirements strings whose:
 
 * First word is the name of the `setuptools`-specific project being required,
@@ -330,22 +330,56 @@ See Also
 '''
 
 
+#FIXME: Should these be dependencies also be added to our "setup.py" metadata,
+#perhaps as so-called "extras"? Contemplate. Consider. Devise.
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Changes to this list *MUST* be synchronized with:
+# * Front-facing documentation (e.g., "doc/md/INSTALL.md").
+# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
+#   between the setuptools-specific names listed below and the Python-specific
+#   module names imported by BETSE.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+DEPENDENCIES_RUNTIME_OPTIONAL = (
+    # Dependencies directly required by BETSE.
+    'NetworkX >= 1.4.0',
+    'ptpython >= 0.29',
+
+    #FIXME: PyDot requires GraphViz. Hence, GraphViz should *ALSO* be validated
+    #whenever validating PyDot. Since PyDot is unlikely to be installable in the
+    #wild without GraphViz also being installed (e.g., due to package manager
+    #dependencies), this is probably ignorable for the glorious moment.
+    'pydot >= 1.0.29',
+)
+'''
+Set of all optional runtime dependencies for `betse`.
+
+For simplicity, this set is formatted as a tuple of `setuptools`-specific
+requirements strings in the same manner as `DEPENDENCIES_RUNTIME_MANDATORY`.
+
+See Also
+----------
+:download:`/doc/md/INSTALL.md`
+    Human-readable list of these dependencies.
+'''
+
+# ....................{ METADATA ~ dependencies : testing  }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Changes to this list *MUST* be synchronized with:
 # * Front-facing documentation (e.g., the top-level "README.rst").
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DEPENDENCIES_TESTING = [
+DEPENDENCIES_TESTING_MANDATORY = (
     # For simplicity, py.test should remain the only hard dependency for testing
     # on local machines. While our setuptools-driven testing regime optionally
     # leverages third-party py.test plugins (e.g., "pytest-xdist"), these
     # plugins are *NOT* required for simple testing.
     'pytest >= 2.5.0',
-]
+)
 '''
 Set of all mandatory testing dependencies for `betse`.
 
-For simplicity, this set is formatted as a list of `setuptools`-specific
-requirements strings in the same manner as `DEPENDENCIES_RUNTIME`.
+For simplicity, this set is formatted as a tuple of `setuptools`-specific
+requirements strings in the same manner as `DEPENDENCIES_RUNTIME_MANDATORY`.
 
 See Also
 ----------

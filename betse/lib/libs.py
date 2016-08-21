@@ -4,11 +4,11 @@
 # See "LICENSE" for further details.
 
 '''
-High-level **dependency** (i.e., both mandatory and optional Python packages
-imported at runtime) facilities.
+High-level **dependency** (i.e., both mandatory and optional third-party Python
+packages imported at runtime) facilities.
 
-This module provides functions intended to be called by high-level interface
-modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
+This module defines functions intended to be called by high-level interface
+modules (e.g., `betse.cli.clicli`) _before_ attempting to import dependencies.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -18,8 +18,39 @@ modules (e.g., `betse.cli.cli`) *before* attempting to import such dependencies.
 # exist at installation time (i.e., stock Python and BETSE packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from collections import OrderedDict
 from betse import metadata
+from collections import OrderedDict
+
+# ....................{ EXCEPTIONS                         }....................
+def die_unless_satisfied_runtime_mandatory_all() -> None:
+    '''
+    Raise an exception unless all mandatory runtime dependencies of BETSE are
+    **satisfiable** (i.e., importable and of a satisfactory version).
+
+    Equivalently, this function raises an exception if at least one such
+    dependency is unsatisfied. For importable unsatisfied dependencies with
+    `setuptools`-specific metadata (e.g., `.egg-info/`-suffixed subdirectories
+    of the `site-packages/` directory for the active Python 3 interpreter,
+    typically created by `setuptools` at install time), this function
+    additionally validates the versions of such dependencies to satisfy `betse`
+    requirements.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py import modules
+
+    # If the "pkg_resources" setuptools dependency is missing, raise an
+    # exception *BEFORE* importing this dependency below.
+    modules.die_unless_module(
+        module_name='pkg_resources',
+        exception_message='Mandatory dependency "pkg_resources" not found.',
+    )
+
+    # Validate these dependencies via "pkg_resources". Defer the importation of
+    # this submodule until *AFTER* validating "pkg_resources" to exist above.
+    from betse.lib import setuptool
+    setuptool.die_unless_requirement_str(
+        *metadata.DEPENDENCIES_RUNTIME_MANDATORY)
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -41,64 +72,43 @@ def init() -> None:
     yamls.init()
 
 # ....................{ GETTERS                            }....................
-def get_metadata() -> OrderedDict:
+def get_runtime_mandatory_metadata() -> OrderedDict:
     '''
-    Get an ordered dictionary synopsizing all currently installed dependencies.
+    Ordered dictionary describing all currently installed third-party
+    dependencies required by core functionality at runtime.
     '''
 
-    # Imports deferred to their point of use, as documented above.
-    import pkg_resources
+    # Avoid circular import dependencies.
     from betse.lib import setuptool
-    from betse.util.py import modules, pys
-    from betse.util.type import sequences
 
-    # Dependency metadata to be collected and returned.
-    dependency_metadata = OrderedDict()
+    # Return this metadata.
+    return setuptool.get_requirement_str_metadata(
+        *metadata.DEPENDENCIES_RUNTIME_MANDATORY)
 
-    # If the active Python interpreter is frozen, query dependency versions
-    # manually rather than via setuptools machinery. See the
-    # setuptool.die_unless_requirement_satisfiable() function for related logic
-    # and further commentary.
-    if pys.is_frozen():
-    # if True:
-        # List of the setuptools-specific project names of all BETSE
-        # dependencies, lexicographically sorted for readability.
-        project_names = sequences.sort_lexicographic_ascending(
-            setuptool.SETUPTOOLS_TO_MODULE_NAME.keys())
 
-        # For each such name...
-        for project_name in project_names:
-            # Fully-qualified name of this project's root module or package.
-            module_name = (
-                setuptool.SETUPTOOLS_TO_MODULE_NAME[project_name])
+def get_runtime_optional_metadata() -> OrderedDict:
+    '''
+    Ordered dictionary describing all currently installed third-party
+    dependencies required by optional functionality at runtime.
+    '''
 
-            # If this module is importable and hence frozen with this
-            # executable, this module is a describable dependency.
-            if modules.is_module(module_name):
-                # Version specifier provided by that module or package.
-                module_version = modules.get_version(module_name)
+    # Avoid circular import dependencies.
+    from betse.lib import setuptool
 
-                # Append metadata describing this dependency.
-                dependency_metadata[project_name + ' version'] = module_version
-    # Else, the active Python interpreter is *NOT* frozen. In such case, query
-    # dependency versions via the more reliable setuptools machinery.
-    else:
-        # List of all BETSE dependencies as setuptools-specific requirements,
-        # lexicographically sorted for readability.
-        requirements = pkg_resources.parse_requirements(
-            sequences.sort_lexicographic_ascending(
-                metadata.DEPENDENCIES_RUNTIME))
+    # Return this metadata.
+    return setuptool.get_requirement_str_metadata(
+        *metadata.DEPENDENCIES_RUNTIME_OPTIONAL)
 
-        # For each such dependency...
-        for requirement in requirements:
-            # Setuptools distribution describing such dependency. Since the
-            # previously called dependencies.init() function presumably
-            # succeeded, this distribution is guaranteed to exist.
-            distribution = pkg_resources.get_distribution(requirement)
 
-            # Append metadata describing this dependency.
-            dependency_metadata[distribution.project_name + ' version'] = (
-                distribution.version)
+def get_testing_mandatory_metadata() -> OrderedDict:
+    '''
+    Ordered dictionary describing all currently installed third-party
+    dependencies required by this application's test suite.
+    '''
 
-    # Return this dictionary.
-    return dependency_metadata
+    # Avoid circular import dependencies.
+    from betse.lib import setuptool
+
+    # Return this metadata.
+    return setuptool.get_requirement_str_metadata(
+        *metadata.DEPENDENCIES_TESTING_MANDATORY)

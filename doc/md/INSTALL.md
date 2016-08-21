@@ -398,7 +398,7 @@ dependencies where available at runtime:
   optionally wrapping the BETSE REPL with an improved interface. <sup>By
   default, the BETSE REPL leverages the stock Python REPL.</sup>
 * [py.test](http://pytest.org) >= 2.8.0, for optionally running unit tests.
-* [PyDot](https://github.com/erocarrera/pydot) >= 1.0.28 and
+* [PyDot](https://github.com/erocarrera/pydot) >= 1.0.29 and
   [GraphViz](http://www.graphviz.org) >= 2.38, for optionally visualizing BETSE
   networks.
 * [PyInstaller](http://www.pyinstaller.org) >= 3.0, for optionally freezing

@@ -85,7 +85,12 @@ def output_info() -> None:
         ('logging', logconfig.get_metadata()),
 
         # Dependencies metadata.
-        ('dependencies', libs.get_metadata()),
+        ('runtime dependencies (mandatory)',
+         libs.get_runtime_mandatory_metadata()),
+        ('runtime dependencies (optional)',
+         libs.get_runtime_optional_metadata()),
+        ('testing dependencies (mandatory)',
+         libs.get_testing_mandatory_metadata()),
 
         # "matplotlib" metadata.
         ('matplotlib', mpl_config.get_metadata()),

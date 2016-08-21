@@ -114,7 +114,7 @@ def init() -> None:
 
     # Defer heavyweight imports to their point of use.
     from betse import pathtree
-    from betse.lib import libcheck
+    from betse.lib import libs
     from betse.util.io.log import logconfig
     from betse.util.py import pys
 
@@ -123,20 +123,19 @@ def init() -> None:
     # this validation.
     logconfig.init()
 
+    # Validate mandatory dependencies. Avoid initializing these dependencies
+    # here (e.g., by calling libs.init()), which requires the logging
+    # configuration to have been finalized (e.g., by parsing CLI options), which
+    # has yet to occur this early in the application lifecycle.
+    libs.die_unless_satisfied_runtime_mandatory_all()
+
+    # Validate the active Python interpreter *AFTER* mandatory dependencies.
+    # While the former (mostly) comprises unenforced recommendations, the latter
+    # comprises enforced requirements and should thus be validated first.
+    pys.init()
+
     # Validate core directories and files required at program startup.
     pathtree.init()
-
-    # Validate mandatory dependencies. Avoid initializing these dependencies
-    # here (by calling libs.init()). Doing so requires the logging configuration
-    # to have been finalized (e.g., by parsing CLI options), which it has yet to
-    # be at this early point in the application lifecycle.
-    libcheck.init()
-
-    # Validate the active Python interpreter *AFTER* validating mandatory
-    # dependencies. While the former (mostly) comprises unenforced
-    # recommendations, the latter comprises enforced requirements and hence is
-    # performed first.
-    pys.init()
 
     # Record this function as already called *AFTER* successfully calling all
     # prior initialization.

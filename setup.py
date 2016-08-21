@@ -180,10 +180,10 @@ setup_options = {
 
     # ..................{ DEPENDENCIES                       }..................
     # Runtime dependencies.
-    'install_requires': metadata.DEPENDENCIES_RUNTIME,
+    'install_requires': metadata.DEPENDENCIES_RUNTIME_MANDATORY,
 
     # Testing dependencies.
-    'tests_require': metadata.DEPENDENCIES_TESTING,
+    'tests_require': metadata.DEPENDENCIES_TESTING_MANDATORY,
 
     # ..................{ PACKAGES                           }..................
     # List of all Python packages (i.e., directories containing zero or more

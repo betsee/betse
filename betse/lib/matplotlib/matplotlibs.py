@@ -300,10 +300,6 @@ class MatplotlibConfig(object):
             matplotlib configuration details.
         '''
 
-        # Inform interactive users enabling BETSE-specific verbosity of
-        # matplotlib-specific verbosity output by this importation.
-        logs.log_debug('Initializing matplotlib...')
-
         # Copy the current argument list into a temporary list.
         _sys_argv_old = sys.argv[:]
 
@@ -353,21 +349,22 @@ class MatplotlibConfig(object):
             #setting "rcParams['animation.ffmpeg_args'] = '-report'" or some
             #such *AFTER* importing matplotlib below.
 
-            # Import matplotlib *AFTER* setting all matplotlib-specific CLI
-            # options parsed by this importation.
-            from matplotlib import verbose
+            # Log this initialization.
+            logs.log_debug(
+                'Initializing matplotlib with options: %s', sys.argv)
 
-            # Permit the verbose.set_level() method to be subsequently called.
-            # If this private attribute is *NOT* nullified, all subsequent calls
-            # to that method reduce to noops. (Don't ask. Don't tell.)
+            # Import matplotlib *AFTER* setting all matplotlib-specific CLI
+            # options above, which this importation parses.
+            from matplotlib import rcParams, verbose
+
+            # Prevent the verbose.set_level() method from reducing to a noop, as
+            # occurs when this private attribute is *NOT* nullified. (waaaat?)
             verbose._commandLineVerbose = None     # yes, this is horrible
-        # Restore the prior argument list from this temporary list.
+        # Guarantee the prior argument list to be restored from this temporary
+        # list even in the event of exceptions.
         finally:
             sys.argv = _sys_argv_old
             del(_sys_argv_old)
-
-        # Import all remaining Matplotlib attributes required below.
-        from matplotlib import rcParams
 
         # Unconditionally enable the settings defined by the "RC_PARAMS" global.
         rcParams.update(RC_PARAMS)
@@ -484,7 +481,7 @@ class MatplotlibConfig(object):
                 'Matplotlib verbosity level "{}" unrecognized.'.format(
                     verbosity_level_name))
 
-        # Set this name.
+        # Set this verbosity level.
         verbose.set_level(verbosity_level_name)
 
     # ..................{ PROPERTIES ~ backend               }..................

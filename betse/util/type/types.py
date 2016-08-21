@@ -32,6 +32,7 @@ from types import (
     FunctionType,
     LambdaType,
     MethodType,
+    ModuleType,
 )
 
 # ....................{ TYPES                              }....................
@@ -206,7 +207,7 @@ This includes:
 # If the active Python interpreter is *NOT* optimized (e.g., option "-O" was
 # *NOT* passed to this interpreter), enable type checking.
 if __debug__:
-    def type_check(func: callable) -> callable:
+    def type_check(func: CallableTypes) -> CallableTypes:
         '''
         Decorate the passed **callable** (e.g., function, method) to validate
         both all annotated parameters passed to this callable _and_ the
