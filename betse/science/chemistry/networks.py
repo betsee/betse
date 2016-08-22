@@ -4,19 +4,20 @@
 
 import os
 import os.path
-import math
 import csv
+import math
+import matplotlib.pyplot as plt
 import numpy as np
+from betse.exceptions import BetseParametersException
+from betse.lib import libs
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.science.tissue.handler import TissueHandler
 from betse.science.event import modulators as mods
-from betse.util.io.log import logs
-import matplotlib.pyplot as plt
-from betse.exceptions import BetseParametersException
 from betse.science.plot import plot as viz
 from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
+from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
 from collections import OrderedDict
@@ -4157,36 +4158,43 @@ class MasterOfNetworks(object):
                     nde = pydot.Node(inh_name, style='filled', color=node_color)
                     self.graphicus_maximus.add_node(nde)
 
-                self.graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
+                self.graphicus_maximus.add_edge(
+                    pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
 
     def optimizer(self, sim, cells, p):
         """
-        Runs an optimization routine returning reaction maximum rates (for growth and decay,
-        chemical reactions, and transporters) that match to a user-specified set of target
-        concentrations for all substances at steady-state.
+        Runs an optimization routine returning reaction maximum rates (for
+        growth and decay, chemical reactions, and transporters) that match to a
+        user-specified set of target concentrations for all substances at
+        steady-state.
 
-        The optimization uses basin-hopping, a randomized function optimization technique
-        similar/analogous to genetic algorithm searching.
+        The optimization is performed using cell, environmental, and
+        mitochondrial concentrations defined in the network config file as
+        targets to fit to.
 
-        The optimization is performed using cell, environmental, and mitochondrial
-        concentrations defined in the network config file as targets to fit to.
+        The optimization uses basin-hopping, a randomized function optimization
+        technique similar/analogous to genetic algorithm searching. The
+        optimization aims to find the global minimum of the network, which
+        represents the steady state. Specifically, it minimizes the chi-square
+        value of the set of calculated versus target concentrations given a
+        certain maximum rate vector.
 
-        The optimization aims to find the global minimum of the network, which represents the
-        steady state. Specifically, it minimizes the chi-square value of the set of calculated vs
-        target concentrations given a certain maximum rate vector.
-
-        Calling this method will write a csv file containing the optimized reaction rates
-        to the results folder of the main simulation. It also prints these values to the
-        screen, and generates a graph of the reaction network that has been optimized.
-
-
+        Calling this method will write a CSV file containing the optimized
+        reaction rates to the results folder of the main simulation. It also
+        prints these values to the screen, and generates a graph of the
+        reaction network that has been optimized.
         """
 
-        # import pydot
+        #FIXME: Uncomment when tested as working.
+        # If either NetworkX or PyDot are unimportable, raise an exception.
+        #libs.die_unless_runtime_optional('networkx', 'pydot')
+
+        # Import both NetworkX and PyDot.
         import networkx as nx
         from networkx import nx_pydot
 
-        mssg = "Optimizing with {} in {} itterations".format(self.opti_method, self.opti_N)
+        mssg = "Optimizing with {} in {} iterations".format(
+            self.opti_method, self.opti_N)
         logs.log_info(mssg)
 
         # set the vmem and Vmit to generalized values common to many cell types:
@@ -5256,6 +5264,3 @@ def tex_val(v):
         v_str = "%.2f" % (v)
 
     return v_str
-
-
-

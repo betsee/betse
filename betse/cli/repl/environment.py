@@ -4,11 +4,11 @@
 # See "LICENSE" for further details.
 
 '''
-This module provides the environmental context for BETSE REPLs.
+Environmental context for the BETSE REPL.
 
-Each function and variable in this module is loaded into the `repl_env`
-dictionary via a call to `locals`. For safety, `repl_env` is the only
-attribute that should be imported from this module.
+Each function and variable in this module is loaded into the global
+:data:`repl_env` dictionary via a call to :func:`locals`. For safety, this
+dictionary is the only attribute that should be imported from this module.
 '''
 
 # ....................{ IMPORTS                            }....................

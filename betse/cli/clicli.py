@@ -12,8 +12,10 @@ from argparse import ArgumentParser, _SubParsersAction
 from betse.cli import clisubcom, info
 from betse.cli.cliabc import expand_help, CLIABC
 from betse.cli.clisubcom import CLISubcommand
+from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
+from betse.util.py import pys
 from betse.util.type.types import type_check
 
 # ....................{ CLASS                              }....................
@@ -364,16 +366,23 @@ class CLICLI(CLIABC):
 
         self._get_sim_runner().plot_grn()
 
+
     def _do_repl(self) -> None:
         '''
         Run the `repl` subcommand.
         '''
-        from betse.util.py.pys import is_testing
-        if is_testing():
-            logs.log_info('The REPL is unavailable during testing.')
-        else:
-            from betse.repl import start_repl
-            start_repl()
+
+        # In the unlikely edge-case of the "repl" subcommand being erroneously
+        # run by a functional test, prohibit this by raising an exception.
+        # Permitting this would probably cause tests to indefinitely hang.
+        if pys.is_testing():
+            raise BetseTestException('REPL unavailable for testing.')
+
+        # Defer heavyweight imports until *AFTER* possibly failing above.
+        from betse.cli.repl import repls
+
+        # Start the desired REPL.
+        repls.start_repl()
 
     # ..................{ GETTERS                            }..................
     def _get_sim_runner(self):
@@ -381,7 +390,7 @@ class CLICLI(CLIABC):
         BETSE simulation runner preconfigured with sane defaults.
         '''
 
-        # Avoid importing modules importing dependencies at the top level.
+        # Defer heavyweight imports.
         from betse.science.simrunner import SimRunner
 
         # Return this runner.

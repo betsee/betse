@@ -127,7 +127,7 @@ def init() -> None:
     # here (e.g., by calling libs.init()), which requires the logging
     # configuration to have been finalized (e.g., by parsing CLI options), which
     # has yet to occur this early in the application lifecycle.
-    libs.die_unless_satisfied_runtime_mandatory_all()
+    libs.die_unless_runtime_mandatory_all()
 
     # Validate the active Python interpreter *AFTER* mandatory dependencies.
     # While the former (mostly) comprises unenforced recommendations, the latter

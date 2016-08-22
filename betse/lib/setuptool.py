@@ -5,14 +5,14 @@
 
 '''
 High-level support facilities for `pkg_resources`, a mandatory runtime
-dependency simplifying inspection of `betse` dependencies.
+dependency simplifying inspection of application dependencies.
 '''
 
 # ....................{ IMPORTS                            }....................
 import pkg_resources
-from betse.exceptions import BetseModuleException
+from betse.exceptions import BetseDependencyException
 from betse.util.type import sequences
-from betse.util.type.types import type_check, ModuleType
+from betse.util.type.types import type_check, MappingType, ModuleType
 from collections import OrderedDict
 from pkg_resources import (
     DistributionNotFound, Requirement, UnknownExtra, VersionConflict)
@@ -20,12 +20,12 @@ from pkg_resources import (
 # ....................{ GLOBALS ~ dict                     }....................
 SETUPTOOLS_TO_MODULE_NAME = {
     'Matplotlib': 'matplotlib',
-    'NetworkX': 'networkx',
     'Numpy': 'numpy',
     'Pillow': 'PIL',
     'PyYAML': 'yaml',
     'SciPy': 'numpy',
     'dill': 'dill',
+    'networkx': 'networkx',
     'ptpython': 'ptpython',
     'pydot': 'pydot',
     'setuptools': 'setuptools',
@@ -79,7 +79,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     '''
 
     # Human-readable exception to be raised below if any.
-    exception = None
+    exception_message = None
 
     # If setuptools raises a non-human-readable exception on validating this
     # requirement, convert that into a human-readable exception.
@@ -96,9 +96,8 @@ def die_unless_requirement(requirement: Requirement) -> None:
     #
     #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
     except VersionConflict as version_conflict:
-        exception = BetseModuleException(
-            'Mandatory dependency "{}" unsatisfied by '
-            'installed dependency "{}".'.format(
+        exception_message = BetseDependencyException(
+            'Dependency "{}" unsatisfied by installed dependency "{}".'.format(
                 version_conflict.req, version_conflict.dist))
     #FIXME: Handle the "UnknownExtra" exception as well.
 
@@ -106,33 +105,32 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # preferable to simply raise this exception in the exception handler above,
     # doing so encourages Python 3 to implicitly prepend this exception by the
     # non-human-readable exception raised above. (...Ugh!)
-    if exception:
-        raise exception
+    if exception_message:
+        raise exception_message
 
     # Avoid circular import dependencies.
     from betse.util.py import modules
 
-    # This package if importable or a raised exception otherwise.
+    # Attempt to import this package.
     try:
         # print('Importing dependency: ' + module_name)
         package = import_requirement(requirement)
     # Convert this exception into a human-readable form.
     except ImportError:
-        exception = BetseModuleException(
-            'Requirement "{}" not found.'.format(requirement.project_name))
+        exception_message = BetseDependencyException(
+            'Dependency "{}" not found.'.format(requirement.project_name))
 
     # If a human-readable exception is to be raised, do so.
-    if exception:
-        raise exception
+    if exception_message:
+        raise exception_message
 
     # Package version if any or "None" otherwise.
     package_version = modules.get_version_or_none(package)
 
     # If this version fails to satisfy this requirement, raise an exception.
     if package_version not in requirement:
-        raise BetseModuleException(
-            'Mandatory dependency "{}" unsatisfied by '
-            'installed version {}.'.format(
+        raise BetseDependencyException(
+            'Dependency "{}" unsatisfied by installed version {}.'.format(
                 requirement, package_version))
 
 # ....................{ TESTERS                            }....................
@@ -144,7 +142,7 @@ def is_requirement_str(*requirement_strs: str) -> bool:
     packages to be both importable and of satisfactory version.
 
     Equivalently, this function returns `False` if at least one such
-    requirements is unsatisfied. For importable unsatisfied dependencies with
+    requirement is unsatisfied. For importable unsatisfied dependencies with
     `setuptools`-specific metadata (e.g., `.egg-info/`-suffixed subdirectories
     of the `site-packages/` directory for the active Python 3 interpreter,
     typically created by `setuptools` at install time), this function
@@ -221,7 +219,7 @@ def is_requirement(requirement: Requirement) -> bool:
     # dependency validation, the latter remains the default.
     # print('Validating dependency: ' + requirement.project_name)
 
-    # This package if importable or a raised exception otherwise.
+    # Attempt to import this package.
     try:
         # print('Importing dependency: ' + package_name)
         package = import_requirement(requirement)
@@ -327,7 +325,7 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
     # Avoid circular import dependencies.
     from betse.util.py import modules
 
-    # This package if importable or a raised exception otherwise.
+    # Attempt to import this package.
     try:
         # print('Importing dependency: ' + module_name)
         package = import_requirement(requirement)
@@ -344,6 +342,115 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
     # Else, return an appropriate string.
     else:
         return 'unversioned'
+
+# ....................{ CONVERTERS                         }....................
+@type_check
+def convert_requirement_dict_to_strs(requirement_dict: MappingType) -> tuple:
+    '''
+    Convert the passed dictionary of `setuptools`-specific requirements strings
+    into a tuple of such strings.
+
+    This dictionary is assumed to map from the `setuptools`-specific project
+    name of a third-party dependency (e.g., `NetworkX`) to the suffix of a
+    `setuptools`-specific requirements string constraining this dependency
+    (e.g., `>= 1.11`). Each element of the resulting tuple is a string of the
+    form `{key} {value}`, converted from a key-value pair of this dictionary in
+    arbitrary order.
+
+    Parameters
+    ----------
+    requirement_dict : MappingType
+        Dictionary of `setuptools`-specific requirements strings in the format
+        described above.
+
+    Returns
+    ----------
+    tuple
+        Tuple of `setuptools`-specific requirements strings in the format
+        described above.
+    '''
+
+    return convert_requirement_dict_keys_to_strs(
+        requirement_dict, *requirement_dict.keys())
+
+
+@type_check
+def convert_requirement_dict_keys_to_strs(
+    requirement_dict: MappingType, *requirement_names: str) -> tuple:
+    '''
+    Convert all key-value pairs of the passed dictionary of `setuptools`-
+    specific requirements strings whose keys are the passed strings into a
+    tuple of `setuptools`-specific requirements string.
+
+    Parameters
+    ----------
+    requirement_dict : MappingType
+        Dictionary of requirements strings.
+    requirement_names : Tuple[str]
+        Tuple of keys identifying the key-value pairs of this dictionary to
+        convert.
+
+    Returns
+    ----------
+    tuple
+        Tuple of `setuptools`-specific requirements strings in the format
+        described above.
+
+    Raises
+    ----------
+    :exc:`BetseDependencyException`
+        If the passed key is _not_ a key of this dictionary.
+
+    See Also
+    ----------
+    :func:`convert_requirement_dict_to_strs`
+        Further details on the format of this dictionary and resulting string.
+    '''
+
+    return tuple(
+        convert_requirement_dict_key_to_str(requirement_dict, requirement_name)
+        for requirement_name in requirement_names
+    )
+
+
+@type_check
+def convert_requirement_dict_key_to_str(
+    requirement_dict: MappingType, requirement_name: str) -> str:
+    '''
+    Convert the key-value pair of the passed dictionary of `setuptools`-
+    specific requirements strings whose key is the passed string into a
+    `setuptools`-specific requirements string.
+
+    Parameters
+    ----------
+    requirement_dict : MappingType
+        Dictionary of requirements strings.
+    requirement_names : str
+        Key identifying the key-value pairs of this dictionary to convert.
+
+    Returns
+    ----------
+    str
+        Requirements string converted from this key-value pair.
+
+    Raises
+    ----------
+    :exc:`BetseDependencyException`
+        If the passed key is _not_ a key of this dictionary.
+
+    See Also
+    ----------
+    :func:`convert_requirement_dict_to_strs`
+        Further details on the format of this dictionary and resulting string.
+    '''
+
+    # If this name is unrecognized, raise an exception.
+    if requirement_name not in requirement_dict:
+        raise BetseDependencyException(
+            'Dependency "{}" unrecognized.'.format(requirement_name))
+
+    # Convert this key-value pair into a requirements string.
+    return '{} {}'.format(requirement_name, requirement_dict[requirement_name])
 
 # ....................{ IMPORTERS                          }....................
 @type_check
@@ -364,7 +471,7 @@ def import_requirement(requirement: Requirement) -> ModuleType:
 
     Raises
     ----------
-    BetseModuleException
+    BetseDependencyException
         If this name is unrecognized (i.e., is _not_ a key of the
         `SETUPTOOLS_TO_MODULE_NAME` dictionary).
     ImportError
@@ -379,7 +486,7 @@ def import_requirement(requirement: Requirement) -> ModuleType:
 
     # If this name is unrecognized, raise an exception.
     if requirement_name not in SETUPTOOLS_TO_MODULE_NAME:
-        raise BetseModuleException(
+        raise BetseDependencyException(
             'Requirement "{}" unrecognized.'.format(requirement_name))
 
     # Fully-qualified name of this requirement's package.

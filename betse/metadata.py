@@ -272,7 +272,7 @@ installation.
 
 DEPENDENCY_SETUPTOOLS = 'setuptools >= 3.3'
 '''
-Version of `setuptools` required by `betse` at both install and runtime.
+Version of `setuptools` required by BETSE at both install and runtime.
 
 For simplicity, this version is a `setuptools`-specific requirements string.
 
@@ -309,7 +309,7 @@ DEPENDENCIES_RUNTIME_MANDATORY = (
     'six >= 1.5.2',  # required by everything that should not be
 )
 '''
-Set of all mandatory runtime dependencies for `betse`.
+Set of all mandatory runtime dependencies for BETSE.
 
 For simplicity, this set is formatted as a tuple of `setuptools`-specific
 requirements strings whose:
@@ -340,22 +340,37 @@ See Also
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by BETSE.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DEPENDENCIES_RUNTIME_OPTIONAL = (
+DEPENDENCIES_RUNTIME_OPTIONAL = {
+    # To simplify subsequent lookup at runtime, project names for optional
+    # dependencies should be *STRICTLY LOWERCASE*. Since setuptools parses
+    # project names case-insensitively, case is only of internal relevance.
+
     # Dependencies directly required by BETSE.
-    'NetworkX >= 1.4.0',
-    'ptpython >= 0.29',
+    'networkx': '>= 1.11',
+    'ptpython': '>= 0.29',
 
     #FIXME: PyDot requires GraphViz. Hence, GraphViz should *ALSO* be validated
     #whenever validating PyDot. Since PyDot is unlikely to be installable in the
     #wild without GraphViz also being installed (e.g., due to package manager
     #dependencies), this is probably ignorable for the glorious moment.
-    'pydot >= 1.0.29',
-)
+    'pydot': '>= 1.0.28',
+}
 '''
-Set of all optional runtime dependencies for `betse`.
+Dictionary mapping from the `setuptools`-specific project name of each optional
+runtime dependency for BETSE to the suffix of a `setuptools`-specific
+requirements string constraining this dependency.
 
-For simplicity, this set is formatted as a tuple of `setuptools`-specific
-requirements strings in the same manner as `DEPENDENCIES_RUNTIME_MANDATORY`.
+Whereas mandatory runtime dependencies are application prerequisites and hence
+_not_ individually looked up at runtime, optional runtime dependencies are
+prerequisites of specific logic paths throughout the application and hence
+_are_ individually looked up at runtime. To facilitate subsequent lookup, these
+dependencies are contained by a dictionary rather than simple set.
+
+Each key of this dictionary is the name of a `setuptools`-specific project
+identifying this dependency. Each value of this dictionary is a string of the
+form `{comparator} {version_number}`, that when prefixed by the corresponding
+key produces a `setuptools`-specific requirements string of the form
+`{project_name} {comparator} {version_number}`.
 
 See Also
 ----------
@@ -376,7 +391,7 @@ DEPENDENCIES_TESTING_MANDATORY = (
     'pytest >= 2.5.0',
 )
 '''
-Set of all mandatory testing dependencies for `betse`.
+Set of all mandatory testing dependencies for BETSE.
 
 For simplicity, this set is formatted as a tuple of `setuptools`-specific
 requirements strings in the same manner as `DEPENDENCIES_RUNTIME_MANDATORY`.

@@ -44,6 +44,25 @@ class BetseModuleException(BetseException):
     '''
     pass
 
+# ....................{ EXCEPTIONS ~ arg                  }....................
+#FIXME: Raise this exception throughout the "betse.cli" subpackage.
+class BetseArgumentException(BetseException):
+    '''
+    Argument-specific exception.
+    '''
+
+    pass
+
+
+class BetseArgumentParserException(SystemExit):
+    '''
+    :class:`betse.script.argparse.ArgumentParser`-specific exception connoting
+    the :meth:`betse.script.argparse.parse_args` to have unsuccessfully parsed
+    the argument list passed to the current BETSE script.
+    '''
+
+    pass
+
 # ....................{ EXCEPTIONS ~ callable              }....................
 class BetseDecoratorException(BetseException):
     '''
@@ -93,6 +112,20 @@ class BetseMethodUnimplementedException(BetseException, NotImplementedError):
             'Optional method {}() unimplemented.'.format(
                 callers.get_caller_basename()))
 
+# ....................{ EXCEPTIONS ~ lib                   }....................
+class BetseDependencyException(BetseException):
+    '''
+    General-purpose exception pertaining to third-party dependencies.
+    '''
+    pass
+
+
+class BetseMatplotlibException(BetseException):
+    '''
+    Matplotlib-specific exception.
+    '''
+    pass
+
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetsePathException(BetseException):
     '''
@@ -118,6 +151,13 @@ class BetseFileException(BetsePathException):
 class BetseCommandException(BetseFileException):
     '''
     Command-specific exception.
+    '''
+    pass
+
+# ....................{ EXCEPTIONS ~ test                  }....................
+class BetseTestException(BetseException):
+    '''
+    General-purpose exception pertaining to this application's test suite.
     '''
     pass
 
@@ -147,32 +187,6 @@ class BetseRegexException(BetseException):
     '''
     Regular exception-specific exception.
     '''
-    pass
-
-# ....................{ EXCEPTIONS ~ lib                   }....................
-class BetseMatplotlibException(BetseException):
-    '''
-    Matplotlib-specific exception.
-    '''
-    pass
-
-# ....................{ EXCEPTIONS ~ arg                  }....................
-#FIXME: Raise this exception throughout the "betse.cli" subpackage.
-class BetseArgumentException(BetseException):
-    '''
-    Argument-specific exception.
-    '''
-
-    pass
-
-
-class BetseArgumentParserException(SystemExit):
-    '''
-    :class:`betse.script.argparse.ArgumentParser`-specific exception connoting
-    the :meth:`betse.script.argparse.parse_args` to have unsuccessfully parsed
-    the argument list passed to the current BETSE script.
-    '''
-
     pass
 
 # ....................{ EXCEPTIONS ~ science               }....................
