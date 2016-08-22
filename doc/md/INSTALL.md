@@ -392,7 +392,7 @@ generalize to alternate setups (e.g., 32-bit OS X) as well:
 BETSE optionally leverages (but does _not_ strictly require) the following
 dependencies where available at runtime:
 
-* [NetworkX](https://networkx.github.io) >= 1.10, for optionally analyzing
+* [NetworkX](https://networkx.github.io) >= 1.11, for optionally analyzing
   BETSE networks.
 * [ptpython](https://github.com/jonathanslenders/ptpython) >= 0.29, for
   optionally wrapping the BETSE REPL with an improved interface. <sup>By

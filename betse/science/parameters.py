@@ -915,13 +915,13 @@ class Parameters(object):
         # FIXME add these as options to the config
         self.KmNK_Na = 12.0   # NaKATPase enzyme ext Na half-max sat value (alpha1 = 12, alpha2 = 20, alpha3 = 60)
         self.KmNK_K = 0.2     # NaKATPase enzyme ext K half-max sat value (alpha1 = 0.2, alpha2 = 0.20, alpha3 = 0.09)
-        self.KmNK_ATP = 0.35   # NaKATPase enzyme ATP half-max sat value
+        self.KmNK_ATP = 0.5   # NaKATPase enzyme ATP half-max sat value
 
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
 
         # FIXME add these as options to the config:
         self.KmCa_Ca = 0.25e-3   # CaATPase enzyme Ca half-max sat value (1.7 - 2.8 for vascular, 0.25 for platlets)
-        self.KmCa_ATP = 0.35    # CaATPase enzyme ATP half-max sat value
+        self.KmCa_ATP = 0.5    # CaATPase enzyme ATP half-max sat value
 
         self.alpha_HK = float(iu['alpha_HK'])  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
 

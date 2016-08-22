@@ -25,7 +25,7 @@ class Mito(object):
 
         # init basic fields
         self.mit_vol = 0.15*cells.cell_vol     # mit volume
-        self.mit_sa = 1.0*cells.cell_sa      # mit surface areas
+        self.mit_sa = 0.5*cells.cell_sa      # mit surface areas
         # self.Vmit = np.zeros(sim.cdl)   # initial transmembrane voltage for mit
         self.Vmit = -150e-3 * np.ones(sim.cdl)  # initial transmembrane voltage for mit
         self.Q = np.zeros(sim.cdl)     # total charge in mit

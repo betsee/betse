@@ -124,28 +124,28 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):
         cADP = met['cADP']  # concentration of ADP in mmol/L
         cPi = met['cPi']  # concentration of Pi in mmol/L
 
+
+
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cNao ** 3) * (cKi ** 2)
     Qdenomo = cATP * (cNai ** 3) * (cKo ** 2)
 
     # ensure no chance of dividing by zero:
     inds_Z = (Qdenomo == 0.0).nonzero()
-    Qdenomo[inds_Z] = 1.0e-10
+    Qdenomo[inds_Z] = 1.0e-15
 
     Q = Qnumo / Qdenomo
 
     # calculate the equilibrium constant for the pump reaction:
-    Keq = np.exp(-deltaGATP_o / (p.R * T) + ((p.F * Vm) / (p.R * T)))
-
-    # calculate the reaction rate coefficient
-    alpha = block * p.alpha_NaK * (1 - (Q / Keq))
-    # alpha = block * p.alpha_NaK
+    Keq = np.exp(-(deltaGATP_o / (p.R * T) - ((p.F * Vm) / (p.R * T))))
 
     # calculate the enzyme coefficient:
     numo_E = ((cNai/p.KmNK_Na)**3) * ((cKo/p.KmNK_K)**2) * (cATP/p.KmNK_ATP)
     denomo_E = (1 + (cNai/p.KmNK_Na)**3)*(1+(cKo/p.KmNK_K)**2)*(1+(cATP/p.KmNK_ATP))
 
-    f_Na = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
+    fwd_co = numo_E/denomo_E
+
+    f_Na = -3*block*p.alpha_NaK*fwd_co*(1 - (Q/Keq))  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     f_K = -(2/3)*f_Na          # flux as [mol/m2s]
 

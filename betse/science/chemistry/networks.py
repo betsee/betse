@@ -2164,11 +2164,21 @@ class MasterOfNetworks(object):
             # update concentration due to growth/decay and chemical reactions:
             obj.c_cells = obj.c_cells + deltac*p.dt
 
-            obj.c_mems = obj.c_mems + deltac[cells.mem_to_cells]*p.dt
+            if name == 'H+':  # "Hard" buffer for case where H+ falls below zero
+
+                inds_neg = (obj.c_cells <0).nonzero()
+                obj.c_cells[inds_neg] = 1.0e-5
+                sim.cc_cells[sim.iM][inds_neg] =  sim.cc_cells[sim.iM][inds_neg] + 1.0e-5   # add an equal amount of charge comp ion
 
             if self.mit_enabled and len(self.reactions_mit)>0:
                 # update concentration due to chemical reactions in mitochondria:
                 obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
+
+                if name == 'H+':
+                    # ensure that data has no less than zero values:
+                    inds_neg = (obj.c_mit < 0).nonzero()
+                    obj.c_mit[inds_neg] = 1.0e-5
+                    sim.cc_mit[sim.iM][inds_neg] = sim.cc_mit[sim.iM][inds_neg] + 1.0e-5  # add an equal amount of charge comp ion
                 # ensure no negative values:
                 stb.no_negs(obj.c_mit)
 
@@ -2196,7 +2206,7 @@ class MasterOfNetworks(object):
             self.energy_charge(sim)
 
             # ensure no negs:
-            stb.no_negs(obj.c_mems)
+            stb.no_negs(obj.c_cells)
             stb.no_negs(obj.c_env)
 
             if p.substances_affect_charge:
@@ -2216,109 +2226,108 @@ class MasterOfNetworks(object):
             self.mit.extra_rho = self.extra_rho_mit[:]
             self.mit.update(sim, cells, p)
 
-    def run_dummy_loop(self,t,sim,cells,p):
-
-        gad_rates_o = []
-
-        gad_targs = []
-
-        init_rates = []
-
-        gad_rates = []
-
-        self.extra_rho_cells = np.zeros(sim.mdl)
-        self.extra_rho_env = np.zeros(sim.edl)
-        self.extra_rho_mit = np.zeros(sim.cdl)
-
-        for mol in self.molecules:
-
-            # calculate rates of growth/decay:
-            gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, self.globals, self.locals))
-
-            gad_targs.append(self.molecules[mol].growth_targets_cell)
-
-            init_rates.append(np.zeros(sim.cdl))
-
-        for mat, trgs, rts in zip(init_rates, gad_targs, gad_rates_o):
-
-            mat[trgs] = rts[trgs]
-
-            gad_rates.append(mat)
-
-        gad_rates = np.asarray(gad_rates)
-
-        # ... and rates of chemical reactions:
-        self.reaction_rates = np.asarray(
-            [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
-
-
-        # stack into an integrated data structure:
-        if len(self.reaction_rates) > 0:
-            all_rates = np.vstack((gad_rates, self.reaction_rates))
-
-        else:
-            all_rates = gad_rates
-
-        # calculate concentration rate of change using linear algebra:
-        self.delta_conc = np.dot(self.reaction_matrix, all_rates)
-
-        if self.mit_enabled and len(self.reactions_mit)>0:
-            # ... rates of chemical reactions in mitochondria:
-            self.reaction_rates_mit = np.asarray(
-                [eval(self.reactions_mit[rn].reaction_eval_string, self.globals, self.locals) for
-                    rn in self.reactions_mit])
-
-            # calculate concentration rate of change using linear algebra:
-            self.delta_conc_mit = np.dot(self.reaction_matrix_mit, self.reaction_rates_mit)
-
-        # get the name of the specific substance:
-        for ii, (name, deltac) in enumerate(zip(self.molecules, self.delta_conc)):
-
-            obj = self.molecules[name]
-
-            # update concentration due to growth/decay and chemical reactions:
-            obj.c_cells = obj.c_cells + deltac*p.dt
-            obj.c_mems = obj.c_mems + deltac[cells.mem_to_cells]*p.dt
-
-            if self.mit_enabled and len(self.reactions_mit)>0:
-                # update concentration due to chemical reactions in mitochondria:
-                obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
-                # ensure no negative values:
-                stb.no_negs(obj.c_mit)
-
-            # if pumping is enabled:
-            if obj.active_pumping:
-                obj.pump(sim, cells, p)
-
-            # update the substance on the inside of the cell:
-            obj.updateIntra(sim, self, cells, p)
-
-            # calculate energy charge in the cell:
-            self.energy_charge(sim)
-
-            # average the environmental concs instead of costly diffusion:
-            self.env_concs[name][:] = self.env_concs[name].mean()
-
-            # ensure no negs:
-            stb.no_negs(obj.c_mems)
-            stb.no_negs(obj.c_env)
-
-            if p.substances_affect_charge:
-                # calculate the charge density this substance contributes to cell and environment:
-                self.extra_rho_cells[:] += p.F*obj.c_mems*obj.z
-                self.extra_rho_env[:] += p.F*obj.c_env*obj.z
-
-                if self.mit_enabled:
-                    # calculate the charge density this substance contributes to mit:
-                    self.extra_rho_mit[:] += p.F*obj.c_mit*obj.z
-
-        if p.substances_affect_charge:
-            sim.extra_rho_cells = self.extra_rho_cells[:]
-            sim.extra_rho_env = self.extra_rho_env[:]
-
-        if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
-            self.mit.extra_rho = self.extra_rho_mit[:]
-            self.mit.update(sim, cells, p)
+    # def run_dummy_loop(self,t,sim,cells,p):
+    #
+    #     gad_rates_o = []
+    #
+    #     gad_targs = []
+    #
+    #     init_rates = []
+    #
+    #     gad_rates = []
+    #
+    #     self.extra_rho_cells = np.zeros(sim.mdl)
+    #     self.extra_rho_env = np.zeros(sim.edl)
+    #     self.extra_rho_mit = np.zeros(sim.cdl)
+    #
+    #     for mol in self.molecules:
+    #
+    #         # calculate rates of growth/decay:
+    #         gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, self.globals, self.locals))
+    #
+    #         gad_targs.append(self.molecules[mol].growth_targets_cell)
+    #
+    #         init_rates.append(np.zeros(sim.cdl))
+    #
+    #     for mat, trgs, rts in zip(init_rates, gad_targs, gad_rates_o):
+    #
+    #         mat[trgs] = rts[trgs]
+    #
+    #         gad_rates.append(mat)
+    #
+    #     gad_rates = np.asarray(gad_rates)
+    #
+    #     # ... and rates of chemical reactions:
+    #     self.reaction_rates = np.asarray(
+    #         [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
+    #
+    #
+    #     # stack into an integrated data structure:
+    #     if len(self.reaction_rates) > 0:
+    #         all_rates = np.vstack((gad_rates, self.reaction_rates))
+    #
+    #     else:
+    #         all_rates = gad_rates
+    #
+    #     # calculate concentration rate of change using linear algebra:
+    #     self.delta_conc = np.dot(self.reaction_matrix, all_rates)
+    #
+    #     if self.mit_enabled and len(self.reactions_mit)>0:
+    #         # ... rates of chemical reactions in mitochondria:
+    #         self.reaction_rates_mit = np.asarray(
+    #             [eval(self.reactions_mit[rn].reaction_eval_string, self.globals, self.locals) for
+    #                 rn in self.reactions_mit])
+    #
+    #         # calculate concentration rate of change using linear algebra:
+    #         self.delta_conc_mit = np.dot(self.reaction_matrix_mit, self.reaction_rates_mit)
+    #
+    #     # get the name of the specific substance:
+    #     for ii, (name, deltac) in enumerate(zip(self.molecules, self.delta_conc)):
+    #
+    #         obj = self.molecules[name]
+    #
+    #         # update concentration due to growth/decay and chemical reactions:
+    #         obj.c_cells = obj.c_cells + deltac*p.dt
+    #
+    #         if self.mit_enabled and len(self.reactions_mit)>0:
+    #             # update concentration due to chemical reactions in mitochondria:
+    #             obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
+    #             # ensure no negative values:
+    #             stb.no_negs(obj.c_mit)
+    #
+    #         # if pumping is enabled:
+    #         if obj.active_pumping:
+    #             obj.pump(sim, cells, p)
+    #
+    #         # update the substance on the inside of the cell:
+    #         obj.updateIntra(sim, self, cells, p)
+    #
+    #         # calculate energy charge in the cell:
+    #         self.energy_charge(sim)
+    #
+    #         # average the environmental concs instead of costly diffusion:
+    #         self.env_concs[name][:] = self.env_concs[name].mean()
+    #
+    #         # ensure no negs:
+    #         stb.no_negs(obj.c_cells)
+    #         stb.no_negs(obj.c_env)
+    #
+    #         if p.substances_affect_charge:
+    #             # calculate the charge density this substance contributes to cell and environment:
+    #             self.extra_rho_cells[:] += p.F*obj.c_mems*obj.z
+    #             self.extra_rho_env[:] += p.F*obj.c_env*obj.z
+    #
+    #             if self.mit_enabled:
+    #                 # calculate the charge density this substance contributes to mit:
+    #                 self.extra_rho_mit[:] += p.F*obj.c_mit*obj.z
+    #
+    #     if p.substances_affect_charge:
+    #         sim.extra_rho_cells = self.extra_rho_cells[:]
+    #         sim.extra_rho_env = self.extra_rho_env[:]
+    #
+    #     if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
+    #         self.mit.extra_rho = self.extra_rho_mit[:]
+    #         self.mit.update(sim, cells, p)
 
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
 
@@ -4175,15 +4184,16 @@ class MasterOfNetworks(object):
 
         # import pydot
         import networkx as nx
+        from networkx import nx_pydot
 
         mssg = "Optimizing with {} in {} itterations".format(self.opti_method, self.opti_N)
         logs.log_info(mssg)
 
         # set the vmem and Vmit to generalized values common to many cell types:
-        sim.vm[:] = -70e-3
+        sim.vm[:] = -50e-3
 
         if self.mit_enabled:
-            self.mit.Vmit[:] = -175.0e-3
+            self.mit.Vmit[:] = -150.0e-3
 
         self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
 
@@ -4200,7 +4210,7 @@ class MasterOfNetworks(object):
             grapha.write_svg(savename, prog = 'dot')
 
         # convert the graph into a networkx format so it's easy to manipulate:
-        network = nx.from_pydot(grapha)
+        network = nx_pydot.from_pydot(grapha)
 
         # build a network matrix in order to easily organize reaction relationships needed for the optimization:
         self.network_opt_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
@@ -4348,7 +4358,7 @@ class MasterOfNetworks(object):
             mssg = "at minimum {} accepted {}".format(f, accepted)
             logs.log_info(mssg)
 
-            if f <= 0.01:
+            if f <= 0.015:
             # save alternative solutions with exceptional chi sqr values
                 alt_sols.append(x)
 
