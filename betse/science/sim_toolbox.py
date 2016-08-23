@@ -201,7 +201,7 @@ def pumpCaATP(cCai,cCao,Vm,T,p, block, met = None):
     Q = Qnumo / Qdenomo
 
     # calculate the equilibrium constant for the pump reaction:
-    Keq = np.exp(-deltaGATP_o / (p.R * T) + 2*((p.F * Vm) / (p.R * T)))
+    Keq = np.exp(-(deltaGATP_o / (p.R * T) - 2*((p.F * Vm) / (p.R * T))))
 
     # calculate the enzyme coefficient for forward reaction:
     numo_E = (cCai/p.KmCa_Ca) * (cATP/p.KmCa_ATP)
@@ -866,9 +866,13 @@ def no_negs(data):
     inds_nan = (np.isnan(data)).nonzero()
 
     # ensure that data has no less than zero values:
-    inds_neg = (data < 0).nonzero()
+    inds_neg = (data < 0.0).nonzero()
 
-    if len(inds_nan[0]) > 0 or len(inds_neg[0]) > 0:
+    if len(inds_neg[0]) > 0:
+
+        data[inds_neg] = 0.0 # add in a small bit to protect from crashing
+
+    if len(inds_nan[0]) > 0:
 
         raise BetseSimulationInstabilityException(
             "Your simulation has become unstable. Please try a smaller time step,"

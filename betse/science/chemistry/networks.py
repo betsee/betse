@@ -84,6 +84,7 @@ class MasterOfNetworks(object):
 
     #------------Initializers-------------------------------------------------------------------------------------------
     def read_substances(self, sim, cells, config_substances, p):
+
         """
             Initializes all core data structures and concentration variables
             for all molecules included in the simulation, as well as any ions present in sim.
@@ -1615,10 +1616,10 @@ class MasterOfNetworks(object):
                 in_delta_term_prod = "self.transporters['{}'].flux*(self.mit.mit_sa/self.mit.mit_vol)".\
                                                                 format(transp_name)
 
-                out_delta_term_react = "-self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
+                out_delta_term_react = "-self.transporters['{}'].flux*(self.mit.mit_sa/cells.cell_vol)". \
                                                                         format(transp_name)
 
-                out_delta_term_prod = "self.transporters['{}'].flux*(cells.cell_sa/cells.cell_vol)". \
+                out_delta_term_prod = "self.transporters['{}'].flux*(self.mit.mit_sa/cells.cell_vol)". \
                                                                      format(transp_name)
 
                 activator_alpha, inhibitor_alpha, alpha_tex, trans_tex_var_list = self.get_influencers(a_list, Km_a_list,
@@ -2165,23 +2166,7 @@ class MasterOfNetworks(object):
             # update concentration due to growth/decay and chemical reactions:
             obj.c_cells = obj.c_cells + deltac*p.dt
 
-            if name == 'H+':  # "Hard" buffer for case where H+ falls below zero
 
-                inds_neg = (obj.c_cells <0).nonzero()
-                obj.c_cells[inds_neg] = 1.0e-5
-                sim.cc_cells[sim.iM][inds_neg] =  sim.cc_cells[sim.iM][inds_neg] + 1.0e-5   # add an equal amount of charge comp ion
-
-            if self.mit_enabled and len(self.reactions_mit)>0:
-                # update concentration due to chemical reactions in mitochondria:
-                obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
-
-                if name == 'H+':
-                    # ensure that data has no less than zero values:
-                    inds_neg = (obj.c_mit < 0).nonzero()
-                    obj.c_mit[inds_neg] = 1.0e-5
-                    sim.cc_mit[sim.iM][inds_neg] = sim.cc_mit[sim.iM][inds_neg] + 1.0e-5  # add an equal amount of charge comp ion
-                # ensure no negative values:
-                stb.no_negs(obj.c_mit)
 
             # if pumping is enabled:
             if obj.active_pumping:
@@ -2206,9 +2191,29 @@ class MasterOfNetworks(object):
             # calculate energy charge in the cell:
             self.energy_charge(sim)
 
+            # if name == 'H+':  # "Hard" buffer for case where H+ falls below zero
+            #
+            #     inds_neg = (obj.c_cells <0.0).nonzero()
+            #     obj.c_cells[inds_neg] = 1.0e-5
+            #     sim.cc_cells[sim.iM][inds_neg] =  sim.cc_cells[sim.iM][inds_neg] + 1.0e-5   # add an equal amount of charge comp ion
+
             # ensure no negs:
             stb.no_negs(obj.c_cells)
             stb.no_negs(obj.c_env)
+
+
+            if self.mit_enabled and len(self.reactions_mit)>0:
+                # update concentration due to chemical reactions in mitochondria:
+                obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
+
+                # if name == 'H+':
+                #     # ensure that data has no less than zero values:
+                #     inds_neg = (obj.c_mit < 0.0).nonzero()
+                #     obj.c_mit[inds_neg] = 1.0e-5
+                #     sim.cc_mit[sim.iM][inds_neg] = sim.cc_mit[sim.iM][inds_neg] + 1.0e-5  # add an equal amount of charge comp ion
+                # ensure no negative values:
+                stb.no_negs(obj.c_mit)
+
 
             if p.substances_affect_charge:
                 # calculate the charge density this substance contributes to cell and environment:
@@ -2741,6 +2746,7 @@ class MasterOfNetworks(object):
 
         # write all network model LaTeX equations to a text file:
         self.export_equations(p)
+        self.export_eval_strings(p)
 
     def plot(self, sim, cells, p, message='for auxiliary molecules...'):
         """
@@ -3601,10 +3607,10 @@ class MasterOfNetworks(object):
 
     def export_eval_strings(self, p):
 
-        results_path = os.path.join(p.init_results, 'model_eval_strings')
-
-        self.resultsPath = os.path.expanduser(results_path)
-        os.makedirs(self.resultsPath, exist_ok=True)
+        # results_path = os.path.join(p.init_results, 'model_eval_strings')
+        #
+        # self.resultsPath = os.path.expanduser(results_path)
+        # os.makedirs(self.resultsPath, exist_ok=True)
 
         # Absolute path of the text file to write this solution to:
         saveData = paths.join(self.resultsPath, 'NetworkModelEvalStrings.csv')

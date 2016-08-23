@@ -42,6 +42,8 @@ class MasterOfMetabolism(object):
 
         self.configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
 
+        # print("!!!!!!!! Config Path: {}".format(self.configPath))
+
         # read the config file into a dictionary:
         self.config_dic = sim_config.read_metabo(self.configPath)
 

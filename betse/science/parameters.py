@@ -920,7 +920,7 @@ class Parameters(object):
         self.alpha_Ca = float(iu['alpha_Ca']) # pump rate for calcium ATPase in membrane [1/mol*s] 2.0e-15
 
         # FIXME add these as options to the config:
-        self.KmCa_Ca = 0.25e-3   # CaATPase enzyme Ca half-max sat value (1.7 - 2.8 for vascular, 0.25 for platlets)
+        self.KmCa_Ca = 3.0e-3   # CaATPase enzyme Ca half-max sat value (1.7 - 2.8 for vascular, 0.25 for platlets)
         self.KmCa_ATP = 0.5    # CaATPase enzyme ATP half-max sat value
 
         self.alpha_HK = float(iu['alpha_HK'])  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
@@ -1071,7 +1071,7 @@ class Parameters(object):
 
             self.cNa_cell = 8.0
             self.cK_cell = 125.0
-            self.cCa_cell = 1.0e-3
+            self.cCa_cell = 1.0e-4
             self.cP_cell = 100.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCa_cell, self.cP_cell]
@@ -1117,7 +1117,7 @@ class Parameters(object):
             self.cNa_cell = 8.0
             self.cK_cell = 125.0
             self.cCl_cell = 20.0
-            self.cCa_cell = 1.0e-3
+            self.cCa_cell = 1.0e-4
             self.cP_cell = 100.0
 
             conc_cell = [self.cNa_cell,self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]
