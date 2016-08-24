@@ -3123,6 +3123,9 @@ class MasterOfNetworks(object):
 
         # FIXME add in Vmem relationships, at least for channels, possibly using optional comment string for transporters
 
+        # If PyDot is unimportable, raise an exception.
+        libs.die_unless_runtime_optional('pydot')
+
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
 
@@ -3647,6 +3650,8 @@ class MasterOfNetworks(object):
 
         """
 
+        # If PyDot is unimportable, raise an exception.
+        libs.die_unless_runtime_optional('pydot')
         # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
         import pydot
 
@@ -4193,7 +4198,7 @@ class MasterOfNetworks(object):
 
         #FIXME: Uncomment when tested as working.
         # If either NetworkX or PyDot are unimportable, raise an exception.
-        #libs.die_unless_runtime_optional('networkx', 'pydot')
+        libs.die_unless_runtime_optional('networkx', 'pydot')
 
         # Import both NetworkX and PyDot.
         import networkx as nx
