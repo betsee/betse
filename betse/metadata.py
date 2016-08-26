@@ -347,6 +347,7 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
 
     # Dependencies directly required by BETSE.
     'networkx': '>= 1.11',
+    'numba': '>= 0.27.0',
     'ptpython': '>= 0.29',
 
     #FIXME: PyDot requires GraphViz. Hence, GraphViz should *ALSO* be validated

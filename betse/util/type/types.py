@@ -22,7 +22,9 @@ objects).
 
 import inspect, re
 from collections.abc import (
-    Container, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence)
+    Container, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence,
+    Set,
+)
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
@@ -98,6 +100,15 @@ Abstract interface implemented by all mutable dictionary-like objects.
 
 This class is a synonym of the `collections.abc.MutableMapping` class, provided
 merely as a convenience to callers preferring to avoid importing that class.
+'''
+
+
+SetType = Set
+'''
+Abstract interface implemented by all set-like objects.
+
+This class is a synonym of the `collections.abc.Set` class, provided merely as
+a convenience to callers preferring to avoid importing that class.
 '''
 
 # ....................{ TUPLES                             }....................

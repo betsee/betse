@@ -26,6 +26,7 @@ SETUPTOOLS_TO_MODULE_NAME = {
     'SciPy': 'numpy',
     'dill': 'dill',
     'networkx': 'networkx',
+    'numba': 'numba',
     'ptpython': 'ptpython',
     'pydot': 'pydot',
     'setuptools': 'setuptools',
@@ -284,8 +285,8 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
 
     * Is importable but fails to satisfy this requirement, a string describing
       this conflict is returned.
-    * Is unimportable, the string `unimportable` is returned.
-    * Has no `__version__` attribute, the string `unversioned` is returned.
+    * Is unimportable, the string `not installed` is returned.
+    * Has no `__version__` attribute, the string `unknown` is returned.
 
     Parameters
     ----------
@@ -296,7 +297,7 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
     ----------
     str
         Version string for the currently installed version of this package if
-        any or the string `unimportable` or `unversioned` (as detailed above).
+        any or the string `not installed` or `unknown` (as detailed above).
     '''
 
     # Attempt to...
@@ -331,7 +332,7 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
         package = import_requirement(requirement)
     # If this package is unimportable, return an appropriate string.
     except ImportError:
-        return 'unimportable'
+        return 'not installed'
 
     # Package version if any or "None" otherwise.
     package_version = modules.get_version_or_none(package)
@@ -341,7 +342,7 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
         return package_version
     # Else, return an appropriate string.
     else:
-        return 'unversioned'
+        return 'unknown'
 
 # ....................{ CONVERTERS                         }....................
 @type_check

@@ -19,7 +19,7 @@ import collections, importlib, sys
 from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 from betse.util.type import types
-from betse.util.type.types import type_check, ModuleType
+from betse.util.type.types import type_check, ModuleType, SetType
 
 # ....................{ GLOBALS ~ dict                     }....................
 MODULE_TO_VERSION_ATTR_NAME = collections.defaultdict(
@@ -66,6 +66,7 @@ def die_unless_module(
         raise ImportError(exception_message)
 
 # ....................{ TESTERS                            }....................
+@type_check
 def is_module(module_name: str) -> bool:
     '''
     `True` only if the module with the passed fully-qualified name is importable
@@ -77,8 +78,6 @@ def is_module(module_name: str) -> bool:
     mechanisms (e.g., the OS X-specific `PyObjCTools` package), the module
     itself may also be imported as a side effect.
     '''
-    assert types.is_str_nonempty(module_name), (
-        types.assert_not_str_nonempty(module_name, 'Module name'))
 
     # Depending on context, this function behaves in one of three distinct ways:
     #
@@ -116,16 +115,14 @@ def is_module(module_name: str) -> bool:
             return False
 
 
-def is_imported(*module_names) -> bool:
+@type_check
+def is_imported(*module_names: str) -> bool:
     '''
     `True` only if all modules with the passed fully-qualified names have
     already been imported under the current Python process.
     '''
 
     for module_name in module_names:
-        assert types.is_str_nonempty(module_name), (
-            types.assert_not_str_nonempty(module_name, 'Module name'))
-
         if module_name not in sys.modules:
             return False
 
@@ -135,8 +132,8 @@ def is_imported(*module_names) -> bool:
 @type_check
 def get_dirname(mod: ModuleType) -> str:
     '''
-    Get the absolute path of the directory containing the file from which the
-    passed module was previously imported.
+    Absolute path of the directory containing the file from which the passed
+    module was previously imported.
     '''
 
     # Avoid circular import dependencies.
@@ -144,6 +141,28 @@ def get_dirname(mod: ModuleType) -> str:
 
     # Get this dirname.
     return paths.get_dirname(mod.__file__)
+
+
+@type_check
+def get_global_names(mod: ModuleType) -> SetType:
+    '''
+    Set of the names of all global variables defined by the passed module.
+
+    Specifically, this function returns the set of the names of all attributes
+    defined by this module, excluding:
+
+    * Special attributes reserved for use by Python (e.g., `__file__`).
+    * Callable attributes (e.g., functions, lambdas).
+    '''
+
+    return {
+        mod_attr_name
+        for mod_attr_name in dir(mod)
+        if (
+            (not mod_attr_name.startswith('__')) and
+            callable(getattr(mod, mod_attr_name))
+        )
+    }
 
 # ....................{ GETTERS ~ version                  }....................
 @type_check

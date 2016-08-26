@@ -12,14 +12,21 @@ High-level application initialization common to both the CLI and GUI.
 #which Numpy is linked with similar "betse info" metadata.
 #
 #Indeed! It would appear that the metadata we require (...and more!) is
-#available via the "numpy.__config__" API. Sure, it's private, but well-
-#established at this point. We can't really see it going away. See also:
+#available via the "numpy.distutils.__config__" API. Sure, it's private, but
+#well- established at this point. We can't really see it going away. See also:
 #
 #    https://stackoverflow.com/a/19350234/2809027
-#FIXME: Phenomenal Python code for obtaining system metadata, including BLAS,
-#LAPACK, Atlas, OpenBLAS, and numpy-specific system metadata:
+#FIXME: O.K.; the "numpy.distutils.__config__" API unconditionally declares a
+#"blas_opt_info" dictionary global whose contents *ALWAYS* correspond to the
+#BLAS implementation against which Numpy is currently linked. Hence, metadata on
+#this implementation is trivially loggable by simply iterating over this
+#dictionary's key-value pairs.
+
+#FIXME: Print memory-related metadata when running "betse info" *AND* log
+#non-fatal warnings when BETSE is run under a low-memory environment (e.g.,
+#< 4GB available free memory). To do so, note the following canonical API:
 #
-#    https://gist.github.com/sandys/258707dae9b79308594b#file-system_info-py
+#    psutil.Process(os.getpid()).get_memory_info()
 
 #FIXME: Consider replacing bottleneck Numpy routines with routines imported from
 #the following third-party Numpy-like frameworks:
