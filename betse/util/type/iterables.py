@@ -15,12 +15,12 @@ betse.util.type.types.is_iterable
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type import types
-from betse.util.type.types import type_check, IterableType
+from betse.util.type.types import type_check, IterableTypes
 from collections import deque
 
 # ....................{ GETTERS                            }....................
 @type_check
-def consume(iterable: IterableType, iterations: int) -> object:
+def consume(iterable: IterableTypes, iterations: int) -> object:
     '''
     Consume the passed number of iterations from the passed iterable by
     advancing this iterable forward by this number of iterations.
@@ -58,7 +58,7 @@ def consume(iterable: IterableType, iterations: int) -> object:
 
 
 @type_check
-def exhaust(iterable: IterableType) -> object:
+def exhaust(iterable: IterableTypes) -> object:
     '''
     Exhaust the passed iterable by advancing this iterable directly past its
     last iteration.
@@ -104,3 +104,26 @@ def exhaust(iterable: IterableType) -> object:
         return iterable_deque[0]
     else:
         return None
+
+# ....................{ SORTERS                            }....................
+@type_check
+def sort_lexicographic_ascending(iterable: IterableTypes) -> IterableTypes:
+    '''
+    Sort the passed non-string iterable into a new non-string iterable in
+    **ascending lexicographic order** (i.e., traditional order of dead-tree
+    dictionaries and encyclopedias).
+
+    Parameters
+    ----------
+    iterable : Iterable
+        Unsorted iterable to be returned sorted. For generality, this iterable
+        is _not_ modified by this function.
+
+    Returns
+    ----------
+    IterableTypes
+        Iterable sorted from the passed iterable. For efficiency, this iterable
+        is only a shallow rather than deep copy of the passed iterable.
+    '''
+
+    return sorted(iterable)   # Well, that was easy.

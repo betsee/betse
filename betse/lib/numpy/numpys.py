@@ -8,8 +8,11 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.os import oses
 from betse.util.py import modules
-from numpy.distutils import __config_ as numpy_config
+from betse.util.type import iterables, strs
+from collections import OrderedDict
+from numpy.distutils import __config__ as numpy_config
 
 # ....................{ GLOBALS                            }....................
 #FIXME: Sadly, a dictionary lookup does *NOT* suffice under OS X. This platform
@@ -78,10 +81,30 @@ See Also
     decide which BLAS implementation to link against at installation time.
 '''
 
+
+_CONFIG_OS_X_MULTITHREADED_BLAS_OPT_EXTRA_LINK_ARGS = {
+    # Accelerate. Although Accelerate is only conditionally multithreaded,
+    # multithreading is enabled by default and hence a safe assumption.
+    '-Wl,Accelerate',
+
+    # vecLib. Similar assumptions as with Accelerate apply.
+    '-Wl,vecLib',
+}
+'''
+Set of all uniquely identifying elements of the list value of the
+`extra_link_args` key of the :data:`numpy.distutils.__config__.blas_opt_info`
+dictionary specific to multithreaded BLAS implementations under the OS X
+platform.
+
+Unlike all other BLAS implementations, Numpy does _not_ declare unique
+dictionary globals describing these implementations when linked against. Ergo,
+this lower-level solution.
+'''
+
 # ....................{ TESTERS                            }....................
 #FIXME: Call this in the libs.init() method. It's hardly critical, so it can
 #safely wait to the customary calling point.
-def is_multithreaded() -> bool:
+def is_blas_multithreaded() -> bool:
     '''
     `True` only if the currently installed version of Numpy is linked against a
     multithreaded BLAS (Basic Linear Algebra Subprograms) implementation.
@@ -116,12 +139,90 @@ def is_multithreaded() -> bool:
     .. _ATLAS: http://math-atlas.sourceforge.net
     '''
 
-    # Set of the names of all dictionary globals concerning Numpy configuration.
+    # Set of the names of all Numpy configuration dictionary globals.
     config_global_names = modules.get_global_names(numpy_config)
 
     # Subset of this set specific to multithreaded BLAS implementations.
     config_blas_multithreaded_global_names = (
         config_global_names & _CONFIG_BLAS_MULTITHREADED_GLOBAL_NAMES)
 
-    # Return True only if this subset is nonempty.
-    return len(config_blas_multithreaded_global_names) > 0
+    # If this subset is nonempty, return True.
+    if len(config_blas_multithreaded_global_names) > 0:
+        return True
+
+    # Else, this subset is empty.
+    #
+    # If the current platform is OS X, test for whether Numpy was linked against
+    # a multithreaded BLAS implementation only available under OS X: namely,
+    # either "Accelerate" or "vecLib". Unlike all other BLAS implementations,
+    # Numpy does *NOT* declare dictionary globals describing these
+    # implementations when linked against. Numpy does, however, add identifying
+    # and hence testable strings to the "extra_link_args" key of the
+    # "blas_opt_info" dictionary global. While non-ideal, testing for these
+    # strings is both feasible and reliable. When given cat food, eat cat food.
+    if oses.is_os_x():
+        # List of all implementation-specific link arguments with which Numpy
+        # linked against the current BLAS implementation if any or "None"
+        # otherwise.
+        blas_link_args_list = numpy_config.blas_opt_info.get(
+            'extra_link_args', None)
+
+        # If at least one such argument exists...
+        if blas_link_args_list:
+            # Set of these arguments, converted from this list for efficiency.
+            blas_link_args = set(blas_link_args_list)
+
+            # Subset of this set specific to multithreaded BLAS implementations.
+            blas_link_args_multithreaded = (
+                blas_link_args &
+                _CONFIG_OS_X_MULTITHREADED_BLAS_OPT_EXTRA_LINK_ARGS)
+
+            # Return True only if this subset is nonempty.
+            return len(blas_link_args_multithreaded) > 0
+    # Else, the current platform is *NOT* OS X. Since the above subset is empty,
+    # return False.
+    else:
+        return False
+
+# ....................{ GETTERS                            }....................
+def get_metadatas() -> tuple:
+    '''
+    Tuple of 2-tuples `(metedata_name, metadata_value`), describing all
+    currently installed third-party dependencies against which Numpy was linked
+    (e.g., BLAS, LAPACK).
+    '''
+
+    return (
+        ('numpy (blas)', get_blas_metadata()),
+    )
+
+
+def get_blas_metadata() -> OrderedDict:
+    '''
+    Ordered dictionary synopsizing the current Numpy installation with respect
+    to BLAS linkage.
+    '''
+
+    # This dictionary.
+    metadata = OrderedDict((
+        ('multithreaded', is_blas_multithreaded()),
+    ))
+
+    # Set of all keys of the dictionary global synopsizing this metadata,
+    # sorted in ascending lexicographic order for readability.
+    blas_opt_info_keys = iterables.sort_lexicographic_ascending(
+        numpy_config.blas_opt_info.keys())
+
+    # For each such key...
+    for blas_opt_info_key in blas_opt_info_keys:
+        # The value of this key, unconditionally converted into a string and
+        # then trimmed to a reasonable string length. The values of numerous
+        # keys (e.g., "libraries", "sources") commonly exceed this length,
+        # hampering readability for little to no gain. Excise them all.
+        metadata[blas_opt_info_key] = strs.trim(
+            obj=numpy_config.blas_opt_info[blas_opt_info_key],
+            max_len=256,
+        )
+
+    # Return this dictionary.
+    return metadata

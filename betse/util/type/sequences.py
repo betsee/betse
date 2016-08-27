@@ -14,9 +14,11 @@ betse.util.type.types.is_sequence
 '''
 
 # ....................{ IMPORTS                            }....................
+from collections.abc import Container, Mapping
+
 from betse.util.type import types
 from betse.util.type.types import type_check, CallableTypes, SequenceTypes
-from collections.abc import Container, Mapping
+
 
 # ....................{ GETTERS                            }....................
 @type_check
@@ -35,8 +37,8 @@ def get_items_satisfying(
         Original sequence to return a proper subset of. For safety, this
         function does _not_ modify this sequence.
     item_satisfier : CallableTypes
-        CallableTypes (e.g., function, lambda) accepting a single element of this
-        sequence and returning only:
+        CallableTypes (e.g., function, lambda) accepting a single element of
+        this sequence and returning only:
         * `True` if this element satisfies the desired requirements.
         * `False` otherwise.
 
@@ -55,7 +57,8 @@ def get_items_satisfying(
 
 # ....................{ GETTERS ~ str                      }....................
 @type_check
-def get_items_prefixed_by(sequence: SequenceTypes, item_prefix: str) -> SequenceTypes:
+def get_items_prefixed_by(
+    sequence: SequenceTypes, item_prefix: str) -> SequenceTypes:
     '''
     New non-string sequence containing only the proper subset of elements from
     the passed non-string sequence that are strings prefixed by the passed
@@ -175,9 +178,9 @@ def remove_items(sequence: SequenceTypes, items: Container) -> None:
     sequence[:] = omit_items(sequence, items)
 
 # ....................{ REPLACERS                          }....................
-#FIXME: Rename the "item_replacements" parameter to merely "replacements".
 @type_check
-def replace_items(sequence: SequenceTypes, item_replacements: Mapping) -> SequenceTypes:
+def replace_items(
+    sequence: SequenceTypes, replacements: Mapping) -> SequenceTypes:
     '''
     Get a new non-string sequence transformed from the passed non-string
     sequence by replacing all elements of the latter equalling any key of the
@@ -191,7 +194,7 @@ def replace_items(sequence: SequenceTypes, item_replacements: Mapping) -> Sequen
     sequence : collections.Sequence
         Original sequence to be returned transformed. For safety, this
         function does _not_ modify this sequence.
-    item_replacements : collections.Mapping
+    replacements : collections.Mapping
         Mapping whose:
         * Keys are input values to find in the passed sequence. For simplicity,
           keys are matched via object equality rather than more complex object
@@ -212,29 +215,6 @@ def replace_items(sequence: SequenceTypes, item_replacements: Mapping) -> Sequen
     # Return a shallow copy of this sequence, replacing each element that is a
     # key of the passed mapping by that key's value.
     return sequence_type(
-        item_replacements[item] if item in item_replacements else item
+        replacements[item] if item in replacements else item
         for item in sequence
     )
-
-# ....................{ SORTERS                            }....................
-@type_check
-def sort_lexicographic_ascending(sequence: SequenceTypes) -> SequenceTypes:
-    '''
-    Get a new non-string sequence sorted from the passed non-string sequence in
-    **ascending lexicographic order** (i.e., traditional order of dead-tree
-    dictionaries and encyclopedias).
-
-    Parameters
-    ----------
-    sequence : SequenceTypes
-        Unsorted sequence to be returned sorted. For generality, this sequence
-        is _not_ modified by this function.
-
-    Returns
-    ----------
-    SequenceTypes
-        SequenceTypes sorted from the passed sequence. For efficiency, this sequence
-        is only a shallow rather than deep copy of the passed sequence.
-    '''
-
-    return sorted(sequence)   # Well, that was easy.

@@ -7,21 +7,6 @@
 High-level application initialization common to both the CLI and GUI.
 '''
 
-#FIXME: Print a non-fatal warning if Numpy is linked against a non-multithreaded
-#BLAS implementation. Also, print the name of the BLAS implementation against
-#which Numpy is linked with similar "betse info" metadata.
-#
-#Indeed! It would appear that the metadata we require (...and more!) is
-#available via the "numpy.distutils.__config__" API. Sure, it's private, but
-#well- established at this point. We can't really see it going away. See also:
-#
-#    https://stackoverflow.com/a/19350234/2809027
-#FIXME: O.K.; the "numpy.distutils.__config__" API unconditionally declares a
-#"blas_opt_info" dictionary global whose contents *ALWAYS* correspond to the
-#BLAS implementation against which Numpy is currently linked. Hence, metadata on
-#this implementation is trivially loggable by simply iterating over this
-#dictionary's key-value pairs.
-
 #FIXME: Print memory-related metadata when running "betse info" *AND* log
 #non-fatal warnings when BETSE is run under a low-memory environment (e.g.,
 #< 4GB available free memory). To do so, note the following canonical API:

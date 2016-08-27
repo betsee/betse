@@ -64,16 +64,6 @@ merely as a convenience to callers preferring to avoid importing that class.
 '''
 
 
-IterableType = Iterable
-'''
-Abstract interface implemented by all **iterable objects** (i.e., implementing
-the standard `__iter__()` method returning a new iterator object).
-
-This class is a synonym of the `collections.abc.Iterable` class, provided
-merely as a convenience to callers preferring to avoid importing that class.
-'''
-
-
 IteratorType = Iterator
 '''
 Abstract interface implemented by all **iterator objects** (i.e., implementing
@@ -126,6 +116,18 @@ methods).
 '''
 
 
+IterableTypes = None
+'''
+Tuple of all container base classes conforming to (but _not_ necessarily
+subclassing) the canonical `collections.abc.Iterable` API.
+
+See Also
+----------
+:class:`SequenceTypes`
+    Further details.
+'''
+
+
 NumericTypes = (int, float)
 '''
 Tuple of all **numeric classes** (i.e., classes whose instances are single
@@ -161,10 +163,11 @@ subclass `collections.abc.Sequence` despite implementing the entirety of that
 that API.
 '''
 
-# Add sequence types to the previously declared tuple.
+# ....................{ TUPLES : init                      }....................
+# Conditionally add sequence types to previously declared tuples.
 #
-# If Numpy is available, add both this API and the Numpy array type (which
-# fails to subclass this API). Although Numpy is a mandatory dependency, this
+# If Numpy is available, add both core APIs and the Numpy array type (which
+# fails to subclass these APIs). Although Numpy is a mandatory dependency, this
 # submodule is typically imported quite early in program startup, implying the
 # importability of *ANY* dependency (mandatory or not) at the top level of this
 # submodule to still be in question. Since subsequent logic in program startup
@@ -172,9 +175,11 @@ that API.
 # this error is silently ignored here.
 try:
     from numpy import ndarray
+    IterableTypes = (Iterable, ndarray)
     SequenceTypes = (Sequence, ndarray)
-# Else, Numpy is unavailable. Add only this API.
+# Else, Numpy is unavailable. Add only core APIs.
 except ImportError:
+    IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 
 # ....................{ SETS : private                     }....................
@@ -468,49 +473,6 @@ def _check_type_annotation(annotation: object, label: str) -> None:
         raise TypeError(
             '{} {} neither a new-style class nor '
             'tuple of such classes'.format(label, annotation))
-
-# ....................{ FORMATTERS                         }....................
-# This string-centric function is defined in this module rather than in the
-# arguably more appropriate "strs" module to drastically simplify assertion
-# handlers defined below.
-def trim(obj: object) -> str:
-    '''
-    Convert the passed object to a terse human-readable string suitable for use
-    in end-user messages.
-    '''
-
-    # Maximum length of the string to be returned, defined to be the customary
-    # line length of 80 characters minus:
-    #
-    # * Default output indentation of 4 characters.
-    MAX_LEN = 76
-
-    # Uncompiled regular expression grouping zero or more non-newline leading
-    # characters preceding this maximum length *AND* zero or more trailing
-    # delimiters.
-    PRE_MAX_CHARS_LAST_DELIMITERS_REGEX = (
-        r'^([^\n]{0,' + str(MAX_LEN) + r'}).*?([\])}>\'"]*)$')
-
-    # String describing the passed object. For debuggability, the verbose
-    # (albeit less human-readable) output of repr() is preferred to the terse
-    # (albeit more human-readable) output of str().
-    obj_synopsis = repr(obj)
-
-    # If this synopsis either exceeds this maximum length *OR* contains a
-    # newline, replace the substring of this synopsis from whichever of the
-    # first character following this maximum length or the first newline occurs
-    # first to the string end (excluding any # optional trailing delimiters)
-    # with a single ellipses.
-    if len(obj_synopsis) > MAX_LEN or '\n' in obj_synopsis:
-        obj_synopsis = re.sub(
-            PRE_MAX_CHARS_LAST_DELIMITERS_REGEX,
-            r'\1...\2',
-            obj_synopsis,
-            flags=re.DOTALL
-        )
-
-    # Return this synopsis.
-    return obj_synopsis
 
 # ....................{ TESTERS                            }....................
 def is_bool(obj: object) -> bool:
@@ -931,6 +893,63 @@ def is_str_nonempty_or_none(obj: object) -> bool:
     '''
 
     return is_str_nonempty(obj) or obj is None
+
+# ....................{ FORMATTERS                         }....................
+# This string-centric function is defined in this module rather than in the
+# arguably more appropriate "strs" module to drastically simplify assertion
+# handlers defined below.
+#
+# To circumvent chicken-and-the-egg issues with the @type_check decorator, this
+# function must be defined *AFTER* all testers required by this decorator.
+@type_check
+def trim(obj: object, max_len: int = 76) -> str:
+    '''
+    Convert the passed object into a terse human-readable string suitable for
+    safe interpolation into end-user messages.
+
+    Parameters
+    ----------
+    obj: object
+        Object whose representation is to be trimmed, converted into a string
+        via the canonical :func:`repr` builtin.
+    max_len: optional[int]
+        Maximum length of the string to be returned.  Defaults to the customary
+        line length of 80 characters minus default output indentation of four
+        characters.
+
+    Returns
+    ----------
+    str
+        Human-readable string trimmed from the string representation of the
+        passed object to the passed maximum length.
+    '''
+
+    # Uncompiled regular expression grouping zero or more non-newline leading
+    # characters preceding this maximum length *AND* zero or more trailing
+    # delimiters.
+    PRE_MAX_CHARS_LAST_DELIMITERS_REGEX = (
+        r'^([^\n]{0,' + str(max_len) + r'}).*?([\])}>\'"]*)$')
+
+    # String describing the passed object. For debuggability, the verbose
+    # (albeit less human-readable) output of repr() is preferred to the terse
+    # (albeit more human-readable) output of str().
+    obj_synopsis = repr(obj)
+
+    # If this synopsis either exceeds this maximum length *OR* contains a
+    # newline, replace the substring of this synopsis from whichever of the
+    # first character following this maximum length or the first newline occurs
+    # first to the string end (excluding any # optional trailing delimiters)
+    # with a single ellipses.
+    if len(obj_synopsis) > max_len or '\n' in obj_synopsis:
+        obj_synopsis = re.sub(
+            PRE_MAX_CHARS_LAST_DELIMITERS_REGEX,
+            r'\1...\2',
+            obj_synopsis,
+            flags=re.DOTALL
+        )
+
+    # Return this synopsis.
+    return obj_synopsis
 
 # ....................{ ASSERTERS                          }....................
 def assert_not_bool(obj: object) -> str:

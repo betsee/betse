@@ -14,6 +14,10 @@ from betse.util.type import types
 from betse.util.type.types import type_check
 from textwrap import TextWrapper
 
+# For convenience, permit callers to import the general-purpose trim() function
+# from this submodule rather than the "types" submodule.
+from betse.util.type.types import trim
+
 # ....................{ SINGLETONS                         }....................
 text_wrapper = TextWrapper()
 '''

@@ -11,7 +11,7 @@ dependency simplifying inspection of application dependencies.
 # ....................{ IMPORTS                            }....................
 import pkg_resources
 from betse.exceptions import BetseDependencyException
-from betse.util.type import sequences
+from betse.util.type import iterables
 from betse.util.type.types import type_check, MappingType, ModuleType
 from collections import OrderedDict
 from pkg_resources import (
@@ -19,12 +19,12 @@ from pkg_resources import (
 
 # ....................{ GLOBALS ~ dict                     }....................
 SETUPTOOLS_TO_MODULE_NAME = {
-    'Matplotlib': 'matplotlib',
     'Numpy': 'numpy',
     'Pillow': 'PIL',
     'PyYAML': 'yaml',
     'SciPy': 'numpy',
     'dill': 'dill',
+    'matplotlib': 'matplotlib',
     'networkx': 'networkx',
     'numba': 'numba',
     'ptpython': 'ptpython',
@@ -247,7 +247,7 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
     '''
 
     # Lexicographically sorted tuple of these strings.
-    requirement_strs_sorted = sequences.sort_lexicographic_ascending(
+    requirement_strs_sorted = iterables.sort_lexicographic_ascending(
         requirement_strs)
 
     # List of all high-level "Requirements" objects corresponding to these

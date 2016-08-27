@@ -296,11 +296,11 @@ DEPENDENCIES_RUNTIME_MANDATORY = (
     DEPENDENCY_SETUPTOOLS,
 
     # Dependencies directly required by BETSE.
-    'Matplotlib >= 1.4.0',
     'Numpy >= 1.8.0',
     'PyYAML >= 3.10',
     'SciPy >= 0.12.0',
     'dill >= 0.2.3',
+    'matplotlib >= 1.4.0',
 
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
     # missing dependencies in a human-readable manner, these dependencies are

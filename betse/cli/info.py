@@ -58,16 +58,15 @@ def output_info() -> None:
     logs.log_info(
         'Harvesting system information. (This may take a moment.)')
 
-    # Avoid inefficient import delays.
+    # Defer heavyweight imports.
     from betse import pathtree
     from betse.lib import libs
-    from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.util.os import kernels
 
-    # Dictionary of human-readable labels to dictionaries of all
-    # human-readable keys and values categorized by such labels. All such
-    # dictionaries are ordered so as to preserve order in output.
-    info_type_to_dict = OrderedDict((
+    #FIXME: Shift into a more appropriate general-purpose submodule.
+
+    # Tuple of BETSE-specific metadata.
+    BETSE_METADATAS = (
         # Application metadata.
         (metadata.NAME.lower(), OrderedDict((
             ('basename', commands.get_current_basename()),
@@ -81,25 +80,28 @@ def output_info() -> None:
 
         # Logging metadata.
         ('logging', logconfig.get_metadata()),
+    )
 
-        # Dependencies metadata.
-        ('runtime dependencies (mandatory)',
-         libs.get_runtime_mandatory_metadata()),
-        ('runtime dependencies (optional)',
-         libs.get_runtime_optional_metadata()),
-        ('testing dependencies (mandatory)',
-         libs.get_testing_mandatory_metadata()),
+    #FIXME: Shift into a more appropriate general-purpose submodule.
 
-        # "matplotlib" metadata.
-        ('matplotlib', mpl_config.get_metadata()),
-
+    # Tuple of system-specific metadata.
+    SYSTEM_METADATAS = (
         # Python metadata.
         ('python', pys.get_metadata()),
 
         # Operating system (OS) metadata.
         ('kernel', kernels.get_metadata()),
         ('os', oses.get_metadata()),
-    ))
+    )
+
+    # Dictionary of human-readable labels to dictionaries of all
+    # human-readable keys and values categorized by such labels. All such
+    # dictionaries are ordered so as to preserve order in output.
+    info_type_to_dict = OrderedDict(
+        BETSE_METADATAS +
+        libs.get_metadatas() +
+        SYSTEM_METADATAS
+    )
 
     # String buffer formatting this information.
     info_buffer = StringIO()

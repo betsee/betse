@@ -19,21 +19,21 @@ from collections import OrderedDict
 # ....................{ TESTERS ~ os                       }....................
 def is_linux() -> bool:
     '''
-    `True` if the current operating system is Linux.
+    `True` only if the current operating system is Linux.
     '''
     return platform.system() == 'Linux'
 
 
 def is_os_x() -> bool:
     '''
-    `True` if the current operating system is Apple OS X.
+    `True` only if the current operating system is Apple OS X.
     '''
     return platform.system() == 'Darwin'
 
 # ....................{ TESTERS ~ os : windows             }....................
 def is_windows() -> bool:
     '''
-    `True` if the current operating system is Microsoft Windows.
+    `True` only if the current operating system is Microsoft Windows.
 
     This function reports `True` for both vanilla and Cygwin Microsoft Windows.
     '''
@@ -42,7 +42,7 @@ def is_windows() -> bool:
 
 def is_windows_cygwin() -> bool:
     '''
-    `True` if the current operating system is **Cygwin Microsoft Windows**
+    `True` only if the current operating system is **Cygwin Microsoft Windows**
     (i.e., running the Cygwin POSIX compatibility layer).
     '''
     return sys.platform == 'cygwin'
@@ -50,7 +50,7 @@ def is_windows_cygwin() -> bool:
 
 def is_windows_vanilla() -> bool:
     '''
-    `True` if the current operating system is **vanilla Microsoft Windows**
+    `True` only if the current operating system is **vanilla Microsoft Windows**
     (i.e., _not_ running the Cygwin POSIX compatibility layer).
     '''
     return sys.platform == 'win32'

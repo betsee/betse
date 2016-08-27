@@ -88,15 +88,15 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from collections import OrderedDict
-from contextlib import contextmanager
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.py import modules, pys
-from betse.util.type import sequences, strs
+from betse.util.type import iterables, strs
 from betse.util.type.types import type_check
+from collections import OrderedDict
+from contextlib import contextmanager
 
 # ....................{ CONSTANTS                          }....................
 RC_PARAMS = {
@@ -594,19 +594,18 @@ class MatplotlibConfig(object):
             # currently imported "matplotlib".
             backends_dir = modules.get_dirname(backends)
 
-            # If such directory exists, find all backends in such directory.
+            # If this directory exists, find all backends in this directory.
             if dirs.is_dir(backends_dir):
                 # String prefixing the basenames of backend-specific modules.
                 BACKEND_BASENAME_PREFIX = 'backend_'
 
-                # Such names, discovered by:
+                # These names, discovered by:
                 #
-                # * Filtering all basenames in such directory for modules.
+                # * Filtering all basenames in this directory for modules.
                 # * Converting the remaining basenames to backend names.
-                # * Sorting such names in ascending lexicographic order. While
-                #   *NOT* strictly necessary, of course, such sorting improves
-                #   output (e.g., from the "info" subcommand).
-                self._backend_names = sequences.sort_lexicographic_ascending([
+                # * Sorting these names in ascending lexicographic order for
+                #   readability (e.g., in the "info" subcommand).
+                self._backend_names = iterables.sort_lexicographic_ascending([
                     paths.get_pathname_sans_filetype(
                         strs.remove_prefix_if_found(
                             backend_basename, BACKEND_BASENAME_PREFIX))

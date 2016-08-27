@@ -135,6 +135,42 @@ def init() -> None:
     yamls.init()
 
 # ....................{ GETTERS                            }....................
+def get_metadatas() -> tuple:
+    '''
+    Tuple of 2-tuples `(metedata_name, metadata_value`), describing all
+    currently installed optional and mandatory third-party dependencies required
+    at both runtime and testing time.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.lib.matplotlib.matplotlibs import mpl_config
+    from betse.lib.numpy import numpys
+
+    # Tuple of all dependency versions.
+    LIB_VERSION_METADATA = (
+        # Dependencies metadata.
+        ('runtime dependencies (mandatory)',
+         get_runtime_mandatory_metadata()),
+        ('runtime dependencies (optional)',
+         get_runtime_optional_metadata()),
+        ('testing dependencies (mandatory)',
+         get_testing_mandatory_metadata()),
+    )
+
+    # Tuple of all dependency-specific metadata.
+    LIB_METADATA = (
+        # matplotlib metadata.
+        ('matplotlib', mpl_config.get_metadata()),
+    )
+
+    # Return a tuple aggregating these tuples.
+    return (
+        LIB_VERSION_METADATA +
+        LIB_METADATA +
+        numpys.get_metadatas()
+    )
+
+
 def get_runtime_mandatory_metadata() -> OrderedDict:
     '''
     Ordered dictionary describing all currently installed third-party
