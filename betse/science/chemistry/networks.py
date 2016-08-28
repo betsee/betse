@@ -3144,7 +3144,7 @@ class MasterOfNetworks(object):
         normc = colors.Normalize(vmin=minc, vmax=maxc)
 
         # create a graph object
-        self.graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True,
+        self.graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = False,
             overlap = 'compress', splines = True, nodesep = 0.1, ranksep =0.3)
 
         #rankdir = 'LR'
@@ -3336,7 +3336,7 @@ class MasterOfNetworks(object):
 
             if mol.ion_channel_gating is True:
 
-                self.graph_influencers(name, mol.ion_activators_list,
+                self.graph_influencers(mol.gating_channel_name, mol.ion_activators_list,
                 mol.ion_inhibitors_list, p, reaction_zone = 'cell',
                 zone_tags_a = mol.ion_activators_zone,
                 zone_tags_i = mol.ion_inhibitors_zone, alpha_val = alpha_val)
