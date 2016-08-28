@@ -167,25 +167,25 @@ def log_exception(exception: Exception) -> None:
         # Traceback object for this exception.
         _, _, exc_traceback = sys.exc_info()
 
-        #FIXME: The private traceback._iter_chain() function has been removed by
-        #Python 3.5. The canonical solution appears to be... wait for it,
-        #
-        #* Copying the latest Python 3.4 definition of traceback._iter_chain()
-        #  into a new _iter_chain() function.
-        #* Call our _iter_chain() copy *ONLY* if traceback._iter_chain() is
-        #  unavailable.
-
-        # List of 2-tuples "(exception, traceback)" for all parent
-        # exceptions of this exception *AND* this exception (in order), where:
-        #
-        # * "exception" is each exception.
-        # * "traceback" is each exception's traceback.
+        # Generator yielding 2-tuples "(exception, traceback)" for all parent
+        # exceptions of this exception *AND* this exception (in that order),
+        # where "exception" is each exception and "traceback" is the traceback
+        # stored for each exception.
         #
         # Sadly, this list is only gettable via the private
-        # traceback._iter_chain() function in older versions of Python. As this
-        # function is no longer available in newer versions of Python, call a
-        # BETSE-specific compatibility function instead.
-        exc_parents = stderrs._iter_chain(exception, exc_traceback)
+        # traceback._iter_chain() function in older versions of Python. Since
+        # this function is unavailable in newer versions of Python, a
+        # BETSE-specific compatibility function is called instead.
+        exc_parents_generator = stderrs._iter_chain(exception, exc_traceback)
+
+        # Tuple of 2-tuples "(exception, traceback)" in the reverse order
+        # yielded by this generator, preserving readability by ensuring that
+        # this exception is logged first, the parent exception of this exception
+        # (if any) is logged second, and so forth.
+        exc_parents = tuple(reversed(tuple(exc_parents_generator)))
+
+        # 0-based index of the last exception in this list.
+        exc_parent_last_index = len(exc_parents) - 1
 
         # String buffer containing a human-readable synopsis of each
         # exception in this chain, unconditionally output to stderr.
@@ -202,8 +202,9 @@ def log_exception(exception: Exception) -> None:
         exc_iota_buffer.write(buffer_header)
         exc_full_buffer.write(buffer_header)
 
-        # Append each parent exception and that exception's traceback.
-        for exc_parent, exc_parent_traceback in exc_parents:
+        # For each parent exception and that exception's traceback...
+        for exc_parent_index, (exc_parent, exc_parent_traceback) in (
+            enumerate(exc_parents)):
             # If this exception is a string, append this string to the
             # synopsis buffer as is and continue to the next parent. This is
             # an edge case that should *NEVER* happen... but could.
@@ -223,28 +224,40 @@ def log_exception(exception: Exception) -> None:
             exc_message_lines = traceback.format_exception_only(
                 type(exc_parent), exc_parent)
 
-            # Append this message as is to the traceback buffer *BEFORE*
-            # appending a truncation of this message to the message buffer.
-            exc_full_buffer.write(
-                strs.join(exc_message_lines))
+            # If the exception type prefixing the last line of this message is
+            # itself prefixed by the expected and hence ignorable
+            # fully-qualified name of the subpackage defining BETSE exceptions,
+            # truncate this prefix for brevity.
+            #
+            # Note that the format_exception_only() function guarantees the
+            # last line of this message to *ALWAYS* be "the message indicating
+            # which exception occurred."
+            if exc_message_lines[-1].startswith('betse.exceptions.'):
+                exc_message_lines[-1] = exc_message_lines[-1][
+                    len('betse.exceptions.'):]
+
+            # Last line of this message. By design, the format_exception_only()
+            # function guarantees this line to *ALWAYS* be "the message
+            # indicating which exception occurred."
+            exc_message_line = exc_message_lines[-1]
+
+            # Append this message to the traceback buffer *BEFORE* appending a
+            # truncation of this message to the message buffer.
+            exc_full_buffer.write(strs.join(exc_message_lines))
             #print('exception string: '+ exc_message_lines[-1])
 
             # Split the last line of this message into a non-human-readable
-            # exception class and ideally human-readable exception message.
-            # If this exception is not None *AND* is convertable without
-            # raising exceptions into a string, both format_exception_only()
-            # and _format_final_exc_line() guarantee this line to be
-            # formatted as follows:
+            # exception class and ideally human-readable exception message. If
+            # this exception is not "None" *AND* is convertable without raising
+            # exceptions into a string, both format_exception_only() and
+            # _format_final_exc_line() guarantee this line to be formatted as:
             #     "${exc_class}: ${exc_message}"
-            assert types.is_sequence_nonstr_nonempty(
-                exc_message_lines), (
-                    types.assert_not_sequence_nonstr_nonempty(
-                        exc_message_lines, 'Exception message lines'))
-            exc_message_match_groups = (
-                regexes.get_match_groups_numbered(
-                    exc_message_lines[-1],
-                    r'^({})(?:\s*|:\s+(.+))$'.format(
-                        identifiers.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW)))
+            assert types.is_sequence_nonstr_nonempty(exc_message_lines), (
+                types.assert_not_sequence_nonstr_nonempty(
+                    exc_message_lines, 'Exception message lines'))
+            exc_message_match_groups = regexes.get_match_groups_numbered(
+                exc_message_line, r'^({})(?:\s*|:\s+(.+))$'.format(
+                    identifiers.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
 
             # This message is guaranteed to be prefixed by a class name.
             exc_class_name = exc_message_match_groups[0]
@@ -280,8 +293,7 @@ def log_exception(exception: Exception) -> None:
 
             # If this class is "KeyError", this message is the single-quoted
             # name of a non-existent key in a dictionary whose access raised
-            # this exception. Since that is non-human-readable, wrap this
-            # key in human-readable description.
+            # this exception. Replace this by a human-readable message.
             if exc_class_name == 'KeyError':
                 exc_message = 'Dictionary key {} not found.'.format(
                     exc_message)
@@ -307,6 +319,13 @@ def log_exception(exception: Exception) -> None:
                         traceback.extract_tb(
                             exc_parent_traceback))))
 
+            # If this exception is *NOT* the last, append an explanatory header.
+            if exc_parent_index != exc_parent_last_index:
+                exc_full_buffer.write(
+                    '\nThe above exception was raised in response to '
+                    'this parent exception:\n\n'
+                )
+
         # Append a random error haiku to the traceback buffer... *BECAUSE*!
         exc_full_buffer.write(
             '\n{}'.format(stderrs.get_haiku_random()))
@@ -317,7 +336,7 @@ def log_exception(exception: Exception) -> None:
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get()
 
-        # If logging to a file...
+        # If logging to disk...
         if log_config.is_logging_file:
             # If verbosity is disabled, output this synopsis to stderr;
             # else, tracebacks containing this synopsis are already

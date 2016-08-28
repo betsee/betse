@@ -8,6 +8,7 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.io.log import logs
 from betse.util.os import oses
 from betse.util.py import modules
 from betse.util.type import iterables, strs
@@ -68,7 +69,7 @@ _CONFIG_BLAS_MULTITHREADED_GLOBAL_NAMES = {
 }
 '''
 Set of the names of all possible dictionary globals declared by the
-:mod:`numpy.distutils.__config__` submodule specific to multithreaded BLAS
+:mod:`numpy.distutils.__config__` submodule specific to parallelized BLAS
 implementations.
 
 Each element of this set is guaranteed to be the unqualified name of a subclass
@@ -93,26 +94,66 @@ _CONFIG_OS_X_MULTITHREADED_BLAS_OPT_EXTRA_LINK_ARGS = {
 '''
 Set of all uniquely identifying elements of the list value of the
 `extra_link_args` key of the :data:`numpy.distutils.__config__.blas_opt_info`
-dictionary specific to multithreaded BLAS implementations under the OS X
-platform.
+dictionary specific to parallelized BLAS implementations under OS X.
 
 Unlike all other BLAS implementations, Numpy does _not_ declare unique
 dictionary globals describing these implementations when linked against. Ergo,
 this lower-level solution.
 '''
 
+# ....................{ INITIALIZERS                       }....................
+# For simplicity, this function is called below on the first importation of this
+# submodule rather than explicitly called by callers.
+def init() -> None:
+    '''
+    Initialize Numpy.
+
+    Specifically:
+
+    * If the currently installed version of Numpy was linked against an
+      unparallelized BLAS implementation and is thus itself unparallelized, log
+      a non-fatal warning.
+    '''
+
+    # If Numpy linked against an unparallelized BLAS, log a non-fatal warning.
+    if not is_blas_parallelized():
+        return
+
+        #FIXME: Sadly, the is_blas_parallelized() is insufficiently granular to
+        #support such behaviour at the moment. Improve that method substantially
+        #before reenabling this warning.
+        logs.log_warning(
+            'Numpy not parallelized. '
+            'Consider installing a parallelized BLAS implementation '
+            '(e.g., OpenBLAS, ATLAS, ACML, MKL) and '
+            'reinstalling Numpy against this implementation.'
+        )
+
 # ....................{ TESTERS                            }....................
-#FIXME: Call this in the libs.init() method. It's hardly critical, so it can
-#safely wait to the customary calling point.
-def is_blas_multithreaded() -> bool:
+#FIXME: Add support for detecting ACML (AMD Core Math Library), an OpenCL-based
+#BLAS implementation parallelized over GPU shader units. While Numpy has no
+#explicit support for detecting this library, Numpy appears to be trivially
+#linkable against ACML by simply replacing the standard BLAS reference library
+#with a symbolic link to ACML and reinstalling Numpy. Ergo, detecting ACML may
+#reduce to:
+#
+#* Under POSIX-compliant platforms, determining whether:
+#  * The currently linked BLAS library is reported as being the standard BLAS
+#    reference library *AND*
+#  * The shared BLAS library at this path (perhaps obtained via the
+#    "numpy_config.blas_opt_info['libraries']" list) is a symbolic link *AND*
+#  * This symbolic link refers to a pathname indicative of ACML.
+
+def is_blas_parallelized() -> bool:
     '''
     `True` only if the currently installed version of Numpy is linked against a
-    multithreaded BLAS (Basic Linear Algebra Subprograms) implementation.
+    BLAS (Basic Linear Algebra Subprograms) implementation implicitly
+    parallelized across multiple processors -- either CPU- or GPU-based.
 
-    Multithreaded BLAS implementations are _strongly_ recommended over
-    single-threaded BLAS implementations. BETSE frequently calls the `np.dot()`,
-    operator, which is implicitly multithreaded when linked against a
-    multithreaded BLAS implementation, in its critical path.
+    Parallelized BLAS implementations are _strongly_ recommended over
+    unparallelized BLAS implementations. The `numpy.dot()` operator, which is
+    implicitly parallelized when Numpy is linked against a parallelized BLAS
+    implementation, is frequently called by BETSE in its critical path.
 
     Heuristic
     ----------
@@ -133,8 +174,8 @@ def is_blas_multithreaded() -> bool:
     same name as that subclass whose keys are the names of metadata types and
     values are metadata is programmatically added to the
     :mod:`numpy.distutils.__config__` submodule. Hence, this function returns
-    `True` only if that submodule declares a global specific to a multithreaded
-    BLAS library.
+    `True` only if that submodule declares a global specific to a parallelized
+    BLAS implementation.
 
     .. _ATLAS: http://math-atlas.sourceforge.net
     '''
@@ -205,7 +246,7 @@ def get_blas_metadata() -> OrderedDict:
 
     # This dictionary.
     metadata = OrderedDict((
-        ('multithreaded', is_blas_multithreaded()),
+        ('parallelized', is_blas_parallelized()),
     ))
 
     # Set of all keys of the dictionary global synopsizing this metadata,

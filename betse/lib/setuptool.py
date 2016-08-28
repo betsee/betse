@@ -80,7 +80,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     '''
 
     # Human-readable exception to be raised below if any.
-    exception_message = None
+    betse_exception = None
 
     # If setuptools raises a non-human-readable exception on validating this
     # requirement, convert that into a human-readable exception.
@@ -97,7 +97,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     #
     #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
     except VersionConflict as version_conflict:
-        exception_message = BetseDependencyException(
+        betse_exception = BetseDependencyException(
             'Dependency "{}" unsatisfied by installed dependency "{}".'.format(
                 version_conflict.req, version_conflict.dist))
     #FIXME: Handle the "UnknownExtra" exception as well.
@@ -106,24 +106,41 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # preferable to simply raise this exception in the exception handler above,
     # doing so encourages Python 3 to implicitly prepend this exception by the
     # non-human-readable exception raised above. (...Ugh!)
-    if exception_message:
-        raise exception_message
+    if betse_exception:
+        raise betse_exception
 
     # Avoid circular import dependencies.
     from betse.util.py import modules
 
-    # Attempt to import this package.
+    # Attempt to manually import this package.
     try:
         # print('Importing dependency: ' + module_name)
         package = import_requirement(requirement)
-    # Convert this exception into a human-readable form.
-    except ImportError:
-        exception_message = BetseDependencyException(
-            'Dependency "{}" not found.'.format(requirement.project_name))
+    # If a standard import exception is raised...
+    except ImportError as root_exception:
+        # Low-level Python-specific exception message.
+        root_exception_message = str(root_exception)
+
+        # If this exception signifies the common case of a missing dependency,
+        # avoid exposing this exception to end users. Doing so would convey no
+        # meaningful metadata.
+        if root_exception_message.startswith('No module named '):
+            betse_exception = BetseDependencyException(
+                'Dependency "{}" not found.'.format(requirement.project_name))
+        # Else, this exception signifies an unexpected edge-case. For
+        # debuggability, expose this exception to end users.
+        else:
+            raise BetseDependencyException(
+                'Dependency "{}" unimportable.'.format(
+                    requirement.project_name))
+    # Else if any other exception is raised, expose this exception to end users.
+    except Exception as root_exception:
+        raise BetseDependencyException(
+            'Dependency "{}" unimportable.'.format(requirement.project_name))
 
     # If a human-readable exception is to be raised, do so.
-    if exception_message:
-        raise exception_message
+    if betse_exception:
+        raise betse_exception
 
     # Package version if any or "None" otherwise.
     package_version = modules.get_version_or_none(package)

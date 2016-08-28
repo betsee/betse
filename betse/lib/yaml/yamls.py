@@ -14,12 +14,12 @@ file format encapsulating most input and output data for this application.
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To permit YAML implementations to be conditionally imported at
-# application startup, no implementation (e.g., the top-level "yaml" package,
-# corresponding to PyYAML) may be imported here.
+# application startup, no implementation (e.g., the top-level "yaml" package
+# corresponding to PyYAML) are importable here.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse.util.type.types import type_check, MappingType, SequenceTypes
 import numpy
+from betse.util.type.types import type_check, MappingType, SequenceTypes
 
 # ....................{ CONSTANTS                          }....................
 #FIXME: Initialize and leverage this below.
@@ -27,10 +27,70 @@ _PACKAGE_NAME = None
 '''
 '''
 
+
 _TAG_NUMPY_NDARRAY = '!ndarray'
 '''
 YAML-formatted tag identifying each YAML sequence converted from a Numpy array.
 '''
+
+# ....................{ INITIALIZERS                       }....................
+def init() -> None:
+    '''
+    Select and initialize the best available third-party YAML implementation
+    (e.g., `ruamel.yaml`, PyYAML).
+
+    This function selects the first such implementation importable under the
+    active Python interpreter from the following list (_in descending order of
+    preference_): `ruamel.yaml`, PyYAML.
+    '''
+
+    # Delay importation of the desired YAML implementation.
+    import yaml
+    from yaml.representer import SafeRepresenter
+
+    # When saving arbitrary objects to YAML, stringify all:
+    #
+    # * Numpy arrays as YAML sequences.
+    # * Numpy booleans as YAML booleans.
+    # * Numpy complex numbers as YAML complex numbers.
+    # * Numpy floats as YAML floats.
+    # * Numpy integers as YAML integers.
+    #
+    # Since most YAML implementations lack explicit support for Numpy types,
+    # attempting to saving Numpy objects to YAML results in non-human-readable
+    # output defeating the whole purpose of YAML. This output resembles:
+    #
+    #     >>> print(yaml.dump({'a':numpy.array([3.1415,])}))
+    #     /usr/lib64/python3.4/site-packages/yaml/representer.py:135:
+    #     FutureWarning: comparison to `None` will result in an elementwise
+    #     object comparison in the future.
+    #       if data in [None, ()]:
+    #     a: !!python/object/apply:numpy.core.multiarray._reconstruct
+    #       args:
+    #       - !!python/name:numpy.ndarray ''
+    #       - !!python/tuple [0]
+    #       - !!binary |
+    #         Yg==
+    #       state: !!python/tuple
+    #       - 1
+    #       - !!python/tuple [1]
+    #       - !!python/object/apply:numpy.dtype
+    #         args: [f8, 0, 1]
+    #         state: !!python/tuple [3, <, null, null, null, -1, -1, 0]
+    #       - false
+    #       - !!binary |
+    #         bxKDwMohCUA=
+    yaml.add_representer(numpy.ndarray, _represent_numpy_ndarray)
+    yaml.add_representer(numpy.bool_, _represent_numpy_bool)
+    yaml.add_representer(numpy.complex_, _represent_numpy_complex)
+    yaml.add_representer(numpy.float_, _represent_numpy_float)
+    yaml.add_representer(numpy.int_, _represent_numpy_int)
+
+    #FIXME: Perform this *ONLY* if the selected YAML implementation is PyYAML.
+    #ruamel.yaml already fixes all Numpy-specific warnings.
+
+    # Monkeypatch this PyYAML method to eliminate Numpy-specific warnings.
+    SafeRepresenter.ignore_aliases = _ignore_aliases_monkeypatch
 
 # ....................{ SAVERS                             }....................
 @type_check
@@ -232,63 +292,3 @@ def _ignore_aliases_monkeypatch(self, data):
         return True
     if isinstance(data, (str, bytes, bool, int, float)):
         return True
-
-# ....................{ INITIALIZERS                       }....................
-# For simplicity, this function is called below on the first importation of this
-# submodule rather than explicitly called by callers.
-def init() -> None:
-    '''
-    Initialize this submodule.
-    '''
-
-    # Delay importation of the desired YAML implementation.
-    import yaml
-    from yaml.representer import SafeRepresenter
-
-    # When saving arbitrary objects to YAML, stringify all:
-    #
-    # * Numpy arrays as YAML sequences.
-    # * Numpy booleans as YAML booleans.
-    # * Numpy complex numbers as YAML complex numbers.
-    # * Numpy floats as YAML floats.
-    # * Numpy integers as YAML integers.
-    #
-    # Since most YAML implementations lack explicit support for Numpy types,
-    # attempting to saving Numpy objects to YAML results in non-human-readable
-    # output defeating the whole purpose of YAML. This output resembles:
-    #
-    #     >>> print(yaml.dump({'a':numpy.array([3.1415,])}))
-    #     /usr/lib64/python3.4/site-packages/yaml/representer.py:135:
-    #     FutureWarning: comparison to `None` will result in an elementwise
-    #     object comparison in the future.
-    #       if data in [None, ()]:
-    #     a: !!python/object/apply:numpy.core.multiarray._reconstruct
-    #       args:
-    #       - !!python/name:numpy.ndarray ''
-    #       - !!python/tuple [0]
-    #       - !!binary |
-    #         Yg==
-    #       state: !!python/tuple
-    #       - 1
-    #       - !!python/tuple [1]
-    #       - !!python/object/apply:numpy.dtype
-    #         args: [f8, 0, 1]
-    #         state: !!python/tuple [3, <, null, null, null, -1, -1, 0]
-    #       - false
-    #       - !!binary |
-    #         bxKDwMohCUA=
-    yaml.add_representer(numpy.ndarray, _represent_numpy_ndarray)
-    yaml.add_representer(numpy.bool_, _represent_numpy_bool)
-    yaml.add_representer(numpy.complex_, _represent_numpy_complex)
-    yaml.add_representer(numpy.float_, _represent_numpy_float)
-    yaml.add_representer(numpy.int_, _represent_numpy_int)
-
-    #FIXME: Perform this *ONLY* if the selected YAML implementation is PyYAML.
-    #ruamel.yaml already fixes all Numpy-specific warnings.
-
-    # Monkeypatch this PyYAML method to eliminate Numpy-specific warnings.
-    SafeRepresenter.ignore_aliases = _ignore_aliases_monkeypatch
-
-# ....................{ MAIN                               }....................
-# Initialize this submodule.
-init()

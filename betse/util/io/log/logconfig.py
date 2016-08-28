@@ -232,19 +232,23 @@ class LogConfig(object):
         # Avoid circular import dependencies.
         from betse.util.path.command import commands
 
-        # Initialize the stdout handler.
+        # Initialize the stdout handler to:
+        #
+        # * Log only informational messages by default.
+        # * Unconditionally ignore all warning and error messages, which the
+        #   stderr handler already logs.
         #
         # Sadly, the "StreamHandler" constructor does *NOT* accept the customary
         # "level" attribute accepted by its superclass constructor.
         self._logger_root_handler_stdout = StreamHandler(sys.stdout)
         self._logger_root_handler_stdout.setLevel(INFO)
-        # self._logger_root_handler_stdout.setLevel(DEBUG)
+        self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
 
-        #FIXME: This no longer appears necessary, in which case the
-        #"LoggerFilterMoreThanInfo" class is removable as well.
-        # self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
-
-        # Initialize the stderr handler.
+        # Initialize the stderr handler to:
+        #
+        # * Log only warning and error messages by default.
+        # * Unconditionally ignore all informational and debug messages, which
+        #   the stdout handler already logs.
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(WARNING)
 
@@ -398,6 +402,7 @@ class LogConfig(object):
         `True` only if file logging is enabled (i.e., if the `log_type` property
         is `LogType.FILE`).
         '''
+
         return self.log_type is LogType.FILE
 
     # ..................{ PROPERTIES ~ bool : verbose        }..................

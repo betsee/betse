@@ -178,7 +178,7 @@ try:
     IterableTypes = (Iterable, ndarray)
     SequenceTypes = (Sequence, ndarray)
 # Else, Numpy is unavailable. Add only core APIs.
-except ImportError:
+except:
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 

@@ -126,12 +126,14 @@ def init() -> None:
       platform.
     '''
 
-    # Avoid circular import dependencies.
+    # Defer heavyweight imports.
     from betse.lib.matplotlib.matplotlibs import mpl_config
+    from betse.lib.numpy import numpys
     from betse.lib.yaml import yamls
 
-    # Configure these dependencies.
+    # Initialize these dependencies.
     mpl_config.init()
+    numpys.init()
     yamls.init()
 
 # ....................{ GETTERS                            }....................
