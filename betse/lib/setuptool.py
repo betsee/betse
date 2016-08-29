@@ -79,6 +79,9 @@ def die_unless_requirement(requirement: Requirement) -> None:
         of this package.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.py import modules
+
     # Human-readable exception to be raised below if any.
     betse_exception = None
 
@@ -109,8 +112,8 @@ def die_unless_requirement(requirement: Requirement) -> None:
     if betse_exception:
         raise betse_exception
 
-    # Avoid circular import dependencies.
-    from betse.util.py import modules
+    # Fully-qualified name of this requirement's package.
+    package_name = get_requirement_module_name(requirement)
 
     # Attempt to manually import this package.
     try:
@@ -124,7 +127,8 @@ def die_unless_requirement(requirement: Requirement) -> None:
         # If this exception signifies the common case of a missing dependency,
         # avoid exposing this exception to end users. Doing so would convey no
         # meaningful metadata.
-        if root_exception_message.startswith('No module named '):
+        if root_exception_message == (
+            "No module named '{}'".format(package_name)):
             betse_exception = BetseDependencyException(
                 'Dependency "{}" not found.'.format(requirement.project_name))
         # Else, this exception signifies an unexpected edge-case. For
@@ -290,15 +294,50 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
 
 
 @type_check
+def get_requirement_module_name(requirement: Requirement) -> str:
+    '''
+    Fully-qualified name of the top-level module or package (e.g., `yaml`)
+    providing the passed `setuptools`-specific requirement.
+
+    Parameters
+    ----------
+    requirement : Requirement
+        This requirement.
+
+    Returns
+    ----------
+    str
+        Fully-qualified name of this module or package.
+
+    Raises
+    ----------
+    BetseDependencyException
+        If this name is unrecognized (i.e., is _not_ a key of the
+        `SETUPTOOLS_TO_MODULE_NAME` dictionary).
+    '''
+
+    # Name of this requirement.
+    requirement_name = requirement.project_name
+
+    # If this name is unrecognized, raise an exception.
+    if requirement_name not in SETUPTOOLS_TO_MODULE_NAME:
+        raise BetseDependencyException(
+            'Requirement "{}" unrecognized.'.format(requirement_name))
+
+    # Return the name of this requirement's module or package.
+    return SETUPTOOLS_TO_MODULE_NAME[requirement_name]
+
+
+@type_check
 def get_requirement_version_readable(requirement: Requirement) -> str:
     '''
     Human-readable version string for the currently installed version of the
-    third-party package corresponding to (but _not_ necessarily satisfying) the
-    passed `setuptools`-specific requirement.
+    third-party module or package corresponding to (but _not_ necessarily
+    satisfying) the passed `setuptools`-specific requirement.
 
     This function is principally intended for use in printing package metadata
     in a non-critical manner and hence is guaranteed to _never_ raise fatal
-    exceptions. If his package:
+    exceptions. If this package:
 
     * Is importable but fails to satisfy this requirement, a string describing
       this conflict is returned.
@@ -308,7 +347,7 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
     Parameters
     ----------
     requirement : Requirement
-        `setuptools`-specific object encapsulating this package.
+        `setuptools`-specific object encapsulating this module or package.
 
     Returns
     ----------
@@ -489,9 +528,6 @@ def import_requirement(requirement: Requirement) -> ModuleType:
 
     Raises
     ----------
-    BetseDependencyException
-        If this name is unrecognized (i.e., is _not_ a key of the
-        `SETUPTOOLS_TO_MODULE_NAME` dictionary).
     ImportError
         If this package is unimportable.
     '''
@@ -499,16 +535,8 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     # Avoid circular import dependencies.
     from betse.util.py import modules
 
-    # Name of this requirement.
-    requirement_name = requirement.project_name
-
-    # If this name is unrecognized, raise an exception.
-    if requirement_name not in SETUPTOOLS_TO_MODULE_NAME:
-        raise BetseDependencyException(
-            'Requirement "{}" unrecognized.'.format(requirement_name))
-
     # Fully-qualified name of this requirement's package.
-    package_name = SETUPTOOLS_TO_MODULE_NAME[requirement_name]
+    package_name = get_requirement_module_name(requirement)
 
     # Import and return this package.
     return modules.import_module(package_name)

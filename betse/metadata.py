@@ -346,9 +346,14 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
     # project names case-insensitively, case is only of internal relevance.
 
     # Dependencies directly required by BETSE.
-    'networkx': '>= 1.11',
     'numba': '>= 0.27.0',
     'ptpython': '>= 0.29',
+
+    # NetworkX 1.11 broke backwards compatibility by coercing use of "pydotplus"
+    # rather than "pydot". This would be fine, of course, if "pydotplus" were
+    # still in active development. It isn't. "pydot", however, is. Ergo,
+    # NetworkX >= 1.11 is blacklisted until "pydot" support is restored.
+    'networkx': '>= 1.8, < 1.11',
 
     #FIXME: PyDot requires GraphViz. Hence, GraphViz should *ALSO* be validated
     #whenever validating PyDot. Since PyDot is unlikely to be installable in the
