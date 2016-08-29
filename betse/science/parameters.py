@@ -468,10 +468,11 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
         self.molecules_enabled = self.config['biomolecules enabled']
 
+        self.mol_mit_enabled = self.config.get("mitochondria enabled", False)
+
         if self.molecules_enabled:
 
             self.molecules_config = self.config['biomolecules']
-
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM REACTIONS
         #--------------------------------------------------------------------------------------------------------------

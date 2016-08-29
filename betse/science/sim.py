@@ -605,12 +605,20 @@ class Simulator(object):
         if p.molecules_enabled and self.molecules is None:
 
             # self.molecules = MasterOfMolecules(self, cells, p.molecules_config,p)
-            self.molecules = MasterOfNetworks(self, cells, p.molecules_config, p)
+            self.molecules = MasterOfNetworks(self, cells, p.molecules_config, p,
+                mit_enabled=p.mol_mit_enabled)
+
+            if p.mol_mit_enabled is True:
+                self.molecules.mit_enabled = True
 
             if p.reactions_enabled:
 
                 self.molecules.read_reactions(p.reactions_config, self, cells, p)
                 self.molecules.write_reactions()
+
+                if self.molecules.mit_enabled is True:
+                    self.molecules.write_reactions_mit()
+                    self.molecules.create_reaction_matrix_mit()
 
             self.molecules.create_reaction_matrix()
 
@@ -626,6 +634,8 @@ class Simulator(object):
             if p.modulators_enabled:
 
                 self.molecules.read_modulators(p.modulators_config, self, cells, p)
+
+
 
         elif p.molecules_enabled and self.molecules is not None:
         # don't declare a whole new object, but re-read in parts that user may have changed:
