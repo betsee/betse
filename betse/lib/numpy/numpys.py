@@ -15,25 +15,41 @@ from collections import OrderedDict
 from numpy.distutils import __config__ as numpy_config
 
 # ....................{ GLOBALS                            }....................
-#FIXME: Replace with a new "_PARALLELIZED_BLAS_OPT_INFO_LIBRARIES" set. The
-#current approach appears to be fundamentally incorrect, sadly. It appears
-#feasible to have, for example, an "atlas_info" simply reporting "NOT
-#AVAILABLE". Ergo, this set as currently defined must go.
-#FIXME: Actually, for robustness, just replace this with a single regular
-#expression. Attempting to match all possible basenames with a finite number of
-#set entries is technically infeasible, as basenames may be versioned.
+_PARALLELIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX = r'^({}).*$'.format(
+    r'|'.join((
+        # AMD Core Math Library (ACML). Unconditionally GPU- and CPU-
+        # parallelized, regardless of underlying compiler (e.g., Intel, Open64).
+        #r'acml_',
 
-_PARALLELIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX = (
-    # Basename beginning, matching exactly one of:
-    r'^('
+        # Automatically Tuned Linear Algebra Software (ATLAS). Frustratingly,
+        # ATLAS is shipped in both single- and multithreaded variants *AND*
+        # ATLAS >= 3.10 ships shared libraries under different basenames than
+        # ATLAS < 3.10. (Life complicates life.)
+        #
+        # ATLAS >= 3.10. Multithreaded variant.
+        r'tatlas',
 
-        # OpenBLAS. Match only the multithreaded variant of the 32- or 64-bit
-        # OpenBLAS implementation. The single-threaded variant is ignored.
-        r'openblas(_int64)?_threads'
-        # r'|'
+        # ATLAS < 3.10. Multithreaded CBLAS and Fortran variants.
+        r'pt(c|f77)blas',
 
-    # Basename end, consuming all remaining optional metadata (e.g., version).
-    r').*?$'
+        # Intel Math Kernel Library (MKL). Unconditionally multithreaded in
+        # both OpenMP-based and non-OpenMP-based variants, regardless of
+        # underlying compiler (e.g., dynamic, GCC, Intel). Thanks to the
+        # profusion of possible library basenames, this regular expression
+        # fragment simplistically assumes *ALL* library basenames prefixed by
+        # "mkl" to unconditionally connote MKL. What could go wrong?
+        #
+        # Intel Vector Mathematical Library (VML) is intentionally ignored.
+        # Although also unconditionally multithreaded, VML does *NOT* implement
+        # the BLAS API. Numpy currently contains no VML-specific handling,
+        # apart from (somewhat uselessly) detecting VML installation when
+        # reporting system diagnostics. Hence, Numpy currently ignores VML.
+        r'mkl_',
+
+        # OpenBLAS. Multithreaded 32- and 64-bit variants. (The single-threaded
+        # 32- and 64-bit variants are summarily ignored.)
+        r'openblas(_[^_]+)?_threads',
+    ))
 )
 '''
 Uncompiled regular expression matching the basename of a parallelized BLAS
@@ -43,6 +59,7 @@ This expression is conditionally compiled in a just-in-time manner rather than
 unconditionally compiled. This expression is typically only required once at
 application startup.
 '''
+# print('blas regex: ' + _PARALLELIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX)
 
 
 #FIXME: Excise after adding the corresponding support to the above regex.
