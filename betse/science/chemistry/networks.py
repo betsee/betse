@@ -3145,7 +3145,7 @@ class MasterOfNetworks(object):
 
         # create a graph object
         self.graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = False,
-            overlap = 'compress', splines = True, nodesep = 0.1, ranksep =0.3)
+            overlap = 'compress', splines = True, nodesep = 0.1, ranksep =0.3, strict = True, fontname = 'Lato Black')
 
         #rankdir = 'LR'
 
