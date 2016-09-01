@@ -9,7 +9,8 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.io.log import logs
-from betse.util.os import oses
+from betse.util.py import modules
+from betse.util.os import libs, oses
 from betse.util.type import iterables, regexes, strs
 from collections import OrderedDict
 from numpy.distutils import __config__ as numpy_config
@@ -17,108 +18,77 @@ from numpy.distutils import __config__ as numpy_config
 # ....................{ GLOBALS                            }....................
 _PARALLELIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX = r'^({}).*$'.format(
     r'|'.join((
-        # AMD Core Math Library (ACML). Unconditionally GPU- and CPU-
-        # parallelized, regardless of underlying compiler (e.g., Intel, Open64).
-        #r'acml_',
+        # AMD Core Math Library (ACML).
+        r'acml',
 
-        # Automatically Tuned Linear Algebra Software (ATLAS). Frustratingly,
-        # ATLAS is shipped in both single- and multithreaded variants *AND*
-        # ATLAS >= 3.10 ships shared libraries under different basenames than
-        # ATLAS < 3.10. (Life complicates life.)
-        #
-        # ATLAS >= 3.10. Multithreaded variant.
+        # Automatically Tuned Linear Algebra Software (ATLAS) >= 3.10.
         r'tatlas',
 
-        # ATLAS < 3.10. Multithreaded CBLAS and Fortran variants.
+        # Automatically Tuned Linear Algebra Software (ATLAS) < 3.10.
         r'pt(c|f77)blas',
 
-        # Intel Math Kernel Library (MKL). Unconditionally multithreaded in
-        # both OpenMP-based and non-OpenMP-based variants, regardless of
-        # underlying compiler (e.g., dynamic, GCC, Intel). Thanks to the
-        # profusion of possible library basenames, this regular expression
-        # fragment simplistically assumes *ALL* library basenames prefixed by
-        # "mkl" to unconditionally connote MKL. What could go wrong?
-        #
-        # Intel Vector Mathematical Library (VML) is intentionally ignored.
-        # Although also unconditionally multithreaded, VML does *NOT* implement
-        # the BLAS API. Numpy currently contains no VML-specific handling,
-        # apart from (somewhat uselessly) detecting VML installation when
-        # reporting system diagnostics. Hence, Numpy currently ignores VML.
+        # Intel Math Kernel Library (MKL). Thanks to the profusion of possible
+        # library basenames, this regular expression fragment simplistically
+        # assumes *ALL* library basenames prefixed by "mkl" to unconditionally
+        # connote MKL. What could go wrong?
         r'mkl_',
 
-        # OpenBLAS. Multithreaded 32- and 64-bit variants. (The single-threaded
-        # 32- and 64-bit variants are summarily ignored.)
+        # OpenBLAS.
         r'openblas(_[^_]+)?_threads',
+
+        #FIXME: Research. No idea if this basename substring is even accurate.
+
+        # BLAS-like Library Instantiation Software (BLIS). Unconditionally
+        # multithreaded. Technically, Numpy has yet to add official support for
+        # BLIS. Since numerous contributors nonetheless perceive BLIS to be the
+        # eventual successor of BLAS *AND* since Numpy currently hosts an open
+        # pull request to explicitly add BLIS support under the sensible
+        # subclass name "blis_info" (see Numpy PR #7294), explicitly listing
+        # BLIS here should assist in future-proofing our multithreading
+        # detection.
+        #r'blis',
     ))
 )
 '''
 Uncompiled regular expression matching the basename of a parallelized BLAS
 shared library.
 
-This expression is conditionally compiled in a just-in-time manner rather than
-unconditionally compiled. This expression is typically only required once at
-application startup.
+Parallelized BLAS shared libraries matched by this expression include:
+
+* **AMD Core Math Library (ACML), unconditionally GPU- and CPU- parallelized in
+  both OpenMP-based and non-OpenMP-based variants regardless of underlying
+  compiler (e.g., GNU Fortran, Open64). Note, however, that ACML does _not_ ship
+  with a CBLAS interface and hence is non-trivial to link Numpy against. While
+  unlikely that any end users will ever do so, it nonetheless remains feasible
+  and hence somewhat supported.
+* **Automatically Tuned Linear Algebra Software (ATLAS),** multithreaded
+  CBLAS-based and Fortran-based variants for both ATLAS < 3.10 and ATLAS >=
+  3.10, which ships shared libraries under different basenames than ATLAS <
+  3.10. (Life complicates life.)
+* **Intel Math Kernel Library (MKL),** unconditionally multithreaded in both
+  OpenMP-based and non-OpenMP-based variants regardless of underlying compiler
+  (e.g., dynamic, GCC, Intel).  Note that **Intel Vector Mathematical Library
+  (VML)** is intentionally ignored.  Although also unconditionally
+  multithreaded, VML does _not_ implement the BLAS API. Numpy currently contains
+  no VML-specific handling, apart from (somewhat uselessly) detecting VML
+  installation on reporting system diagnostics.
+* **OpenBLAS,** both multithreaded 32- and 64-bit variants. All single-threaded
+  variants of OpenBLAS are ignored.
+
+This expression is typically only required once at application startup and hence
+is conditionally compiled in a just-in-time (JIT) manner by the
+:func:`is_blas_parallelized` function rather than unconditionally compiled here.
+
+See Also
+----------
+:data:`_PARALLELIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X`
+    Set matching OS X-specific parallelized BLAS implementations -- which, for
+    obscure reasons pertaining to Numpy internals, are _not_ matchable via this
+    regular expression..
 '''
 # print('blas regex: ' + _PARALLELIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX)
 
 
-#FIXME: Excise after adding the corresponding support to the above regex.
-# _CONFIG_BLAS_MULTITHREADED_GLOBAL_NAMES = {
-    #FIXME: Research this.
-    # AMD Core Math Library (ACML). Unconditionally GPU- and CPU-parallelized.
-    #'????',
-
-    # Automatically Tuned Linear Algebra Software (ATLAS). Frustratingly, ATLAS
-    # is shipped in both single- and multithreaded variants. Furthermore, ATLAS
-    # >= 3.10 ships shared libraries under different basenames than under ATLAS
-    # < 3.10. With respect to BLAS multithreading, three discrete states exist:
-    #
-    # * Single-threaded ATLAS regardless of version, in which case neither the
-    #   "atlas_blas_threads_info" nor
-    #   "atlas_3_10_blas_threads_info" globals are defined.
-    # * Multi-threaded ATLAS < 3.10, in which case only the
-    #   "atlas_blas_threads_info" global is defined.
-    # * Multi-threaded ATLAS >= 3.10, in which case only the
-    #   "atlas_3_10_blas_threads_info" global is defined.
-
-    #FIXME: Research this.
-    # 'atlas_blas_threads_info',
-    # 'atlas_3_10_blas_threads_info',
-
-    #FIXME: Research this.
-    # BLAS-like Library Instantiation Software (BLIS). Unconditionally
-    # multithreaded. Technically, Numpy has yet to add official support for
-    # BLIS. Since numerous contributors nonetheless perceive BLIS to be the
-    # eventual successor of BLAS *AND* since Numpy currently hosts an open pull
-    # request to explicitly add BLIS support under the sensible subclass name
-    # "blis_info" (see Numpy PR #7294), explicitly listing BLIS here should
-    # assist in future-proofing our multithreading detection.
-    # 'blis_info',
-
-    #FIXME: Research this.
-    # Intel Math Kernel Library (MKL). Unconditionally multithreaded.
-    # 'blas_mkl_info',
-
-    # OpenBLAS. Conditionally multithreaded. Ignore the single-threaded variant.
-#     'openblas_threads',
-# }
-'''
-Set of the names of all possible dictionary globals declared by the
-:mod:`numpy.distutils.__config__` submodule specific to parallelized BLAS
-implementations.
-
-Each element of this set is guaranteed to be the unqualified name of a subclass
-of the :class:`numpy.distutils.system_info.system_info` base class.
-
-See Also
-----------
-:meth:`numpy.distutils.system_info.blas_opt_info.calc_info`
-    Method whose body demonstrates the canonical heurestic employed by Numpy to
-    decide which BLAS implementation to link against at installation time.
-'''
-
-
-#FIXME: Rename to "_PARALLELIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X".
 _PARALLELIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X = {
     # Accelerate. Although Accelerate is only conditionally multithreaded,
     # multithreading is enabled by default and hence a safe assumption.
@@ -166,19 +136,7 @@ def init() -> None:
         )
 
 # ....................{ TESTERS                            }....................
-#FIXME: Add support for detecting ACML (AMD Core Math Library), an OpenCL-based
-#BLAS implementation parallelized over GPU shader units. While Numpy has no
-#explicit support for detecting this library, Numpy appears to be trivially
-#linkable against ACML by simply replacing the standard BLAS reference library
-#with a symbolic link to ACML and reinstalling Numpy. Ergo, detecting ACML may
-#reduce to:
-#
-#* Under POSIX-compliant platforms, determining whether:
-#  * The currently linked BLAS library is reported as being the standard BLAS
-#    reference library *AND*
-#  * The shared BLAS library at this path (perhaps obtained via the
-#    "numpy_config.blas_opt_info['libraries']" list) is a symbolic link *AND*
-#  * This symbolic link refers to a pathname indicative of ACML.
+#FIXME: Revise docstring, which is pretty much completely wrong now.
 
 def is_blas_parallelized() -> bool:
     '''
@@ -260,11 +218,18 @@ def is_blas_parallelized() -> bool:
     ):
         return True
 
-    # If the current platform is OS X, test for whether Numpy was linked against
-    # a parallelized BLAS implementation only available under OS X: namely,
-    # either "Accelerate" or "vecLib". Unlike all other BLAS implementations,
+    # If the current platform is OS X, fallback to testing whether Numpy was
+    # linked against a parallelized BLAS implementation specific to OS X:
+    # namely, "Accelerate" or "vecLib". Unlike all other BLAS implementations,
     # these implementations are linked against with explicit linker flags --
-    # requiring further logic. When life sells you cat food, you eat cat food.
+    # requiring further logic. For further confirmation that the
+    # "numpy.__config__.blas_opt_info" dictionary gives this metadata when
+    # linked against these implementations, see:
+    #
+    # * https://trac.macports.org/ticket/22200
+    # * https://github.com/BVLC/caffe/issues/2677
+    #
+    # When life sells you cat food, you eat cat food.
     if oses.is_os_x():
         # List of all implementation-specific link arguments with which Numpy
         # linked against the current BLAS implementation if any or "None"
@@ -284,6 +249,38 @@ def is_blas_parallelized() -> bool:
 
             # Return True only if this subset is nonempty.
             return len(blas_link_args_multithreaded) > 0
+
+    # If this BLAS library appears to be either the reference BLAS or CBLAS
+    # implementations *AND* this platform is POSIX-compliant and hence supports
+    # symbolic links, fallback to testing whether this library is in fact a
+    # symbolic link to a parallelized BLAS implementation.
+    #
+    # Unfortunately, the "numpy.__config__" API fails to specify the absolute
+    # paths of the libraries it links against. Since there exists no reliable
+    # means of reverse engineering these paths from this API, these paths must
+    # be obtained by another means: specifically, by querying the standard
+    # "numpy.core.multiarray" C extension installed under all supported Numpy
+    # for the absolute paths of all external shared libraries to which this
+    # extension links -- exactly one of which is guaranteed to be the absolute
+    # path of what appears to be a reference BLAS or CBLAS implementation.
+    # if oses.is_posix():
+    # if (
+    #     blas_basename_substr == 'blas' or
+    #     blas_basename_substr == 'cblas'
+    # ) and oses.is_linux():
+    #     # If the standard "numpy.core.multiarray" submodule is importable...
+    #     if modules.is_module('numpy.core.multiarray'):
+    #         # Do so.
+    #         import numpy.core.multiarray as numpy_lib
+    #
+    #         # Absolute path of this submodule.
+    #         numpy_lib_filename = modules.get_filename(numpy_lib)
+    #
+    #         #FIXME: Test whether or not this path is that of a shared library
+    #         #first (e.g., is suffixed by ".so" under Linux).
+    #
+    #         # Absolute paths of all shared libraries required by this library.
+    #         numpy_lib_libs = libs.get_dependency_filenames(numpy_lib_filename)
 
     # Else, all hope is lost.
     return False

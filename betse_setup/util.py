@@ -282,10 +282,12 @@ def is_os_linux() -> bool:
 
 def is_os_posix() -> bool:
     '''
-    `True` if the current operating system does _not_ comply with POSIX
-    standards (e.g., as required for POSIX-style symbolic link support).
+    `True` if the current operating system complies with POSIX standards (e.g.,
+    as required for POSIX-compliant symbolic link support).
 
-    Typically, this implies this system to _not_ be vanilla Microsoft Windows.
+    Typically, this implies this system to _not_ be vanilla Microsoft Windows
+    (i.e., to be either a Cygwin-enabled Windows terminal _or_ a genuine
+    POSIX-compliant system).
     '''
     return os.name == 'posix'
     # return False

@@ -56,7 +56,7 @@ def output_info() -> None:
     # Notify the current user of a possible wait *BEFORE* importing modules
     # whose importation contributes to this wait.
     logs.log_info(
-        'Harvesting system information. (This may take a moment.)')
+        'Harvesting system information... (This may take a moment.)')
 
     # Defer heavyweight imports.
     from betse import pathtree

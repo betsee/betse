@@ -130,6 +130,16 @@ def is_imported(*module_names: str) -> bool:
 
 # ....................{ GETTERS                            }....................
 @type_check
+def get_filename(mod: ModuleType) -> str:
+    '''
+    Absolute path of the file from which the passed module was previously
+    imported.
+    '''
+
+    return mod.__file__
+
+
+@type_check
 def get_dirname(mod: ModuleType) -> str:
     '''
     Absolute path of the directory containing the file from which the passed
@@ -140,7 +150,7 @@ def get_dirname(mod: ModuleType) -> str:
     from betse.util.path import paths
 
     # Get this dirname.
-    return paths.get_dirname(mod.__file__)
+    return paths.get_dirname(get_filename(mod))
 
 
 @type_check

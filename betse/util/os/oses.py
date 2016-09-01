@@ -8,15 +8,29 @@ High-level operating system (OS) facilities.
 
 Caveats
 ----------
-Operating system-specific logic is poor form and should be leveraged only where
-necessary.
+Operating system-specific logic is poor form. Do so _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-import platform, sys
+import os, platform, sys
 from collections import OrderedDict
 
 # ....................{ TESTERS ~ os                       }....................
+def is_posix() -> bool:
+    '''
+    `True` only if the current operating system complies with POSIX standards
+    (e.g., as required for POSIX-compliant symbolic link support).
+
+    Typically, this implies this system to _not_ be vanilla Microsoft Windows
+    and hence to be either:
+
+    * A genuinely POSIX-compliant system.
+    * A Cygwin-based Windows application (e.g., CLI terminal, GUI application).
+    '''
+
+    return os.name == 'posix'
+
+
 def is_linux() -> bool:
     '''
     `True` only if the current operating system is Linux.
