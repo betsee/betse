@@ -49,7 +49,7 @@ def die_unless_runtime_mandatory_all() -> None:
 
     # Validate these dependencies via "pkg_resources". Defer the importation of
     # this submodule until *AFTER* validating "pkg_resources" to exist above.
-    from betse.lib import setuptool
+    from betse.lib.setuptools import setuptool
     setuptool.die_unless_requirement_str(
         *metadata.DEPENDENCIES_RUNTIME_MANDATORY)
 
@@ -76,7 +76,7 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib import setuptool
+    from betse.lib.setuptools import setuptool
 
     # Validate these dependencies, converting all key-value pairs of these
     # dependencies' requirements into a tuple of requirements string.
@@ -107,7 +107,7 @@ def is_runtime_optional(*requirement_names: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib import setuptool
+    from betse.lib.setuptools import setuptool
 
     # Test these dependencies, converting all key-value pairs of these
     # dependencies' requirements into a tuple of requirements string.
@@ -180,7 +180,7 @@ def get_runtime_mandatory_metadata() -> OrderedDict:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib import setuptool
+    from betse.lib.setuptools import setuptool
 
     # Return this metadata.
     return setuptool.get_requirement_str_metadata(
@@ -194,7 +194,7 @@ def get_runtime_optional_metadata() -> OrderedDict:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib import setuptool
+    from betse.lib.setuptools import setuptool
 
     # Return this metadata, converting this dictionary of optional dependencies
     # into a tuple of these dependencies.
@@ -210,7 +210,7 @@ def get_testing_mandatory_metadata() -> OrderedDict:
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib import setuptool
+    from betse.lib.setuptools import setuptool
 
     # Return this metadata.
     return setuptool.get_requirement_str_metadata(

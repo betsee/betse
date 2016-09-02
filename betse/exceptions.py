@@ -38,6 +38,14 @@ class BetseInterpreterException(BetseException):
     pass
 
 
+class BetseFrozenException(BetseException):
+    '''
+    Low-level exception pertaining to **frozen executables** (i.e., Python
+    codebases converted into platform-specific executables).
+    '''
+    pass
+
+
 class BetseModuleException(BetseException):
     '''
     Module-specific exception.
@@ -113,6 +121,7 @@ class BetseMethodUnimplementedException(BetseException, NotImplementedError):
                 callers.get_caller_basename()))
 
 # ....................{ EXCEPTIONS ~ lib                   }....................
+#FIXME: Rename to "BetseLibException".
 class BetseDependencyException(BetseException):
     '''
     General-purpose exception pertaining to third-party dependencies.

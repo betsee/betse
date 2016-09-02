@@ -86,6 +86,7 @@ def is_file(pathname: str) -> bool:
     non-directory files (regardless of specialness) while the external command
     `rmdir` removes only empty directories.
     '''
+
     # Avoid circular import dependencies.
     from betse.util.path import dirs, paths
 
@@ -95,9 +96,10 @@ def is_file(pathname: str) -> bool:
 
 def is_special(pathname: str) -> bool:
     '''
-    `True` if the passed path is an existing **special file** (e.g., directory,
-    device node, socket, symbolic link).
+    `True` only if the passed path is an existing **special file** (e.g.,
+    directory, device node, socket, symbolic link).
     '''
+
     # Avoid circular import dependencies.
     from betse.util.path import paths
 
@@ -110,12 +112,12 @@ def is_special(pathname: str) -> bool:
         is_symlink(pathname) or not path.isfile(pathname))
 
 
+@type_check
 def is_symlink(pathname: str) -> bool:
     '''
-    `True` if the passed path is an existing symbolic link.
+    `True` only if the passed path is an existing symbolic link.
     '''
-    assert types.is_str_nonempty(pathname),\
-        types.assert_not_str_nonempty(pathname, 'pathname')
+
     return path.islink(pathname)
 
 # ....................{ COPIERS                            }....................

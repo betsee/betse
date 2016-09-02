@@ -13,11 +13,29 @@ installation environments -- including PyInstaller-frozen executables and
 `setuptools`-installed script wrappers.
 '''
 
+#FIXME: The current globals-based approach is inefficient in the case of BETSE
+#being installed as a compressed EGG rather than an uncompressed directory. In
+#the former case, the current approach (namely, the call to
+#resources.get_pathname() performed below) silently extracts the entirety of
+#this egg to a temporary setuptools-specific cache directory. That's bad. To
+#circumvent this, we'll need to refactor the codebase to directly require only
+#"file"-like objects rather than indirectly requiring the absolute paths of
+#data resources that are then opened as "file"-like objects.
+#
+#Specifically, whenever we require a "file"-like object for a codebase resource,
+#we'll need to call the setuptools-specific pkg_resources.resource_stream()
+#function rather than attempting to open the path given by a global below.
+#Ultimately, *ALL* of the codebase-specific globals declared below (e.g.,
+#"DATA_DIRNAME") should go away.
+
 # ....................{ IMPORTS                            }....................
-import pkg_resources, sys
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on missing mandatory dependencies,
+# the top-level of this module may import *ONLY* from packages guaranteed to
+# exist at installation time (i.e., stock Python and BETSE packages).
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from betse import metadata
-from betse.util.path import dirs, files, paths
-from betse.util.os import oses
 from os import environ, path
 
 # ....................{ CONSTANTS ~ dir                    }....................
@@ -157,6 +175,14 @@ def _init_pathnames_top() -> None:
     module as global constants.
     '''
 
+    # Avoid circular import dependencies. Since all mandatory dependencies have
+    # been validated by this point in application startup, all packages are
+    # safely importable from here.
+    from betse.lib.setuptools import resources
+    from betse.util.os import oses
+    from betse.util.path import paths
+    from betse.util.py import pys
+
     # Declare these constants to be globals, permitting modification below.
     global HOME_DIRNAME, DOT_DIRNAME, DATA_DIRNAME
 
@@ -165,14 +191,14 @@ def _init_pathnames_top() -> None:
 
     # Initialize the absolute path of betse's dot directory.
     #
-    # If the current system is OS X, set such directory accordingly.
+    # If the current system is OS X, set this directory accordingly.
     if oses.is_os_x():
         DOT_DIRNAME = paths.join(
             HOME_DIRNAME,
             'Library', 'Application Support',
             metadata.SCRIPT_NAME_CLI
         )
-    # If the current system is Windows, set such directory accordingly.
+    # If the current system is Windows, set this directory accordingly.
     elif oses.is_windows():
         DOT_DIRNAME = paths.join(environ['APPDATA'], metadata.NAME)
     #FIXME: Explicitly assert POSIX compatibility here.
@@ -180,28 +206,30 @@ def _init_pathnames_top() -> None:
     else:
         DOT_DIRNAME = paths.join(HOME_DIRNAME, '.' + metadata.SCRIPT_NAME_CLI)
 
-    # Relative path of the top-level data directory.
+    # Basename of the top-level data directory relative to the directory
+    # containing this submodule. Since setuptools-specific resource pathnames
+    # expect the POSIX- rather than Windows-specific directory separator (i.e.,
+    # "/" rather than "\"), this basename must *NOT* contain the latter.
     data_root_basename = 'data'
 
     # Initialize the absolute path of betse's data directory.
     #
     # If the current application is a PyInstaller-frozen executable binary,
-    # defer to the the PyInstaller-specific private attribute "_MEIPASS" added
+    # defer to the PyInstaller-specific private attribute "_MEIPASS" added
     # to the canonical "sys" module by the PyInstaller bootloader embedded in
-    # such binary. This attribute provides the absolute path of the temporary
-    # directory containing all application data resources extracted from such
-    # binary by such bootloader. "And it's turtles all the way down."
-    if hasattr(sys, '_MEIPASS'):
-        DATA_DIRNAME = paths.join(sys._MEIPASS, data_root_basename)
+    # this binary. This attribute provides the absolute path of the temporary
+    # directory containing all application data resources extracted from this
+    # binary by this bootloader. "And it's turtles all the way down."
+    if pys.is_frozen_pyinstaller():
+        DATA_DIRNAME = paths.join(
+            pys.get_app_dirname_pyinstaller(), data_root_basename)
     # If the current application is a setuptools-installed script wrapper, the
     # data directory will have been preserved as is in the setuptools-installed
-    # copy of the current Python package tree. In such case, query setuptools to
-    # obtain such directory's path in a cross-platform manner. See also:
-    #     https://pythonhosted.org/setuptools/pkg_resources.html
-    elif pkg_resources.resource_isdir(__name__, data_root_basename):
-        DATA_DIRNAME = pkg_resources.resource_filename(
-            __name__, data_root_basename)
-    # Else, the current application is either setuptools-symlinked script
+    # copy of the current Python package tree. In this case, query setuptools to
+    # obtain this directory's path in a cross-platform manner.
+    elif resources.is_dir(__name__, data_root_basename):
+        DATA_DIRNAME = resources.get_pathname(__name__, data_root_basename)
+    # Else, the current application is either a setuptools-symlinked script
     # wrapper *OR* was invoked via the hidden "python3 -m betse.cli.cli"
     # command. In either case, such directory's path is directly obtainable
     # relative to the absolute path of the current module.
@@ -215,6 +243,9 @@ def _init_pathnames_sub() -> None:
     Define all top-level pathnames (e.g., `DOT_DIRNAME`) declared by this
     module as global constants.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import paths
 
     # Declare these constants to be globals, permitting modification below.
     global\
@@ -245,10 +276,14 @@ def _init_pathnames_sub() -> None:
         'readline' : paths.join(DOT_DIRNAME, 'readline.hist'),
     }
 
+
 def _test_pathnames() -> None:
     '''
     Validate all pathnames (e.g., `DOT_DIRNAME`) declared by this module.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, files
 
     # Ensure all requisite paths exist.
     dirs.die_unless_dir(DATA_DIRNAME, *DATA_DEFAULT_ASSET_DIRNAMES)

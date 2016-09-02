@@ -250,10 +250,10 @@ def is_blas_parallelized() -> bool:
             # Return True only if this subset is nonempty.
             return len(blas_link_args_multithreaded) > 0
 
-    # If this BLAS library appears to be either the reference BLAS or CBLAS
-    # implementations *AND* this platform is POSIX-compliant and hence supports
-    # symbolic links, fallback to testing whether this library is in fact a
-    # symbolic link to a parallelized BLAS implementation.
+    # If this appears to be either the reference BLAS or CBLAS implementations
+    # *AND* this platform is POSIX-compliant and hence supports symbolic links,
+    # fallback to testing whether this library is in fact a symbolic link to a
+    # parallelized BLAS implementation.
     #
     # Unfortunately, the "numpy.__config__" API fails to specify the absolute
     # paths of the libraries it links against. Since there exists no reliable
@@ -271,7 +271,11 @@ def is_blas_parallelized() -> bool:
     #     # If the standard "numpy.core.multiarray" submodule is importable...
     #     if modules.is_module('numpy.core.multiarray'):
     #         # Do so.
-    #         import numpy.core.multiarray as numpy_lib
+    #         from numpy.core import multiarray as numpy_lib
+    #
+    #         #FIXME: For convenience, refactor this function to accept the
+    #         #fully-qualified name of the desired module rather than requiring
+    #         #this module be previously imported.
     #
     #         # Absolute path of this submodule.
     #         numpy_lib_filename = modules.get_filename(numpy_lib)

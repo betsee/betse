@@ -18,7 +18,8 @@ poor form. Call these functions _only_ where necessary.
 # ....................{ IMPORTS                            }....................
 import platform, sys
 from betse import metadata
-from betse.exceptions import BetseInterpreterException
+from betse.exceptions import (
+    BetseFrozenException, BetseInterpreterException)
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
@@ -49,6 +50,15 @@ def init() -> None:
         )
 
 # ....................{ TESTERS                            }....................
+def is_testing() -> bool:
+    '''
+    `True` only if the active Python interpreter is running a test session
+    (e.g., with the `py.test` test harness).
+    '''
+
+    return metadata._IS_TESTING
+
+# ....................{ TESTERS                            }....................
 def is_frozen() -> bool:
     '''
     `True` only if the active Python interpreter is **frozen** (i.e., embedded
@@ -61,16 +71,20 @@ def is_frozen() -> bool:
     # * "_MEIPASS", this is a binary frozen by PyInstaller.
     # * "frozen", this is a binary frozen by a non-PyInstaller freezer (e.g.,
     #   "py2app", "py2exe").
-    return hasattr(sys, '_MEIPASS') or hasattr(sys, 'frozen')
+    return is_frozen_pyinstaller() or hasattr(sys, 'frozen')
 
 
-def is_testing() -> bool:
+def is_frozen_pyinstaller() -> bool:
     '''
-    `True` only if the active Python interpreter is running a test session
-    (e.g., with the `py.test` test harness).
+    `True` only if the active Python interpreter is frozen with PyInstaller.
+
+    This function returns `True` only if the PyInstaller-specific private
+    attribute `_MEIPASS` added to the canonical :mod:`sys` module by the
+    PyInstaller bootloader embedded in this frozen executable (if any) exists.
     '''
 
-    return metadata._IS_TESTING
+    # Hear no evil, code no evil, comment no evil.
+    return hasattr(sys, '_MEIPASS')
 
 # ....................{ TESTERS ~ arch                     }....................
 def is_wordsize_32() -> bool:
@@ -187,6 +201,35 @@ def get_filename() -> str:
 
     # Return this path.
     return py_filename
+
+# ....................{ GETTERS ~ path : frozen            }....................
+def get_app_dirname_pyinstaller() -> str:
+    '''
+    Absolute path of the temporary directory extracted by the PyInstaller
+    bootloader from the platform-specific executable binary frozen by
+    PyInstaller for this this application.
+
+    This directory contains all files and directories required to run this
+    application, including both Python modules, packages, and C extensions _and_
+    non-Python resources.
+
+    Returns
+    ----------
+    str
+        Absolute path of this directory.
+
+    Raises
+    ----------
+    :exc:`betse.exceptions.BetseFrozenException`
+        If this application is _not_ frozen with PyInstaller.
+    '''
+
+    # If this application is *NOT* frozen with PyInstaller, raise an exception.
+    if not is_frozen_pyinstaller():
+        raise BetseFrozenException('Application not frozen with PyInstaller.')
+
+    # That is not buggy which can eternal lie.
+    return sys._MEIPASS
 
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedDict:

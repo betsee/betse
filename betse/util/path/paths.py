@@ -258,32 +258,29 @@ def is_pathname(pathname: str) -> bool:
     # (e.g., a bug). Permit this exception to unwind the call stack.
 
 
+@type_check
 def is_basename(pathname: str) -> bool:
     '''
-    `True` if the passed pathname is a **pure basename** (i.e., contains no
+    `True` only if the passed pathname is a **pure basename** (i.e., contains no
     directory separators and hence no directory components).
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
+
     return path.sep not in pathname
 
 
+@type_check
 def is_filetype(pathname: str, filetype: str) -> bool:
     '''
-    `True` if the passed pathname has the passed filetype.
+    `True` only if the passed pathname has the passed filetype.
 
-    Such filetype may contain arbitrarily many `.` characters, including an
-    optional prefixing `.`. Regardless, this function behaves as expected.
+    This filetype may contain arbitrarily many `.` characters, including an
+    optional prefixing `.`. In any case, this function behaves as expected.
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
-    assert types.is_str_nonempty(filetype), (
-        types.assert_not_str_nonempty(filetype, 'Filetype'))
 
     # Avoid circular import dependencies.
     from betse.util.type import strs
 
-    # Test such filetype, prefixed by "." unless already prefixed.
+    # Test this filetype, prefixed by "." unless already prefixed.
     return strs.is_suffix(
         pathname, strs.add_prefix_unless_found(filetype, '.'))
 

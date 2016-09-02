@@ -32,28 +32,13 @@ from types import (
     BuiltinFunctionType,
     BuiltinMethodType,
     FunctionType,
+    GeneratorType,
     LambdaType,
     MethodType,
     ModuleType,
 )
 
 # ....................{ TYPES                              }....................
-NoneType = type(None)
-'''
-Type (i.e., class object) of the singleton `None` object.
-
-Curiously, although the type of the `None` object is a class object whose
-`__name__` attribute is `NoneType`, there exists no globally accessible class
-by that name. To circumvents this obvious oversight, this global globally
-exposes this class.
-
-This class is principally useful for annotating both:
-
-* CallableTypes parameters accepting `None` as a valid value.
-* Callables returning `None` as a valid value.
-'''
-
-
 HashableType = Hashable
 '''
 Abstract interface implemented by all **hashable objects** (i.e., implementing
@@ -90,6 +75,22 @@ Abstract interface implemented by all mutable dictionary-like objects.
 
 This class is a synonym of the `collections.abc.MutableMapping` class, provided
 merely as a convenience to callers preferring to avoid importing that class.
+'''
+
+
+NoneType = type(None)
+'''
+Type (i.e., class object) of the singleton `None` object.
+
+Curiously, although the type of the `None` object is a class object whose
+`__name__` attribute is `NoneType`, there exists no globally accessible class
+by that name. To circumvents this obvious oversight, this global globally
+exposes this class.
+
+This class is principally useful for annotating both:
+
+* CallableTypes parameters accepting `None` as a valid value.
+* Callables returning `None` as a valid value.
 '''
 
 
