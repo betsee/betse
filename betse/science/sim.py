@@ -1764,7 +1764,7 @@ class Simulator(object):
             # run Ca-ATPase
 
             f_CaATP = stb.pumpCaATP(self.cc_mems[self.iCa], self.cc_env[self.iCa], self.vm, self.T, p,
-                          met = self.met_concs)
+                          self.CaATP_block, met = self.met_concs)
 
             if p.NaCa_exch_dyn is True:
                 # run Na Ca exchanger
