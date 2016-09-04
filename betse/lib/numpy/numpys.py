@@ -12,6 +12,7 @@ from betse.util.io.log import logs
 from betse.util.py import modules
 from betse.util.os import libs, oses
 from betse.util.type import iterables, regexes, strs
+from betse.util.type.types import NoneType
 from collections import OrderedDict
 from numpy.distutils import __config__ as numpy_config
 
@@ -174,6 +175,32 @@ def is_blas_parallelized() -> bool:
     .. _ATLAS: http://math-atlas.sourceforge.net
     '''
 
+    # For each private tester implementing a heuristic for this public test (in
+    # order of decreasing generality, portability, and reliability)...
+    for tester_heuristic in (
+        _is_blas_parallelized_python_general,
+        #FIXME: Uncomment these heuristics after retesting.
+        # _is_blas_parallelized_python_os_x,
+        # _is_blas_parallelized_linkage,
+    ):
+        # Result of performing this heuristic.
+        tester_result = tester_heuristic()
+
+        # If this heuristic definitively identified Numpy to be either
+        # parallelized or non-parallelized, return this result.
+        if tester_result is not None:
+            return tester_result
+
+        # Else, continue to the next heuristic.
+
+    # Else, all heuristics failed to definitively identify Numpy to be either
+    # parallelized or non-parallelized. For safety, assume the latter.
+    return False
+
+
+#FIXME: Document us up.
+def _is_blas_parallelized_python_general() -> (bool, NoneType):
+
     # Global BLAS linkage dictionary for this Numpy installation if any or
     # "None" otherwise. Technically, this dictionary should *ALWAYS* be defined.
     # Reality probably occasionally begs to disagree, however.
@@ -218,6 +245,13 @@ def is_blas_parallelized() -> bool:
     ):
         return True
 
+    # Else, instruct our caller to continue to the next heuristic.
+    return None
+
+
+#FIXME: Document us up.
+def _is_blas_parallelized_python_os_x() -> (bool, NoneType):
+
     # If the current platform is OS X, fallback to testing whether Numpy was
     # linked against a parallelized BLAS implementation specific to OS X:
     # namely, "Accelerate" or "vecLib". Unlike all other BLAS implementations,
@@ -232,9 +266,12 @@ def is_blas_parallelized() -> bool:
     # When life sells you cat food, you eat cat food.
     if oses.is_os_x():
         # List of all implementation-specific link arguments with which Numpy
-        # linked against the current BLAS implementation if any or "None"
-        # otherwise.
-        blas_link_args_list = blas_lib.get('extra_link_args', None)
+        # linked against the current BLAS implementation if any or "None". Note
+        # that the "blas_opt_info" dictionary global is guaranteed to exist due
+        # to the previously called _is_blas_parallelized_python_general()
+        # function.
+        blas_link_args_list = numpy_config.blas_opt_info.get(
+            'extra_link_args', None)
 
         # If at least one such argument exists...
         if blas_link_args_list:
@@ -250,6 +287,19 @@ def is_blas_parallelized() -> bool:
             # Return True only if this subset is nonempty.
             return len(blas_link_args_multithreaded) > 0
 
+    # Else, instruct our caller to continue to the next heuristic.
+    return None
+
+
+#FIXME: Document us up.
+def _is_blas_parallelized_linkage() -> (bool, NoneType):
+
+    # First element of the list of all substrings of BLAS library basenames this
+    # version of Numpy is linked against. Note that this list is guaranteed to
+    # be non-empty due to the previously called
+    # _is_blas_parallelized_python_general() function.
+    blas_basename_substr = numpy_config.blas_opt_info['libraries']
+
     # If this appears to be either the reference BLAS or CBLAS implementations
     # *AND* this platform is POSIX-compliant and hence supports symbolic links,
     # fallback to testing whether this library is in fact a symbolic link to a
@@ -264,30 +314,35 @@ def is_blas_parallelized() -> bool:
     # extension links -- exactly one of which is guaranteed to be the absolute
     # path of what appears to be a reference BLAS or CBLAS implementation.
     # if oses.is_posix():
-    # if (
-    #     blas_basename_substr == 'blas' or
-    #     blas_basename_substr == 'cblas'
-    # ) and oses.is_linux():
-    #     # If the standard "numpy.core.multiarray" submodule is importable...
-    #     if modules.is_module('numpy.core.multiarray'):
-    #         # Do so.
-    #         from numpy.core import multiarray as numpy_lib
-    #
-    #         #FIXME: For convenience, refactor this function to accept the
-    #         #fully-qualified name of the desired module rather than requiring
-    #         #this module be previously imported.
-    #
-    #         # Absolute path of this submodule.
-    #         numpy_lib_filename = modules.get_filename(numpy_lib)
-    #
-    #         #FIXME: Test whether or not this path is that of a shared library
-    #         #first (e.g., is suffixed by ".so" under Linux).
-    #
-    #         # Absolute paths of all shared libraries required by this library.
-    #         numpy_lib_libs = libs.get_dependency_filenames(numpy_lib_filename)
+    if (
+        blas_basename_substr == 'blas' or
+        blas_basename_substr == 'cblas'
+    ) and oses.is_linux():
+        # Attempt to...
+        try:
+            # Do so.
+            from numpy.core import multiarray as numpy_lib
 
-    # Else, all hope is lost.
-    return False
+            #FIXME: For convenience, refactor this function to accept the
+            #fully-qualified name of the desired module rather than requiring
+            #this module be previously imported.
+
+            # Absolute path of this submodule.
+            numpy_lib_filename = modules.get_filename(numpy_lib)
+
+            #FIXME: Test whether or not this path is that of a shared library
+            #first (e.g., is suffixed by ".so" under Linux).
+
+            # Absolute paths of all shared libraries required by this library.
+            numpy_lib_libs = libs.get_dependency_filenames(numpy_lib_filename)
+        # If an error occurs, log that error *WITHOUT* raising an exception.
+        # Detecting Numpy non-parallelization is non-essential and hence hardly
+        # worth halting the application over.
+        except Exception as exception:
+            logs.log_error(str(exception))
+
+    # Else, instruct our caller to continue to the next heuristic.
+    return None
 
 # ....................{ GETTERS                            }....................
 def get_metadatas() -> tuple:
@@ -297,6 +352,7 @@ def get_metadatas() -> tuple:
     (e.g., BLAS, LAPACK).
     '''
 
+    #FIXME: Add LAPACK linkage metadata as well.
     return (
         ('numpy (blas)', get_blas_metadata()),
     )

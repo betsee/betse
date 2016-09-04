@@ -23,8 +23,7 @@ from collections import OrderedDict
 from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
-from betse.util.path.command import commands
-from betse.util.py import pys
+from betse.util.py import interpreters, pys
 from io import StringIO
 
 # ..................{ LOGGERS                                }..................
@@ -41,7 +40,7 @@ def log_header() -> None:
         '>>.'.format(
             program_name=metadata.NAME,
             program_version=metadata.__version__,
-            py_name=pys.get_name(),
+            py_name=interpreters.get_name(),
             py_version=pys.get_version(),
             os_name=oses.get_name(),
             os_version=oses.get_version(),
@@ -61,6 +60,7 @@ def output_info() -> None:
     # Defer heavyweight imports.
     from betse import pathtree
     from betse.lib import libs
+    from betse.util.path.command import commands
     from betse.util.os import kernels
 
     #FIXME: Shift into a more appropriate general-purpose submodule.
@@ -88,10 +88,11 @@ def output_info() -> None:
     SYSTEM_METADATAS = (
         # Python metadata.
         ('python', pys.get_metadata()),
+        ('python interpreter', interpreters.get_metadata()),
 
         # Operating system (OS) metadata.
-        ('kernel', kernels.get_metadata()),
         ('os', oses.get_metadata()),
+        ('os kernel', kernels.get_metadata()),
     )
 
     # Dictionary of human-readable labels to dictionaries of all

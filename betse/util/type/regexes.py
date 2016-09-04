@@ -272,6 +272,14 @@ def iter_matches(text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
     string against the passed regular expression as a match object if any match
     exists _or_ the empty generator otherwise.
 
+    To iterate matches in a line-oriented manner ala `sed` or `grep`:
+
+    * Root the passed regular expression on newlines. Specifically:
+      * Prefix this expression by `^`.
+      * Suffix this expression by `$`.
+    * Enable line-oriented matching by passing the `flags=FLAG_MULTILINE`
+      keyword argument.
+
     Parameters
     ----------
     text : str

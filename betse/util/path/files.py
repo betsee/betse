@@ -30,6 +30,7 @@ def die_unless_file(pathname: str) -> None:
     `is_file()`
         For further details.
     '''
+
     if not is_file(pathname):
         raise BetseFileException(
             'File "{}" not found or unreadable.'.format(pathname))
@@ -45,6 +46,7 @@ def die_if_file(pathname: str) -> None:
     `is_file()`
         For further details.
     '''
+
     if is_file(pathname):
         raise BetseFileException('File "{}" already exists.'.format(pathname))
 
@@ -58,9 +60,11 @@ def die_if_special(pathname: str) -> None:
     `is_special()`
         For further details.
     '''
+
     if is_special(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import paths
+
         raise BetseFileException(
             'File "{}" already an existing {}.'.format(
                 pathname, paths.get_type_label(pathname)))
@@ -68,8 +72,8 @@ def die_if_special(pathname: str) -> None:
 # ....................{ TESTERS                            }....................
 def is_file(pathname: str) -> bool:
     '''
-    `True` if the passed path is an existing non-directory file exists _after_
-    following symbolic links.
+    `True` only if the passed path is an existing non-directory file exists
+    _after_ following symbolic links.
 
     Versus `path.isfile()`
     ----------
@@ -121,6 +125,7 @@ def is_symlink(pathname: str) -> bool:
     return path.islink(pathname)
 
 # ....................{ COPIERS                            }....................
+@type_check
 def copy(filename_source: str, filename_target: str) -> None:
     '''
     Copy the passed source file to the passed target file or directory.
@@ -136,10 +141,6 @@ def copy(filename_source: str, filename_target: str) -> None:
     If either the source file does not exist _or_ the target file already
     exists, an exception will be raised.
     '''
-    assert types.is_str_nonempty(filename_source), (
-        types.assert_not_str_nonempty(filename_source, 'source filename'))
-    assert types.is_str_nonempty(filename_target), (
-        types.assert_not_str_nonempty(filename_target, 'target filename'))
 
     # Avoid circular import dependencies.
     from betse.util.path import dirs, paths

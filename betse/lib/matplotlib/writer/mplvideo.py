@@ -453,8 +453,9 @@ def is_writer_command_codec(
     # rather than failure when this codec is unrecognized. (wut, FFmpeg?)
     if writer_basename == 'ffmpeg':
         # Help documentation for this codec captured from "ffmpeg".
-        ffmpeg_codec_help = runners.run_with_stdout_captured(command_words=(
-            writer_filename, '-help',
+        ffmpeg_codec_help = runners.run_capturing_stdout(command_words=(
+            writer_filename,
+            '-help',
             'encoder=' + strs.shell_quote(codec_name),
         ))
 
@@ -467,8 +468,9 @@ def is_writer_command_codec(
     # For Libav, detect this codec in the same exact manner as for FFmpeg.
     elif writer_basename == 'avconv':
         # Help documentation for this codec captured from "avconv".
-        avconv_codec_help = runners.run_with_stdout_captured(command_words=(
-            writer_filename, '-help',
+        avconv_codec_help = runners.run_capturing_stdout(command_words=(
+            writer_filename,
+            '-help',
             'encoder=' + strs.shell_quote(codec_name),
         ))
 
@@ -480,7 +482,7 @@ def is_writer_command_codec(
     # the above FFmpeg-specific logic to specifically detect this codec.
     elif writer_basename == 'mencoder':
         # Help documentation for all codecs captured from "mencoder".
-        mencoder_codecs_help = runners.run_with_stdout_captured(command_words=(
+        mencoder_codecs_help = runners.run_capturing_stdout(command_words=(
             writer_filename, '-ovc', 'help'))
 
         # If this output contains a line resembling the following, this

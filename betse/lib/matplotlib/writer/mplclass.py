@@ -153,7 +153,7 @@ class ImageWriter(NoopWriter):
 
         # Output filetype. Override the superclass' awkward choice of "rgba" as
         # output filetype default.
-        self.frame_format = paths.get_filetype(self.outfile)
+        self.frame_format = paths.get_filetype_undotted(self.outfile)
 
         # List of all output filetypes supported by this class.
         #

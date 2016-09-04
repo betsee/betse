@@ -127,8 +127,7 @@ def is_imported(*module_names: str) -> bool:
     return any(module_name in sys.modules for module_name in module_names)
 
 # ....................{ TESTERS ~ type                     }....................
-#FIXME: Contribute back to this Stackoverflow question as a new answer:
-#    https://stackoverflow.com/questions/20339053/in-python-how-can-one-tell-if-a-module-comes-from-a-c-extension
+#FIXME: Add unit tests, as this is a fairly fragile tester.
 @type_check
 def is_c_extension(module: (str, ModuleType)) -> bool:
     '''
@@ -155,20 +154,29 @@ def is_c_extension(module: (str, ModuleType)) -> bool:
     # Resolve this module's object.
     module = _resolve_module(module)
 
-    # If this module was loaded by a PEP 302-compliant loader specific to C
-    # extensions, return True.
+    # If this module was loaded by a PEP 302-compliant C extension loader, this
+    # module *MUST* be a C extension.
     if isinstance(getattr(module, '__loader__', None), ExtensionFileLoader):
         return True
 
-    # Absolute path of this module's file.
+    # Else, fallback to filetype matching heuristics.
+    #
+    # Absolute path of the file defining this module.
     module_filename = get_filename(module)
 
-    # Return True only if this filename has a filetype uniquely signifying a
-    # platform-specific C extension.
-    return any(
-        paths.is_filetype(module_filename, c_extension_suffix)
-        for c_extension_suffix in EXTENSION_SUFFIXES
-    )
+    # "."-prefixed filetype of this path if any or "None" otherwise.
+    module_filetype = paths.get_filetype_dotted(module_filename)
+    # print('module_filetype: {}'.format(module_filetype))
+
+    #FIXME: Mildly inefficient, as "EXTENSION_SUFFIXES" is a list rather than a
+    #set. Since this list is small *AND* since this function is called
+    #infrequently, this is currently ignorable. The trivial fix is to define a
+    #new private "_EXTENSION_SUFFIXES = set(EXTENSION_SUFFIXES)" global above
+    #and leverage that here instead.
+
+    # This module is only a C extension if this path's filetype is that of a
+    # C extension specific to the current platform.
+    return module_filetype in EXTENSION_SUFFIXES
 
 # ....................{ GETTERS ~ path                     }....................
 @type_check

@@ -18,8 +18,7 @@ poor form. Call these functions _only_ where necessary.
 # ....................{ IMPORTS                            }....................
 import platform, sys
 from betse import metadata
-from betse.exceptions import (
-    BetseFrozenException, BetseInterpreterException)
+from betse.exceptions import BetseInterpreterException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
@@ -58,35 +57,7 @@ def is_testing() -> bool:
 
     return metadata._IS_TESTING
 
-# ....................{ TESTERS                            }....................
-def is_frozen() -> bool:
-    '''
-    `True` only if the active Python interpreter is **frozen** (i.e., embedded
-    in a platform-specific compressed executable archiving `betse` and all
-    transitive dependencies thereof).
-    '''
-
-    # If the "sys" module has an attribute:
-    #
-    # * "_MEIPASS", this is a binary frozen by PyInstaller.
-    # * "frozen", this is a binary frozen by a non-PyInstaller freezer (e.g.,
-    #   "py2app", "py2exe").
-    return is_frozen_pyinstaller() or hasattr(sys, 'frozen')
-
-
-def is_frozen_pyinstaller() -> bool:
-    '''
-    `True` only if the active Python interpreter is frozen with PyInstaller.
-
-    This function returns `True` only if the PyInstaller-specific private
-    attribute `_MEIPASS` added to the canonical :mod:`sys` module by the
-    PyInstaller bootloader embedded in this frozen executable (if any) exists.
-    '''
-
-    # Hear no evil, code no evil, comment no evil.
-    return hasattr(sys, '_MEIPASS')
-
-# ....................{ TESTERS ~ arch                     }....................
+# ....................{ TESTERS ~ wordsize                 }....................
 def is_wordsize_32() -> bool:
     '''
     `True` only if the active Python interpreter is **32-bit** (i.e., was
@@ -119,19 +90,25 @@ def is_wordsize_64() -> bool:
     return sys.maxsize > ints.INT_VALUE_MAX_32_BIT
 
 # ....................{ GETTERS                            }....................
-def get_name() -> str:
+def get_wordsize() -> int:
     '''
-    Human-readable name of the active Python interpreter's implementation (e.g.,
-    `CPython`, `PyPy`).
+    Size in bits of variables of internal type `Py_ssize_t` for the active
+    Python interpreter.
+
+    This function is guaranteed to return:
+
+    * `64`, if this is a 64-bit interpreter.
+    * `32`, if this is a 32-bit interpreter.
     '''
 
-    return platform.python_implementation()
+    return 64 if is_wordsize_64() else 32
 
 
 def get_version() -> str:
     '''
-    Human-readable `.`-delimited version specifier string of the active Python
-    interpreter (e.g., `2.7.10`, `3.4.1`).
+    Human-readable `.`-delimited string specifying the most recent version of
+    the Python language supported by the active Python interpreter (e.g.,
+    `2.7.10`, `3.4.1`).
     '''
 
     return platform.python_version()
@@ -202,59 +179,21 @@ def get_filename() -> str:
     # Return this path.
     return py_filename
 
-# ....................{ GETTERS ~ path : frozen            }....................
-def get_app_dirname_pyinstaller() -> str:
-    '''
-    Absolute path of the temporary directory extracted by the PyInstaller
-    bootloader from the platform-specific executable binary frozen by
-    PyInstaller for this this application.
-
-    This directory contains all files and directories required to run this
-    application, including both Python modules, packages, and C extensions _and_
-    non-Python resources.
-
-    Returns
-    ----------
-    str
-        Absolute path of this directory.
-
-    Raises
-    ----------
-    :exc:`betse.exceptions.BetseFrozenException`
-        If this application is _not_ frozen with PyInstaller.
-    '''
-
-    # If this application is *NOT* frozen with PyInstaller, raise an exception.
-    if not is_frozen_pyinstaller():
-        raise BetseFrozenException('Application not frozen with PyInstaller.')
-
-    # That is not buggy which can eternal lie.
-    return sys._MEIPASS
-
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedDict:
     '''
     Ordered dictionary synopsizing the active Python interpreter.
-
-    This function aggregates the metadata reported by the reasonably
-    cross-platform module `platform` into a simple dictionary.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.py import freezers
 
     # This dictionary.
     metadata = OrderedDict((
-        ('type', get_name()),
         ('version', get_version()),
-        ('vcs revision', platform.python_revision()),
-        ('vcs branch', platform.python_branch()),
-        ('compiler', platform.python_compiler()),
+        ('wordsize', get_wordsize()),
+        ('is frozen', freezers.is_frozen()),
     ))
-
-    # 2-tuple providing this interpreter's build number and date as strings.
-    python_build = platform.python_build()
-
-    # Append this metadata.
-    metadata['build number'] = python_build[0]
-    metadata['build data'] = python_build[1]
 
     # Return this dictionary.
     return metadata

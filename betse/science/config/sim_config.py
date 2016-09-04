@@ -145,7 +145,7 @@ def _write_check(config_filename: str) -> None:
 
     # Basename and filetype of this file.
     config_basename = paths.get_basename(config_filename)
-    config_filetype = paths.get_filetype(config_basename)
+    config_filetype = paths.get_filetype_undotted(config_basename)
 
     # If this file already exists, fail.
     files.die_if_file(config_filename)

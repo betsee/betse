@@ -88,6 +88,8 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
+
+import betse.util.py.freezers
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
@@ -619,7 +621,7 @@ class MatplotlibConfig(object):
                 # If the active Python interpreter is frozen, this is expected
                 # and hence ignorable; else, this is unexpected, in which case a
                 # non-fatal warning is logged and such list is cleared.
-                if not pys.is_frozen():
+                if not betse.util.py.freezers.is_frozen():
                     logs.log_warning(
                         'Directory "{}" not found. '
                         'Matplotlib backends not queryable.'.format(

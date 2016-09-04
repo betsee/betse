@@ -111,7 +111,8 @@ def run_nonfatal(command_words: SequenceTypes, **popen_kwargs) -> int:
     return exit_status
 
 # ....................{ RUNNERS ~ stdout                   }....................
-def run_with_stdout_captured(command_words: SequenceTypes, **popen_kwargs) -> str:
+def run_capturing_stdout(
+    command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout output by this subprocess _and_ raising
@@ -148,7 +149,7 @@ def run_with_stdout_captured(command_words: SequenceTypes, **popen_kwargs) -> st
     return command_stdout.rstrip('\n')
 
 
-def run_with_output_interleaved(
+def run_interleaving_output(
     command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
@@ -181,7 +182,7 @@ def run_with_output_interleaved(
     popen_kwargs['stderr'] = subprocess.STDOUT
 
     # Capture and return this command's stdout and stderr.
-    return run_with_stdout_captured(command_words, **popen_kwargs)
+    return run_capturing_stdout(command_words, **popen_kwargs)
 
 # ....................{ PRIVATE                            }....................
 @type_check
@@ -236,7 +237,7 @@ def _init_run_args(command_words: SequenceTypes, popen_kwargs: Mapping) -> None:
     from betse.util.type import mappings
 
     # Log the command to be run before doing so.
-    logs.log_debug('Running command: {}'.format(' '.join(command_words)))
+    logs.log_debug('Running command: %s', ' '.join(command_words))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
     if oses.is_windows_vanilla() and not mappings.is_keys(

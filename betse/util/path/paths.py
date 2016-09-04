@@ -61,8 +61,8 @@ def die_if_basename(pathname: str) -> None:
 
     See Also
     ----------
-    is_basename()
-        For further details.
+    :func:`is_basename`
+        Further details.
     '''
 
     if is_basename(pathname):
@@ -391,43 +391,62 @@ def get_dirname_or_current_dirname(pathname: str) -> str:
     return dirname if dirname else dirs.get_current_dirname()
 
 
+@type_check
 def get_dirname_or_empty(pathname: str) -> str:
     '''
     Get the **dirname** (i.e., parent directory) of the passed path if such path
     has a dirname or the empty string otherwise.
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
+
     return path.dirname(pathname)
 
 # ....................{ GETTERS ~ filetype                 }....................
-def get_filetype(pathname: str) -> str:
+@type_check
+def get_filetype_dotted(pathname: str) -> str:
     '''
-    Get the **last filetype** (i.e., last `.`-prefixed substring of the
-    basename *not* including that `.`) of the passed path if this path has a
-    filetype or `None` otherwise.
+    `.`-prefixed **last filetype** (i.e., last `.`-prefixed substring of the
+    basename) of the passed pathname if this pathname is suffixed by a filetype
+    _or_ `None` otherwise.
 
-    If this path has multiple filetypes (e.g., `odium.reigns.tar.gz`), only the
-    last such filetype will be returned.
+    If this pathname is suffixed by two or more filetypes (e.g.,
+    `odium.reigns.tar.gz`), only the last such filetype is returned.
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
 
-    # Filetype. Yes, splitext() is exceedingly poorly named.
+    # "."-prefixed filetype of this pathname.
     filetype = path.splitext(pathname)[1]
 
-    # Strip the prefixing "." from the string returned by the prior call if this
-    # path has a filetype or return None otherwise.
-    return filetype[1:] if filetype else None
+    # Return this string as is if non-empty or "None" otherwise.
+    return filetype or None
 
 
+@type_check
+def get_filetype_undotted(pathname: str) -> str:
+    '''
+    **Last filetype** (i.e., last `.`-prefixed substring of the basename
+    excluding this `.`) of the passed pathname if this pathname is suffixed by a
+    filetype _or_ `None` otherwise.
+
+    See Also
+    ----------
+    :func:`get_filetype_dotted`
+        Further details.
+    '''
+
+    # "."-prefixed filetype of this pathname.
+    filetype = get_filetype_dotted(pathname)
+
+    # Return this string stripped of this prefix if non-empty or "None"
+    # otherwise.
+    return filetype[1:] if filetype is not None else None
+
+
+@type_check
 def get_pathname_sans_filetype(pathname: str) -> str:
     '''
-    Get the passed path without last filetype (including prefixing `.`) if such
-    path has a filetype *or* as is otherwise.
+    The passed path without its last filetype (including prefixing `.`) if this
+    path has a filetype _or_ this path as is otherwise.
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
+
     return path.splitext(pathname)[0]
 
 # ....................{ JOINERS                            }....................

@@ -34,7 +34,7 @@ installation environments -- including PyInstaller-frozen executables and
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time (i.e., stock Python and BETSE packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+import betse.util.py.freezers
 from betse import metadata
 from os import environ, path
 
@@ -220,9 +220,9 @@ def _init_pathnames_top() -> None:
     # this binary. This attribute provides the absolute path of the temporary
     # directory containing all application data resources extracted from this
     # binary by this bootloader. "And it's turtles all the way down."
-    if pys.is_frozen_pyinstaller():
+    if betse.util.py.freezers.is_frozen_pyinstaller():
         DATA_DIRNAME = paths.join(
-            pys.get_app_dirname_pyinstaller(), data_root_basename)
+            betse.util.py.freezers.get_app_dirname_pyinstaller(), data_root_basename)
     # If the current application is a setuptools-installed script wrapper, the
     # data directory will have been preserved as is in the setuptools-installed
     # copy of the current Python package tree. In this case, query setuptools to

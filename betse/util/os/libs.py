@@ -14,7 +14,6 @@ and hence poor form. Do so _only_ where necessary.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check
-from betse.util.path.command import pathables
 
 # ....................{ GETTERS                            }....................
 #FIXME: Add OS X support as well. Since OS X lacks the "ldd" command, doing
@@ -47,10 +46,27 @@ def get_dependency_filenames(lib_filename: str) -> list:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
+    from betse.util.type import regexes
+    from betse.util.path import files
+    from betse.util.path.command import pathables, runners
+
+    #FIXME: Call die_unless_lib() instead, please.
+
+    # If this library does *NOT* exist, raise an exception.
+    files.die_unless_file(lib_filename)
 
     # If the current platform is Linux...
     if oses.is_linux():
+        # String listing all libraries linked to by this library, captured from
+        # the external "ldd" command.
+        lib_ldd = runners.run_capturing_stdout(command_words=(
+            writer_filename,
+            '-help',
+            'encoder=' + strs.shell_quote(codec_name),
+        ))
         pass
+        # regexes.iter_matches(
+        #     text=, regex=, flags=regexes.FLAG_MULTILINE)
 
     #FIXME: Raise a human-readable exception.
     # Else, library inspection is currently unsupported on this platform.
