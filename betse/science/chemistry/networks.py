@@ -2698,10 +2698,10 @@ class MasterOfNetworks(object):
             obj = self.molecules[name]
 
             if self.mit_enabled:
-                logs.log_info('Average concentration of ' + str(name) + ' in the mitochondria: ' +
+                logs.log_info('Average ' + str(name) + ' in the mitochondria: ' +
                               str(np.round(obj.c_mit.mean(), 4)) + ' mmol/L')
 
-            logs.log_info('Average concentration of ' + str(name) + ' in the cell: ' +
+            logs.log_info('Average ' + str(name) + ' in the cell: ' +
                           str(np.round(obj.c_cells.mean(), 4)) + ' mmol/L')
 
             # logs.log_info('Average concentration of ' + str(name) + ' in the environment: ' +
@@ -2721,7 +2721,7 @@ class MasterOfNetworks(object):
 
 
         if self.chi.mean() != 0.0:
-            logs.log_info('Energy charge of cell ' + str(np.round(self.chi.mean(), 3)))
+            logs.log_info('Energy charge: ' + str(np.round(self.chi.mean(), 3)))
 
         logs.log_info("-------------------------------------------------------------------")
 
