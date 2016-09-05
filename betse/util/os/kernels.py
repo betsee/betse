@@ -20,13 +20,15 @@ from collections import OrderedDict
 # ....................{ GETTERS                            }....................
 def get_name() -> str:
     '''
-    Human-readable name of the current operating system kernel.
+    Machine-readable name of the current operating system kernel.
 
-    This function returns:
+    While preserving human-readability is helpful, machine-readability is the
+    principal use case for this function's return value (e.g., for use in
+    dictionaries keyed on kernel type). This function returns:
 
     * Under Linux, `Linux`.
     * Under OS X, `Darwin`.
-    * Under Windows, `Windows`.
+    * Under Windows (both Cygwin and vanilla), `Windows`.
     * Under all other platforms, the string returned by the `platform.system()`
       function.
     '''

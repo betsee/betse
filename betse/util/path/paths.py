@@ -402,7 +402,17 @@ def get_dirname_or_empty(pathname: str) -> str:
 
 # ....................{ GETTERS ~ filetype                 }....................
 @type_check
-def get_filetype_dotted(pathname: str) -> str:
+def get_pathname_sans_filetype(pathname: str) -> str:
+    '''
+    The passed path without its last filetype (including prefixing `.`) if this
+    path has a filetype _or_ this path as is otherwise.
+    '''
+
+    return path.splitext(pathname)[0]
+
+# ....................{ GETTERS ~ filetype : dotted        }....................
+@type_check
+def get_filetype_dotted_or_none(pathname: str) -> str:
     '''
     `.`-prefixed **last filetype** (i.e., last `.`-prefixed substring of the
     basename) of the passed pathname if this pathname is suffixed by a filetype
@@ -418,9 +428,37 @@ def get_filetype_dotted(pathname: str) -> str:
     # Return this string as is if non-empty or "None" otherwise.
     return filetype or None
 
-
+# ....................{ GETTERS ~ filetype : undotted      }....................
 @type_check
 def get_filetype_undotted(pathname: str) -> str:
+    '''
+    **Last filetype** (i.e., last `.`-prefixed substring of the basename
+    excluding this `.`) of the passed pathname.
+
+    Raises
+    ----------
+    :exc:`BetsePathException`
+        If this pathname is _not_ suffixed by a filetype.
+
+    See Also
+    ----------
+    :func:`get_filetype_dotted_or_none`
+        Further details.
+    '''
+
+    # Filetype of this pathname if any or "None" otherwise.
+    filetype = get_filetype_undotted_or_none(pathname)
+
+    # If this pathname has no filetype, raise an exception.
+    if filetype is None:
+        raise BetsePathException('Path "{}" has no filetype.'.format(pathname))
+
+    # Else, return this filetype.
+    return filetype
+
+
+@type_check
+def get_filetype_undotted_or_none(pathname: str) -> str:
     '''
     **Last filetype** (i.e., last `.`-prefixed substring of the basename
     excluding this `.`) of the passed pathname if this pathname is suffixed by a
@@ -428,26 +466,16 @@ def get_filetype_undotted(pathname: str) -> str:
 
     See Also
     ----------
-    :func:`get_filetype_dotted`
+    :func:`get_filetype_dotted_or_none`
         Further details.
     '''
 
     # "."-prefixed filetype of this pathname.
-    filetype = get_filetype_dotted(pathname)
+    filetype = get_filetype_dotted_or_none(pathname)
 
     # Return this string stripped of this prefix if non-empty or "None"
     # otherwise.
     return filetype[1:] if filetype is not None else None
-
-
-@type_check
-def get_pathname_sans_filetype(pathname: str) -> str:
-    '''
-    The passed path without its last filetype (including prefixing `.`) if this
-    path has a filetype _or_ this path as is otherwise.
-    '''
-
-    return path.splitext(pathname)[0]
 
 # ....................{ JOINERS                            }....................
 #FIXME: According to the Python documentation, os.path.join() implicitly

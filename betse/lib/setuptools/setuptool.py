@@ -10,7 +10,7 @@ dependency simplifying inspection of application dependencies.
 
 # ....................{ IMPORTS                            }....................
 import pkg_resources
-from betse.exceptions import BetseDependencyException
+from betse.exceptions import BetseLibException
 from betse.util.type import iterables
 from betse.util.type.types import type_check, MappingType, ModuleType
 from collections import OrderedDict
@@ -100,7 +100,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
     #
     #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
     except VersionConflict as version_conflict:
-        betse_exception = BetseDependencyException(
+        betse_exception = BetseLibException(
             'Dependency "{}" unsatisfied by installed dependency "{}".'.format(
                 version_conflict.req, version_conflict.dist))
     #FIXME: Handle the "UnknownExtra" exception as well.
@@ -129,17 +129,17 @@ def die_unless_requirement(requirement: Requirement) -> None:
         # meaningful metadata.
         if root_exception_message == (
             "No module named '{}'".format(package_name)):
-            betse_exception = BetseDependencyException(
+            betse_exception = BetseLibException(
                 'Dependency "{}" not found.'.format(requirement.project_name))
         # Else, this exception signifies an unexpected edge-case. For
         # debuggability, expose this exception to end users.
         else:
-            raise BetseDependencyException(
+            raise BetseLibException(
                 'Dependency "{}" unimportable.'.format(
                     requirement.project_name))
     # Else if any other exception is raised, expose this exception to end users.
     except Exception as root_exception:
-        raise BetseDependencyException(
+        raise BetseLibException(
             'Dependency "{}" unimportable.'.format(requirement.project_name))
 
     # If a human-readable exception is to be raised, do so.
@@ -151,7 +151,7 @@ def die_unless_requirement(requirement: Requirement) -> None:
 
     # If this version fails to satisfy this requirement, raise an exception.
     if package_version not in requirement:
-        raise BetseDependencyException(
+        raise BetseLibException(
             'Dependency "{}" unsatisfied by installed version {}.'.format(
                 requirement, package_version))
 
@@ -311,7 +311,7 @@ def get_requirement_module_name(requirement: Requirement) -> str:
 
     Raises
     ----------
-    BetseDependencyException
+    BetseLibException
         If this name is unrecognized (i.e., is _not_ a key of the
         `SETUPTOOLS_TO_MODULE_NAME` dictionary).
     '''
@@ -321,7 +321,7 @@ def get_requirement_module_name(requirement: Requirement) -> str:
 
     # If this name is unrecognized, raise an exception.
     if requirement_name not in SETUPTOOLS_TO_MODULE_NAME:
-        raise BetseDependencyException(
+        raise BetseLibException(
             'Requirement "{}" unrecognized.'.format(requirement_name))
 
     # Return the name of this requirement's module or package.
@@ -455,7 +455,7 @@ def convert_requirement_dict_keys_to_strs(
 
     Raises
     ----------
-    :exc:`BetseDependencyException`
+    :exc:`BetseLibException`
         If the passed key is _not_ a key of this dictionary.
 
     See Also
@@ -492,7 +492,7 @@ def convert_requirement_dict_key_to_str(
 
     Raises
     ----------
-    :exc:`BetseDependencyException`
+    :exc:`BetseLibException`
         If the passed key is _not_ a key of this dictionary.
 
     See Also
@@ -503,7 +503,7 @@ def convert_requirement_dict_key_to_str(
 
     # If this name is unrecognized, raise an exception.
     if requirement_name not in requirement_dict:
-        raise BetseDependencyException(
+        raise BetseLibException(
             'Dependency "{}" unrecognized.'.format(requirement_name))
 
     # Convert this key-value pair into a requirements string.

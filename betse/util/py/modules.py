@@ -165,7 +165,7 @@ def is_c_extension(module: (str, ModuleType)) -> bool:
     module_filename = get_filename(module)
 
     # "."-prefixed filetype of this path if any or "None" otherwise.
-    module_filetype = paths.get_filetype_dotted(module_filename)
+    module_filetype = paths.get_filetype_dotted_or_none(module_filename)
     # print('module_filetype: {}'.format(module_filetype))
 
     #FIXME: Mildly inefficient, as "EXTENSION_SUFFIXES" is a list rather than a

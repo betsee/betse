@@ -94,8 +94,20 @@ def is_file(pathname: str) -> bool:
     # Avoid circular import dependencies.
     from betse.util.path import dirs, paths
 
-    # True if such path exists and is *NOT* a directory.
+    # This path is a file if this path both exists and is *NOT* a directory.
     return paths.is_path(pathname) and not dirs.is_dir(pathname)
+
+
+def is_file_executable(pathname: str) -> bool:
+    '''
+    `True` only if the passed path is an **executable file** (i.e., existing
+    non-directory file with the executable bit enabled _after_ following
+    symbolic links).
+    '''
+
+    # This path is an executable file if this path is an existing file with the
+    # executable bit enabled.
+    return is_file(pathname) and os.access(pathname, os.X_OK)
 
 
 def is_special(pathname: str) -> bool:

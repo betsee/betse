@@ -58,17 +58,15 @@ class BetseArgumentException(BetseException):
     '''
     Argument-specific exception.
     '''
-
     pass
 
 
 class BetseArgumentParserException(SystemExit):
     '''
     :class:`betse.script.argparse.ArgumentParser`-specific exception connoting
-    the :meth:`betse.script.argparse.parse_args` to have unsuccessfully parsed
-    the argument list passed to the current BETSE script.
+    the :meth:`betse.script.argparse.parse_args` method to have unsuccessfully
+    parsed the argument list passed to the current command-line application.
     '''
-
     pass
 
 # ....................{ EXCEPTIONS ~ callable              }....................
@@ -121,8 +119,7 @@ class BetseMethodUnimplementedException(BetseException, NotImplementedError):
                 callers.get_caller_basename()))
 
 # ....................{ EXCEPTIONS ~ lib                   }....................
-#FIXME: Rename to "BetseLibException".
-class BetseDependencyException(BetseException):
+class BetseLibException(BetseException):
     '''
     General-purpose exception pertaining to third-party dependencies.
     '''

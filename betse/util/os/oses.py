@@ -82,7 +82,10 @@ def get_name() -> str:
       * Else, the string returned by the `platform.system()` function. Since
         this is probably the generic string `Linux`, this is only a fallback.
     * Under OS X, `OS X`.
-    * Under Cygwin Windows, `Windows (Cygwin)`.
+    * Under Cygwin Windows, `Windows (Cygwin)`. Note, however, that Cygwin
+      masquerades as Linux, replicating the POSIX process model and GNU/Linux
+      userland to a remarkable degree -- subject to the Big List of Dodgy Apps
+      (BLODA), proprietary limitations of the Win32 API, and similar caveats.
     * Under non-Cygwin Windows, merely `Windows`.
     * Under all other platforms, the string returned by the `platform.system()`
       function.

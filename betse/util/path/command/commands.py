@@ -9,7 +9,9 @@
 
 # ....................{ IMPORTS                            }....................
 import sys
+from betse.exceptions import BetseCommandException
 from betse.metadata import SCRIPT_NAME_CLI
+from betse.util.type.types import type_check
 
 # ....................{ GLOBALS                            }....................
 _CURRENT_BASENAME = None
@@ -17,8 +19,54 @@ _CURRENT_BASENAME = None
 Basename of the command originating the active Python interpreter.
 
 This global caches the return value of the frequently called
-`get_current_basename()` function, for efficiency.
+:func:`get_current_basename` function, for efficiency.
 '''
+
+# ....................{ EXCEPTIONS                         }....................
+def die_unless_command(pathname: str) -> None:
+    '''
+    Raise an exception unless the passed path is that of command.
+
+    Parameters
+    ----------
+    pathname : str
+        Absolute or relative path of the command to inspect.
+
+    See Also
+    ----------
+    :func:`is_command`
+        Further details.
+    '''
+
+    if not is_command(pathname):
+        raise BetseCommandException(
+            '"{}" not an executable command.'.format(pathname))
+
+# ....................{ TESTERS                            }....................
+@type_check
+def is_command(pathname: str) -> None:
+    '''
+    `True` only if the passed path is that of a **command** (i.e., is either the
+    basename of an executable file in the current `${PATH}` _or_ the relative or
+    absolute path of an executable file).
+
+    Parameters
+    ----------
+    pathname : str
+        Absolute or relative path of the executable file to inspect.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import files, paths
+    from betse.util.path.command import pathables
+
+    # This path is that of an existing command if and only if either...
+    return (
+        # This path is that of an executable file *OR*
+        files.is_file_executable(pathname) or (
+        # This path is that of a basename in the current ${PATH}.
+        paths.is_basename(pathname) and pathables.is_pathable(pathname))
+    )
 
 # ....................{ GETTERS                            }....................
 def get_current_basename() -> str:

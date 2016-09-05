@@ -32,9 +32,9 @@ Most runners accept the same optional keyword arguments accepted by the
 
 # ....................{ IMPORTS                            }....................
 import subprocess
+from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, SequenceTypes
-from collections.abc import Mapping
+from betse.util.type.types import type_check, MappingType, SequenceTypes
 from subprocess import CalledProcessError, TimeoutExpired
 
 # ....................{ RUNNERS                            }....................
@@ -186,7 +186,8 @@ def run_interleaving_output(
 
 # ....................{ PRIVATE                            }....................
 @type_check
-def _init_run_args(command_words: SequenceTypes, popen_kwargs: Mapping) -> None:
+def _init_run_args(
+    command_words: SequenceTypes, popen_kwargs: MappingType) -> None:
     '''
     Sanitize the dictionary of keyword arguments to be passed to the
     `subprocess.Popen()` callable with sane defaults.
@@ -223,18 +224,26 @@ def _init_run_args(command_words: SequenceTypes, popen_kwargs: Mapping) -> None:
     to be harmful but probably unavoidable, given the philosophical gulf between
     vanilla Windows and all other platforms.
 
-    Arguments
+    Parameters
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    popen_kwargs : Mapping
+    popen_kwargs : MappingType
         Dictionary of keyword arguments to be sanitized.
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.path.command import commands
     from betse.util.os import oses
     from betse.util.os.shell import envs
     from betse.util.type import mappings
+
+    # If the passed list of shell words is empty, raise an exception.
+    if not command_words:
+        raise BetseCommandException('Non-empty command expected.')
+
+    # If the first shell word is this list is unrunnable, raise an exception.
+    commands.die_unless_command(command_words[0])
 
     # Log the command to be run before doing so.
     logs.log_debug('Running command: %s', ' '.join(command_words))
