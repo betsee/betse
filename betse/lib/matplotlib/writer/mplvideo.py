@@ -163,6 +163,8 @@ def init() -> None:
     # Shorthand to preserve sanity below.
     codec_names = WRITER_BASENAME_TO_CONTAINER_FILETYPE_TO_CODEC_NAMES
 
+    #FIXME: Shouldn't "hevc" be listed first?
+
     # For FFmpeg, define the set of all codecs supported by the "mp4" (i.e.,
     # MPEG-4 Part 14) and "mov" (i.e., QuickTime) container formats to be the
     # same superset of those supported by the now-obsolete AVI container format.
@@ -186,7 +188,7 @@ def init() -> None:
     # two are well-synchronized forks of each other attempting (and mostly
     # succeeding) to preserve a common command-line API, assuming codec parity
     # is typically a safe assumption.
-    codec_names['avconv'] = ['ffmpeg']
+    codec_names['avconv'] = codec_names['ffmpeg']
 
     # Define Mencoder to support exactly all codecs supported by FFmpeg. Since
     # Mencoder internally leverages the same "libavcodec" shared library
@@ -196,7 +198,7 @@ def init() -> None:
     # to their "libavcodec" counterparts. In either case, matplotlib internally
     # mandates use of "libavcodec"-provided codecs rather than Mencoder-specific
     # codecs in all Mencoder writer classes (e.g., "MencoderWriter").
-    codec_names['mencoder'] = ['ffmpeg']
+    codec_names['mencoder'] = codec_names['ffmpeg']
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_writer(writer_name: str) -> None:
@@ -258,8 +260,7 @@ def die_unless_writer_betse(writer_name: str) -> None:
     if not is_writer_betse(writer_name):
         raise BetseMatplotlibException(
             'Matplotlib animation video writer "{}" '
-            'unrecognized by BETSE.'.format(
-                writer_name))
+            'unrecognized by BETSE.'.format(writer_name))
 
 # ....................{ EXCEPTIONS ~ command               }....................
 def die_unless_writer_command(writer_basename: str) -> None:
@@ -452,12 +453,15 @@ def is_writer_command_codec(
     # stating this codec to be unrecognized. Sadly, this command reports success
     # rather than failure when this codec is unrecognized. (wut, FFmpeg?)
     if writer_basename == 'ffmpeg':
-        # Help documentation for this codec captured from "ffmpeg".
-        ffmpeg_codec_help = runners.run_capturing_stdout(command_words=(
+        # List of all shell words comprising the command to be tested.
+        ffmpeg_command_words = (
             writer_filename,
             '-help',
             'encoder=' + strs.shell_quote(codec_name),
-        ))
+        )
+
+        # Help documentation for this codec captured from "ffmpeg".
+        ffmpeg_codec_help = runners.run_capturing_stdout(ffmpeg_command_words)
 
         # Return whether this documentation is suffixed by a string implying
         # this codec to be unrecognized or not. If this codec is unrecognized,
@@ -467,12 +471,17 @@ def is_writer_command_codec(
         return not ffmpeg_codec_help.endswith("' is not recognized by FFmpeg.")
     # For Libav, detect this codec in the same exact manner as for FFmpeg.
     elif writer_basename == 'avconv':
-        # Help documentation for this codec captured from "avconv".
-        avconv_codec_help = runners.run_capturing_stdout(command_words=(
+        # List of all shell words comprising the command to be tested.
+        avconv_command_words = (
             writer_filename,
             '-help',
             'encoder=' + strs.shell_quote(codec_name),
-        ))
+        )
+
+        # Help documentation for this codec captured from "avconv".
+        avconv_codec_help = runners.run_capturing_stdout(avconv_command_words)
+        # print('avconv_command_words: {}'.format(avconv_command_words))
+        # print('avconv_codec_help: {}'.format(avconv_codec_help))
 
         # Return whether this documentation is suffixed by an indicative string.
         return not avconv_codec_help.endswith("' is not recognized by Libav.")
