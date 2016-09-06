@@ -36,7 +36,6 @@ class SerialTestABC(metaclass=ABCMeta):
         no such methods have yet to fail).
     '''
 
-
     # ..................{ INITIALIZERS                       }..................
     @staticmethod
     def is_test_serial(item: 'pytest.main.Item') -> bool:
@@ -62,7 +61,6 @@ class SerialTestABC(metaclass=ABCMeta):
         # Class of this test callable if this callable is a method or "None".
         test_class = item.parent.cls
 
-        # If this callable is a method intended to be run serially (i.e., in
-        # test method declaration order such that subsequently declared tests
-        # depend on the success of all previously declared tests)...
-        return not test_class is None and issubclass(test_class, SerialTestABC)
+        # This callable is intended to be run serially only if the test subclass
+        # to which this callable is bound subclasses this abstract base class.
+        return test_class is not None and issubclass(test_class, SerialTestABC)

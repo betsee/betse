@@ -22,5 +22,5 @@ these fixtures without explicit imports.
 # insignificant here.)
 from betse_test.func.fixture.sim.config import (
     betse_sim_config_default,
-    betse_sim_config_anims,
+    betse_sim_config_visuals,
 )

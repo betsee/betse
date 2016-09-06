@@ -120,7 +120,8 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
     * If this is a **serial test** (i.e., test method bound to an instance of
       the the `SerialTestABC` superclass) for which a prior serial test in the
       same test class was recorded as failing by the
-      `pytest_runtest_makereport()` hook, this hook marks this test as xfailing.
+      :func:`pytest_runtest_makereport` hook, this hook marks this test as
+      xfailing.
 
     Parameters
     ----------
@@ -138,23 +139,23 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
         # For each such fixture...
         for fixture_def in fixture_defs:
             # True only if this fixture is parametrized serially (i.e., is
-            # decorated by the @parametrize_fixture_serial decorator).
-            is_fixture_parametrized_serial = getattr(
+            # decorated by the @serialize_parametrized_fixture decorator).
+            is_fixture_parametrized_serially = getattr(
                 fixture_def.func,
-                '_betse_is_fixture_parametrized_serial',
+                '_betse_is_fixture_parametrized_serially',
                 False)
             # print('funcinfo: {}'.format(fixture_def))
             # print('funcinfo.func: {}'.format(fixture_def.func))
-            # print('funcinfo.func.is: {}'.format(is_fixture_parametrized_serial))
+            # print('funcinfo.func.is: {}'.format(is_fixture_parametrized_serially))
 
             # If this fixture is parametrized serially, propagate this setting
             # to this test by dynamically marking this test accordingly.
-            if is_fixture_parametrized_serial:
-                item.keywords['parametrize_test_serial'] = True
+            if is_fixture_parametrized_serially:
+                item.keywords['serialize_parametrized_test'] = True
 
     # If this test is parametrized serially, do so *AFTER* propagating this
     # setting from fixtures requested by this test above.
-    if 'parametrize_test_serial' in item.keywords:
+    if 'serialize_parametrized_test' in item.keywords:
         # If this test is *NOT* parametrized, raise an exception.
         if not hasattr(item, '_genid'):
             raise BetseTestHookException(
@@ -174,8 +175,8 @@ def pytest_runtest_setup(item: 'pytest.main.Item'):
             pytest.xfail(
                 'Prior serial test parametrization "{}" failed.'.format(
                     first_failing_param_id))
-    #FIXME: This should *REALLY* simply be implemented as a new @class_serial
-    #decorator, much like @parametrize_serial above.
+    #FIXME: This should *REALLY* simply be implemented as a new @serialize_class
+    #decorator, much like @serialize_parametrized_test above.
     # If this is an unparametrized test intended to be run serially, do so.
     elif SerialTestABC.is_test_serial(item):
         # Object to which this test method is bound.
@@ -219,7 +220,7 @@ def pytest_runtest_makereport(
     # If this test failed...
     if call.excinfo is not None:
         # If this is a parametrized test intended to be run serially...
-        if 'parametrize_test_serial' in item.keywords:
+        if 'serialize_parametrized_test' in item.keywords:
             # Test callable (i.e., underlying function or method object).
             test_callable = item.obj
 

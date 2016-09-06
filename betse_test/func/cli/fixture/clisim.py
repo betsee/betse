@@ -17,7 +17,7 @@ copies) into the current Python environment or not.
 from betse.util.type import strs
 from betse_test.func.cli.fixture.cliapi import CLITesterPreArged
 from betse_test.func.fixture.sim.configapi import SimTestState
-from betse_test.mark.param import parametrize_fixture_serial
+from betse_test.mark.param import serialize_parametrized_fixture
 from betse_test.util import requests
 from pytest import fixture
 
@@ -56,7 +56,7 @@ accepted by the `betse_cli_sim` fixture.
 # To force these fixtures to return new objects for all parent fixtures and
 # tests, these fixtures is declared to have default scope (i.e., test).
 
-@parametrize_fixture_serial
+@serialize_parametrized_fixture
 @fixture(params=_CLI_SIM_SUBCOMMANDS_ARGS, ids=_CLI_SIM_SUBCOMMANDS_ARGS_IDS)
 def betse_cli_sim(
     betse_cli: 'CLITester',

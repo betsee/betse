@@ -12,12 +12,10 @@ dictionaries deserialized from disk.
 #into methods of the "SimConfigWrapper" class defined below.
 
 # ....................{ IMPORTS                            }....................
-# import yaml
 import betse.science.config.default
 from betse.science.config import sim_config
 from betse.util.path import files, paths
-# from betse.util.io.log import logs
-# from betse.util.type import types
+from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
 class SimConfigWrapper(object):
@@ -144,10 +142,6 @@ class SimConfigWrapper(object):
 
         return self._filename
 
-    # ..................{ GETTERS                            }..................
-
-    # ..................{ SETTERS                            }..................
-
     # ..................{ WRITERS                            }..................
     def overwrite(self) -> None:
         '''
@@ -220,42 +214,47 @@ class SimConfigWrapper(object):
         results['after solving']['animations']['show'] = False
 
     # ..................{ ENABLERS                           }..................
-    def enable_anims(self) -> None:
+    def enable_visuals(self) -> None:
         '''
-        Enable all supported animations and all features required by these
-        animations.
+        Enable all supported plots and animations _and_ all features required by
+        these plots and animations.
 
         This method is intended to be called by non-interactive test suites
-        exercising all animations. Specifically, this method enables:
+        exercising all plots and animations. Specifically, this method enables:
 
-        * The calcium (Ca) animation by enabling:
+        * The calcium (Ca) plot and animation by enabling:
           * The mammalian ion profile (i.e., `animal`), enabling all ions
             including calcium.
-        * The deformation animation by enabling:
+        * The deformation plot and animation by enabling:
           * Galvanotaxis (i.e., deformations).
-        * The pH animation dependent upon hydrogen (H) by enabling:
+        * The pH plot and animation dependent upon hydrogen (H) by enabling:
           * The mammalian ion profile (i.e., `animal`), enabling all ions
             including hydrogen.
-        * The "Membrane" animation of membrane pump density by enabling:
-          * Membrane pump/channel movement via electrophoresis/osmosis.
-        * The "P cell", "Osmotic P", and "Force" animations of electroosmotic
-          pressure, osmotic pressure, and hydrostatic body force respectively by
+        * The "Membrane" plot and animation of membrane pump density by
           enabling:
+          * Membrane pump/channel movement via electrophoresis/osmosis.
+        * The "P cell", "Osmotic P", and "Force" plots and animations of
+          electroosmotic pressure, osmotic pressure, and hydrostatic body force
+          respectively by enabling:
           * Osmotic pressure.
-        * The "Vcell", "Venv", and "Current" animations of cellular voltage,
-          environmental voltage, and extracellular current by enabling:
+        * The "Vcell", "Venv", and "Current" plots and animations of cellular
+          voltage, environmental voltage, and extracellular current by enabling:
           * The extracellular matrix (ECM).
-        * The "Velocity" animation of cluster fluid velocity by enabling:
+        * The "Velocity" plot and animation of cluster fluid velocity by
+          enabling:
           * Fluid flow.
           * Electrostatic pressure.
         '''
+
+        # Enable animations and animation saving in the general sense.
+        self.enable_anim_saving()
 
         # Localize nested dictionaries for convenience.
         general = self._config['general options']
         results = self._config['results options']
         variable = self._config['variable settings']
 
-        # Enable all animations.
+        # Enable all plots.
         results['Vmem 2D']['plot Vmem'] = True
         results['Ca 2D']['plot Ca'] = True
         results['pH 2D']['plot pH'] = True
@@ -268,7 +267,22 @@ class SimConfigWrapper(object):
         results['Velocity 2D']['plot Velocity'] = True
         results['Electrostatic 2D']['plot Electrostatic'] = True
 
-        # Enable all features required by these animations.
+        # Enable all animations.
+        results['Vmem Ani']['animate Vmem'] = True
+        results['Ca Ani']['animate Ca2+'] = True
+        results['pH Ani']['animate pH'] = True
+        results['Vmem GJ Ani']['animate Vmem with gj'] = True
+        results['Vcell Ani']['animate Vcell'] = True
+        results['Venv Ani']['animate Venv'] = True
+        results['Osmotic P Ani']['animate Osmotic P'] = True
+        results['Force Ani']['animate force'] = True
+        results['Current Ani']['animate current'] = True
+        results['Membrane Ani']['animate membrane'] = True
+        results['Efield Ani']['animate Efield'] = True
+        results['Velocity Ani']['animate Velocity'] = True
+        results['Deformation Ani']['animate Deformation'] = True
+
+        # Enable all features required by these plots and animations.
         general['ion profile'] = 'animal'
         general['simulate extracellular spaces'] = True
         variable['channel electroosmosis']['turn on'] = True
@@ -276,6 +290,52 @@ class SimConfigWrapper(object):
         variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include electrostatic pressure'] = True
         variable['pressures']['include osmotic pressure'] = True
+
+
+    def enable_anim_saving(self) -> None:
+        '''
+        Enable both mid- and post-simulation animations _and_ the saving of
+        these animations to disk in a general-purpose manner.
+
+        This method does _not_ enable specific animations or features required
+        by specific animations.
+        '''
+
+        results = self._config['results options']
+        results['while solving']['animations']['enabled'] = True
+        results['while solving']['animations']['save'] = True
+        results['after solving']['animations']['enabled'] = True
+        results['after solving']['animations']['save'] = True
+
+
+    @type_check
+    def enable_anim_video(self, writer_name: str, filetype: str) -> None:
+        '''
+        Enable encoding of all enabled animations as compressed video of the
+        passed filetype with the preferred matplotlib animation writer of the
+        passed name.
+
+        Parameters
+        ----------
+        writer_name : str
+            Name of the preferred matplotlib animation writer with which to
+            encode video (e.g., `ffmpeg`, `imagemagick`).
+        filetype : str
+            Filetype of the compressed videos to encode (e.g., `mkv`, `mp4`).
+        '''
+
+        # Enable animations and animation saving in the general sense.
+        self.enable_anim_saving()
+
+        # Localize nested dictionaries for convenience.
+        video = self._config['results options']['save']['animations']['video']
+
+        # Enable encoding of the passed filetype with the passed writer type.
+        # For determinism, mandate that *ONLY* this writer (rather than two or
+        # more writers) be used to do so.
+        video['enabled'] = True
+        video['filetype'] = filetype
+        video['writers'] = [writer_name,]
 
     # ..................{ MINIMIZERS                         }..................
     def minify(self) -> None:

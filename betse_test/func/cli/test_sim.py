@@ -31,19 +31,21 @@ def test_cli_sim_default(
     betse_cli_sim()
 
 
-def test_cli_sim_anims(
+def test_cli_sim_visuals(
     betse_cli_sim: 'CLITester',
-    betse_sim_config_anims: 'SimTestState',
+    betse_sim_config_visuals: 'SimTestState',
 ) -> None:
     '''
-    Test simulating all animations and features required by these animations.
+    Test simulating all plots and animations _and_ features required by these
+    plots and animations.
 
     Parameters
     ----------
     betse_cli_sim : CLITester
         Object encapsulating CLI-driven simulation testing.
-    betse_sim_config_anims : SimTestState
-        Object encapsulating the simulation configuration enabling animations.
+    betse_sim_config_visuals : SimTestState
+        Object encapsulating the simulation configuration enabling these plots
+        and animations.
     '''
 
     # Test the currently parametrized simulation-specific BETSE CLI subcommand.

@@ -17,7 +17,7 @@ feature sets and edge cases.
 from betse.science.config.wrapper import SimConfigWrapper
 from betse.util.path import dirs
 from betse.util.type import strs
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, CallableTypes
 from betse_test.util import requests
 from py._path.local import LocalPath
 
@@ -116,13 +116,16 @@ class SimTestState(object):
 # requesting the former. Ergo, this is a utility function instead.
 #
 # Test suite insanity prevails.
+@type_check
 def make(
-    request: '_pytest.python.FixtureRequest',
-    tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
-) -> 'SimTestState':
+    request, tmpdir_factory,
+    config_modifier: CallableTypes = None
+) -> SimTestState:
     '''
-    Create a temporary simulation configuration specific to the parent fixture
-    _and_ return a test-specific object encapsulating this configuration.
+    Create a temporary simulation configuration specific to the parent fixture,
+    call the passed callable accepting (and presumably modifying) this
+    configuration if non-`None`, and return a test object encapsulating this
+    configuration.
 
     This fixture copies BETSE's default simulation configuration file,
     complete with all external assets (e.g., geometry masks) referenced and
@@ -159,6 +162,16 @@ def make(
     tmpdir_factory : _pytest.tmpdir.tmpdir_factory
         Builtin session-scoped fixture whose `mktemp()` method returns a
         `py.path.local` instance encapsulating a new temporary directory.
+    config_modifier : optional[CallableType]
+        Callable (e.g., function, lambda, method) accepting the newly created
+        simulation configuration dictionary as a mandatory parameter. For
+        convenience, this configuration is implicitly written back to disk
+        _after_ this callable is called. This callable is merely a shorthand
+        convenience for fixtures modifying this configuration in a trivial
+        manner expressible as a `lambda` statement. Fixtures requiring less
+        trivial modifications may do so by directly modifying and rewriting the
+        `config` attribute of the returned object instead. Defaults to `None`,
+        in which case this parameter is ignored.
 
     Returns
     ----------
@@ -201,5 +214,16 @@ def make(
     # Absolute path of this configuration file in this temporary directory.
     sim_config_filepath = sim_config_dirpath.join('sim_config.yaml')
 
-    # Create and return a test-specific object encapsulating this file.
-    return SimTestState(config_filepath=sim_config_filepath)
+    # Test-specific object encapsulating this simulation configuration file.
+    sim_state = SimTestState(config_filepath=sim_config_filepath)
+
+    # If the calling fixture requested a configuration modification...
+    if config_modifier is not None:
+        # Apply this modification to this configuration dictionary.
+        config_modifier(sim_state.config)
+
+        # Write this modification to disk.
+        sim_state.config.overwrite()
+
+    # Return this encapsulation.
+    return sim_state
