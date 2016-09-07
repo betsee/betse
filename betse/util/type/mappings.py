@@ -9,7 +9,8 @@ Low-level dictionary facilities.
 
 # ....................{ IMPORTS                            }....................
 import pprint
-from betse.exceptions import BetseMethodUnimplementedException
+from betse.exceptions import (
+    BetseDictException, BetseMethodUnimplementedException)
 from betse.util.type import types
 from betse.util.type.types import (
     type_check,
@@ -19,86 +20,7 @@ from betse.util.type.types import (
     MappingType,
     MutableMappingType,
 )
-
-# ....................{ CLASSES                            }....................
-class bidict(dict):
-    '''
-    Bidirectional dictionary.
-
-    This dictionary subclass provides a public `reverse` attribute, whose value
-    is a dictionary providing both safe and efficient **reverse lookup** (i.e.,
-    lookup by values rather than keys) of the key-value pairs of the original
-    dictionary.
-
-    The `reverse` dictionary explicitly supports reverse lookup of values
-    ambiguously mapped to by two or more keys of the original dictionary. To
-    disambiguate between these mappings, each key of the `reverse` dictionary
-    (signifying a value of the original dictionary) maps to a list
-    containing all keys of the original dictionary mapping to that value.
-
-    Caveats
-    ----------
-    **The `reverse` dictionary is _not_ safely modifiable.** Attempting to do so
-    breaks the contractual semantics of this class in an unsupported manner. For
-    safety, the `reverse` dictionary is silently synchronized with _all_
-    modifications to the original dictionary -- including additions of new keys,
-    modifications of the values of existing keys, and deletions of existing
-    keys. However, the reverse is _not_ the case; the original dictionary is
-    _not_ silently synchronized with any modifications to the `reverse`
-    dictionary. (Doing so is technically feasible but beyond the scope of this
-    class' use, currently.)
-
-    Attributes
-    ----------
-    reverse : dict
-        Dictionary such that each:
-        * Key is a value of the original dictionary.
-        * Value is a list of all keys of the original dictionary mapping to that
-          value of the original dictionary.
-
-    See Also
-    ----------
-    https://stackoverflow.com/a/21894086/2809027
-        Stackoverflow answer inspiring this class. Cheers, Basj!
-    '''
-
-
-    def __init__(self, *args, **kwargs) -> None:
-        # Initialize the original dictionary.
-        super().__init__(*args, **kwargs)
-
-        # Initialize the reversed dictionary. For each key-value pair with which
-        # the original dictionary is initialized, map this value to a list of
-        # all corresponding keys for reverse lookup.
-        self.reverse = {}
-        for key, value in self.items():
-            self.reverse.setdefault(value, []).append(key)
-
-
-    def __setitem__(self, key: HashableType, value: object) -> None:
-        # Map this key to this value in the original dictionary.
-        super().__setitem__(key, value)
-
-        # Map this value to this key in the reversed dictionary.
-        self.reverse.setdefault(value, []).append(key)
-
-
-    def __delitem__(self, key: HashableType) -> None:
-        # Value to be deleted from the reversed dictionary.
-        value = self[key]
-
-        # Remove this key-value pair from the original dictionary.
-        super().__delitem__(key)
-
-        # Remove this value-key pair from the reversed dictionary.
-        self.reverse[value].remove(key)
-
-        # If this key is the last key mapping to this value in the original
-        # dictionary, remove this value entirely from the reversed dictionary.
-        # While arguably optional, doing so reduces space costs with no
-        # concomitant increase in time costs.
-        if not self.reverse[value]:
-            del self.reverse[value]
+from collections import OrderedDict
 
 # ....................{ CLASSES ~ dynamic                  }....................
 class DynamicValue(object):
@@ -294,6 +216,169 @@ class DynamicValueDict(MutableMappingType):
         '''
 
         return iter(self._key_to_dynamic_value)
+
+# ....................{ CLASSES ~ ordered                  }....................
+#FIXME: Supplant all existing usage of "OrderedDict" with this subclass.
+#FIXME: Unit test this.
+
+class OrderedParamsDict(OrderedDict):
+    '''
+    Ordered dictionary initialized by a sequence of key-value pairs.
+
+    The canonical `OrderedDict` class providing ordered dictionaries in Python
+    is initialized by a sequence of 2-sequences (typically, tuple of 2-tuples)
+    whose first element comprises the key and whose second element comprises the
+    value of each key-value pair of this dictionary. This subclass of that class
+    is initialized by a flat sequence of keys and values, simplifying the burden
+    of initializing ordered dictionaries.
+
+    In all other respects, this class is identical to the `OrderedDict` class.
+
+    Examples
+    ----------
+    >>> from betse.util.type.mappings import OrderedParamsDict
+    >>> from collections import OrderedDict
+    >>> tuatha_de_danann = OrderedParamsDict(
+    ...     'Nuada', 'Nodens',
+    ...     'Lugh', 'Lugus',
+    ...     'Brigit', 'Brigantia',
+    ... )
+    >>> tuath_de = OrderedDict((
+    ...     ('Nuada', 'Nodens'),
+    ...     ('Lugh', 'Lugus'),
+    ...     ('Brigit', 'Brigantia'),
+    ... ))
+    >>> for irish_name, celtic_name in tuatha_de_danann.items():
+    ...     print('From Irish {} to Celtic {}.'.format(irish_name, celtic_name))
+    From Irish Nuada to Celtic Nodens.
+    From Irish Lugh to Celtic Lugus.
+    From Irish Brigit to Celtic Brigantia.
+    >>> tuatha_de_danann == tuath_de
+    True
+    '''
+
+
+    def __init__(self, *key_value_pairs) -> None:
+        '''
+        Initialize this ordered dictionary with the passed tuple of sequential
+        keys and values of even length.
+
+        Attributes
+        ----------
+        key_value_pairs : tuple
+            Tuple of sequential keys and values to initialize this ordered
+            dictionary with. Each element of this tuple with:
+            * Even index (e.g., the first and third elements) defines a new key
+              of this dictionary, beginning a new key-value pair.
+            * Odd index (e.g., the second and fourth elements) defines the value
+              for the key defined by the preceding element, finalizing this
+              existing key-value pair.
+
+        Raises
+        ----------
+        :exc:`betse.exceptions.BetseDictException`
+             If this tuple is _not_ of even length.
+        '''
+
+        # Avoid circular import dependencies.
+        from betse.util.type import ints
+
+        # If the passed tuple of key-value pairs is odd and hence omitted the
+        # value for the final key, raise an exception.
+        if ints.is_odd(len(key_value_pairs)):
+            raise BetseDictException(
+                'Expected even number of key-value parameters, '
+                'but received {} such parameters.'.format(len(key_value_pairs)))
+
+        # Zip object yielding 2-tuple key-value pairs of the format required by
+        # the superclass, converted from this flat sequence of keys and values.
+        key_value_pairs_nested = zip(
+            key_value_pairs[0::2],
+            key_value_pairs[1::2])
+
+        # Initialize the superclass with this zip.
+        super().__init__(key_value_pairs_nested)
+
+# ....................{ CLASSES ~ reversible               }....................
+#FIXME: Unit test this.
+class ReversibleDict(dict):
+    '''
+    Bidirectional dictionary.
+
+    This dictionary subclass provides a public `reverse` attribute, whose value
+    is a dictionary providing both safe and efficient **reverse lookup** (i.e.,
+    lookup by values rather than keys) of the key-value pairs of the original
+    dictionary.
+
+    The `reverse` dictionary explicitly supports reverse lookup of values
+    ambiguously mapped to by two or more keys of the original dictionary. To
+    disambiguate between these mappings, each key of the `reverse` dictionary
+    (signifying a value of the original dictionary) maps to a list
+    containing all keys of the original dictionary mapping to that value.
+
+    Caveats
+    ----------
+    **The `reverse` dictionary is _not_ safely modifiable.** Attempting to do so
+    breaks the contractual semantics of this class in an unsupported manner. For
+    safety, the `reverse` dictionary is silently synchronized with _all_
+    modifications to the original dictionary -- including additions of new keys,
+    modifications of the values of existing keys, and deletions of existing
+    keys. However, the reverse is _not_ the case; the original dictionary is
+    _not_ silently synchronized with any modifications to the `reverse`
+    dictionary. (Doing so is technically feasible but beyond the scope of this
+    class' use, currently.)
+
+    Attributes
+    ----------
+    reverse : dict
+        Dictionary such that each:
+        * Key is a value of the original dictionary.
+        * Value is a list of all keys of the original dictionary mapping to that
+          value of the original dictionary.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/21894086/2809027
+        Stackoverflow answer inspiring this class. Cheers, Basj!
+    '''
+
+
+    def __init__(self, *args, **kwargs) -> None:
+        # Initialize the original dictionary.
+        super().__init__(*args, **kwargs)
+
+        # Initialize the reversed dictionary. For each key-value pair with which
+        # the original dictionary is initialized, map this value to a list of
+        # all corresponding keys for reverse lookup.
+        self.reverse = {}
+        for key, value in self.items():
+            self.reverse.setdefault(value, []).append(key)
+
+
+    def __setitem__(self, key: HashableType, value: object) -> None:
+        # Map this key to this value in the original dictionary.
+        super().__setitem__(key, value)
+
+        # Map this value to this key in the reversed dictionary.
+        self.reverse.setdefault(value, []).append(key)
+
+
+    def __delitem__(self, key: HashableType) -> None:
+        # Value to be deleted from the reversed dictionary.
+        value = self[key]
+
+        # Remove this key-value pair from the original dictionary.
+        super().__delitem__(key)
+
+        # Remove this value-key pair from the reversed dictionary.
+        self.reverse[value].remove(key)
+
+        # If this key is the last key mapping to this value in the original
+        # dictionary, remove this value entirely from the reversed dictionary.
+        # While arguably optional, doing so reduces space costs with no
+        # concomitant increase in time costs.
+        if not self.reverse[value]:
+            del self.reverse[value]
 
 # ....................{ TESTERS                            }....................
 @type_check

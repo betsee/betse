@@ -14,12 +14,13 @@ copies) into the current Python environment or not.
 '''
 
 # ....................{ IMPORTS                            }....................
+from pytest import fixture
+
 from betse.util.type import strs
 from betse_test.func.cli.fixture.cliapi import CLITesterPreArged
 from betse_test.func.fixture.sim.configapi import SimTestState
-from betse_test.mark.param import serialize_parametrized_fixture
 from betse_test.util import requests
-from pytest import fixture
+from betse_test.util.mark.param import serialize_parametrized_fixture
 
 # ....................{ CONSTANTS                          }....................
 _CLI_SIM_SUBCOMMANDS_ARGS = (

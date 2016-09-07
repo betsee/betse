@@ -14,12 +14,12 @@ from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.path.command import runners
 from betse.util.type import regexes, strs
-from betse.util.type.mappings import bidict
+from betse.util.type.mappings import ReversibleDict
 from betse.util.type.types import type_check, NoneType, SequenceTypes
 from matplotlib.animation import writers
 
 # ....................{ DICTS                              }....................
-WRITER_NAME_TO_COMMAND_BASENAME = bidict(
+WRITER_NAME_TO_COMMAND_BASENAME = ReversibleDict(
     # AVConv-based video encoding with pipe-based writing.
     avconv='avconv',
 

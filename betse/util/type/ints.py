@@ -87,3 +87,21 @@ def die_unless_positive(*numbers) -> None:
         if number <= 0:
             raise BetseIntegerException(
                 'Integer "{}" not positive.'.format(number))
+
+# ....................{ TESTERS                            }....................
+@type_check
+def is_even(number: int) -> bool:
+    '''
+    `True` only if the passed integer is even.
+    '''
+
+    return number % 2 == 0
+
+
+@type_check
+def is_odd(number: int) -> bool:
+    '''
+    `True` only if the passed integer is odd.
+    '''
+
+    return number % 2 == 1

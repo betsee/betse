@@ -10,7 +10,7 @@ breaking by brute-force PyCharm refactorings).
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.mark.fail import xfail
+from betse_test.util.mark.fail import xfail
 # from betse_test.mark.skip import skip_unless_plugin_xdist
 
 # ....................{ TESTS                              }....................

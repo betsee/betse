@@ -8,8 +8,8 @@ Unit tests for the `DynamicValueType` type.
 '''
 
 # ....................{ IMPORTS                            }....................
-from pytest import fixture
 import pytest, sys
+from pytest import fixture
 
 # ....................{ GLOBALS                            }....................
 # Global variables whose values are referenced by the dictionary returned by the
@@ -48,7 +48,7 @@ def betse_dynamicvaluedict() -> 'DynamicValueDict':
     Fixture creating and returning a mock `DynamicValueDict` to be tested.
     '''
 
-    # Imports deferred for safety.
+    # Defer heavyweight imports.
     from betse.util.type.mappings import DynamicValue, DynamicValueDict
 
     # Create and return an instance of this type.

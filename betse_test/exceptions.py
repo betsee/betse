@@ -30,3 +30,10 @@ class BetseTestHookException(BetseTestException):
     Hook-specific test exception.
     '''
     pass
+
+
+class BetseTestParameterException(BetseTestException):
+    '''
+    Parameter-specific test exception.
+    '''
+    pass

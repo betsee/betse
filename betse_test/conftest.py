@@ -13,20 +13,11 @@ _all_ test modules.
 # ....................{ IMPORTS                            }....................
 import pytest
 from betse import metadata
-from betse.exceptions import BetseException
 from betse.util.os.shell import envs
-from betse_test.util.exceptions import BetseTestHookException
+from betse_test.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
 # ....................{ IMPORTS ~ fixture                  }....................
-from betse_test.fixture.ignition import betse_init
-
-# ....................{ CLASSES                            }....................
-class BetseTestException(BetseException):
-    '''
-    Test-specific exception.
-    '''
-    pass
 
 # ....................{ HOOKS ~ session                    }....................
 #FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?

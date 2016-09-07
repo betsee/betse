@@ -13,8 +13,8 @@ inspected _only_ by BETSE-specific py.test hooks defined by `conftest` plugins.
 
 # ....................{ IMPORTS                            }....................
 import pytest
-from betse.util.type.types import type_check, CallableTypes
-from collections import OrderedDict
+from betse.util.type.types import CallableTypes
+from betse_test.exceptions import BetseTestParameterException
 # from functools import wraps
 
 # ....................{ PARAMS                             }....................
@@ -23,11 +23,12 @@ from collections import OrderedDict
 # variadic keyword arguments (i.e., order-preserving "**kwargs"). Since PEP 468
 # has yet to be accepted, Python has yet to support such arguments. See:
 #     http://legacy.python.org/dev/peps/pep-0468
-@type_check
-def parametrize_test(param_name_to_values: OrderedDict) -> CallableTypes:
+
+#FIXME: Revise docstring.
+def parametrize_test(**param_name_to_values) -> CallableTypes:
     '''
-    Parametrize the decorated test callable with the passed ordered dictionary
-    mapping the name to value of each parameter to pass to that test (in order).
+    Parametrize the decorated test callable with the passed tuple of parameter
+    names and values to iteratively pass to that test (_in order_).
 
     Fixtures
     ----------
@@ -46,28 +47,71 @@ def parametrize_test(param_name_to_values: OrderedDict) -> CallableTypes:
 
     Parameters
     ----------
-    param_name_to_values : OrderedDict
-        Ordered dictionary whose:
-        * Keys are the Python-conformant names of all parameters to be passed to
-          the decorated test.
-        * Values are sequences (e.g., lists, tuples) of the values of those
-          parameters to be iteratively passed, where the:
-          . First element of each such sequence is the first value of that
-            parameter to be passed on the first parametrization of that test.
+    param_name_values : tuple
+        Tuple of sequential parameter names and keys to parametrize this test
+        with. Each element of this tuple with:
+        * Even index (e.g., the first and third elements) specifies the name of
+          an existing parameter accepted by this test to be parametrized.
+        * Odd index (e.g., the second and fourth elements) specifies a sequence
+          of one or more values for the parameter whose name is specified by the
+          preceding element, where the:
+          . First element of this sequence is the first value of this parameter
+            to be passed to the first parametrization of this test.
           . And so on.
+
+    Raises
+    ----------
+    :exc:`betse_test.exceptions.BetseTestParameterException`
+            If this tuple is _not_ of even length.
     '''
+
+    # Defer heavyweight imports.
+    from betse.util.type import ints
 
     # Inner closure decorating the actual test callable.
     def _parametrize_test_inner(test_callable) -> CallableTypes:
+        # Comma-delimited string listing the names of these parameters.
+        param_names = ','.join(param_name_to_values.keys())
+
+        # Tuple of n-tuples of all values for each parametrization of these
+        # parameters. Curiously, py.test has been hard-coded to require a
+        # statically sized container rather than a dynamically sized generator.
+        # Failure to reduce this zip() object to a tuple induces py.test to
+        # ignore all tests decorated with this decorator with a warning
+        # resembling:
+        #
+        #    SKIP [1] /usr/lib64/python3.4/site-packages/_pytest/python.py:1417:
+        #    got empty parameter set, function test_params at
+        #    /home/diogenes/py/betse/betse_test/test_params.py:13
+        #
+        # Dismantled, this logic is:
+        #
+        # * "param_name_values[1::2]", a tuple of each sequence of values
+        #   specific to each parameter.
+        # * "*", unpacking these sequences out of this tuple.
+        # * zip(...), repacking the same element of each such sequence into a
+        #   new sequence of all such elements encapsulated by this zip object.
+        # * tuple(...), converting this zip object into a tuple.
+        #
+        # Note that the official Python documentation explicitly guarantees the
+        # order of elements returned by the keys() and values() methods of
+        # unmodified dictionaries to correspond:
+        #
+        #    "If items(), keys(), values(), iteritems(), iterkeys(), and
+        #     itervalues() are called with no intervening modifications to the
+        #     dictionary, the order of items will directly correspond."
+        #
+        # zip: obfuscating Python since 1989.
+        param_values = tuple(zip(*param_name_to_values.values()))
+        # print('\n!!!!!param_names: {!r}; values: {!r}'.format(param_names, list(param_values)))
+
+        #FIXME: Raise an exception unless *ALL* parameter values sequences are
+        #of the same length. To do so sanely, leverage the newly defined
+        #zip_isomorphic() utility generator.
+
         # Defer to the canonical parametrize() decorator.
         return pytest.mark.parametrize(
-            # Comma-delimited string listing the names of these parameters,
-            # converted from this dictionary's keys.
-            argnames=', '.join(param_name_to_values.keys()),
-
-            # Sequence of the values of each parametrization of these
-            # parameters.
-            argvalues=param_name_to_values.values(),
+            argnames=param_names, argvalues=param_values,
         )(test_callable)
 
     # Return this inner closure.

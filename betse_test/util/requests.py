@@ -18,10 +18,12 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
 '''
 
 # ....................{ IMPORTS                            }....................
-import copy
 from _pytest.python import FixtureLookupError
-from betse.util.type import sequences, types
-from betse_test.util.exceptions import BetseTestFixtureException
+
+from betse.util.type import sequences
+from betse.util.type.types import type_check
+from betse_test.exceptions import BetseTestFixtureException
+
 
 # ....................{ TESTERS                            }....................
 def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
@@ -76,10 +78,8 @@ def get_test_name(request: '_pytest.python.FixtureRequest') -> str:
     return request.node.name
 
 # ....................{ GETTERS ~ fixture                  }....................
-def get_fixture(
-    request: '_pytest.python.FixtureRequest',
-    fixture_name: str,
-) -> '_pytest.python.FixtureDef':
+@type_check
+def get_fixture(request, fixture_name: str):
     '''
     Fixture with the passed name transitively requested by the current test,
     inspected from the passed `request` fixture object.
@@ -102,8 +102,6 @@ def get_fixture(
         If this fixture is either unavailable _or_ is available but
         unretrievable (e.g., this fixture is the child of the current fixture).
     '''
-    assert types.is_str_nonempty(fixture_name), (
-        types.assert_not_str_nonempty(fixture_name, 'Fixture name'))
 
     # Terrible Function Names Part XIXI: the endless journey endures.
     return request.getfuncargvalue(fixture_name)

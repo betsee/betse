@@ -168,6 +168,13 @@ class BetseTestException(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ type                  }....................
+class BetseDictException(BetseException):
+    '''
+    Dictionary-specific exception.
+    '''
+    pass
+
+
 class BetseEnumException(BetseException):
     '''
     Enumeration-specific exception.
