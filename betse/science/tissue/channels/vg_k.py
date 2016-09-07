@@ -499,6 +499,10 @@ class KLeak(VgKABC):
 
 
 
+        # print(self.modulator.mean())
+
+
+
 
 
 

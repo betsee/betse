@@ -2704,6 +2704,10 @@ class MasterOfNetworks(object):
             logs.log_info('Average ' + str(name) + ' in the cell: ' +
                           str(np.round(obj.c_cells.mean(), 4)) + ' mmol/L')
 
+            #
+            # logs.log_info('Average ' + str(name) + ' at mems: ' +
+            #               str(np.round(obj.c_mems.mean(), 4)) + ' mmol/L')
+
             # logs.log_info('Average concentration of ' + str(name) + ' in the environment: ' +
             #                               str(np.round(obj.c_env.mean(), 4)) + ' mmol/L')
 
