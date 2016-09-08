@@ -170,35 +170,44 @@ class BetseTestException(BetseException):
 # ....................{ EXCEPTIONS ~ type                  }....................
 class BetseDictException(BetseException):
     '''
-    Dictionary-specific exception.
+    Dictionary-specific type or value exception.
     '''
     pass
 
 
 class BetseEnumException(BetseException):
     '''
-    Enumeration-specific exception.
+    Enumeration-specific type or value exception.
     '''
     pass
 
 
+#FIXME: Rename to "BetseIntException".
 class BetseIntegerException(BetseException):
     '''
-    Integer-specific exception.
+    Integer-specific type or value exception.
     '''
     pass
 
 
+class BetseIterableException(BetseException):
+    '''
+    Iterable-specific type or value exception.
+    '''
+    pass
+
+
+#FIXME: Rename to "BetseStrException".
 class BetseStringException(BetseException):
     '''
-    String-specific exception.
+    String-specific type or value exception.
     '''
     pass
 
 
 class BetseRegexException(BetseException):
     '''
-    Regular exception-specific exception.
+    Regular exception-specific type or value exception.
     '''
     pass
 

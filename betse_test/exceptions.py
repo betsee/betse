@@ -32,7 +32,7 @@ class BetseTestHookException(BetseTestException):
     pass
 
 
-class BetseTestParameterException(BetseTestException):
+class BetseTestParamException(BetseTestException):
     '''
     Parameter-specific test exception.
     '''

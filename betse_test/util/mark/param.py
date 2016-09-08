@@ -14,7 +14,7 @@ inspected _only_ by BETSE-specific py.test hooks defined by `conftest` plugins.
 # ....................{ IMPORTS                            }....................
 import pytest
 from betse.util.type.types import CallableTypes
-from betse_test.exceptions import BetseTestParameterException
+# from betse_test.exceptions import BetseTestParamException
 # from functools import wraps
 
 # ....................{ PARAMS                             }....................
@@ -23,12 +23,12 @@ from betse_test.exceptions import BetseTestParameterException
 # variadic keyword arguments (i.e., order-preserving "**kwargs"). Since PEP 468
 # has yet to be accepted, Python has yet to support such arguments. See:
 #     http://legacy.python.org/dev/peps/pep-0468
-
-#FIXME: Revise docstring.
 def parametrize_test(**param_name_to_values) -> CallableTypes:
     '''
-    Parametrize the decorated test callable with the passed tuple of parameter
-    names and values to iteratively pass to that test (_in order_).
+    Parametrize the decorated test callable with the passed keyword arguments,
+    whose names are the names of parameters accepted by this test and whose
+    values are the sequences of all values of those parameters to be iteratively
+    passed to this test (_in order_).
 
     Fixtures
     ----------
@@ -36,37 +36,42 @@ def parametrize_test(**param_name_to_values) -> CallableTypes:
     `@pytest.fixture()` decorator should be applied instead as follows:
 
     * Pass that decorator:
-    * The mandatory `params` keyword argument, whose value is the list of all
-      sets of parameters to be iteratively passed to that fixture.
-    * The optional `ids` keyword argument, whose value is the list of all
-      human-readable unique identifiers to be assigned to each such set of
-      parameters (in the same order). While optional, this argument premains
-      highly recommended.
+      * The mandatory `params` keyword argument, whose value is the list of all
+        sets of parameters to be iteratively passed to that fixture.
+      * The optional `ids` keyword argument, whose value is the list of all
+        human-readable unique identifiers to be assigned to each such set of
+        parameters (in the same order). While optional, this argument premains
+        highly recommended.
     * Pass that fixture the `request` builtin fixture, whose `param` attribute
       supplies the set of parameters passed to the current fixture invocation.
 
     Parameters
     ----------
-    param_name_values : tuple
-        Tuple of sequential parameter names and keys to parametrize this test
-        with. Each element of this tuple with:
-        * Even index (e.g., the first and third elements) specifies the name of
-          an existing parameter accepted by this test to be parametrized.
-        * Odd index (e.g., the second and fourth elements) specifies a sequence
-          of one or more values for the parameter whose name is specified by the
-          preceding element, where the:
-          . First element of this sequence is the first value of this parameter
-            to be passed to the first parametrization of this test.
-          . And so on.
+    param_name_to_values : dict
+        Dictionary mapping from the names of parameters accepted by this test to
+        the sequences of all values of those parameters to be iteratively passed
+        to this test (_in order_) such that:
+        . The first element of each such sequence is the first value of the
+          corresponding parameter to be passed to the first parametrization of
+          this test.
+        . The second element of the same sequence is the second value of this
+          parameter to be passed to the second parametrization of this test.
+        . And so on.
 
-    Raises
+    Examples
     ----------
-    :exc:`betse_test.exceptions.BetseTestParameterException`
-            If this tuple is _not_ of even length.
+    >>> from betse_test.util.mark.param import parametrize_test
+    >>> @parametrize_test(
+    ...     western_dragon=('Celedyr', 'Hestaby',),
+    ...     eastern_dragon=('Masaru', 'Ryumyo',),
+    ... )
+    ... def test_params(western_dragon: str, eastern_dragon: str):
+    ...     assert western_dragon in ('Celedyr', 'Hestaby',)
+    ...     assert eastern_dragon in ('Masaru', 'Ryumyo',)
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type import ints
+    from betse.util.type.iterables import zip_isometric
 
     # Inner closure decorating the actual test callable.
     def _parametrize_test_inner(test_callable) -> CallableTypes:
@@ -89,8 +94,14 @@ def parametrize_test(**param_name_to_values) -> CallableTypes:
         # * "param_name_values[1::2]", a tuple of each sequence of values
         #   specific to each parameter.
         # * "*", unpacking these sequences out of this tuple.
-        # * zip(...), repacking the same element of each such sequence into a
-        #   new sequence of all such elements encapsulated by this zip object.
+        # * zip_isometric(...), repacking the same element of each such sequence
+        #   into a new sequence of all such elements encapsulated by this zip
+        #   object. To ensure that an exception is raised if any such sequence
+        #   differs in length from any other such sequence, this function rather
+        #   than either of the following stock functions is called:
+        #   * zip(), which silently ignores the elements of longer sequences.
+        #   * zip_longest(), which silently fills the elements of shorter
+        #     sequences with the passed sentinel.
         # * tuple(...), converting this zip object into a tuple.
         #
         # Note that the official Python documentation explicitly guarantees the
@@ -102,7 +113,7 @@ def parametrize_test(**param_name_to_values) -> CallableTypes:
         #     dictionary, the order of items will directly correspond."
         #
         # zip: obfuscating Python since 1989.
-        param_values = tuple(zip(*param_name_to_values.values()))
+        param_values = tuple(zip_isometric(*param_name_to_values.values()))
         # print('\n!!!!!param_names: {!r}; values: {!r}'.format(param_names, list(param_values)))
 
         #FIXME: Raise an exception unless *ALL* parameter values sequences are

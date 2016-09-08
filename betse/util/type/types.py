@@ -23,7 +23,7 @@ objects).
 import inspect, re
 from collections.abc import (
     Container, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence,
-    Set,
+    Set, Sized,
 )
 from enum import Enum, EnumMeta
 from functools import wraps
@@ -100,6 +100,16 @@ Abstract interface implemented by all set-like objects.
 
 This class is a synonym of the `collections.abc.Set` class, provided merely as
 a convenience to callers preferring to avoid importing that class.
+'''
+
+
+SizedType = Sized
+'''
+Abstract interface implemented by all container objects defining the special
+`__len__()` method internally called by the :func:`len` builtin.
+
+This class is a synonym of the `collections.abc.Sized` class, provided merely
+as a convenience to callers preferring to avoid importing that class.
 '''
 
 # ....................{ TUPLES                             }....................
