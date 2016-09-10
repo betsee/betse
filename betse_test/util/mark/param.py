@@ -12,121 +12,157 @@ inspected _only_ by BETSE-specific py.test hooks defined by `conftest` plugins.
 '''
 
 # ....................{ IMPORTS                            }....................
-import pytest
-from betse.util.type.types import CallableTypes
-# from betse_test.exceptions import BetseTestParamException
-# from functools import wraps
+import itertools, pytest
+from betse_test.exceptions import BetseTestParamException
+from betse.util.type.types import (
+    type_check, CallableTypes, MappingType, SequenceTypes,)
 
 # ....................{ PARAMS                             }....................
 # Outer decorator accepting all parameters explicitly passed to this decorator.
-# Sadly, these parameters cannot simply be passed as an ordered dictionary of
-# variadic keyword arguments (i.e., order-preserving "**kwargs"). Since PEP 468
-# has yet to be accepted, Python has yet to support such arguments. See:
-#     http://legacy.python.org/dev/peps/pep-0468
-def parametrize_test(**param_name_to_values) -> CallableTypes:
+@type_check
+def parametrize_test(
+    params: MappingType,
+    fixtures: MappingType = None,
+    ids: SequenceTypes = None,
+) -> CallableTypes:
     '''
-    Parametrize the decorated test callable with the passed keyword arguments,
-    whose names are the names of parameters accepted by this test and whose
-    values are the sequences of all values of those parameters to be iteratively
-    passed to this test (_in order_).
+    Directly parametrize all non-fixture parameters accepted by the decorated
+    test callable with the first passed dictionary as well as optionally
+    indirectly parametrize all fixture parameters accepted by this callable with
+    the second passed dictionary.
 
     Fixtures
     ----------
-    This decorator should _not_ be applied to fixtures, for which the
-    `@pytest.fixture()` decorator should be applied instead as follows:
+    This decorator should _not_ be directly applied to fixtures, for which the
+    :func:`pytest.fixture` decorator should be applied instead as follows:
 
     * Pass that decorator:
-      * The mandatory `params` keyword argument, whose value is the list of all
-        sets of parameters to be iteratively passed to that fixture.
-      * The optional `ids` keyword argument, whose value is the list of all
+      * The mandatory `params` keyword argument, whose value is the sequence of
+        all sequences of parameters to be iteratively passed to that fixture.
+      * The optional `ids` keyword argument, whose value is the sequence of all
         human-readable unique identifiers to be assigned to each such set of
         parameters (in the same order). While optional, this argument premains
         highly recommended.
     * Pass that fixture the `request` builtin fixture, whose `param` attribute
       supplies the set of parameters passed to the current fixture invocation.
 
+    Fixture Parameters
+    ----------
+    For each fixture accepted by the decorated test callable, the
+    :func:`pytest.fixture` decorator should be applied to that fixture as
+    follows:
+
+    * Pass that fixture the `request` builtin fixture, whose `param` attribute
+      supplies the set of parameters passed to the current fixture invocation.
+
+    Avoid passing that decorator either the `params` or `ids` keyword argument,
+    whose values will be indirectly supplied by this decorator to that fixture.
+
     Parameters
     ----------
-    param_name_to_values : dict
-        Dictionary mapping from the names of parameters accepted by this test to
-        the sequences of all values of those parameters to be iteratively passed
-        to this test (_in order_) such that:
+    params : MappingType
+        Dictionary mapping from the names of non-fixture parameters accepted by
+        this test to the sequences of all values of those parameters to be
+        iteratively passed to this test (_in order_) such that:
         . The first element of each such sequence is the first value of the
           corresponding parameter to be passed to the first parametrization of
           this test.
         . The second element of the same sequence is the second value of this
           parameter to be passed to the second parametrization of this test.
         . And so on.
+    fixtures : optional[MappingType]
+        Dictionary mapping from the names of fixture parameters accepted by this
+        test to the sequences of all values of those parameters to be
+        iteratively passed to this test (_in order_) such that the same
+        interpretation as for `params` holds. Defaults to `None`, in which case
+        this test is assumed to accept only non-fixture parameters.
+    ids : optional[SequenceTypes]
+        Sequence of all human-readable labels uniquely identifying each
+        parametrization of this test (_in the same order_). Defaults to `None`,
+        in which non-human-readable labels will be automatically synthesized
+        from the values of the parameters comprising each such parametrization.
+
+    Raises
+    ----------
+    :exc:`BetseTestParamException`
+        If the `ids` argument identifies a different number of parametrizations
+        than the `params` and `fixtures` arguments actually passed.
 
     Examples
     ----------
+    >>> from pytest import fixture
     >>> from betse_test.util.mark.param import parametrize_test
+    >>> @fixture
+    ... def feathered_serpent(serpent_name: str) -> str:
+    ...     if serpent_name == 'Hualpa'
+    ...         return 'Amazonia'
+    ...     elif serpent_name == 'Mujaji'
+    ...         return 'Azania'
     >>> @parametrize_test(
-    ...     western_dragon=('Celedyr', 'Hestaby',),
-    ...     eastern_dragon=('Masaru', 'Ryumyo',),
+    ...     params={
+    ...         'western_dragon': ('Celedyr', 'Hestaby',),
+    ...         'eastern_dragon': ('Masaru', 'Ryumyo',),
+    ...     },
+    ...     fixtures={
+    ...         'feathered_serpent': ('Hualpa', 'Mujaji',),
+    ...     },
+    ...     ids=('bad-dragons', 'good-dragons',),
     ... )
-    ... def test_params(western_dragon: str, eastern_dragon: str):
+    ... def test_fixture_params(
+    ...     western_dragon: str, eastern_dragon: str, feathered_serpent: str):
     ...     assert western_dragon in ('Celedyr', 'Hestaby',)
     ...     assert eastern_dragon in ('Masaru', 'Ryumyo',)
+    ...     assert feathered_serpent in ('Amazonia', 'Azania',)
     '''
 
     # Defer heavyweight imports.
     from betse.util.type.iterables import zip_isometric
 
+    # If this test accepts no parametrized fixtures, default this argument to
+    # the empty dictionary for sanity.
+    if fixtures is None:
+        fixtures = {}
+
     # Inner closure decorating the actual test callable.
-    def _parametrize_test_inner(test_callable) -> CallableTypes:
-        # Comma-delimited string listing the names of these parameters.
-        param_names = ','.join(param_name_to_values.keys())
+    def _parametrize_test_fixtures_inner(test_callable) -> CallableTypes:
+        # Tuple of the names of all fixture parameters (in arbitrary order).
+        fixture_names = tuple(fixtures.keys())
+
+        # Comma-delimited string listing the names of both non-fixture and
+        # fixture parameters (in a predictable but arbitrary order).
+        #
+        # Note that the dict.keys() method returns instances of the "dict_keys"
+        # class; unlike standard sequence classes (e.g., "list", "tuple"), this
+        # class does *NOT* overload the "+" operator. Aggregating multiple
+        # instances of this class requires leveraging the generic
+        # itertools.chain() function, accepting arbitrary iterables. (Ugh.)
+        param_names = ','.join(itertools.chain(params.keys(), fixtures.keys()))
 
         # Tuple of n-tuples of all values for each parametrization of these
-        # parameters. Curiously, py.test has been hard-coded to require a
-        # statically sized container rather than a dynamically sized generator.
-        # Failure to reduce this zip() object to a tuple induces py.test to
-        # ignore all tests decorated with this decorator with a warning
-        # resembling:
-        #
-        #    SKIP [1] /usr/lib64/python3.4/site-packages/_pytest/python.py:1417:
-        #    got empty parameter set, function test_params at
-        #    /home/diogenes/py/betse/betse_test/test_params.py:13
-        #
-        # Dismantled, this logic is:
-        #
-        # * "param_name_values[1::2]", a tuple of each sequence of values
-        #   specific to each parameter.
-        # * "*", unpacking these sequences out of this tuple.
-        # * zip_isometric(...), repacking the same element of each such sequence
-        #   into a new sequence of all such elements encapsulated by this zip
-        #   object. To ensure that an exception is raised if any such sequence
-        #   differs in length from any other such sequence, this function rather
-        #   than either of the following stock functions is called:
-        #   * zip(), which silently ignores the elements of longer sequences.
-        #   * zip_longest(), which silently fills the elements of shorter
-        #     sequences with the passed sentinel.
-        # * tuple(...), converting this zip object into a tuple.
-        #
-        # Note that the official Python documentation explicitly guarantees the
-        # order of elements returned by the keys() and values() methods of
-        # unmodified dictionaries to correspond:
-        #
-        #    "If items(), keys(), values(), iteritems(), iterkeys(), and
-        #     itervalues() are called with no intervening modifications to the
-        #     dictionary, the order of items will directly correspond."
-        #
-        # zip: obfuscating Python since 1989.
-        param_values = tuple(zip_isometric(*param_name_to_values.values()))
-        # print('\n!!!!!param_names: {!r}; values: {!r}'.format(param_names, list(param_values)))
+        # non-fixture and parameters (in this same predictable order). See
+        # parametrize_test() for further discussion.
+        param_values = tuple(zip_isometric(*itertools.chain(
+            params.values(), fixtures.values())))
+        # print('\n!!!!!param_names: {!r}; values: {!r}; fixtures: {!r}'.format(param_names, param_values, fixture_names))
 
-        #FIXME: Raise an exception unless *ALL* parameter values sequences are
-        #of the same length. To do so sanely, leverage the newly defined
-        #zip_isomorphic() utility generator.
+        # If the caller identified a different number of parametrizations than
+        # were actually passed, raise an exception.
+        if ids is not None and len(ids) != len(param_values):
+            raise BetseTestParamException(
+                'Number of parametrization identifiers {} differs from '
+                'Number of parametrizations {}'.format(
+                len(ids), len(param_values)))
 
         # Defer to the canonical parametrize() decorator.
         return pytest.mark.parametrize(
-            argnames=param_names, argvalues=param_values,
+            argnames=param_names,
+            argvalues=param_values,
+            indirect=fixture_names,
+            ids=ids,
         )(test_callable)
 
     # Return this inner closure.
-    return _parametrize_test_inner
+    return _parametrize_test_fixtures_inner
 
 # ....................{ PARAMS ~ serial                    }....................
 serialize_parametrized_test = pytest.mark.serialize_parametrized_test
