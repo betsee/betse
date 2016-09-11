@@ -14,11 +14,45 @@ configurations, including:
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.type.types import MappingType
 from betse_test.func.fixture.sim import configapi
 from betse_test.func.fixture.sim.configapi import SimTestState
+from betse_test.util import requests
 from pytest import fixture
 
 # ....................{ FIXTURES                           }....................
+#FIXME: This reusable fixture would seem to obviate the need for a separate
+#configapi.make() factory function. That being the case, shift the body of the
+#configapi.make() factory function into the body of this fixture function and
+#remove the former entirely.
+#FIXME: Document this fixture to require indirect parametrization, where the
+#parametrized value *MUST* either be a dictionary or "None". In the former case:
+#
+#* The value of the "config_modifier" key if any *MUST* either be a callable or
+#  "None".
+
+@fixture(scope='session')
+def betse_sim_config(
+    request: '_pytest.python.FixtureRequest',
+    tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
+) -> SimTestState:
+
+    #FIXME: Frankly, this is odd. Is this *REALLY* the standard means of passing
+    #a single argument to a fixture? If so, contemplate a sane means of
+    #type-checking this argument.
+
+    # Keyword arguments with which this fixture is indirectly parametrized if
+    # any or the empty dictionary otherwise.
+    param = requests.get_fixture_param(request)
+    kwargs = param[0]
+    # , check_type=MappingType)
+
+    return configapi.make(
+        request, tmpdir_factory,
+        config_modifier=kwargs.get('config_modifier', None),
+    )
+
+
 #FIXME: Non-ideal repetition. Ideally, we would define a new BETSE-specific
 #utility fixture decorator @sim_config_fixture that:
 #

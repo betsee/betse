@@ -3,6 +3,8 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+#FIXME: Excise this temporary file, please.
+
 '''
 Temporary parametrization-based tests.
 '''
@@ -39,7 +41,7 @@ def test_yamo_unfix(western_dragon, eastern_dragon):
         'betse_zyz': ('ZYZ', 'PQP',)
     },
 )
-def test_yamo_fix(aba, cac, betse_zyz):
+def test_yamo_fix(request, aba, cac, betse_zyz):
     assert aba in ('ABA', 'BAB',)
     assert cac in ('CAC', 'ACA',)
     assert betse_zyz in ('zyz', 'pqp',)

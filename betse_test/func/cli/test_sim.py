@@ -9,9 +9,17 @@ Functional tests for BETSE's CLI testing all simulation-specific subcommands
 '''
 
 # ....................{ IMPORTS                            }....................
-# from betse_test.mark.skip import skip
+from betse_test.util.mark.param import parametrize_test
 
 # ....................{ TESTS                              }....................
+# @parametrize_test(fixtures={
+#     'betse_sim_config': ({'yamo': 1},)
+# })
+# def test_cli_sim_default(
+#     betse_cli_sim: 'CLITester',
+#     betse_sim_config: 'SimTestState',
+# ) -> None:
+
 def test_cli_sim_default(
     betse_cli_sim: 'CLITester',
     betse_sim_config_default: 'SimTestState',

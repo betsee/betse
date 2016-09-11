@@ -17,7 +17,7 @@ feature sets and edge cases.
 from betse.science.config.wrapper import SimConfigWrapper
 from betse.util.path import dirs
 from betse.util.type import strs
-from betse.util.type.types import type_check, CallableTypes
+from betse.util.type.types import type_check, CallableTypes, NoneType
 from betse_test.util import requests
 from py._path.local import LocalPath
 
@@ -119,7 +119,7 @@ class SimTestState(object):
 @type_check
 def make(
     request, tmpdir_factory,
-    config_modifier: CallableTypes = None
+    config_modifier: CallableTypes + (NoneType,) = None
 ) -> SimTestState:
     '''
     Create a temporary simulation configuration specific to the parent fixture,
@@ -217,13 +217,13 @@ def make(
     # Test-specific object encapsulating this simulation configuration file.
     sim_state = SimTestState(config_filepath=sim_config_filepath)
 
-    # If the calling fixture requested a configuration modification...
+    # If the calling fixture requested a configuration modification, do so.
     if config_modifier is not None:
-        # Apply this modification to this configuration dictionary.
         config_modifier(sim_state.config)
 
-        # Write this modification to disk.
-        sim_state.config.overwrite()
+    # Unconditionally write this configuration to disk *AFTER* possibly
+    # modifying this configuration.
+    sim_state.config.overwrite()
 
     # Return this encapsulation.
     return sim_state

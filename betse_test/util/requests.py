@@ -19,17 +19,63 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
 
 # ....................{ IMPORTS                            }....................
 from _pytest.python import FixtureLookupError
-
 from betse.util.type import sequences
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, ClassType
 from betse_test.exceptions import BetseTestFixtureException
 
+# ....................{ EXCEPTIONS                         }....................
+def die_unless_fixture(request: '_pytest.python.FixtureRequest') -> None:
+    '''
+    Raise an exception unless the passed `request` fixture object was requested
+    by a fixture rather than test.
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+
+    Raises
+    ----------
+    BetseTestFixtureException
+        If a test rather than fixture requested this `request` fixture.
+    '''
+
+    if not is_fixture(request):
+        raise BetseTestFixtureException(
+            '"request" fixture requested by '
+            'test rather than fixture: {}'.format(request))
+
+
+def die_unless_fixture_parametrized(
+    request: '_pytest.python.FixtureRequest') -> bool:
+    '''
+    Raise an exception unless the fixture requesting the passed `request`
+    fixture object was parametrized (either directly or indirectly).
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+
+    Raises
+    ----------
+    BetseTestFixtureException
+        If either:
+        * A test rather than fixture requested this `request` fixture.
+        * A fixture that was _not_ parametrized requested this `request`
+          fixture.
+    '''
+
+    if not is_fixture_parametrized(request):
+        raise BetseTestFixtureException(
+            '"request" fixture requested by '
+            'unparametrized fixture "{}".'.format(get_fixture_name(request)))
 
 # ....................{ TESTERS                            }....................
 def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
     '''
-    `True` only if the the passed `request` fixture object was requested by a
-    fixture rather than a test.
+    `True` only if the passed `request` fixture object was requested by a
+    fixture rather than test.
 
     Parameters
     ----------
@@ -43,6 +89,35 @@ def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
     '''
 
     return request.fixturename is not None
+
+
+def is_fixture_parametrized(request: '_pytest.python.FixtureRequest') -> bool:
+    '''
+    `True` only if the fixture requesting the passed `request` fixture object
+    was parametrized (either directly or indirectly).
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+
+    Returns
+    ----------
+    bool
+        `True` only if this fixture was parametrized.
+
+    Raises
+    ----------
+    BetseTestFixtureException
+        If a test rather than fixture requested this `request` fixture.
+    '''
+
+    # If this "request" fixture was requested by a test, raise an exception.
+    die_unless_fixture(request)
+
+    # Else, that fixture was itself requested by a fixture. Return whether on
+    # not the latter was parametrized. py.test API: you fail again.
+    return hasattr(request, 'param')
 
 # ....................{ GETTERS                            }....................
 # All functions accepting a "request" fixture object assume the passed object to
@@ -78,8 +153,90 @@ def get_test_name(request: '_pytest.python.FixtureRequest') -> str:
     return request.node.name
 
 # ....................{ GETTERS ~ fixture                  }....................
+def get_fixture_name(request: '_pytest.python.FixtureRequest') -> str:
+    '''
+    Name of the current fixture that explicitly requested the passed `request`
+    fixture object.
+
+    If this `request` fixture was requested by a test rather than a fixture,
+    an exception is raised.
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+
+    Returns
+    ----------
+    str
+        Name of such fixture.
+    '''
+
+    # If this "request" fixture was requested by a test, raise an exception.
+    die_unless_fixture(request)
+
+    # Else, that fixture was itself requested by a fixture. Return the name of
+    # the latter.
+    return request.fixturename
+
+
+#FIXME: Remove the sadly useless "check_type" argument. The type of
+#"request.param" is guaranteed to always be a tuple. (Woops.)
 @type_check
-def get_fixture(request, fixture_name: str):
+def get_fixture_param(request, check_type: ClassType = None) -> object:
+    '''
+    Object with which the fixture requesting the passed `request` fixture object
+    was parametrized.
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+    check_type : optional[ClassType]
+        Class to validate this object to be an instance of. If this object is
+        _not_ an instance of this class, an exception is raised. Defaults to
+        `None`, in which case this object is returned unvalidated.
+
+    Returns
+    ----------
+    object
+        Object parametrizing this fixture.
+
+    Raises
+    ----------
+    BetseTestFixtureException
+        If either:
+        * A test rather than fixture requested this `request` fixture.
+        * An unparametrized fixture requested this `request` fixture.
+        * A fixture parametrized by an instance of a class _not_ the passed
+          `check_type` requested this `request` fixture.
+    '''
+
+    # Else, that fixture was itself requested by a fixture. If the latter was
+    # *NOT* parametrized, raise an exception.
+    die_unless_fixture_parametrized(request)
+
+    # Else, that fixture was parametrized. If the caller requested that
+    # parametrization be validated, do so.
+    if check_type is not None and not isinstance(request.param, check_type):
+        raise BetseTestFixtureException(
+            'Fixture "{}" parametrization not of type "{}": {!r}'.format(
+                get_fixture_name(request, check_type, request.param)))
+
+    # Return that parametrization.
+    return request.param
+
+# ....................{ GETTERS ~ request                  }....................
+#FIXME: This function internally calls the now-deprecated
+#request.getfuncargvalue() function, which has since been replaced by the
+#request.getfixturevalue() function. Sadly, the latter is unavailable in the
+#most recent stable version of "pytest" available under my Linux distribution
+#(Gentoo for the win) and hence ignored for the moment.
+#
+#Revisit this in early 2017, please.
+
+@type_check
+def get_requested_fixture(request, fixture_name: str):
     '''
     Fixture with the passed name transitively requested by the current test,
     inspected from the passed `request` fixture object.
@@ -107,7 +264,7 @@ def get_fixture(request, fixture_name: str):
     return request.getfuncargvalue(fixture_name)
 
 
-def get_fixture_or_none(
+def get_requested_fixture_or_none(
     request: '_pytest.python.FixtureRequest',
     fixture_name: str,
 ) -> '_pytest.python.FixtureDef':
@@ -131,102 +288,12 @@ def get_fixture_or_none(
     '''
 
     try:
-        return get_fixture(request, fixture_name)
+        return get_requested_fixture(request, fixture_name)
     except FixtureLookupError:
         return None
 
-# ....................{ GETTERS ~ fixture : name           }....................
-def get_fixture_name(request: '_pytest.python.FixtureRequest') -> str:
-    '''
-    Name of the current fixture that explicitly requested the passed `request`
-    fixture object.
-
-    If this `request` fixture was requested by a test rather than a fixture,
-    an exception is raised.
-
-    Parameters
-    ----------
-    request : _pytest.python.FixtureRequest
-        Object passed to fixtures and tests requesting the `request` fixture.
-
-    Returns
-    ----------
-    str
-        Name of such fixture.
-    '''
-
-    # If this "request" fixture was requested by a test rather than fixture,
-    # raise an exception.
-    if not is_fixture(request):
-        raise BetseTestFixtureException(
-            '"request" fixture requested by '
-            'a test rather than fixture: {}'.format(request))
-
-    # Else, this "request" fixture was requested by a fixture. Return this
-    # fixture's name.
-    return request.fixturename
-
-
-def get_fixture_name_prefixed_by(
-    request: '_pytest.python.FixtureRequest',
-    fixture_name_prefix: str,
-) -> str:
-    '''
-    Name prefixed by the passed prefix of the single fixture transitively
-    requested by the current test, inspected from the passed `request` fixture
-    object.
-
-    If either no such fixture or more than one such fixture exist, an exception
-    is raised.
-
-    Parameters
-    ----------
-    request : _pytest.python.FixtureRequest
-        Object passed to fixtures and tests requesting the `request` fixture.
-    fixture_name_prefix: str
-        String prefixing the fixture name to be returned.
-
-    Returns
-    ----------
-    str
-        Such name.
-
-    See Also
-    ----------
-    get_fixture_names
-        Further details.
-    '''
-
-    # List of the names of all fixtures prefixed by this prefix.
-    prefixed_fixture_names = get_fixture_names_prefixed_by(
-        request, fixture_name_prefix)
-
-    # Number of such fixtures.
-    prefixed_fixture_count = len(prefixed_fixture_names)
-
-    # If either no or more than one such fixtures exist, raise an exception.
-    if prefixed_fixture_count != 1:
-        # Exception message to be raised.
-        exception_message = None
-
-        if prefixed_fixture_count == 0:
-            exception_message = (
-                'No fixture prefixed by "{}" requested by this test.'.format(
-                    fixture_name_prefix))
-        else:
-            exception_message = (
-                'Multiple fixtures prefixed by "{}" '
-                'requested by this test: {}'.format(
-                    fixture_name_prefix, prefixed_fixture_names))
-
-        # Raise this exception with this message.
-        raise BetseTestFixtureException(exception_message)
-
-    # Else, return the single such fixture name.
-    return prefixed_fixture_names[0]
-
-# ....................{ GETTERS ~ fixture : names          }....................
-def get_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
+# ....................{ GETTERS ~ request : name           }....................
+def get_requested_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
     '''
     List of the names of all fixtures transitively requested by the current test
     excluding the fixture that explicitly requested the passed `request` fixture
@@ -271,8 +338,67 @@ def get_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
     # Return these fixture names.
     return fixture_names
 
+# ....................{ GETTERS ~ request : name : prefix  }....................
+def get_requested_fixture_name_prefixed_by(
+    request: '_pytest.python.FixtureRequest',
+    fixture_name_prefix: str,
+) -> str:
+    '''
+    Name prefixed by the passed prefix of the single fixture transitively
+    requested by the current test, inspected from the passed `request` fixture
+    object.
 
-def get_fixture_names_prefixed_by(
+    If either no such fixture _or_ more than one such fixture exist, an
+    exception is raised.
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+    fixture_name_prefix: str
+        String prefixing the fixture name to be returned.
+
+    Returns
+    ----------
+    str
+        Such name.
+
+    See Also
+    ----------
+    :func:`get_requested_fixture_names`
+        Further details.
+    '''
+
+    # List of the names of all fixtures prefixed by this prefix.
+    prefixed_fixture_names = get_requested_fixture_names_prefixed_by(
+        request, fixture_name_prefix)
+
+    # Number of such fixtures.
+    prefixed_fixture_count = len(prefixed_fixture_names)
+
+    # If either no or more than one such fixtures exist, raise an exception.
+    if prefixed_fixture_count != 1:
+        # Exception message to be raised.
+        exception_message = None
+
+        if prefixed_fixture_count == 0:
+            exception_message = (
+                'No fixture prefixed by "{}" requested by this test.'.format(
+                    fixture_name_prefix))
+        else:
+            exception_message = (
+                'Multiple fixtures prefixed by "{}" '
+                'requested by this test: {}'.format(
+                    fixture_name_prefix, prefixed_fixture_names))
+
+        # Raise this exception with this message.
+        raise BetseTestFixtureException(exception_message)
+
+    # Else, return the single such fixture name.
+    return prefixed_fixture_names[0]
+
+
+def get_requested_fixture_names_prefixed_by(
     request: '_pytest.python.FixtureRequest',
     fixture_name_prefix: str,
 ) -> list:
@@ -295,11 +421,11 @@ def get_fixture_names_prefixed_by(
 
     See Also
     ----------
-    get_fixture_names
+    get_requested_fixture_names
         Further details.
     '''
 
     return sequences.get_items_prefixed_by(
-        sequence=get_fixture_names(request),
+        sequence=get_requested_fixture_names(request),
         item_prefix=fixture_name_prefix,
     )

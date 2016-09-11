@@ -15,8 +15,8 @@ copies) into the current Python environment or not.
 
 # ....................{ IMPORTS                            }....................
 from pytest import fixture
-
 from betse.util.type import strs
+from betse.util.type.types import SequenceTypes
 from betse_test.func.cli.fixture.cliapi import CLITesterPreArged
 from betse_test.func.fixture.sim.configapi import SimTestState
 from betse_test.util import requests
@@ -55,7 +55,7 @@ accepted by the `betse_cli_sim` fixture.
 
 # ....................{ FIXTURES                           }....................
 # To force these fixtures to return new objects for all parent fixtures and
-# tests, these fixtures is declared to have default scope (i.e., test).
+# tests, these fixtures are declared to have default scope (i.e., test).
 
 @serialize_parametrized_fixture
 @fixture(params=_CLI_SIM_SUBCOMMANDS_ARGS, ids=_CLI_SIM_SUBCOMMANDS_ARGS_IDS)
@@ -84,11 +84,11 @@ def betse_cli_sim(
     '''
 
     # Name of the simulation configuration fixture required by this test.
-    sim_config_fixture_name = requests.get_fixture_name_prefixed_by(
+    sim_config_fixture_name = requests.get_requested_fixture_name_prefixed_by(
         request=request, fixture_name_prefix='betse_sim_config_')
 
     # Simulation configuration fixture required by this test.
-    sim_state = requests.get_fixture(request, sim_config_fixture_name)
+    sim_state = requests.get_requested_fixture(request, sim_config_fixture_name)
     assert isinstance(sim_state, SimTestState), (
         'Object "{}" not a simulation configuration fixture.'.format(sim_state))
 
@@ -96,7 +96,7 @@ def betse_cli_sim(
     # passed the basename of this simulation configuration file, validating that
     # this simulation configuration fixture has changed the current working
     # directory (CWD) to this file's directory.
-    subcommand_args = list(request.param)
+    subcommand_args = list(requests.get_fixture_param(request))
     subcommand_args.append(sim_state.config.basename)
 
     # Return a new CLI runner specific to the current test.

@@ -39,6 +39,18 @@ from types import (
 )
 
 # ....................{ TYPES                              }....................
+ClassType = type
+'''
+Class of all new-style classes.
+
+This class is the base class of _all_ types of interest, including:
+
+* Builtin primitives (e.g., :class:`int`, :class:`dict`).
+* Standard classes (e.g., :class:`argparse.ArgumentParser`).
+* Third-party classes (e.g., `betse.cli.cliabc.CLIABC`).
+'''
+
+
 HashableType = Hashable
 '''
 Abstract interface implemented by all **hashable objects** (i.e., implementing
@@ -80,7 +92,7 @@ merely as a convenience to callers preferring to avoid importing that class.
 
 NoneType = type(None)
 '''
-Type (i.e., class object) of the singleton `None` object.
+Class of the singleton `None` object.
 
 Curiously, although the type of the `None` object is a class object whose
 `__name__` attribute is `NoneType`, there exists no globally accessible class

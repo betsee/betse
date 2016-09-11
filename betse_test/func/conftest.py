@@ -21,6 +21,7 @@ these fixtures without explicit imports.
 # Register all public fixtures requiring that private fixture. (Order is
 # insignificant here.)
 from betse_test.func.fixture.sim.config import (
+    betse_sim_config,
     betse_sim_config_default,
     betse_sim_config_visuals,
 )
