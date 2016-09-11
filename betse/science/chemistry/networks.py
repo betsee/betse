@@ -3932,7 +3932,7 @@ class MasterOfNetworks(object):
                         numo_string_a += "((self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
                         denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
 
-                        direct_string_a += "self.env_concs['{}']".format(name)
+                        direct_string_a += "self.env_concs['{}'][cells.map_cell2ecm]".format(name)
 
                 elif reaction_zone == 'mem':
 
@@ -4075,7 +4075,7 @@ class MasterOfNetworks(object):
 
                         numo_string_i += "1"
                         denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
-                        direct_string_i += "-self.env_concs['{}']".format(name)
+                        direct_string_i += "-self.env_concs['{}'][cells.map_cell2ecm]".format(name)
 
                 elif reaction_zone == 'mem':
 
@@ -4194,7 +4194,7 @@ class MasterOfNetworks(object):
             alpha = alpha + "*" + direct_term_alpha
             alpha_tex = alpha_tex + r"\," + direct_term_alpha_tex
 
-        print("ALPHA", alpha)
+        # print("ALPHA", alpha)
 
 
         return alpha, alpha_tex, tex_list
