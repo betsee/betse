@@ -25,27 +25,27 @@ from pytest import fixture
 #configapi.make() factory function. That being the case, shift the body of the
 #configapi.make() factory function into the body of this fixture function and
 #remove the former entirely.
-#FIXME: Document this fixture to require indirect parametrization, where the
-#parametrized value *MUST* either be a dictionary or "None". In the former case:
+#FIXME: Document this fixture to optionally require indirect parametrization,
+#where the parametrized value if any *MUST* be a dictionary. If no parameter is
+#supplied, this parameter defaults to the empty dictionary. Else:
 #
-#* The value of the "config_modifier" key if any *MUST* either be a callable or
+#* The value of the "config_modifier" key if any *MUST* be either a callable or
 #  "None".
 
-@fixture(scope='session')
+# @fixture(scope='session')
+@fixture()
 def betse_sim_config(
     request: '_pytest.python.FixtureRequest',
     tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
 ) -> SimTestState:
 
-    #FIXME: Frankly, this is odd. Is this *REALLY* the standard means of passing
-    #a single argument to a fixture? If so, contemplate a sane means of
-    #type-checking this argument.
-
     # Keyword arguments with which this fixture is indirectly parametrized if
     # any or the empty dictionary otherwise.
-    param = requests.get_fixture_param(request)
-    kwargs = param[0]
-    # , check_type=MappingType)
+    kwargs = requests.get_fixture_param(
+        request,
+        default_value={},
+        type_expected=MappingType,
+    )
 
     return configapi.make(
         request, tmpdir_factory,
@@ -97,15 +97,10 @@ def betse_sim_config_default(
         Further details on this fixture's return value.
     '''
 
-    # Test-specific object encapsulating this simulation configuration file.
-    sim_state = configapi.make(request, tmpdir_factory)
-
-    # Write the default configuration to disk with only the requisite
-    # modifications performed by this fixture (e.g., disabling interactivity).
-    sim_state.config.overwrite()
-
-    # Return this encapsulation object.
-    return sim_state
+    return configapi.make(
+        request, tmpdir_factory,
+        sim_config_dir_basename='default',
+    )
 
 
 #FIXME: Refactor to use indirect fixture parametrization both here and above,
@@ -130,7 +125,9 @@ def betse_sim_config_visuals(
 
     return configapi.make(
         request, tmpdir_factory,
-        config_modifier=lambda config: config.enable_visuals())
+        sim_config_dir_basename='visuals',
+        config_modifier=lambda config: config.enable_visuals(),
+    )
 
 
 #FIXME: Parametrize this in the manner expected by config.enable_video().

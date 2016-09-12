@@ -119,7 +119,8 @@ class SimTestState(object):
 @type_check
 def make(
     request, tmpdir_factory,
-    config_modifier: CallableTypes + (NoneType,) = None
+    sim_config_dir_basename: (str, NoneType,) = None,
+    config_modifier: CallableTypes + (NoneType,) = None,
 ) -> SimTestState:
     '''
     Create a temporary simulation configuration specific to the parent fixture,
@@ -162,6 +163,11 @@ def make(
     tmpdir_factory : _pytest.tmpdir.tmpdir_factory
         Builtin session-scoped fixture whose `mktemp()` method returns a
         `py.path.local` instance encapsulating a new temporary directory.
+    sim_config_dir_basename : optional[str]
+        Basename of the temporary directory containing this simulation
+        configuration to be created. Defaults to `None`, in which case this
+        basename defaults to the name of the current test excluding the prefix
+        `test_` (e.g., `cli_sim_default` for the `test_cli_sim_default` test).
     config_modifier : optional[CallableType]
         Callable (e.g., function, lambda, method) accepting the newly created
         simulation configuration dictionary as a mandatory parameter. For
@@ -187,25 +193,21 @@ def make(
         Official `request` fixture parameter documentation.
     '''
 
-    # Name of the parent fixture.
-    parent_fixture_name = requests.get_fixture_name(request)
+    # If no basename was passed...
+    if sim_config_dir_basename is None:
+        # Name of the current test.
+        test_name = requests.get_tested_name(request)
+        # print('    request.node: {}'.format(request.node))
+        # print('    test_name: {}'.format(test_name))
 
-    # Basename of the temporary directory to be returned for the parent fixture.
-    # Equivalently, this is the unique suffix of the name of the parent fixture
-    # following the mandatory prefix "betse_sim_config_" in that name. Since the
-    # parent fixture does *NOT* physically call this fixture, however, that name
-    # cannot be inspected from the call stack. While py.test provides no direct
-    # means of obtaining this name, it does provide the "request.fixturenames"
-    # list of the names of all fixtures required by the current test, which may
-    # then be iteratively searched for the expected name. (See above.)
-    sim_config_dir_basename = strs.remove_prefix(
-        text=parent_fixture_name,
-        prefix='betse_sim_config_',
-        exception_message=(
-            'Simulation configuration fixture "{}" '
-            'not prefixed by "betse_sim_config_".'.format(parent_fixture_name)
-        ),
-    )
+        # Default this basename to the name of the current test excluding the
+        # prefix "test_".
+        sim_config_dir_basename = strs.remove_prefix(
+            text=test_name,
+            prefix='test_',
+            exception_message='Test name "{}" not prefixed by "test_".'.format(
+                test_name),
+        )
 
     # Create this temporary directory and wrap this directory's absolute path
     # with a high-level "py.path.local" object.

@@ -17,17 +17,64 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
     Official documentation for this fixture – such as it is.
 '''
 
+# Note that all functions defined below accepting a "request" fixture object
+# assume the passed object to be of the expected type rather than validating
+# this to be the case. Why?  Because this type resides in a private module that
+# does *NOT* appear to be externally importable: e.g.,
+#
+#     >>> import _pytest.python.FixtureRequest as req
+#     ImportError: cannot import name 'transfer_markers'
+
 # ....................{ IMPORTS                            }....................
+from pytest import Function
 from _pytest.python import FixtureLookupError
 from betse.util.type import sequences
 from betse.util.type.types import type_check, ClassType
 from betse_test.exceptions import BetseTestFixtureException
 
+# ....................{ CONSTANTS                          }....................
+_DEFAULT_VALUE_NONE = object()
+'''
+Default value for the optional `default_value` argument accepted by the
+:func:`get_fixture_param` function.
+
+This value permits that function to distinguish between default values of value
+`None` and the lack of any default value altogether.
+'''
+
 # ....................{ EXCEPTIONS                         }....................
+def die_unless_tested(request: '_pytest.python.FixtureRequest') -> None:
+    '''
+    Raise an exception unless the passed `request` fixture object was
+    transitively requested by a test.
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+
+    Raises
+    ----------
+    BetseTestFixtureException
+        If no test transitively requested this `request` fixture.
+
+    See Also
+    ----------
+    :func:`is_tested`
+        Further details.
+    '''
+
+    if not is_tested(request):
+        raise BetseTestFixtureException(
+            '"request" fixture transitively requested by no test '
+            '(e.g., due to being requested by a file- or '
+            'session-scoped fixture): {}'.format(request))
+
+# ....................{ EXCEPTIONS ~ fixture               }....................
 def die_unless_fixture(request: '_pytest.python.FixtureRequest') -> None:
     '''
-    Raise an exception unless the passed `request` fixture object was requested
-    by a fixture rather than test.
+    Raise an exception unless the passed `request` fixture object was directly
+    requested by a fixture rather than a test.
 
     Parameters
     ----------
@@ -72,10 +119,30 @@ def die_unless_fixture_parametrized(
             'unparametrized fixture "{}".'.format(get_fixture_name(request)))
 
 # ....................{ TESTERS                            }....................
+def is_tested(request: '_pytest.python.FixtureRequest') -> bool:
+    '''
+    `True` only if the passed `request` fixture object was transitively
+    requested by a test (e.g., directly by a test or indirectly by a test-scope
+    fixture).
+
+    Parameters
+    ----------
+    request : _pytest.python.FixtureRequest
+        Object passed to fixtures and tests requesting the `request` fixture.
+
+    Returns
+    ----------
+    bool
+        `True` only if a test transitively requested this `request` fixture.
+    '''
+
+    return isinstance(request.node, Function)
+
+# ....................{ TESTERS ~ fixture                  }....................
 def is_fixture(request: '_pytest.python.FixtureRequest') -> bool:
     '''
-    `True` only if the passed `request` fixture object was requested by a
-    fixture rather than test.
+    `True` only if the passed `request` fixture object was directly requested by
+    a fixture rather than a test.
 
     Parameters
     ----------
@@ -120,18 +187,11 @@ def is_fixture_parametrized(request: '_pytest.python.FixtureRequest') -> bool:
     return hasattr(request, 'param')
 
 # ....................{ GETTERS                            }....................
-# All functions accepting a "request" fixture object assume the passed object to
-# be of the expected type rather than validating this to be the case. Why?
-# Because this type resides in a private module that does *NOT* appear to be
-# externally importable: e.g.,
-#
-#     >>> import _pytest.python.FixtureRequest as req
-#     ImportError: cannot import name 'transfer_markers'
-
-def get_test_name(request: '_pytest.python.FixtureRequest') -> str:
+def get_tested_name(request: '_pytest.python.FixtureRequest') -> str:
     '''
-    Unqualified name of the current test (e.g., `test_cli_info`), inspected from
-    the passed `request` fixture object.
+    Unqualified name of the current test (e.g., `test_cli_info`) if the passed
+    `request` fixture object was either directly requested by that test _or_
+    indirectly requested by a test-scope fixture.
 
     This function returns either:
 
@@ -147,7 +207,17 @@ def get_test_name(request: '_pytest.python.FixtureRequest') -> str:
     ----------
     str
         Unqualified name of this test.
+
+    Raises
+    ----------
+    BetseTestFixtureException
+        If the passed `request` fixture object was _not_ transitively requested
+        by a test (e.g., was requested by a file- or session-scope fixture), in
+        which case no test exists to obtain the name of.
     '''
+
+    # Raise an exception unless a test transitively requested this fixture.
+    die_unless_tested(request)
 
     # No one would ever think of trying this. Except one man did.
     return request.node.name
@@ -180,27 +250,33 @@ def get_fixture_name(request: '_pytest.python.FixtureRequest') -> str:
     return request.fixturename
 
 
-#FIXME: Remove the sadly useless "check_type" argument. The type of
-#"request.param" is guaranteed to always be a tuple. (Woops.)
 @type_check
-def get_fixture_param(request, check_type: ClassType = None) -> object:
+def get_fixture_param(
+    request,
+    default_value: object = _DEFAULT_VALUE_NONE,
+    type_expected: (tuple, ClassType) = None,
+) -> object:
     '''
-    Object with which the fixture requesting the passed `request` fixture object
-    was parametrized.
+    Parameter parametrizing the fixture requesting the passed `request` fixture.
 
     Parameters
     ----------
     request : _pytest.python.FixtureRequest
         Object passed to fixtures and tests requesting the `request` fixture.
-    check_type : optional[ClassType]
-        Class to validate this object to be an instance of. If this object is
-        _not_ an instance of this class, an exception is raised. Defaults to
-        `None`, in which case this object is returned unvalidated.
+    default_value: optional[object]
+        Default value to return if this fixture is unparametrized. Defaults
+        to :data:`_DEFAULT_VALUE_NONE`, in which case an exception is raised
+        instead if this fixture is unparametrized.
+    type_expected : optional[tuple, ClassType]
+        Class or tuple of classes to validate this object to be an instance of.
+        If this object is _not_ an instance of this class or classes, an
+        exception is raised. Defaults to `None`, in which case this object is
+        returned unvalidated.
 
     Returns
     ----------
     object
-        Object parametrizing this fixture.
+        Parameter parametrizing this fixture.
 
     Raises
     ----------
@@ -212,19 +288,32 @@ def get_fixture_param(request, check_type: ClassType = None) -> object:
           `check_type` requested this `request` fixture.
     '''
 
-    # Else, that fixture was itself requested by a fixture. If the latter was
-    # *NOT* parametrized, raise an exception.
-    die_unless_fixture_parametrized(request)
+    # Parameter parametrizing the fixture requesting this "request" fixture
+    fixture_param = None
+
+    # If the caller passed a default value *AND* this fixture is unparametrized,
+    # default this parameter to this value.
+    if (default_value is not _DEFAULT_VALUE_NONE and
+        not is_fixture_parametrized(request)):
+        fixture_param = default_value
+    # Else...
+    else:
+        # Raise an exception unless this fixture is parametrized.
+        die_unless_fixture_parametrized(request)
+
+        # Parameter parametrizing this fixture.
+        fixture_param = request.param
 
     # Else, that fixture was parametrized. If the caller requested that
     # parametrization be validated, do so.
-    if check_type is not None and not isinstance(request.param, check_type):
+    if type_expected is not None and not isinstance(
+        fixture_param, type_expected):
         raise BetseTestFixtureException(
             'Fixture "{}" parametrization not of type "{}": {!r}'.format(
-                get_fixture_name(request, check_type, request.param)))
+                get_fixture_name(request, type_expected, fixture_param)))
 
-    # Return that parametrization.
-    return request.param
+    # Return this parameter.
+    return fixture_param
 
 # ....................{ GETTERS ~ request                  }....................
 #FIXME: This function internally calls the now-deprecated

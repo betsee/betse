@@ -96,7 +96,8 @@ def betse_cli_sim(
     # passed the basename of this simulation configuration file, validating that
     # this simulation configuration fixture has changed the current working
     # directory (CWD) to this file's directory.
-    subcommand_args = list(requests.get_fixture_param(request))
+    subcommand_args = list(requests.get_fixture_param(
+        request, type_expected=SequenceTypes))
     subcommand_args.append(sim_state.config.basename)
 
     # Return a new CLI runner specific to the current test.

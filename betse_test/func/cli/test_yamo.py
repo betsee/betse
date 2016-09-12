@@ -45,3 +45,26 @@ def test_yamo_fix(request, aba, cac, betse_zyz):
     assert aba in ('ABA', 'BAB',)
     assert cac in ('CAC', 'ACA',)
     assert betse_zyz in ('zyz', 'pqp',)
+
+# ....................{ TESTS ~ more                       }....................
+# @parametrize_test(fixtures={
+#     'betse_sim_config': ({},)
+# })
+def test_yamo_conf(
+    # betse_cli_sim: 'CLITester',
+    betse_sim_config: 'SimTestState',
+) -> None:
+    '''
+    Test simulating with the default simulation configuration.
+
+    Parameters
+    ----------
+    betse_cli_sim : CLITester
+        Object encapsulating CLI-driven simulation testing.
+    betse_sim_config_default : SimTestState
+        Object encapsulating the default simulation configuration.
+    '''
+
+    # Test the currently parametrized simulation-specific BETSE CLI subcommand.
+    # betse_cli_sim()
+    pass
