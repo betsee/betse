@@ -169,15 +169,16 @@ def make(
         basename defaults to the name of the current test excluding the prefix
         `test_` (e.g., `cli_sim_default` for the `test_cli_sim_default` test).
     config_modifier : optional[CallableType]
-        Callable (e.g., function, lambda, method) accepting the newly created
-        simulation configuration dictionary as a mandatory parameter. For
-        convenience, this configuration is implicitly written back to disk
+        Callable (e.g., function, lambda, method) accepting an instance of the
+        :class:`betse.science.config.wrapper.SimConfigWrapper` class
+        encapsulating this simulation configuration as a mandatory parameter.
+        For convenience, this configuration is implicitly written back to disk
         _after_ this callable is called. This callable is merely a shorthand
         convenience for fixtures modifying this configuration in a trivial
         manner expressible as a `lambda` statement. Fixtures requiring less
         trivial modifications may do so by directly modifying and rewriting the
         `config` attribute of the returned object instead. Defaults to `None`,
-        in which case this parameter is ignored.
+        in which case this configuration is returned as is.
 
     Returns
     ----------

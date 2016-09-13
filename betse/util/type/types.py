@@ -8,9 +8,6 @@ Low-level **type testers** (i.e., functions testing the types of passed
 objects).
 '''
 
-#FIXME: Refactor all assertion statements performing callable type checking
-#throughout this codebase into uses of the new @type_check decorator.
-
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies
@@ -28,6 +25,12 @@ from collections.abc import (
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
+
+# Import the following types as is into the namespace of this submodule,
+# permitting callers to reference these types conveniently. Since the
+# nomenclature of these types is already consistent with that used by types
+# declared below (namely, both camelcase and suffixed by "Type"), these types
+# are used as is rather than aliased to synonymous types below.
 from types import (
     BuiltinFunctionType,
     BuiltinMethodType,
@@ -41,13 +44,12 @@ from types import (
 # ....................{ TYPES                              }....................
 ClassType = type
 '''
-Class of all new-style classes.
+Class of all classes, including both new- and old-style classes.
 
-This class is the base class of _all_ types of interest, including:
-
-* Builtin primitives (e.g., :class:`int`, :class:`dict`).
-* Standard classes (e.g., :class:`argparse.ArgumentParser`).
-* Third-party classes (e.g., `betse.cli.cliabc.CLIABC`).
+See Also
+----------
+:func:`is_class_new`
+    Tester function differentiating new- from old-style classes.
 '''
 
 
@@ -186,6 +188,14 @@ subclass `collections.abc.Sequence` despite implementing the entirety of that
 that API.
 '''
 
+
+TestableTypes = (tuple, ClassType,)
+'''
+Tuple of all **testable classes** (i.e., classes whose instances are passable
+as the second parameter to the built-in :func:`isinstance` and
+:func:`issubclass` functions).
+'''
+
 # ....................{ TUPLES : init                      }....................
 # Conditionally add sequence types to previously declared tuples.
 #
@@ -261,8 +271,9 @@ if __debug__:
         * Classes (e.g., `int`, `OrderedDict`).
         * Tuples of classes (e.g., `(int, OrderedDict)`).
 
-        If optimizations are enabled by the active Python interpreter (e.g., due
-        to option `-O` passed to this interpreter), this decorator is a noop.
+        If optimizations are enabled by the active Python interpreter (e.g.,
+        due to option `-O` passed to this interpreter), this decorator reduces
+        to a noop.
 
         Raises
         ----------
@@ -535,7 +546,7 @@ def is_class(obj: object) -> bool:
     `True` only if the passed object is a class.
     '''
 
-    return isinstance(obj, type)
+    return isinstance(obj, ClassType)
 
 
 def is_class_new(obj: object) -> bool:

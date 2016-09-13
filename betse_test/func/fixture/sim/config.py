@@ -14,57 +14,13 @@ configurations, including:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.types import MappingType
+# from betse.util.type.types import CallableTypes, NoneType
 from betse_test.func.fixture.sim import configapi
 from betse_test.func.fixture.sim.configapi import SimTestState
-from betse_test.util import requests
+# from betse_test.util import requests
 from pytest import fixture
 
 # ....................{ FIXTURES                           }....................
-#FIXME: This reusable fixture would seem to obviate the need for a separate
-#configapi.make() factory function. That being the case, shift the body of the
-#configapi.make() factory function into the body of this fixture function and
-#remove the former entirely.
-#FIXME: Document this fixture to optionally require indirect parametrization,
-#where the parametrized value if any *MUST* be a dictionary. If no parameter is
-#supplied, this parameter defaults to the empty dictionary. Else:
-#
-#* The value of the "config_modifier" key if any *MUST* be either a callable or
-#  "None".
-
-# @fixture(scope='session')
-@fixture()
-def betse_sim_config(
-    request: '_pytest.python.FixtureRequest',
-    tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
-) -> SimTestState:
-
-    # Keyword arguments with which this fixture is indirectly parametrized if
-    # any or the empty dictionary otherwise.
-    kwargs = requests.get_fixture_param(
-        request,
-        default_value={},
-        type_expected=MappingType,
-    )
-
-    return configapi.make(
-        request, tmpdir_factory,
-        config_modifier=kwargs.get('config_modifier', None),
-    )
-
-
-#FIXME: Non-ideal repetition. Ideally, we would define a new BETSE-specific
-#utility fixture decorator @sim_config_fixture that:
-#
-#* Forced use of session scope, as repeated below.
-#* Forced use of the "request" and "tmpdir_factory" fixtures, as repeated below.
-#
-#Python decoration is non-trivial. This is left as an exercise for the reader.
-#Since py.test only supports callable- rather than class-based fixtures,
-#fixture inheritance is right out -- which is what we'd *REALLY* prefer. One
-#option could be to implement this as an xunit-style class-based fixture, which
-#(in theory) would permit inheritance. Anyway, a discourse for another time.
-
 @fixture(scope='session')
 def betse_sim_config_default(
     request: '_pytest.python.FixtureRequest',
@@ -103,9 +59,9 @@ def betse_sim_config_default(
     )
 
 
-#FIXME: Refactor to use indirect fixture parametrization both here and above,
-#ultimately permitting these fixtures to be entirely eliminated. See also:
-#    http://docs.pytest.org/en/latest/example/parametrize.html#deferring-the-setup-of-parametrized-resources
+# #FIXME: Refactor to use indirect fixture parametrization both here and above,
+# #ultimately permitting these fixtures to be entirely eliminated. See also:
+# #    http://docs.pytest.org/en/latest/example/parametrize.html#deferring-the-setup-of-parametrized-resources
 @fixture(scope='session')
 def betse_sim_config_visuals(
     request: '_pytest.python.FixtureRequest',

@@ -29,7 +29,7 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
 from pytest import Function
 from _pytest.python import FixtureLookupError
 from betse.util.type import sequences
-from betse.util.type.types import type_check, ClassType
+from betse.util.type.types import type_check, TestableTypes
 from betse_test.exceptions import BetseTestFixtureException
 
 # ....................{ CONSTANTS                          }....................
@@ -254,10 +254,13 @@ def get_fixture_name(request: '_pytest.python.FixtureRequest') -> str:
 def get_fixture_param(
     request,
     default_value: object = _DEFAULT_VALUE_NONE,
-    type_expected: (tuple, ClassType) = None,
+    type_expected: TestableTypes = None,
 ) -> object:
     '''
-    Parameter parametrizing the fixture requesting the passed `request` fixture.
+    Parameter parametrizing the fixture requesting the passed `request` fixture,
+    optionally defaulted to the passed default value if the former fixture is
+    unparametrized _and_ optinionally validated to be an instance of the passed
+    type or tuple of types.
 
     Parameters
     ----------
@@ -267,7 +270,7 @@ def get_fixture_param(
         Default value to return if this fixture is unparametrized. Defaults
         to :data:`_DEFAULT_VALUE_NONE`, in which case an exception is raised
         instead if this fixture is unparametrized.
-    type_expected : optional[tuple, ClassType]
+    type_expected : optional[TestableTypes]
         Class or tuple of classes to validate this object to be an instance of.
         If this object is _not_ an instance of this class or classes, an
         exception is raised. Defaults to `None`, in which case this object is
@@ -310,7 +313,7 @@ def get_fixture_param(
         fixture_param, type_expected):
         raise BetseTestFixtureException(
             'Fixture "{}" parametrization not of type "{}": {!r}'.format(
-                get_fixture_name(request, type_expected, fixture_param)))
+                get_fixture_name(request), type_expected, fixture_param))
 
     # Return this parameter.
     return fixture_param
@@ -325,22 +328,33 @@ def get_fixture_param(
 #Revisit this in early 2017, please.
 
 @type_check
-def get_requested_fixture(request, fixture_name: str):
+def get_requested_fixture(
+    request,
+    fixture_name: str,
+    type_expected: TestableTypes = None,
+) -> object:
     '''
-    Fixture with the passed name transitively requested by the current test,
-    inspected from the passed `request` fixture object.
+    Object returned by the fixture with the passed name transitively requested
+    by the current test requesting the passed `request` fixture object,
+    optinionally validated to be an instance of the passed type or tuple of
+    types.
 
     Parameters
     ----------
     request : _pytest.python.FixtureRequest
         Object passed to fixtures and tests requesting the `request` fixture.
     fixture_name: str
-        Name of the fixture to return.
+        Name of the fixture to return the object returned by that fixture.
+    type_expected : optional[TestableTypes]
+        Class or tuple of classes to validate this object to be an instance of.
+        If this object is _not_ an instance of this class or classes, an
+        exception is raised. Defaults to `None`, in which case this object is
+        returned unvalidated.
 
     Returns
     ----------
     _pytest.python.FixtureDef
-        This fixture.
+        Object returned by this fixture.
 
     Raises
     ----------
@@ -349,8 +363,19 @@ def get_requested_fixture(request, fixture_name: str):
         unretrievable (e.g., this fixture is the child of the current fixture).
     '''
 
-    # Terrible Function Names Part XIXI: the endless journey endures.
-    return request.getfuncargvalue(fixture_name)
+    # Object returned by this fixture. Terrible Function Names Part XIXI: the
+    # endless journey endures.
+    fixture_object = request.getfuncargvalue(fixture_name)
+
+    # If the caller requested this object be validated, do so.
+    if type_expected is not None and not isinstance(
+        fixture_object, type_expected):
+        raise BetseTestFixtureException(
+            'Fixture "{}" object not of type "{}": {!r}'.format(
+                fixture_name, type_expected, fixture_object))
+
+    # Return this object.
+    return fixture_object
 
 
 def get_requested_fixture_or_none(
@@ -382,7 +407,8 @@ def get_requested_fixture_or_none(
         return None
 
 # ....................{ GETTERS ~ request : name           }....................
-def get_requested_fixture_names(request: '_pytest.python.FixtureRequest') -> list:
+def get_requested_fixture_names(
+    request: '_pytest.python.FixtureRequest') -> list:
     '''
     List of the names of all fixtures transitively requested by the current test
     excluding the fixture that explicitly requested the passed `request` fixture

@@ -194,7 +194,7 @@ def parametrize_test(
                 'number of parametrization identifiers {} differs from '
                 'number of parametrizations {}.'.format(
                  test_callable.__name__, len(ids), len(param_fixture_values)))
-        # print('\n    test: {}; param_names: {!r}; values: {!r}; fixtures: {!r}; ids: {!r}'.format(test_callable.__name__, param_fixture_names, param_fixture_values, fixture_names, ids))
+        print('\n    test: {}; param_names: {!r}; values: {!r}; fixtures: {!r}; ids: {!r}'.format(test_callable.__name__, param_fixture_names, param_fixture_values, fixture_names, ids))
 
         # Defer to the canonical parametrize() decorator.
         return pytest.mark.parametrize(

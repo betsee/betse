@@ -54,8 +54,8 @@ accepted by the `betse_cli_sim` fixture.
 '''
 
 # ....................{ FIXTURES                           }....................
-# To force these fixtures to return new objects for all parent fixtures and
-# tests, these fixtures are declared to have default scope (i.e., test).
+# The following fixtures are declared to have default scope (i.e., test),
+# forcing these fixtures to return new objects to all parent fixtures and tests.
 
 @serialize_parametrized_fixture
 @fixture(params=_CLI_SIM_SUBCOMMANDS_ARGS, ids=_CLI_SIM_SUBCOMMANDS_ARGS_IDS)
@@ -88,16 +88,23 @@ def betse_cli_sim(
         request=request, fixture_name_prefix='betse_sim_config_')
 
     # Simulation configuration fixture required by this test.
-    sim_state = requests.get_requested_fixture(request, sim_config_fixture_name)
-    assert isinstance(sim_state, SimTestState), (
-        'Object "{}" not a simulation configuration fixture.'.format(sim_state))
+    sim_state = requests.get_requested_fixture(
+        request,
+        fixture_name=sim_config_fixture_name,
+        type_expected=SimTestState,
+    )
 
-    # Argument list comprising the currently parametrized BETSE CLI subcommand
-    # passed the basename of this simulation configuration file, validating that
-    # this simulation configuration fixture has changed the current working
-    # directory (CWD) to this file's directory.
+    # Argument list comprising the currently parametrized BETSE CLI subcommand.
     subcommand_args = list(requests.get_fixture_param(
         request, type_expected=SequenceTypes))
+
+    # Pass this subcommand the basename of this simulation configuration file.
+    # The basename rather than absolute path of this file is passed to ensure
+    # that a fatal error is raised if this simulation configuration fixture
+    # failed to change the current working directory (CWD) to the directory
+    # containing this file. Why? Because operating outside of this directory
+    # encourages accidental permanent modification of the filesystem by tests
+    # and hence *MUST* be explicitly discouraged.
     subcommand_args.append(sim_state.config.basename)
 
     # Return a new CLI runner specific to the current test.
