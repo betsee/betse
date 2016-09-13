@@ -60,16 +60,17 @@ def f_sweep(pc,cells,p):
 
     return scalar, y
 
-def gradient_x(pc,cells,p):
+def gradient_x(pc, cells,p):
     """
     Creates a spatial gradient along the x-axis from 0 to 1 over a patch
     of cells defined by indices.
 
     Parameters
     ----------
-    pc                 Indices of membranes
+    pc                 Indices of membranes or cells
     cells              Instance of Cells module
     p                  Instance of parameters
+    targs              Indices of targets within mem or cell inds to apply gradient
 
     Returns
     ---------

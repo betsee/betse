@@ -293,14 +293,14 @@ class MasterOfNetworks(object):
                     # Make this happen, if it's requested:
 
                     if modulator_function_name != 'None' and modulator_function_name is not None:
-                        mol.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(mol.growth_targets_mem,
+                        mol.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(cells.mem_i,
                                                                                                   cells, p)
-                        mol.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(mol.growth_targets_cell,
+                        mol.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(cells.cell_i,
                                                                                                    cells, p)
 
                     else:
-                        mol.growth_mod_function_mems = 1
-                        mol.growth_mod_function_cells = 1
+                        mol.growth_mod_function_mems = np.ones(sim.mdl)
+                        mol.growth_mod_function_cells = np.ones(sim.cdl)
 
                 else:
                     mol.simple_growth = False
@@ -4772,13 +4772,13 @@ class Molecule(object):
         # reassign the new data vector to the object:
         self.c_mems = cmems2[:]
 
-        if self.simple_growth is True and self.growth_mod_function_cells != 1:
+        if self.simple_growth is True:
 
             gmfc = np.delete(self.growth_mod_function_cells, target_inds_cell)
             self.growth_mod_function_cells = gmfc[:]
 
-            if len(self.growth_mod_function_cells) == 0:
-                self.growth_mod_function_cells = 1
+            # if len(self.growth_mod_function_cells) == 0:
+            #     self.growth_mod_function_cells = 1
 
         self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
         self.init_growth(cells, p)
