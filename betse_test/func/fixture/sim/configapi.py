@@ -89,15 +89,21 @@ class SimTestState(object):
         self.config.minify()
 
 
+    #FIXME: Rename to merely context().
     def get_command_context(self) -> 'contextlib.contextmanager':
         '''
         Context manager changing the current working directory (CWD) of the
         current test to the directory containing this configuration file for the
         duration of this context.
 
-        This method is dynamically called by the `run()` method of the
-        `CLITester` instance provided by the `betse_cli` fixture for the current
-        fixture or test.
+        Default simulation configuration paths are relative to the directory
+        containing the simulation configuration file: namely, this temporary
+        directory. Changing directories resolves these paths to this directory.
+        (Failing to do so would incorrectly resolve these paths to the current
+        directory, with predictably disastrous outcomes.) While this class
+        could instead globally search-and-replace all relative simulation
+        configuration paths with absolute paths, doing so would be considerably
+        more complex, fragile, and error-prone than simply changing directories.
         '''
 
         return dirs.current(self.config.dirname)
@@ -116,6 +122,13 @@ class SimTestState(object):
 # requesting the former. Ergo, this is a utility function instead.
 #
 # Test suite insanity prevails.
+
+#FIXME: Excise the "config_modifier" argument, which is no longer used.
+#FIXME: Cease accepting the "sim_config_dir_basename" argument while retaining
+#the local variable of the same name.
+#FIXME: Revise docstring. Much of the commentary no longer applies.
+#FIXME: Actually... just excise this entirely now.
+
 @type_check
 def make(
     request, tmpdir_factory,
@@ -211,7 +224,8 @@ def make(
         )
 
     # Create this temporary directory and wrap this directory's absolute path
-    # with a high-level "py.path.local" object.
+    # with a high-level "py.path.local" object. See also:
+    #     http://pytest.org/latest/tmpdir.html#the-tmpdir-factory-fixture
     sim_config_dirpath = tmpdir_factory.mktemp(sim_config_dir_basename)
 
     # Absolute path of this configuration file in this temporary directory.
@@ -223,10 +237,6 @@ def make(
     # If the calling fixture requested a configuration modification, do so.
     if config_modifier is not None:
         config_modifier(sim_state.config)
-
-    # Unconditionally write this configuration to disk *AFTER* possibly
-    # modifying this configuration.
-    sim_state.config.overwrite()
 
     # Return this encapsulation.
     return sim_state
