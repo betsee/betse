@@ -12,16 +12,4 @@ functional fixtures in this `fixture` subpackage, these tests may reference
 these fixtures without explicit imports.
 '''
 
-# ....................{ IMPORTS ~ fixture : private        }....................
-# Register private fixtures *BEFORE* public fixtures requiring these private
-# fixtures. For unknown reasons, py.test requires this import in this "conftest"
-# module rather than in the modules defining these public fixtures.
-
-# ....................{ IMPORTS ~ fixture : public         }....................
-# Register all public fixtures requiring that private fixture. (Order is
-# insignificant here.)
-from betse_test.func.fixture.sim.config import (
-    betse_sim_config,
-    betse_sim_config_default,
-    betse_sim_config_visuals,
-)
+# ....................{ IMPORTS ~ fixture                  }....................

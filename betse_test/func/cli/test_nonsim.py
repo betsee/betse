@@ -19,7 +19,7 @@ def test_cli_no_arg(betse_cli: 'CLITester') -> None:
         Test-specific object encapsulating the BETSE CLI.
     '''
 
-    betse_cli()
+    betse_cli.run()
 
 
 def test_cli_info(betse_cli: 'CLITester') -> None:
@@ -32,7 +32,7 @@ def test_cli_info(betse_cli: 'CLITester') -> None:
         Test-specific object encapsulating the BETSE CLI.
     '''
 
-    betse_cli('info')
+    betse_cli.run('info')
 
 
 def test_cli_config(
@@ -59,6 +59,9 @@ def test_cli_config(
         `py.path.local` instance encapsulating a new temporary directory.
     '''
 
+    # Defer heavyweight imports.
+    from betse.util.type import strs
+
     # Create this temporary directory and wrap this directory's absolute path
     # with a high-level "py.path.local" object.
     sim_config_dirpath = tmpdir_factory.mktemp('config')
@@ -67,7 +70,7 @@ def test_cli_config(
     sim_config_filepath = sim_config_dirpath.join('sim_config.yaml')
 
     # Create this file.
-    betse_cli('config', str(sim_config_filepath))
+    betse_cli.run('config', strs.shell_quote(str(sim_config_filepath)))
 
     # Assert this file to have been created.
     assert sim_config_filepath.check(file=1)

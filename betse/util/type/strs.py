@@ -11,7 +11,7 @@ Low-level string facilities.
 import textwrap
 from betse.exceptions import BetseStringException
 from betse.util.type import types
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, SequenceTypes
 from textwrap import TextWrapper
 
 # For convenience, permit callers to import the general-purpose trim() function
@@ -142,12 +142,26 @@ def join_on_newline(*texts) -> str:
 
 
 @type_check
-def join_on(*texts, delimiter: str) -> str:
+def join_on(*texts: SequenceTypes + (str,), delimiter: str) -> str:
     '''
     Join the passed strings with the passed separating delimiter.
 
     This is a convenience function wrapping the standard
     `"...".join((...))` method, whose syntax is arguably overly obfuscated.
+
+    Parameters
+    ----------
+    texts : tuple
+        Tuple of all all strings to be joined, consisting of either:
+        * One or more strings.
+        * One sequence of strings.
+    delimiter : str
+        Substring to join each such string on.
+
+    Returns
+    ----------
+    str
+        String joined from the passed strings with the passed delimiter.
     '''
 
     # If only one object was passed and such object is a non-string iterable
@@ -483,7 +497,7 @@ def shell_quote(text: str) -> str:
     # Windows is POSIX-incompatible and hence does *NOT* parse command-line
     # arguments according to POSIX standards. In particular, Windows does *NOT*
     # treat single-quoted arguments as single arguments but rather as multiple
-    # shell words delimited by the raw literal `'`.  This is circumventable by
+    # shell words delimited by the raw literal `'`. This is circumventable by
     # calling an officially undocumented Windows-specific function. (Awesome.)
     if oses.is_windows():
         import subprocess

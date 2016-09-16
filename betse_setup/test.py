@@ -264,59 +264,78 @@ class test(Command):
             '--maxfail=1',
         ]
 
-        # If the optional third-party "pytest-xdist" plugin is installed, pass
-        # options specific to this plugin implicitly parallelizing tests to a
-        # number of processors (hopefully) autodetected at runtime.
-        if util.is_module('xdist'):
-            #FIXME: Remove after "pytest-xdist" adds support for isolating
-            #specific tests to the same slave.
+        #FIXME: Disable "xdist" if at least one serial test exists. Currently,
+        #none do. Theoretically, they could. They once did and certaily could
+        #again. Serial functional tests assume that all tests to be serialized
+        #are run in the same Python process. "pytest-xdist" currently provides
+        #no means of doing so; instead, "pytest-xdist" assigns all tests to
+        #arbitrary test slaves and hence Python processes. Until "pytest-xdist"
+        #permits tests to be isolated to the same test slave, "pytest-xdist"
+        #must *NOT* be enabled. Non-fatal warning to output might resemble:
+        #    util.output_warning(
+        #        'py.test plugin "pytest-xdist" fails to support serial tests.')
+        #    util.output_warning(
+        #        'Tests will *NOT* be parallelized across multiple processors.')
 
-            # Serial functional tests assume that all tests to be serialized are
-            # run in the same Python process. "pytest-xdist" currently provides
-            # no means of doing so; instead, "pytest-xdist" assigns all tests
-            # to arbitrary test slaves and hence Python processes. Until
-            # "pytest-xdist" permits tests to be isolated to the same test
-            # slave, "pytest-xdist" must *NOT* be enabled.
+        # True only if the optional third-party "pytest-xdist" plugin is both
+        # importable and *NOT* explicitly disabled below (e.g., due to the end
+        # user having passed CLI options incompatible with this plugin).
+        is_xdist = util.is_module('xdist')
+
+        # If this plugin is unimportable, print a non-fatal warning. Due to the
+        # cost of running tests, parallelization is highly recommended.
+        if not is_xdist:
             util.output_warning(
-                'py.test plugin "pytest-xdist" fails to support serial tests.')
+                'Optional py.test plugin "pytest-xdist" not found.')
             util.output_warning(
                 'Tests will *NOT* be parallelized across multiple processors.')
-
-            #FIXME: Uncomment after "pytest-xdist" adds support for isolating
-            #specific tests to the same slave.
-            # pytest_args.extend(['-n', 'auto'])
-        # Else, print a non-fatal warning. Due to the cost of running tests,
-        # parallelization is highly recommended.
-        else:
-            pass
-            #FIXME: Uncomment after "pytest-xdist" adds support for isolating
-            #specific tests to the same slave.
-            # util.output_warning(
-            #     'Optional py.test plugin "pytest-xdist" not found.')
-            # util.output_warning(
-            #     'Tests will *NOT* be parallelized across multiple processors.')
 
         # Pass options passed to this subcommand to this py.test command,
         # converting long option names specific to this subcommand (e.g.,
         # "--no-capture") to short option names recognized by py.test (e.g.,
         # "-s"). Sadly, py.test typically recognizes only the latter.
         #
-        # Do this *AFTER* adding "pytest-xdist" options above. Why? Because
-        # "pytest-xdist" currently fails to respect:
-        #
-        # * Capture redirection (e.g., "-s", "--capture=no"). For details, see:
-        #   https://github.com/pytest-dev/pytest/issues/680
+        # If the "-s" option is passed...
         if self.no_capture is not None:
+            # If "pytest-xdist" is importable, print a non-fatal warning.
+            # This plugin silently ignores all capture redirection CLI options,
+            # including "-s", "--no-capture", and "--capture" options. It
+            # appears unlikely that this will ever be solved. For details, see:
+            # https://github.com/pytest-dev/pytest/issues/680
+            if is_xdist:
+                # Print a non-fatal warning.
+                util.output_warning(
+                    'Option "-s" unsupported by py.test plugin "pytest-xdist".')
+                util.output_warning(
+                    'Tests will *NOT* be parallelized across '
+                    'multiple processors.')
+
+                # Disable this plugin. While parallelization is important,
+                # respecting end user wishes with respect to capture redirection
+                # is paramount and hence takes precedence.
+                is_xdist = False
+
+            # Pass the "-s" option to py.test.
             pytest_args.append('-s')
             # pytest_args.append('--capture=no')
 
-            # If the "-n" option specific to "pytest-xdist" is passed, print a
-            # non-fatal warning notifying the user of this..
-            if '-n' in pytest_args:
-                util.output_warning(
-                    'Option "-s" unsupported by py.test plugin "pytest-xdist".')
+        # If the "-k" option is passed, pass this option as is to py.test.
         if self.match_name is not None:
             pytest_args.extend(['-k', util.shell_quote(self.match_name)])
+
+        # If "pytest-xdist" is both importable and *NOT* explicitly disabled...
+        if is_xdist:
+            # Notify the user of test parallelization.
+            print('Optional py.test plugin "pytest-xdist" found.')
+            print('Tests will be parallelized across all available processors.')
+
+            #FIXME: Disabled for the moment. "xdist" appears to be inexplicably
+            #failing with non-human-readable exceptions. The lack of official
+            #support for test parallelization in py.test is becoming clear.
+
+            # Instruct "pytest-xdist" to autodetect and parallelize tests to all
+            # available processors.
+            # pytest_args.extend(['-n', 'auto'])
 
         # Run py.test, propagating its exit status as our own up to the caller.
         print('Running py.test with arguments: {}'.format(pytest_args))

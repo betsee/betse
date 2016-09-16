@@ -338,14 +338,14 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                     'Parameter {} reserved for use by @type_check.'.format(
                         func_arg.name))
 
-            # If this parameter is both annotated and non-ignorable for purposes
-            # of type checking, type check this parameter.
+            # If this parameter is both annotated and non-ignorable for
+            # purposes of type checking, type check this parameter.
             if (func_arg.annotation is not Parameter.empty and
                 func_arg.kind not in _PARAMETER_KIND_IGNORED):
                 # Validate this annotation.
                 _check_type_annotation(
                     annotation=func_arg.annotation,
-                    label='{} parameter {} type'.format(
+                    label='{} parameter "{}" type'.format(
                         func_name, func_arg.name))
 
                 # String evaluating to this parameter's annotated type.

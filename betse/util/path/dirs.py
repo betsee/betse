@@ -11,7 +11,7 @@ Low-level directory facilities.
 import os, shutil
 from betse.exceptions import BetseDirException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, GeneratorType
 from contextlib import contextmanager
 from os import path
 
@@ -78,7 +78,7 @@ def set_current(dirname: str) -> None:
 
     This function permanently changes the CWD for the remainder of this process.
     For a robust alternative changing the CWD for a single code block, consider
-    using the `current()` context manager instead.
+    using the :func:`current` context manager instead.
 
     Parameters
     -----------
@@ -95,7 +95,7 @@ def set_current(dirname: str) -> None:
 # ....................{ CONTEXTS                           }....................
 @contextmanager
 @type_check
-def current(dirname: str):
+def current(dirname: str) -> GeneratorType:
     '''
     Context manager setting the **current working directory** (CWD) of the
     active Python process to the passed directory for the duration of this
@@ -123,19 +123,19 @@ def current(dirname: str):
     See Also
     -----------
     https://stackoverflow.com/a/24176022/2809027
-        cdunn2001's stackoverflow answer, from which this function's
-        implementation is heavily inspired. Thanks, cdunn2001!
+        StackOverflow answer strongly inspiring this implementation.
 
     Examples
     -----------
     >>> from betse.util.paths import dirs
     >>> print('CWD: ' + dirs.get_current_dirname())
     CWD: /home/azrael
-    >>> with dirs.current('/home/uriel/urial/nuriel/uryan/jeremiel')
+    >>> with dirs.current('/home/uriel/urial/nuriel/uryan/jeremiel'):
     ...     print('CWD: ' + dirs.get_current_dirname())
-    CWD: /home/uriel/urial/nuriel/uryan/jeremiel
     ...     raise ValueError(
     ...         'But unknown, abstracted, brooding secret the dark power hid')
+    CWD: /home/uriel/urial/nuriel/uryan/jeremiel
+    ValueError: But unknown, abstracted, brooding secret the dark power hid.
     >>> print('CWD: ' + dirs.get_current_dirname())
     CWD: /home/azrael
     '''
