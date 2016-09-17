@@ -72,9 +72,9 @@ typically execute the same external command (e.g., `ffmpeg`), this dictionary
 maps from the latter rather than the former. Mapping from the former would
 needlessly require redundant mappings for writers sharing the same command.
 
-This dictionary is principally used by the `get_first_codec_name_supported()`
-getter function to obtain the preferred codec for a given combination of video
-writer and container format.
+This dictionary is principally used by the
+:func:`get_first_codec_name_supported` getter function to obtain the preferred
+codec for a given combination of video writer and container format.
 '''
 
 # ....................{ INITIALIZERS                       }....................
@@ -94,7 +94,7 @@ def init() -> None:
             # Audio Video Interleave (AVI). AVI supports the smallest subset of
             # MPEG-centric codecs of all recognized container formats and hence
             # serves as the baseline for listing such codecs.
-            'avi': [
+            'avi': (
                 # H.264 / AVC / MPEG-4 Part 10.
                 'libx264',
                 # MPEG-4 Part 2 Advanced Simple Profile (ASP) via an external
@@ -114,10 +114,10 @@ def init() -> None:
                 'h263',
                 # MPEG-2.
                 'mpeg2video',
-            ],
+            ),
 
             # Graphics Interchange Format (GIF).
-            'gif': ['gif'],
+            'gif': ('gif',),
 
             # Matroska.
             'mkv': None,
@@ -129,10 +129,10 @@ def init() -> None:
             'mp4': None,
 
             # Theora.
-            'ogv': ['libtheora'],
+            'ogv': ('libtheora',),
 
             # WebM.
-            'webm': [
+            'webm': (
                 #FIXME: As of this writing (i.e., mid-2016), VP-9 is poorly
                 #supported in media players (e.g., mpv, vlc) and hence disabled.
                 #Reevaluate and consider enabling this otherwise sensible
@@ -140,7 +140,7 @@ def init() -> None:
                 # 'libvpx-vp9',  # WebM VP-9
 
                 'libvpx',      # WebM VP-8
-            ],
+            ),
         },
 
         # Libav.
@@ -156,7 +156,7 @@ def init() -> None:
         # functionality in the matplotlib codebase attempts to erroneously
         # encode anything with ImageMagick using a codec.
         'convert': {
-            'gif': [None],
+            'gif': (None,),
         }
     }
 
@@ -168,10 +168,10 @@ def init() -> None:
     # For FFmpeg, define the set of all codecs supported by the "mp4" (i.e.,
     # MPEG-4 Part 14) and "mov" (i.e., QuickTime) container formats to be the
     # same superset of those supported by the now-obsolete AVI container format.
-    codec_names['ffmpeg']['mp4'] = codec_names['ffmpeg']['avi'] + [
+    codec_names['ffmpeg']['mp4'] = codec_names['ffmpeg']['avi'] + (
         # H.265 / HEVC / MPEG-H Part 2.
         'hevc',
-    ]
+    )
     codec_names['ffmpeg']['mov'] = codec_names['ffmpeg']['mp4']
 
     # For FFmpeg, define the set of all codecs supported by the "mkv" (i.e.,
@@ -309,7 +309,7 @@ def is_writer(writer_name: str) -> bool:
 
     See Also
     ----------
-    is_writer_betse, is_writer_mpl
+    :func:`is_writer_betse`, :func:`is_writer_mpl`
         Further details.
     '''
 
@@ -442,8 +442,9 @@ def is_writer_command_codec(
     '''
 
     # Log this detection attempt.
-    logs.log_debug('Detecting video encoder "{}" codec "{}"...'.format(
-        writer_basename, codec_name))
+    logs.log_debug(
+        'Detecting video encoder "%s" codec "%s"...',
+        writer_basename, codec_name)
 
     # Absolute path of this command.
     writer_filename = get_writer_command_filename(writer_basename)
@@ -493,15 +494,13 @@ def is_writer_command_codec(
         # Help documentation for all codecs captured from "mencoder".
         mencoder_codecs_help = runners.run_capturing_stdout(command_words=(
             writer_filename, '-ovc', 'help'))
+        # print('mencoder codecs help: ' + mencoder_codecs_help)
 
         # If this output contains a line resembling the following, this
         # installation of Mencoder supports the requisite "lavc" codec:
         #     lavc     - libavcodec codecs - best quality!
-        if regexes.is_match(
-            text=mencoder_codecs_help,
-            regex=r'^\s*lavc\s+',
-            flags=regexes.MULTILINE,
-        ):
+        if regexes.is_match_line(
+            text=mencoder_codecs_help, regex=r'^\s+lavc\s+'):
             # If the "ffmpeg" command is installed on the current system, query
             # that command for whether or not the passed codec is supported.
             # Note that the recursion bottoms out with this call, as the above
@@ -656,13 +655,15 @@ def get_first_codec_name(
     writer_name: str,
     container_filetype: str,
     codec_names: SequenceTypes,
-) -> str:
+) -> (str, NoneType):
     '''
     Get the name of the first video codec (e.g., `libx264`) in the passed list
     supported by both the encoder with the passed matplotlib-specific name
-    (e.g., `ffmpeg`) and the video container with the passed filetype (e.g.,
-    `mkv`, `mp4`) if any _or_ raise an exception otherwise (i.e., if no such
-    codecs are supported by both this encoder and container).
+    (e.g., `ffmpeg`) and the container format with the passed filetype (e.g.,
+    `mkv`, `mp4`) if that writer supports codecs (as most do), `None` if this
+    writer supports no codecs (e.g., `imagemagick`) and the passed list contains
+    `None`, _or_ raise an exception otherwise (i.e., if no passed codecs are
+    supported by both this writer and container format).
 
     This function iteratively searches for video codecs in the same order as
     listed in the passed list as follows:
@@ -730,16 +731,16 @@ def get_first_codec_name(
             'matplotlib animation video writer "{}".'.format(
                 container_filetype, writer_name))
 
+    # List of the names of all popular codecs supported by this writer (in
+    # descending order of general-purpose preference).
+    auto_codec_names = container_filetype_to_codec_names[container_filetype]
+    print('writer_name: {}; auto_codec_names: {}'.format(writer_name, auto_codec_names))
+
     # For the name of each passed codec...
     for codec_name in codec_names:
         # If this is the BETSE-specific name "auto"...
         if codec_name == 'auto':
-            # List of the names of all widely used video codecs supported by
-            # this writer (in descending order of general-purpose preference).
-            auto_codec_names = container_filetype_to_codec_names[
-                container_filetype]
-
-            # For each such name...
+            # For the name of each popular codec supported by this writer...
             for auto_codec_name in auto_codec_names:
                 # If this writer supports this codec, return this name.
                 if is_writer_command_codec(writer_basename, auto_codec_name):

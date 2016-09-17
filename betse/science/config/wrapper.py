@@ -214,7 +214,7 @@ class SimConfigWrapper(object):
         results['after solving']['animations']['show'] = False
 
     # ..................{ ENABLERS                           }..................
-    def enable_visuals(self) -> None:
+    def enable_visuals_all(self) -> None:
         '''
         Enable all supported plots and animations _and_ all features required by
         these plots and animations.
@@ -318,10 +318,10 @@ class SimConfigWrapper(object):
         Parameters
         ----------
         writer_name : str
-            Name of the preferred matplotlib animation writer with which to
-            encode video (e.g., `ffmpeg`, `imagemagick`).
+            Name of the matplotlib animation writer with which to encode video
+            (e.g., `ffmpeg`, `imagemagick`).
         filetype : str
-            Filetype of the compressed videos to encode (e.g., `mkv`, `mp4`).
+            Filetype of videos to encode with this writer (e.g., `mkv`, `mp4`).
         '''
 
         # Enable animations and animation saving in the general sense.

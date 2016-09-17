@@ -320,8 +320,11 @@ class test(Command):
             # pytest_args.append('--capture=no')
 
         # If the "-k" option is passed, pass this option as is to py.test.
+        #
+        # Avoid shell-quoting this option. Doing so unnecessarily adds an
+        # additional level of quoting... which is bad.
         if self.match_name is not None:
-            pytest_args.extend(['-k', util.shell_quote(self.match_name)])
+            pytest_args.extend(('-k', self.match_name,))
 
         # If "pytest-xdist" is both importable and *NOT* explicitly disabled...
         if is_xdist:

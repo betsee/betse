@@ -21,9 +21,6 @@ def is_pathable(command_basename: str) -> bool:
     `True` only if an external command with the passed basename exists (i.e.,
     corresponds to an executable file in the current `${PATH}`).
 
-    If the passed string contains a directory separator and hence is _not_ a
-    basename, an exception is raised.
-
     Parameters
     ----------
     command_basename : str
@@ -34,6 +31,13 @@ def is_pathable(command_basename: str) -> bool:
     BetsePathException
         If the passed string is _not_ a basename (i.e., contains one or more
         directory separators).
+
+    See Also
+    ----------
+    :func:`betse.util.path.command.commands.is_command`
+        A more general-purpose and hence generally useful tester returning
+        whether a command with the passed path (regardless of whether that
+        path is a basename) exists.
     '''
 
     # Avoid circular import dependencies.

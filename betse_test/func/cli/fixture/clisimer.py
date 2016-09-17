@@ -151,9 +151,6 @@ class CLISimTester(object):
             comprising the BETSE CLI subcommand to be tested).
         '''
 
-        # Defer heavyweight imports.
-        from betse.util.type import strs
-
         # Temporarily change the CWD to this simulation file's directory.
         with self.sim_state.context():
             # Print these arguments as a single-line banner.
@@ -162,8 +159,10 @@ class CLISimTester(object):
             # Append the absolute path of this runner's configuration file to
             # the passed tuple of arguments. While inefficient, converting this
             # tuple into a list would be even more inefficient.
-            subcommand_args += (
-                strs.shell_quote(self.sim_state.config.filename),)
+            #
+            # Avoid shell-quoting this path. Doing so unnecessarily adds an
+            # additional level of quoting... which is bad.
+            subcommand_args += (self.sim_state.config.filename,)
 
             # Run this subcommand.
             self.cli_tester.run(*subcommand_args)

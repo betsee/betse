@@ -34,7 +34,8 @@ By default:
 # ....................{ TESTERS                            }....................
 def is_match(text: str, regex: (str, Pattern), **kwargs) -> bool:
     '''
-    `True` only if the passed string matches the passed regular expression.
+    `True` only if zero or more characters anchored to the beginning of the
+    passed string match the passed regular expression.
 
     Parameters
     ----------
@@ -45,8 +46,8 @@ def is_match(text: str, regex: (str, Pattern), **kwargs) -> bool:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
 
-    This function accepts the same optional keyword arguments as
-    :func:`re.match`.
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
 
     Returns
     ----------
@@ -56,12 +57,42 @@ def is_match(text: str, regex: (str, Pattern), **kwargs) -> bool:
 
     return get_match_if_any(text, regex, **kwargs) is not None
 
+
+def is_match_line(text: str, regex: (str, Pattern), **kwargs) -> bool:
+    '''
+    `True` only if at least one line of the passed string match the passed
+    regular expression.
+
+    This function implicitly enables the :data:`FLAG_MULTILINE` flag for this
+    match, ensuring that `^` and `$` match both at the start and end of this
+    string _and_ at the start and end of each line of this string.
+
+    Parameters
+    ----------
+    text : str
+        String to match.
+    regex : str, Pattern
+        Regular expression to be matched. This object should be either of type:
+        * `str`, signifying an uncompiled regular expression.
+        * `Pattern`, signifying a compiled regular expression object.
+
+    This function accepts the same optional keyword arguments as the
+    :func:`re.search` function.
+
+    Returns
+    ----------
+    bool
+        `True` only if this string matches this regular expression.
+    '''
+
+    return get_match_line_if_any(text, regex, **kwargs) is not None
+
 # ....................{ MATCHERS ~ group : named           }....................
 def get_match_groups_named(text: str, regex: (str, Pattern), **kwargs) -> list:
     '''
-    Dictionary mapping explicitly named groups to substrings matched from the
-    passed string against the passed regular expression if a match exists or
-    raise an exception otherwise.
+    Dictionary mapping explicitly named groups to substrings matched anchored to
+    the beginning of the passed string against the passed regular expression if
+    a match exists or raise an exception otherwise.
 
     Unmatched groups will have the value `None`. Unnamed (i.e., only numbered)
     groups will be ignored and hence absent from this dictionary, regardless of
@@ -77,8 +108,8 @@ def get_match_groups_named(text: str, regex: (str, Pattern), **kwargs) -> list:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
 
-    This function accepts the same optional keyword arguments as
-    :func:`re.match`.
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
 
     Returns
     ----------
@@ -102,9 +133,10 @@ def get_match_groups_named(text: str, regex: (str, Pattern), **kwargs) -> list:
 def get_match_groups_numbered(
     text: str, regex: (str, Pattern), **kwargs) -> list:
     '''
-    List of all groups matched from the passed string against the passed regular
-    expression, ordered by the left-to-right lexical position at which each such
-    group was matched, if a match exists or raise an exception otherwise.
+    List of all groups matched anchored to the beginning of the passed string
+    against the passed regular expression (ordered by the left-to-right lexical
+    position at which each such group was matched) if any _or_ raise an
+    exception otherwise.
 
     Unmatched groups will have the value `None`.
 
@@ -117,8 +149,8 @@ def get_match_groups_numbered(
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
 
-    This function accepts the same optional keyword arguments as
-    :func:`re.match`.
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
 
     Returns
     ----------
@@ -142,9 +174,9 @@ def get_match_groups_numbered(
 def get_match_groups_numbered_if_any(
     text: str, regex: (str, Pattern), **kwargs) -> list:
     '''
-    List of all groups matched from the passed string against the passed regular
-    expression, ordered by the left-to-right lexical position at which each such
-    group was matched, if a match exists or `None` otherwise.
+    List of all groups matched anchored to the beginning of the passed string
+    against the passed regular expression (ordered by the left-to-right lexical
+    position at which each such group was matched) if any _or_ `None` otherwise.
 
     Unmatched groups will have the value `None`.
 
@@ -157,8 +189,8 @@ def get_match_groups_numbered_if_any(
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
 
-    This function accepts the same optional keyword arguments as
-    :func:`re.match`.
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
 
     Returns
     ----------
@@ -177,8 +209,9 @@ def get_match_groups_numbered_if_any(
 # ....................{ MATCHERS ~ object                  }....................
 def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
     '''
-    Match object obtained by matching the passed string against the passed
-    regular expression if any match exists _or_ raise an exception otherwise.
+    Match object obtained by matching zero or more characters anchored to the
+    beginning of the passed string against the passed regular expression if any
+    match exists _or_ raise an exception otherwise.
 
     Parameters
     ----------
@@ -189,8 +222,8 @@ def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
 
-    This function accepts the same optional keyword arguments as
-    :func:`re.match`.
+    This function accepts the same optional keyword arguments as the
+    :func:`re.match` function.
 
     Returns
     ----------
@@ -225,8 +258,9 @@ def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
 @type_check
 def get_match_if_any(text: str, regex: (str, Pattern), **kwargs):
     '''
-    Match object obtained by matching the passed string against the passed
-    regular expression if any match exists _or_ `None` otherwise.
+    Match object obtained by matching zero or more characters anchored to the
+    beginning of the passed string against the passed regular expression if any
+    match exists _or_ `None` otherwise.
 
     Parameters
     ----------
@@ -264,6 +298,59 @@ def get_match_if_any(text: str, regex: (str, Pattern), **kwargs):
 
     # Match group of this string against this expression.
     return re.match(regex, text, **kwargs)
+
+# ....................{ MATCHERS ~ object : line           }....................
+@type_check
+def get_match_line_if_any(text: str, regex: (str, Pattern), **kwargs):
+    '''
+    Match object obtained by matching the passed string against the passed
+    regular expression in a line-oriented manner if any such match exists _or_
+    `None` otherwise.
+
+    To ensure that only single lines are matched, this regular expression should
+    typically be anchored to the start and/or end of this string and each line
+    of this string via the `^` and `$` special characters.
+
+    Parameters
+    ----------
+    text : str
+        String to match.
+    regex : str, Pattern
+        Regular expression to be matched. This object should be either of type:
+        * `str`, signifying an uncompiled regular expression.
+        * `Pattern`, signifying a compiled regular expression object.
+
+    This function accepts the same optional keyword arguments as the
+    :func:`re.search` function.
+
+    Match Flags
+    ----------
+    For convenience, the following match flags will be enabled by default:
+
+    * `re.DOTALL`, forcing the `.` special character to match any character
+      including newline. By default, this character matches any character
+      excluding newline. The former is almost always preferable, however.
+    * `re.MULTILINE`, forcing the `^` and `$` special characters to match both
+      at the start and end of this string _and_ at the start and end of each
+      line of this string. By default, these characters match only at the
+      former. Line-oriented requires both, however.
+
+    Returns
+    ----------
+    re.SRE_Match, None
+        The match object if a match exists _or_ `None` otherwise.
+
+    See Also
+    ----------
+    https://docs.python.org/3/library/re.html#re.search
+        Further details on regular expressions and keyword arguments.
+    '''
+
+    # Sanitize the passed match flags.
+    _init_kwargs_flags_line(kwargs)
+
+    # Match group of this string against this expression.
+    return re.search(regex, text, **kwargs)
 
 # ....................{ ITERATORS                          }....................
 def iter_matches(text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
@@ -390,9 +477,23 @@ def _init_kwargs_flags(kwargs: MappingType) -> None:
     '''
     Sanitize the list of match flags in the passed dictionary.
 
-    Specifically, this function adds the `re.DOTALL` flag to the integer value
-    corresponding to the `flags` key of this dictionary, defaulting to zero if
-    currently unset.
+    Specifically, this function adds the :data:`re.DOTALL` flag to the integer
+    value of the `flags` key of this dictionary (defaulting to zero if currently
+    unset).
     '''
 
     kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL
+
+
+@type_check
+def _init_kwargs_flags_line(kwargs: MappingType) -> None:
+    '''
+    Sanitize the list of match flags in the passed dictionary for line-oriented
+    matching.
+
+    Specifically, this function adds both the :data:`re.DOTALL` and
+    :data:`re.MULTILINE` flags to the integer value of the `flags` key of this
+    dictionary (defaulting to zero if currently unset).
+    '''
+
+    kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL | re.MULTILINE

@@ -13,14 +13,29 @@ on whether the conditions signified by the passed parameters are satisfied
 
 # ....................{ IMPORTS                            }....................
 import pytest
-from betse.util.type import types
+from betse.util.type.types import type_check
 
 # ....................{ IMPORTS ~ private                  }....................
 # Sadly, the following imports require private modules and packages.
 from _pytest.runner import Skipped
 
 # ....................{ SKIP                               }....................
-def skip(reason: str) -> callable:
+skip_if = pytest.mark.skipif
+'''
+Conditionally skip the decorated test with the passed human-readable
+justification if the passed boolean is `False`.
+
+Parameters
+----------
+boolean : bool
+    Boolean to be tested.
+reason : str
+    Human-readable message justifying the skipping of this test.
+'''
+
+
+@type_check
+def skip(reason: str):
     '''
     Unconditionally skip the decorated test with the passed human-readable
     justification.
@@ -42,26 +57,81 @@ def skip(reason: str) -> callable:
     reason : str
         Human-readable message justifying the skipping of this test.
     '''
-    assert types.is_str_nonempty(reason), (
-        types.assert_not_str_nonempty(reason, 'Reason'))
 
     return skip_if(True, reason=reason)
 
+# ....................{ SKIP ~ command                     }....................
+@type_check
+def skip_unless_command(pathname: str):
+    '''
+    Skip the decorated test unless a command with the passed path exists.
 
-skip_if = pytest.mark.skipif
-'''
-Conditionally skip the decorated test with the passed human-readable
-justification if the passed boolean is `False`.
+    This is the case if this path is neither:
 
-Parameters
-----------
-boolean : bool
-    Boolean to be tested.
-reason : str
-    Human-readable message justifying the skipping of this test.
-'''
+    * The basename of an executable file in the current `${PATH}`.
+    * The relative or absolute path of an executable file.
+
+    This decorator is typically applied to tests requiring optional third-party
+    external commands.
+
+    Parameters
+    ----------
+    pathname : str
+        Basename or absolute or relative path of the executable file to inspect.
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet _or_ the identity
+        decorator successfully reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.util.path.command import commands
+    from betse.util.type.decorators import noop
+
+    # If this command exists, reduce this decoration to a noop.
+    if commands.is_command(pathname):
+        return noop
+    # Else, skip this test with a human-readable justification.
+    else:
+        return skip('Command "{}" not found.'.format(pathname))
+
+# ....................{ SKIP ~ lib                         }....................
+@type_check
+def skip_unless_matplotlib_anim_writer(writer_name: str):
+    '''
+    Skip the decorated test unless the external command underlying the
+    matplotlib animation writer with the passed name is in the current `${PATH}`
+    (e.g., for the "imagemagick" writer, if the "convert" command  is found).
+
+    Parameters
+    ----------
+    writer_name : str
+        Name of the matplotlib animation writer to be inspected.
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet _or_ the identity
+        decorator successfully reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.lib.matplotlib.writer import mplvideo
+    from betse.util.type.decorators import noop
+
+    # If this command exists, reduce this decoration to a noop.
+    if mplvideo.is_writer(writer_name):
+        return noop
+    # Else, skip this test with a human-readable justification.
+    else:
+        return skip(
+            'Matplotlib animation writer "{}" either not found or '
+            'unrecognized by BETSE.'.format(writer_name))
 
 # ....................{ SKIP ~ module                      }....................
+@type_check
 def skip_unless_module(module_name: str, minimum_version: str = None):
     '''
     Skip the decorated test if the module with the passed name is unimportable
@@ -86,24 +156,20 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
         Decorator describing these requirements if unmet _or_ the identity
         decorator reducing to a noop otherwise.
     '''
-    assert types.is_str_nonempty(module_name), (
-        types.assert_not_str_nonempty(module_name, 'Module name'))
-    assert types.is_str_nonempty_or_none(minimum_version), (
-        types.assert_not_str_nonempty_or_none(
-            minimum_version, 'Minimum version'))
+
+    # Defer heavyweight imports.
+    from betse.util.io import stderrs
+    from betse.util.type.decorators import noop
 
     # Attempt to import this module and module version.
     try:
         pytest.importorskip(module_name, minimum_version)
-    # If unimportable, skip this test.
+    # If this module is unimportable, skip this test.
     except Skipped as exc:
         return skip(str(exc))
-    # If an unexpected exception was raised, skip this test with a stack trace.
+    # If an unexpected exception is raised...
     except Exception as exc:
-        # Defer heavyweight imports to their point of use.
-        from betse.util.io import stderrs
-
-        # Print this exception's stack trace to stderr.
+        # Print this exception's stacktrace to stderr.
         stderrs.output_exception(heading=(
             'skip_unless_module({}, {}) '
             'raised unexpected exception:\n'.format(
@@ -113,18 +179,7 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
         return skip(str(exc))
     # Else, this module is importable. Reduce this decoration to a noop.
     else:
-        return identity
-
-
-def identity(obj: object) -> object:
-    '''
-    Return the passed object unmodified.
-
-    This function is typically used as the **identity decorator** (i.e.,
-    decorator returning the decorated object unmodified).
-    '''
-
-    return obj
+        return noop
 
 # ....................{ SKIP ~ plugin                      }....................
 skip_unless_plugin_xdist = skip_unless_module('xdist')

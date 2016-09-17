@@ -25,12 +25,12 @@ This global caches the return value of the frequently called
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_command(pathname: str) -> None:
     '''
-    Raise an exception unless the passed path is that of command.
+    Raise an exception unless a command with the passed path exists.
 
     Parameters
     ----------
     pathname : str
-        Absolute or relative path of the command to inspect.
+        Basename or absolute or relative path of the executable file to inspect.
 
     See Also
     ----------
@@ -46,14 +46,17 @@ def die_unless_command(pathname: str) -> None:
 @type_check
 def is_command(pathname: str) -> None:
     '''
-    `True` only if the passed path is that of a **command** (i.e., is either the
-    basename of an executable file in the current `${PATH}` _or_ the relative or
-    absolute path of an executable file).
+    `True` only if a command with the passed path exists.
+
+    This is the case if this path is either:
+
+    * The basename of an executable file in the current `${PATH}`.
+    * The relative or absolute path of an executable file.
 
     Parameters
     ----------
     pathname : str
-        Absolute or relative path of the executable file to inspect.
+        Basename or absolute or relative path of the executable file to inspect.
     '''
 
     # Avoid circular import dependencies.

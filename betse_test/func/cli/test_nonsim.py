@@ -59,9 +59,6 @@ def test_cli_config(
         `py.path.local` instance encapsulating a new temporary directory.
     '''
 
-    # Defer heavyweight imports.
-    from betse.util.type import strs
-
     # Create this temporary directory and wrap this directory's absolute path
     # with a high-level "py.path.local" object.
     sim_config_dirpath = tmpdir_factory.mktemp('config')
@@ -69,8 +66,9 @@ def test_cli_config(
     # Absolute path of this configuration file in this temporary directory.
     sim_config_filepath = sim_config_dirpath.join('sim_config.yaml')
 
-    # Create this file.
-    betse_cli.run('config', strs.shell_quote(str(sim_config_filepath)))
+    # Create this file. (Avoid shell-quoting this path. Doing so unnecessarily
+    # adds an additional level of quoting... which is bad.)
+    betse_cli.run('config', str(sim_config_filepath))
 
     # Assert this file to have been created.
     assert sim_config_filepath.check(file=1)

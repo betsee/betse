@@ -169,4 +169,9 @@ def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITester:
         Object running arbitrary BETSE CLI subcommands.
     '''
 
+    # Print a newline, ensuring that the first line of stderr or stdout printed
+    # by the BETSE CLI is visually offset from current py.test output.
+    print()
+
+    # Create and return a new BETSE CLI test runner.
     return CLITester()

@@ -53,9 +53,20 @@ See Also
 '''
 
 
+ContainerType = Container
+'''
+Abstract interface implemented by all **containers** (i.e., objects
+implementing the standard `__contains__()` method internally called by the
+`in` operator).
+
+This class is a synonym of the `collections.abc.Container` class, provided
+merely as a convenience to callers preferring to avoid importing that class.
+'''
+
+
 HashableType = Hashable
 '''
-Abstract interface implemented by all **hashable objects** (i.e., implementing
+Abstract interface implemented by all **hashables** (i.e., objects implementing
 the standard `__hash__()` method required by all dictionary keys).
 
 This class is a synonym of the `collections.abc.Hashable` class, provided
@@ -65,9 +76,9 @@ merely as a convenience to callers preferring to avoid importing that class.
 
 IteratorType = Iterator
 '''
-Abstract interface implemented by all **iterator objects** (i.e., implementing
-the standard `__iter__()` and `__next__()` methods implementing iteration over
-some container).
+Abstract interface implemented by all **iterators** (i.e., objects implementing
+the standard `__iter__()` and `__next__()` methods, typically iterating over an
+associated container).
 
 This class is a synonym of the `collections.abc.Iterator` class, provided
 merely as a convenience to callers preferring to avoid importing that class.
@@ -76,7 +87,8 @@ merely as a convenience to callers preferring to avoid importing that class.
 
 MappingType = Mapping
 '''
-Abstract interface implemented by all dictionary-like objects.
+Abstract interface implemented by all dictionary-like objects, both mutable and
+immutable.
 
 This class is a synonym of the `collections.abc.Mapping` class, provided merely
 as a convenience to callers preferring to avoid importing that class.
@@ -119,7 +131,7 @@ a convenience to callers preferring to avoid importing that class.
 
 SizedType = Sized
 '''
-Abstract interface implemented by all container objects defining the special
+Abstract interface implemented by all containers defining the special
 `__len__()` method internally called by the :func:`len` builtin.
 
 This class is a synonym of the `collections.abc.Sized` class, provided merely

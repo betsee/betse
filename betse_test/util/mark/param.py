@@ -15,9 +15,12 @@ inspected _only_ by BETSE-specific py.test hooks defined by `conftest` plugins.
 import itertools, pytest
 from betse_test.exceptions import BetseTestParamException
 from betse.util.type.types import (
-    type_check, CallableTypes, MappingType, SequenceTypes,)
+    type_check, CallableTypes, ContainerType, MappingType, SequenceTypes,)
 
 # ....................{ PARAMS                             }....................
+#FIXME: For disambiguity with the hypothetical @parametrize_test_setwise
+#decorator outlined below, rename this to @parametrize_test_paramwise.
+
 # Outer decorator accepting all parameters explicitly passed to this decorator.
 @type_check
 def parametrize_test(
@@ -110,7 +113,7 @@ def parametrize_test(
     ...     },
     ...     ids=('bad-dragons', 'good-dragons',),
     ... )
-    ... def test_fixture_params(
+    ... def test_great_dragons(
     ...     western_dragon: str, eastern_dragon: str, feathered_serpent: str):
     ...     assert western_dragon in ('Celedyr', 'Hestaby',)
     ...     assert eastern_dragon in ('Masaru', 'Ryumyo',)
@@ -194,7 +197,7 @@ def parametrize_test(
                 'number of parametrization identifiers {} differs from '
                 'number of parametrizations {}.'.format(
                  test_callable.__name__, len(ids), len(param_fixture_values)))
-        print('\n    test: {}; param_names: {!r}; values: {!r}; fixtures: {!r}; ids: {!r}'.format(test_callable.__name__, param_fixture_names, param_fixture_values, fixture_names, ids))
+        # print('\n    test: {}; param_names: {!r}; values: {!r}; fixtures: {!r}; ids: {!r}'.format(test_callable.__name__, param_fixture_names, param_fixture_values, fixture_names, ids))
 
         # Defer to the canonical parametrize() decorator.
         return pytest.mark.parametrize(
@@ -206,6 +209,157 @@ def parametrize_test(
 
     # Return this inner closure.
     return _parametrize_test_fixtures_inner
+
+# ....................{ PARAMS ~ setwise                   }....................
+# Outer decorator accepting all parameters explicitly passed to this decorator.
+
+#FIXME: Actually implement. See the "Examples" docstring section for the
+#intended usage of this decorator; basically, it provides an alternative means
+#(and arguably equally intuitive) of parametrizing tests to the above
+#parametrize_test() decorator.
+#FIXME: The principal disadvantage of both this and the above
+#parametrize_test() decorator is that neither supports the fine-grained
+#specification of specific parametrizations to be either skipped or xfailed, as
+#supported by the lower-level @pytest.mark.parametrize decorator. See the
+#following official py.test documentation for a useful example:
+#    http://doc.pytest.org/en/latest/skipping.html#skip-xfail-with-parametrize
+#While the above parametrize_test() decorator *CANNOT* (by design) be refactored
+#to support such fine-grained specification, this decorator should be able to do
+#so. How? By defining two new "ParametrizationSkipIf" and "ParametrizationXFail"
+#classes instantiated as follows:
+#
+#    @parametrize_test_setwise(
+#        parametrizations={
+#            'bad-dragons': {
+#                'western_dragon':    'Celedyr',
+#                'eastern_dragon':    'Masaru',
+#                'feathered_serpent': 'Hualpa',
+#            },
+#            'good-dragons': ParametrizationXFail(
+#                parametrizations={
+#                    'western_dragon':    'Hestaby',
+#                    'eastern_dragon':    'Ryumyo',
+#                    'feathered_serpent': 'Mujaji',
+#                },
+#                reason="Good dragons raise unexpected breath attack.",
+#            },
+#        },
+#        fixture_names={'feathered_serpent',},
+#    )
+#    def test_great_dragons(
+#        western_dragon: str, eastern_dragon: str, feathered_serpent: str):
+#        assert western_dragon in ('Celedyr', 'Hestaby',)
+#        assert eastern_dragon in ('Masaru', 'Ryumyo',)
+#        assert feathered_serpent in ('Amazonia', 'Azania',)
+#
+#This decorator would then need to explicitly differentiate such objects from
+#standard dictionaries and behave as expected. Quite a bit of work, sadly, but
+#certainly feasible.
+#FIXME: Repair documentation.
+
+@type_check
+def parametrize_test_setwise(
+    fixture_names: ContainerType = None,
+    parametrizations: MappingType = None,
+) -> CallableTypes:
+    '''
+    Optionally directly parametrize all non-fixture parameters accepted by the
+    decorated test callable with the first passed dictionary _and_ optionally
+    indirectly parametrize all fixture parameters accepted by this callable with
+    the second passed dictionary.
+
+    Fixtures
+    ----------
+    This decorator should _not_ be directly applied to fixtures, for which the
+    :func:`pytest.fixture` decorator should be applied instead as follows:
+
+    * Pass that decorator:
+      * The mandatory `params` keyword argument, whose value is the sequence of
+        all sequences of parameters to be iteratively passed to that fixture.
+      * The optional `ids` keyword argument, whose value is the sequence of all
+        human-readable unique identifiers to be assigned to each such set of
+        parameters (in the same order). While optional, this argument premains
+        highly recommended.
+    * Pass that fixture the `request` builtin fixture, whose `param` attribute
+      supplies the set of parameters passed to the current fixture invocation.
+
+    Fixture Parameters
+    ----------
+    For each fixture accepted by the decorated test callable, the
+    :func:`pytest.fixture` decorator should be applied to that fixture as
+    follows:
+
+    * Pass that fixture the `request` builtin fixture, whose `param` attribute
+      supplies the set of parameters passed to the current fixture invocation.
+
+    Avoid passing that decorator either the `params` or `ids` keyword argument,
+    whose values will be indirectly supplied by this decorator to that fixture.
+
+    Parameters
+    ----------
+    params : optional[MappingType]
+        Dictionary mapping from the names of non-fixture parameters accepted by
+        this test to the sequences of all values of those parameters to be
+        iteratively passed to this test (_in order_) such that:
+        . The first element of each such sequence is the first value of the
+          corresponding parameter to be passed to the first parametrization of
+          this test.
+        . The second element of the same sequence is the second value of this
+          parameter to be passed to the second parametrization of this test.
+        . And so on.
+        Defaults to `None`, in which case this test is assumed to accept no
+        non-fixture parameters.
+    fixtures : optional[MappingType]
+        Dictionary mapping from the names of fixture parameters accepted by this
+        test to the sequences of all values of those parameters to be
+        iteratively passed to this test (_in order_) such that the same
+        interpretation as for `params` holds. Defaults to `None`, in which case
+        this test is assumed to accept no fixture parameters.
+    ids : optional[SequenceTypes]
+        Sequence of all human-readable labels uniquely identifying each
+        parametrization of this test (_in the same order_). Defaults to `None`,
+        in which non-human-readable labels will be automatically synthesized
+        from the values of the parameters comprising each such parametrization.
+
+    Raises
+    ----------
+    BetseTestParamException
+        If the `ids` argument identifies a different number of parametrizations
+        than the `params` and `fixtures` arguments actually passed.
+
+    Examples
+    ----------
+    >>> from pytest import fixture
+    >>> from betse_test.util.mark.param import parametrize_test_setwise
+    >>> @fixture
+    ... def feathered_serpent(serpent_name: str) -> str:
+    ...     if serpent_name == 'Hualpa'
+    ...         return 'Amazonia'
+    ...     elif serpent_name == 'Mujaji'
+    ...         return 'Azania'
+    >>> @parametrize_test_setwise(
+    ...     parametrizations={
+    ...         'bad-dragons': {
+    ...             'western_dragon':    'Celedyr',
+    ...             'eastern_dragon':    'Masaru',
+    ...             'feathered_serpent': 'Hualpa',
+    ...         },
+    ...         'good-dragons': {
+    ...             'western_dragon':    'Hestaby',
+    ...             'eastern_dragon':    'Ryumyo',
+    ...             'feathered_serpent': 'Mujaji',
+    ...         },
+    ...     },
+    ...     fixture_names={'feathered_serpent',},
+    ... )
+    ... def test_great_dragons(
+    ...     western_dragon: str, eastern_dragon: str, feathered_serpent: str):
+    ...     assert western_dragon in ('Celedyr', 'Hestaby',)
+    ...     assert eastern_dragon in ('Masaru', 'Ryumyo',)
+    ...     assert feathered_serpent in ('Amazonia', 'Azania',)
+    '''
+
+    raise ValueError('This decorator currently unimplemented.')
 
 # ....................{ PARAMS ~ serial                    }....................
 serialize_parametrized_test = pytest.mark.serialize_parametrized_test
