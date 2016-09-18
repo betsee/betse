@@ -22,11 +22,19 @@ class BetseException(Exception, metaclass=ABCMeta):
 
 class BetseLogException(BetseException):
     '''
-    Log-specific exception.
+    Low-level logging-specific exception.
+    '''
+    pass
+
+# ....................{ EXCEPTIONS ~ os                    }....................
+class BetseOSException(BetseException):
+    '''
+    General-purpose Low-level operating system (OS) exception.
     '''
     pass
 
 # ....................{ EXCEPTIONS ~ python                }....................
+#FIXME: Rename to BetsePyException().
 class BetseInterpreterException(BetseException):
     '''
     General-purpose low-level Python interpreter exception.
@@ -38,7 +46,8 @@ class BetseInterpreterException(BetseException):
     pass
 
 
-class BetseFrozenException(BetseException):
+#FIXME: Rename to BetsePyFrozenException().
+class BetseFrozenException(BetseInterpreterException):
     '''
     Low-level exception pertaining to **frozen executables** (i.e., Python
     codebases converted into platform-specific executables).
@@ -46,21 +55,23 @@ class BetseFrozenException(BetseException):
     pass
 
 
-class BetseModuleException(BetseException):
+class BetseModuleException(BetseInterpreterException):
     '''
     Module-specific exception.
     '''
     pass
 
 # ....................{ EXCEPTIONS ~ arg                  }....................
+#FIXME: Rename to BetseCLIArgException().
 #FIXME: Raise this exception throughout the "betse.cli" subpackage.
 class BetseArgumentException(BetseException):
     '''
-    Argument-specific exception.
+    Command-line argument-specific exception.
     '''
     pass
 
 
+#FIXME: Rename to BetseCLIArgParserException().
 class BetseArgumentParserException(SystemExit):
     '''
     :class:`betse.script.argparse.ArgumentParser`-specific exception connoting
@@ -114,9 +125,10 @@ class BetseMethodUnimplementedException(BetseException, NotImplementedError):
     def __init__(self):
         # Avoid circular import dependencies.
         from betse.util.py import callers
-        super().__init__(
-            'Optional method {}() unimplemented.'.format(
-                callers.get_caller_basename()))
+
+        # Defer to superclass constructors.
+        super().__init__('Optional method {}() unimplemented.'.format(
+            callers.get_caller_basename()))
 
 # ....................{ EXCEPTIONS ~ lib                   }....................
 class BetseLibException(BetseException):
@@ -212,6 +224,7 @@ class BetseRegexException(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ science               }....................
+#FIXME: Rename to "BetseSimConfigException".
 class BetseParametersException(BetseException):
     '''
     Parameters-specific exception.
@@ -219,6 +232,7 @@ class BetseParametersException(BetseException):
     pass
 
 
+#FIXME: Rename to "BetseSimException".
 class BetseSimulationException(BetseException):
     '''
     Simulation-specific exception.
@@ -226,6 +240,7 @@ class BetseSimulationException(BetseException):
     pass
 
 
+#FIXME: Rename to "BetseSimInstabilityException".
 class BetseSimulationInstabilityException(BetseSimulationException):
     '''
     Simulation-specific exception connoting the current simulation to have

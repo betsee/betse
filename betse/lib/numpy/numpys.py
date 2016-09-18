@@ -122,10 +122,12 @@ def init() -> None:
       a non-fatal warning.
     '''
 
+    #FIXME: Excise this after is_blas_parallelized() is known to reliably work
+    #in a cross-platform manner.
+    return
+
     # If Numpy linked against an unparallelized BLAS, log a non-fatal warning.
     if not is_blas_parallelized():
-        return
-
         #FIXME: Sadly, the is_blas_parallelized() is insufficiently granular to
         #support such behaviour at the moment. Improve that method substantially
         #before reenabling this warning.
@@ -183,15 +185,21 @@ def is_blas_parallelized() -> bool:
         # _is_blas_parallelized_python_os_x,
         # _is_blas_parallelized_linkage,
     ):
-        # Result of performing this heuristic.
-        tester_result = tester_heuristic()
+        # Attempt to...
+        try:
+            # Call this tester, capturing the result for subsequent handling.
+            tester_result = tester_heuristic()
 
-        # If this heuristic definitively identified Numpy to be either
-        # parallelized or non-parallelized, return this result.
-        if tester_result is not None:
-            return tester_result
-
-        # Else, continue to the next heuristic.
+            # If this tester definitively identified Numpy as either
+            # parallelized or non-parallelized, return this result.
+            if tester_result is not None:
+                return tester_result
+            # Else, continue to the next tester.
+        # If an error occurs, log that error *WITHOUT* raising an exception.
+        # Detecting Numpy non-parallelization is non-essential and hence hardly
+        # worth halting the application over.
+        except Exception as exception:
+            logs.log_error(str(exception))
 
     # Else, all heuristics failed to definitively identify Numpy to be either
     # parallelized or non-parallelized. For safety, assume the latter.
@@ -317,29 +325,38 @@ def _is_blas_parallelized_linkage() -> (bool, NoneType):
     if (
         blas_basename_substr == 'blas' or
         blas_basename_substr == 'cblas'
+
+        #FIXME: Generalize to OS X as well once the
+        #libs.iter_linked_lib_filenames() function supports OS X.
     ) and oses.is_linux():
-        # Attempt to...
-        try:
-            # Do so.
-            from numpy.core import multiarray as numpy_lib
+        # Defer heavyweight imports.
+        # from numpy.core import multiarray as numpy_lib
 
-            #FIXME: For convenience, refactor this function to accept the
-            #fully-qualified name of the desired module rather than requiring
-            #this module be previously imported.
+        #FIXME: For convenience, refactor this function to accept the
+        #fully-qualified name of the desired module rather than requiring
+        #this module be previously imported.
 
-            # Absolute path of this submodule.
-            numpy_lib_filename = modules.get_filename(numpy_lib)
+        # Absolute path of this shared library-based Numpy C extension.
+        # numpy_lib_filename = modules.get_filename(numpy_lib)
+        numpy_lib_filename = modules.get_filename('numpy.core.multiarray')
 
-            #FIXME: Test whether or not this path is that of a shared library
-            #first (e.g., is suffixed by ".so" under Linux).
+        # For the basename and absolute path of each shared library linked to
+        # by this Numpy shared library...
+        for (numpy_linked_lib_basename, numpy_linked_lib_filename) in (
+            libs.iter_linked_lib_filenames(numpy_lib_filename)):
 
-            # Absolute paths of all shared libraries required by this library.
-            numpy_lib_libs = libs.get_dependency_filenames(numpy_lib_filename)
-        # If an error occurs, log that error *WITHOUT* raising an exception.
-        # Detecting Numpy non-parallelization is non-essential and hence hardly
-        # worth halting the application over.
-        except Exception as exception:
-            logs.log_error(str(exception))
+            #FIXME: Implement the following heuristic:
+            #
+            #* If "numpy_linked_lib_basename" sans filetype (e.g., via
+            #  paths.get_pathname_sans_filetype()) is suffixed by "blas" *AND*
+            #  "numpy_linked_lib_filename" is a symbolic link, then:
+            #  * If the transitive target pathname of this symbolic link (e.g.,
+            #    via paths.canonicalize()) matches a regular expression
+            #    resembling (...but possibly differing from?)
+            #    "_PARALLELIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX", return
+            #    True.
+            #* Else, continue to the next linked lib.
+            break
 
     # Else, instruct our caller to continue to the next heuristic.
     return None

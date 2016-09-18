@@ -206,8 +206,10 @@ def get_dirname(module: (str, ModuleType)) -> str:
     return paths.get_dirname(get_filename(module))
 
 # ....................{ GETTERS ~ path : file              }....................
-#FIXME: Leverage the new "betse.lib.setuptool.resources" submodule to handle
-#modules embedded within EGG-like archives.
+#FIXME: The current approach is trivial and therefore terrible, breaking down
+#under commonplace real-world conditions (e.g., modules embedded within EGG-like
+#archives). Consider generalizing this approach via the new setuptools-based
+#"betse.lib.setuptool.resources" submodule.
 
 @type_check
 def get_filename(module: (str, ModuleType)) -> str:

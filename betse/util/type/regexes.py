@@ -308,8 +308,9 @@ def get_match_line_if_any(text: str, regex: (str, Pattern), **kwargs):
     `None` otherwise.
 
     To ensure that only single lines are matched, this regular expression should
-    typically be anchored to the start and/or end of this string and each line
-    of this string via the `^` and `$` special characters.
+    typically be prefixed by the `^` special character and/or suffixed by the
+    `$` special character, thus anchoring matches to the start and/or end of
+    this string as a whole and each line of this string.
 
     Parameters
     ----------
@@ -346,38 +347,33 @@ def get_match_line_if_any(text: str, regex: (str, Pattern), **kwargs):
         Further details on regular expressions and keyword arguments.
     '''
 
-    # Sanitize the passed match flags.
+    # Sanitize the passed match flags for line-oriented matching.
     _init_kwargs_flags_line(kwargs)
 
     # Match group of this string against this expression.
     return re.search(regex, text, **kwargs)
 
 # ....................{ ITERATORS                          }....................
+@type_check
 def iter_matches(text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
     '''
-    Generator iteratively yielding each non-overlapping match of the passed
-    string against the passed regular expression as a match object if any match
-    exists _or_ the empty generator otherwise.
+    Generator iteratively yielding each non-overlapping match at any position of
+    the passed string against the passed regular expression as a match object.
 
-    To iterate matches in a line-oriented manner ala `sed` or `grep`:
-
-    * Root the passed regular expression on newlines. Specifically:
-      * Prefix this expression by `^`.
-      * Suffix this expression by `$`.
-    * Enable line-oriented matching by passing the `flags=FLAG_MULTILINE`
-      keyword argument.
+    If no such match exists, this function successfully returns the empty
+    generator rather than raising a fatal exception.
 
     Parameters
     ----------
     text : str
-        String to match.
+        Subject string to match on.
     regex : str, Pattern
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
 
-    This function accepts the same optional keyword arguments as
-    :func:`re.finditer`.
+    This function accepts the same optional keyword arguments as the
+    :func:`re.finditer` function.
 
     Match Flags
     ----------
@@ -391,10 +387,68 @@ def iter_matches(text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
     ----------
     GeneratorType
         Generator yielding match objects (i.e., instances of `re.SRE_Match`).
+
+    See Also
+    ----------
+    https://docs.python.org/3/library/re.html#re.search
+        Further details on regular expressions and keyword arguments.
     '''
 
     # Sanitize the passed match flags.
     _init_kwargs_flags(kwargs)
+
+    # Return this generator.
+    return re.finditer(regex, text, **kwargs)
+
+
+@type_check
+def iter_matches_line(
+    text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
+    '''
+    Generator iteratively yielding each non-overlapping match at any position of
+    the passed string against the passed regular expression in a line-oriented
+    manner as a match object.
+
+    If no such match exists, this function successfully returns the empty
+    generator rather than raising a fatal exception.
+
+    To ensure that only single lines are matched, this regular expression should
+    typically be prefixed by the `^` special character and/or suffixed by the
+    `$` special character, thus anchoring matches to the start and/or end of
+    this string as a whole and each line of this string.
+
+    Parameters
+    ----------
+    text : str
+        Subject string to match on.
+    regex : str, Pattern
+        Regular expression to be matched. This object should be either of type:
+        * `str`, signifying an uncompiled regular expression.
+        * `Pattern`, signifying a compiled regular expression object.
+
+    This function accepts the same optional keyword arguments as the
+    :func:`re.finditer` function.
+
+    Match Flags
+    ----------
+    For convenience, the following match flags will be enabled by default:
+
+    * `re.DOTALL`, forcing the `.` special character to match any character
+      including newline. By default, this character matches any character
+      excluding newline. The former is almost always preferable, however.
+    * `re.MULTILINE`, forcing the `^` and `$` special characters to match both
+      at the start and end of this string _and_ at the start and end of each
+      line of this string. By default, these characters match only at the
+      former. Line-oriented requires both, however.
+
+    Returns
+    ----------
+    GeneratorType
+        Generator yielding match objects (i.e., instances of `re.SRE_Match`).
+    '''
+
+    # Sanitize the passed match flags for line-oriented matching.
+    _init_kwargs_flags_line(kwargs)
 
     # Return this generator.
     return re.finditer(regex, text, **kwargs)

@@ -24,9 +24,13 @@ from pkg_resources import Requirement
 @type_check
 def is_dir(module_name: (str, Requirement), dirname: str) -> bool:
     '''
-    `True` only if the resource whose path the pathname of the module or
-    requirement with passed name joined with the passed relative pathname is a
-    directory.
+    `True` only if the resource whose pathname is the concatenation of the
+    following strings is a directory (_in order_):
+
+    . The absolute pathname of the module or requirement with the passed name
+      (e.g., `/home/hiroprotagonist/betse/betse/`).
+    . The directory separator for the current platform (e.g., `/` under Linux).
+    . The passed relative pathname (e.g., `data/yaml/sim_config.yaml`).
 
     Parameters
     ----------

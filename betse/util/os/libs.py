@@ -13,7 +13,7 @@ and hence poor form. Do so _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseLibException
+from betse.exceptions import BetseLibException, BetseOSException
 from betse.util.type.types import type_check, GeneratorType
 
 # ....................{ CONSTANTS                          }....................
@@ -95,7 +95,8 @@ def is_lib(pathname: str) -> bool:
         filetype is not None and
         # This filetype is that of a shared library for this platform.
         filetype in KERNEL_NAME_TO_LIB_FILETYPES[kernel_name] and
-        # This path is that of an existing file.
+        # This path is that of an existing file. Since testing this requires a
+        # filesystem lookup, this is the slowest test and thus deferred.
         files.is_file(pathname)
     )
 
@@ -112,9 +113,9 @@ def is_lib(pathname: str) -> bool:
 
 def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
     '''
-    Generator yielding the absolute paths of all shared libraries dynamically
-    linked to (and hence required at runtime) by the shared library with the
-    passed path.
+    Generator iteratively yielding a 2-tuple of the basename and absolute path
+    of each shared library dynamically linked to and hence required at runtime
+    by the shared library with the passed path.
 
     Parameters
     ----------
@@ -124,19 +125,20 @@ def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
     Returns
     ----------
     GeneratorType
-        Generator yielding these absolute paths.
+        Generator iteratively yielding a 2-tuple
+        `(linked_lib_basename, linked_lib_pathname`), where:
+        * `linked_lib_basename` is the basename of a shared library dynamically
+          linked to the shared library with the passed path.
+        * `linked_lib_pathname` is the absolute pathname of the same library.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
-    from betse.util.type import regexes, strs
-    from betse.util.path import files
     from betse.util.path.command import runners
-
-    #FIXME: Call die_unless_lib() instead, please.
+    from betse.util.type import regexes, strs
 
     # If this library does *NOT* exist, raise an exception.
-    files.die_unless_file(lib_filename)
+    die_unless_lib(lib_filename)
 
     # If the current platform is Linux...
     if oses.is_linux():
@@ -166,11 +168,12 @@ def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
         # exist (e.g., "linux-vdso") or ubiquitous libraries required by the
         # dynamic linking mechanism and hence guaranteed to *ALWAYS* exist
         # (e.g., "ld-linux-x86-64").
-        return regexes.iter_matches(
+        return regexes.iter_matches_line(
             text=ldd_stdout,
-            regex=r'^\s+\S+\s+=>\s+(\S+)\s+\(0x[0-9a-fA-F]+\)$',
-            flags=regexes.FLAG_MULTILINE)
+            regex=r'^\s+(\S+)\s+=>\s+(\S+)\s+\(0x[0-9a-fA-F]+\)$',
+        )
 
-    #FIXME: Raise a human-readable exception.
     # Else, library inspection is currently unsupported on this platform.
-    raise
+    raise BetseOSException(
+        'Shared library inspection currently unsupported under {}.'.format(
+            oses.get_name()))

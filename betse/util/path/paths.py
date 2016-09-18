@@ -512,6 +512,7 @@ def join(*pathnames) -> str:
     return path.join(*pathnames)
 
 # ....................{ CANONICALIZERS                     }....................
+@type_check
 def canonicalize(pathname: str) -> str:
     '''
     Get the **canonical form** (i.e., unique absolute path) of the passed path.
@@ -528,11 +529,11 @@ def canonicalize(pathname: str) -> str:
         converting `sim_config.yaml` to `/tmp/sim_config.yaml` when the current
         working directory is `/tmp`).
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
+
     return path.abspath(path.expanduser(pathname))
 
 # ....................{ MOVERS                             }....................
+@type_check
 def move(pathname_source: str, pathname_target: str) -> None:
     '''
     Move the passed source to target path.
@@ -545,10 +546,6 @@ def move(pathname_source: str, pathname_target: str) -> None:
     If either the source path does not exist *or* the target path already
     exists, an exception will be raised.
     '''
-    assert types.is_str_nonempty(pathname_source),\
-        types.assert_not_str_nonempty(pathname_source, 'Source pathname')
-    assert types.is_str_nonempty(pathname_target),\
-        types.assert_not_str_nonempty(pathname_target, 'Target pathname')
 
     # Log such move in a contextual manner.
     logs.log_debug(
