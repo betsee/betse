@@ -68,10 +68,15 @@ class Gap_Junction(object):
 
         # get updated values of the helper-functions:
         # trans-junctional voltage cell 1 wrt 2 to mV units
-        V1 = (sim.v_cell[cells.nn_i] - sim.v_cell[cells.mem_i])*1e3
+        # V1 = (sim.v_cell[cells.nn_i] - sim.v_cell[cells.mem_i])*1e3
+        #
+        # # # trans-junctional voltage cell 2 wrt 1 to mV units
+        # V2 = (sim.v_cell[cells.mem_i] - sim.v_cell[cells.nn_i])*1e3
+
+        V1 = (sim.vm[cells.nn_i] - sim.vm[cells.mem_i])*1e3
 
         # # trans-junctional voltage cell 2 wrt 1 to mV units
-        V2 = (sim.v_cell[cells.mem_i] - sim.v_cell[cells.nn_i])*1e3
+        V2 = (sim.vm[cells.mem_i] - sim.vm[cells.nn_i])*1e3
 
         # voltage-dependent time-constant for channel transitioning from closed to open (1/ms, V in mV):
         self.alpha1 = self.lamb*np.exp(-self.A1*(V1 - p.gj_vthresh))

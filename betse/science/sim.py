@@ -201,6 +201,9 @@ class Simulator(object):
         self.J_cell_x = np.zeros(len(cells.cell_i))
         self.J_cell_y = np.zeros(len(cells.cell_i))
 
+        self.J_mem_x = np.zeros(self.mdl)
+        self.J_mem_y = np.zeros(self.mdl)
+
         # Membrane current data structure initialization
         self.flx_mem_i = np.zeros(len(cells.mem_i))
         self.fluxes_mem = []
@@ -210,7 +213,7 @@ class Simulator(object):
 
         self.v_cell = np.zeros(self.mdl)  # initialize intracellular voltage
         self.v_cell_ave = np.zeros(self.cdl) # initialize averaged v__cell
-        self.vm = np.zeros(self.mdl)     # initialize vmem
+        self.vm = -50e-3*np.ones(self.mdl)     # initialize vmem
 
 
         if p.sim_ECM is True:  # special items specific to simulation of extracellular spaces only:
@@ -714,7 +717,7 @@ class Simulator(object):
             self.u_gj_x = np.zeros(self.mdl)
             self.u_gj_y = np.zeros(self.mdl)
 
-            if p.sim_ECM is True and cells.lapENV_P_inv is None and p.run_sim is True:
+            if p.sim_ECM is True and cells.lapENV_P_inv is None:
 
                 # initialize flow vectors:
                 self.u_env_x = np.zeros(cells.X.shape)
@@ -726,7 +729,7 @@ class Simulator(object):
 
                 cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-        if p.run_sim is True and p.deformation is True:  # if user desires deformation:
+        if p.deformation is True:  # if user desires deformation:
 
                 cells.deform_tools(p)
                 # create a copy of cells world, to apply deformations to for visualization purposes only:
@@ -1046,20 +1049,20 @@ class Simulator(object):
                 if p.deform_electro is True:
                     electro_F(self,cells, p)
 
-                if p.fluid_flow is True and p.run_sim is True:
+                if p.fluid_flow is True:
 
                     self.run_sim = True
 
                     getFlow(self,cells, p)
 
                 # if desired, electroosmosis of membrane channels
-                if p.sim_eosmosis is True and p.run_sim is True:
+                if p.sim_eosmosis is True:
 
                     self.run_sim = True
 
                     eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
 
-                if p.deformation is True and p.run_sim is True:
+                if p.deformation is True:
 
                     self.run_sim = True
 
@@ -1167,7 +1170,7 @@ class Simulator(object):
 
         self.rate_NaKATP_time =[]
 
-        if p.deformation is True and p.run_sim is True:
+        if p.deformation is True:
             self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
 
             self.cell_centres_time = []
@@ -1250,7 +1253,7 @@ class Simulator(object):
         self.dd_time.append(ddc)
         ddc = None
 
-        self.I_gj_x_time.append(self.J_gj_x[:])  # FIXME eventually get rid of these, I think!
+        self.I_gj_x_time.append(self.J_gj_x[:])
         self.I_gj_y_time.append(self.J_gj_y[:])
 
         self.I_cell_x_time.append(self.J_cell_x[:])
@@ -1277,7 +1280,7 @@ class Simulator(object):
         if p.deform_osmo is True:
             self.osmo_P_delta_time.append(self.osmo_P_delta[cells.mem_to_cells])
 
-        if p.deformation is True and p.run_sim is True:
+        if p.deformation is True:
 
             # make a copy of cells to apply deformation to:
             # self.cellso = copy.deepcopy(cells)
@@ -1285,11 +1288,11 @@ class Simulator(object):
             self.dx_cell_time.append(self.d_cells_x[:])
             self.dy_cell_time.append(self.d_cells_y[:])
 
-        if p.fluid_flow is True and p.run_sim is True:
+        if p.fluid_flow is True:
             self.u_cells_x_time.append(self.u_cells_x[:])
             self.u_cells_y_time.append(self.u_cells_y[:])
 
-        if p.sim_eosmosis is True and p.run_sim is True:
+        if p.sim_eosmosis is True:
             self.rho_channel_time.append(self.rho_channel[:])
             self.rho_pump_time.append(self.rho_pump[:])
 
@@ -1336,7 +1339,7 @@ class Simulator(object):
 
             self.venv_time.append(self.v_env[:])
 
-            if p.fluid_flow is True and p.run_sim is True:
+            if p.fluid_flow is True:
                 self.u_env_x_time.append(self.u_env_x[:])
                 self.u_env_y_time.append(self.u_env_y[:])
 
@@ -1482,13 +1485,16 @@ class Simulator(object):
 
             # use finite volume method to integrate each region:
             # values at centroid mids:
-            vcell_at_mids = (v_cello + v_cell_aveo[cells.mem_to_cells]) / 2
+            # vcell_at_mids = (v_cello + v_cell_aveo[cells.mem_to_cells]) / 2
+            # # finite volume integral of membrane pie-box values:
+            # v_cell = np.dot(cells.M_int_mems, v_cello) + (1 / 2) * vcell_at_mids
+            # v_cell_ave = (1 / 2) * v_cell_aveo + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
+            # vm = v_cell
 
-            # finite volume integral of membrane pie-box values:
-            v_cell = np.dot(cells.M_int_mems, v_cello) + (1 / 2) * vcell_at_mids
-            v_cell_ave = (1 / 2) * v_cell_aveo + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
+            vm = v_cello
+            v_cell = v_cello
+            v_cell_ave = v_cell_aveo
 
-            vm = v_cell
 
         else:
 
@@ -1522,11 +1528,11 @@ class Simulator(object):
             # values at centroid mids:
             v_cell_ave = np.dot(cells.M_sum_mems, v_cell) / cells.num_mems
 
-            vcell_at_mids = (v_cell + v_cell_ave[cells.mem_to_cells]) / 2
-
-            # finite volume integral of membrane pie-box values:
-            v_cell = np.dot(cells.M_int_mems, v_cell) + (1 / 2) * vcell_at_mids
-            v_cell_ave = (1 / 2) * v_cell_ave + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
+            # vcell_at_mids = (v_cell + v_cell_ave[cells.mem_to_cells]) / 2
+            #
+            # # finite volume integral of membrane pie-box values:
+            # v_cell = np.dot(cells.M_int_mems, v_cell) + (1 / 2) * vcell_at_mids
+            # v_cell_ave = (1 / 2) * v_cell_ave + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
 
             # define the full environmental voltage:
             v_env = np.zeros(len(cells.xypts))
@@ -1818,8 +1824,8 @@ class Simulator(object):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
-        # self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
-        self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
+        self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
+        # self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
 
         if p.v_sensitive_gj is True:
 
@@ -1952,7 +1958,7 @@ class Simulator(object):
         grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
 
         # calculate fluxes for electrodiffusive transport:
-        if p.fluid_flow is True and p.run_sim:
+        if p.fluid_flow is True:
 
             uenvx = np.zeros(cells.grid_obj.u_shape)
             uenvy = np.zeros(cells.grid_obj.v_shape)

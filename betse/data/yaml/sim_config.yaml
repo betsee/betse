@@ -38,7 +38,7 @@
 
 init file saving:
 
-    directory: betse_1/INITS         # directory to load/save init run
+    directory: INITS         # directory to load/save init run
 
     file: init_1.betse        # filename to load/save init run
 
@@ -46,14 +46,14 @@ init file saving:
 
 sim file saving:
 
-    directory: betse_1/SIMS # directory to load/save sim run
+    directory: SIMS # directory to load/save sim run
 
     file: sim_1.betse    # filename to load/save sim run
 
 results file saving:
 
-    init directory: betse_1/results_init_1  # directory to load/save data, plots, and animations for init
-    sim directory: betse_1/results_sim_1  # directory to load/save data, plots, and animations for sim
+    init directory: RESULTS/init_1  # directory to load/save data, plots, and animations for init
+    sim directory: RESULTS/sim_1  # directory to load/save data, plots, and animations for sim
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -644,7 +644,7 @@ variable settings:
     turn on: False        # turn on electroosmosis of pumps and channels
     channel charge: -1         # charge of membrane channels
     pump charge: 1          # charge of pumps (controls direction they move in)
-    membrane mobility: 1e-12  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
+    membrane mobility: 1e-13  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
 
 
 
@@ -744,7 +744,7 @@ results options:
   after solving:     # Results produced after simulation computation.
     plots:           # Plots produced after simulation computation.
       enabled: True  # Produce plots after simulation computation?
-      show: True     # Display plots after simulation computation?
+      show: False     # Display plots after simulation computation?
                      # Ignored if "enabled" is False.
       save: True     # Save plots with the plot saving options specified below 
                      # after simulation computation? 
@@ -752,7 +752,7 @@ results options:
 
     animations:      # Animations produced after simulation computation.
       enabled: False # Produce animations after simulation computation?
-      show: True     # Display animations after simulation computation?
+      show: False     # Display animations after simulation computation?
                      # Ignored if "enabled" is False.
       save: True     # Save animations with the animation saving options
                      # specified below after simulation computation? 
@@ -773,13 +773,13 @@ results options:
 
       video:            # Animation frames encoded as a compressed video.
         enabled: False  # Encode animation frames as a compressed video?
-        filetype: mkv   # Video filetype. Supported filetypes include:
+        filetype: mp4   # Video filetype. Supported filetypes include:
                         # "mkv" (Matroska), "mp4" (MPEG-4 Part 14), "mov"
                         # (QuickTime), "avi" (Microsoft), "webm" (WebM),
                         # "ogv" (Theora), and "gif" (animated).
-        dpi: 300        # Image dots per inch (DPI) of each video frame.
+        dpi: 150        # Image dots per inch (DPI) of each video frame.
         bitrate: 1500   # Video bitrate in bits per second.
-        framerate: 5    # Video framerate in frames per second.
+        framerate: 15    # Video framerate in frames per second.
 
         metadata:       # Video metadata embedded in each video file.
           artist: BETSE               # Video author name(s).
@@ -790,19 +790,11 @@ results options:
                                       # defaults to the current year.
 
         # List of the names of all matplotlib animation writers with which to
-        # encode video (in descending order of preference), automatically
-        # selecting the first writer installed on the current system. All
-        # supported names are listed here.
+        # encode video (in descending order of preference)
         writers: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
 
         # List of the names of all encoder-specific codecs with which to
-        # encode video (in descending order of preference), automatically:
-        # * Selecting the first codec supported by the selected writer above.
-        # * Replacing any codec named "auto" with the name of a recommended
-        #   codec specific to the selected writer and video filetype.
-        # To show all available codecs at the command line:
-        # * For "ffmpeg" and "mencoder", run "ffmpeg -encoders".
-        # * For "avconv", run "avconv -encoders".
+        # encode video (in descending order of preference)
         codecs: ['auto']
 
     data:              # Saving options for spreadsheet-compatible data.
@@ -1092,9 +1084,9 @@ internal parameters:
 
   # pump parameters
 
-  alpha_NaK:  5.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
+  alpha_NaK:  1.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
-  alpha_Ca:  1.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
   alpha_HK:  1.0e-8    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
 

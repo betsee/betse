@@ -20,6 +20,9 @@ def eosmosis(sim, cells, p):
     tx = cells.mem_vects_flat[:, 4]
     ty = cells.mem_vects_flat[:, 5]
 
+    nx = cells.mem_vects_flat[:, 2]
+    ny = cells.mem_vects_flat[:, 3]
+
     # tangential components of fluid flow velocity at the membrane, if applicable:
     if p.fluid_flow is True and p.sim_ECM is True:
         # map the flow vectors to membrane midpoints
@@ -28,6 +31,15 @@ def eosmosis(sim, cells, p):
 
         # tangential component of fluid velocity at membrane:
         u_tang = ux_mem*tx + uy_mem*ty
+
+    elif p.fluid_flow is True and p.sim_ECM is False:
+
+        # map the flow vectors to membrane midpoints
+        ux_mem = sim.u_cells_x[cells.mem_to_cells]
+        uy_mem = sim.u_cells_y[cells.mem_to_cells]
+
+        # normal component of fluid velocity at membrane:
+        u_tang = ux_mem * tx + uy_mem * ty
 
     else:
         u_tang = 0
@@ -46,12 +58,20 @@ def eosmosis(sim, cells, p):
         Ex = sim.E_env_x.ravel()[cells.map_mem2ecm]
         Ey = sim.E_env_y.ravel()[cells.map_mem2ecm]
 
-    else:  # if not simulating extracellular spaces, then use the intracellular field instead:
-        Ex = sim.E_gj_x
-        Ey = sim.E_gj_y
+        # get the tangential component to the membrane:
+        E_tang = Ex * tx + Ey * ty
 
-    # get the tangential component to the membrane:
-    E_tang = Ex * tx + Ey * ty
+    else:  # if not simulating extracellular spaces, then use the intracellular field instead:
+        # Ex = sim.J_cell_x[cells.mem_to_cells]
+        # Ey = sim.J_cell_y[cells.mem_to_cells]
+        #
+        # # get the normal component to the membrane:
+        # E_tang = (Ex * tx + Ey * ty)*p.media_sigma
+        Ex = (np.dot(cells.M_sum_mems, sim.E_gj_x)/cells.num_mems)[cells.mem_to_cells]
+        Ey = (np.dot(cells.M_sum_mems, sim.E_gj_y)/cells.num_mems)[cells.mem_to_cells]
+
+        E_tang = (Ex * tx + Ey * ty)
+
 
     # calculate the total Nernst-Planck flux at each membrane for rho_pump factor:
 

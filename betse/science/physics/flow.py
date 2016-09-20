@@ -167,7 +167,7 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
 
     # if p.deformation is False:
         # if we're not doing deformation, solve with dot product as it's much faster
-    P_react = np.dot(cells.lapGJ_P_inv, div_u)
+    P_react = np.dot(cells.lapGJ_P_inv, div_u/2)
 
     # else:
     #     # if running deformation, solve with scipy's lsmr iterative solver:
@@ -179,8 +179,11 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     gP_x = gradP_react * cells.mem_vects_flat[:,2]
     gP_y = gradP_react * cells.mem_vects_flat[:,3]
 
-    sim.u_gj_x = u_gj_xo - gP_x
-    sim.u_gj_y = u_gj_yo - gP_y
+    # sim.u_gj_x = u_gj_xo - gP_x
+    # sim.u_gj_y = u_gj_yo - gP_y
+
+    sim.u_gj_x = u_gj_xo
+    sim.u_gj_y = u_gj_yo
 
     # average the components at cell centres:
     sim.u_cells_x = np.dot(cells.M_sum_mems, sim.u_gj_x) / cells.num_mems
