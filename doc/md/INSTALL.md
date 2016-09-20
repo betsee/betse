@@ -112,14 +112,14 @@ Note that OpenBLAS and ATLAS _cannot_ be installed at the same time.
 
 ###### OpenBLAS
 
-OpenBLAS is a more performant (but less stable) optimized BLAS and LAPACK
-implementation. While ATLAS is recommended for new users, experienced users
-requiring improved performance may benefit from installing OpenBLAS instead.
-OpenBLAS is installable in a system-wide manner as follows:
+OpenBLAS is a more performant (_but arguably less stable_) optimized BLAS and
+LAPACK implementation. While ATLAS is recommended for new users, experienced
+users requiring improved performance may benefit from installing OpenBLAS
+instead. OpenBLAS is installable in a system-wide manner as follows:
 
     $ sudo apt-get install build-essential libopenblas-dev &&
-      sudo update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libopenblas.so.0 &&
-      sudo update-alternatives --set liblapack.so.3 /usr/lib/lapack/liblapack.so.3 
+      sudo update-alternatives --set libblas.so.3 /usr/lib/openblas-base/libblas.so.3 &&
+      sudo update-alternatives --set liblapack.so.3 /usr/lib/lapack/liblapack.so.3
 
 Note that OpenBLAS and ATLAS _cannot_ be installed at the same time.
 
