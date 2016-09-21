@@ -79,8 +79,6 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
 
     if len(deno[inotzero]):   # if there's any indices in the inotzero array:
 
-
-
         # calculate the flux for those elements:
         flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
                         cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
