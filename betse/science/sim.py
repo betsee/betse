@@ -1871,7 +1871,7 @@ class Simulator(object):
 
         self.cc_mems[i] = self.cc_mems[i] + p.dt * delta_cc
 
-        # # update concentrations intracellularly:
+        # update concentrations intracellularly:
         # self.cc_mems[i][:], self.cc_cells[i][:], _ = \
         #     stb.update_intra(self, cells, self.cc_mems[i][:],
         #         self.cc_cells[i][:],
