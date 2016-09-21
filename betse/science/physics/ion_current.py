@@ -80,11 +80,11 @@ def get_current(sim, cells, p):
     gV_y = gradV_react * cells.mem_vects_flat[:, 3]
 
     #correct the current density by the reaction potential:
-    sim.J_mem_x = J_mem_xo - gV_x
-    sim.J_mem_y = J_mem_yo - gV_y
+    # sim.J_mem_x = J_mem_xo - gV_x   # FIXME causes sims to go unstable...why?
+    # sim.J_mem_y = J_mem_yo - gV_y
 
-    # sim.J_mem_x = J_mem_xo
-    # sim.J_mem_y = J_mem_yo
+    sim.J_mem_x = J_mem_xo
+    sim.J_mem_y = J_mem_yo
 
     # average the components at cell centres:
     sim.J_cell_x = np.dot(cells.M_sum_mems, sim.J_mem_x) / cells.num_mems
