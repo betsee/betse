@@ -32,6 +32,20 @@ these errors into raised exceptions. Under Linux, for example, a `TypeError`
 exception of `"embedded NUL character"` is raised.
 '''
 
+
+# There exist only two possible directory separators for all modern platforms.
+# Hence, this reliably suffices with no error handling required.
+DIR_SEPARATOR_REGEX = r'/' if path.sep == '/' else r'\\'
+'''
+Regular expression matching the directory separator specific to the current
+platform.
+
+Specifically, under:
+
+* Microsoft Windows, this is `\\\\`.
+* All other platforms, this is `/`.
+'''
+
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames) -> None:
     '''
