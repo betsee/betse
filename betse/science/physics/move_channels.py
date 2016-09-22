@@ -20,9 +20,6 @@ def eosmosis(sim, cells, p):
     tx = cells.mem_vects_flat[:, 4]
     ty = cells.mem_vects_flat[:, 5]
 
-    nx = cells.mem_vects_flat[:, 2]
-    ny = cells.mem_vects_flat[:, 3]
-
     # tangential components of fluid flow velocity at the membrane, if applicable:
     if p.fluid_flow is True and p.sim_ECM is True:
         # map the flow vectors to membrane midpoints
@@ -101,8 +98,6 @@ def eosmosis(sim, cells, p):
     ddfy_ch = np.dot(cells.gradMem, gfy_ch) * ty
 
     divF_chan = ddfx_ch + ddfy_ch
-
-
 
     sim.rho_pump = sim.rho_pump - divF_pump * p.dt
     sim.rho_channel = sim.rho_channel - divF_chan * p.dt

@@ -961,7 +961,7 @@ def ghk_calculator(sim, cells, p):
         (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
 
 def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
-                 Km_ATP=1.0, met = None, n=1, ignoreECM = True):
+                 Km_ATP=1.0, met = None, n=1, ignoreECM = True, rho = 1.0):
 
 
     """
@@ -1047,7 +1047,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
         numo_E = ((cX_cell / Km_X)**n) * (cATP / Km_ATP)
         denomo_E = (1 + (cX_cell / Km_X)**n) * (1 + (cATP / Km_ATP))
 
-        f_X = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_X = -rho*alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     else:
 
@@ -1072,7 +1072,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
         numo_E = (cX_env / Km_X) * (cATP / Km_ATP)
         denomo_E = (1 + (cX_env / Km_X)) * (1 + (cATP / Km_ATP))
 
-        f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_X = rho* alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     # update cell and environmental concentrations
     cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
@@ -1096,7 +1096,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell=False, alpha_max=1.0e-8,
-        Km_X=1.0, Keq=1.0, n = 1.0, ignoreECM = True):
+        Km_X=1.0, Keq=1.0, n = 1.0, ignoreECM = True, rho = 1.0):
 
 
     """
@@ -1167,8 +1167,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
         numo_E = (cX_cell / Km_X)
         denomo_E = (1 + (cX_cell / Km_X))
 
-        f_X = -alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
-
+        f_X = -rho*alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
 
     else:
@@ -1194,7 +1193,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
         numo_E = (cX_env / Km_X)
         denomo_E = (1 + (cX_env / Km_X))
 
-        f_X = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
+        f_X = rho*alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
     # update cell and environmental concentrations
     cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM= ignoreECM)
@@ -1217,7 +1216,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
-                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False):
+                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1):
     """
     Transports a generic molecule across the membrane,
     through gap junctions, and if p.sim_ECM is true,
@@ -1258,7 +1257,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
     IdM = np.ones(sim.mdl)
 
-    f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm*IdM, z*IdM, sim.vm, sim.T, p)
+    f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm*IdM, z*IdM, sim.vm, sim.T, p, rho = rho)
 
     # update concentrations due to electrodiffusion:
 
@@ -1305,7 +1304,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         # cX_mems = update_intra(sim, cells, cX_mems, Do, z, p)
 
-    # Transport dye through environment, if p.sim_ECM is True-----------------------------------------------------
+    # Transport through environment, if p.sim_ECM is True-----------------------------------------------------
 
     if p.sim_ECM is True:
 

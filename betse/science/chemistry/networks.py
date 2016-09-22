@@ -2167,7 +2167,6 @@ class MasterOfNetworks(object):
             obj.c_cells = obj.c_cells + deltac*p.dt
 
 
-
             # if pumping is enabled:
             if obj.active_pumping:
                 obj.pump(sim, cells, p)
@@ -2346,7 +2345,7 @@ class MasterOfNetworks(object):
             targ_env = self.transporters[name].transporter_targets_env
 
             # calculate the flux
-            self.transporters[name].flux = eval(self.transporters[name].transporter_eval_string,
+            self.transporters[name].flux = sim.rho_pump*eval(self.transporters[name].transporter_eval_string,
                 self.globals, self.locals)
 
             # finally, update the concentrations using the final eval statements:
@@ -2354,7 +2353,7 @@ class MasterOfNetworks(object):
                 self.transporters[name].reactants_coeff)):
 
                 # obtain the change for the reactant
-                delta_react = coeff*eval(delc,self.globals, self.locals)
+                delta_react = coeff*sim.rho_pump*eval(delc,self.globals, self.locals)
 
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].react_transport_tag[i] == 'mem_concs':
@@ -4637,7 +4636,8 @@ class Molecule(object):
                                                                 ignoreECM = self.ignore_ECM_pump,
                                                                 smoothECM = p.smooth_concs,
                                                                 ignoreTJ = self.ignoreTJ,
-                                                                ignoreGJ = self.ignoreGJ)
+                                                                ignoreGJ = self.ignoreGJ,
+                                                                rho = sim.rho_channel)
 
     def updateC(self, flux, sim, cells, p):
         """
@@ -4695,7 +4695,9 @@ class Molecule(object):
                                                                      cells, p, Df=self.Do, z=self.z,
                                                                      pump_into_cell=self.pump_to_cell,
                                                                      alpha_max=self.pump_max_val, Km_X=self.pump_Km,
-                                                                     Km_ATP=1.0, met = met_vect, ignoreECM = self.ignore_ECM_pump)
+                                                                     Km_ATP=1.0, met = met_vect,
+                                                                     ignoreECM = self.ignore_ECM_pump,
+                                                                     rho = sim.rho_pump)
                 if p.metabolism_enabled:
                     # update ATP concentrations after pump action:
                     sim.metabo.update_ATP(flux, sim, cells, p)
@@ -4704,7 +4706,7 @@ class Molecule(object):
 
                 self.c_mems, self.c_env, flux = stb.molecule_transporter(sim, self.c_mems, self.c_env,
                     cells, p, Df=self.Do, z=self.z, pump_into_cell=self.pump_to_cell, alpha_max=self.pump_max_val,
-                    Km_X=self.pump_Km, Keq= 1.0, ignoreECM = self.ignore_ECM_pump)
+                    Km_X=self.pump_Km, Keq= 1.0, ignoreECM = self.ignore_ECM_pump, rho = sim.rho_pump)
 
     def gating(self, sim, sim_metabo, cells, p):
         """
