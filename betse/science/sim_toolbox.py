@@ -1268,7 +1268,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         # Update dye concentration in the gj connected cell network:
 
         # Intracellular voltage gradient:
-        grad_vgj = sim.vgj / cells.gj_len
+        grad_vgj = (sim.vgj / cells.gj_len)*100 # FIXME in order to see results in a meaningful time, this is increased.
 
         grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
@@ -1291,6 +1291,9 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         # divergence calculation for individual cells (finite volume expression)
         delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
+
+        # enforce zero flux at outer boundary:
+        delta_cc[cells.bflags_mems] = 0.0
 
         cX_mems = cX_mems + p.dt * delta_cc
 

@@ -1867,24 +1867,14 @@ class Simulator(object):
         #                       p.gj_surface*self.gjopen*self.D_gj[i],
         #                       cells.gj_len, 1, self.vgj, self.T, p)
 
+
         delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
 
+        # enforce zero outer boundary flux condition:
+        delta_cc[cells.bflags_mems] = 0
+
+        # update concentration of substance at membranes:
         self.cc_mems[i] = self.cc_mems[i] + p.dt * delta_cc
-
-        # update concentrations intracellularly:
-        # self.cc_mems[i][:], self.cc_cells[i][:], _ = \
-        #     stb.update_intra(self, cells, self.cc_mems[i][:],
-        #         self.cc_cells[i][:],
-        #         self.D_free[i],
-        #         self.zs[i], p)
-
-        # use finite volume method to integrate each region:
-        # values at centroid mids:
-        # c_at_mids = (cc_memso + self.cc_cells[i][cells.mem_to_cells]) / 2
-        #
-        # # finite volume integral of membrane pie-box values:
-        # self.cc_mems[i] = np.dot(cells.M_int_mems, cc_memso) + (1 / 2) * c_at_mids
-        # self.cc_cells[i] = (1 / 2) * self.cc_cells[i] + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
 
         self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
