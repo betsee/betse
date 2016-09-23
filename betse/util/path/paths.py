@@ -32,20 +32,6 @@ these errors into raised exceptions. Under Linux, for example, a `TypeError`
 exception of `"embedded NUL character"` is raised.
 '''
 
-
-# There exist only two possible directory separators for all modern platforms.
-# Hence, this reliably suffices with no error handling required.
-DIR_SEPARATOR_REGEX = r'/' if path.sep == '/' else r'\\'
-'''
-Regular expression matching the directory separator specific to the current
-platform.
-
-Specifically, under:
-
-* Microsoft Windows, this is `\\\\`.
-* All other platforms, this is `/`.
-'''
-
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames) -> None:
     '''
@@ -105,14 +91,16 @@ def die_unless_basename(pathname: str) -> None:
 @type_check
 def is_path(pathname: str) -> bool:
     '''
-    `True` if the passed path exists.
+    `True` only if the passed path exists _without_ following this path if this
+    path is an existing symbolic link.
 
-    If such path is an existing **broken symbolic link** (i.e., a symbolic link
-    whose target no longer exists), this function still returns True.
+    If this path is an existing **dangling symbolic link** (i.e., symbolic link
+    whose target no longer exists, also commonly referred to as a broken
+    symbolic link), this function still returns `True`.
     '''
 
     # Call path.lexists() rather than path.exists(), as the latter returns False
-    # for dangling symbolic links -- which is entirely irrelevant to most
+    # for dangling symbolic links -- which is entirely irrelevant for most
     # contexts. Under POSIX semantics, dangling symbolic links are essential to
     # common usage patterns and should *NOT* be discriminated against here.
     return path.lexists(pathname)
@@ -121,7 +109,7 @@ def is_path(pathname: str) -> bool:
 @type_check
 def is_absolute(pathname: str) -> bool:
     '''
-    `True` if the passed path is absolute.
+    `True` only if the passed path is absolute.
 
     The definition of "absolute" depends on the current operating system. Under:
 
@@ -135,7 +123,7 @@ def is_absolute(pathname: str) -> bool:
 
 def is_relative(pathname: str) -> bool:
     '''
-    `True` if the passed path is relative.
+    `True` only if the passed path is relative.
 
     The definition of "relative" depends on the current operating system. Under:
 
@@ -149,9 +137,8 @@ def is_relative(pathname: str) -> bool:
 @type_check
 def is_pathname(pathname: str) -> bool:
     '''
-    `True` if the passed string is a valid pathname (either absolute or
-    relative) for the root filesystem of the current OS _or_ `False`
-    otherwise.
+    `True` only if the passed string is a valid pathname (either absolute or
+    relative) for the root filesystem of the current platform.
 
     Under:
 
@@ -529,13 +516,16 @@ def join(*pathnames) -> str:
 @type_check
 def canonicalize(pathname: str) -> str:
     '''
-    Get the **canonical form** (i.e., unique absolute path) of the passed path.
+    **Canonical form** (i.e., unique absolute pathname _after_ transitively
+    resolving all symbolic links) of the passed path.
 
-    Specifically, this function (in order):
+    Specifically (_in order_):
 
-    . Performs **tilde expansion,** replacing a `~` character prefixing this
+    . Transitively resolve all symbolic links, producing a pathname that either
+      does not exist _or_ does exist but is not a symbolic link.
+    . Perform **tilde expansion,** replacing a `~` character prefixing this
       path by the absolute path of the current user's home directory.
-    . Performs **path normalization,** thus (in no particular order):
+    . Perform **path normalization,** thus (in no particular order):
       * Collapsing redundant separators (e.g., converting `//` to `/`).
       * Converting explicit relative to absolute path components (e.g.,
         converting `../` to the name of the parent directory of that component).
@@ -544,7 +534,7 @@ def canonicalize(pathname: str) -> str:
         working directory is `/tmp`).
     '''
 
-    return path.abspath(path.expanduser(pathname))
+    return path.realpath(path.expanduser(pathname))
 
 # ....................{ MOVERS                             }....................
 @type_check

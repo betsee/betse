@@ -27,8 +27,8 @@ def die_unless_file(pathname: str) -> None:
 
     See Also
     ----------
-    `is_file()`
-        For further details.
+    :func:`is_file`
+        Further details.
     '''
 
     if not is_file(pathname):
@@ -43,8 +43,8 @@ def die_if_file(pathname: str) -> None:
 
     See Also
     ----------
-    `is_file()`
-        For further details.
+    :func:`is_file`
+        Further details.
     '''
 
     if is_file(pathname):
@@ -57,8 +57,8 @@ def die_if_special(pathname: str) -> None:
 
     See Also
     ----------
-    `is_special()`
-        For further details.
+    :func:`is_special`
+        Further details.
     '''
 
     if is_special(pathname):
@@ -74,6 +74,8 @@ def is_file(pathname: str) -> bool:
     '''
     `True` only if the passed path is an existing non-directory file exists
     _after_ following symbolic links.
+
+    This function does _not_ raise an exception if this path does not exist.
 
     Versus `path.isfile()`
     ----------
@@ -103,6 +105,8 @@ def is_file_executable(pathname: str) -> bool:
     `True` only if the passed path is an **executable file** (i.e., existing
     non-directory file with the executable bit enabled _after_ following
     symbolic links).
+
+    This function does _not_ raise an exception if this path does not exist.
     '''
 
     # This path is an executable file if this path is an existing file with the
@@ -114,6 +118,8 @@ def is_special(pathname: str) -> bool:
     '''
     `True` only if the passed path is an existing **special file** (e.g.,
     directory, device node, socket, symbolic link).
+
+    This function does _not_ raise an exception if this path does not exist.
     '''
 
     # Avoid circular import dependencies.
@@ -127,14 +133,32 @@ def is_special(pathname: str) -> bool:
         # "...is either a symbolic link *OR* not a regular file."
         is_symlink(pathname) or not path.isfile(pathname))
 
-
+# ....................{ TESTERS ~ symlink                  }....................
 @type_check
 def is_symlink(pathname: str) -> bool:
     '''
     `True` only if the passed path is an existing symbolic link.
+
+    This function does _not_ raise an exception if this path does not exist.
     '''
 
     return path.islink(pathname)
+
+
+@type_check
+def is_symlink_valid(pathname: str) -> bool:
+    '''
+    `True` only if the passed path is an existing **non-dangling symbolic link**
+    (i.e., symbolic link whose target also exists).
+
+    This function does _not_ raise an exception if this path does not exist.
+    '''
+
+    # Call path.exists() rather than path.lexists(), as the latter returns True
+    # for dangling symbolic links.
+    #
+    # This is why human-readable function names is a good thing, people.
+    return is_symlink(pathname) and path.exists(pathname)
 
 # ....................{ COPIERS                            }....................
 @type_check
@@ -177,12 +201,11 @@ def copy(filename_source: str, filename_target: str) -> None:
     shutil.copy2(filename_source, filename_target, follow_symlinks=False)
 
 # ....................{ REMOVERS                           }....................
+@type_check
 def remove(filename: str) -> None:
     '''
     Remove the passed non-directory file.
     '''
-    assert types.is_str_nonempty(filename), (
-        types.assert_not_str_nonempty(filename, 'filename'))
 
     # Log this removal.
     logs.log_debug('Removing file "%s".', filename)

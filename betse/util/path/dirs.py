@@ -15,6 +15,20 @@ from betse.util.type.types import type_check, GeneratorType
 from contextlib import contextmanager
 from os import path
 
+# ....................{ GLOBALS                            }....................
+# There exist only two possible directory separators for all modern platforms.
+# Hence, this reliably suffices with no error handling required.
+SEPARATOR_REGEX = r'/' if path.sep == '/' else r'\\'
+'''
+Regular expression matching the directory separator specific to the current
+platform.
+
+Specifically, under:
+
+* Microsoft Windows, this is `\\\\`.
+* All other platforms, this is `/`.
+'''
+
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_dir(*dirnames) -> None:
     '''

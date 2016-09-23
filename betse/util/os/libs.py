@@ -113,9 +113,9 @@ def is_lib(pathname: str) -> bool:
 
 def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
     '''
-    Generator iteratively yielding a 2-tuple of the basename and absolute path
-    of each shared library dynamically linked to and hence required at runtime
-    by the shared library with the passed path.
+    Generator iteratively yielding the 2-tuple of the basename and absolute path
+    of each shared library dynamically linked to (and hence required at runtime
+    by) the shared library with the passed path.
 
     Parameters
     ----------
@@ -125,7 +125,7 @@ def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
     Returns
     ----------
     GeneratorType
-        Generator iteratively yielding a 2-tuple
+        Generator iteratively yielding the 2-tuple
         `(linked_lib_basename, linked_lib_pathname`), where:
         * `linked_lib_basename` is the basename of a shared library dynamically
           linked to the shared library with the passed path.
@@ -162,16 +162,18 @@ def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
         # 	libutil.so.1 => /lib64/libutil.so.1 (0x00007f9af299d000)
         ldd_stdout = runners.run_capturing_stdout(ldd_command_words)
 
-        # Return the generator yielding these absolute paths, ignoring lines
-        # *NOT* containing a "=>"-delimited basename and absolute path pair.
-        # Such lines signify either pseudo-libraries that do *NOT* actually
+        # For each line containing a "=>"-delimited basename and absolute path
+        # pair and hence ignoring both pseudo-libraries that do *NOT* actually
         # exist (e.g., "linux-vdso") or ubiquitous libraries required by the
         # dynamic linking mechanism and hence guaranteed to *ALWAYS* exist
-        # (e.g., "ld-linux-x86-64").
-        return regexes.iter_matches_line(
+        # (e.g., "ld-linux-x86-64")...
+        for line_match in regexes.iter_matches_line(
             text=ldd_stdout,
             regex=r'^\s+(\S+)\s+=>\s+(\S+)\s+\(0x[0-9a-fA-F]+\)$',
-        )
+        ):
+            # Yield the 2-tuple corresponding exactly to the match groups
+            # captured by this match.
+            yield line_match.groups()
 
     # Else, library inspection is currently unsupported on this platform.
     raise BetseOSException(

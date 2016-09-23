@@ -35,6 +35,7 @@ def is_linux() -> bool:
     '''
     `True` only if the current operating system is Linux.
     '''
+
     return platform.system() == 'Linux'
 
 
@@ -42,6 +43,7 @@ def is_os_x() -> bool:
     '''
     `True` only if the current operating system is Apple OS X.
     '''
+
     return platform.system() == 'Darwin'
 
 # ....................{ TESTERS ~ os : windows             }....................

@@ -11,7 +11,7 @@ Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 import re
 from betse.exceptions import BetseRegexException
 from betse.util.type.types import (
-    type_check, CallableTypes, GeneratorType, MappingType)
+    type_check, CallableTypes, MappingType)
 from sre_parse import Pattern
 
 # ....................{ FLAGS                              }....................
@@ -355,7 +355,7 @@ def get_match_line_if_any(text: str, regex: (str, Pattern), **kwargs):
 
 # ....................{ ITERATORS                          }....................
 @type_check
-def iter_matches(text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
+def iter_matches(text: str, regex: (str, Pattern), **kwargs):
     '''
     Generator iteratively yielding each non-overlapping match at any position of
     the passed string against the passed regular expression as a match object.
@@ -403,7 +403,7 @@ def iter_matches(text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
 
 @type_check
 def iter_matches_line(
-    text: str, regex: (str, Pattern), **kwargs) -> GeneratorType:
+    text: str, regex: (str, Pattern), **kwargs):
     '''
     Generator iteratively yielding each non-overlapping match at any position of
     the passed string against the passed regular expression in a line-oriented

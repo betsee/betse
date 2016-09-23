@@ -9,7 +9,7 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.io.log import logs
-from betse.util.path import files, paths
+from betse.util.path import dirs, files, paths
 from betse.util.py import modules
 from betse.util.os import libs, oses
 from betse.util.type import iterables, regexes, strs
@@ -24,11 +24,11 @@ from numpy import __config__ as numpy_config
 
 # ....................{ GLOBALS ~ opt_info                 }....................
 # Fully initialized by the _init_globals() function below.
-_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX = None
+_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX = None
 '''
-Uncompiled regular expression heuristically matching the basenames of shared
-libraries providing optimized BLAS shared libraries in the `libraries` list of
-the global :data:`numpy.__config__.blas_opt_info` dictionary.
+Uncompiled regular expression heuristically matching the basenames of optimized
+BLAS shared libraries in the `libraries` list of the global
+:data:`numpy.__config__.blas_opt_info` dictionary.
 
 This expression does _not_ match the strict superset of optimized BLAS shared
 libraries that are also optimized, as doing so in a cross-platform manner is
@@ -63,21 +63,19 @@ is conditionally compiled in a just-in-time (JIT) manner by the
 :func:`_is_blas_optimized_python_general` function rather than
 unconditionally compiled here.
 '''
-# print('blas regex: ' + _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX)
+# print('blas regex: ' + _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX)
 
-
-#FIXME: Actually use this, please.
 
 # Fully initialized by the _init_globals() function below.
-_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRNAME_REGEX = None
+_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX = None
 '''
-Uncompiled regular expression heuristically matching the dirnames of shared
-libraries providing optimized BLAS shared libraries in the `libraries` list of
-the global :data:`numpy.__config__.blas_opt_info` dictionary.
+Uncompiled regular expression heuristically matching the dirnames of optimized
+BLAS shared libraries in the `libraries` list of the global
+:data:`numpy.__config__.blas_opt_info` dictionary.
 
 See Also
 ----------
-:data:`_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX`
+:data:`_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX`
     Further details.
 '''
 
@@ -93,53 +91,37 @@ _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X = {
 '''
 Set of all strings in the `extra_link_args` list of the global
 :data:`numpy.__config__.blas_opt_info` dictionary heuristically corresponding to
-optimized BLAS implementations under OS X.
+OS X-specific optimized BLAS shared libraries.
 
-Unlike all other BLAS implementations, Numpy does _not_ declare unique
-dictionary globals describing these implementations when linked against. Ergo,
-this lower-level solution.
+Unlike all other such libraries, Numpy does _not_ declare unique dictionary
+globals describing OS X-specific BLAS shared libraries when linked against.
+Hence, this lower-level solution.
 '''
 
-# ....................{ GLOBALS ~ filename                 }....................
-_OPTIMIZED_BLAS_FILENAME_REGEX = r'^({}).*$'.format(
-    r'|'.join((
-        # AMD Core Math Library (ACML).
-        r'acml',
+# ....................{ GLOBALS ~ linked lib               }....................
+# Fully initialized by the _init_globals() function below.
+_OPTIMIZED_BLAS_LINKED_LIB_BASENAME_REGEX = None
+'''
+Uncompiled regular expression heuristically matching the basenames of optimized
+BLAS shared libraries dynamically linked to by Numpy.
 
-        # Automatically Tuned Linear Algebra Software (ATLAS) >= 3.10.
-        r'tatlas',
-
-        # Automatically Tuned Linear Algebra Software (ATLAS) < 3.10.
-        r'pt(c|f77)blas',
-
-        # Intel Math Kernel Library (MKL). Thanks to the profusion of possible
-        # library basenames, this regular expression fragment simplistically
-        # assumes *ALL* library basenames prefixed by "mkl" to unconditionally
-        # connote MKL. What could go wrong?
-        r'mkl_',
-
-        # OpenBLAS.
-        r'openblas(_[^_]+)?_threads',
-
-        #FIXME: Research. No idea if this basename substring is even accurate.
-
-        # BLAS-like Library Instantiation Software (BLIS). Unconditionally
-        # multithreaded. Technically, Numpy has yet to add official support for
-        # BLIS. Since numerous contributors nonetheless perceive BLIS to be the
-        # eventual successor of BLAS *AND* since Numpy currently hosts an open
-        # pull request to explicitly add BLIS support under the sensible
-        # subclass name "blis_info" (see Numpy PR #7294), explicitly listing
-        # BLIS here should assist in future-proofing our multithreading
-        # detection.
-        #r'blis',
-    ))
-)
+See Also
+----------
+:data:`_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX`
+    Further details.
 '''
 
-This expression is typically only required once at application startup and hence
-is conditionally compiled in a just-in-time (JIT) manner by the
-:func:`_is_blas_optimized_linkage` function rather than unconditionally
-compiled here.
+
+# Fully initialized by the _init_globals() function below.
+_OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX = None
+'''
+Uncompiled regular expression heuristically matching the dirnames of optimized
+BLAS shared libraries dynamically linked to by Numpy.
+
+See Also
+----------
+:data:`_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX`
+    Further details.
 '''
 
 # ....................{ INITIALIZERS                       }....................
@@ -147,20 +129,22 @@ compiled here.
 # submodule rather than explicitly called by callers.
 def init() -> None:
     '''
-    Initialize Numpy.
+    Initialize this submodule.
 
-    Specifically:
+    Specifically (_in order_):
 
-    * If the currently installed version of Numpy was linked against an
+    . Initialize all uninitialized global variables of this submodule.
+    . If the currently installed version of Numpy was linked against an
       unoptimized BLAS implementation and is thus itself unoptimized, log a
       non-fatal warning.
     '''
 
+    # Initialize all uninitialized global variables of this submodule.
+    _init_globals()
+
     #FIXME: Excise this after is_blas_optimized() is known to reliably work
     #in a cross-platform manner.
     return
-
-    _init_globals()
 
     # If Numpy linked against an unoptimized BLAS, log a non-fatal warning.
     if not is_blas_optimized():
@@ -179,75 +163,95 @@ def _init_globals() -> None:
 
     # Permit these globals to be redefined.
     global\
-        _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX,\
-        _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRNAME_REGEX
+        _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX,\
+        _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX,\
+        _OPTIMIZED_BLAS_LINKED_LIB_BASENAME_REGEX,\
+        _OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX
 
-    # Redefine this global.
-    _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX = (
-        r'^({})(?:[_-].*)?$'.format(r'|'.join((
-            # AMD Core Math Library (ACML).
-            r'acml',
+    # Regular expression fragment matching uniquely identifying substrings of
+    # basenames of optimized BLAS shared libraries.
+    blas_lib_basename_regex = r'|'.join((
+        # AMD Core Math Library (ACML).
+        r'acml',
 
-            # Automatically Tuned Linear Algebra Software (ATLAS) >= 3.10.
-            r'[st]?atlas',
+        # Automatically Tuned Linear Algebra Software (ATLAS) >= 3.10.
+        r'[st]?atlas',
 
-            # Automatically Tuned Linear Algebra Software (ATLAS) < 3.10.
-            r'(?:pt)?f77blas',
+        # Automatically Tuned Linear Algebra Software (ATLAS) < 3.10.
+        r'(?:pt)?f77blas',
 
-            # Automatically Tuned Linear Algebra Software (ATLAS) < 3.10.  Although
-            # some platforms (e.g., Ubuntu) distribute the CBLAS implementation of
-            # ATLAS with the ambiguous basename of "cblas" rather than "ptcblas",
-            # the former may also refer to the unoptimized reference CBLAS
-            # implementation and is hence ignored.
-            r'ptcblas',
+        # Automatically Tuned Linear Algebra Software (ATLAS) < 3.10.  Although
+        # some platforms (e.g., Ubuntu) distribute the CBLAS implementation of
+        # ATLAS with the ambiguous basename of "cblas" rather than "ptcblas",
+        # the former may also refer to the unoptimized reference CBLAS
+        # implementation and is hence ignored.
+        r'ptcblas',
 
-            # Intel Math Kernel Library (MKL). Thanks to the profusion of possible
-            # library basenames, this regular expression fragment simplistically
-            # assumes *ALL* library basenames prefixed by "mkl" to unconditionally
-            # connote MKL. What could go wrong?
-            r'mkl',
+        # Intel Math Kernel Library (MKL). Thanks to the profusion of possible
+        # library basenames, this regular expression fragment simplistically
+        # assumes *ALL* library basenames prefixed by "mkl" to unconditionally
+        # connote MKL. What could go wrong?
+        r'mkl',
 
-            # OpenBLAS.
-            r'openblas',
+        # OpenBLAS.
+        r'openblas',
 
-            #FIXME: Research. No idea if this basename substring is even accurate.
+        #FIXME: Research. No idea if this basename substring is even accurate.
 
-            # BLAS-like Library Instantiation Software (BLIS). Unconditionally
-            # multithreaded. Technically, Numpy has yet to add official support for
-            # BLIS. Since numerous contributors nonetheless perceive BLIS to be the
-            # eventual successor of BLAS *AND* since Numpy currently hosts an open
-            # pull request to explicitly add BLIS support under the sensible
-            # subclass name "blis_info" (see Numpy PR #7294), explicitly listing
-            # BLIS here should assist in future-proofing our multithreading
-            # detection.
-            #r'blis',
-    ))))
+        # BLAS-like Library Instantiation Software (BLIS). Unconditionally
+        # multithreaded. Technically, Numpy has yet to add official support for
+        # BLIS. Since numerous contributors nonetheless perceive BLIS to be the
+        # eventual successor of BLAS *AND* since Numpy currently hosts an open
+        # pull request to explicitly add BLIS support under the sensible
+        # subclass name "blis_info" (see Numpy PR #7294), explicitly listing
+        # BLIS here should assist in future-proofing our multithreading
+        # detection.
+        #r'blis',
+    ))
+
+    # Regular expression fragment matching uniquely identifying substrings of
+    # dirnames of optimized BLAS shared libraries.
+    blas_lib_dirname_regex = r'|'.join((
+        # AMD Core Math Library (ACML).
+        r'acml',
+
+        # Automatically Tuned Linear Algebra Software (ATLAS).
+        r'atlas',
+
+        # Intel Math Kernel Library (MKL).
+        r'mkl',
+
+        # OpenBLAS.
+        r'openblas',
+    ))
 
     # Regular expression fragment matching the boundary of a dirname at which a
-    # substring matching an optimized BLAS name may either begin or end.
-    dirname_boundary_regex = r'[{}_.-])'.format(regexes.DIR_SEPARATOR_REGEX)
+    # substring matching an optimized BLAS substring may either begin or end.
+    dirname_boundary_regex = r'[{}_.-]'.format(dirs.SEPARATOR_REGEX)
+
+    #FIXME: What about OS X? Are shared libraries prefixed by "lib" under that
+    #platform as well?
 
     # Redefine this global.
-    _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRNAME_REGEX = (
-        r'^(?:{boundary})?({name})(?:{boundary}.*)?$'.format(
+    _OPTIMIZED_BLAS_LINKED_LIB_BASENAME_REGEX = (
+        r'^lib({})(?:[_.-].*)?$'.format(blas_lib_basename_regex))
+
+    # Redefine this global. Since Numpy has already stripped all
+    # platform-specific prefixes (e.g., "lib") and suffixes (e.g., ".so") from
+    # this basename, only this substring followed by an arbitrary bounded suffix
+    # need be matched.
+    _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX = (
+        r'^({})(?:[_-].*)?$'.format(blas_lib_basename_regex))
+
+    # Redefine these globals to the same regular expression.
+    _OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX = (
+        r'^.*?{boundary}({blas_dirname})(?:{boundary}.*)?$'.format(
             boundary=dirname_boundary_regex,
-            name=r'|'.join((
-                # AMD Core Math Library (ACML).
-                r'acml',
-
-                # Automatically Tuned Linear Algebra Software (ATLAS).
-                r'atlas',
-
-                # Intel Math Kernel Library (MKL).
-                r'mkl',
-
-                # OpenBLAS.
-                r'openblas',
-    ))))
+            blas_dirname=blas_lib_dirname_regex,))
+    _OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX = (
+        _OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX)
 
 # ....................{ TESTERS                            }....................
-#FIXME: Revise docstring, which is pretty much completely wrong now.
-
 def is_blas_optimized() -> bool:
     '''
     `True` only if the currently installed version of Numpy is linked against an
@@ -262,40 +266,17 @@ def is_blas_optimized() -> bool:
     Note that testing for parallelized optimized BLAS implementations, while
     more specific and hence preferable, is infeasible for common edge-cases
     (e.g., Debian-based Linux distributions). For further details, see the
-    :data:`_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX` string global.
-
-    Heuristic
-    ----------
-    Numpy does _not_ provide a convenient API for readily querying this boolean.
-    Numpy does, however, provide an admittedly inconvenient API for aggregating
-    this boolean together from various sources: the
-    :mod:`numpy.__config__` submodule. The
-    :func:`numpy.distutils.misc_util.generate_config_py` function
-    programmatically fabricates the contents of the :mod:`numpy.__config__`
-    submodule at Numpy installation time.
-
-    Specifically, for each subclass of the
-    :class:`numpy.distutils.system_info.system_info` base class defined by the
-    :mod:`numpy.distutils.system_info` submodule (e.g.,
-    :class:`numpy.distutils.system_info.atlas_info`) whose corresponding shared
-    library (e.g., ATLAS_) or feature (e.g., ATLAS_ multithreading) is available
-    on the current system at Numpy installation time, a dictionary global of the
-    same name as that subclass whose keys are the names of metadata types and
-    values are metadata is programmatically added to the
-    :mod:`numpy.__config__` submodule. Hence, this function returns
-    `True` only if that submodule declares a global specific to a optimized
-    BLAS implementation.
-
-    .. _ATLAS: http://math-atlas.sourceforge.net
+    :data:`_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX` string global.
     '''
 
     # For each private tester implementing a heuristic for this public test (in
     # order of decreasing generality, portability, and reliability)...
     for tester_heuristic in (
-        _is_blas_optimized_python_general,
-        #FIXME: Uncomment these heuristics after retesting.
-        # _is_blas_optimized_python_os_x,
-        # _is_blas_optimized_linkage,
+        _is_blas_optimized_opt_info_libraries,
+        _is_blas_optimized_opt_info_library_dirs,
+        #FIXME: Uncomment this heuristic after testing properly.
+        # _is_blas_optimized_opt_info_os_x,
+        _is_blas_optimized_posix_symlink,
     ):
         # Attempt to...
         try:
@@ -317,35 +298,48 @@ def is_blas_optimized() -> bool:
     # optimized or non-optimized. For safety, assume the latter.
     return False
 
-
-#FIXME: Document us up.
-def _is_blas_optimized_python_general() -> (bool, NoneType):
+# ....................{ TESTERS ~ private : opt_info       }....................
+def _is_blas_optimized_opt_info_libraries() -> (bool, NoneType):
     '''
-    The `libraries` list of the global
-    :data:`numpy.__config__.blas_opt_info` dictionary.
+    `True` only if the first element of the `libraries` list of the global
+    :data:`numpy.__config__.blas_opt_info` dictionary heuristically
+    corresponds to that of an optimized BLAS implementation, `False` if a non-
+    fatal error condition arises (e.g., due this list or dictionary being
+    undefined), _or_ `None` otherwise.
+
+    This function returns `None` when unable to deterministically decide this
+    boolean, in which case a subsequent heuristic will attempt to do so.
+
+    Numpy does _not_ define a public API directly defining this boolean. Numpy
+    does, however, define a private API defining a variety of metadata from
+    which this boolean is indirectly derivable: the :mod:`numpy.__config__`
+    submodule. The :func:`numpy.distutils.misc_util.generate_config_py` function
+    programmatically fabricates the contents of the :mod:`numpy.__config__`
+    submodule at Numpy installation time. This function introspectively inspects
+    these contents for uniquely identifying metadata in a portable manner.
     '''
 
     # Global BLAS linkage dictionary for this Numpy installation if any or
     # "None" otherwise. Technically, this dictionary should *ALWAYS* be defined.
     # Reality probably occasionally begs to disagree, however.
-    blas_lib = getattr(numpy_config, 'blas_opt_info', None)
+    blas_opt_info = getattr(numpy_config, 'blas_opt_info', None)
 
     # If this dictionary is undefined, log a non-fatal warning and return False.
     # While unfortunate, this is *NOT* worth raising a fatal exception over.
-    if blas_lib is None:
+    if blas_opt_info is None:
         logs.log_warning(
             'Numpy installation misconfigured: '
             '"numpy.__config__.blas_opt_info" dictionary not found.')
         return False
 
-    # List of all substrings of BLAS library basenames this version of Numpy is
-    # linked against if any or "None" otherwise.
-    blas_basename_substrs = blas_lib.get('libraries', None)
+    # List of the uniquely identifying substrings of all BLAS library basenames
+    # this version of Numpy is linked against if any or "None" otherwise.
+    blas_basename_substrs = blas_opt_info.get('libraries', None)
 
     # If this list is either undefined or empty, log a non-fatal warning and
-    # return False.  While unfortunate, this is *NOT* worth raising a fatal
-    # exception over. (Unlike the optional "extra_link_args" metadata tested
-    # for below, the "libraries" metadata is mandatory.)
+    # return False. While unfortunate, this is *NOT* worth raising a fatal
+    # exception over. (Unlike the optional "extra_link_args" dictionary key
+    # tested for below, the "libraries" dictionary key is mandatory.)
     if not blas_basename_substrs:
         logs.log_warning(
             'Numpy installation misconfigured: '
@@ -365,7 +359,7 @@ def _is_blas_optimized_python_general() -> (bool, NoneType):
     # (e.g., version), a regular expression is leveraged.
     if regexes.is_match(
         text=blas_basename_substr,
-        regex=_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX,
+        regex=_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_REGEX,
     ):
         return True
 
@@ -373,61 +367,153 @@ def _is_blas_optimized_python_general() -> (bool, NoneType):
     return None
 
 
-#FIXME: Document us up.
-def _is_blas_optimized_python_os_x() -> (bool, NoneType):
+def _is_blas_optimized_opt_info_library_dirs() -> (bool, NoneType):
+    '''
+    `True` only if the first element of the `library_dirs` list of the global
+    :data:`numpy.__config__.blas_opt_info` dictionary heuristically
+    corresponds to that of an optimized BLAS implementation, `False` if a non-
+    fatal error condition arises (e.g., due this list or dictionary being
+    undefined), _or_ `None` otherwise.
 
-    # If the current platform is OS X, fallback to testing whether Numpy was
-    # linked against a optimized BLAS implementation specific to OS X:
-    # namely, "Accelerate" or "vecLib". Unlike all other BLAS implementations,
-    # these implementations are linked against with explicit linker flags --
-    # requiring further logic. For further confirmation that the
-    # "numpy.__config__.blas_opt_info" dictionary gives this metadata when
-    # linked against these implementations, see:
+    This function returns `None` when unable to deterministically decide this
+    boolean, in which case a subsequent heuristic will attempt to do so.
+    '''
+
+    # List of the dirnames of all BLAS libraries this version of Numpy is linked
+    # against if any or "None" otherwise.
     #
-    # * https://trac.macports.org/ticket/22200
-    # * https://github.com/BVLC/caffe/issues/2677
-    #
-    # When life sells you cat food, you eat cat food.
-    if oses.is_os_x():
-        # List of all implementation-specific link arguments with which Numpy
-        # linked against the current BLAS implementation if any or "None". Note
-        # that the "blas_opt_info" dictionary global is guaranteed to exist due
-        # to the previously called _is_blas_optimized_python_general()
-        # function.
-        blas_link_args_list = numpy_config.blas_opt_info.get(
-            'extra_link_args', None)
+    # Note that the "blas_opt_info" dictionary global is guaranteed to exist due
+    # to the previously called _is_blas_optimized_opt_info_basename() function.
+    blas_dirnames = numpy_config.blas_opt_info.get('library_dirs', None)
 
-        # If at least one such argument exists...
-        if blas_link_args_list:
-            # Set of these arguments, converted from this list for efficiency.
-            blas_link_args = set(blas_link_args_list)
+    # If this list is either undefined or empty, log a non-fatal warning and
+    # return False. While unfortunate, this is *NOT* worth raising a fatal
+    # exception over. (Unlike the optional "extra_link_args" dictionary key
+    # tested for below, the "library_dirs" dictionary key is mandatory.)
+    if not blas_dirnames:
+        logs.log_warning(
+            'Numpy installation misconfigured: '
+            "\"numpy.__config__.blas_opt_info['library_dirs']\" "
+            'dictionary key not found or empty.')
+        return False
+    # Else, this list is non-empty.
 
-            # Subset of this set specific to multithreaded BLAS implementations.
-            blas_link_args_multithreaded = (
-                blas_link_args &
-                _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X
-            )
+    # First element of this list. For simplicity, this function assumes the
+    # BLAS library identified by this element currently exists. While
+    # iteratively testing all listed BLAS libraries for existence would be
+    # feasible, doing so is platform-specific and hence non-trivially fragile.
+    blas_dirname = blas_dirnames[0]
 
-            # Return True only if this subset is nonempty.
-            return len(blas_link_args_multithreaded) > 0
+    # If the BLAS library identified by this element is optimized, return
+    # True. Since this element is an arbitrary pathname typically containing
+    # non-identifying metadata, a regular expression is leveraged.
+    if regexes.is_match(
+        text=blas_dirname,
+        regex=_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_DIRS_REGEX,
+    ):
+        return True
 
     # Else, instruct our caller to continue to the next heuristic.
     return None
 
 
-#FIXME: Document us up.
-def _is_blas_optimized_linkage() -> (bool, NoneType):
+def _is_blas_optimized_opt_info_os_x() -> (bool, NoneType):
+    '''
+    `True` only if the current platform is OS X _and_ the `extra_link_args` list
+    of the global :data:`numpy.__config__.blas_opt_info` dictionary both exists
+    _and_ heuristically corresponds to that of an optimized BLAS implementation
+    specific to OS X (e.g., Accelerate, vecLib), `False` if a non-fatal error
+    condition arises (e.g., due this list or dictionary being undefined), _or_
+    `None` otherwise.
 
-    # First element of the list of all substrings of BLAS library basenames this
-    # version of Numpy is linked against. Note that this list is guaranteed to
-    # be non-empty due to the previously called
-    # _is_blas_optimized_python_general() function.
-    blas_basename_substr = numpy_config.blas_opt_info['libraries']
+    This function returns `None` when unable to deterministically decide this
+    boolean, in which case a subsequent heuristic will attempt to do so.
 
-    # If this appears to be either the reference BLAS or CBLAS implementations
-    # *AND* this platform is POSIX-compliant and hence supports symbolic links,
-    # fallback to testing whether this library is in fact a symbolic link to a
-    # optimized BLAS implementation.
+    Unlike all other BLAS implementations, OS X-specific BLAS implementations
+    are linked against with explicit linker flags rather than pathnames. For
+    further confirmation that the `numpy.__config__.blas_opt_info` dictionary
+    defines these flags when linked against these implementations, see:
+
+    * https://trac.macports.org/ticket/22200
+    * https://github.com/BVLC/caffe/issues/2677
+
+    When life buys you cat food, you eat cat food.
+    '''
+
+    # If the current platform is *NOT* OS X, continue to the next heuristic.
+    if not oses.is_os_x():
+        return None
+    # Else, the current platform is OS X.
+
+    # List of all implementation-specific link arguments with which Numpy linked
+    # against the current BLAS implementation if any or "None".
+    #
+    # Note that the "blas_opt_info" dictionary global is guaranteed to exist due
+    # to the previously called _is_blas_optimized_opt_info_basename() function.
+    blas_link_args_list = numpy_config.blas_opt_info.get(
+        'extra_link_args', None)
+
+    # If no such argument exists, continue to the next heuristic. Since this
+    # list is strictly optional, no errors or warnings are logged.
+    if not blas_link_args_list:
+        return None
+
+    # Set of these arguments, converted from this list for efficiency.
+    blas_link_args = set(blas_link_args_list)
+
+    # Subset of this set specific to multithreaded BLAS implementations.
+    blas_link_args_multithreaded = (
+        blas_link_args & _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X)
+
+    # If this subset is nonempty, return True.
+    if len(blas_link_args_multithreaded) > 0:
+        return True
+
+    # Else, instruct our caller to continue to the next heuristic.
+    return None
+
+# ....................{ TESTERS ~ private : linkage        }....................
+def _is_blas_optimized_posix_symlink() -> (bool, NoneType):
+    '''
+    `True` only if the current platform is POSIX-compliant and hence supports
+    symbolic links _and_ the first element of the `libraries` list of the global
+    :data:`numpy.__config__.blas_opt_info` dictionary is a symbolic link
+    masquerading as either the unoptimized reference BLAS implementation but in
+    fact linking to an optimized BLAS implementation.
+
+    This function returns `None` when unable to deterministically decide this
+    boolean, in which case a subsequent heuristic will attempt to do so.
+    '''
+
+    # If the current platform is *NOT* POSIX-compliant and hence does *NOT*
+    # support symbolic links, continue to the next heuristic.
+    if not oses.is_posix():
+        return None
+
+    #FIXME: Generalize to OS X as well once the
+    #libs.iter_linked_lib_filenames() function supports OS X.
+
+    # If the current platform is *NOT* Linux, continue to the next heuristic.
+    #
+    # The libs.iter_linked_lib_filenames() function called below currently only
+    # supports Linux.
+    if not oses.is_linux():
+        return None
+
+    # First element of the list of uniquely identifying substrings of all BLAS
+    # library basenames this version of Numpy is linked against.
+    #
+    # Note that this list is guaranteed to both exist and be non-empty due to
+    # the previously called _is_blas_optimized_opt_info_basename() function.
+    blas_basename_substr = numpy_config.blas_opt_info['libraries'][0]
+
+    # If this element appears to be neither the reference BLAS or CBLAS
+    # implementations (e.g., "blas", "cblas", "refblas", "refcblas"), continue
+    # to the next heuristic.
+    if not blas_basename_substr.endswith('blas'):
+        return None
+
+    # Absolute path of an arbitrary shared library-based Numpy C extension.
     #
     # Unfortunately, the "numpy.__config__" API fails to specify the absolute
     # paths of the libraries it links against. Since there exists no reliable
@@ -437,49 +523,48 @@ def _is_blas_optimized_linkage() -> (bool, NoneType):
     # for the absolute paths of all external shared libraries to which this
     # extension links -- exactly one of which is guaranteed to be the absolute
     # path of what appears to be a reference BLAS or CBLAS implementation.
-    # if oses.is_posix():
-    if (
-        blas_basename_substr == 'blas' or
-        blas_basename_substr == 'cblas'
+    numpy_lib_filename = modules.get_filename('numpy.core.multiarray')
 
-        #FIXME: Generalize to OS X as well once the
-        #libs.iter_linked_lib_filenames() function supports OS X.
-    ) and oses.is_linux():
-        # Absolute path of this shared library-based Numpy C extension.
-        numpy_lib_filename = modules.get_filename('numpy.core.multiarray')
+    # For the basename and absolute path of each shared library linked to
+    # by this Numpy shared library...
+    for (numpy_linked_lib_basename, numpy_linked_lib_filename) in (
+        libs.iter_linked_lib_filenames(numpy_lib_filename)):
+        # print('basename: {}; filename: {}'.format(numpy_linked_lib_basename, numpy_linked_lib_filename))
 
-        # For the basename and absolute path of each shared library linked to
-        # by this Numpy shared library...
-        for (numpy_linked_lib_basename, numpy_linked_lib_filename) in (
-            libs.iter_linked_lib_filenames(numpy_lib_filename)):
+        # Basename excluding suffixing filetype of this library.
+        numpy_linked_lib_rootname = paths.get_pathname_sans_filetype(
+            numpy_linked_lib_basename)
 
-            #FIXME: Implement the following heuristic:
-            #
-            #* If "numpy_linked_lib_basename" sans filetype (e.g., via
-            #  paths.get_pathname_sans_filetype()) is suffixed by "blas" *AND*
-            #  "numpy_linked_lib_filename" is a symbolic link, then:
-            #  * If the transitive target pathname of this symbolic link (e.g.,
-            #    via paths.canonicalize()) matches a regular expression
-            #    resembling (...but possibly differing from?)
-            #    "_OPTIMIZED_BLAS_OPT_INFO_LIBRARY_BASENAME_REGEX", return
-            #    True.
-            #* Else, continue to the next linked lib.
+        # If this appears to be neither the BLAS nor CBLAS reference library,
+        # continue to the next library.
+        if not numpy_linked_lib_rootname.endswith('blas'):
+            continue
+        # Else, this is either the BLAS or CBLAS reference library.
 
-            # If this library is *NOT* a symbolic link to another library,
-            # continue to the next library.
-            if not files.is_symlink(numpy_linked_lib_filename):
-                continue
-            # Else, this library is actually a symbolic link to another library.
+        # If this library is *NOT* a symbolic link, Numpy links directly against
+        # an unoptimized BLAS implementation. Halt!
+        if not files.is_symlink(numpy_linked_lib_filename):
+            break
+        # Else, this library is actually a symbolic link to another library.
 
-            # Basename excluding suffixing filetype of this library.
-            numpy_linked_lib_rootname = (
-                paths.get_pathname_sans_filetype(numpy_linked_lib_basename))
+        # Absolute path of the target library to which this library links.
+        numpy_linked_lib_target_filename = paths.canonicalize(
+            numpy_linked_lib_filename)
+        # print('target filename: {}'.format(numpy_linked_lib_target_filename))
 
-            # If this is neither the BLAS nor CBLAS reference library, continue
-            # to the next library.
-            if not numpy_linked_lib_rootname.endswith('blas'):
-                continue
-            # Else, this is either the BLAS or CBLAS reference library.
+        # If either the basename or dirname of this path corresponds to that of
+        # an optimized BLAS library, return True.
+        if regexes.is_match(
+            text=paths.get_basename(numpy_linked_lib_target_filename),
+            regex=_OPTIMIZED_BLAS_LINKED_LIB_BASENAME_REGEX,
+        ) or regexes.is_match(
+            text=paths.get_dirname(numpy_linked_lib_target_filename),
+            regex=_OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX,
+        ):
+            return True
+
+        # Else, Numpy links against an unoptimized BLAS implementation. Halt!
+        break
 
     # Else, instruct our caller to continue to the next heuristic.
     return None
