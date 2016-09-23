@@ -31,6 +31,7 @@ from betse.science.tissue.channels import vg_k as vgk
 from betse.science.tissue.channels import vg_kir as vgkir
 from betse.science.tissue.channels import vg_funny as vgfun
 from betse.science.tissue.channels import vg_ca as vgca
+from betse.science.tissue.channels import cation as vgcat
 
 
 class MasterOfNetworks(object):
@@ -812,10 +813,10 @@ class MasterOfNetworks(object):
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
 
-        for name in self.channels:
-
-            msg = "Including the network channel: {}".format(name)
-            logs.log_info(msg)
+        # for name in self.channels:
+        #
+        #     msg = "Including the network channel: {}".format(name)
+        #     logs.log_info(msg)
 
     def read_modulators(self, config_modulators, sim, cells, p):
 
@@ -2171,12 +2172,13 @@ class MasterOfNetworks(object):
             if obj.active_pumping:
                 obj.pump(sim, cells, p)
 
-            if p.run_sim is True:
-                # use the substance as a gating ligand (if desired)
-                if obj.ion_channel_gating:
-                    obj.gating_mod = eval(obj.gating_mod_eval_string, self.globals, self.locals)
-                    obj.gating(sim, self, cells, p)
+            # if p.run_sim is True:
+            # use the substance as a gating ligand (if desired)
+            if obj.ion_channel_gating:
+                obj.gating_mod = eval(obj.gating_mod_eval_string, self.globals, self.locals)
+                obj.gating(sim, self, cells, p)
 
+            if p.run_sim is True:
                 # update the global boundary (if desired)
                 if obj.change_bounds:
                     obj.update_boundary(t, p)
@@ -4717,25 +4719,59 @@ class Molecule(object):
         # update membrane permeability if dye targets an ion channel:
         if self.use_gating_ligand:
 
-            # calculate any activators and/or inhibitor effects:
+            for ion_tag in self.gating_ion:
 
-            if self.gating_extracell is False:
-
-                for ion_tag in self.gating_ion:
+                # calculate any activators and/or inhibitor effects:
+                if self.gating_extracell is False:
 
                     Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
                                                                             self.gating_Hill_K,self.gating_Hill_n)
 
-                    sim.Dm_morpho[ion_tag] = sim.rho_channel*Dm_mod_mol*self.gating_mod
+                else:
 
-            elif self.gating_extracell is True and p.sim_ECM is True:
+                    if p.sim_ECM is False:
 
-                for ion_tag in self.gating_ion:
+                        Dm_mod_mol = self.gating_max_val * tb.hill(self.c_env, self.gating_Hill_K, self.gating_Hill_n)
 
-                    Dm_mod_mol = self.gating_max_val*tb.hill(self.c_env,self.gating_Hill_K,self.gating_Hill_n)
+                    else:
 
-                    sim.Dm_morpho[ion_tag] = (self.gating_mod*sim.rho_channel*
-                                              Dm_mod_mol[cells.map_mem2ecm])
+                        Dm_mod_mol = self.gating_max_val * tb.hill(self.c_env[cells.map_mem2ecm],
+                                                                   self.gating_Hill_K, self.gating_Hill_n)
+
+                # obtain concentration of ion inside and out of the cell, as well as its charge z:
+                c_mem = sim.cc_mems[ion_tag]
+
+                if p.sim_ECM is True:
+                    c_env = sim.cc_env[ion_tag][cells.map_mem2ecm]
+
+                else:
+                    c_env = sim.cc_env[ion_tag]
+
+                IdM = np.ones(sim.mdl)
+
+                z_ion = sim.zs[ion_tag]*IdM
+
+                # membrane diffusion constant of the channel:
+                Dchan = sim.rho_channel*Dm_mod_mol*self.gating_mod
+
+                # calculate specific ion flux contribution for this channel:
+                chan_flx = stb.electroflux(c_env, c_mem, Dchan, p.tm*IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
+
+                # update the sim flux keeper to ensure this contributes to net current:
+                sim.fluxes_mem[ion_tag] = sim.fluxes_mem[ion_tag] + chan_flx
+
+                # update ion concentrations in cell and ecm:
+                sim.cc_mems[ion_tag], sim.cc_env[ion_tag] = stb.update_Co(sim, sim.cc_mems[ion_tag],
+                                                                      sim.cc_env[ion_tag], chan_flx, cells, p,
+                                                                      ignoreECM=False)
+
+                # update the ion concentration intra-cellularly:
+                # FIXME: do we actually need to update intra, or can we leave this part out?
+                sim.cc_mems[ion_tag], sim.cc_cells[ion_tag], _ = \
+                    stb.update_intra(sim, cells, sim.cc_mems[ion_tag],
+                                     sim.cc_cells[ion_tag],
+                                     sim.D_free[ion_tag],
+                                     sim.zs[ion_tag], p)
 
     def init_growth(self,cells, p):
 
@@ -5241,6 +5277,12 @@ class Channel(object):
             self.dummy_dyna.maxDmFun = max_val
             self.dummy_dyna.targets_vgFun = self.channel_targets_mem
             class_string = vgfun
+
+        elif ion_string == 'Cat':
+
+            self.dummy_dyna.maxDmCat = max_val
+            self.dummy_dyna.targets_vgCat = self.channel_targets_mem
+            class_string = vgcat
 
         else:
 

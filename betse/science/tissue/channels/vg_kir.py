@@ -10,7 +10,6 @@ Voltage-gated inward rectifying potassium channel classes.
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
@@ -50,7 +49,7 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
 
         self.v_corr = 0.0
 
-        V = sim.vm[dyna.targets_vgKir] * 1000 + self.v_corr
+        V = sim.vm*1000 + self.v_corr
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
@@ -66,10 +65,10 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm[dyna.targets_vgKir] * 1000 + self.v_corr
+        V = sim.vm*1000 + self.v_corr
 
         self._calculate_state(
-            V=sim.vm[dyna.targets_vgKir] * 1000,
+            V=V,
             dyna=dyna, sim=sim, p=p)
 
         self._implement_state(V, dyna, sim, cells, p)
@@ -87,7 +86,24 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
         P = (dyna.m_Kir ** self._mpower) * (dyna.h_Kir ** self._hpower)
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        delta_Q = - (dyna.maxDmKir*P*(V - self.vrev))
+        # obtain concentration of ion inside and out of the cell, as well as its charge z:
+        c_mem = sim.cc_mems[sim.iK]
+
+        if p.sim_ECM is True:
+            c_env = sim.cc_env[sim.iK][cells.map_mem2ecm]
+
+        else:
+            c_env = sim.cc_env[sim.iK]
+
+        IdM = np.ones(sim.mdl)
+
+        z_ion = sim.zs[sim.iK] * IdM
+
+        # membrane diffusion constant of the channel:
+        Dchan = dyna.maxDmKir*P*1.0e-9
+
+        # calculate specific ion flux contribution for this channel:
+        delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

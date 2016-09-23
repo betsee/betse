@@ -10,7 +10,6 @@ Voltage-gated potassium channel classes.
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
@@ -48,7 +47,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
         self.v_corr = 0.0   # in experiments, the measurement junction voltage is about 10 mV
 
-        V = sim.vm[dyna.targets_vgK] * 1000 + self.v_corr
+        V = sim.vm*1000 + self.v_corr
 
         self._init_state(V, dyna, sim, p)
 
@@ -64,7 +63,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm[dyna.targets_vgK] * 1000 + self.v_corr
+        V = sim.vm*1000 + self.v_corr
 
         self._calculate_state(V, dyna, sim, p)
 
@@ -86,7 +85,26 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # which is described by the original Hodgkin Huxley equation.
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
+        # delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
+
+        # obtain concentration of ion inside and out of the cell, as well as its charge z:
+        c_mem = sim.cc_mems[sim.iK]
+
+        if p.sim_ECM is True:
+            c_env = sim.cc_env[sim.iK][cells.map_mem2ecm]
+
+        else:
+            c_env = sim.cc_env[sim.iK]
+
+        IdM = np.ones(sim.mdl)
+
+        z_ion = sim.zs[sim.iK] * IdM
+
+        # membrane diffusion constant of the channel:
+        Dchan = dyna.maxDmK*P*1.0e-9    # 1.0e-9 multiplier to approximately convert from conductivity
+
+        # calculate specific ion flux contribution for this channel:
+        delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 
@@ -476,8 +494,8 @@ class KLeak(VgKABC):
         self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1
-        dyna.h_K = 1
+        dyna.m_K = np.ones(sim.mdl)
+        dyna.h_K = np.ones(sim.mdl)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0

@@ -38,12 +38,12 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         """
         A general helper function to update charge in the cell and environment
-        given a flux derived from the Hodgkin-Huxley equivalent circuit model.
+        given a flux derived from the GHK flux equation.
 
         Parameters
         ----------------
         ion_index:  index of an ion in the sim module (i.e. sim.iNa, sim.iK, sim.iCl, etc)
-        delta_Q:    Hodgkin-Huxkley flux for the channel state
+        delta_Q:    GHK flux component for the channel state
         targets:    Indices to the cell membrane targets for the channel (e.g. dyna.targets_vgNa)
         sim:        Instance of sim object
         cells:      Instance of cells object
@@ -56,23 +56,27 @@ class ChannelsABC(object, metaclass=ABCMeta):
         delta_Q = delta_Q*self.modulator
 
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
-        # which is described by the original Hodgkin Huxley equation.
+        # which is described by the GHK flux equation.
 
-        # update the fluxes across the membrane to account for charge transfer from HH flux:
-        sim.fluxes_mem[ion_index][targets] = delta_Q
+        # update the fluxes across the membrane to account for charge transfer from channel flux:
+        sim.fluxes_mem[ion_index][targets] = sim.fluxes_mem[ion_index][targets] + delta_Q[targets]
 
-        # update the concentrations of Na in cells and environment using HH flux delta_Q:
+
+        # FIXME check to see if new flux expression is positive or negative in the following....!
+
+        # update the concentrations of ion in cells and environment using GHK derived flux delta_Q:
+
         # first in cells:
         sim.cc_mems[ion_index][targets] = (
             sim.cc_mems[ion_index][targets] +
-            delta_Q * (cells.mem_sa[targets] / cells.mem_vol[targets]) * p.dt)
+            delta_Q[targets] * (cells.mem_sa[targets] / cells.mem_vol[targets]) * p.dt)
 
         if p.sim_ECM is False:
 
             # transfer charge directly to the environment:
             sim.cc_env[ion_index][targets] = (
                 sim.cc_env[ion_index][targets] -
-                delta_Q * (cells.mem_sa[targets] / cells.mem_vol[targets]) * p.dt)
+                delta_Q[targets] * (cells.mem_sa[targets] / cells.mem_vol[targets]) * p.dt)
 
             # assume auto-mixing of environmental concs
             sim.cc_env[ion_index][:] = sim.cc_env[ion_index].mean()
@@ -80,7 +84,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
         else:
 
             flux_env = np.zeros(sim.edl)
-            flux_env[cells.map_mem2ecm][targets] = -delta_Q
+            flux_env[cells.map_mem2ecm][targets] = -delta_Q[targets]
 
             # save values at the cluster boundary:
             bound_vals = flux_env[cells.ecm_bound_k]
@@ -100,8 +104,9 @@ class ChannelsABC(object, metaclass=ABCMeta):
             sim.cc_env[ion_index][:] = sim.cc_env[ion_index][:] + delta_env * p.dt
 
         # update the concentration intra-cellularly:
-        sim.cc_mems[ion_index], sim.cc_cells[ion_index], _ = stb.update_intra(sim, cells, sim.cc_mems[ion_index],
-            sim.cc_cells[ion_index], sim.D_free[ion_index], sim.zs[ion_index], p)
+        # FIXME: is it necessary to update intracellularly?
+        # sim.cc_mems[ion_index], sim.cc_cells[ion_index], _ = stb.update_intra(sim, cells, sim.cc_mems[ion_index],
+        #     sim.cc_cells[ion_index], sim.D_free[ion_index], sim.zs[ion_index], p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         sim.update_V(cells, p)

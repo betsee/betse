@@ -1589,8 +1589,6 @@ class Simulator(object):
 
         if p.HKATPase_dyn == 1: # if there's an H,K ATPase pump
 
-            # if HKATPase pump is desired, run the H-K-ATPase pump:
-
             if p.sim_ECM is True:
 
                 f_H2, f_K2 = stb.pumpHKATP(self.cc_mems[self.iH],
@@ -1612,9 +1610,17 @@ class Simulator(object):
                 f_H2, f_K2 = stb.pumpHKATP(self.cc_mems[self.iH],self.cc_env[self.iH],self.cc_mems[self.iK],
                     self.cc_env[self.iK],self.vm,self.T,p,self.HKATP_block, met = self.met_concs)
 
+                # modulate by asymmetric pump factor if lateral membrane movements are being considered:
+                f_H2 = self.rho_pump*f_H2
+                f_K2 = self.rho_pump*f_K2
+
+                # capture rate:
+                self.HKATPase_rate = f_H2[:]
+
                 # store fluxes for this pump:
-                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H2
-                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + self.rho_pump * f_K2
+                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
+                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
+
 
             if p.metabolism_enabled:
                 # update ATP concentrations after pump action:

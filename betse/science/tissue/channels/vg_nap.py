@@ -10,7 +10,6 @@ Voltage-gated sodium channel classes.
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
@@ -47,7 +46,7 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
 
         self.v_corr = 0.0  # offset of voltages in the model -- experimental junction voltage [mV]
 
-        V = sim.vm[dyna.targets_vgNaP] * 1000 + self.v_corr
+        V = sim.vm*1000 + self.v_corr
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
@@ -62,7 +61,7 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
         for voltage gated channels.
 
         '''
-        V = sim.vm[dyna.targets_vgNaP] * 1000 + self.v_corr
+        V = sim.vm* 1000 + self.v_corr
 
         self._calculate_state(V, dyna, sim, p)
 
@@ -84,7 +83,26 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
         # which is described by the original Hodgkin Huxley equation.
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        delta_Q = -(dyna.maxDmNaP * P * (V - self.vrev))
+        #delta_Q = -(dyna.maxDmNaP * P * (V - self.vrev))
+
+        # obtain concentration of ion inside and out of the cell, as well as its charge z:
+        c_mem = sim.cc_mems[sim.iNa]
+
+        if p.sim_ECM is True:
+            c_env = sim.cc_env[sim.iNa][cells.map_mem2ecm]
+
+        else:
+            c_env = sim.cc_env[sim.iNa]
+
+        IdM = np.ones(sim.mdl)
+
+        z_ion = sim.zs[sim.iNa] * IdM
+
+        # membrane diffusion constant of the channel:
+        Dchan = dyna.maxDmNaP*P*1.0e-9
+
+        # calculate specific ion flux contribution for this channel:
+        delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

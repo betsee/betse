@@ -10,10 +10,10 @@ Wound-induced transient channel response classes.
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
+from betse.science import sim_toolbox as stb
 from betse.exceptions import BetseParametersException
 # from betse.science.chemistry.molecule import get_influencers
 
@@ -44,7 +44,7 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
 
         self.modulator = 1.0
 
-        V = sim.vm[dyna.targets_vgWound] * 1000
+        V = sim.vm*1000
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
@@ -58,7 +58,7 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm[dyna.targets_vgWound] * 1000
+        V = sim.vm*1000
 
         self._calculate_state(V, dyna, sim, p)
 
@@ -78,30 +78,57 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
         P = (dyna.m_Wound ** self._mpower) * (dyna.h_Wound ** self._hpower)
 
         # get modulation coefficients by any activating/inhibiting substances:
-        activator_alpha, inhibitor_alpha = get_influencers(sim, sim.molecules, p.wound_channel_activators_list,
-                                                           p.wound_channel_activators_Km, p.wound_channel_activators_n,
-                                                           p.wound_channel_inhibitors_list,
-                                                           p.wound_channel_inhibitors_Km, p.wound_channel_inhibitors_n,
-                                                           reaction_zone='mems')
+        # # FIXME won't this crash if sim.molecules is None???
+        # activator_alpha, inhibitor_alpha = get_influencers(sim, sim.molecules, p.wound_channel_activators_list,
+        #                                                    p.wound_channel_activators_Km, p.wound_channel_activators_n,
+        #                                                    p.wound_channel_inhibitors_list,
+        #                                                    p.wound_channel_inhibitors_Km, p.wound_channel_inhibitors_n,
+        #                                                    reaction_zone='mems')
 
-        # print('activator_alpha: ',len(inhibitor_alpha),'mem: ', sim.mdl, 'cells: ', sim.cdl)
 
         # make use of activators and inhibitors to modulate open probability:
-        P = P*activator_alpha*inhibitor_alpha
+        # P = P*activator_alpha*inhibitor_alpha
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
 
-        if type(P) == float:
-            delta_Q = - (dyna.maxDmWound * P * (V - self.vrev)) * (self.W_factor / (1 + self.W_factor))
+        # if type(P) == float:
+        #     delta_Q = - (dyna.maxDmWound * P * (V - self.vrev)) * (self.W_factor / (1 + self.W_factor))
+        #
+        # else:
+        #
+        #     delta_Q = - (dyna.maxDmWound*P[dyna.targets_vgWound]*(V - self.vrev))*(self.W_factor/(1 + self.W_factor))
+
+
+        # obtain concentration of ion inside and out of the cell, as well as its charge z:
+        # obtain concentration of ion inside and out of the cell, as well as its charge z:
+        c_mem_Na = sim.cc_mems[sim.iNa]
+        c_mem_K = sim.cc_mems[sim.iK]
+
+        if p.sim_ECM is True:
+            c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
+            c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
 
         else:
+            c_env_Na = sim.cc_env[sim.iNa]
+            c_env_K = sim.cc_env[sim.iK]
 
-            delta_Q = - (dyna.maxDmWound*P[dyna.targets_vgWound]*(V - self.vrev))*(self.W_factor/(1 + self.W_factor))
+        IdM = np.ones(sim.mdl)
 
-        self.clip_flux(delta_Q, threshold=p.flux_threshold)
+        z_Na = sim.zs[sim.iNa] * IdM
+        z_K = sim.zs[sim.iK] * IdM
 
-        self.update_charge(sim.iNa, delta_Q, dyna.targets_vgWound, sim, cells, p)
-        self.update_charge(sim.iK, delta_Q, dyna.targets_vgWound, sim, cells, p)
+        # membrane diffusion constant of the channel:
+        Dchan = dyna.maxDmWound*P*1.0e-9*(self.W_factor/(1 + self.W_factor))
+
+        # calculate specific ion flux contribution for this channel:
+        delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
+        delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
+
+        self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
+        self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
+
+        self.update_charge(sim.iNa, delta_Q_Na, dyna.targets_vgWound, sim, cells, p)
+        self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgWound, sim, cells, p)
 
         # if p.ions_dict['Ca'] == 1.0:
         #     self.update_charge(sim.iCa, 0.1*delta_Q, dyna.targets_vgWound, sim, cells, p)
@@ -140,9 +167,9 @@ class TRP(WoundABC):
 
         self.v_corr = 0
 
-        # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
-        dyna.m_Wound = 1.0
-        dyna.h_Wound = 1.0
+        # initialize values of the m and h gates of the channel on m_inf and h_inf:
+        dyna.m_Wound = np.ones(sim.mdl)
+        dyna.h_Wound = np.ones(sim.mdl)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0

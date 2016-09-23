@@ -325,8 +325,6 @@ def pumpHKATP(cHi,cHo,cKi,cKo,Vm,T,p,block, met = None):
 
     f_K = -f_H          # flux as [mol/s]
 
-    # print(f_H.mean())
-
     return f_H, f_K
 
 def pumpHKATP_m(cMi,cMo,cKi,cKo,Vm,T,p,block, met = None):

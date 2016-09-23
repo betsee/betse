@@ -10,10 +10,10 @@ Voltage-gated funny current channel classes.
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
-
 from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 from betse.science import toolbox as tb
+from betse.science import sim_toolbox as stb
 
 
 # .................... BASE                               ....................
@@ -45,7 +45,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
 
         self.modulator = 1.0
 
-        V = sim.vm[dyna.targets_vgFun] * 1000
+        V = sim.vm*1000
 
         self._init_state(V=V, dyna=dyna, sim=sim, p=p)
 
@@ -61,7 +61,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
 
         '''
 
-        V = sim.vm[dyna.targets_vgFun] * 1000
+        V = sim.vm*1000
 
         self._calculate_state(V, dyna, sim, p)
 
@@ -79,12 +79,38 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         P = (dyna.m_Fun ** self._mpower) * (dyna.h_Fun ** self._hpower)
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        delta_Q = - (dyna.maxDmFun*P*(V - self.vrev))
+        # delta_Q = - (dyna.maxDmFun*P*(V - self.vrev))
 
-        self.clip_flux(delta_Q, threshold=p.flux_threshold)
+        # obtain concentration of ion inside and out of the cell, as well as its charge z:
+        c_mem_Na = sim.cc_mems[sim.iNa]
+        c_mem_K = sim.cc_mems[sim.iK]
 
-        self.update_charge(sim.iNa, delta_Q, dyna.targets_vgFun, sim, cells, p)
-        self.update_charge(sim.iK, delta_Q, dyna.targets_vgFun, sim, cells, p)
+        if p.sim_ECM is True:
+            c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
+            c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
+
+        else:
+            c_env_Na = sim.cc_env[sim.iNa]
+            c_env_K = sim.cc_env[sim.iK]
+
+
+        IdM = np.ones(sim.mdl)
+
+        z_Na = sim.zs[sim.iNa] * IdM
+        z_K = sim.zs[sim.iK] * IdM
+
+        # membrane diffusion constant of the channel:
+        Dchan = dyna.maxDmFun*P*1.0e-9
+
+        # calculate specific ion flux contribution for this channel:
+        delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
+        delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
+
+        self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
+        self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
+
+        self.update_charge(sim.iNa, delta_Q_Na, dyna.targets_vgFun, sim, cells, p)
+        self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgFun, sim, cells, p)
 
 
     @abstractmethod
