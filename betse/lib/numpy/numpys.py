@@ -529,11 +529,10 @@ def _is_blas_optimized_posix_symlink() -> (bool, NoneType):
     # by this Numpy shared library...
     for (numpy_linked_lib_basename, numpy_linked_lib_filename) in (
         libs.iter_linked_lib_filenames(numpy_lib_filename)):
-        # print('basename: {}; filename: {}'.format(numpy_linked_lib_basename, numpy_linked_lib_filename))
-
-        # Basename excluding suffixing filetype of this library.
-        numpy_linked_lib_rootname = paths.get_pathname_sans_filetype(
+        # Basename excluding all suffixing filetypes of this library.
+        numpy_linked_lib_rootname = paths.get_pathname_sans_filetypes(
             numpy_linked_lib_basename)
+        # print('rootname: {}; basename: {}; filename: {}'.format(numpy_linked_lib_rootname, numpy_linked_lib_basename, numpy_linked_lib_filename))
 
         # If this appears to be neither the BLAS nor CBLAS reference library,
         # continue to the next library.

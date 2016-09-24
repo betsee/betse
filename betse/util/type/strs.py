@@ -30,6 +30,31 @@ functions provided by module `textwrap` implicitly instantiate temporary
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
+def die_if_empty(text: str, exception_message: str = None) -> None:
+    '''
+    Raise an exception with the passed message (defaulting to a human-readable
+    message) if the passed string is empty.
+
+    Parameters
+    ----------
+    text : str
+        String to be tested.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to `None`, in which case an
+        default exception message is raised.
+    '''
+
+    # If this string is empty, raise an exception.
+    if not text:
+        # If no exception message was passed, synthesize one.
+        if not exception_message:
+            exception_message = 'Text empty.'.format()
+
+        # Raise this exception.
+        raise BetseStringException(exception_message)
+
+
+@type_check
 def die_unless_prefix(
     text: str, prefix: str, exception_message: str = None) -> None:
     '''
@@ -44,9 +69,8 @@ def die_unless_prefix(
     prefix : str
         Prefix to test for.
     exception_message : optional[str]
-        Optional exception message to be raised. Defaults to `None`, in which
-        case an exception message synthesized from the passed arguments is
-        raised.
+        Exception message to be raised. Defaults to `None`, in which case an
+        exception message synthesized from the passed arguments is raised.
     '''
 
     # If this string is *NOT* prefixed by this prefix, raise an exception.
@@ -70,11 +94,6 @@ def is_prefix(text: str, prefix: str) -> bool:
         String to be tested.
     prefix : str
         Prefix to test for.
-
-    Returns
-    ----------
-    bool
-        `True` only if `prefix` prefixes `text`.
     '''
 
     return text.startswith(prefix)
@@ -91,11 +110,6 @@ def is_suffix(text: str, suffix: str) -> bool:
         String to be tested.
     suffix : str
         Prefix to test for.
-
-    Returns
-    ----------
-    bool
-        `True` only if `suffix` suffixes `text`.
     '''
 
     return text.endswith(suffix)
@@ -317,8 +331,7 @@ def join_as_disjunction(*texts) -> str:
 #leverage regex-based substitution with negative lookbehind preventing existing
 #substrings matching '\\"' from being subject to substitution.
 
-@type_check
-def double_quote(text) -> str:
+def double_quote(text: str) -> str:
     '''
     Double-quote the passed string in a human-readable manner.
 
@@ -330,16 +343,6 @@ def double_quote(text) -> str:
     . All other double quotes in this string are escaped (e.g., replacing each
       `"` character with `\\"`).
     . The resulting string is double-quoted and returned.
-
-    Parameters
-    ----------
-    text : str
-        String to be double-quoted.
-
-    Returns
-    ----------
-    str
-        Resulting string as described above.
     '''
 
     # Remove all prefixing and suffixing whitespace from this string.
@@ -358,31 +361,18 @@ def double_quote(text) -> str:
 @type_check
 def remove_presuffix_whitespace(text: str) -> str:
     '''
-    Remove all prefixing and suffixing whitespace from the passed string.
-
-    If this string is neither prefixed nor suffixed by whitespace, this string
-    is returned as is.
-
-    Parameters
-    ----------
-    text : str
-        String to be examined. Since strings are immutable in Python, this
-        string remains unmodified.
-
-    Returns
-    ----------
-    str
-        Resulting string as described above.
+    Return the passed string without prefixing and suffixing whitespace if any.
     '''
 
     return text.strip()
 
 # ....................{ REMOVERS ~ prefix                  }....................
+@type_check
 def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
     '''
-    Remove the passed prefix from the passed string if the former prefixes the
-    latter _or_ raise an exception with the passed message (defaulting to a
-    message synthesized from the passed arguments) otherwise.
+    Return the passed string without the passed prefix if present _or_ raise an
+    exception with the passed message (defaulting to a message synthesized from
+    the passed arguments) otherwise.
 
     Parameters
     ----------
@@ -408,10 +398,11 @@ def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
     return remove_prefix_if_found(text, prefix)
 
 
+@type_check
 def remove_prefix_if_found(text: str, prefix: str) -> str:
     '''
-    Remove the passed prefix from the passed string if the former prefixes the
-    latter _or_ the passed string as is otherwise.
+    Return the passed string without the passed prefix if present _or_ the
+    passed string as is otherwise.
 
     Parameters
     ----------
@@ -430,10 +421,11 @@ def remove_prefix_if_found(text: str, prefix: str) -> str:
     return text[len(prefix):] if is_prefix(text, prefix) else text
 
 # ....................{ REMOVERS ~ prefix                  }....................
+@type_check
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
-    Remove the passed suffix from the passed string if the former suffixes the
-    latter _or_ the passed string as is otherwise.
+    Return the passed string without the passed suffix if present _or_ the
+    passed string as is otherwise.
 
     Parameters
     ----------
@@ -441,7 +433,7 @@ def remove_suffix_if_found(text: str, suffix: str) -> str:
         String to be examined. Since strings are immutable in Python, this
         string remains unmodified.
     suffix : str
-        Prefix to remove from this string.
+        Suffix to remove from this string.
 
     Returns
     ----------
@@ -454,7 +446,55 @@ def remove_suffix_if_found(text: str, suffix: str) -> str:
     # the empty string in this case by explicitly testing for emptiness.
     return text[:-len(suffix)] if suffix and is_suffix(text, suffix) else text
 
+
+@type_check
+def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
+    '''
+    Return the passed string without the first instance of the passed suffix
+    prefix and all characters following this suffix prefix in this string if
+    present _or_ raise an exception otherwise.
+
+    Parameters
+    ----------
+    text : str
+        String to be examined. Since strings are immutable in Python, this
+        string remains unmodified.
+    suffix_prefix : str
+        Non-empty substring of this string to begin removing characters at.
+
+    Returns
+    ----------
+    str
+        Resulting string as described above.
+
+    Raises
+    ----------
+    BetseStringException
+        If either:
+        * This string does _not_ contain this suffix prefix.
+        * This suffix prefix is the empty string.
+    '''
+
+    # If this suffix prefix is the empty string, raise an exception.
+    die_if_empty(text=text, exception_message='Suffix prefix empty.')
+
+    # Attempt to return the desired string.
+    try:
+        return text[:text.index(suffix_prefix)]
+    # If doing so fails with a builtin exception...
+    except ValueError as exception:
+        # ...failing to provide the contents of these arguments, wrap this
+        # exception with a fine-grained exception providing these contents.
+        if str(exception) == 'substring not found':
+            raise BetseStringException(
+                'Text "{}" contains no suffix prefix "{}".'.format(
+                    text, suffix_prefix))
+
+        # Else, re-raise this exception as is.
+        raise
+
 # ....................{ CASERS                             }....................
+@type_check
 def uppercase_first_char(text: str) -> str:
     '''
     Uppercase the first character of the passed string.
@@ -464,7 +504,6 @@ def uppercase_first_char(text: str) -> str:
     function _only_ uppercases the first character. All remaining characters
     remain unmodified.
     '''
-    assert types.is_str(text), types.assert_not_str(text)
 
     return (
         text[0].upper() + (text[1:] if len(text) > 2 else '')
@@ -527,7 +566,8 @@ def wrap(
     text: str,
     text_wrapper = textwrap,
     line_prefix: str = '',
-    **kwargs) -> str:
+    **kwargs
+) -> str:
     '''
     Wrap the passed text to the passed line width, prefixing each resulting
     wrapped line by the passed line prefix.
@@ -544,6 +584,7 @@ def wrap(
     https://docs.python.org/3/library/textwrap.html
         For further details on keyword arguments.
     '''
+
     assert hasattr(text_wrapper, 'wrap'), (
         'Object "{}" not a text wrapper '
         '(i.e., has no wrap() callable).'.format(text_wrapper))
@@ -570,4 +611,5 @@ def dedent(*texts) -> str:
     '''
     Remove all indentation shared in common by all lines of all passed strings.
     '''
+
     return textwrap.dedent(*texts)

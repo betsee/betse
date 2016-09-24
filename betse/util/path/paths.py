@@ -341,10 +341,10 @@ def get_type_label(pathname: str) -> str:
 # ....................{ GETTERS ~ dirname                  }....................
 def get_root_dirname() -> str:
     '''
-    Get the absolute path of the root directory, terminated by a path separator.
+    Absolute path of the root directory suffixed by a directory separator.
 
-    The definition of "root directory" conditionally depends on the current OS.
-    If this OS is:
+    The definition of "root directory" conditionally depends on the current
+    platform. If this platform is:
 
     * POSIX-compatible (e.g., Linux, OS X), this is simply `/`.
     * Microsoft Windows, this is the value of the `%HOMEDRIVE%` environment
@@ -355,7 +355,7 @@ def get_root_dirname() -> str:
     # Avoid circular import dependencies.
     from betse.util.os import oses
 
-    # Get this path.
+    # Return this path.
     if oses.is_windows_vanilla():
         return os.environ.get('HOMEDRIVE', 'C:') + os.path.sep
     else:
@@ -364,14 +364,14 @@ def get_root_dirname() -> str:
 
 def get_dirname(pathname: str) -> str:
     '''
-    Get the **dirname** (i.e., parent directory) of the passed path if such path
-    has a dirname or raise an exception otherwise.
+    **Dirname** (i.e., parent directory) of the passed path if such path has a
+    dirname _or_ raise an exception otherwise.
     '''
 
     # Raise an exception unless this path has a dirname.
     die_if_basename(pathname)
 
-    # Get this dirname.
+    # This dirname.
     dirname = get_dirname_or_empty(pathname)
 
     # Assert this dirname's non-emptiness. Technically, the above call *SHOULD*
@@ -383,9 +383,10 @@ def get_dirname(pathname: str) -> str:
 
 def get_dirname_or_current_dirname(pathname: str) -> str:
     '''
-    Get the **dirname** (i.e., parent directory) of the passed path if such path
-    has a dirname or the current working directory otherwise.
+    **Dirname** (i.e., parent directory) of the passed path if this path has a
+    dirname _or_ the current working directory otherwise.
     '''
+
     # Avoid circular import dependencies.
     from betse.util.path import dirs
     dirname = get_dirname_or_empty(pathname)
@@ -395,18 +396,46 @@ def get_dirname_or_current_dirname(pathname: str) -> str:
 @type_check
 def get_dirname_or_empty(pathname: str) -> str:
     '''
-    Get the **dirname** (i.e., parent directory) of the passed path if such path
-    has a dirname or the empty string otherwise.
+    **Dirname** (i.e., parent directory) of the passed path if this path has a
+    dirname _or_ the empty string otherwise.
     '''
 
     return path.dirname(pathname)
 
 # ....................{ GETTERS ~ filetype                 }....................
 @type_check
+def get_pathname_sans_filetypes(pathname: str) -> str:
+    '''
+    Passed path without all suffixing `.`-prefixed filetypes (including these
+    prefixes) if this path has any filetypes _or_ this path as is otherwise.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type import strs
+
+    # Dirname of this path if any or the empty string otherwise.
+    dirname = get_dirname_or_empty(pathname)
+
+    # Basename of this path.
+    basename = get_basename(pathname)
+
+    # Strip all characters following the first "." from this basename.
+    basename = strs.remove_suffix_with_prefix(basename, '.')
+
+    # If this path contains a dirname, return the concatenation of this dirname
+    # as is by this stripped basename.
+    if dirname:
+        return path.join(dirname, basename)
+    # Else, return merely this stripped basename.
+    else:
+        return basename
+
+
+@type_check
 def get_pathname_sans_filetype(pathname: str) -> str:
     '''
-    The passed path without its last filetype (including prefixing `.`) if this
-    path has a filetype _or_ this path as is otherwise.
+    Passed path without the last `.`-prefixed filetype (including this prefix)
+    if this path has a filetype _or_ this path as is otherwise.
     '''
 
     return path.splitext(pathname)[0]
@@ -506,7 +535,7 @@ def join(*pathnames) -> str:
     operating system.
 
     This is a convenience function wrapping the standard `os.path.join()`
-    function _without_ adding functionality to such function -- principally to
+    function _without_ adding functionality to that function -- principally to
     unify and hence simplify `import` statements in other modules.
     '''
 
