@@ -5,7 +5,44 @@
 # --------------------( SYNOPSIS                           )--------------------
 # Project-wide GitLab-CI configuration, integrating the in-house free-as-in-beer
 # continuous integration (CI) service exposed by GitLab with this project's
-# "py.test"-driven test suite.
+# "py.test"-driven test suite. GitLab-specific terminology used by this service
+# includes (from highest- to lowest-level):
+#
+# * GitLab-CI, GitLab's high-level CI service coordinating project-specific and
+#   shared Runners with projects - including project artefacts and metadata.
+# * Runner, a low-level virtual machine conforming to the GitLab Runner API and
+#   acquiring builds to process through the GitLab-CI coordinator API. There
+#   exist two categories of Runners:
+#   * Project Runners, hosted either directly by project maintainers on private
+#     servers *OR* indirectly by for-profit intermediaries on private servers
+#     paid for by the project maintainers. As the nomenclature implies, Project 
+#     Runners are specific to and hence accessible by only the project to which
+#     they are assigned. In either case, "paid" and "private" are the general
+#     keywords here. (Inapplicable for our use case.)
+#   * Shared Runners. As the nomenclature implies, Shared Runners are accessible
+#     to all projects on a GitLab instance. Hence, all projects hosted by the
+#     official gitlab.com share access to the same Shared Runners. Shared
+#     Runners are hosted either:
+#     * If the GitLab instance hosting this project is *NOT* the official
+#       gitlab.com, then by the prior mechanisms (e.g., by project maintainers
+#       or for-profit intermediaries).
+#     * If the GitLab instance hosting this project is the official gitlab.com,
+#       then by the for-profit intermediary with whom gitlab.com has partnered:
+#       as of this writing, DigitalOcean. In this and only this special
+#       edge-case, Shared Runners are free-as-in-beer for both public and
+#       private repositories hosted with this instance. An inevitable caveat, of
+#       course, is that only Linux-based Shared Runners are available. To quote
+#       the official response to a recent issue report requesting both OS X and
+#       Windows support:
+#       "If you are writing about shared runners on GitLab.com, then they are
+#        only Linux based (with docker executor). If you need Windows, Mac or
+#        any other OS for the runner, then you need to install it on your own
+#        host and register it in your project on GitLab.com."
+#
+# This gitlab.com-hosted project has been configured to enable Linux-based
+# Shared Runners. Exercising tests on either OS X or Windows requires doing so
+# on an external third-party free-as-in-beer CI service specific to that
+# platform and then integrating such service with GitLab.
 
 #FIXME: Replace use of the default pip cache with "pip-accel", which appears to
 #be substantially faster. For now, pip cache is better than no cache.
@@ -55,7 +92,7 @@
 # from Continuum Analytics. If and when Alpine Linux supports Python 3.x,
 # consider a (probably painful and hence improbable) switch. See also:
 #
-# * Docker Hub Registery entry for this image::
+# * Docker Hub Registery entry for this image:
 #   https://hub.docker.com/r/continuumio/anaconda3
 # * Open-source GitHub repository hosting this image's Dockerfile:
 #   https://github.com/ContinuumIO/docker-images/tree/master/anaconda3
@@ -75,13 +112,13 @@ image: continuumio/anaconda3
 # ....................{ DEPENDENCIES                       }....................
 cache:
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  # ! WARNING: Due to an outstanding issue, GitLab-CI currently ignores *ALL*
-  # ! cache paths outside the build directory. See also:
-  # !     https://gitlab.com/gitlab-org/gitlab-ce/issues/4431
-  # ! Sadly, this implies that cache paths listed below *MUST* be both relative
-  # ! to and contained in the build directory. To ensure this, ensure that each
-  # ! such path is prefixed by neither "/", "./", or "../" *OR* by any variable
-  # ! expanding to such a path (e.g., "$HOME").
+  # WARNING: Due to an outstanding issue, GitLab-CI currently ignores *ALL*
+  # cache paths outside the build directory. See also:
+  #     https://gitlab.com/gitlab-org/gitlab-ce/issues/4431
+  # Sadly, this implies that cache paths listed below *MUST* be both relative to
+  # and contained in the build directory. Ensure that each such path is prefixed
+  # by neither "/", "./", or "../" *OR* by any variable expanding to such a path
+  # (e.g., "$HOME").
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   #
   # List of the relative or absolute paths of all directories to be preserved
@@ -117,7 +154,7 @@ cache:
   # - export PIP_CACHE_DIR="pip-cache"
   # - pip3 install -qr requirements.txt
 
-# ....................{ TESTS                              }....................
+# ....................{ COMMANDS                           }....................
 test:
   # List of all external commands to be run for each CI pipeline *AFTER* those
   # listed within "before_script" above.

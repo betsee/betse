@@ -1,0 +1,148 @@
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Project-wide Appveyor configuration, integrating the third-party
+# Windows-specific free-as-in-beer continuous integration (CI) service exposed
+# by Appveyor with this project's "py.test"-driven test suite.
+#
+# --------------------( SEE ALSO                           )--------------------
+# * https://raw.githubusercontent.com/astropy/astropy/master/appveyor.yml
+#   Real-world "appveyor.yml" configuration used by a prominent scientific
+#   Python framework and largely considered to be the canonical scientific
+#   Appveyor configuration as of this writing. The "appveyor.yml" files of
+#   multiple other projects (e.g., SpiceyPy) reference this "appveyor.yml" file,
+#   which does indeed appear to be subjectively authoritative.
+# * https://packaging.python.org/appveyor
+#   Quasi-official documentation providing the canonical "appveyor.yml"
+#   skeleton configuration for use in existing Python projects. Sadly, this
+#   skeleton leverages the general-purpose "pip" package manager rather than the
+#   Anaconda-specific "conda" package manager and hence is sadly useless.
+
+#FIXME: Auto-generate a pip-compliant binary Windows wheel file for this project
+#*AFTER* all successful test runs. For examples, see:
+#    https://raw.githubusercontent.com/AndrewAnnex/SpiceyPy/master/appveyor.yml
+
+# ....................{ CONFIGURATION                      }....................
+# Disable .NET integration. Python projects are implicitly built during
+# installation.
+build: false
+
+
+matrix:
+  # Enable the so-called "fast fail strategy," halting the entire test process
+  # on the first job failure.
+  fast_finish: true
+
+# ....................{ CONFIGURATION ~ matrix             }....................
+platform:
+  # Exercise only 64-bit binaries.
+  - x64
+
+
+environment:
+  global:
+    # Absolute path of the current Miniconda-managed Python interpreter.
+    PYTHON: "C:\\conda"
+
+    # Exercise only 64-bit Python versions. This default is required both by the
+    # "CMD_IN_ENV" global and "matrix" list defined below.
+    PYTHON_ARCH: "64"
+
+    # Version of Miniconda to be used.
+    MINICONDA_VERSION: "latest"  # Most recent stable release.
+
+    # Whitespace-delimited list of the names of all Miniconda packages (both
+    # official and third-party) required by this project. The channels providing
+    # third-party packages should be listed in "CONDA_CHANNELS". See also:
+    #
+    # * The "Dependencies directly required by BETSE" section of the
+    #   "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" tuple global.
+    # * The "betse.metadata.DEPENDENCIES_TESTING_MANDATORY" tuple global.
+    CONDA_DEPENDENCIES: "dill matplotlib numpy pytest pyyaml scipy"
+
+    # Whitespace-delimited list of the names of all Miniconda channels required
+    # by third-party Miniconda packages listed in "CONDA_DEPENDENCIES".
+    # CONDA_CHANNELS: ""
+
+    # Whitespace-delimited list of the names of all PyPI-packaged packages to be
+    # installed with "pip" required by this project and *NOT* installable with
+    # Miniconda. This is a fallback that should be used only where needed.
+    # PIP_DEPENDENCIES: ""
+
+    # We have utterly no idea. Every Python project unconditionally contains the
+    # following entry. We follow suite. The wisdom of the crowd has merit.
+    # Pertinent commentary reads:
+    #
+    #    "SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
+    #     /E:ON and /V:ON options are not enabled in the batch script intepreter
+    #     See: http://stackoverflow.com/a/13751649/163740"
+    CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci-helpers\\appveyor\\windows_sdk.cmd"
+
+  # Exercise all supported major 64-bit Python 3.x versions, ignoring changes
+  # between minor versions, all Python 2.x versions, *AND* all 32-bit Python
+  # versions. While this project technically supports the same 32-bit Python
+  # 3.x versions, 32-bit architectures are explicitly unsupported (e.g., due to
+  # the 4GB memory barrier) and hence ignorable. See also:
+  #
+  # * The "betse.metadata.PYTHON_VERSION_MIN" string global, defining the
+  #   minimum version of Python 3.x supported by this project. All stable
+  #   versions of Python 3.x greater than or equal to this minimum version
+  #   *MUST* be explicitly listed below.
+  # * The "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" tuple global, defining
+  #   the minimum version of Numpy supported by this project.
+  matrix:
+    - PYTHON_VERSION: "3.5"
+      NUMPY_VERSION:  "stable"  # Most recent stable release.
+    - PYTHON_VERSION: "3.4"
+      NUMPY_VERSION:  "1.8"     # Minimum supported stable release.
+
+# ....................{ COMMANDS                           }....................
+# List of all external commands to be run for each job *BEFORE* those listed
+# within "install" below.
+init:
+  # For disambiguity, visually prefix each job by (in order):
+  #
+  # * The absolute path of the active Python interpreter.
+  # * The version of this interpreter.
+  # * The word size of this interpreter.
+  # * The absolute path of Miniconda.
+  - ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %MINICONDA%
+
+
+# List of all external commands to be run for each job *BEFORE* those listed
+# within "test_script" below.
+install:
+  # Parse and handle all Miniconda-specific global variables listed in
+  # "environment.global" above (e.g., "CONDA_DEPENDENCIES").
+  - ps: ci-helpers/appveyor/install-miniconda.ps1
+
+  # Prepend the current %PATH% by the absolute paths of directories containing
+  # the active Python interpreter executable and common Python scripts (e.g.,
+  # "easy_install") specific to this interpreter.
+  #
+  # Note that, although the same command is technically already performed by the
+  # "install-miniconda.ps1" script run above, that command is uselessly ignored
+  # by the current CMD process and *MUST* thus be repeated here.
+  - set PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%
+
+  # We have utterly no idea, again. Every Python project unconditionally runs
+  # the following command after the above command.
+  # - "activate test"
+
+  # Install this project in the most efficient means possible (i.e., without
+  # actually copying the contents of this project elsewhere).
+  - python setup.py develop
+
+
+# List of all external commands to be run for each CI pipeline *AFTER* those
+# listed within "install" above.
+test_script:
+  # Run the entire "py.test"-based test suite under the following options:
+  #
+  # * "--maxfail=3", halting testing on the third failure. For discussion, see
+  #   the "betse_setup.test" submodule.
+  - py.test --maxfail=3
+  # - py.test --maxfail=3 -s
+  # - %CMD_IN_ENV% py.test --maxfail=3

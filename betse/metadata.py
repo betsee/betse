@@ -284,7 +284,7 @@ we pretend to require `setuptools` itself. Although non-ideal, so is life.
 
 # ....................{ METADATA ~ dependencies : runtime  }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# Changes to this list *MUST* be synchronized with:
+# WARNING: Changes to this list *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
@@ -295,18 +295,29 @@ DEPENDENCIES_RUNTIME_MANDATORY = (
     # setuptools is used to validate that dependencies are available.
     DEPENDENCY_SETUPTOOLS,
 
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING: Changes to this sublist *MUST* be synchronized with:
+    # * Appveyor configuration (e.g., the "CONDA_DEPENDENCIES" key of the
+    #   "environment.global" list of the top-level "appveyor.yml" file).
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # Dependencies directly required by BETSE.
-    'Numpy >= 1.8.0',
     'PyYAML >= 3.10',
     'SciPy >= 0.12.0',
     'dill >= 0.2.3',
     'matplotlib >= 1.4.0',
 
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING: Changes to this version constraint *MUST* be synchronized with:
+    # * Appveyor configuration (e.g., the "NUMPY_VERSION" key of items of the
+    #   the "environment.matrix" list of the top-level "appveyor.yml" file).
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    'Numpy >= 1.8.0',
+
     # Dependencies transitively but *NOT* directly required by BETSE. To detect
     # missing dependencies in a human-readable manner, these dependencies are
     # explicitly listed as well.
     'Pillow >= 2.3.0',   # required by the "scipy.misc.imread" module
-    'six >= 1.5.2',  # required by everything that should not be
+    'six >= 1.5.2',      # required by everything that should not be
 )
 '''
 Set of all mandatory runtime dependencies for BETSE.
@@ -334,7 +345,7 @@ See Also
 #perhaps as so-called "extras"? Contemplate. Consider. Devise.
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# Changes to this list *MUST* be synchronized with:
+# WARNING: Changes to this list *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
@@ -385,10 +396,12 @@ See Also
 '''
 
 # ....................{ METADATA ~ dependencies : testing  }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# Changes to this list *MUST* be synchronized with:
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: Changes to this list *MUST* be synchronized with:
 # * Front-facing documentation (e.g., the top-level "README.rst").
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# * Appveyor configuration (e.g., the "CONDA_DEPENDENCIES" key of the
+#   "environment.global" list of the top-level "appveyor.yml" file).
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_TESTING_MANDATORY = (
     # For simplicity, py.test should remain the only hard dependency for testing
     # on local machines. While our setuptools-driven testing regime optionally

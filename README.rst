@@ -1,7 +1,10 @@
 .. # ------------------( BADGES                             )------------------
 .. image::  https://gitlab.com/betse/betse/badges/master/build.svg
    :target: https://gitlab.com/betse/betse/pipelines
-   :alt: Build Status
+   :alt: Linux Build Status
+.. image::  https://ci.appveyor.com/api/projects/status/mow7y8k3vpfu30c6/branch/master?svg=true
+   :target: https://ci.appveyor.com/project/betse/betse/branch/master
+   :alt: Windows Build Status
 
 .. # ------------------( SYNOPSIS                           )------------------
 
