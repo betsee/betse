@@ -158,7 +158,6 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
 
     # calculate component of velocity normal to cell membranes:
     # u_gj = np.sqrt(u_gj_xo ** 2 + u_gj_yo ** 2)
-    # FIXME: is the direction correct?
     u_gj = u_gj_xo * cells.mem_vects_flat[:, 2] + u_gj_yo * cells.mem_vects_flat[:, 3]
 
     # calculate divergence as the sum of this vector x each surface area, divided by cell volume:

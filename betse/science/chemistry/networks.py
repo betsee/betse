@@ -4767,11 +4767,11 @@ class Molecule(object):
 
                 # update the ion concentration intra-cellularly:
                 # FIXME: do we actually need to update intra, or can we leave this part out?
-                sim.cc_mems[ion_tag], sim.cc_cells[ion_tag], _ = \
-                    stb.update_intra(sim, cells, sim.cc_mems[ion_tag],
-                                     sim.cc_cells[ion_tag],
-                                     sim.D_free[ion_tag],
-                                     sim.zs[ion_tag], p)
+                # sim.cc_mems[ion_tag], sim.cc_cells[ion_tag], _ = \
+                #     stb.update_intra(sim, cells, sim.cc_mems[ion_tag],
+                #                      sim.cc_cells[ion_tag],
+                #                      sim.D_free[ion_tag],
+                #                      sim.zs[ion_tag], p)
 
     def init_growth(self,cells, p):
 

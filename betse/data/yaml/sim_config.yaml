@@ -1114,6 +1114,8 @@ internal parameters:
 
   media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
 
+  gj acceleration: 1.0 # factor increasing flux of additional biomolecular substances through GJ
+
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.

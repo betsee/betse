@@ -672,7 +672,7 @@ class Cells(object):
 
         """
 
-        self.gj_len = p.cell_space + 2*p.tm      # distance between gap junction (as "pipe length")
+        self.gj_len = p.cell_space      # distance between gap junction (as "pipe length")
 
         # calculate basic properties such as volume, surface area, normals, etc for the cell array
         self.cell_verts = []

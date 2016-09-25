@@ -1215,6 +1215,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
 def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
                    ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1):
+
     """
     Transports a generic molecule across the membrane,
     through gap junctions, and if p.sim_ECM is true,
@@ -1237,6 +1238,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
     cX_env_1          Updated concentration of molecule in the environment
 
     """
+
 
     if p.sim_ECM is True:
 
@@ -1266,7 +1268,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         # Update dye concentration in the gj connected cell network:
 
         # Intracellular voltage gradient:
-        grad_vgj = (sim.vgj / cells.gj_len)*100 # FIXME in order to see results in a meaningful time, this is increased.
+        grad_vgj = (sim.vgj / cells.gj_len)*p.gj_acceleration
 
         grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
@@ -1287,6 +1289,14 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         fgj_X = nernst_planck_vector(cX_mids, grad_cgj, grad_vgj, ugj,
             p.gj_surface*sim.gjopen*Do, z, sim.T, p)
 
+        # update gap junction using GHK flux equation:
+        # fgj_X = electroflux(cX_mems[cells.nn_i], cX_mems[cells.mem_i],
+        #                       p.gj_surface*sim.gjopen*Do,
+        #                       np.ones(sim.mdl)*cells.gj_len,
+        #                       np.ones(sim.mdl)*z, sim.vgj, sim.T, p)
+
+        # print(fgj_X.mean())
+
         # divergence calculation for individual cells (finite volume expression)
         delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
@@ -1303,7 +1313,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
 
         # electrodiffuse intracellular concentrations
 
-        # cX_mems = update_intra(sim, cells, cX_mems, Do, z, p)
+        cX_mems = update_intra(sim, cells, cX_mems, Do, z, p)
 
     # Transport through environment, if p.sim_ECM is True-----------------------------------------------------
 

@@ -53,7 +53,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         # multiply by the modulator:
 
-        delta_Q = delta_Q*self.modulator
+        delta_Q = delta_Q*self.modulator*sim.rho_channel
 
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the GHK flux equation.

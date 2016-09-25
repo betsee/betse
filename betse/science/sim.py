@@ -213,7 +213,7 @@ class Simulator(object):
 
         self.v_cell = np.zeros(self.mdl)  # initialize intracellular voltage
         self.v_cell_ave = np.zeros(self.cdl) # initialize averaged v__cell
-        self.vm = -50e-3*np.ones(self.mdl)     # initialize vmem
+        self.vm = np.zeros(self.mdl)     # initialize vmem
 
 
         if p.sim_ECM is True:  # special items specific to simulation of extracellular spaces only:
@@ -848,9 +848,14 @@ class Simulator(object):
                                 met = self.met_concs
                             )
 
+
+                # modify pump flux with any lateral membrane diffusion effects:
+                fNa_NaK = self.rho_pump*fNa_NaK
+                fK_NaK = self.rho_pump*fK_NaK
+
                 # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
-                self.fluxes_mem[self.iNa] = self.rho_pump * fNa_NaK
-                self.fluxes_mem[self.iK] = self.rho_pump * fK_NaK
+                self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
+                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
 
                 if p.metabolism_enabled:
                     # update ATP concentrations after pump action:
@@ -908,6 +913,13 @@ class Simulator(object):
 
                     # update flux between cells due to gap junctions
                     self.update_gj(cells, p, t, i)
+
+                    # self.cc_mems[i][:], self.cc_cells[i][:], _ = \
+                    #     stb.update_intra(self, cells, self.cc_mems[i][:],
+                    #         self.cc_cells[i][:],
+                    #         self.D_free[i],
+                    #         self.zs[i], p)
+
 
                     if p.sim_ECM:
                         #update concentrations in the extracellular spaces:
@@ -1035,8 +1047,7 @@ class Simulator(object):
 
                     self.charge_env_time.append(rho_env_sm)
 
-                # get the currents
-                get_current(self, cells, p)
+
 
                 # get forces from any hydrostatic (self.P_Cells) pressure:
                 getHydroF(self,cells, p)
@@ -1079,6 +1090,8 @@ class Simulator(object):
 
                 # ---------time sampling and data storage---------------------------------------------------
                 if t in tsamples:
+                    # get the currents
+                    get_current(self, cells, p)
 
                     self.write2storage(t, cells, p)  # write data to time storage vectors
 
@@ -1491,8 +1504,10 @@ class Simulator(object):
             # v_cell_ave = (1 / 2) * v_cell_aveo + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
             # vm = v_cell
 
-            vm = v_cello
-            v_cell = v_cello
+            # vm = v_cello
+            # v_cell = v_cello
+            vm = v_cell_aveo[cells.mem_to_cells]
+            v_cell = v_cell_aveo[cells.mem_to_cells]
             v_cell_ave = v_cell_aveo
 
 
@@ -1512,7 +1527,7 @@ class Simulator(object):
             # self-capacitances of the cell membranes:
             cs_cells = p.electrolyte_screening*cells.mem_sa
 
-            v_cell = (1/cs_cells)*Qcells
+            v_cello = (1/cs_cells)*Qcells
 
             # # original solver in terms of pseudo-inverse of Max Cap Matrix matrix:
            #  # concatenate the cell and ecm charge vectors to the maxwell capacitance vector:
@@ -1526,7 +1541,9 @@ class Simulator(object):
 
             # use finite volume method to integrate each region of intracellular voltage:
             # values at centroid mids:
-            v_cell_ave = np.dot(cells.M_sum_mems, v_cell) / cells.num_mems
+            v_cell_ave = np.dot(cells.M_sum_mems, v_cello) / cells.num_mems
+
+            v_cell = v_cell_ave[cells.mem_to_cells]
 
             # vcell_at_mids = (v_cell + v_cell_ave[cells.mem_to_cells]) / 2
             #
@@ -1871,7 +1888,8 @@ class Simulator(object):
         # update gap junction using GHK flux equation:
         # fgj = stb.electroflux(conc_mem[cells.nn_i], conc_mem[cells.mem_i],
         #                       p.gj_surface*self.gjopen*self.D_gj[i],
-        #                       cells.gj_len, 1, self.vgj, self.T, p)
+        #                       np.ones(self.mdl)*cells.gj_len,
+        #                       np.ones(self.mdl)*self.zs[i], self.vgj, self.T, p)
 
 
         delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
@@ -1885,6 +1903,8 @@ class Simulator(object):
         self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
+
+        # FIXME consider switching the extracellular diffusion to the GHK flux expression...
 
         if p.closed_bound is True:
             btag = 'closed'
@@ -1938,15 +1958,6 @@ class Simulator(object):
             cenv_y[:,0] =  self.c_env_bound[i]
             cenv_y[:,-1] =  self.c_env_bound[i]
 
-            # cenv_x[:, 1] = self.c_env_bound[i]
-            # cenv_x[:, -2] = self.c_env_bound[i]
-            # cenv_x[1, :] = self.c_env_bound[i]
-            # cenv_x[-2, :] = self.c_env_bound[i]
-            #
-            # cenv_y[1, :] = self.c_env_bound[i]
-            # cenv_y[-2, :] = self.c_env_bound[i]
-            # cenv_y[:, 1] = self.c_env_bound[i]
-            # cenv_y[:, -2] = self.c_env_bound[i]
 
         # calculate gradients in the environment
         grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
@@ -2002,14 +2013,6 @@ class Simulator(object):
             self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
             self.zs[i],self.T,p)
 
-        # slow fluxes, if desired by user:
-        # f_env_x = p.env_delay_const*f_env_x
-        # f_env_y = p.env_delay_const*f_env_y
-
-        # if p.smooth_level > 0.0:
-        #
-        #     f_env_x = gaussian_filter(f_env_x,p.smooth_level)  # smooth out the flux terms  #FIXME might not need these later
-        #     f_env_y = gaussian_filter(f_env_y, p.smooth_level)  # smooth out the flux terms
 
         if p.closed_bound is False:
 
