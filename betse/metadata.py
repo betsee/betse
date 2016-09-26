@@ -289,35 +289,32 @@ we pretend to require `setuptools` itself. Although non-ideal, so is life.
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by BETSE.
+# * Appveyor configuration (e.g., the "CONDA_PACKAGE_NAMES" key of the
+#   "environment.global" list of the top-level "appveyor.yml" file).
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_MANDATORY = (
     # setuptools is currently required at both install and runtime. At runtime,
     # setuptools is used to validate that dependencies are available.
     DEPENDENCY_SETUPTOOLS,
 
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # WARNING: Changes to this sublist *MUST* be synchronized with:
-    # * Appveyor configuration (e.g., the "CONDA_DEPENDENCIES" key of the
-    #   "environment.global" list of the top-level "appveyor.yml" file).
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # Dependencies directly required by BETSE.
+    'Numpy >= 1.8.0',
     'PyYAML >= 3.10',
     'SciPy >= 0.12.0',
     'dill >= 0.2.3',
     'matplotlib >= 1.4.0',
 
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # WARNING: Changes to this version constraint *MUST* be synchronized with:
-    # * Appveyor configuration (e.g., the "NUMPY_VERSION" key of items of the
-    #   the "environment.matrix" list of the top-level "appveyor.yml" file).
-    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    'Numpy >= 1.8.0',
+    # Dependencies indirectly required by BETSE but only optionally required by
+    # dependencies directly required by BETSE. Since the "setup.py" scripts for
+    # the latter do *NOT* list these dependencies as mandatory, these
+    # dependencies *MUST* be explicitly listed here.
+    'Pillow >= 2.3.0',    # required by the "scipy.misc.imread" module
 
-    # Dependencies transitively but *NOT* directly required by BETSE. To detect
-    # missing dependencies in a human-readable manner, these dependencies are
-    # explicitly listed as well.
-    'Pillow >= 2.3.0',   # required by the "scipy.misc.imread" module
-    'six >= 1.5.2',      # required by everything that should not be
+    # Dependencies directly required by dependencies directly required by BETSE.
+    # While these dependencies need *NOT* be explicitly listed here, doing so
+    # improves detection of missing dependencies in a human-readable manner.
+    'six >= 1.5.2',       # required by everything that should not be
 )
 '''
 Set of all mandatory runtime dependencies for BETSE.

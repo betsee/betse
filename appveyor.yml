@@ -93,12 +93,11 @@ environment:
   global:
     # Whitespace-delimited list of the names of all Miniconda packages (both
     # official and third-party) required by this project. The channels providing
-    # third-party packages should be listed in "CONDA_CHANNELS". See also:
-    #
-    # * The "Dependencies directly required by BETSE" section of the
-    #   "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" tuple global.
-    # * The "betse.metadata.DEPENDENCIES_TESTING_MANDATORY" tuple global.
-    CONDA_PACKAGE_NAMES: dill matplotlib numpy pytest pyyaml scipy
+    # third-party packages should be listed in "CONDA_CHANNELS". See also the
+    # "DEPENDENCIES_RUNTIME_MANDATORY" and "DEPENDENCIES_TESTING_MANDATORY"
+    # tuple globals of the "betse.metadata" submodule.
+    CONDA_PACKAGE_NAMES: >-
+      dill matplotlib numpy pillow pytest pyyaml scipy setuptools
 
     # Whitespace-delimited list of the names of all Miniconda channels required
     # by third-party Miniconda packages listed in "CONDA_DEPENDENCIES".
