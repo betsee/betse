@@ -22,10 +22,11 @@ supported by a `Paul Allen Discovery Center award`_ from the `Paul G. Allen
 Frontiers Group`_.
 
 BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_, `continuously
-stress-tested <testing_>`__ with GitLab-CI_ **+** py.test_, and `permissively
-distributed <License_>`__ under the `BSD 2-clause license`_. While a high-level
-graphical user interface (GUI) supporting all popular platforms is planned,
-BETSE currently *only* provides a low-level command line interface (CLI).
+stress-tested <testing_>`__ with GitLab-CI_ **×*** Appveyor_ **+** py.test_, and
+`permissively distributed <License_>`__ under the `BSD 2-clause license`_. While
+a high-level graphical user interface (GUI) supporting all popular platforms is
+planned, BETSE currently *only* provides a low-level command line interface
+(CLI).
 
 .. # ------------------( TABLE OF CONTENTS                  )------------------
 .. # Blank line. By default, Docutils appears to only separate the subsequent
@@ -408,6 +409,8 @@ For prospective contributors:
 .. # ------------------( LINKS ~ software ~ type            )------------------
 .. _Anaconda:
    https://www.continuum.io/downloads
+.. _Appveyor:
+   https://ci.appveyor.com/project/betse/betse/branch/master
 .. _BSD 2-clause license:
    https://opensource.org/licenses/BSD-2-Clause
 .. _FFmpeg:
