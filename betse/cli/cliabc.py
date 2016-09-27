@@ -13,8 +13,10 @@ Abstract command line interface (CLI).
 #  does *NOT* provide an out-of-the-box solution for line-based profiling. To
 #  do so, either (...both?) of the following third-party packages will need to
 #  be dynamically detected, imported, and leveraged:
+#  * "pprofile", a third-party pure-Python module profiling each line (rather
+#    than function as "profile" does). Basically, "profile" on metric steroids.
 #  * "lineprof", a third-party C extension profiling each line (rather than
-#    function as cProfile does). Basically, cProfile on metric steroids.
+#    function as cProfile does). Obsoleted by "pprofile", however.
 #  * "statprof", a third-party C extension operating rather differently than
 #    either "lineprof" or cProfile. Rather than deterministically instrumenting
 #    each line or function call (respectively), "statprof" non-deterministically
@@ -99,8 +101,9 @@ class CLIABC(metaclass=ABCMeta):
         `argparse`-specific object of all passed command-line arguments. See
         "Attributes (_args)" below for further details.
     _profile_filename : str
-        Absolute or relative path of the dumpfile to profile to if
-        `_profile_type` is `ProfileType.CALL` _or_ ignored otherwise.
+        Absolute or relative path of the dumpfile to export a profile of the
+        current execution to if `_profile_type` is `ProfileType.CALL` _or_
+        ignored otherwise.
     _profile_type : ProfileType
         Type of profiling to be performed if any.
 
@@ -117,9 +120,10 @@ class CLIABC(metaclass=ABCMeta):
         Type of logging to be performed if any, formatted as the lowercased
         name of a `LogType` enumeration member. Defaults to `none`.
     profile_filename : str
-        Absolute or relative path of the dumpfile to profile to if
-        `profile_type` is `call` _or_ ignored otherwise. Defaults to the
-        absolute path of BETSE's default user-specific profile dumpfile.
+        Absolute or relative path of the dumpfile to export a profile of the
+        current execution to if `profile_type` is `call` _or_ ignored otherwise.
+        Defaults to the absolute path of BETSE's default user-specific profile
+        dumpfile.
     profile_type : str
         Type of profiling to be performed if any, formatted as the lowercased
         name of a `ProfileType` enumeration member. Defaults to `none`.
@@ -211,7 +215,14 @@ class CLIABC(metaclass=ABCMeta):
             #
             #    import pstats
             #    p = pstats.Stats('restats')
-            #    p.strip_dirs().sort_stats(-1).print_stats()
+            #    p.strip_dirs()
+            #    p.sort_stats('cumtime')
+            #    p.print_stats()
+            #    p.sort_stats('tottime')
+            #    p.print_stats()
+            #
+            #    if self._profile_filename is not None:
+            #        p.dump_stats(self._profile_filename)
 
             # Perform subclass-specific logic.
             #

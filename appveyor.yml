@@ -167,7 +167,7 @@ install:
   # Update Miniconda to its most recent stable release.
   - cmd: conda update --quiet conda
 
-  # For debuggability, print identifying metadata pertaining to this release.
+  # For debuggability, print metadata identifying this Miniconda release.
   - cmd: conda info -a
 
   # Create a new Miniconda environment named "test-environment" specific to the
@@ -187,6 +187,14 @@ install:
 # List of all external commands to be run for each CI pipeline *AFTER* those
 # listed within "install" above.
 test_script:
+  # For debuggability, print metadata identifying this BETSE release. Since the
+  # same metadata is also printed, captured, and squelched by a functional test
+  # exercised by the test suite run below, doing so is somewhat redundant.
+  # Nonetheless, py.test provides no means of selectively disabling output
+  # capturing for only specific tests. For efficiency and readability, globally
+  # disabling output capturing is undesirable. Hence, the current approach.
+  - cmd: betse info
+
   # Run the entire "py.test"-based test suite under the following options:
   #
   # * "--maxfail=3", halting testing on the third failure. For discussion, see
