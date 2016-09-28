@@ -29,7 +29,6 @@ Abstract command line interface (CLI).
 import cProfile, sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
-from enum import Enum
 from betse import ignition, metadata, pathtree
 from betse.cli import info, clioption
 from betse.lib import libs
@@ -38,22 +37,9 @@ from betse.util.io.log.logconfig import LogType
 from betse.util.path.command import commands
 from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
+from betse.util.py.profilers import ProfileType
 from betse.util.type import types, strs
 from betse.util.type.types import type_check
-
-# ....................{ ENUMS                              }....................
-ProfileType = Enum('ProfileType', ('NONE', 'CALL'))
-'''
-Enumeration of all possible types of profile to perform, corresponding exactly
-to the `--profile-type` CLI option.
-
-Attributes
-----------
-NONE : enum
-    Enumeration member disabling profiling.
-CALL : enum
-    Enumeration member profiling method and function calls.
-'''
 
 # ....................{ UTILITIES                          }....................
 @type_check
@@ -223,6 +209,8 @@ class CLIABC(metaclass=ABCMeta):
             #
             #    if self._profile_filename is not None:
             #        p.dump_stats(self._profile_filename)
+            #FIXME: Refactor to call the new profilers.profile_callable()
+            #function instead.
 
             # Perform subclass-specific logic.
             #
