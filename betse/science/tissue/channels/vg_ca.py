@@ -437,7 +437,7 @@ class Ca_L3(VgCaABC):
         # self.qt = 2.3**((simT-Texpt)/10)
         self.qt = 1.0  # FIXME implement this!
 
-        V = V - 10
+        V = V - 20
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
         dyna.m_Ca = 1.0000 / (1 + np.exp((V - -30.000) / -6))
@@ -461,7 +461,7 @@ class Ca_L3(VgCaABC):
         # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
         # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
 
-        V = V - 10
+        V = V - 20
         self._mInf = 1.0000 / (1 + np.exp((V - -30.000) / -6))
         self._mTau = (5.0000 + 20.0000 / (1 + np.exp((V - -25.000) / 5)))
         self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))

@@ -104,8 +104,8 @@ def eosmosis(sim, cells, p):
 
     # ------------------------------------------------
     # make sure nothing is non-zero:
-    fix_inds = (sim.rho_pump < 0).nonzero()
-    sim.rho_pump[fix_inds] = 0
-
-    fix_inds2 = (sim.rho_channel < 0).nonzero()
-    sim.rho_channel[fix_inds2] = 0
+    # fix_inds = (sim.rho_pump < 0).nonzero()
+    # sim.rho_pump[fix_inds] = 0
+    #
+    # fix_inds2 = (sim.rho_channel < 0).nonzero()
+    # sim.rho_channel[fix_inds2] = 0

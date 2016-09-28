@@ -3298,7 +3298,7 @@ class MasterOfNetworks(object):
                     self.graphicus_maximus.add_edge(pydot.Edge('Vmem', name, arrowhead='dot', color='blue'))
 
                 elif chan_class == 'Cat':
-                    ion_name = ['Na', 'K', 'Ca']
+                    ion_name = ['Na', 'K']
 
                 # add the channel to the diagram
                 nde = pydot.Node(name, style='filled', shape = channel_shape)
@@ -4627,9 +4627,10 @@ class Molecule(object):
 
 
 
-        self.c_mems, self.c_env, _, _, _, _ = stb.molecule_mover(sim,
+        self.c_mems, self.c_env, self.c_cells, _, _, _, _ = stb.molecule_mover(sim,
                                                                 self.c_mems,
                                                                 self.c_env,
+                                                                self.c_cells,
                                                                 cells, p,
                                                                 z=self.z,
                                                                 Dm = self.Dm,

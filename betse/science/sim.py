@@ -215,6 +215,9 @@ class Simulator(object):
         self.v_cell_ave = np.zeros(self.cdl) # initialize averaged v__cell
         self.vm = np.zeros(self.mdl)     # initialize vmem
 
+        self.E_gj_x = np.zeros(self.mdl)
+        self.E_gj_y = np.zeros(self.mdl)
+
 
         if p.sim_ECM is True:  # special items specific to simulation of extracellular spaces only:
 
@@ -1504,9 +1507,9 @@ class Simulator(object):
             # v_cell_ave = (1 / 2) * v_cell_aveo + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
             # vm = v_cell
 
-            # vm = v_cello
+            vm = v_cello
             # v_cell = v_cello
-            vm = v_cell_aveo[cells.mem_to_cells]
+            # vm = v_cell_aveo[cells.mem_to_cells]
             v_cell = v_cell_aveo[cells.mem_to_cells]
             v_cell_ave = v_cell_aveo
 
@@ -1545,10 +1548,10 @@ class Simulator(object):
 
             v_cell = v_cell_ave[cells.mem_to_cells]
 
-            # vcell_at_mids = (v_cell + v_cell_ave[cells.mem_to_cells]) / 2
+            # vcell_at_mids = (v_cello + v_cell_ave[cells.mem_to_cells]) / 2
             #
             # # finite volume integral of membrane pie-box values:
-            # v_cell = np.dot(cells.M_int_mems, v_cell) + (1 / 2) * vcell_at_mids
+            # v_cell = np.dot(cells.M_int_mems, v_cello) + (1 / 2) * vcell_at_mids
             # v_cell_ave = (1 / 2) * v_cell_ave + np.dot(cells.M_sum_mems, vcell_at_mids) / (2 * cells.num_mems)
 
             # define the full environmental voltage:
@@ -1573,7 +1576,8 @@ class Simulator(object):
             v_env[cells.bR_k] = self.bound_V['R']
 
             # calculate the vm
-            vm = v_cell - v_env[cells.map_mem2ecm]
+            # vm = v_cell - v_env[cells.map_mem2ecm]
+            vm = v_cello - v_env[cells.map_mem2ecm]
 
 
         return vm, v_cell, v_cell_ave, v_env
@@ -1846,9 +1850,9 @@ class Simulator(object):
     def update_gj(self,cells,p,t,i):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
-
-        self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
-        # self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
+        #
+        # self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
+        self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
 
         if p.v_sensitive_gj is True:
 
@@ -2007,7 +2011,7 @@ class Simulator(object):
         # which is assumed to be about 1 nm:
 
         # self.field_mod = (1e-9/p.cell_space)
-        self.field_mod = p.field_modulation
+        self.field_mod = 1.0
 
         f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
             self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
@@ -2108,6 +2112,15 @@ class Simulator(object):
         else:
 
             self.Egj = - (self.vm[cells.nn_i] - self.vm[cells.mem_i])/cells.gj_len
+
+            # calculate the electric field between individual membranes:
+            # Egj = - (self.vm[cells.nn_i] - self.vm[cells.mem_i])/cells.gj_len
+            #
+            # # average to cell centers
+            # Egjo = np.dot(cells.M_sum_mems, Egj)/cells.num_mems
+            #
+            # # remap to membranes:
+            # self.Egj = Egjo[cells.mem_to_cells]
 
         # self.Egj = self.Egj*cells.ave2cellV # scale from cell space volume to whole cell volume
 

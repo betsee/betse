@@ -1108,11 +1108,11 @@ internal parameters:
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  electrolyte screening factor: 0.02 # ~0.02 to 0.1 electrolyte double layer screening & self-capacitances [F/m2] 0.86
+  electrolyte screening factor: 0.1 # ~0.02 to 0.1 electrolyte double layer screening & self-capacitances [F/m2]
 
-  field modulation factor: 1.0e-1    # factor to decrease electrophoretic component of ion mobility
+  field modulation factor: 1.0e-10  # factor to decrease electrophoretic component of electrodiffusion in cytoplasm
 
-  media resistivity: 0.021           # electrical resistivity of bulk electrolyte (Ohms.m)
+  media resistivity: 0.021  # electrical resistivity of bulk electrolyte (Ohms.m)
 
   gj acceleration: 1.0 # factor increasing flux of additional biomolecular substances through GJ
 

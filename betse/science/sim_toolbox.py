@@ -1213,7 +1213,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
+def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
                    ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1):
 
     """
@@ -1268,7 +1268,11 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         # Update dye concentration in the gj connected cell network:
 
         # Intracellular voltage gradient:
-        grad_vgj = (sim.vgj / cells.gj_len)*p.gj_acceleration
+        grad_vgj = ((sim.vm[cells.nn_i]- sim.vm[cells.mem_i])/cells.gj_len)*p.gj_acceleration
+
+        # grad_vgj = (sim.vgj/cells.gj_len)*p.gj_acceleration
+
+        # vgj = (sim.vm[cells.nn_i]- sim.vm[cells.mem_i])*p.gj_acceleration
 
         grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
@@ -1293,27 +1297,29 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         # fgj_X = electroflux(cX_mems[cells.nn_i], cX_mems[cells.mem_i],
         #                       p.gj_surface*sim.gjopen*Do,
         #                       np.ones(sim.mdl)*cells.gj_len,
-        #                       np.ones(sim.mdl)*z, sim.vgj, sim.T, p)
+        #                       np.ones(sim.mdl)*z, vgj, sim.T, p)
 
-        # print(fgj_X.mean())
-
-        # divergence calculation for individual cells (finite volume expression)
-        delta_cc = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
         # enforce zero flux at outer boundary:
-        delta_cc[cells.bflags_mems] = 0.0
+        fgj_X[cells.bflags_mems] = 0.0
 
-        cX_mems = cX_mems + p.dt * delta_cc
+        # divergence calculation for individual cells (finite volume expression)
+        delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
+
+        # divergence calculation for individual cells (finite volume expression)
+        # delta_cco = (-fgj_X * cells.mem_sa) / cells.mem_vol
+
+        # # average concentration change to cell centers:
+        # delta_cc = np.dot(cells.M_sum_mems, delta_cco)/cells.num_mems
+
+        # cX_mems = cX_mems + p.dt * delta_cco[cells.mem_to_cells]
+        cX_cells = cX_cells + p.dt * delta_cco
 
     else:
         fgj_X = np.zeros(sim.mdl)
 
 
     #------------------------------------------------------------------------------------------------------------
-
-        # electrodiffuse intracellular concentrations
-
-        cX_mems = update_intra(sim, cells, cX_mems, Do, z, p)
 
     # Transport through environment, if p.sim_ECM is True-----------------------------------------------------
 
@@ -1428,7 +1434,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
             uenvx = 0
             uenvy = 0
 
-        field_mod = p.field_modulation
+        field_mod = 1.0
 
         f_env_x_X, f_env_y_X = np_flux_special(cenv_x, cenv_y, grad_cc_env_x, grad_cc_env_y,
             field_mod*grad_V_env_x, field_mod*grad_V_env_y, uenvx, uenvy, denv_x, denv_y, z, sim.T, p)
@@ -1478,7 +1484,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cells, p, z=0, Dm=1.0e-18, Do=1.0e-
         fenvx = 0
         fenvy = 0
 
-    return cX_mems, cX_env_o, f_X_ED, fgj_X, fenvx, fenvy
+    return cX_mems, cX_env_o, cX_cells, f_X_ED, fgj_X, fenvx, fenvy
 
 def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
     """
@@ -1573,10 +1579,11 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
 
     # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
-    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
+    grad_v = (sim.vm - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
 
     # field-modulate the grad_v to account for screening (assumes motion primarily near the double layer):
-    grad_v = (1.0e-9/p.d_cell)*grad_v
+    # grad_v = (1.0e-9/p.d_cell)*grad_v
+    grad_v = p.field_modulation*grad_v
 
     # obtain an average concentration at the pie-slice midpoints:
     c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
