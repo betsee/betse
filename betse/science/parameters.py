@@ -25,9 +25,15 @@ class Parameters(object):
     Storage for all user-defined parameters used in world-building,
     simulation, and plotting.
 
-    These parameters are *deserialized* (i.e., read, loaded, and converted) from
-    the user-defined YAML configuration file passed to this object on
+    These parameters are *deserialized* (i.e., read, loaded, and converted)
+    from the user-defined YAML configuration file passed to this object on
     initialization.
+
+    Attributes (General: Boolean)
+    ----------------------------
+    I_overlay : bool
+        `True` if overlaying either electric current or concentration flux
+        streamlines on appropriate plots and animations _or_ `False` otherwise.
 
     Attributes (General: Path)
     ----------------------------
@@ -40,11 +46,17 @@ class Parameters(object):
         Absolute path of the source YAML configuration file from which this
         object was first deserialized.
 
-    Attributes (General: Boolean)
+    Attributes (Phase: Time)
     ----------------------------
-    I_overlay : bool
-        `True` if overlaying either electric current or concentration flux
-        streamlines on appropriate plots and animations _or_ `False` otherwise.
+    dt : float
+        Duration in seconds of each time step for the current simulation phase
+        (e.g., `init`, `run`).
+    total_time : float
+        Duration in seconds of the current simulation phase (e.g., `init`,
+        `run`), unaccelerated by the current gap junction acceleration factor.
+    total_time_accelerated : float
+        Duration in seconds of the current simulation phase (e.g., `init`,
+        `run`), accelerated by the current gap junction acceleration factor.
 
     Attributes (Results)
     ----------------------------
@@ -111,10 +123,14 @@ class Parameters(object):
         # INIT & SIM SETTINGS
         #---------------------------------------------------------------------------------------------------------------
 
+        #FIXME: Replace with a single typesafe enumeration.
         # set time profile from yaml
         self.time_profile_init = 'custom init' # time profile for initialization run
         self.time_profile_sim = 'custom sim'   # time profile for sim run
 
+        #FIXME: Redundant. The set_time_profile() method already sets the more
+        #appropriately named "self.init_end", "self.sim_end", and
+        #"self.total_time" attributes to these values. Remove these, please.
         self.time4init = self.config['init time settings']['total time']      # set the time for the initialization sim [s]
         self.time4sim = self.config['sim time settings']['total time']        # set total time for simulation [s]
 
@@ -673,17 +689,18 @@ class Parameters(object):
         self.GHK_calc = self.config['variable settings']['use Goldman calculator']
 
         # ................{ PLOTS                              }................
-        #FIXME: Replace the "turn_all_plots_off" and "autosave" attributes
-        #defined below by the corresponding attributes of this object.
-
         # Object encapsulating plot configuration.
         self.plot = PlotConfig.make(self)
 
         ro = self.config['results options']
 
-        #FIXME: Rename to "is_hiding_plots_and_anims".
-        self.turn_all_plots_off = not ro['after solving']['plots']['show']
-        self.autosave =               ro['after solving']['plots']['save']  # autosave all still images to a results directory
+        #FIXME: Replace all instances of "p.turn_all_plots_off" in the codebase
+        #by "not p.plot.is_after_sim_show" and remove this attribute entirely.
+        self.turn_all_plots_off = not self.plot.is_after_sim_show
+
+        #FIXME: Replace all instances of "p.autosave" in the codebase
+        #by "not p.plot.is_after_sim_save" and remove this attribute entirely.
+        self.autosave =               self.plot.is_after_sim_save  # autosave all still images to a results directory
 
         self.plot_cutlines = ro['plot cutlines']
 
@@ -1422,39 +1439,57 @@ class Parameters(object):
                 )
 
     # ..................{ SETTERS                            }..................
+    #FIXME: Refactor to accept an enumeration value rather than raw string --
+    #or, better yet, to accept no parameter and leverage an enumeration value
+    #identifying the current phase already set as an attribute of this object..
     @type_check
     def set_time_profile(self, time_profile: str) -> None:
         '''
-        Calculate the simulation timestep number and resampling time steps for
-        the time profile with the passed name.
+        Set attributes of this `Parameters` instance specific to the current
+        simulation phase (e.g., `init`, `sim`) identified by the passed name.
+
+        These attributes include:
+
+        * `dt`, the duration in seconds of each time step for this phase.
+        * `total_time`, the duration in seconds of this phase.
 
         Parameters
         ----------
         time_profile : str
             Configuration file-derived string specifying the type of time
             profile to set. Recognized strings include:
-            * `initialize` or `custom init` for simulation initializations.
-            * `simulate somatic`, `simulate excitable`, or `custom sim` for
-              simulation runs.
+            * `custom init` for simulation initializations.
+            * `custom sim` for simulation runs.
         '''
 
+        # If this simulation phase is an initialization...
         if time_profile == 'custom init':
             self.dt = float(self.config['init time settings']['time step'])
             self.init_end = float(self.config['init time settings']['total time'])
             self.init_tsteps = self.init_end/self.dt
             self.resample = float(self.config['init time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
-            self.method = 0
-            self.total_time = self.init_end*self.gj_acceleration   # parameter used to rescale animation title time report
 
-        elif time_profile == 'custom sim':
+            # Duration in seconds of the current simulation phase.
+            self.total_time = self.init_end
+
+        # Else, this simulation phase is a simulation.
+        else:   # if time_profile == 'custom sim':
             self.dt = float(self.config['sim time settings']['time step'])
             self.sim_end = float(self.config['sim time settings']['total time'])
             self.sim_tsteps = self.sim_end/self.dt
             self.resample = float(self.config['sim time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
-            self.method = 0
-            self.total_time = self.sim_end*self.gj_acceleration  # parameter used to rescale animation title time report
+
+            # Duration in seconds of the current simulation phase.
+            self.total_time = self.sim_end
+
+        # Duration in seconds of the current simulation phase accelerated by
+        # the current gap junction acceleration factor.
+        self.total_time_accelerated = self.total_time * self.gj_acceleration
+
+        #FIXME: ...what is this? Dare we even conjecture.
+        self.method = 0
 
 # ....................{ HELPERS                            }....................
 #FIXME: Shift this into a more appropriate math-oriented module. Funny sunning!

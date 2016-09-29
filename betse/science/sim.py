@@ -13,7 +13,6 @@ from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 from betse.exceptions import BetseSimulationInstabilityException
 from betse.util.io.log import logs
-from betse.science.config import sim_config
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
@@ -2284,21 +2283,28 @@ class Simulator(object):
             plotted animations, for example.
         '''
 
+        #FIXME: Refactor these conditionally set local variables into
+        #attributes of the "Parameters" object set instead by the
+        #Parameters.set_time_profile() method.
+
         # Type and maximum number of steps of the current run.
         if p.run_sim is False:
-            figure_type_label = 'Initializing'
-            loop_type_label = 'initialization'
-            loop_time_step_max = p.init_tsteps
+            phase_verb = 'Initializing'
+            phase_noun = 'initialization'
+            phase_time_step_count = p.init_tsteps
         else:
-            figure_type_label = 'Simulating'
-            loop_type_label = 'simulation'
-            loop_time_step_max = p.sim_tsteps
+            phase_verb = 'Simulating'
+            phase_noun = 'simulation'
+            phase_time_step_count = p.sim_tsteps
 
-        # Maximum number of seconds simulated by the current run.
-        loop_seconds_max = loop_time_step_max * p.dt
+        #FIXME: Replace "phase_time_len" with "p.total_time", which is the same
+        #exact value. (Duplication is bad for coding health.)
+
+        # Total number of seconds simulated by the current run.
+        phase_time_len = phase_time_step_count * p.dt
 
         # Time-steps vector appropriate for the current run.
-        tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
+        tt = np.linspace(0, phase_time_len, phase_time_step_count)
 
         tsamples = set()
         i = 0
@@ -2311,8 +2317,8 @@ class Simulator(object):
         logs.log_info(
             'Your %s is running from 0 to %.2f s of in-world time '
             'in %d time steps (%d sampled).',
-            loop_type_label,
-            loop_seconds_max,
+            phase_noun,
+            phase_time_len,
             len(tt),
             len(tsamples),
         )
@@ -2321,7 +2327,7 @@ class Simulator(object):
         if p.anim.is_while_sim:
             self._anim_cells_while_solving = AnimCellsWhileSolving(
                 label='Vmem',
-                figure_title='Vmem while {}'.format(figure_type_label),
+                figure_title='Vmem while {}'.format(phase_verb),
                 colorbar_title='Voltage [mV]',
                 color_min=p.Vmem_min_clr,
                 color_max=p.Vmem_max_clr,

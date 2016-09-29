@@ -173,7 +173,7 @@ class AnimCellsWhileSolving(AnimCells):
         # plotting this animation's first frame.
         self._prep_figure(
             color_mapping=self._cell_data_plot,
-            color_series=cell_data,
+            color_data=cell_data,
         )
 
         # Id displaying this animation, do so in a non-blocking manner.
@@ -359,7 +359,7 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self.collection,
-            color_series=(
+            color_data=(
                 scaling_series if scaling_series else self._time_series),
         )
 
@@ -369,20 +369,13 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         zz = self._time_series[self._time_step]
         data_verts = np.dot(self._cells.matrixMap2Verts, zz)
 
-        #FIXME: This isn't quite right. Most of this code already exists in the
-        #superclass. Let's figure out how to reuse this code reliably. Pink
-        #dragons unite!
+        # If displaying individual cells...
         if self._p.showCells:
-            self._axes.cla()
-            self._axes.axis('equal')
-            self._axes.axis(self._axes_bounds)
-            self._axes.set_xlabel('Spatial distance [um]')
-            self._axes.set_ylabel('Spatial distance [um]')
-
             # self.collection.set_array(zz)
             self.collection, self._axes = pretty_patch_plot(
                 data_verts, self._axes, self._cells, self._p, self._colormap,
                 cmin=self._color_min, cmax=self._color_max)
+        # Else, display only an amorphous continuum of cells.
         else:
             zz_grid = np.zeros(len(self._cells.voronoi_centres))
             zz_grid[self._cells.cell_to_grid] = zz
@@ -437,7 +430,7 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self._mesh_plot,
-            color_series=self._time_series,
+            color_data=self._time_series,
         )
 
 
@@ -534,7 +527,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self._cell_plot,
-            color_series=self._cell_time_series,
+            color_data=self._cell_time_series,
         )
 
 
@@ -617,7 +610,7 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self._mem_edges,
-            color_series=self._time_series,
+            color_data=self._time_series,
         )
 
 
@@ -699,7 +692,7 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
             # If colorbar autoscaling is requested, clip the colorbar to the
             # minimum and maximum morphogen concentrations -- regardless of
             # whether that morphogen resides in cells or the environment.
-            color_series=(
+            color_data=(
                 self._cell_time_series, self._env_time_series),
         )
 
@@ -779,7 +772,7 @@ class AnimFieldIntracellular(AnimField):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self._mesh_plot,
-            color_series=self._magnitude_time_series,
+            color_data=self._magnitude_time_series,
         )
 
 
@@ -1042,7 +1035,7 @@ class AnimVelocityExtracellular(AnimVelocity):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self._mesh_plot,
-            color_series=self._magnitude_time_series,
+            color_data=self._magnitude_time_series,
         )
 
 
@@ -1104,7 +1097,7 @@ class AnimCurrent(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self._mesh_plot,
-            color_series=self._current_density_magnitude_time_series,
+            color_data=self._current_density_magnitude_time_series,
         )
 
 
@@ -1224,7 +1217,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_mapping=dd_collection,
-            color_series=self._cell_time_series,
+            color_data=self._cell_time_series,
         )
 
 

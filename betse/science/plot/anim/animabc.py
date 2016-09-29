@@ -558,7 +558,7 @@ class AnimCells(PlotCells):
             # Figure to which the "func" callable plots each frame.
             fig=self._figure,
 
-            # CallableTypes plotting each frame.
+            # Callable plotting each frame.
             func=self.plot_frame,
 
             # Number of frames to be animated.
@@ -643,7 +643,7 @@ class AnimCells(PlotCells):
                 # method to save each animation frame. Since this method
                 # already manually saves each such frame for the case of both
                 # displaying *AND* saving this animation via the above call to
-                # the pyplot.show() function, such logic is reused here by
+                # the pyplot.show() function, that logic is reused here by
                 # preventing this call to the Animation.save() method from
                 # attempting to automatically save each such frame.
                 #
@@ -806,10 +806,10 @@ class AnimCells(PlotCells):
             #"self._time_step" rather than repass this parameter everywhere.
             self._replot_current_density(self._time_step)
 
-        # Update this figure with the current time, rounded to three decimal
-        # places for readability.
-        self._axes.set_title('{} (time {:.3f}s)'.format(
-            self._axes_title, self._sim.time[self._time_step]))
+        # Plot this frame's title *BEFORE* this frame, permitting axes changes
+        # performed by the subclass implementation of the _plot_frame_figure()
+        # method called below to override the default title.
+        self._plot_frame_axes_title()
 
         # Plot this frame *AFTER* performing all superclass-specific plotting,
         # permitting the subclass to modify that plotting.
@@ -837,15 +837,76 @@ class AnimCells(PlotCells):
                 self._close_writers()
 
 
+    #FIXME: Update with support for time acceleration.
+    def _plot_frame_axes_title(self) -> None:
+        '''
+        Plot the current frame title of this animation onto this animation's
+        axes.
+
+        By default, this title interpolates the current time step and must thus
+        be replotted for each animation frame.
+        '''
+
+        #FIXME: Shift into a new "betse.util.time.times" submodule.
+
+        # Number of seconds in a minute.
+        SECONDS_PER_MINUTE = 60
+
+        # Number of seconds in an hour.
+        SECONDS_PER_HOUR = SECONDS_PER_MINUTE * 60
+
+        #FIXME: For efficiency, classify the following local variables as
+        #object attributes in the __init__() method rather than recompute these
+        #variables each animation frame here.
+
+        # Human-readable suffix of the units that simulation times are reported
+        # in (e.g., "ms" for milliseconds).
+        time_unit_suffix = None
+
+        # Factor by which low-level simulation times are multiplied to yield
+        # human-readable simulation times in the same units of
+        # "time_unit_suffix".
+        time_unit_factor = None
+
+        # Duration in seconds of the current simulation phase (e.g., "init",
+        # "run"), accelerated by the current gap junction acceleration factor.
+        time_len = self._p.total_time_accelerated
+
+        # If this phase runs for less than or equal to 100ms, report
+        # simulation time in milliseconds (i.e., units of 0.001s).
+        if time_len <= 0.1:
+            time_unit_suffix = 'ms'
+            time_unit_factor = 1e3
+        # Else if this phase runs for less than or equal to one minute, report
+        # simulation time in seconds (i.e., units of 1s).
+        elif time_len <= SECONDS_PER_MINUTE:
+            time_unit_suffix = 's'
+            time_unit_factor = 1
+        # Else if this phase runs for less than or equal to one hour, report
+        # simulation time in minutes (i.e., units of 60s).
+        elif time_len <= SECONDS_PER_HOUR:
+            time_unit_suffix = ' minutes'
+            time_unit_factor = 1/SECONDS_PER_MINUTE
+        # Else, this phase is assumed to run for less than or equal to one day.
+        # In this case, simulation time is reported in hours (i.e., units of
+        # 60*60s).
+        else:
+            time_unit_suffix = ' hours'
+            time_unit_factor = 1/SECONDS_PER_HOUR
+
+        # Update this figure with the current time, rounded to three decimal
+        # places for readability.
+        self._axes.set_title('{} (time: {:.3f}{})'.format(
+            self._axes_title,
+            time_unit_factor * self._sim.time[self._time_step],
+            time_unit_suffix,
+        ))
+
+
     @abstractmethod
     def _plot_frame_figure(self) -> None:
         '''
-        Plot the frame with the passed 0-based index onto the current figure.
-
-        Parameters
-        ----------
-        frame_number : int
-            0-based index of the frame to be plotted.
+        Plot the current frame of this animation onto this animation's figure.
         '''
         pass
 

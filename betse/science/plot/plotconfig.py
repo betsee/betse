@@ -67,13 +67,13 @@ class PlotConfig(object):
         # Create and return this instance.
         return PlotConfig(
             # Post-simulation plots.
-            is_after_sim=after_solving['enabled'],
+            is_after_sim=     after_solving['enabled'],
             is_after_sim_show=after_solving['show'],
             is_after_sim_save=after_solving['save'],
 
             # Image saving.
             image_filetype=image['filetype'],
-            image_dpi=image['dpi'],
+            image_dpi=     image['dpi'],
         )
 
     # ..................{ CONCRETE ~ public                  }..................
@@ -91,7 +91,7 @@ class PlotConfig(object):
         image_dpi: int,
     ) -> None:
 
-        # Validate all passed integers as positive.
+        # Validate all passed integers to be positive.
         ints.die_unless_positive(image_dpi)
 
         #FIXME: Repetition is vile and demeaning. Design and leverage a new

@@ -16,9 +16,10 @@ import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
+from betse.util.io.log import logs
 from betse.util.type import types, objects
 from betse.util.type.types import (
-    type_check, NoneType, NumericTypes)  #, SequenceTypes
+    type_check, NoneType, NumericTypes, SequenceTypes)
 from matplotlib import pyplot
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Colormap
@@ -212,6 +213,15 @@ class PlotCells(object, metaclass=ABCMeta):
         self._writer_frames = None
         self._writer_video = None
 
+        # Initialize this plot's figure.
+        self._init_figure()
+
+
+    def _init_figure(self) -> None:
+        '''
+        Initialize this plot's figure.
+        '''
+
         # Figure encapsulating this animation as a weak rather than strong (the
         # default) reference, avoiding circular references and complications
         # thereof (e.g., memory overhead). Figures created by the "pyplot" API
@@ -221,6 +231,13 @@ class PlotCells(object, metaclass=ABCMeta):
         # strong figure references should typically *NOT* be retained.
         self._figure = weakref.proxy(pyplot.figure())
 
+        # Figure axes scaled to the extent of the current 2D environment as a
+        # weak rather than strong (the default) reference, thus avoiding
+        # circular references and complications thereof (e.g., memory overhead).
+        # Since figures already contain their axes as a strong reference, we
+        # need *NOT* do so as well here.
+        self._axes = weakref.proxy(pyplot.subplot(111))
+
         # Extent of the current 2D environment.
         self._axes_bounds = [
             self._cells.xmin * self._p.um,
@@ -229,29 +246,38 @@ class PlotCells(object, metaclass=ABCMeta):
             self._cells.ymax * self._p.um,
         ]
 
-        # Figure axes scaled to the extent of the current 2D environment as a
-        # weak rather than strong (the default) reference, thus avoiding
-        # circular references and complications thereof (e.g., memory overhead).
-        # Since figures contain their axes as a strong reference, we needn't.
-        self._axes = weakref.proxy(pyplot.subplot(111))
+        # Bound these axes by this extent.
         self._axes.axis('equal')
         self._axes.axis(self._axes_bounds)
+
+        # If this object was initialized with both a figure and axes title,
+        # display the former above the latter.
+        if self._axes_title:
+            logs.log_debug('Setting supertitle!')
+            self._figure.suptitle(
+                self._figure_title, fontsize=14, fontweight='bold')
+        # Else, display the figure title as the axes title.
+        else:
+            logs.log_debug('Setting normal title!')
+            self._axes_title = self._figure_title
+
+        # Display passed human-readable strings as axes attributes.
+        assert types.is_str_nonempty(self._axes_title), (
+            types.assert_not_str_nonempty(self._axes_title, 'Axis title'))
         self._axes.set_xlabel(self._axes_x_label)
         self._axes.set_ylabel(self._axes_y_label)
+        self._axes.set_title(self._axes_title)
 
 
+    @type_check
     def _prep_figure(
         self,
 
         # Mandatory parameters.
         color_mapping: object,
 
-        #FIXME: Rename to merely "color_data".
-        #FIXME: Make this parameter mandatory. There's no justifiable reason for
-        #subclasses to omit this anymore.
-
         # Optional parameters.
-        color_series: np.ndarray = None,
+        color_data: SequenceTypes = None,
     ) -> None:
         '''
         Prepare this plot _after_ having previously initialized this plot but
@@ -267,11 +293,11 @@ class PlotCells(object, metaclass=ABCMeta):
           this method rather than the above `__init__()` method.
         * If the optional `axes_title` parameter was passed to `__init__()`:
           * Adds the current `_figure_title` to this figure as a "super title."
-          * Adds the passed `axes_title` to this figure's axes as a "subtitle."
+          * Adds that `axes_title` to this figure's axes as a "subtitle."
         * Else, add the current `_figure_title` to this figure's axes.
         * If the optional `colorbar_values` parameter is passed _and_
           `_is_color_autoscaled` is `True`, clip the colorbar to the minimum and
-          maximum values in the `color_series` array.
+          maximum values in the `color_data` array.
         * Else, clip the colorbar to the current `clrMin` and `clrMax` values.
         * Add a colorbar whose:
           * Title is the current `_colorbar_title` string.
@@ -287,7 +313,7 @@ class PlotCells(object, metaclass=ABCMeta):
             * A non-string sequence (e.g., `list`) of one or more mappables, in
               which case this colorbar will be associated with the **first**
               mappable in this sequence.
-        color_series : optional[np.ndarray]
+        color_data : optional[SequenceTypes]
             Optional multi-dimensional Numpy array containing all data values
             to be animated _or_ `None` if calculating this data during the
             animation initialization is infeasible or impractical (e.g., due to
@@ -298,6 +324,10 @@ class PlotCells(object, metaclass=ABCMeta):
             * `None`, the subclass will be responsible for colorbar autoscaling.
             Defaults to `None`.
         '''
+
+        #FIXME: Why is this logic deferred to here rather than performed in
+        #__init__()? There's presumably a reasonable reason for this... but we
+        #failed to document whatever that might have been.
 
         # If labelling each plotted cell with that cell's unique 0-based index,
         # do so.
@@ -311,33 +341,16 @@ class PlotCells(object, metaclass=ABCMeta):
                     ha='center',
                 )
 
-        # If both a figure and axes title are defined, display the figure title
-        # as such above the axes title.
-        if self._axes_title:
-            self._figure.suptitle(
-                self._figure_title, fontsize=14, fontweight='bold')
-        # Else, display the figure title as the axes title.
-        else:
-            self._axes_title = self._figure_title
-
-        # Add the desired axes title.
-        assert types.is_str_nonempty(self._axes_title), (
-            types.assert_not_str_nonempty(self._axes_title, 'Axis title'))
-        self._axes.set_title(self._axes_title)
-
         # If a time series is passed *AND* colorbar autoscaling is requested,
         # clip the colorbar to the minimum and maximum values of this series.
-        if color_series is not None and self._is_color_autoscaled:
-            assert types.is_sequence_nonstr(color_series), (
-                types.assert_not_sequence_nonstr(color_series))
-
-            #FIXME: This appears to be failing when "color_series" is
+        if color_data is not None and self._is_color_autoscaled:
+            #FIXME: This appears to be failing when "color_data" is
             #"self._current_density_magnitude_time_series" (e.g.,
             #"self._sim.I_gj_x_time").
 
             # Flatten this two-dimensional matrix to a one-dimensional array,
             # providing efficient retrieval of minimum and maximum values.
-            time_series_flat = np.ravel(color_series)
+            time_series_flat = np.ravel(color_data)
 
             # Overwrite the current minimum and maximum color values.
             self._color_min = np.ma.min(time_series_flat)

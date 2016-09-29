@@ -7,8 +7,6 @@ High-level facilities for displaying and/or saving all enabled plots _and_
 animations.
 '''
 
-#FIXME: Rename this submodule to "plotpipe".
-
 #FIXME: For safety, most "== 1"-style tests in this module should be converted
 #to "is True"-style tests instead. Into the trackless reaches of ice and snow!
 #FIXME: I believe I've finally tracked down the issue relating to the following
@@ -49,7 +47,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 from betse.exceptions import BetseParametersException
 from betse.science.plot import plot as viz
-from betse.science.plot.anim.pipeline import pipeline_anims
+from betse.science.plot.anim.animpipe import pipeline_anims
 from betse.util.io.log import logs
 from betse.util.type import types
 
@@ -136,6 +134,10 @@ def pipeline_results(
     # Display and/or save all animations.
     pipeline_anims(sim, cells, p)
 
+    #FIXME: What is this? What requires showing? Are we finalizing some
+    #previously displayed visual artifact? We suspect this to be safely
+    #jettisoned deadweight, but... let's verify that, please.
+
     # If displaying plots and animations, display... something? I guess?
     if p.turn_all_plots_off is False:
         plt.show()
@@ -176,12 +178,9 @@ def pipeline_plots(
     assert types.is_cells(cells), types.assert_not_parameters(cells)
     assert types.is_parameters(p), types.assert_not_parameters(p)
 
-    #FIXME: After improving our default configuration file with the appropriate
-    #options *AND* defining a new "betse.science.plot.plotconfig" submodule and
-    #corresponding "PlotConfig" class in such submodule, uncomment this:
-    # # If post-simulation plots are disabled, noop.
-    # if not p.plot.is_after_sim:
-    #    return
+    # If post-simulation plots are disabled, noop.
+    if not p.plot.is_after_sim:
+       return
 
     if p.autosave is True:
         if p.plot_type == 'sim':

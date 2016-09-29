@@ -6,8 +6,6 @@
 High-level facilities for displaying and/or saving all enabled animations.
 '''
 
-#FIXME: Rename this submodule to "animpipe".
-
 #FIXME: This module would be a *GREAT* candidate for testing out Python 3.5-
 #based asynchronicity and parallelization. Ideally, we'd be able to segregate
 #the generation of each animation to its own Python process. Verdant shimmers!
@@ -86,7 +84,6 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         )
 
     if p.ani_vm2d is True:
-
         vmplt = [1000*arr for arr in sim.vm_time]
         scale_v = vmplt
 
@@ -105,7 +102,6 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
     # Animate the gap junction state over cell membrane voltage if desired.
     if p.ani_vmgj2d is True:
-
         vmplt = [1000 * arr for arr in sim.vm_ave_time]
 
         AnimGapJuncTimeSeries(

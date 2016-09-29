@@ -16,7 +16,7 @@ from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.parameters import Parameters
 from betse.science.plot import plot as viz
-from betse.science.plot import pipeline
+from betse.science.plot import plotpipe
 from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io.log import logs
@@ -122,12 +122,12 @@ class SimRunner(object):
         '''
 
         logs.log_info(
-            'Initializing simulation with configuration file "{}".'.format(
-                self._config_basename))
+            'Initializing simulation with configuration file "%s".',
+            self._config_basename)
 
         start_time = time.time()  # get a start value for timing the simulation
 
-        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         p.run_sim = False # let the simulator know we're just running an initialization
 
@@ -184,9 +184,10 @@ class SimRunner(object):
         '''
         Run simulation from a previously saved initialization.
         '''
+
         logs.log_info(
-            'Running simulation with configuration file "{}".'.format(
-                self._config_basename))
+            'Running simulation with configuration file "%s".',
+            self._config_basename)
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -406,11 +407,18 @@ class SimRunner(object):
         '''
         Load and visualize a previously solved initialization.
         '''
-        logs.log_info(
-            'Plotting initialization with configuration "{}".'.format(
-                self._config_basename))
 
-        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        logs.log_info(
+            'Plotting initialization with configuration "%s".',
+            self._config_basename)
+
+        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
+        #profile type be passed. The current approach leaves critical attributes
+        #undefined in the event that the optional Parameters.set_time_profile()
+        #method is left uncalled, which is pretty unacceptable.
+        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+
         sim = Simulator(p)   # create an instance of Simulator
 
         if files.is_file(sim.savedInit):
@@ -420,7 +428,7 @@ class SimRunner(object):
                 "Ooops! No such initialization file found to plot!")
 
         # Display and/or save all enabled plots and animations.
-        pipeline.pipeline_results(sim, cells, p, plot_type='init')
+        plotpipe.pipeline_results(sim, cells, p, plot_type='init')
 
         #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
         # set up, it's not possible to readily fix it. Grrrrrr.....
@@ -435,7 +443,6 @@ class SimRunner(object):
             sim.molecules.export_all_data(sim, cells, p)
             sim.molecules.plot(sim, cells, p)
             sim.molecules.anim(sim, cells, p)
-
 
         if p.metabolism_enabled and sim.metabo is not None:
 
@@ -465,11 +472,17 @@ class SimRunner(object):
         '''
         Load and visualize a previously solved simulation.
         '''
-        logs.log_info(
-            'Plotting simulation with configuration "{}".'.format(
-                self._config_basename))
 
-        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        logs.log_info(
+            'Plotting simulation with configuration "%s".',
+            self._config_basename)
+
+        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
+        #profile type be passed. The current approach leaves critical attributes
+        #undefined in the event that the optional Parameters.set_time_profile()
+        #method is left uncalled, which is pretty unacceptable.
+        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        p.set_time_profile(p.time_profile_sim)  # force the time profile to be simulation
         sim = Simulator(p)   # create an instance of Simulator
 
         # If this simulation has yet to be run, fail.
@@ -483,7 +496,7 @@ class SimRunner(object):
         sim, cells, _ = fh.loadSim(sim.savedSim)
 
         # Display and/or save all enabled plots and animations.
-        pipeline.pipeline_results(sim, cells, p, plot_type='sim')
+        plotpipe.pipeline_results(sim, cells, p, plot_type='sim')
 
         #FIXME: Shift into the plotting and animation pipelines.
         # run the molecules plots:
@@ -527,14 +540,20 @@ class SimRunner(object):
         '''
         Load and visualize a previously seeded cell cluster.
         '''
+
         logs.log_info(
-            'Plotting cell cluster with configuration file "{}".'.format(
-                self._config_basename))
+            'Plotting cell cluster with configuration file "%s".',
+            self._config_basename)
 
-        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
-        p.I_overlay = False # force the current overlay to be false as there's no data for it
+        # Create an instance of Parameters
+        p = Parameters(config_filename=self._config_filename)
+
+        # Disable the current overlay. Plotting this artist requires simulation
+        # data subsequently defined by the "sim" phase and hence unavailable at
+        # this early phase.
+        p.I_overlay = False
+
         sim = Simulator(p)
-
         cells = Cells(p)
 
         if files.is_file(cells.savedWorld):
@@ -549,14 +568,12 @@ class SimRunner(object):
         dyna.tissueProfiles(sim,cells,p)
 
         if p.autosave is True:
-
             images_path = p.init_results
             image_cache_dir = os.path.expanduser(images_path)
             os.makedirs(image_cache_dir, exist_ok=True)
             savedImg = os.path.join(image_cache_dir, 'fig_')
 
         if p.plot_cell_cluster is True:
-
             fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
                 p, dyna, cells, clrmap=p.default_cm)
 
@@ -609,9 +626,8 @@ class SimRunner(object):
             if p.turn_all_plots_off is False:
                 plt.show(block = False)
 
-
+        # Plot gap junctions.
         if p.plot_cell_connectivity is True:
-            # plot gj
             fig_x = plt.figure()
             ax_x = plt.subplot(111)
 
