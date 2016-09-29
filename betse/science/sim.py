@@ -1850,9 +1850,9 @@ class Simulator(object):
     def update_gj(self,cells,p,t,i):
 
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
-        #
-        # self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
-        self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
+
+        self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
+        # self.vgj = self.v_cell[cells.nn_i] - self.v_cell[cells.mem_i]
 
         if p.v_sensitive_gj is True:
 
@@ -1863,13 +1863,13 @@ class Simulator(object):
             self.gjopen = self.gj_block*np.ones(len(cells.mem_i))
 
 
-        # voltage gradient:
-        grad_vgj = self.vgj/(cells.gj_len)
-
-
         # concentration gradient for ion i:
         conc_mem = self.cc_mems[i]
+
         grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
+
+        gcx = grad_cgj*cells.mem_vects_flat[:, 2]
+        gcy = grad_cgj*cells.mem_vects_flat[:, 3]
 
         # midpoint concentration:
         c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
@@ -1885,26 +1885,47 @@ class Simulator(object):
         else:
             ugj = 0
 
-        # calculate nernst-planck flux tangent to gap junctions:
-        fgj = stb.nernst_planck_vector(c,grad_cgj,grad_vgj, ugj,
-            p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
+            ux = 0
+            uy = 0
 
-        # update gap junction using GHK flux equation:
-        # fgj = stb.electroflux(conc_mem[cells.nn_i], conc_mem[cells.mem_i],
-        #                       p.gj_surface*self.gjopen*self.D_gj[i],
-        #                       np.ones(self.mdl)*cells.gj_len,
-        #                       np.ones(self.mdl)*self.zs[i], self.vgj, self.T, p)
+        # # calculate nernst-planck flux tangent to gap junctions:
+        # fgj = stb.nernst_planck_vector(c,grad_cgj,grad_vgj, ugj,
+        #     p.gj_surface*self.gjopen*self.D_gj[i],self.zs[i],self.T,p)
+        #
+        # # update gap junction using GHK flux equation:
+        # # fgj = stb.electroflux(conc_mem[cells.nn_i], conc_mem[cells.mem_i],
+        # #                       p.gj_surface*self.gjopen*self.D_gj[i],
+        # #                       np.ones(self.mdl)*cells.gj_len,
+        # #                       np.ones(self.mdl)*self.zs[i], self.vgj, self.T, p)
+        #
+        #
+        # delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
+        #
+        # # enforce zero outer boundary flux condition:
+        # delta_cc[cells.bflags_mems] = 0
+        #
+        # # update concentration of substance at membranes:
+        # self.cc_mems[i] = self.cc_mems[i] + p.dt * delta_cc
 
 
-        delta_cc = (-fgj*cells.mem_sa)/cells.mem_vol
+        fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
+                                          -self.E_gj_y, ux, uy,
+                                              p.gj_surface*self.gjopen*self.D_gj[i],
+                                              self.zs[i],
+                                              self.T, p)
 
-        # enforce zero outer boundary flux condition:
-        delta_cc[cells.bflags_mems] = 0
+        fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
-        # update concentration of substance at membranes:
-        self.cc_mems[i] = self.cc_mems[i] + p.dt * delta_cc
+        # enforce zero flux at outer boundary:
+        fgj_X[cells.bflags_mems] = 0.0
 
-        self.fluxes_gj[i] = fgj  # store gap junction flux for this ion
+        # divergence calculation for individual cells (finite volume expression)
+        delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
+
+        # Calculate the final concentration change:
+        self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
+
+        self.fluxes_gj[i] = fgj_X  # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
 

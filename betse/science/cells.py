@@ -1893,7 +1893,7 @@ class Cells(object):
 
         return curl_x, curl_y, curl_z
 
-    def integrator(self,f, interp_method='linear'):
+    def integrator(self,f, fmem):
         """
         Finite volume integrator for the irregular Voronoi cell grid.
         Interpolates a parameter defined on cell centres to the membrane
@@ -1903,22 +1903,22 @@ class Cells(object):
         Parameters
         -----------
         f                  A parameter defined on cell centres
-        interp_method      Interpolation to use with scipy gridddata ('nearest', 'linear', 'cubic')
+        fmem               Same parameter defined on cell membranes
 
         Returns
         -----------
-        f_int          Finite volume interpolation integral over each cell grid (volume independent)
+        fcent          Finite volume interpolation integral over each cell grid (volume independent)
+        fmemi          Interpolation of parameter between adjacent membranes
 
         """
 
-        # interpolate f to mems:
-        f_mem = interp.griddata((self.cell_centres[:,0],self.cell_centres[:,1]),f,
-                             (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),
-                                method = interp_method, fill_value = 0)
+        # average the parameter between adjacent membranes:
+        fmemi = (fmem[self.nn_i] + fmem[self.mem_i])/2
 
-        f_int = (1/2)*(f + (np.dot(self.M_sum_mems, f_mem)/self.num_mems))
+        # average the values at the cell centre point:
+        fcent = (1/2)*(f + (np.dot(self.M_sum_mems, fmemi)/self.num_mems))
 
-        return f_int
+        return fcent, fmemi
 
     def interp_to_mem(self,f, interp_method = 'linear'):
 

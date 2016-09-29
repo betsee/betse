@@ -1110,11 +1110,11 @@ internal parameters:
 
   electrolyte screening factor: 0.1 # ~0.02 to 0.1 electrolyte double layer screening & self-capacitances [F/m2]
 
-  field modulation factor: 1.0e-10  # factor to decrease electrophoretic component of electrodiffusion in cytoplasm
+  field modulation factor: 1.0e-4  # (0.0 to 1.0e-4) factor decreasing electrophoretic component of cytoplasm transport
 
   media resistivity: 0.021  # electrical resistivity of bulk electrolyte (Ohms.m)
 
-  gj acceleration: 1.0 # factor increasing flux of additional biomolecular substances through GJ
+  time acceleration: 1.0 # factor accelerating time for slow processes (GJ diffusion)
 
 
 # Configuration file version that this file conforms to. For reliable

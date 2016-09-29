@@ -904,8 +904,7 @@ class Parameters(object):
         self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
 
         # gap junction acceleration for molecular substances:
-        self.gj_acceleration = float(iu.get('gj acceleration', 100))
-
+        self.gj_acceleration = float(iu['time acceleration'])
 
         # ATP charge in the cell (for metabolism mode off)
         # FIXME add these as options to the config
@@ -1446,6 +1445,7 @@ class Parameters(object):
             self.resample = float(self.config['init time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
+            self.total_time = self.init_end*self.gj_acceleration   # parameter used to rescale animation title time report
 
         elif time_profile == 'custom sim':
             self.dt = float(self.config['sim time settings']['time step'])
@@ -1454,6 +1454,7 @@ class Parameters(object):
             self.resample = float(self.config['sim time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
             self.method = 0
+            self.total_time = self.sim_end*self.gj_acceleration  # parameter used to rescale animation title time report
 
 # ....................{ HELPERS                            }....................
 #FIXME: Shift this into a more appropriate math-oriented module. Funny sunning!

@@ -1268,13 +1268,16 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18
         # Update dye concentration in the gj connected cell network:
 
         # Intracellular voltage gradient:
-        grad_vgj = ((sim.vm[cells.nn_i]- sim.vm[cells.mem_i])/cells.gj_len)*p.gj_acceleration
+        # grad_vgj = ((sim.vm[cells.nn_i]- sim.vm[cells.mem_i])/cells.gj_len)*p.gj_acceleration
 
         # grad_vgj = (sim.vgj/cells.gj_len)*p.gj_acceleration
 
         # vgj = (sim.vm[cells.nn_i]- sim.vm[cells.mem_i])*p.gj_acceleration
 
         grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
+
+        gcx = grad_cgj*cells.mem_vects_flat[:, 2]
+        gcy = grad_cgj*cells.mem_vects_flat[:, 3]
 
         # midpoint concentration:
         cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
@@ -1285,19 +1288,34 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18
             uy = sim.u_gj_y
 
             # get component of fluid tangent to gap junctions
-            ugj = ux * cells.mem_vects_flat[:, 2] + uy * cells.mem_vects_flat[:, 3]
+            # ugj = ux * cells.mem_vects_flat[:, 2] + uy * cells.mem_vects_flat[:, 3]
 
         else:
-            ugj = 0
+            # ugj = 0
+            ux = 0
+            uy = 0
 
-        fgj_X = nernst_planck_vector(cX_mids, grad_cgj, grad_vgj, ugj,
-            p.gj_surface*sim.gjopen*Do, z, sim.T, p)
+        # fgj_X = nernst_planck_vector(cX_mids, grad_cgj, grad_vgj, ugj,
+        #     p.gj_surface*sim.gjopen*Do, z, sim.T, p)
 
         # update gap junction using GHK flux equation:
         # fgj_X = electroflux(cX_mems[cells.nn_i], cX_mems[cells.mem_i],
         #                       p.gj_surface*sim.gjopen*Do,
         #                       np.ones(sim.mdl)*cells.gj_len,
         #                       np.ones(sim.mdl)*z, vgj, sim.T, p)
+
+        # divergence calculation for individual cells (finite volume expression)
+        # delta_ccm = (-fgj_X * cells.mem_sa) / cells.mem_vol
+        #
+        # cX_mems = cX_mems + p.dt * delta_ccm[cells.mem_to_cells]
+
+
+
+        fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
+                                          -sim.E_gj_y, ux, uy,
+                                           Do*p.gj_surface, z, sim.T, p)
+
+        fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
 
         # enforce zero flux at outer boundary:
@@ -1306,14 +1324,11 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18
         # divergence calculation for individual cells (finite volume expression)
         delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
 
-        # divergence calculation for individual cells (finite volume expression)
-        # delta_cco = (-fgj_X * cells.mem_sa) / cells.mem_vol
 
-        # # average concentration change to cell centers:
-        # delta_cc = np.dot(cells.M_sum_mems, delta_cco)/cells.num_mems
+        # Calculate the final concentration change (the acceleration effectively speeds up time):
+        cX_cells = cX_cells + p.dt*delta_cco*p.gj_acceleration
 
-        # cX_mems = cX_mems + p.dt * delta_cco[cells.mem_to_cells]
-        cX_cells = cX_cells + p.dt * delta_cco
+
 
     else:
         fgj_X = np.zeros(sim.mdl)
