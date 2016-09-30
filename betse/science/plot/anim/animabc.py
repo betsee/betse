@@ -894,11 +894,11 @@ class AnimCells(PlotCells):
             time_unit_suffix = ' hours'
             time_unit_factor = 1/SECONDS_PER_HOUR
 
-        # Update this figure with the current time, rounded to three decimal
-        # places for readability.
-        self._axes.set_title('{} (time: {:.3f}{})'.format(
+        # Update this figure with the current time, rounded to one decimal
+        # place for readability.
+        self._axes.set_title('{} (time: {:.1f}{})'.format(
             self._axes_title,
-            time_unit_factor * self._sim.time[self._time_step],
+            time_unit_factor *self._p.gj_acceleration*self._sim.time[self._time_step],
             time_unit_suffix,
         ))
 

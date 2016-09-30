@@ -1594,7 +1594,7 @@ def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
 
     # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
-    grad_v = (sim.vm - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
+    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
 
     # field-modulate the grad_v to account for screening (assumes motion primarily near the double layer):
     # grad_v = (1.0e-9/p.d_cell)*grad_v

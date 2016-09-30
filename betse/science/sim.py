@@ -1509,7 +1509,8 @@ class Simulator(object):
             vm = v_cello
             # v_cell = v_cello
             # vm = v_cell_aveo[cells.mem_to_cells]
-            v_cell = v_cell_aveo[cells.mem_to_cells]
+            # v_cell = v_cell_aveo[cells.mem_to_cells]
+            v_cell = v_cello
             v_cell_ave = v_cell_aveo
 
 
@@ -1545,7 +1546,8 @@ class Simulator(object):
             # values at centroid mids:
             v_cell_ave = np.dot(cells.M_sum_mems, v_cello) / cells.num_mems
 
-            v_cell = v_cell_ave[cells.mem_to_cells]
+            # v_cell = v_cell_ave[cells.mem_to_cells]
+            v_cell = v_cello
 
             # vcell_at_mids = (v_cello + v_cell_ave[cells.mem_to_cells]) / 2
             #
