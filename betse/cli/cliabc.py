@@ -26,7 +26,7 @@ Abstract command line interface (CLI).
 #    sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
 
 # ....................{ IMPORTS                            }....................
-import cProfile, sys
+import sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
@@ -37,9 +37,9 @@ from betse.util.io.log.logconfig import LogType
 from betse.util.path.command import commands
 from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
-from betse.util.py.profilers import ProfileType
+from betse.util.py.profilers import profile_callable, ProfileType
 from betse.util.type import types, strs
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ UTILITIES                          }....................
 @type_check
@@ -130,18 +130,18 @@ class CLIABC(metaclass=ABCMeta):
         self._profile_type = None
 
     # ..................{ PUBLIC                             }..................
-    def run(self, arg_list: list = None) -> int:
+    def run(self, arg_list: SequenceTypes = None) -> int:
         '''
-        Run the command-line interface (CLI) defined by the current subclass
-        with the passed arguments if non-`None` _or_ with the arguments passed
-        on the command line (i.e., `sys.argv`) otherwise.
+        Run the command-line interface (CLI) defined by the subclass with the
+        passed argument list if non-`None` _or_ the external argument list
+        passed on the command line (i.e., :data:`sys.argv`) otherwise.
 
         Parameters
         ----------
-        arg_list : list
-            List of zero or more arguments to pass to this interface. Defaults
-            to `None`, in which case arguments passed on the command line (i.e.,
-            `sys.argv`) will be used instead.
+        arg_list : SequenceTypes
+            Sequence of zero or more arguments to pass to this interface.
+            Defaults to `None`, in which case arguments passed on the command
+            line (i.e., `sys.argv`) are used instead.
 
         Returns
         ----------
@@ -189,52 +189,16 @@ class CLIABC(metaclass=ABCMeta):
             # by these dependencies with that implemented by BETSE.
             libs.init()
 
-            #FIXME: Implement support for the "self._profile_filename" option as
-            #well. Sadly, "cProfile" appears to be quite simplistic. To have
-            #profiling both printed *AND* dumped to disk, we'll need to:
-            #
-            #1. Instruct cProfile.run() to dump to disk.
-            #2. Import the standard "pstats" module.
-            #3. Instruct that module to load that dumpfile and print statistics.
-            #
-            #The logic for the latter two appears to resemble:
-            #
-            #    import pstats
-            #    p = pstats.Stats('restats')
-            #    p.strip_dirs()
-            #    p.sort_stats('cumtime')
-            #    p.print_stats()
-            #    p.sort_stats('tottime')
-            #    p.print_stats()
-            #
-            #    if self._profile_filename is not None:
-            #        p.dump_stats(self._profile_filename)
-            #FIXME: Refactor to call the new profilers.profile_callable()
-            #function instead.
-
-            # Perform subclass-specific logic.
-            #
-            # If profiling is enabled, profile this logic in the context of the
-            # current instance of this class.
-            if self._profile_type is not ProfileType.NONE:
-                cProfile.runctx(
-                    # Statement to be profiled.
-                    'self._do()',
-
-                    # Context to profile this statement under.
-                    globals=globals(),
-                    locals=locals(),
-
-                    # "pstat"-specific sort key to sort profile output by.
-                    sort='cumulative',
-                    # sort='time',
-                )
-            # Else, perform this logic unprofiled.
-            else:
-                self._do()
-            # raise Exception('For testing exception handling.')
+            # Run the command-line interface (CLI) defined by the subclass,
+            # profiled by the type specified by the "--profile-type" option.
+            profile_callable(
+                call=self._do,
+                profile_type=self._profile_type,
+                profile_filename=self._profile_filename,
+            )
 
             # Exit with successful exit status from the current process.
+            # raise Exception('For testing exception handling.')
             return SUCCESS
         except Exception as exception:
             # Log this exception.
@@ -450,11 +414,6 @@ class CLIABC(metaclass=ABCMeta):
         # See _parse_options_top_log() for further detail on this conversion.
         self._profile_filename = self._args.profile_filename
         self._profile_type = ProfileType[self._args.profile_type.upper()]
-
-        # If profiling is enabled, log this fact.
-        if self._profile_type is not ProfileType.NONE:
-            logs.log_debug('Profiling calls to "{}".'.format(
-                self._profile_filename))
 
     # ..................{ SUBCLASS ~ mandatory               }..................
     # The following methods *MUST* be implemented by subclasses.

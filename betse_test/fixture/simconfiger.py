@@ -10,11 +10,7 @@ configurations so as to exercise specific feature sets and edge cases.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.wrapper import SimConfigWrapper
-from betse.util.path import dirs
-from betse.util.type import strs
 from betse.util.type.types import type_check
-from betse_test.util import requests
 from py._path.local import LocalPath
 from pytest import fixture
 
@@ -65,6 +61,9 @@ class SimTestState(object):
             already exists, an exception is raised.
         '''
 
+        # Defer heavyweight imports.
+        from betse.science.config.wrapper import SimConfigWrapper
+
         # Classify the passed parameters. While the "self.config" object
         # classified below provides this filename as a low-level string, this
         # high-level "py.path.local" instance is useful in fixtures and tests.
@@ -102,16 +101,16 @@ class SimTestState(object):
         more complex, fragile, and error-prone than simply changing directories.
         '''
 
+        # Defer heavyweight imports.
+        from betse.util.path import dirs
+
         # Defer to the generator returned by the following utility function.
         return dirs.current(self.config.dirname)
 
 # ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each discrete test.
 @fixture
-def betse_sim_config(
-    request: '_pytest.python.FixtureRequest',
-    tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
-) -> SimTestState:
+def betse_sim_config(betse_temp_dir: LocalPath) -> SimTestState:
     '''
     Per-test fixture creating a temporary default simulation configuration file
     and returning an object encapsulating the contents of this file.
@@ -122,16 +121,15 @@ def betse_sim_config(
     complete with all external assets (e.g., geometry masks) referenced and
     required by this file, into a temporary directory whose basename is the name
     of the test requesting this fixture excluding the prefixing substring
-    `test_`. As example, when requested by the `test_cli_sim_default` test,
+    `test_`. When requested by the `test_cli_sim_default` test, for example,
     this fixture creates a temporary simulation configuration file
-    `{tmpdir}/cli_sim_default/sim_config.yaml` (e.g.,
-    `/tmp/pytest-0/cli_sim_default/sim_config.yaml`), where `{tmpdir}` is the
-    absolute path of this test session's root temporary directory (e.g.,
-    `/tmp/pytest-0/`).
+    `{tmpdir}/cli_sim_default/sim_config.yaml` for the absolute path `{tmpdir}`
+    of this test session's root temporary directory (e.g.,
+    `/tmp/pytest-0/cli_sim_default/sim_config.yaml`).
 
-    This temporary directory and hence simulation configuration will be
-    accessible _only_ for the duration of the current test. Subsequently run
-    tests and fixtures may _not_ safely reuse this configuration.
+    This directory and hence simulation configuration is safely accessible
+    _only_ for the duration of the current test. Subsequently run tests and
+    fixtures _cannot_ safely reuse this configuration.
 
     Configuration Modifications (In-memory)
     ----------
@@ -151,12 +149,8 @@ def betse_sim_config(
 
     Parameters
     ----------
-    request : _pytest.python.FixtureRequest
-        Builtin fixture parameter describing the parent fixture or test of this
-        fixture (and similar contextual metadata).
-    tmpdir_factory : _pytest.tmpdir.tmpdir_factory
-        Builtin session-scoped fixture whose `mktemp()` method returns a
-        :class:`py.path.local` instance encapsulating a new temporary directory.
+    betse_temp_dir : LocalPath
+        Object encapsulating a temporary directory isolated to the current test.
 
     Returns
     ----------
@@ -167,27 +161,8 @@ def betse_sim_config(
         * This configuration's in-memory dictionary deserialized from this file.
     '''
 
-    # Name of the current test.
-    test_name = requests.get_tested_name(request)
-    # print('    request.node: {}'.format(request.node))
-    # print('    test_name: {}'.format(test_name))
-
-    # Basename of the temporary directory containing this configuration file,
-    # set to the name of the current test excluding the prefixing "test_".
-    sim_config_dir_basename = strs.remove_prefix(
-        text=test_name,
-        prefix='test_',
-        exception_message=(
-            'Test name "{}" not prefixed by "test_".'.format(test_name)),
-    )
-
-    # Create this temporary directory and wrap this directory's absolute path
-    # with a high-level "py.path.local" object. See also:
-    #     http://pytest.org/latest/tmpdir.html#the-tmpdir-factory-fixture
-    sim_config_dirpath = tmpdir_factory.mktemp(sim_config_dir_basename)
-
     # Absolute path of this configuration file in this temporary directory.
-    sim_config_filepath = sim_config_dirpath.join('sim_config.yaml')
+    sim_config_filepath = betse_temp_dir.join('sim_config.yaml')
 
     # Test-specific object encapsulating this simulation configuration file.
     sim_state = SimTestState(config_filepath=sim_config_filepath)

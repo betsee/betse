@@ -8,6 +8,9 @@ Functional tests for BETSE's CLI testing all subcommands _except_ for
 simulation-specific subcommands (e.g., `betse info`).
 '''
 
+# ....................{ IMPORTS                            }....................
+from betse_test.util.mark.param import parametrize_test_setwise
+
 # ....................{ TESTS                              }....................
 def test_cli_no_arg(betse_cli: 'CLITester') -> None:
     '''
@@ -16,7 +19,7 @@ def test_cli_no_arg(betse_cli: 'CLITester') -> None:
     Parameters
     ----------
     betse_cli : CLITester
-        Test-specific object encapsulating the BETSE CLI.
+        Object encapsulating the BETSE CLI.
     '''
 
     betse_cli.run()
@@ -29,7 +32,7 @@ def test_cli_info(betse_cli: 'CLITester') -> None:
     Parameters
     ----------
     betse_cli : CLITester
-        Test-specific object encapsulating the BETSE CLI.
+        Object encapsulating the BETSE CLI.
     '''
 
     betse_cli.run('info')
@@ -37,7 +40,7 @@ def test_cli_info(betse_cli: 'CLITester') -> None:
 
 def test_cli_config(
     betse_cli: 'CLITester',
-    tmpdir_factory: '_pytest.tmpdir.tmpdir_factory',
+    betse_temp_dir: 'LocalPath',
 ) -> None:
     '''
     Test the `betse config` subcommand, creating a configuration in a temporary
@@ -53,18 +56,13 @@ def test_cli_config(
     Parameters
     ----------
     betse_cli : CLITester
-        Test-specific object encapsulating the BETSE CLI.
-    tmpdir_factory : _pytest.tmpdir.tmpdir_factory
-        Builtin session-scoped fixture whose `mktemp()` method returns a
-        `py.path.local` instance encapsulating a new temporary directory.
+        Object encapsulating the BETSE CLI.
+    betse_temp_dir : LocalPath
+        Object encapsulating a temporary directory isolated to the current test.
     '''
 
-    # Create this temporary directory and wrap this directory's absolute path
-    # with a high-level "py.path.local" object.
-    sim_config_dirpath = tmpdir_factory.mktemp('config')
-
     # Absolute path of this configuration file in this temporary directory.
-    sim_config_filepath = sim_config_dirpath.join('sim_config.yaml')
+    sim_config_filepath = betse_temp_dir.join('sim_config.yaml')
 
     # Create this file. (Avoid shell-quoting this path. Doing so unnecessarily
     # adds an additional level of quoting... which is bad.)
@@ -72,3 +70,51 @@ def test_cli_config(
 
     # Assert this file to have been created.
     assert sim_config_filepath.check(file=1)
+
+# ....................{ TESTS ~ parametrized               }....................
+#FIXME: Uncomment after support for line-granulity profiling is added.
+# @parametrize_test_setwise(params={'profile_type': ('call', 'line', 'none')})
+@parametrize_test_setwise(params={'profile_type': ('call', 'none')})
+def test_cli_profile(
+    betse_cli: 'CLITester',
+    betse_temp_dir: 'LocalPath',
+    profile_type: str,
+) -> None:
+    '''
+    Test profiling of an arbitrary `betse` command with the parametrized
+    profiling type, serialized to a temporary file specific to this test.
+
+    Parameters
+    ----------
+    betse_cli : CLITester
+        Object encapsulating the BETSE CLI.
+    betse_temp_dir : LocalPath
+        Object encapsulating a temporary directory isolated to the current test.
+    profile_type : str
+        Type of profiling to perform -- either:
+        * `none`, performing no profiling.
+        * `call`, performing call-granularity profiling.
+        * `line`, performing line-granularity profiling.
+    '''
+
+    # CLI option enabling this type of profiling.
+    profile_type_option = '--profile-type={}'.format(profile_type)
+
+    # If this is the null profiler...
+    if profile_type == 'none':
+        # Profile the basic "betse" command to only the logfile. While the
+        # absolute path of a profile file could also be passed, doing so
+        # requires inefficiently creating a temporary directory. Since the null
+        # profiler outputs no profile file, this directory would remain empty.
+        betse_cli.run(profile_type_option)
+    else:
+        # Absolute path of the profile file isolated to a test-specific
+        # temporary directory output by the following command.
+        profile_filepath = betse_temp_dir.join('profile.prof')
+
+        # Profile the basic "betse" command to both the logfile *AND* this file.
+        betse_cli.run(
+            profile_type_option, '--profile-file={}'.format(profile_filepath))
+
+        # Assert this file to have been created.
+        assert profile_filepath.check(file=1)

@@ -11,13 +11,13 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 '''
 
 # ....................{ IMPORTS                            }....................
-import os, re, shutil, tempfile
+import os, re, shutil
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
-from betse.util.type import types
-from betse.util.type.types import type_check
-from collections.abc import Sequence
+from betse.util.type.types import type_check, SequenceTypes
+from io import TextIOWrapper
 from os import path
+from tempfile import NamedTemporaryFile
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
@@ -218,6 +218,7 @@ def remove(filename: str) -> None:
     os.remove(filename)
 
 
+@type_check
 def remove_if_found(filename: str) -> None:
     '''
     Remove the passed non-directory file if this file currently exists.
@@ -226,8 +227,6 @@ def remove_if_found(filename: str) -> None:
     For safety, this function removes this file atomically; in particular, this
     file's existence is _not_ explicitly tested for.
     '''
-    assert types.is_str_nonempty(filename), (
-        types.assert_not_str_nonempty(filename, 'filename'))
 
     # Log this removal if the subsequent removal attempt is likely to actually
     # remove a file. Due to race conditions with other processes, this file
@@ -247,7 +246,8 @@ def remove_if_found(filename: str) -> None:
         pass
 
 # ....................{ OPENERS                            }....................
-def open_for_text_reading(filename: str) -> 'file':
+@type_check
+def open_for_text_reading(filename: str) -> TextIOWrapper:
     '''
     Open and return the passed file for line-oriented reading.
 
@@ -256,11 +256,9 @@ def open_for_text_reading(filename: str) -> 'file':
 
     Returns
     ----------
-    file
+    TextIOWrapper
         `file`-like object encapsulating the opened file.
     '''
-    assert types.is_str_nonempty(filename), (
-        types.assert_not_str_nonempty(filename, 'filename'))
 
     # Raise an exception unless this file exists.
     die_unless_file(filename)
@@ -269,7 +267,9 @@ def open_for_text_reading(filename: str) -> 'file':
     return open(filename, mode='rt')
 
 
-def open_for_text_writing(filename: str, encoding='utf-8'):
+@type_check
+def open_for_text_writing(
+    filename: str, encoding: str ='utf-8') -> TextIOWrapper:
     '''
     Open and return the passed file for line-oriented writing.
 
@@ -279,15 +279,13 @@ def open_for_text_writing(filename: str, encoding='utf-8'):
     Parameters
     ----------
     encoding : optional[str]
-        Optional encoding to be used. Defaults to UTF-8.
+        Name of the encoding to be used. Defaults to UTF-8.
 
     Returns
     ----------
-    file
+    TextIOWrapper
         `file`-like object encapsulating the opened file.
     '''
-    assert types.is_str_nonempty(filename), (
-        types.assert_not_str_nonempty(filename, 'filename'))
 
     # Avoid circular import dependencies.
     from betse.util.path import dirs
@@ -303,7 +301,13 @@ def open_for_text_writing(filename: str, encoding='utf-8'):
     return open(filename, mode='wt', encoding=encoding)
 
 # ....................{ OPENERS ~ temporary                }....................
-def open_for_text_writing_temporary(encoding='utf-8'):
+#FIXME: Rename to merely open_for_text_writing_temp().
+
+# The type of the return value is the private class
+# "tempfile._TemporaryFileWrapper", which due to being private is intentionally
+# *NOT* type-checked here.
+@type_check
+def open_for_text_writing_temporary(encoding: str ='utf-8'):
     '''
     Open and return a temporary named file for line-oriented writing.
 
@@ -333,18 +337,24 @@ def open_for_text_writing_temporary(encoding='utf-8'):
     Parameters
     ----------
     encoding : optional[str]
-        Optional encoding to be used. Defaults to UTF-8.
+        Name of the encoding to be used. Defaults to UTF-8.
 
     Returns
     ----------
-    file
+    tempfile._TemporaryFileWrapper
         `file`-like object encapsulating the opened file.
     '''
 
-    return tempfile.NamedTemporaryFile(
-        mode='w+', delete=False, encoding=encoding)
+    return NamedTemporaryFile(mode='w+', delete=False, encoding=encoding)
 
 
+#FIXME: Rename to merely open_for_byte_writing_temp().
+#FIXME: Consider shifting into a new "betse.util.path.temps" submodule providing
+#logic specific to both temporary files and directories.
+
+# The type of the return value is the private class
+# "tempfile._TemporaryFileWrapper", which due to being private is intentionally
+# *NOT* type-checked here.
 def open_for_byte_writing_temporary(encoding='utf-8'):
     '''
     Open and return a temporary named file for byte-oriented writing.
@@ -352,20 +362,20 @@ def open_for_byte_writing_temporary(encoding='utf-8'):
     Parameters
     ----------
     encoding : optional[str]
-        Optional encoding to be used. Defaults to UTF-8.
-
-    See Also
-    ----------
-    `open_for_text_writing_temporary()`
-        For further details.
+        Name of the encoding to be used. Defaults to UTF-8.
 
     Returns
     ----------
-    file
+    tempfile._TemporaryFileWrapper
         `file`-like object encapsulating the opened file.
+
+    See Also
+    ----------
+    :func:`open_for_text_writing_temporary`
+        Further details.
     '''
 
-    return tempfile.NamedTemporaryFile(delete=False, encoding=encoding)
+    return NamedTemporaryFile(delete=False, encoding=encoding)
 
 # ....................{ OPENERS ~ temporary                }....................
 def substitute_substrings_inplace(
@@ -388,7 +398,7 @@ def substitute_substrings_inplace(
 def substitute_substrings(
     filename_source: str,
     filename_target: str,
-    substitutions: Sequence,
+    substitutions: SequenceTypes,
     **kwargs
 ) -> None:
     '''

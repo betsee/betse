@@ -70,7 +70,12 @@ def profile_callable(
         `True` only if logging the profile of this call _after_ this call.
         Defaults to `True`.
     profile_filename : optional[str]
-        Absolute or relative path of the file to serialize this profile to.
+        Absolute or relative path of the file to serialize this profile to. If
+        this file already exists, this file will be silently overwritten
+        _without_ explicit warning or error. (While silently overwriting is
+        typically discouraged, doing so is sensible in this case. Profiles are
+        frequently and trivially created, rendering their preservation
+        insignificant by compare to usability concerns.)
         Defaults to `None`, in which case no such file is serialized.
     profile_type : optional[ProfileType]
         Type of profiling to perform. Defaults to :data:`ProfileType.CALL`, in
@@ -116,7 +121,6 @@ def _profile_callable_none(
     return call(*args, **kwargs)
 
 
-#FIXME: Improve us up.
 def _profile_callable_call(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
@@ -131,14 +135,8 @@ def _profile_callable_call(
         Further details on function signature.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.util.path import files
-
-    # If the caller requested this profile be serialized to a file *AND* this
-    # file already exists, raise an exception. To improve usability, validate
-    # this constraint *BEFORE* a possibly time- and space-expensive call.
-    if profile_filename is not None:
-        files.die_if_file(profile_filename)
+    # Log this fact.
+    logs.log_debug('Call-granularity profiling enabled.')
 
     # Call-granularity profile of the subsequent call to this callable.
     profile = Profile()
@@ -167,11 +165,6 @@ def _profile_callable_call(
         # Write the slowest one-fifth of these callables to this string buffer.
         calls.print_stats(0.20)
 
-        # Log this string buffer.
-        logs.log_info(
-            'Slowest 20%% of callables profiled by cumulative time:\n%s',
-            calls_sorted.getvalue())
-
         # Sort all profiled callables by "total" time (i.e., total time spent in
         # a callable excluding all time spent in calls to callables called by
         # that callable).
@@ -182,14 +175,15 @@ def _profile_callable_call(
 
         # Log this string buffer.
         logs.log_info(
-            'Slowest 20%% of callables profiled by total time:\n%s',
+            'Slowest 20%% of callables profiled by both '
+            'cumulative and total time:\n%s',
             calls_sorted.getvalue())
 
     # If the caller requested this profile be serialized to a file...
     if profile_filename is not None:
-        # If this file already exists, raise an exception. To avoid race
-        # conditions, validate this constraint *AFTER* this call as well.
-        files.die_if_file(profile_filename)
+        # Log this serialization.
+        logs.log_info(
+            'Writing Python-formatted profile to "%s".', profile_filename)
 
         # Serialize this profile to this file.
         profile.dump_stats(profile_filename)
@@ -213,7 +207,11 @@ def _profile_callable_line(
         Further details on function signature.
     '''
 
+    # Log this fact.
+    logs.log_debug('Line-granularity profiling enabled.')
+
     return callable(*args, **kwargs)
+
 # ....................{ GLOBALS ~ private                  }....................
 # Technically, the same effect is also achievable via getattr() on the current
 # module object. Doing so is complicated by artificial constraints Python

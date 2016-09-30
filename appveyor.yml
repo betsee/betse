@@ -187,16 +187,24 @@ install:
 # List of all external commands to be run for each CI pipeline *AFTER* those
 # listed within "install" above.
 test_script:
+  #FIXME: Uncomment after permitting the Matplotlib backend to be explicitly
+  #specified via a new "--matplotlib-backend={backend_name}" CLI option. Why?
+  #Because the default Matplotlib backend under Windows is PyQt4-based, which is
+  #*NOT* installed as a Miniconda package above. Doing so would be trivial but
+  #also senseless, as PyQt4 would only be required to enable this single
+  #incidental command.
+
   # For debuggability, print metadata identifying this BETSE release. Since the
   # same metadata is also printed, captured, and squelched by a functional test
   # exercised by the test suite run below, doing so is somewhat redundant.
   # Nonetheless, py.test provides no means of selectively disabling output
   # capturing for only specific tests. For efficiency and readability, globally
   # disabling output capturing is undesirable. Hence, the current approach.
-  - cmd: betse info
+  # - cmd: betse --matplotlib-backend=Agg info
 
   # Run the entire "py.test"-based test suite under the following options:
   #
   # * "--maxfail=3", halting testing on the third failure. For discussion, see
   #   the "betse_setup.test" submodule.
-  - cmd: py.test --maxfail=3
+  #- cmd: py.test --maxfail=3
+  - cmd: py.test --maxfail=3 -s

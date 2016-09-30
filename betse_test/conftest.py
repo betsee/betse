@@ -19,6 +19,7 @@ from betse_test.util.testabc import SerialTestABC
 
 # ....................{ IMPORTS ~ fixture                  }....................
 from betse_test.fixture.simconfiger import betse_sim_config
+from betse_test.fixture.tempdirer import betse_temp_dir
 
 # ....................{ HOOKS ~ session                    }....................
 #FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?

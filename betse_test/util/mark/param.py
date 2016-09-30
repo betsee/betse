@@ -18,12 +18,9 @@ from betse.util.type.types import (
     type_check, CallableTypes, ContainerType, MappingType, SequenceTypes,)
 
 # ....................{ PARAMS                             }....................
-#FIXME: For disambiguity with the hypothetical @parametrize_test_setwise
-#decorator outlined below, rename this to @parametrize_test_paramwise.
-
 # Outer decorator accepting all parameters explicitly passed to this decorator.
 @type_check
-def parametrize_test(
+def parametrize_test_setwise(
     params: MappingType = None,
     fixtures: MappingType = None,
     ids: SequenceTypes = None,
@@ -85,7 +82,7 @@ def parametrize_test(
         Sequence of all human-readable labels uniquely identifying each
         parametrization of this test (_in the same order_). Defaults to `None`,
         in which non-human-readable labels will be automatically synthesized
-        from the values of the parameters comprising each such parametrization.
+        from the values of the parameters comprising these parametrizations.
 
     Raises
     ----------
@@ -96,14 +93,14 @@ def parametrize_test(
     Examples
     ----------
     >>> from pytest import fixture
-    >>> from betse_test.util.mark.param import parametrize_test
+    >>> from betse_test.util.mark.param import parametrize_test_setwise
     >>> @fixture
     ... def feathered_serpent(serpent_name: str) -> str:
     ...     if serpent_name == 'Hualpa'
     ...         return 'Amazonia'
     ...     elif serpent_name == 'Mujaji'
     ...         return 'Azania'
-    >>> @parametrize_test(
+    >>> @parametrize_test_setwise(
     ...     params={
     ...         'western_dragon': ('Celedyr', 'Hestaby',),
     ...         'eastern_dragon': ('Masaru', 'Ryumyo',),
@@ -185,7 +182,7 @@ def parametrize_test(
 
         # Tuple of n-tuples of all values for each parametrization of these
         # non-fixture and parameters (in this same predictable order). See
-        # parametrize_test() for further discussion.
+        # parametrize_test_setwise() for further discussion.
         param_fixture_values = tuple(zip_isometric(*itertools.chain(
             params.values(), fixtures.values())))
 
@@ -216,17 +213,17 @@ def parametrize_test(
 #FIXME: Actually implement. See the "Examples" docstring section for the
 #intended usage of this decorator; basically, it provides an alternative means
 #(and arguably equally intuitive) of parametrizing tests to the above
-#parametrize_test() decorator.
+#parametrize_test_setwise() decorator.
 #FIXME: The principal disadvantage of both this and the above
-#parametrize_test() decorator is that neither supports the fine-grained
+#parametrize_test_setwise() decorator is that neither supports the fine-grained
 #specification of specific parametrizations to be either skipped or xfailed, as
 #supported by the lower-level @pytest.mark.parametrize decorator. See the
 #following official py.test documentation for a useful example:
 #    http://doc.pytest.org/en/latest/skipping.html#skip-xfail-with-parametrize
-#While the above parametrize_test() decorator *CANNOT* (by design) be refactored
-#to support such fine-grained specification, this decorator should be able to do
-#so. How? By defining two new "ParametrizationSkipIf" and "ParametrizationXFail"
-#classes instantiated as follows:
+#While the above parametrize_test_setwise() decorator *CANNOT* (by design) be
+#refactored to support such fine-grained specification, this decorator should be
+#able to do so. How? By defining two new "ParametrizationSkipIf" and
+#"ParametrizationXFail" classes instantiated as follows:
 #
 #    @parametrize_test_setwise(
 #        parametrizations={
@@ -258,7 +255,7 @@ def parametrize_test(
 #FIXME: Repair documentation.
 
 @type_check
-def parametrize_test_setwise(
+def parametrize_test_paramwise(
     fixture_names: ContainerType = None,
     parametrizations: MappingType = None,
 ) -> CallableTypes:
