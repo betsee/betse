@@ -98,7 +98,7 @@ class MasterOfNetworks(object):
 
         # Initialize a dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
         cell_concs_mapping = {}
-        mem_concs_mapping = {}
+        # mem_concs_mapping = {}
         env_concs_mapping = {}
         bound_concs_mapping = {}
 
@@ -123,9 +123,9 @@ class MasterOfNetworks(object):
                     lambda ion_index=ion_index: sim.cc_cells[ion_index],
                     lambda value, ion_index=ion_index: setattr(sim.cc_cells.__setindex__(ion_index, value)))
 
-                mem_concs_mapping[k] = DynamicValue(
-                    lambda ion_index=ion_index: sim.cc_mems[ion_index],
-                    lambda value, ion_index=ion_index: setattr(sim.cc_mems.__setindex__(ion_index, value)))
+                # mem_concs_mapping[k] = DynamicValue(
+                #     lambda ion_index=ion_index: sim.cc_mems[ion_index],
+                #     lambda value, ion_index=ion_index: setattr(sim.cc_mems.__setindex__(ion_index, value)))
 
                 env_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.cc_env[ion_index],
@@ -162,16 +162,16 @@ class MasterOfNetworks(object):
 
             # create concentration data arrays:
             mol.c_cells = np.ones(sim.cdl) * mol.c_cello
-            mol.c_mems = np.ones(sim.mdl) * mol.c_cello
+            # mol.c_mems = np.ones(sim.mdl) * mol.c_cello
 
             # create dynamic mappings for the cell and mem conc vectors:
             cell_concs_mapping[name] = DynamicValue(
                 lambda name = name: self.molecules[name].c_cells,
                 lambda value, name = name: setattr(self.molecules[name], 'c_cells', value))
 
-            mem_concs_mapping[name] = DynamicValue(
-                lambda name = name: self.molecules[name].c_mems,
-                lambda value, name = name: setattr(self.molecules[name], 'c_mems', value))
+            # mem_concs_mapping[name] = DynamicValue(
+            #     lambda name = name: self.molecules[name].c_mems,
+            #     lambda value, name = name: setattr(self.molecules[name], 'c_mems', value))
 
             # if there is an initial concentration for mitochondria and mit are enabled, define a conc vector for it:
             if self.mit_enabled:
@@ -210,7 +210,7 @@ class MasterOfNetworks(object):
                 mol.mit_enabled = False
 
         self.cell_concs = DynamicValueDict(cell_concs_mapping)
-        self.mem_concs = DynamicValueDict(mem_concs_mapping)
+        # self.mem_concs = DynamicValueDict(mem_concs_mapping)
         self.env_concs = DynamicValueDict(env_concs_mapping)
         self.bound_concs = DynamicValueDict(bound_concs_mapping)
 
@@ -294,13 +294,13 @@ class MasterOfNetworks(object):
                     # Make this happen, if it's requested:
 
                     if modulator_function_name != 'None' and modulator_function_name is not None:
-                        mol.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(cells.mem_i,
-                                                                                                  cells, p)
+                        # mol.growth_mod_function_mems, _ = getattr(mods, modulator_function_name)(cells.mem_i,
+                        #                                                                           cells, p)
                         mol.growth_mod_function_cells, _ = getattr(mods, modulator_function_name)(cells.cell_i,
                                                                                                    cells, p)
 
                     else:
-                        mol.growth_mod_function_mems = np.ones(sim.mdl)
+                        # mol.growth_mod_function_mems = np.ones(sim.mdl)
                         mol.growth_mod_function_cells = np.ones(sim.cdl)
 
                 else:
@@ -2360,8 +2360,8 @@ class MasterOfNetworks(object):
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].react_transport_tag[i] == 'mem_concs':
 
-                    self.mem_concs[self.transporters[name].reactants_list[i]][targ_mem] = \
-                        self.mem_concs[self.transporters[name].reactants_list[i]][targ_mem] + \
+                    self.cell_concs[self.transporters[name].reactants_list[i]][cells.mem_to_cells][targ_mem] = \
+                        self.cell_concs[self.transporters[name].reactants_list[i]][cells.mem_to_cells][targ_mem] + \
                         delta_react[targ_mem]*p.dt
 
                 elif self.transporters[name].react_transport_tag[i] == 'env_concs':
@@ -2406,8 +2406,8 @@ class MasterOfNetworks(object):
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].prod_transport_tag[i] == 'mem_concs':
 
-                    self.mem_concs[self.transporters[name].products_list[i]][targ_mem] = \
-                        self.mem_concs[self.transporters[name].products_list[i]][targ_mem] + \
+                    self.cell_concs[self.transporters[name].products_list[i]][cells.mem_to_cells][targ_mem] = \
+                        self.cell_concs[self.transporters[name].products_list[i]][cells.mem_to_cells][targ_mem] + \
                         delta_prod[targ_mem]*p.dt
 
                 elif self.transporters[name].prod_transport_tag[i] == 'env_concs':
@@ -2450,7 +2450,7 @@ class MasterOfNetworks(object):
 
             # compute the channel activity
             # calculate the value of the channel modulation constant:
-            moddy = eval(self.channels[name].alpha_eval_string, self.globals,
+            moddy = eval(self.channels[name].alpha_eval_string, self.globals,    # FIXME eval string has mems
                 self.locals)
 
             self.channels[name].channel_core.modulator = moddy[self.channels[name].channel_targets_mem]
@@ -2606,9 +2606,9 @@ class MasterOfNetworks(object):
             self.mit.remove_mits(sim, target_inds_cell)
 
         if sim.met_concs is not None and met_tag is True:  # update metabolism object if it's being simulated
-            sim.met_concs = {'cATP': self.mem_concs['ATP'],
-                'cADP': self.mem_concs['ADP'],
-                'cPi': self.mem_concs['Pi']}
+            sim.met_concs = {'cATP': self.cell_concs['ATP'][cells.mem_to_cells],     # FIXME somehow deal with mem_concs!
+                'cADP': self.cell_concs['ADP'][cells.mem_to_cells],
+                'cPi': self.cell_concs['Pi'][cells.mem_to_cells]}
 
         for name in self.transporters:
             obj = self.transporters[name]
@@ -2663,7 +2663,7 @@ class MasterOfNetworks(object):
 
             obj = self.molecules[name]
 
-            obj.c_mems_time.append(obj.c_mems)
+            # obj.c_mems_time.append(obj.c_mems)
             obj.c_cells_time.append(obj.c_cells)
             obj.c_env_time.append(obj.c_env)
 
@@ -3935,14 +3935,14 @@ class MasterOfNetworks(object):
 
                         direct_string_a += "self.env_concs['{}'][cells.map_cell2ecm]".format(name)
 
-                elif reaction_zone == 'mem':
+                elif reaction_zone == 'mem':     # FIXME deal with this!
 
                     if zone_tag == 'cell':
 
-                        numo_string_a += "((self.mem_concs['{}']/{})**{})".format(name, Km, n)
-                        denomo_string_a += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
+                        numo_string_a += "((self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Km, n)
+                        denomo_string_a += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Km, n)
 
-                        direct_string_a += "self.mem_concs['{}']".format(name)
+                        direct_string_a += "self.cell_concs['{}'][cells.mem_to_cells]".format(name)
 
                         tex_name = name
 
@@ -4078,16 +4078,16 @@ class MasterOfNetworks(object):
                         denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
                         direct_string_i += "-self.env_concs['{}'][cells.map_cell2ecm]".format(name)
 
-                elif reaction_zone == 'mem':
+                elif reaction_zone == 'mem':    # FIXME deal with mem_concs!
 
                     if zone_tag == 'cell':
 
                         tex_name = name
 
                         numo_string_i += "1"
-                        denomo_string_i += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Km, n)
+                        denomo_string_i += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Km, n)
 
-                        direct_string_i += "-self.mem_concs['{}']".format(name)
+                        direct_string_i += "-self.cell_concs['{}'][cells.mem_to_cells]".format(name)
 
                     elif zone_tag == 'env':
 
@@ -4626,9 +4626,7 @@ class Molecule(object):
         """
 
 
-
-        self.c_mems, self.c_env, self.c_cells, _, _, _, _ = stb.molecule_mover(sim,
-                                                                self.c_mems,
+        self.c_env, self.c_cells, _, _, _, _ = stb.molecule_mover(sim,
                                                                 self.c_env,
                                                                 self.c_cells,
                                                                 cells, p,
@@ -4653,7 +4651,7 @@ class Molecule(object):
 
     def updateIntra(self, sim, sim_metabo, cells, p):
 
-        self.c_mems, self.c_cells, _ = stb.update_intra(sim, cells, self.c_mems, self.c_cells, self.Do, self.z, p)
+        # self.c_mems, self.c_cells, _ = stb.update_intra(sim, cells, self.c_mems, self.c_cells, self.Do, self.z, p)
 
         if self.mit_enabled:
 
@@ -4725,7 +4723,7 @@ class Molecule(object):
                 # calculate any activators and/or inhibitor effects:
                 if self.gating_extracell is False:
 
-                    Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_mems,
+                    Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_cells[cells.mem_to_cells],
                                                                             self.gating_Hill_K,self.gating_Hill_n)
 
                 else:
@@ -4740,7 +4738,7 @@ class Molecule(object):
                                                                    self.gating_Hill_K, self.gating_Hill_n)
 
                 # obtain concentration of ion inside and out of the cell, as well as its charge z:
-                c_mem = sim.cc_mems[ion_tag]
+                c_mem = sim.cc_cells[ion_tag][cells.mem_to_cells]
 
                 if p.sim_ECM is True:
                     c_env = sim.cc_env[ion_tag][cells.map_mem2ecm]
@@ -4762,7 +4760,7 @@ class Molecule(object):
                 sim.fluxes_mem[ion_tag] = sim.fluxes_mem[ion_tag] + chan_flx
 
                 # update ion concentrations in cell and ecm:
-                sim.cc_mems[ion_tag], sim.cc_env[ion_tag] = stb.update_Co(sim, sim.cc_mems[ion_tag],
+                sim.cc_cells[ion_tag], sim.cc_env[ion_tag] = stb.update_Co(sim, sim.cc_cells[ion_tag],
                                                                       sim.cc_env[ion_tag], chan_flx, cells, p,
                                                                       ignoreECM=False)
 

@@ -479,7 +479,9 @@ def pipeline_plots(
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-        figX, axX, cbX = viz.plotPrettyPolyData(sim.rho_cells_time[-1],
+
+# FIXME if we keep new computations need to make this a cell based plot
+        figX, axX, cbX = viz.plotPrettyPolyData(sim.rho_cells_time[-1][cells.mem_to_cells],
             sim, cells, p,
             number_cells=p.enumerate_cells,
             clrAutoscale=p.autoscale_rho,
@@ -503,8 +505,10 @@ def pipeline_plots(
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+    # FIXME if we keep new computations need to make this a cell based plot
+
     if p.plot_vcell2d is True and p.sim_ECM is True:
-        figX, axX, cbX = viz.plotPrettyPolyData(sim.vcell_time[-1]*1e3,
+        figX, axX, cbX = viz.plotPrettyPolyData(sim.vcell_time[-1][cells.mem_to_cells]*1e3,
             sim, cells, p,
             number_cells=p.enumerate_cells,
             clrAutoscale=p.autoscale_vcell,
@@ -581,8 +585,9 @@ def pipeline_plots(
 
     #-------------------------------------------------------------------------------------------------------------------
 
+    # FIXME if we keep new computations need to make this a cell based plot
     if p.plot_ca2d is True and p.ions_dict['Ca'] == 1:
-        figCa, axCa, cbCa = viz.plotPrettyPolyData(sim.cc_time[-1][sim.iCa]*1e6, sim,cells,p,
+        figCa, axCa, cbCa = viz.plotPrettyPolyData(sim.cc_time[-1][sim.iCa][cells.mem_to_cells]*1e6, sim,cells,p,
             number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_Ca,
             clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
@@ -617,8 +622,10 @@ def pipeline_plots(
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
+    # FIXME if we keep new computations need to make this a cell based plot
+
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
-        pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH])
+        pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH][cells.mem_to_cells])
 
         figH, axH, cbH = viz.plotPrettyPolyData(pHdata, sim,cells,p,
             number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,

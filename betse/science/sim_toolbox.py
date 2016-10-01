@@ -933,7 +933,7 @@ def ghk_calculator(sim, cells, p):
 
         # average values from membranes or environment to cell centres:
         Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
-        conc_cells = np.dot(cells.M_sum_mems, sim.cc_mems[i]) / cells.num_mems
+        conc_cells = sim.cc_cells[i]
 
         if p.sim_ECM is True:
             # average entities from membranes to the cell centres:
@@ -1075,13 +1075,6 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     # update cell and environmental concentrations
     cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
 
-    # next electrodiffuse concentrations around the cell interior:
-    # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
-
-    # ensure that there are no negative values
-    # cX_cell_1 = no_negs(cX_cell_1)
-    # cX_env_1 = no_negs(cX_env_1)
-
     if p.sim_ECM is True:
         # cX_env_1_temp = gaussian_filter(cX_env_1.reshape(cells.X.shape), p.smooth_level)
         # cX_env_1 = cX_env_1_temp.ravel()
@@ -1213,7 +1206,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
+def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
                    ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1):
 
     """
@@ -1244,12 +1237,12 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
-        cX_mems = cX_mems_o[:]
+        cX_mems = cX_cells[cells.mem_to_cells]
 
 
     else:
         cX_env = cX_env_o[:]
-        cX_mems = cX_mems_o[:]
+        cX_mems = cX_cells[cells.mem_to_cells]
 
     Dm_vect = np.ones(len(cX_mems))*Dm
 
@@ -1261,7 +1254,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18
 
     # update concentrations due to electrodiffusion:
 
-    cX_mems, cX_env_o = update_Co(sim, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
+    cX_cells, cX_env_o = update_Co(sim, cX_cells, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
 
     # ------------------------------------------------------------
     if ignoreGJ is False:
@@ -1328,6 +1321,8 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18
         # Calculate the final concentration change (the acceleration effectively speeds up time):
         cX_cells = cX_cells + p.dt*delta_cco*p.gj_acceleration
 
+
+        # FIXME if we use new current based methods, it'll be essential to keep track of all fluxes
 
 
     else:
@@ -1499,7 +1494,7 @@ def molecule_mover(sim, cX_mems_o, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18
         fenvx = 0
         fenvy = 0
 
-    return cX_mems, cX_env_o, cX_cells, f_X_ED, fgj_X, fenvx, fenvy
+    return cX_env_o, cX_cells, f_X_ED, fgj_X, fenvx, fenvy
 
 def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
     """
@@ -1509,9 +1504,9 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
 
     Parameters
     --------------
-    cX_cell     Concentration inside cell  [mol/m3]
+    cX_cell     Concentration inside cell defined on cell centres [mol/m3]
     cX_env      Concentration in extracellular spaces [mol/m3]
-    flux        Flux of X, where into cell is +   [mol/m2 s]
+    flux        Flux of X, where into cell is + and component is normal to membranes  [mol/m2 s]
     cells       Instance of Cells
     p           Instance of Parameters
 
@@ -1522,9 +1517,14 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
 
     """
 
+    # take the divergence of the flux for each enclosed cell:
+    delta_cells = np.dot(cells.M_sum_mems, flux * cells.mem_sa) / cells.cell_vol
+
+    # update cell concentration of substance:
+    cX_cell = cX_cell + delta_cells * p.dt
+
     if p.sim_ECM is True:
 
-        delta_cells = flux * (cells.mem_sa / cells.mem_vol)
 
         flux_env = np.zeros(sim.edl)
         flux_env[cells.map_mem2ecm] = -flux
@@ -1538,7 +1538,8 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
         # finally, ensure that the boundary values are restored:
         flux_env[cells.ecm_bound_k] = bound_vals
 
-        # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
+
+        # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the
         # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
         # to get the mol/s change in concentration (divergence):
 
@@ -1550,16 +1551,12 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
 
             delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
 
-        # update the concentrations:
-        cX_cell = cX_cell + delta_cells * p.dt
+        # update the environmental concentrations:
         cX_env = cX_env + delta_env * p.dt
 
     else:
 
-        delta_cells = flux * (cells.mem_sa / cells.mem_vol)
         delta_env = -flux * (cells.mem_sa / p.vol_env)
-
-        cX_cell = cX_cell + delta_cells * p.dt
 
         cX_env_o = cX_env + delta_env * p.dt
 
@@ -1568,121 +1565,69 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
 
     return cX_cell, cX_env
 
-def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
-    """
-    Perform electrodiffusion on intracellular vertices
-    to update concentration around the cell interior
-    in response to interior voltage and concentration
-    gradients, in addition to any electroosmotic flows.
-
-    """
-
-    # x and y components of membrane tangent unit vectors
-    nx = cells.mem_vects_flat[:, 2]
-    ny = cells.mem_vects_flat[:, 3]
-
-    if p.fluid_flow is True and p.run_sim is True:
-        # get intracellular fluid flow vector
-        ux_mem = sim.u_cells_x[cells.mem_to_cells]
-        uy_mem = sim.u_cells_y[cells.mem_to_cells]
-
-        # component of fluid flow velocity normal to the membrane:
-        u = ux_mem*nx + uy_mem*ny
-
-    else:
-        u = 0
-
-    # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
-    grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
-    grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
-
-    # field-modulate the grad_v to account for screening (assumes motion primarily near the double layer):
-    # grad_v = (1.0e-9/p.d_cell)*grad_v
-    grad_v = p.field_modulation*grad_v
-
-    # obtain an average concentration at the pie-slice midpoints:
-    c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
-
-    # flux_intra = - D_x * p.cell_delay_const * grad_c + u * c_at_mids
-    flux_intra = nernst_planck_vector(c_at_mids, grad_c, grad_v, u, D_x, zx, sim.T, p)
-
-    # net flux across inner centroid surfaces of each cell:
-    net_flux = flux_intra * (cells.mem_sa / 2)
-
-    # sum of the flux entering each centroid region:
-    flux_sum = np.dot(cells.M_sum_mems, net_flux)
-
-    # divergence of the flux wrt the centroid region:
-    divF_centroid = flux_sum/cells.centroid_vol
-
-    # divergence of the flux wrt each membrane region
-    divF_mems = net_flux/cells.mem_vol
-
-    # update concentrations with the appropriate divergence:
-    cX_mems = cX_mems + divF_mems * p.dt
-    cX_cells = cX_cells - divF_centroid * p.dt
-
-    # # use finite volume method to integrate each region:
-    # # values at centroid mids:
-    # c_at_mids = (cX_memso + cX_cellso[cells.mem_to_cells]) / 2
-    #
-    # # finite volume integral of membrane pie-box values:
-    # cX_mems = np.dot(cells.M_int_mems, cX_memso) + (1 / 2) * c_at_mids
-    # cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
-
-    return cX_mems, cX_cells, net_flux
-
-
-
 #----------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #---------------------------------------------------------------------------------------------------------------
-# def pumpATPSynth(cHi,cHo,cATP,cADP,cPi,Vm,T,p):
+# def update_intra(sim, cells, cX_mems, cX_cells, D_x, zx, p):
 #     """
-#     Calculates H+ flux into the mitochondrial matrix (+
-#     flow is into the mitochondria), which is equivalent
-#     to ATP created and ADP consumed in the ATP Synthase
-#     enzyme reaction of the mitochondria.
-#
-#     Parameters
-#     ------------
-#     cHi      Hydrogen concentration in the mitocondrial matrix
-#     cHo      Hydrogen concentration outside of the mitochondria
-#     cATP     ATP concentration in the mitochondrial matrix
-#     cADP     ADP concentration in the mitochondrial matrix
-#     cPi      Phosphate concentration in the mitochondrial matrix
-#     Vm        Mitochondrial membrane potential
-#     T         Temperature
-#     p         Parameters object p
-#
-#     Returns
-#     -------
-#     f_h      hydrogen flux into the matrix and ATP synthesis rate
+#     Perform electrodiffusion on intracellular vertices
+#     to update concentration around the cell interior
+#     in response to interior voltage and concentration
+#     gradients, in addition to any electroosmotic flows.
 #
 #     """
 #
-#     deltaGATP_o = p.deltaGATP
+#     # x and y components of membrane tangent unit vectors
+#     nx = cells.mem_vects_flat[:, 2]
+#     ny = cells.mem_vects_flat[:, 3]
 #
-#     # calculate the reaction coefficient Q:
-#     Qnumo = cATP * (cHi ** 3)
-#     Qdenomo = cADP * cPi * (cHo ** 3)
+#     if p.fluid_flow is True and p.run_sim is True:
+#         # get intracellular fluid flow vector
+#         ux_mem = sim.u_cells_x[cells.mem_to_cells]
+#         uy_mem = sim.u_cells_y[cells.mem_to_cells]
 #
-#     # ensure no chance of dividing by zero:
-#     inds_Z = (Qdenomo == 0.0).nonzero()
-#     Qdenomo[inds_Z] = 1.0e-6
+#         # component of fluid flow velocity normal to the membrane:
+#         u = ux_mem*nx + uy_mem*ny
 #
-#     Q = Qnumo / Qdenomo
+#     else:
+#         u = 0
 #
-#     # calculate the equilibrium constant for the pump reaction:
-#     Keq = np.exp(deltaGATP_o / (p.R * T) - 3 * ((p.F * Vm) / (p.R * T)))
+#     # get the gradient of rho concentration for each cell centre wrt to each membrane midpoint:
+#     grad_c = (cX_mems - cX_cells[cells.mem_to_cells])/cells.chords
+#     # grad_v = (sim.v_cell - sim.v_cell_ave[cells.mem_to_cells])/cells.chords
 #
-#     # calculate the reaction rate coefficient
-#     alpha = p.alpha_AS * (1 - Q / Keq)
+#     # field-modulate the grad_v to account for screening (assumes motion primarily near the double layer):
+#     # grad_v = (1.0e-9/p.d_cell)*grad_v
+#     # grad_v = p.field_modulation*grad_v
 #
-#     # calculate the enzyme coefficient:
-#     numo_E = (cHo / p.KmAS_H) * (cADP / p.KmAS_ADP) * (cPi / p.KmAS_P)
-#     denomo_E = (1 + (cHo / p.KmAS_H)) *(1+ (cADP / p.KmAS_ADP)) *(1 + (cPi / p.KmAS_P))
+#     # obtain an average concentration at the pie-slice midpoints:
+#     c_at_mids = (cX_mems + cX_cells[cells.mem_to_cells])/2
 #
-#     f_H = alpha * (numo_E / denomo_E)  # flux as [mol/m2s]
+#     # flux_intra = - D_x * p.cell_delay_const * grad_c + u * c_at_mids
+#     flux_intra = nernst_planck_vector(c_at_mids, grad_c, grad_v, u, D_x, zx, sim.T, p)
 #
-#     return f_H
+#     # net flux across inner centroid surfaces of each cell:
+#     net_flux = flux_intra * (cells.mem_sa / 2)
+#
+#     # sum of the flux entering each centroid region:
+#     flux_sum = np.dot(cells.M_sum_mems, net_flux)
+#
+#     # divergence of the flux wrt the centroid region:
+#     divF_centroid = flux_sum/cells.centroid_vol
+#
+#     # divergence of the flux wrt each membrane region
+#     divF_mems = net_flux/cells.mem_vol
+#
+#     # update concentrations with the appropriate divergence:
+#     cX_mems = cX_mems + divF_mems * p.dt
+#     cX_cells = cX_cells - divF_centroid * p.dt
+#
+#     # # use finite volume method to integrate each region:
+#     # # values at centroid mids:
+#     # c_at_mids = (cX_memso + cX_cellso[cells.mem_to_cells]) / 2
+#     #
+#     # # finite volume integral of membrane pie-box values:
+#     # cX_mems = np.dot(cells.M_int_mems, cX_memso) + (1 / 2) * c_at_mids
+#     # cX_cells = (1 / 2) * cX_cellso + np.dot(cells.M_sum_mems, c_at_mids) / (2 * cells.num_mems)
+#
+#     return cX_mems, cX_cells, net_flux

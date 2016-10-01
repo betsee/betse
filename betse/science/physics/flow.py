@@ -169,10 +169,6 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
         # if we're not doing deformation, solve with dot product as it's much faster
     P_react = np.dot(cells.lapGJ_P_inv, div_u)
 
-    # else:
-    #     # if running deformation, solve with scipy's lsmr iterative solver:
-    #     P_react = lsmr(cells.lapGJ_P, div_u)[0]
-
     # calculate its gradient:
     gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 

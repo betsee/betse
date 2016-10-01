@@ -61,14 +61,11 @@ class ChannelsABC(object, metaclass=ABCMeta):
         # update the fluxes across the membrane to account for charge transfer from channel flux:
         sim.fluxes_mem[ion_index][targets] = sim.fluxes_mem[ion_index][targets] + delta_Q[targets]
 
-
-        # FIXME check to see if new flux expression is positive or negative in the following....!
-
         # update the concentrations of ion in cells and environment using GHK derived flux delta_Q:
 
         # first in cells:
-        sim.cc_mems[ion_index][targets] = (
-            sim.cc_mems[ion_index][targets] +
+        sim.cc_cells[ion_index][cells.mem_to_cells][targets] = (
+            sim.cc_cells[ion_index][cells.mem_to_cells][targets] +
             delta_Q[targets] * (cells.mem_sa[targets] / cells.mem_vol[targets]) * p.dt)
 
         if p.sim_ECM is False:
@@ -102,11 +99,6 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
             # update the concentrations:
             sim.cc_env[ion_index][:] = sim.cc_env[ion_index][:] + delta_env * p.dt
-
-        # update the concentration intra-cellularly:
-        # FIXME: is it necessary to update intracellularly?
-        # sim.cc_mems[ion_index], sim.cc_cells[ion_index], _ = stb.update_intra(sim, cells, sim.cc_mems[ion_index],
-        #     sim.cc_cells[ion_index], sim.D_free[ion_index], sim.zs[ion_index], p)
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         sim.update_V(cells, p)
