@@ -29,8 +29,8 @@ Help string template synopsizing the `--verbose` option.
 
 OPTION_LOG_TYPE = '''
 type of logging to perform (defaults to "{default}"):
-;* "none", logging to stdout and stderr
-;* "file", logging to the "--log-file" file
+;* "none", logging to stdout and stderr only
+;* "file", logging to stdout, stderr, and "--log-file"
 '''
 '''
 Help string template synopsizing the `--log-type` option.
@@ -46,14 +46,15 @@ Help string template synopsizing the `--log-file` option.
 OPTION_PROFILE_TYPE = '''
 type of profiling to perform (defaults to "{default}"):
 ;* "none", disabling profiling
-;* "call", profiling method and function calls
+;* "call", profiling callables (e.g., functions, methods)
+;* "line", profiling lines
 '''
 '''
 Help string template synopsizing the `--profile-type` option.
 '''
 
 OPTION_PROFILE_FILE = '''
-file to profile to if "--profile-type" is "call" (defaults to "{default}")
+file to profile to if "--profile-type" is not "none" (defaults to "{default}")
 '''
 '''
 Help string template synopsizing the `--profile-file` option.

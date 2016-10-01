@@ -68,6 +68,25 @@ from betse.util.path.command import exits
 from betse.util.type.types import type_check
 from pytest import fixture
 
+# ....................{ CONSTANTS                          }....................
+_CLI_OPTIONS_MANDATORY = ('--verbose', '--log-type=none',)
+'''
+Tuple of all failure-friendly command-line options unconditionally passed to all
+invocations of the BETSE CLI by functional tests.
+
+To improve debuggability for failing tests, these options are unconditionally
+passed by :class:`CLITester` instances created by the :func:`betse_cli` fixture:
+
+* `--verbose`, logging low-level debugging messages to stdout, which `py.test`
+  captures for all tests and displays for all failing tests.
+* `--log-type=none`, redirecting all log messages to either stdout or stderr but
+  _not_ a logfile. While `py.test` can be configured to capture logfile
+  messages, doing so sanely is complicated by the fact that `py.test` already
+  captures both stdout and stderr by default. As there is no benefit in
+  recapturing logfile messages already logged to either stdout or stderr, tests
+  avoid doing so entirely.
+'''
+
 # ....................{ CLASSES                            }....................
 class CLITester(object):
     '''
@@ -88,7 +107,8 @@ class CLITester(object):
 
     * Imports the :mod:`betse.cli.__main__` module implementing the BETSE CLI.
     * Passes this module's :func:`betse.cli.__main__.run()` function the passed
-      arguments.
+      arguments extended by the mandatory arguments defined by the
+      :data:`_CLI_OPTIONS_MANDATORY` tuple global.
     '''
 
 
@@ -104,19 +124,9 @@ class CLITester(object):
     @type_check
     def run(self, *args: str) -> None:
         '''
-        Run the BETSE CLI with the passed positional string arguments.
-
-        To improve debuggability for failing tests, this function
-        unconditionally passes these command-line options to this interface:
-
-        * `--verbose`, logging low-level debugging messages to stdout, which
-          `py.test` captures for all tests and displays for all failing tests.
-        * `--log-type=none`, redirecting all log messages to either stdout or
-          stderr but _not_ a logfile. While `py.test` can be configured to
-          capture logfile messages, doing so sanely is complicated by the fact
-          that `py.test` already captures both stdout and stderr by default.  As
-          there is no benefit in recapturing logfile messages already logged to
-          either stdout or stderr, we avoid doing so entirely.
+        Run the BETSE CLI with the passed positional string arguments, extended
+        by the mandatory positional string arguments defined by the
+        :data:`_CLI_OPTIONS_MANDATORY` tuple global.
 
         Parameters
         ----------
@@ -134,34 +144,26 @@ class CLITester(object):
         # Defer heavyweight imports to their point of use.
         from betse.cli.__main__ import main
 
-        # List of arguments:
-        #
-        # * Converted from this tuple of arguments.
-        # * Prefixed by failure-friendly options.
-        arg_list = ['--verbose', '--log-type=none'] + list(args)
+        # Prefixed this argument list by failure-friendly options.
+        args_evolved = _CLI_OPTIONS_MANDATORY + args
         # print('BETSE arg list: {}'.format(arg_list))
 
         # Run the BETSE CLI subcommand corresponding to these arguments,
         # capturing the exit status of that subcommand for testing.
-        exit_status = main(arg_list)
+        exit_status = main(args_evolved)
 
         # If this exit status signifies failure, fail the current test.
         assert exits.is_success(exit_status), (
             'BETSE CLI failed with exit status {} '
-            'given arguments: {}'.format(exit_status, arg_list))
+            'given arguments: {}'.format(exit_status, args_evolved))
 
 # ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each discrete test.
 @fixture
-def betse_cli(request: '_pytest.python.FixtureRequest') -> CLITester:
+def betse_cli() -> CLITester:
     '''
     Fixture returning a test-specific object suitable for running arbitrary
     BETSE CLI subcommands required by the current fixture or test.
-
-    Parameters
-    ----------
-    request : _pytest.python.FixtureRequest
-        Builtin fixture describing this fixture's parent fixture or test.
 
     Returns
     ----------
