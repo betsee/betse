@@ -2240,3 +2240,58 @@ class Cells(object):
         #     # get the inverse of the matrix:
         #     self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
         #     # self.M_max_cap = M_max_cap
+
+    def zero_div_cell(self, Fn, rho=0.0, bc = 0.0, open_bounds=True):
+
+        """
+        Calculates a divergence free field on the cell cluster.
+
+        Parameters
+        -----------
+        Fn              Force field normal to cell membranes
+        rho             Places (such as boundary) with divergence (defined on cell centers)
+        bc              Values at the boundary (on bflags_mems)
+        cells           An instance of BETSE cells
+        open_bounds     whether or not the bounds can support outward flux
+
+        Returns
+        -------
+        Fn              Divergence corrected normal component of field
+        F_cell_x        x-axis component of force field defined on cell centres
+        F_cell_y        y-axis component of force field defined on cell centres
+
+        """
+
+        # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
+        div_F = (np.dot(self.M_sum_mems, Fn * self.mem_sa) / self.cell_vol)
+
+        if open_bounds is True:
+            Phi = np.dot(self.lapGJinv, div_F + rho)
+
+            # reinforce zero boundary condition:
+            # Phi[self.bflags_cells] = 0
+
+        else:
+            Phi = np.dot(self.lapGJ_P_inv, div_F + rho)
+
+
+        gPhi = (Phi[self.cell_nn_i[:, 1]] - Phi[self.cell_nn_i[:, 0]]) / (2*self.nn_len)
+
+        # make the field divergence-free:
+        Fn = Fn - gPhi
+
+        # if open_bounds is False:
+        #     # if we're on a closed boundary, normal component at bounds must be zero:
+        #     Fn[self.bflags_mems] = 0
+
+        Fx = Fn * self.mem_vects_flat[:, 2]
+        Fy = Fn * self.mem_vects_flat[:, 3]
+
+        Fx[self.bflags_mems] = Fx[self.bflags_mems] + bc
+        Fy[self.bflags_mems] = Fy[self.bflags_mems] + bc
+
+        # calculate the net displacement of cell centres under the applied force under incompressible conditions:
+        F_cell_x = np.dot(self.M_sum_mems, Fx) / self.num_mems
+        F_cell_y = np.dot(self.M_sum_mems, Fy) / self.num_mems
+
+        return Fn, F_cell_x, F_cell_y

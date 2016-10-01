@@ -830,11 +830,6 @@ class Parameters(object):
         self.Vgj_ani_min_clr = float(ro['Vmem GJ Ani']['min val'])
         self.Vgj_ani_max_clr = float(ro['Vmem GJ Ani']['max val'])
 
-        self.ani_vcell = ro['Vcell Ani']['animate Vcell']
-        self.autoscale_vcell_ani = ro['Vcell Ani']['autoscale colorbar']
-        self.vcell_ani_min_clr = float(ro['Vcell Ani']['min val'])
-        self.vcell_ani_max_clr = float(ro['Vcell Ani']['max val'])
-
         self.ani_venv = ro['Venv Ani']['animate Venv']
         self.autoscale_venv_ani = ro['Venv Ani']['autoscale colorbar']
         self.venv_ani_min_clr = float(ro['Venv Ani']['min val'])

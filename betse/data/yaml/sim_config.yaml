@@ -970,12 +970,6 @@ results options:
       max val: 50.0                # maximum colorbar value in mV
       min val: -70.0               # minimum colorbar value in mV
 
-  Vcell Ani:
-      animate Vcell: True          # Plot a 2D animation of voltage in cells?
-                                   # Ignored unless ECM enabled.
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 10                  # maximum colorbar value in mV
-      min val: -70                 # minimum colorbar value in mV
 
   Venv Ani:
       animate Venv: True           # Plot a 2D animation of environmental

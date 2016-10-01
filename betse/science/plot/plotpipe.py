@@ -505,31 +505,6 @@ def pipeline_plots(
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    # FIXME if we keep new computations need to make this a cell based plot
-
-    if p.plot_vcell2d is True and p.sim_ECM is True:
-        figX, axX, cbX = viz.plotPrettyPolyData(sim.vcell_time[-1][cells.mem_to_cells]*1e3,
-            sim, cells, p,
-            number_cells=p.enumerate_cells,
-            clrAutoscale=p.autoscale_vcell,
-            clrMin=p.vcell_min_clr,
-            clrMax=p.vcell_max_clr,
-            clrmap=p.default_cm,
-            current_overlay=p.I_overlay,
-            plotIecm=p.IecmPlot,
-        )
-
-        figX.suptitle('Final Cell Voltage',fontsize=14, fontweight='bold')
-        axX.set_xlabel('Spatial distance [um]')
-        axX.set_ylabel('Spatial distance [um]')
-        cbX.set_label('Voltage mV')
-
-        if p.autosave is True:
-            savename9 = savedImg + 'final_cellVoltage' + '.png'
-            plt.savefig(savename9,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
 

@@ -116,18 +116,6 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             color_max=p.Vgj_ani_max_clr,
         )
 
-    if p.ani_vcell is True and p.sim_ECM is True:
-        AnimCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=[1000*arr for arr in sim.vcell_time],
-            label='vcell',
-
-            figure_title='Cell voltage',
-            colorbar_title='Voltage [mV]',
-            is_color_autoscaled=p.autoscale_vcell_ani,
-            color_min=p.vcell_ani_min_clr,
-            color_max=p.vcell_ani_max_clr,
-        )
 
     if p.ani_I is True:
         # Always animate the gap junction current.
