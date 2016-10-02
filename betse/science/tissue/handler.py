@@ -681,7 +681,9 @@ class TissueHandler(object):
 
             if p.scheduled_options['ecmJ'] != 0:
                 for i, dmat in enumerate(sim.D_env):
+
                     effector_ecmJ = tb.pulse(t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
+
                     sim.D_env[i][self.targets_ecmJ] = sim.D_env_base[i][self.targets_ecmJ]*(1 - effector_ecmJ) \
                                                       + effector_ecmJ*sim.D_free[i]
 
@@ -767,7 +769,7 @@ class TissueHandler(object):
         passed time step.
         '''
 
-        self.dvsign = np.sign(sim.dvm)
+        # self.dvsign = np.sign(sim.dvm)
 
         if p.vgNa_bool:
 

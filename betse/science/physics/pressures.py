@@ -15,8 +15,8 @@ def electro_F(sim, cells, p):
     """
 
     # calculate force at each membrane across gap junctions:
-    sim.F_gj_x = sim.rho_cells * sim.E_gj_x
-    sim.F_gj_y = sim.rho_cells * sim.E_gj_y
+    sim.F_gj_x = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_x
+    sim.F_gj_y = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_y
 
 def osmotic_P(sim, cells, p):
     # initialize osmotic pressures in cells and env

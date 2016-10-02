@@ -361,7 +361,7 @@ cutting event:
     event happens: True      # enable (True) or disable (False) this event?
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
     wound channel:
-      use channel: True      # use a channel associated with wounding (mechanosensitive Na channel)
+      use channel: False      # use a channel associated with wounding (mechanosensitive Na channel)
       max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open
       closure delay: 1.0       # how fast does the channel close after activation? (larger = faster decay)
 

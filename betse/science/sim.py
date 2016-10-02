@@ -477,7 +477,7 @@ class Simulator(object):
             self.initDenv(cells,p)
 
             # re-init global boundary fixed concentrations:
-            if p.cbnd is not None:
+            if p.cbnd is not None:    # FIXME this is not working, giving None!
 
                 for key, val in p.ions_dict.items():
 
@@ -1867,12 +1867,13 @@ class Simulator(object):
         # FIXME do this so that DTJ can be modified in a cutting event
 
         # Calculate flux across TJ for this ion:
+
         f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
-                            self.D_free[i]*p.D_tj*IdM, IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
+                            self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
                                self.T, p)
 
-        self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
 
+        self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
 
 
         if p.closed_bound is False:
@@ -1998,7 +1999,7 @@ class Simulator(object):
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            # dummyMems[cells.bflags_mems] = self.D_free[i]
+            dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type is True:
@@ -2011,9 +2012,13 @@ class Simulator(object):
 
             Denv_o = Denv_o.ravel()
             Denv_o[cells.inds_env] = self.D_free[i]
+            Denv_o[cells.map_cell2ecm][cells.bflags_cells][:] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
 
             # create an ecm diffusion grid filled with the environmental values
-            self.D_env[i] = Denv_o
+            self.D_env[i] = Denv_o[:]*1
+
+            self.D_env[i][cells.ecm_bound_k] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+
 
         # create a matrix that weights the relative transport efficiency in the world space:
         D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
@@ -2036,6 +2041,8 @@ class Simulator(object):
 
                 self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
                     (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
+
+
 
         self.D_env_weight_u = self.D_env_u[self.iP]/self.D_env_u[self.iP].max()
 

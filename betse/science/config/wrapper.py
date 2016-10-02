@@ -258,7 +258,6 @@ class SimConfigWrapper(object):
         results['Vmem 2D']['plot Vmem'] = True
         results['Ca 2D']['plot Ca'] = True
         results['pH 2D']['plot pH'] = True
-        results['Vcell 2D']['plot Vcell'] = True
         results['Charge 2D']['plot Charge'] = True
         results['Efield 2D']['plot Efield'] = True
         results['Currents 2D']['plot Currents'] = True
@@ -272,7 +271,6 @@ class SimConfigWrapper(object):
         results['Ca Ani']['animate Ca2+'] = True
         results['pH Ani']['animate pH'] = True
         results['Vmem GJ Ani']['animate Vmem with gj'] = True
-        results['Vcell Ani']['animate Vcell'] = True
         results['Venv Ani']['animate Venv'] = True
         results['Osmotic P Ani']['animate Osmotic P'] = True
         results['Force Ani']['animate force'] = True

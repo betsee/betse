@@ -120,10 +120,10 @@ class Cells(object):
             # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
-            # logs.log_info('Creating environmental Poisson solver for currents...')
-            # bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
-            # self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
-            # self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+            logs.log_info('Creating environmental Poisson solver for voltage...')
+            bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
+            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
+            self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
 
             logs.log_info('Creating environmental Poisson solver for currents...')
             bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
@@ -149,8 +149,8 @@ class Cells(object):
         self.lapGJ = None
         self.lapGJ_P = None
 
-        # Lapalcian inverses on the env grid
-        self.lapENVinv = None
+        # # Lapalcian inverses on the env grid
+        # self.lapENVinv = None
 
         # other matrices
         self.M_sum_mem_to_ecm = None   # used for deformation
@@ -1318,6 +1318,7 @@ class Cells(object):
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
         all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
 
+        # need these to obtain cluster membrane values from the ECM perspective, or it won't write to the array!
         self.ecm_bound_k = self.map_mem2ecm[self.bflags_mems]  # k indices to xypts for ecms on cluster boundary
 
         self.ecm_allbound_k = self.map_mem2ecm[all_bound_mem_inds]

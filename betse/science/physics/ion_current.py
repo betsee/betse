@@ -21,6 +21,11 @@ def get_current(sim, cells, p):
 
         b_charge = sim.d_rho + sim.J_TJ
 
+        # b_charge[cells.bflags_mems] = sim.d_rho[cells.bflags_mems] + sim.J_TJ[cells.bflags_mems]
+
+        # print(sim.J_TJ[cells.bflags_mems])
+        # print('--------')
+
     else:
 
         b_charge = sim.d_rho
