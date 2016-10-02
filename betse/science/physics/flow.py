@@ -59,8 +59,8 @@ def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
 
             Qenv = sim.rho_env.reshape(cells.X.shape)
 
-            Fe_x = Qenv * sim.E_env_x * sim.field_mod
-            Fe_y = Qenv * sim.E_env_y * sim.field_mod
+            Fe_x = Qenv * sim.E_env_x
+            Fe_y = Qenv * sim.E_env_y
 
         else:
 

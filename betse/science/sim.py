@@ -113,6 +113,8 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
+        self.ignore_ecm = False
+
     def fileInit(self, p):
         '''
         Initializes the pathnames of top-level files and directories comprising
@@ -847,10 +849,10 @@ class Simulator(object):
                 # update the concentrations of Na and K in cells and environment:
                 self.cc_cells[self.iNa],  self.cc_env[self.iNa] =  stb.update_Co(self, self.cc_cells[self.iNa],
                                                                             self.cc_env[self.iNa],fNa_NaK, cells, p,
-                                                                            ignoreECM = True)
+                                                                            ignoreECM = self.ignore_ecm)
 
                 self.cc_cells[self.iK], self.cc_env[self.iK] = stb.update_Co(self, self.cc_cells[self.iK],
-                    self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = True)
+                    self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = self.ignore_ecm)
 
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
@@ -887,7 +889,7 @@ class Simulator(object):
 
                     # update ion concentrations in cell and ecm:
                     self.cc_cells[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
-                        self.cc_env[i], f_ED, cells, p, ignoreECM = True)
+                        self.cc_env[i], f_ED, cells, p, ignoreECM = self.ignore_ecm)
 
                     # update flux between cells due to gap junctions
                     self.update_gj(cells, p, t, i)
@@ -899,8 +901,7 @@ class Simulator(object):
                     # ensure no negative concentrations:
                     stb.no_negs(self.cc_cells[i])
 
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V(cells, p)
+
 
                 # ----transport and handling of special ions---------------------------------------------------------------
 
@@ -979,7 +980,7 @@ class Simulator(object):
 
                     # update the concentration of P in cells and environment:
                     self.cc_cells[self.iP], self.cc_env[self.iP] = stb.update_Co(self, self.cc_cells[self.iP],
-                        self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = True)
+                        self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = self.ignore_ecm)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     self.update_V(cells, p)
@@ -1022,6 +1023,8 @@ class Simulator(object):
 
                         timeDeform(self,cells, t, p)
 
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                self.update_V(cells, p)
 
                 # check for NaNs in voltage and stop simulation if found:
                 stb.check_v(self.vm)
@@ -1478,11 +1481,11 @@ class Simulator(object):
             # calculate the update to K+ in the cell and environment:
 
             self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = True)
+                self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = self.ignore_ecm)
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_cells[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM][:],
-                self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = True)
+                self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = self.ignore_ecm)
 
 
             # Calculate the new pH and H+ concentrations:
@@ -1517,7 +1520,7 @@ class Simulator(object):
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_cells[self.iM], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM],
-                self.cc_env[self.iM], -f_H3, cells, p, ignoreECM= True)
+                self.cc_env[self.iM], -f_H3, cells, p, ignoreECM= self.ignore_ecm)
 
             if p.metabolism_enabled:
                 # update ATP concentrations after pump action:
@@ -1554,13 +1557,13 @@ class Simulator(object):
             # update concentrations of Na, K and Cl in cells and environment:
 
             self.cc_cells[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_cells[self.iNa][:],
-                self.cc_env[self.iNa][:], f_Na, cells, p, ignoreECM=True)
+                self.cc_env[self.iNa][:], f_Na, cells, p, ignoreECM=self.ignore_ecm)
 
             self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=True)
+                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=self.ignore_ecm)
 
             self.cc_cells[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_cells[self.iCl][:],
-                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=True)
+                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=self.ignore_ecm)
 
 
         if p.ClK_symp_dyn is True:
@@ -1580,10 +1583,10 @@ class Simulator(object):
 
             # update concentrations of K and Cl in cells and environment:
             self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=True)
+                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=self.ignore_ecm)
 
             self.cc_cells[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_cells[self.iCl][:],
-                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=True)
+                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=self.ignore_ecm)
 
     def ca_handler(self,cells,p):
 
@@ -1641,12 +1644,12 @@ class Simulator(object):
         # # update calcium concentrations in cell and ecm:
 
         self.cc_cells[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self, self.cc_cells[self.iCa],
-            self.cc_env[self.iCa], f_CaATP + f_CaEx, cells, p, ignoreECM = True)
+            self.cc_env[self.iCa], f_CaATP + f_CaEx, cells, p, ignoreECM = self.ignore_ecm)
 
         if p.NaCa_exch_dyn:
 
             self.cc_cells[self.iNa], self.cc_env[self.iNa] = stb.update_Co(self, self.cc_cells[self.iNa],
-                self.cc_env[self.iNa], f_NaEx, cells, p, ignoreECM = True)
+                self.cc_env[self.iNa], f_NaEx, cells, p, ignoreECM = self.ignore_ecm)
 
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling

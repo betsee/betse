@@ -87,7 +87,7 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem = sim.cc_mems[sim.iK]
+        c_mem = sim.cc_cells[sim.iK][cells.mem_to_cells]
 
         if p.sim_ECM is True:
             c_env = sim.cc_env[sim.iK][cells.map_mem2ecm]

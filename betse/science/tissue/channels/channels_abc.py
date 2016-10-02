@@ -53,6 +53,10 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         # multiply by the modulator:
 
+        cells.cell_i = np.asarray(cells.cell_i)
+
+        targets = np.asarray(targets) # convert targets into an array so we can index with it
+
         delta_Q = delta_Q*self.modulator*sim.rho_channel
 
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
@@ -63,14 +67,14 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         # update the concentrations of ion in cells and environment using GHK derived flux delta_Q:
 
-        # FIXME! need to figure out how to do this as it's probably not updating due to the tripple indexing issue...
+        master_inds = cells.cell_i[cells.mem_to_cells][targets]
 
-        ccell =  sim.cc_cells[ion_index][cells.mem_to_cells]
+
+        ccell =  sim.cc_cells[ion_index][master_inds]
 
         # first in cells:
-        sim.cc_cells[ion_index][cells.mem_to_cells][targets] = (
-            sim.cc_cells[ion_index][cells.mem_to_cells][targets] +
-            delta_Q[targets] * (cells.mem_sa[targets] / cells.mem_vol[targets]) * p.dt)
+        sim.cc_cells[ion_index][master_inds] = (ccell +
+                                                delta_Q[targets]*(cells.mem_sa[targets]/cells.mem_vol[targets])*p.dt)
 
         if p.sim_ECM is False:
 
@@ -99,10 +103,10 @@ class ChannelsABC(object, metaclass=ABCMeta):
             # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
             # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
             # to get the mol/s change in concentration (divergence):
-            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol   # FIXME cells.true_ecm_vol?
 
             # update the concentrations:
-            sim.cc_env[ion_index][:] = sim.cc_env[ion_index][:] + delta_env * p.dt
+            sim.cc_env[ion_index]= sim.cc_env[ion_index] + delta_env * p.dt
 
         # recalculate the net, unbalanced charge and voltage in each cell:
         sim.update_V(cells, p)

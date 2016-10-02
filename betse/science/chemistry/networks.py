@@ -4756,6 +4756,10 @@ class Molecule(object):
                 # calculate specific ion flux contribution for this channel:
                 chan_flx = stb.electroflux(c_env, c_mem, Dchan, p.tm*IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
+                # chan_flx = stb.electroflux(c_env, c_mem,
+                #                        sim.Dm_cells[ion_tag] + Dchan, IdM*p.tm, z_ion, sim.vm, sim.T, p,
+                #                        rho=sim.rho_channel)
+
                 # update the sim flux keeper to ensure this contributes to net current:
                 sim.fluxes_mem[ion_tag] = sim.fluxes_mem[ion_tag] + chan_flx
 

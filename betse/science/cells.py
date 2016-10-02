@@ -152,6 +152,8 @@ class Cells(object):
         self.M_sum_mem_to_ecm = None   # used for deformation
         self.gradMem = None  # used for electroosmosis
 
+        self.cell_i = np.asarray(self.cell_i) # we need this to be an array for advanced indexing & assignments
+
     def deformWorld(self,p, ecm_verts):
         """
         Runs necessary methods to recalculate essential world

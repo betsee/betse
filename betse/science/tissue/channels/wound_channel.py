@@ -100,7 +100,6 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
 
 
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        # obtain concentration of ion inside and out of the cell, as well as its charge z:
         c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
         c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
 

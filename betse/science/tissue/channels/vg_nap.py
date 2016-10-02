@@ -86,7 +86,7 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
         #delta_Q = -(dyna.maxDmNaP * P * (V - self.vrev))
 
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem = sim.cc_mems[sim.iNa]
+        c_mem = sim.cc_cells[sim.iNa][cells.mem_to_cells]
 
         if p.sim_ECM is True:
             c_env = sim.cc_env[sim.iNa][cells.map_mem2ecm]

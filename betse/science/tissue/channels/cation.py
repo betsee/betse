@@ -82,8 +82,8 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         # delta_Q = - (dyna.maxDmCat*P*(V - self.vrev))
 
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem_Na = sim.cc_mems[sim.iNa]
-        c_mem_K = sim.cc_mems[sim.iK]
+        c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
+        c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
 
         if p.sim_ECM is True:
             c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
