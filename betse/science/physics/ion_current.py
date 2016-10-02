@@ -17,14 +17,29 @@ def get_current(sim, cells, p):
 
     d_rho = np.zeros(sim.cdl)
 
-    d_rho_m = np.zeros(sim.mdl)
-    # d_rho_m[cells.bflags_mems] = sim.Jn[cells.bflags_mems]
-    d_rho_m = sim.Jn*1
+    # As it's very difficult to do this in terms of raw environmental fluxes, alter the all-important boundary
+    # current in terms of the tight junction relative weight. When TJ_load is ~ 0.1, the system behaves like an
+    # open boundary with low TEP. At TJ_load ~ 0.99, the system progresses towards a closed TJ boundary with high TEP
 
     if p.sim_ECM is True:
 
-        # add the trans-TJ current density in, re-scaled by area:
-        d_rho_m = d_rho_m + sim.J_TJ*((p.cell_space*p.cell_height)/cells.mem_sa)
+        # For sim_ECM, do this in a way that will be modified with cutting events and TJ interventions:
+        TJ_load_o = sim.D_env_weight.ravel()[cells.map_mem2ecm]
+
+        TJ_load = 1 / (1 + TJ_load_o)
+
+    else:
+        # For no ECM, just use the default relative TJ diffusion constant:
+        TJ_load = 1/(1+ p.D_tj)
+
+    d_rho_m = sim.Jn*TJ_load
+
+    # if p.sim_ECM is True:
+    #
+    #     # add the trans-TJ current density in, re-scaled by area:
+    #     d_rho_m[cells.bflags_mems] = d_rho_m[cells.bflags_mems] + sim.J_TJ[cells.bflags_mems]*(
+    #         (p.cell_space*p.cell_height)/cells.mem_sa[cells.bflags_mems])
+
         # d_rho_m = d_rho_m - sim.J_TJ
 
 

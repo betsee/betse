@@ -210,21 +210,21 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 color_max=p.force_ani_max_clr,
             )
 
-    # Animate environment voltage if requested.
-    if p.ani_venv is True and p.sim_ECM is True:
-        # List of environment voltages, indexed by time step.
-        venv_time_series = [
-            venv.reshape(cells.X.shape)*1000 for venv in sim.venv_time]
-        AnimEnvTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=venv_time_series,
-            label='Venv',
-            figure_title='Environmental Voltage',
-            colorbar_title='Voltage [V]',
-            is_color_autoscaled=p.autoscale_venv_ani,
-            color_min=p.venv_min_clr,
-            color_max=p.venv_max_clr,
-        )
+    # # Animate environment voltage if requested.
+    # if p.ani_venv is True and p.sim_ECM is True:
+    #     # List of environment voltages, indexed by time step.
+    #     venv_time_series = [
+    #         venv.reshape(cells.X.shape)*1000 for venv in sim.venv_time]
+    #     AnimEnvTimeSeries(
+    #         sim=sim, cells=cells, p=p,
+    #         time_series=venv_time_series,
+    #         label='Venv',
+    #         figure_title='Environmental Voltage',
+    #         colorbar_title='Voltage [V]',
+    #         is_color_autoscaled=p.autoscale_venv_ani,
+    #         color_min=p.venv_min_clr,
+    #         color_max=p.venv_max_clr,
+    #     )
 
     # Display and/or save animations specific to the "sim" simulation phase.
     anim_sim(sim, cells, p)

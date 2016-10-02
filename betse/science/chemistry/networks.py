@@ -2652,7 +2652,7 @@ class MasterOfNetworks(object):
 
         self.chi_time = []
 
-    def write_data(self, sim, p):
+    def write_data(self, cells, sim, p):
         """
         Writes concentration data from a time-step to time-storage vectors.
 
@@ -4692,7 +4692,7 @@ class Molecule(object):
                 else:
                     met_vect = None
 
-                self.c_mems, self.c_env, flux = stb.molecule_pump(sim, self.c_mems, self.c_env,
+                self.c_cells, self.c_env, flux = stb.molecule_pump(sim, self.c_cells, self.c_env,
                                                                      cells, p, Df=self.Do, z=self.z,
                                                                      pump_into_cell=self.pump_to_cell,
                                                                      alpha_max=self.pump_max_val, Km_X=self.pump_Km,
@@ -4705,7 +4705,7 @@ class Molecule(object):
 
             else:
 
-                self.c_mems, self.c_env, flux = stb.molecule_transporter(sim, self.c_mems, self.c_env,
+                self.c_cells, self.c_env, flux = stb.molecule_transporter(sim, self.c_cells, self.c_env,
                     cells, p, Df=self.Do, z=self.z, pump_into_cell=self.pump_to_cell, alpha_max=self.pump_max_val,
                     Km_X=self.pump_Km, Keq= 1.0, ignoreECM = self.ignore_ECM_pump, rho = sim.rho_pump)
 
@@ -4945,13 +4945,18 @@ class Molecule(object):
 
         """
 
-        fig, ax, cb = viz.plotPrettyPolyData(self.c_mems,
-            sim, cells, p,
-            number_cells=p.enumerate_cells,
-            clrAutoscale=self.plot_autoscale,
-            clrMin=self.plot_min,
-            clrMax=self.plot_max,
-            clrmap=p.default_cm)
+        # fig, ax, cb = viz.plotPrettyPolyData(self.c_mems,
+        #     sim, cells, p,
+        #     number_cells=p.enumerate_cells,
+        #     clrAutoscale=self.plot_autoscale,
+        #     clrMin=self.plot_min,
+        #     clrMax=self.plot_max,
+        #     clrmap=p.default_cm)
+
+        fig, ax, cb = viz.plotPolyData(sim, cells, p,
+                                       zdata=self.c_cells, number_cells=p.enumerate_cells, clrmap=p.default_cm,
+                                       clrMin=self.plot_min, clrMax=self.plot_max, clrAutoscale=self.plot_autoscale)
+
 
         ax.set_title('Final ' + self.name + ' Concentration in Cells')
         ax.set_xlabel('Spatial distance [um]')
@@ -5035,7 +5040,7 @@ class Molecule(object):
 
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[arr for arr in self.c_mems_time],
+            time_series=[arr[cells.mem_to_cells] for arr in self.c_cells_time],
             label=self.name + '_cells',
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]',

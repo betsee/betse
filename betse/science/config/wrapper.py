@@ -270,7 +270,7 @@ class SimConfigWrapper(object):
         results['Ca Ani']['animate Ca2+'] = True
         results['pH Ani']['animate pH'] = True
         results['Vmem GJ Ani']['animate Vmem with gj'] = True
-        results['Venv Ani']['animate Venv'] = True
+        # results['Venv Ani']['animate Venv'] = True
         results['Osmotic P Ani']['animate Osmotic P'] = True
         # results['Force Ani']['animate force'] = True
         results['Current Ani']['animate current'] = True

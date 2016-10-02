@@ -873,12 +873,6 @@ results options:
     max val: 8                 # maximum colorbar value in pH units
     min val: 6                    # minimum colorbar value pH units
   
-  Venv 2D:
-    plot Venv: True                # 2d plot of voltage in environmental spaces of the collective?
-    autoscale colorbar: True       # autoscale colorbar to min max of data set?
-    max val: 10                    # maximum colorbar value in mV
-    min val: -70                   # minimum colorbar value in mV
-  
   Efield 2D:
     plot Efield: True              # 2d plot of electric field
     autoscale colorbar: True        # autoscale colorbar to min max of data set?
@@ -957,13 +951,6 @@ results options:
       max val: 50.0                # maximum colorbar value in mV
       min val: -70.0               # minimum colorbar value in mV
 
-
-  Venv Ani:
-      animate Venv: True           # Plot a 2D animation of environmental
-                                   # voltage? Ignored unless ECM enabled.
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 10                  # maximum colorbar value in mV
-      min val: -70                 # minimum colorbar value in mV
 
   P cell Ani:
       animate P cell: True         # Plot a 2D animation of electroosmotic

@@ -758,11 +758,6 @@ class Parameters(object):
         self.force_min_clr = float(ro['Electrostatic 2D']['min val'])
         self.force_max_clr = float(ro['Electrostatic 2D']['max val'])
 
-        self.plot_venv = ro['Venv 2D']['plot Venv']
-        self.autoscale_venv = ro['Venv 2D']['autoscale colorbar']
-        self.venv_min_clr = float(ro['Venv 2D']['min val'])
-        self.venv_max_clr = float(ro['Venv 2D']['max val'])
-
         self.plot_I2d = ro['Currents 2D']['plot Currents']
         self.autoscale_I2d = ro['Currents 2D']['autoscale colorbar']
         self.I_min_clr = float(ro['Currents 2D']['min val'])
@@ -819,11 +814,6 @@ class Parameters(object):
         self.autoscale_Vgj_ani = ro['Vmem GJ Ani']['autoscale colorbar']
         self.Vgj_ani_min_clr = float(ro['Vmem GJ Ani']['min val'])
         self.Vgj_ani_max_clr = float(ro['Vmem GJ Ani']['max val'])
-
-        self.ani_venv = ro['Venv Ani']['animate Venv']
-        self.autoscale_venv_ani = ro['Venv Ani']['autoscale colorbar']
-        self.venv_ani_min_clr = float(ro['Venv Ani']['min val'])
-        self.venv_ani_max_clr = float(ro['Venv Ani']['max val'])
 
         self.ani_Pcell = ro['P cell Ani']['animate P cell']
         self.autoscale_Pcell_ani = ro['P cell Ani']['autoscale colorbar']

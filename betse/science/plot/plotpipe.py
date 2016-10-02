@@ -439,26 +439,26 @@ def pipeline_plots(
     #                       2D Data Map Plotting
     #-------------------------------------------------------------------------------------------------------------------
 
-    if p.plot_venv is True and p.sim_ECM is True:
-        plt.figure()
-        venv_plt = plt.imshow(
-            1000*sim.v_env.reshape(cells.X.shape),
-            origin='lower',
-            extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-            cmap=p.default_cm)
-
-        if p.autoscale_venv is False:
-            venv_plt.set_clim(p.venv_min_clr, p.venv_max_clr)
-
-        plt.colorbar()
-        plt.title('Environmental Voltage [mV]')
-
-        if p.autosave is True:
-            savename10 = savedImg + 'Final_environmental_V' + '.png'
-            plt.savefig(savename10,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
+    # if p.plot_venv is True and p.sim_ECM is True:
+    #     plt.figure()
+    #     venv_plt = plt.imshow(
+    #         1000*sim.v_env.reshape(cells.X.shape),
+    #         origin='lower',
+    #         extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
+    #         cmap=p.default_cm)
+    #
+    #     if p.autoscale_venv is False:
+    #         venv_plt.set_clim(p.venv_min_clr, p.venv_max_clr)
+    #
+    #     plt.colorbar()
+    #     plt.title('Environmental Voltage [mV]')
+    #
+    #     if p.autosave is True:
+    #         savename10 = savedImg + 'Final_environmental_V' + '.png'
+    #         plt.savefig(savename10,format='png',transparent=True)
+    #
+    #     if p.turn_all_plots_off is False:
+    #         plt.show(block=False)
 
 
     #------------------------------------------------------------------------------------------------------------------
@@ -781,44 +781,44 @@ def pipeline_plots(
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if (p.plot_Vel is True and p.fluid_flow is True and sim.run_sim is True):
-        viz.plotStreamField(
-            (1e9)*sim.u_cells_x,
-            (1e9)*sim.u_cells_y,
-            cells, p,
-            plot_ecm=False,
-            title='Final Fluid Velocity in Cell Collective',
-            cb_title='Velocity [nm/s]',
-            colorAutoscale=p.autoscale_Vel,
-            minColor=p.Vel_min_clr,
-            maxColor=p.Vel_max_clr,
-        )
-
-        if p.autosave is True:
-            savename13 = savedImg + 'final_vel_2D_gj' + '.png'
-            plt.savefig(savename13,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
-        if p.sim_ECM is True:
-            viz.plotStreamField(
-                (1e9)*sim.u_env_x,
-                (1e9)*sim.u_env_y,
-                cells, p, plot_ecm=True,
-                title='Final Fluid Velocity in Cell Collective',
-                cb_title='Velocity [nm/s]',
-                colorAutoscale=p.autoscale_Vel,
-                minColor=p.Vel_min_clr,
-                maxColor=p.Vel_max_clr,
-            )
-
-            if p.autosave is True:
-                savename13 = savedImg + 'final_vel_2D_env' + '.png'
-                plt.savefig(savename13,format='png',transparent=True)
-
-            if p.turn_all_plots_off is False:
-                plt.show(block=False)
+    # if (p.plot_Vel is True and p.fluid_flow is True and sim.run_sim is True):
+    #     viz.plotStreamField(
+    #         (1e9)*sim.u_cells_x,
+    #         (1e9)*sim.u_cells_y,
+    #         cells, p,
+    #         plot_ecm=False,
+    #         title='Final Fluid Velocity in Cell Collective',
+    #         cb_title='Velocity [nm/s]',
+    #         colorAutoscale=p.autoscale_Vel,
+    #         minColor=p.Vel_min_clr,
+    #         maxColor=p.Vel_max_clr,
+    #     )
+    #
+    #     if p.autosave is True:
+    #         savename13 = savedImg + 'final_vel_2D_gj' + '.png'
+    #         plt.savefig(savename13,format='png',transparent=True)
+    #
+    #     if p.turn_all_plots_off is False:
+    #         plt.show(block=False)
+    #
+    #     if p.sim_ECM is True:
+    #         viz.plotStreamField(
+    #             (1e9)*sim.u_env_x,
+    #             (1e9)*sim.u_env_y,
+    #             cells, p, plot_ecm=True,
+    #             title='Final Fluid Velocity in Cell Collective',
+    #             cb_title='Velocity [nm/s]',
+    #             colorAutoscale=p.autoscale_Vel,
+    #             minColor=p.Vel_min_clr,
+    #             maxColor=p.Vel_max_clr,
+    #         )
+    #
+    #         if p.autosave is True:
+    #             savename13 = savedImg + 'final_vel_2D_env' + '.png'
+    #             plt.savefig(savename13,format='png',transparent=True)
+    #
+    #         if p.turn_all_plots_off is False:
+    #             plt.show(block=False)
 
     # if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
     # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)

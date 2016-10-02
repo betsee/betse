@@ -1233,7 +1233,7 @@ class Simulator(object):
 
         if p.molecules_enabled:
 
-            self.molecules.write_data(self, p)
+            self.molecules.write_data(self, cells, p)
             self.molecules.report(self, p)
 
         if p.metabolism_enabled:
@@ -1644,12 +1644,12 @@ class Simulator(object):
         # # update calcium concentrations in cell and ecm:
 
         self.cc_cells[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self, self.cc_cells[self.iCa],
-            self.cc_env[self.iCa], f_CaATP + f_CaEx, cells, p, ignoreECM = self.ignore_ecm)
+            self.cc_env[self.iCa], f_CaATP + f_CaEx, cells, p, ignoreECM = True)
 
         if p.NaCa_exch_dyn:
 
             self.cc_cells[self.iNa], self.cc_env[self.iNa] = stb.update_Co(self, self.cc_cells[self.iNa],
-                self.cc_env[self.iNa], f_NaEx, cells, p, ignoreECM = self.ignore_ecm)
+                self.cc_env[self.iNa], f_NaEx, cells, p, ignoreECM = True)
 
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
@@ -1751,6 +1751,19 @@ class Simulator(object):
         cenv = cenv - div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
+
+
+        # Calculate flux across TJ for this ion:
+
+        IdM = np.ones(self.mdl)
+
+        f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
+                            self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
+                               self.T, p)
+
+
+        self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
+
 
         # #-----old way------------------------------------------------------------
         #

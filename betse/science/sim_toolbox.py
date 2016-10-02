@@ -1016,11 +1016,11 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
-        cX_cell = cX_cell_o[:]
+        cX_cell = cX_cell_o[cells.mem_to_cells]
 
     else:
         cX_env = cX_env_o[:]
-        cX_cell = cX_cell_o[:]
+        cX_cell = cX_cell_o[cells.mem_to_cells]
 
     if pump_into_cell is False:
 
@@ -1129,11 +1129,11 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
-        cX_cell = cX_cell_o[:]
+        cX_cell = cX_cell_o[cells.mem_to_cells]
 
     else:
-        cX_env = cX_env_o[:]
-        cX_cell = cX_cell_o[:]
+        cX_env = cX_env_o
+        cX_cell = cX_cell_o[cells.mem_to_cells]
 
     if pump_into_cell is False:
 
