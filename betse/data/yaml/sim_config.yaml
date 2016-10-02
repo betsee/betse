@@ -702,8 +702,8 @@ variable settings:
                             # or open (False)?
 
 
-  tight junction scaling: 1.0e-5   # factor by which tight junctions scale
-                                   # free-diffusion
+  tight junction scaling: 1.0e-9   # factor by which tight junctions scale
+                                   # free-diffusion (1.0 = free diffusion, 1.0e-9 = similar to membrane permeability)
 
   tight junction relative diffusion:  # relative values for tight junction ion 
                                       # permeability
@@ -718,8 +718,7 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
-  cavity open: False  # do internally cut cavities have free env boundaries
-                      # (True) or sealed by TJ (False)?
+  cluster open: True  # Is the cell cluster boundary open (all membranes flux to environment; True in most cases)
 
   use Goldman calculator: False   # calculate alternative Vmem using GHK
                                   # equation for model params and plot results?
@@ -1082,7 +1081,7 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
-  gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0 to 2.
+  gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
   smooth concentrations: True   # apply gaussian smoothing to substance concentration?
 
@@ -1090,9 +1089,9 @@ internal parameters:
 
   environment volume multiplier: 1.0  # level to multiply size of box-environment (applies for no ecm spaces only) 1.0
 
-  electrolyte screening factor: 0.05 # ~0.02 to 0.1 electrolyte double layer screening & self-capacitances [F/m2]
+  membrane capacitance: 0.1 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
-  field modulation factor: 1.0e-4  # (0.0 to 1.0e-4) factor decreasing electrophoretic component of cytoplasm transport
+  field modulation factor: 1.0  # (0.0 to 1.0e-4) factor decreasing electrophoretic component of cytoplasm transport
 
   media resistivity: 0.021  # electrical resistivity of bulk electrolyte (Ohms.m)
 

@@ -138,10 +138,6 @@ class Cells(object):
 
             self.sim_ECM = False
 
-        # factors for heterostructure averaging # FIXME -- these used anywhere?
-        # self.ave2cellV = (self.mem_sa*p.cell_space)/self.cell_vol[self.mem_to_cells]
-        # self.ave2ecmV =  (self.ecm_vol/(p.cell_height*self.delta**2))
-
         # set all Laplacian matrices to None fields to allow for flexible creation
         # Laplacians and inverses on the cell grid (two boundary conditions sets)
         self.lapGJinv = None
@@ -1261,11 +1257,11 @@ class Cells(object):
         # base parameter definitions
         self.delta = ((self.xmax-self.xmin)/p.grid_size) # spacing between grid points
 
-        self.grid_obj = fd.FiniteDiffSolver()  # FIXME -- see if things not needed here!
+        self.grid_obj = fd.FiniteDiffSolver()
 
         self.grid_obj.cell_grid(self.delta,self.xmin,self.xmax,self.ymin,self.ymax)
 
-        self.X = self.grid_obj.cents_X  # FIXME -- is this making a link or a copy?
+        self.X = self.grid_obj.cents_X
         self.Y = self.grid_obj.cents_Y
 
         self.xypts = self.grid_obj.xy_cents
@@ -2275,9 +2271,6 @@ class Cells(object):
         if open_bounds is True:
             Phi = np.dot(self.lapGJinv, div_F + rho)
 
-            # reinforce zero boundary condition:
-            # Phi[self.bflags_cells] = 0
-
         else:
             Phi = np.dot(self.lapGJ_P_inv, div_F + rho)
 
@@ -2287,15 +2280,19 @@ class Cells(object):
         # make the field divergence-free:
         Fn = Fn - gPhi
 
-        # if open_bounds is False:
-        #     # if we're on a closed boundary, normal component at bounds must be zero:
-        #     Fn[self.bflags_mems] = 0
+        # assign the boundary condition:
+        Fn[self.bflags_mems] = bc
 
         Fx = Fn * self.mem_vects_flat[:, 2]
         Fy = Fn * self.mem_vects_flat[:, 3]
 
-        Fx[self.bflags_mems] = Fx[self.bflags_mems] + bc* self.mem_vects_flat[:, 2][self.bflags_mems]
-        Fy[self.bflags_mems] = Fy[self.bflags_mems] + bc* self.mem_vects_flat[:, 3][self.bflags_mems]
+        # assign boundary condition (second and third methods):
+
+        # Fx[self.bflags_mems] = Fx[self.bflags_mems] + bc* self.mem_vects_flat[:, 2][self.bflags_mems]
+        # Fy[self.bflags_mems] = Fy[self.bflags_mems] + bc* self.mem_vects_flat[:, 3][self.bflags_mems]
+
+        # Fx[self.bflags_mems] = bc* self.mem_vects_flat[:, 2][self.bflags_mems]
+        # Fy[self.bflags_mems] = bc* self.mem_vects_flat[:, 3][self.bflags_mems]
 
         # calculate the net displacement of cell centres under the applied force under incompressible conditions:
         F_cell_x = np.dot(self.M_sum_mems, Fx) / self.num_mems

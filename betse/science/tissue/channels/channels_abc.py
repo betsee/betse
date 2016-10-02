@@ -63,6 +63,10 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         # update the concentrations of ion in cells and environment using GHK derived flux delta_Q:
 
+        # FIXME! need to figure out how to do this as it's probably not updating due to the tripple indexing issue...
+
+        ccell =  sim.cc_cells[ion_index][cells.mem_to_cells]
+
         # first in cells:
         sim.cc_cells[ion_index][cells.mem_to_cells][targets] = (
             sim.cc_cells[ion_index][cells.mem_to_cells][targets] +

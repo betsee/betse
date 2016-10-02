@@ -596,7 +596,7 @@ class Parameters(object):
 
         # Environmental features and tight junctions ---------------------------------------------------
         self.env_type = True # for now, can't handle air boundaries
-        self.cavity_state = bool(self.config['variable settings']['cavity open'])
+        self.cluster_open = bool(self.config['variable settings']['cluster open'])
         self.closed_bound = bool(self.config['variable settings']['environmental boundary']['closed boundary'])
         self.D_tj = float(self.config['variable settings']['tight junction scaling'])
         self.D_adh = float(self.config['variable settings']['adherens junction scaling'])
@@ -890,7 +890,7 @@ class Parameters(object):
 
         self.media_sigma = float(iu['media resistivity'])
 
-        self.electrolyte_screening = float(iu['electrolyte screening factor'])
+        # self.electrolyte_screening = float(iu['electrolyte screening factor'])
 
         self.field_modulation = float(iu['field modulation factor'])
 
@@ -993,7 +993,7 @@ class Parameters(object):
 
         self.ac = 1.0e-6  # cell-cell separation for drawing
         self.scale_cell = 0.90          # the amount to scale cell membranes in from ecm edges (only affects drawing)
-        self.cm = 0.022            # patch capacitance of cell membrane 0.022 [F/m2]
+        self.cm = float(iu['membrane capacitance'])           # patch capacitance of cell membrane 0.022 [F/m2]
 
         self.tm = 7.5e-9           # thickness of cell membrane [m]
         self.cell_sides = 4      # minimum number of membrane domains per cell (must be >2)

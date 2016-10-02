@@ -1520,6 +1520,10 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     # take the divergence of the flux for each enclosed cell:
     delta_cells = np.dot(cells.M_sum_mems, flux * cells.mem_sa) / cells.cell_vol
 
+    # if p.cluster_open is False:
+    #
+    #     delta_cells[cells.bflags_cells] = 0.0
+
     # update cell concentration of substance:
     cX_cell = cX_cell + delta_cells * p.dt
 
