@@ -120,10 +120,16 @@ class Cells(object):
             # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
+            # logs.log_info('Creating environmental Poisson solver for currents...')
+            # bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
+            # self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
+            # self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+
             logs.log_info('Creating environmental Poisson solver for currents...')
-            bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
-            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
-            self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+            bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
+            self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+
+            self.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
             # logs.log_info('Creating finite volume grid integrator...')
             # self.gridInt = self.grid_obj.makeIntegrator()
@@ -133,8 +139,8 @@ class Cells(object):
             self.sim_ECM = False
 
         # factors for heterostructure averaging # FIXME -- these used anywhere?
-        self.ave2cellV = (self.mem_sa*p.cell_space)/self.cell_vol[self.mem_to_cells]
-        self.ave2ecmV =  (self.ecm_vol/(p.cell_height*self.delta**2))
+        # self.ave2cellV = (self.mem_sa*p.cell_space)/self.cell_vol[self.mem_to_cells]
+        # self.ave2ecmV =  (self.ecm_vol/(p.cell_height*self.delta**2))
 
         # set all Laplacian matrices to None fields to allow for flexible creation
         # Laplacians and inverses on the cell grid (two boundary conditions sets)
@@ -144,7 +150,7 @@ class Cells(object):
         self.lapGJ_P = None
 
         # Lapalcian inverses on the env grid
-        self.lapENV_P_inv = None
+        self.lapENVinv = None
 
         # other matrices
         self.M_sum_mem_to_ecm = None   # used for deformation
@@ -2287,8 +2293,8 @@ class Cells(object):
         Fx = Fn * self.mem_vects_flat[:, 2]
         Fy = Fn * self.mem_vects_flat[:, 3]
 
-        Fx[self.bflags_mems] = Fx[self.bflags_mems] + bc
-        Fy[self.bflags_mems] = Fy[self.bflags_mems] + bc
+        Fx[self.bflags_mems] = Fx[self.bflags_mems] + bc* self.mem_vects_flat[:, 2][self.bflags_mems]
+        Fy[self.bflags_mems] = Fy[self.bflags_mems] + bc* self.mem_vects_flat[:, 3][self.bflags_mems]
 
         # calculate the net displacement of cell centres under the applied force under incompressible conditions:
         F_cell_x = np.dot(self.M_sum_mems, Fx) / self.num_mems

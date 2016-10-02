@@ -218,6 +218,7 @@ class Simulator(object):
 
             # vectors storing separate cell and env voltages
             self.v_env = np.zeros(len(cells.xypts))
+            self.rho_env = np.zeros(len(cells.xypts))
 
             self.z_array_env = []  # ion valence array matched to env points
             self.D_env = []  # an array of diffusion constants for each ion defined on env grid
@@ -496,6 +497,21 @@ class Simulator(object):
             self.J_env_x = np.zeros(len(cells.xypts))
             self.J_env_y = np.zeros(len(cells.xypts))
 
+            # initialize environmental fluxes and current data stuctures:
+            # flx_env_ix = np.zeros(cells.grid_obj.u_shape)
+            # flx_env_iy = np.zeros(cells.grid_obj.v_shape)
+
+            flx_env_ix = np.zeros(self.edl)
+            flx_env_iy = np.zeros(self.edl)
+
+            self.fluxes_env_x = [flx_env_ix for n in self.zs]
+            self.fluxes_env_y = [flx_env_iy for n in self.zs]
+
+            self.fluxes_env_x = np.asarray(self.fluxes_env_x)
+            self.fluxes_env_y = np.asarray(self.fluxes_env_x)
+
+            self.J_TJ = np.zeros(self.mdl)  # tight junction current density
+
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
 
@@ -768,8 +784,16 @@ class Simulator(object):
                 if do_once is True:
                     loop_measure = time.time()
 
-                # Reinitialize flux storage device.
+                # Reinitialize flux storage devices:
                 self.fluxes_mem.fill(0)
+                self.d_rho.fill(0)
+
+                if p.sim_ECM is True:
+
+                    self.fluxes_env_x.fill(0)
+                    self.fluxes_env_y.fill(0)
+
+                    self.J_TJ.fill(0)
 
                 # Calculate the values of scheduled and dynamic quantities (e.g.
                 # ion channel multipliers).
@@ -826,10 +850,10 @@ class Simulator(object):
                 # update the concentrations of Na and K in cells and environment:
                 self.cc_cells[self.iNa],  self.cc_env[self.iNa] =  stb.update_Co(self, self.cc_cells[self.iNa],
                                                                             self.cc_env[self.iNa],fNa_NaK, cells, p,
-                                                                            ignoreECM = False)
+                                                                            ignoreECM = True)
 
                 self.cc_cells[self.iK], self.cc_env[self.iK] = stb.update_Co(self, self.cc_cells[self.iK],
-                    self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = False)
+                    self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = True)
 
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
@@ -866,7 +890,7 @@ class Simulator(object):
 
                     # update ion concentrations in cell and ecm:
                     self.cc_cells[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
-                        self.cc_env[i], f_ED, cells, p, ignoreECM = False)
+                        self.cc_env[i], f_ED, cells, p, ignoreECM = True)
 
                     # update flux between cells due to gap junctions
                     self.update_gj(cells, p, t, i)
@@ -959,7 +983,7 @@ class Simulator(object):
 
                     # update the concentration of P in cells and environment:
                     self.cc_cells[self.iP], self.cc_env[self.iP] = stb.update_Co(self, self.cc_cells[self.iP],
-                        self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = False)
+                        self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = True)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
                     self.update_V(cells, p)
@@ -1349,6 +1373,8 @@ class Simulator(object):
                 'A gene regulatory network is being simulated using file: %s',
                 p.grn_config_filename)
 
+    #.................{  DOOERs & GETTERS  }............................................
+
     def update_V(self,cells,p):
 
         # get the charge density in the cells:
@@ -1357,28 +1383,33 @@ class Simulator(object):
         if p.sim_ECM is True:
             # get charge in the environment:
             self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p) + self.extra_rho_env
-            # optional smoothing of voltage using gaussian:
+            #optional smoothing of current using gaussian:
             # if p.smooth_level > 0.0:
             #     self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape), p.smooth_level).ravel()
 
-            self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
+            # self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
 
             # get average charge in cell and store in time vector:
-            rho_env_sm = self.rho_env[:]
-            # as flux is done in terms of env-grid squares, correct the volume density of charge:
-            rho_env_sm = (cells.true_ecm_vol / cells.ecm_vol) * rho_env_sm
+            # rho_env_sm = self.rho_env[:]
+            # # as flux is done in terms of env-grid squares, correct the volume density of charge:
+            # rho_env_sm = (cells.true_ecm_vol / cells.ecm_vol) * rho_env_sm
+
+            q_cells = self.rho_cells * cells.cell_vol
+            q_env = self.rho_env * cells.delta * cells.delta * p.cell_height
+
+            qtot = np.zeros(self.edl)
+            qtot[cells.map_cell2ecm] = (q_cells + q_env[cells.map_cell2ecm]) / np.sum(cells.cell_vol)
 
             # calculate voltage in the environment using the Poisson equation:
-            self.v_env = np.dot(cells.lapENVinv, -rho_env_sm)
+            self.v_env = np.dot(cells.lapENVinv, -qtot/1.0e-3)
             # set area outside of cluster to zero voltage to account for electrolyte screening:
-            self.v_env[cells.inds_env] = 0
+            # self.v_env[cells.inds_env] = 0
 
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
         # # update Vmem in terms of current across each membrane segment:
         self.vm = self.vm - (1/p.cm)*self.Jn*p.field_modulation*p.dt
-
 
     def acid_handler(self,cells,p):
 
@@ -1436,11 +1467,11 @@ class Simulator(object):
             # calculate the update to K+ in the cell and environment:
 
             self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = False)
+                self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = True)
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_cells[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM][:],
-                self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = False)
+                self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = True)
 
 
             # Calculate the new pH and H+ concentrations:
@@ -1478,7 +1509,7 @@ class Simulator(object):
 
             # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
             self.cc_cells[self.iM], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM],
-                self.cc_env[self.iM], -f_H3, cells, p, ignoreECM= False)
+                self.cc_env[self.iM], -f_H3, cells, p, ignoreECM= True)
 
             if p.metabolism_enabled:
                 # update ATP concentrations after pump action:
@@ -1518,13 +1549,13 @@ class Simulator(object):
             # update concentrations of Na, K and Cl in cells and environment:
 
             self.cc_cells[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_cells[self.iNa][:],
-                self.cc_env[self.iNa][:], f_Na, cells, p, ignoreECM=False)
+                self.cc_env[self.iNa][:], f_Na, cells, p, ignoreECM=True)
 
             self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=False)
+                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=True)
 
             self.cc_cells[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_cells[self.iCl][:],
-                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=False)
+                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=True)
 
 
         if p.ClK_symp_dyn is True:
@@ -1544,10 +1575,10 @@ class Simulator(object):
 
             # update concentrations of K and Cl in cells and environment:
             self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=False)
+                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=True)
 
             self.cc_cells[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_cells[self.iCl][:],
-                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=False)
+                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=True)
 
     def ca_handler(self,cells,p):
 
@@ -1608,12 +1639,12 @@ class Simulator(object):
         # # update calcium concentrations in cell and ecm:
 
         self.cc_cells[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_cells[self.iCa][:],
-            self.cc_env[self.iCa][:], f_CaATP + f_CaEx, cells, p, ignoreECM = False)
+            self.cc_env[self.iCa][:], f_CaATP + f_CaEx, cells, p, ignoreECM = True)
 
         if p.NaCa_exch_dyn:
 
             self.cc_cells[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_cells[self.iNa][:],
-                self.cc_env[self.iNa][:], f_NaEx, cells, p, ignoreECM = False)
+                self.cc_env[self.iNa][:], f_NaEx, cells, p, ignoreECM = True)
 
 
 
@@ -1686,6 +1717,37 @@ class Simulator(object):
 
     def update_ecm(self,cells,p,t,i):
 
+        # cenv = self.cc_env[i]
+        # cenv = cenv.reshape(cells.X.shape)
+        #
+        # # if p.smooth_level > 0.0:
+        # #     cenv = gaussian_filter(cenv, p.smooth_level)
+        #
+        # v_env = self.v_env.reshape(cells.X.shape)
+        #
+        # # enforce voltage at boundary:
+        # v_env[:,0] = self.bound_V['L']
+        # v_env[:,-1] = self.bound_V['R']
+        # v_env[0,:] = self.bound_V['B']
+        # v_env[-1,:] = self.bound_V['T']
+        #
+        #
+        #
+        # gcx, gcy = fd.gradient(cenv, cells.delta)
+        # gvx, gvy = fd.gradient(v_env, cells.delta)
+        #
+        # fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, gvx, gvy, 0, 0, self.D_env[i].reshape(cells.X.shape), self.zs[i],
+        #                                 self.T, p)
+        #
+        # div_fa = fd.divergence(fx, fy, cells.delta, cells.delta)
+        #
+        # self.fluxes_env_x[i] = self.fluxes_env_x[i] + fx.ravel()  # store ecm junction flux for this ion
+        # self.fluxes_env_y[i] = self.fluxes_env_y[i] + fy.ravel()  # store ecm junction flux for this ion
+        #
+        # cenv = cenv - div_fa * p.dt
+        #
+        # self.cc_env[i] = cenv.ravel()
+
         #-----old way------------------------------------------------------------
 
 
@@ -1707,6 +1769,9 @@ class Simulator(object):
         v_env[-1,:] = self.bound_V['T']
 
         cenv = cenv.reshape(cells.X.shape)
+
+        # if p.smooth_level > 0.0:
+        #     cenv = gaussian_filter(cenv, p.smooth_level)
 
         # prepare concentrations and diffusion constants for MACs grid format
         # by resampling the values at the u v coordinates of the flux:
@@ -1797,6 +1862,19 @@ class Simulator(object):
             self.zs[i],self.T,p)
 
 
+        IdM = np.ones(self.mdl)
+
+        # FIXME do this so that DTJ can be modified in a cutting event
+
+        # Calculate flux across TJ for this ion:
+        f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
+                            self.D_free[i]*p.D_tj*IdM, IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
+                               self.T, p)
+
+        self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
+
+
+
         if p.closed_bound is False:
 
             f_env_x[:,0] = f_env_x[:,1]
@@ -1851,6 +1929,11 @@ class Simulator(object):
 
         self.cc_env[i] = cenv.ravel()
 
+        fenvx = (f_env_x[:, 1:] + f_env_x[:, 0:-1]) / 2
+        fenvy = (f_env_y[1:, :] + f_env_y[0:-1, :]) / 2
+
+        self.fluxes_env_x[i] = self.fluxes_env_x[i] + fenvx.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = self.fluxes_env_y[i] + fenvy.ravel()  # store ecm junction flux for this ion
 
     def get_ion(self,label):
         """
@@ -1915,7 +1998,7 @@ class Simulator(object):
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[cells.bflags_mems] = self.D_free[i]
+            # dummyMems[cells.bflags_mems] = self.D_free[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type is True:

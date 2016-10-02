@@ -1496,7 +1496,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     return cX_env_o, cX_cells, f_X_ED, fgj_X, fenvx, fenvy
 
-def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = False):
+def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     """
 
     General updater for a concentration defined on
