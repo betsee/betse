@@ -355,6 +355,7 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
 
     # Dependencies directly required by BETSE.
     'numba': '>= 0.27.0',
+    'pprofile': '>= 1.8',
     'ptpython': '>= 0.29',
 
     # NetworkX 1.11 broke backwards compatibility by coercing use of "pydotplus"

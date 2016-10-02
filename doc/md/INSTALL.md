@@ -394,6 +394,8 @@ dependencies where available at runtime:
 
 * [NetworkX](https://networkx.github.io) >= 1.11, for optionally analyzing
   BETSE networks.
+* [pprofile](https://github.com/vpelletier/pprofile) >= 1.8, for optionally
+  profiling BETSE in a line-granular manner.
 * [ptpython](https://github.com/jonathanslenders/ptpython) >= 0.29, for
   optionally wrapping the BETSE REPL with an improved interface. <sup>By
   default, the BETSE REPL leverages the stock Python REPL.</sup>
@@ -422,6 +424,18 @@ dependency is installable in a system-wide manner as follows:
   this command by `sudo`.</sup>
 
         $ pip3 install networkx
+
+#### `pprofile`
+
+To optionally profile the BETSE codebase with line-granularity into
+[callgrind](http://kcachegrind.sourceforge.net/)-compatible profile files,
+BETSE requires `pprofile`, an advanced pure-Python line profiler. This
+dependency is installable in a system-wide manner as follows:
+
+* Under all supported platforms: <sup>Under Linux, additionally prefix this
+  command by `sudo`.</sup>
+
+        $ pip3 install pprofile
 
 #### `ptpython`
 

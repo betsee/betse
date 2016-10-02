@@ -27,6 +27,7 @@ SETUPTOOLS_TO_MODULE_NAME = {
     'matplotlib': 'matplotlib',
     'networkx': 'networkx',
     'numba': 'numba',
+    'pprofile': 'pprofile',
     'ptpython': 'ptpython',
     'pydot': 'pydot',
     'setuptools': 'setuptools',
@@ -85,11 +86,10 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # Human-readable exception to be raised below if any.
     betse_exception = None
 
-    # If setuptools raises a non-human-readable exception on validating this
-    # requirement, convert that into a human-readable exception.
+    # If setuptools finds this requirement, return without raising an exception.
     try:
-        # Validate this requirement via setuptools.
         pkg_resources.get_distribution(requirement)
+        return
     # If setuptools fails to find this requirement, this does *NOT* necessarily
     # imply this requirement to be unimportable as a package. See the
     # is_requirement() function for details.
@@ -146,8 +146,8 @@ def die_unless_requirement(requirement: Requirement) -> None:
     if betse_exception:
         raise betse_exception
 
-    # Package version if any or "None" otherwise.
-    package_version = modules.get_version_or_none(package)
+    # Package version if any or raise an exception otherwise.
+    package_version = modules.get_version(package)
 
     # If this version fails to satisfy this requirement, raise an exception.
     if package_version not in requirement:
@@ -437,7 +437,7 @@ def convert_requirement_dict_keys_to_strs(
     '''
     Convert all key-value pairs of the passed dictionary of `setuptools`-
     specific requirements strings whose keys are the passed strings into a
-    tuple of `setuptools`-specific requirements string.
+    tuple of `setuptools`-specific requirements strings.
 
     Parameters
     ----------
@@ -450,8 +450,7 @@ def convert_requirement_dict_keys_to_strs(
     Returns
     ----------
     tuple
-        Tuple of `setuptools`-specific requirements strings in the format
-        described above.
+        Tuple of `setuptools`-specific requirements strings in the above format.
 
     Raises
     ----------
@@ -461,7 +460,7 @@ def convert_requirement_dict_keys_to_strs(
     See Also
     ----------
     :func:`convert_requirement_dict_to_strs`
-        Further details on the format of this dictionary and resulting string.
+        Further details on the format of this dictionary and resulting strings.
     '''
 
     return tuple(

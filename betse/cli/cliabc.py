@@ -30,7 +30,7 @@ import sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
-from betse.cli import info, clioption
+from betse.cli import info, clioptions
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
@@ -319,13 +319,13 @@ class CLIABC(metaclass=ABCMeta):
             '-v', '--verbose',
             dest='is_verbose',
             action='store_true',
-            help=expand_help(clioption.OPTION_VERBOSE),
+            help=expand_help(clioptions.OPTION_VERBOSE),
         )
         self._arg_parser.add_argument(
             '-V', '--version',
             action='version',
             version=program_version,
-            help=expand_help(clioption.OPTION_VERSION),
+            help=expand_help(clioptions.OPTION_VERSION),
         )
         self._arg_parser.add_argument(
             '--log-type',
@@ -334,7 +334,7 @@ class CLIABC(metaclass=ABCMeta):
             choices=log_types,
             default=log_type_default,
             help=expand_help(
-                clioption.OPTION_LOG_TYPE, default=log_type_default),
+                clioptions.OPTION_LOG_TYPE, default=log_type_default),
         )
         self._arg_parser.add_argument(
             '--log-file',
@@ -342,7 +342,7 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             default=log_filename_default,
             help=expand_help(
-                clioption.OPTION_LOG_FILE, default=log_filename_default),
+                clioptions.OPTION_LOG_FILE, default=log_filename_default),
         )
         self._arg_parser.add_argument(
             '--profile-type',
@@ -351,7 +351,7 @@ class CLIABC(metaclass=ABCMeta):
             choices=profile_types,
             default=profile_type_default,
             help=expand_help(
-                clioption.OPTION_PROFILE_TYPE, default=profile_type_default),
+                clioptions.OPTION_PROFILE_TYPE, default=profile_type_default),
         )
         self._arg_parser.add_argument(
             '--profile-file',
@@ -359,7 +359,7 @@ class CLIABC(metaclass=ABCMeta):
             action='store',
             default=profile_filename_default,
             help=expand_help(
-                clioption.OPTION_PROFILE_FILE, default=profile_filename_default),
+                clioptions.OPTION_PROFILE_FILE, default=profile_filename_default),
         )
 
 

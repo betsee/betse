@@ -9,9 +9,9 @@ BETSE's command line interface (CLI).
 
 # ....................{ IMPORTS                            }....................
 from argparse import ArgumentParser, _SubParsersAction
-from betse.cli import clisubcom, info
+from betse.cli import clisubcommands, info
 from betse.cli.cliabc import expand_help, CLIABC
-from betse.cli.clisubcom import CLISubcommand
+from betse.cli.clisubcommands import CLISubcommand
 from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
@@ -46,7 +46,7 @@ class CLICLI(CLIABC):
     def _get_arg_parser_top_kwargs(self):
         # Keyword arguments passed to the top-level argument parser constructor.
         return {
-            'epilog': clisubcom.SUBCOMMANDS_SUFFIX,
+            'epilog': clisubcommands.SUBCOMMANDS_SUFFIX,
         }
 
 
@@ -60,7 +60,7 @@ class CLICLI(CLIABC):
             title='subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=expand_help(clisubcom.SUBCOMMANDS_PREFIX),
+            description=expand_help(clisubcommands.SUBCOMMANDS_PREFIX),
         )
 
         # Dictionary mapping from top-level subcommand name to the argument
@@ -68,7 +68,7 @@ class CLICLI(CLIABC):
         subcommand_name_to_subparser = {}
 
         # For each top-level subcommand...
-        for subcommand in clisubcom.SUBCOMMANDS:
+        for subcommand in clisubcommands.SUBCOMMANDS:
             #FIXME: Refactor this logic as follows:
             #
             #* The local "subcommand_name_to_subparser" dicitonary should be
@@ -107,11 +107,11 @@ class CLICLI(CLIABC):
             title='plot subcommands',
 
             # Description to be printed *BEFORE* subcommand help.
-            description=expand_help(clisubcom.SUBCOMMANDS_PREFIX),
+            description=expand_help(clisubcommands.SUBCOMMANDS_PREFIX),
         )
 
         # For each subcommand of the "plot" subcommand...
-        for subcommand in clisubcom.SUBCOMMANDS_PLOT:
+        for subcommand in clisubcommands.SUBCOMMANDS_PLOT:
             # Add an argument subparser parsing this subcommand.
             self._add_subcommand(
                 subcommand=subcommand, arg_subparsers=self._arg_subparsers_plot)
@@ -197,7 +197,7 @@ class CLICLI(CLIABC):
         # Else, a subcommand was passed.
         #
         # Sanitized name of this subcommand.
-        subcommand_name_top = clisubcom.sanitize_name(
+        subcommand_name_top = clisubcommands.sanitize_name(
             self._args.subcommand_name_top)
 
         # Name of the method running this subcommand.
@@ -320,7 +320,7 @@ class CLICLI(CLIABC):
             return
 
         # Run this subcommand's passed subcommand. See _run() for details.
-        subcommand_name_plot = clisubcom.sanitize_name(
+        subcommand_name_plot = clisubcommands.sanitize_name(
             self._args.subcommand_name_plot)
         subcommand_method_name = '_do_plot_' + subcommand_name_plot
         subcommand_method = getattr(self, subcommand_method_name)

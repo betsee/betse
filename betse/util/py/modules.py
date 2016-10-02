@@ -296,7 +296,7 @@ def get_global_names(module: (str, ModuleType)) -> SetType:
 
 # ....................{ GETTERS ~ version                  }....................
 @type_check
-def get_version(mod: (str, ModuleType)) -> str:
+def get_version(module: (str, ModuleType)) -> str:
     '''
     Version specifier of the passed module.
 
@@ -308,13 +308,15 @@ def get_version(mod: (str, ModuleType)) -> str:
         Further details on the passed parameter.
     '''
 
-    module_version = get_version_or_none(mod)
+    # Module version if any or "None" otherwise.
+    module_version = get_version_or_none(module)
 
     # If this version does *NOT* exist, raise an exception.
     if module_version is None:
         raise BetseModuleException(
-            'Module "%s" version not found.', str(mod))
+            'Module "{}" version not found.'.format(module))
 
+    # Return this version.
     return module_version
 
 

@@ -124,10 +124,10 @@ def _profile_callable_none(
 def _profile_callable_call(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
-    Profile the passed callable in a call-oriented manner with the passed
-    positional and keyword arguments (if any), returning the value returned by
-    this call and optionally logging and serializing the resulting profile to
-    the file with the passed filename.
+    Profile the passed callable in a call-oriented deterministic manner with the
+    passed positional and keyword arguments (if any), returning the value
+    returned by this call and optionally logging and serializing the resulting
+    profile to the file with the passed filename.
 
     See Also
     ----------
@@ -147,7 +147,13 @@ def _profile_callable_call(
 
     # If the caller requested this profile be logged...
     if is_profile_logged:
-        # String buffer of the slowest one-fifth of all profiled callables.
+        # Number of slowest callables to be logged. For sanity, the full list of
+        # all profiled callables is truncated below to a sublist of this size.
+        # For readability, this is currently twice the default number of rows in
+        # the average Linux terminal.
+        CALLABLE_COUNT = 48
+
+        # String buffer describing these slowest callables.
         calls_sorted = StringIO()
 
         # Statistics harvested from this profile into this string buffer.
@@ -162,22 +168,22 @@ def _profile_callable_call(
         # that callable).
         calls.sort_stats('cumtime')
 
-        # Write the slowest one-fifth of these callables to this string buffer.
-        calls.print_stats(0.20)
+        # Write the slowest sublist of these callables to this string buffer.
+        calls.print_stats(CALLABLE_COUNT)
 
         # Sort all profiled callables by "total" time (i.e., total time spent in
         # a callable excluding all time spent in calls to callables called by
         # that callable).
         calls.sort_stats('tottime')
 
-        # Write the slowest one-fifth of these callables to this string buffer.
-        calls.print_stats(0.20)
+        # Write the slowest sublist of these callables to this string buffer.
+        calls.print_stats(CALLABLE_COUNT)
 
         # Log this string buffer.
         logs.log_info(
-            'Slowest 20%% of callables profiled by both '
+            'Slowest %d callables profiled by both '
             'cumulative and total time:\n%s',
-            calls_sorted.getvalue())
+            CALLABLE_COUNT, calls_sorted.getvalue())
 
     # If the caller requested this profile be serialized to a file...
     if profile_filename is not None:
@@ -192,14 +198,16 @@ def _profile_callable_call(
     return return_value
 
 
-#FIXME: Implement us up.
+#FIXME: Conditionally functionally test when "pprofile" is importable.
+#FIXME: Consider implementing a non-deterministic alternative as well, which
+#"pprofile" also supports via the "pprofile.StatisticalProfile" class.
 def _profile_callable_line(
-    callable, args, kwargs, is_profile_logged, profile_filename) -> object:
+    call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
-    Profile the passed callable in a line-oriented manner with the passed
-    positional and keyword arguments (if any), returning the value returned by
-    this call and optionally logging and serializing the resulting profile to
-    the file with the passed filename.
+    Profile the passed callable in a line-oriented deterministic manner with the
+    passed positional and keyword arguments (if any), returning the value
+    returned by this call and optionally logging and serializing the resulting
+    profile to the file with the passed filename.
 
     See Also
     ----------
@@ -207,10 +215,89 @@ def _profile_callable_line(
         Further details on function signature.
     '''
 
+    # Defer BETSE-specific heavyweight imports.
+    from betse.lib import libs
+    from betse.util.path import files
+
     # Log this fact.
     logs.log_debug('Line-granularity profiling enabled.')
 
-    return callable(*args, **kwargs)
+    # Raise an exception unless the optional "pprofile" dependency is available.
+    libs.die_unless_runtime_optional('pprofile')
+
+    # Defer dependency-specific heavyweight imports.
+    from pprofile import Profile
+
+    # Line-granularity profile of the subsequent call to this callable.
+    profile = Profile()
+
+    # Value returned by calling this callable with these arguments, storing a
+    # profile of this call into this "profile" object.
+    return_value = profile.runcall(call, *args, **kwargs)
+
+    #FIXME: Reenable support for logging this profile output *AFTER* we
+    #implement support for reducing such output to only the slowest lines.
+    #Currently, profiled timings for *ALL* lines in the codebase are output.
+    #Which is ludicrous, as the codebase is approximately ~80,000 lines of code.
+    #Reducing such output will require regular expression-based matching of
+    #output resembling:
+    #
+    #     Command line: ['demo/threads.py']
+    #     Total duration: 1.00573s
+    #     File: demo/threads.py
+    #     File duration: 1.00168s (99.60%)
+    #     Line #|      Hits|         Time| Time per hit|      %|Source code
+    #     ------+----------+-------------+-------------+-------+-----------
+    #          1|         2|  3.21865e-05|  1.60933e-05|  0.00%|import threading
+    #          2|         1|  5.96046e-06|  5.96046e-06|  0.00%|import time
+    #          3|         0|            0|            0|  0.00%|
+    #          4|         2|   1.5974e-05|  7.98702e-06|  0.00%|def func():
+    #          5|         1|      1.00111|      1.00111| 99.54%|  time.sleep(1)
+    #          6|         0|            0|            0|  0.00%|
+    #          7|         2|  2.00272e-05|  1.00136e-05|  0.00%|def func2():
+    #          8|         1|  1.69277e-05|  1.69277e-05|  0.00%|  pass
+    #
+    #To reduce this output (in order):
+    #
+    #1. Extract all lines prefixing the actual table rows into a separate local
+    #   string variable -- say, "lines_preamble".
+    #2. Sort all remaining lines via numeric contents of the fifth column, "%".
+    #3. Drop all sorted lines except the first 48 or so, again.
+    #4. Logging the concatenation of "lines_preamble" with the remaining lines.
+    #FIXME: Consider contributing the result back to "pprofile".
+
+    # If the caller requested this profile be logged...
+    # if is_profile_logged:
+    if False:
+        # String buffer of all profiled lines.
+        lines_annotated = StringIO()
+
+        # Annotate all profiled lines into this string buffer. Unlike the
+        # canonical "cProfile" and "profile" modules, this third-party module
+        # simplistically provides no support for sorting or truncating the
+        # resulting output.
+        profile.annotate(out=lines_annotated)
+
+    # If the caller requested this profile be serialized to a file...
+    if profile_filename is not None:
+        # Log this serialization.
+        logs.log_info(
+            'Writing Callgrind-formatted profile to "%s".', profile_filename)
+
+        # Serialize this profile to this file.
+        with files.write_text(profile_filename) as profile_file:
+            profile.callgrind(out=profile_file)
+    #FIXME: Eliminate this branch after logging profiling metadata above.
+
+    # Else, the caller requested this profile *NOT* be serialized to a file. In
+    # this case, since no profile metadata was logged, log a non-fatal warning.
+    else:
+        logs.log_warning(
+            'Line-granularity profiling ignored: '
+            'no profiling filename provided.')
+
+    # Return the value returned by this call.
+    return return_value
 
 # ....................{ GLOBALS ~ private                  }....................
 # Technically, the same effect is also achievable via getattr() on the current
