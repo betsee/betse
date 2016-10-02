@@ -62,7 +62,7 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[1e6*arr[sim.iCa] for arr in sim.cc_time],
+            time_series=[1e6*arr[sim.iCa][cells.mem_to_cells] for arr in sim.cc_time],
             label='Ca',
             figure_title='Cytosolic Ca2+',
             colorbar_title='Concentration [nmol/L]',
@@ -74,7 +74,7 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if p.ani_pH2d is True and p.ions_dict['H'] == 1:
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[-np.log10(1.0e-3*arr[sim.iH]) for arr in sim.cc_time],
+            time_series=[-np.log10(1.0e-3*arr[sim.iH][cells.mem_to_cells]) for arr in sim.cc_time],
             label='pH',
             figure_title='Cytosolic pH',
             colorbar_title='pH',

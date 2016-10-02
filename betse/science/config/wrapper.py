@@ -258,7 +258,6 @@ class SimConfigWrapper(object):
         results['Vmem 2D']['plot Vmem'] = True
         results['Ca 2D']['plot Ca'] = True
         results['pH 2D']['plot pH'] = True
-        results['Charge 2D']['plot Charge'] = True
         results['Efield 2D']['plot Efield'] = True
         results['Currents 2D']['plot Currents'] = True
         results['Pressure 2D']['plot Pressure'] = True
@@ -273,7 +272,7 @@ class SimConfigWrapper(object):
         results['Vmem GJ Ani']['animate Vmem with gj'] = True
         results['Venv Ani']['animate Venv'] = True
         results['Osmotic P Ani']['animate Osmotic P'] = True
-        results['Force Ani']['animate force'] = True
+        # results['Force Ani']['animate force'] = True
         results['Current Ani']['animate current'] = True
         results['Membrane Ani']['animate membrane'] = True
         results['Efield Ani']['animate Efield'] = True
@@ -286,8 +285,8 @@ class SimConfigWrapper(object):
         variable['channel electroosmosis']['turn on'] = True
         variable['deformation']['turn on'] = True
         variable['fluid flow']['include fluid flow'] = True
-        variable['pressures']['include electrostatic pressure'] = True
-        variable['pressures']['include osmotic pressure'] = True
+        # variable['pressures']['include electrostatic pressure'] = True
+        # variable['pressures']['include osmotic pressure'] = True
 
 
     def enable_anim_saving(self) -> None:

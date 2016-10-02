@@ -460,51 +460,6 @@ def pipeline_plots(
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    if p.plot_rho2d is True:
-        if p.sim_ECM is True:
-            plt.figure()
-            plt.imshow(
-                sim.rho_env.reshape(cells.X.shape),
-                origin='lower',
-                extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-                cmap=p.default_cm,
-            )
-            plt.colorbar()
-            plt.title('Environmental Charge Density [C/m3]')
-
-            if p.autosave is True:
-                savename10 = savedImg + 'Final_environmental_charge' + '.png'
-                plt.savefig(savename10,format='png',transparent=True)
-
-            if p.turn_all_plots_off is False:
-                plt.show(block=False)
-
-
-# FIXME if we keep new computations need to make this a cell based plot
-        figX, axX, cbX = viz.plotPrettyPolyData(sim.rho_cells_time[-1][cells.mem_to_cells],
-            sim, cells, p,
-            number_cells=p.enumerate_cells,
-            clrAutoscale=p.autoscale_rho,
-            clrMin=p.rho_min_clr,
-            clrMax=p.rho_max_clr,
-            clrmap=p.default_cm,
-            current_overlay=p.I_overlay,
-            plotIecm=p.IecmPlot,
-        )
-
-
-        figX.suptitle('Final Cell Charge Density',fontsize=14, fontweight='bold')
-        axX.set_xlabel('Spatial distance [um]')
-        axX.set_ylabel('Spatial distance [um]')
-        cbX.set_label('Net Charge Density [C/m3]')
-
-        if p.autosave is True:
-            savename9 = savedImg + 'final_cellCharge' + '.png'
-            plt.savefig(savename9,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
 
     #------------------------------------------------------------------------------------------------------------------
 

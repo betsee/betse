@@ -95,7 +95,7 @@ def osmotic_P(sim, cells, p):
 
     vol_ratio = (vo/v1)
 
-    sim.cc_mems = sim.cc_mems * vol_ratio[cells.mem_to_cells]
+    # sim.cc_mems = sim.cc_mems * vol_ratio[cells.mem_to_cells]
     sim.cc_cells = sim.cc_cells * vol_ratio
 
     # reassign cell volume:

@@ -154,7 +154,7 @@ world options:
   lattice type: hex           # form of the base lattice (before adding lattice disorder)
                               # options: 'hex' for hegagonal or 'rect' for rectilinear
 
-  lattice disorder: 0.6       # noise level for the lattice
+  lattice disorder: 0.4       # noise level for the lattice
                               # recommended range 0 to 0.8
                               # this randomizes lattice points from the rectangular or
                               # hexagonal base grid. If equal to 0, a perfect
@@ -288,7 +288,7 @@ change Na mem:       # Change the membrane permeability to Na+
     change start: 1.0e-3                # time to start change [s]
     change finish: 20.0e-3               # time to end change and return to original [s]
     change rate: 2.0e-3                 # rate of change [s]
-    multiplier: 500.0                # factor to multiply base level
+    multiplier: 50.0                # factor to multiply base level
     modulator function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
     apply to: ['spot']          # name(s) of the tissue profile(s) to apply intervention to
 
@@ -843,11 +843,11 @@ results options:
                                # for all options please see
                                # http://matplotlib.org/examples/color/colormaps_reference.html
 
-  background colormap: Blues     # Specify colormap to be used for data with vector overlays and 0 --> + data,
+  background colormap: RdBu_r     # Specify colormap to be used for data with vector overlays and 0 --> + data,
                                     # including:
                                     # currents, flow, electric field and deformation.
 
-  network colormap: coolwarm       # colormap used for concentration nodes of reaction network graphs
+  network colormap: rainbow       # colormap used for concentration nodes of reaction network graphs
 
   gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
 
@@ -874,20 +874,8 @@ results options:
     max val: 8                 # maximum colorbar value in pH units
     min val: 6                    # minimum colorbar value pH units
   
-  Vcell 2D:
-    plot Vcell: True                # 2d plot of voltage in individual cells of the collective?
-    autoscale colorbar: True       # autoscale colorbar to min max of data set?
-    max val: 10                    # maximum colorbar value in mV
-    min val: -70                   # minimum colorbar value in mV
-  
   Venv 2D:
     plot Venv: True                # 2d plot of voltage in environmental spaces of the collective?
-    autoscale colorbar: True       # autoscale colorbar to min max of data set?
-    max val: 10                    # maximum colorbar value in mV
-    min val: -70                   # minimum colorbar value in mV
-  
-  Charge 2D:
-    plot Charge: True                # 2d plot of net ionic charge in collective?
     autoscale colorbar: True       # autoscale colorbar to min max of data set?
     max val: 10                    # maximum colorbar value in mV
     min val: -70                   # minimum colorbar value in mV

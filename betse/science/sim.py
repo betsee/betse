@@ -366,7 +366,7 @@ class Simulator(object):
 
             self.ionlabel[self.iH] = 'protons'
 
-            self.movingIons.append(self.iH)
+            # self.movingIons.append(self.iH)
 
             # create concentration arrays of dissolved carbon dioxide (carbonic acid, non-dissociated):
             self.cHM_cells = np.zeros(self.cdl)
@@ -398,6 +398,7 @@ class Simulator(object):
                 DenvH[:] = p.free_diff['H']
 
                 # add fixed boundary concentration of H+
+                p.env_concs['H'] = self.cH_env.mean()
                 self.c_env_bound.append(p.env_concs['H'])
 
             # append items to main data vectors:
@@ -477,14 +478,16 @@ class Simulator(object):
             self.initDenv(cells,p)
 
             # re-init global boundary fixed concentrations:
-            if p.cbnd is not None:    # FIXME this is not working, giving None!
 
-                for key, val in p.ions_dict.items():
+            for key, val in p.ions_dict.items():
 
-                    if val == 1 and key != 'H':
-                        ion_i = self.get_ion(key)
-                        # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
-                        self.c_env_bound[ion_i] = p.cbnd[key]
+                if val == 1 and key != 'H':
+                    ion_i = self.get_ion(key)
+                    # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
+                    self.c_env_bound[ion_i] = p.cbnd[key]
+
+                elif val ==1 and key == 'H':
+                    self.c_env_bound[self.iH] = p.env_concs['H']
 
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
@@ -496,10 +499,6 @@ class Simulator(object):
             # initialize current vectors
             self.J_env_x = np.zeros(len(cells.xypts))
             self.J_env_y = np.zeros(len(cells.xypts))
-
-            # initialize environmental fluxes and current data stuctures:
-            # flx_env_ix = np.zeros(cells.grid_obj.u_shape)
-            # flx_env_iy = np.zeros(cells.grid_obj.v_shape)
 
             flx_env_ix = np.zeros(self.edl)
             flx_env_iy = np.zeros(self.edl)
@@ -894,7 +893,6 @@ class Simulator(object):
 
                     # update flux between cells due to gap junctions
                     self.update_gj(cells, p, t, i)
-
 
                     if p.sim_ECM:
                         #update concentrations in the extracellular spaces:
@@ -1481,9 +1479,6 @@ class Simulator(object):
             self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env,self.cc_env[self.iM])
 
 
-            # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V(cells,p)
-
         if p.VATPase_dyn == 1:  # if there's a V-ATPase pump
 
             if p.sim_ECM is True:
@@ -1522,8 +1517,6 @@ class Simulator(object):
 
             self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
 
-            # recalculate the net, unbalanced charge and voltage in each cell:
-            self.update_V(cells,p)
 
     def cl_handler(self, cells, p):
 
@@ -1593,7 +1586,7 @@ class Simulator(object):
             f_CaATP = self.rho_pump * f_CaATP
 
             # add Ca++ flux to storage:
-            self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa] + f_CaATP
+            # self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa] + f_CaATP
 
             if p.NaCa_exch_dyn is True:
                 # run Na Ca exchanger
@@ -1604,8 +1597,8 @@ class Simulator(object):
                         self.vm, self.T, p, self.NaCaExch_block)
 
             else:
-                f_NaEx = 0
-                f_CaEx = 0
+                f_NaEx = np.zeros(self.mdl)
+                f_CaEx = np.zeros(self.mdl)
 
         else:
 
@@ -1638,18 +1631,14 @@ class Simulator(object):
 
         # # update calcium concentrations in cell and ecm:
 
-        self.cc_cells[self.iCa][:], self.cc_env[self.iCa][:] = stb.update_Co(self, self.cc_cells[self.iCa][:],
-            self.cc_env[self.iCa][:], f_CaATP + f_CaEx, cells, p, ignoreECM = True)
+        self.cc_cells[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self, self.cc_cells[self.iCa],
+            self.cc_env[self.iCa], f_CaATP + f_CaEx, cells, p, ignoreECM = True)
 
         if p.NaCa_exch_dyn:
 
-            self.cc_cells[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_cells[self.iNa][:],
-                self.cc_env[self.iNa][:], f_NaEx, cells, p, ignoreECM = True)
+            self.cc_cells[self.iNa], self.cc_env[self.iNa] = stb.update_Co(self, self.cc_cells[self.iNa],
+                self.cc_env[self.iNa], f_NaEx, cells, p, ignoreECM = True)
 
-
-
-        # recalculate the net, unbalanced charge and voltage in each cell:
-        self.update_V(cells, p)
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
 

@@ -621,7 +621,7 @@ class Parameters(object):
         self.Dm_P = float(self.config['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
 
         # environmental (global) boundary concentrations:
-        self.cbnd = self.config['variable settings'].get('env boundary concentrations', None)
+        self.cbnd = self.config['variable settings']['env boundary concentrations']
 
         # include HK-ATPase in the simulation? Yes =1, No = 0
         self.HKATPase_dyn = self.config['variable settings']['optional pumps']['HKATPase pump']
@@ -752,16 +752,6 @@ class Parameters(object):
         self.autoscale_pH = ro['pH 2D']['autoscale colorbar']
         self.pH_min_clr = float(ro['pH 2D']['min val'])
         self.pH_max_clr = float(ro['pH 2D']['max val'])
-
-        self.plot_vcell2d = ro['Vcell 2D']['plot Vcell']
-        self.autoscale_vcell = ro['Vcell 2D']['autoscale colorbar']
-        self.vcell_min_clr = float(ro['Vcell 2D']['min val'])
-        self.vcell_max_clr = float(ro['Vcell 2D']['max val'])
-
-        self.plot_rho2d = ro['Charge 2D']['plot Charge']
-        self.autoscale_rho = ro['Charge 2D']['autoscale colorbar']
-        self.rho_min_clr = float(ro['Charge 2D']['min val'])
-        self.rho_max_clr = float(ro['Charge 2D']['max val'])
 
         self.plot_force2d = ro['Electrostatic 2D']['plot Electrostatic']
         self.autoscale_force = ro['Electrostatic 2D']['autoscale colorbar']
