@@ -2038,7 +2038,7 @@ class Simulator(object):
             # create an ecm diffusion grid filled with the environmental values
             self.D_env[i] = Denv_o[:]*1
 
-            self.D_env[i][cells.ecm_bound_k] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+            # self.D_env[i][cells.ecm_bound_k] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
 
 
         # create a matrix that weights the relative transport efficiency in the world space:

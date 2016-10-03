@@ -32,6 +32,8 @@ def get_current(sim, cells, p):
         # For no ECM, just use the default relative TJ diffusion constant:
         TJ_load = 1/(1+ p.D_tj)
 
+    # print(TJ_load[cells.bflags_mems])
+
     d_rho_m = sim.Jn*TJ_load
 
     # if p.sim_ECM is True:

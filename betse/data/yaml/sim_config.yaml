@@ -702,7 +702,7 @@ variable settings:
                             # or open (False)?
 
 
-  tight junction scaling: 1.0e-9   # factor by which tight junctions scale
+  tight junction scaling: 1.0e-3   # factor by which tight junctions scale
                                    # free-diffusion (1.0 = free diffusion, 1.0e-9 = similar to membrane permeability)
 
   tight junction relative diffusion:  # relative values for tight junction ion 
@@ -718,7 +718,7 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
-  cluster open: True  # Is the cell cluster boundary open (all membranes flux to environment; True in most cases)
+  cluster open: False  # Is the cell cluster boundary open (False in most cases; boundary controlled by TJ scaling)
 
   use Goldman calculator: False   # calculate alternative Vmem using GHK
                                   # equation for model params and plot results?

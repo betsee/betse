@@ -120,6 +120,8 @@ class Cells(object):
             # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
+            # FIXME check for the voltage one -- don't need it by default
+
             logs.log_info('Creating environmental Poisson solver for voltage...')
             bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
             self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)

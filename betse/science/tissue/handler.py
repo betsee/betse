@@ -1039,10 +1039,10 @@ class TissueHandler(object):
 
             # redo environmental diffusion matrices by
             # setting the environmental spaces around cut world to the free value -- if desired!:
-            if open_TJ is True:
-                # save the x,y coordinates of the original boundary cell and membrane points:
-                old_bflag_cellxy = cells.cell_centres[cells.bflags_cells]
-                # old_bflag_memxy = cells.mem_mids_flat[cells.bflags_mems]
+            # if open_TJ is True:
+        # save the x,y coordinates of the original boundary cell and membrane points:
+        old_bflag_cellxy = np.copy(cells.cell_centres[cells.bflags_cells])
+        old_bflag_memxy = np.copy(cells.mem_mids_flat[cells.bflags_mems])
 
         # set up the situation to make world joined to cut world have more permeable membranes:
         hurt_cells = np.zeros(len(cells.cell_i))
@@ -1250,13 +1250,23 @@ class TissueHandler(object):
 
         if p.sim_ECM is True:
 
-            if open_TJ is True:
-                # if desire for cut away space to lack tight junctions, remove new bflags from set:
-                searchTree = sps.KDTree(cells.cell_centres)
-                original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
-                cells.bflags_cells = original_pt_inds[:]
+            # if desire for cut away space to lack tight junctions, remove new bflags from set:
+            new_bcells = np.copy(cells.bflags_cells)
+            new_bmems = np.copy(cells.bflags_mems)
+
+            searchTree = sps.KDTree(cells.cell_centres)
+            original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
+            cells.bflags_cells = original_pt_inds
+
+            searchTree_m = sps.KDTree(cells.mem_mids_flat)
+            original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
+            cells.bflags_mems = original_pt_inds_m
 
             sim.initDenv(cells,p)
+
+            # re-assign the boundary flags to the new configuration:
+            cells.bflags_cells = new_bcells
+            cells.bflags_mems = new_bmems
 
         if p.fluid_flow is True or p.deformation is True:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
