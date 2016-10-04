@@ -207,7 +207,7 @@ def get_dirname(module: (str, ModuleType)) -> str:
 
 # ....................{ GETTERS ~ path : file              }....................
 #FIXME: The current approach is trivial and therefore terrible, breaking down
-#under commonplace real-world conditions (e.g., modules embedded within EGG-like
+#under commonplace real-world conditions (e.g., modules embedded within egg-like
 #archives). Consider generalizing this approach via the new setuptools-based
 #"betse.lib.setuptool.resources" submodule.
 
@@ -225,7 +225,7 @@ def get_filename(module: (str, ModuleType)) -> str:
 
     Parameters
     ----------
-    module : str, ModuleType
+    module : str or ModuleType
         Either:
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
@@ -238,7 +238,7 @@ def get_filename(module: (str, ModuleType)) -> str:
 
     Raises
     ----------
-    :exc:`BetseModuleException`
+    BetseModuleException
         If this module has no `__file__` attribute (e.g., is a builtin module).
     '''
 

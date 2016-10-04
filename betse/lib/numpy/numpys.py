@@ -142,17 +142,13 @@ def init() -> None:
     # Initialize all uninitialized global variables of this submodule.
     _init_globals()
 
-    #FIXME: Excise this after is_blas_optimized() is known to reliably work
-    #in a cross-platform manner.
-    return
-
     # If Numpy linked against an unoptimized BLAS, log a non-fatal warning.
     if not is_blas_optimized():
         logs.log_warning(
-            'Numpy unoptimized. '
+            'Numpy unoptimized, substantially reducing runtime efficiency. '
             'Consider installing an optimized CBLAS implementation '
             '(e.g., OpenBLAS, ATLAS, ACML, MKL) and '
-            'reinstalling Numpy against this implementation.'
+            'reinstalling Numpy to use this implementation.'
         )
 
 

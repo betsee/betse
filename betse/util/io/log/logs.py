@@ -322,13 +322,14 @@ def log_exception(exception: Exception) -> None:
             # If this exception is *NOT* the last, append an explanatory header.
             if exc_parent_index != exc_parent_last_index:
                 exc_full_buffer.write(
-                    '\nThe above exception was raised in response to '
-                    'this parent exception:\n\n'
+                    '\n'
+                    'The above exception wrapped '
+                    'the following originating exception:'
+                    '\n\n'
                 )
 
         # Append a random error haiku to the traceback buffer... *BECAUSE*!
-        exc_full_buffer.write(
-            '\n{}'.format(stderrs.get_haiku_random()))
+        exc_full_buffer.write('\n{}'.format(stderrs.get_haiku_random()))
 
         # String contents of the traceback buffer.
         exc_full = exc_full_buffer.getvalue()

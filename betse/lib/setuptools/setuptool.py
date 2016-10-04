@@ -11,11 +11,17 @@ dependency simplifying inspection of application dependencies.
 # ....................{ IMPORTS                            }....................
 import pkg_resources
 from betse.exceptions import BetseLibException
+from betse.util.py import modules
 from betse.util.type import iterables
-from betse.util.type.types import type_check, MappingType, ModuleType
+from betse.util.type.types import type_check, MappingType, ModuleType, NoneType
 from collections import OrderedDict
 from pkg_resources import (
-    DistributionNotFound, Requirement, UnknownExtra, VersionConflict)
+    Distribution,
+    DistributionNotFound,
+    Requirement,
+    UnknownExtra,
+    VersionConflict,
+)
 
 # ....................{ GLOBALS ~ dict                     }....................
 SETUPTOOLS_TO_MODULE_NAME = {
@@ -76,29 +82,28 @@ def die_unless_requirement(requirement: Requirement) -> None:
     Parameters
     ----------
     requirement : Requirement
-        `setuptools`-specific object encapsulating the required name and version
-        of this package.
+        Object describing this package or module's required name and version.
     '''
-
-    # Avoid circular import dependencies.
-    from betse.util.py import modules
 
     # Human-readable exception to be raised below if any.
     betse_exception = None
 
-    # If setuptools finds this requirement, return without raising an exception.
     try:
-        pkg_resources.get_distribution(requirement)
-        return
-    # If setuptools fails to find this requirement, this does *NOT* necessarily
-    # imply this requirement to be unimportable as a package. See the
-    # is_requirement() function for details.
-    except DistributionNotFound:
-        pass
-    # If this requirement is found to be an insufficient version, a
+        # Object describing the currently installed version of the package or
+        # module satisfying this requirement if any or "None" if this
+        # requirement cannot be guaranteed to be unsatisfied.
+        distribution = get_requirement_distribution_or_none(requirement)
+
+        # If this requirement is satisfied, we're done here.
+        if distribution is not None:
+            return
+        # Else, fallback to attempting to manually import this requirement.
+    # If setuptools found only requirements of insufficient version, a
     # non-human-readable exception resembling the following is raised:
     #
     #    pkg_resources.VersionConflict: (PyYAML 3.09 (/usr/lib64/python3.3/site-packages), Requirement.parse('PyYAML>=3.10'))
+    #
+    # Detect this and raise a human-readable exception instead.
     except VersionConflict as version_conflict:
         betse_exception = BetseLibException(
             'Dependency "{}" unsatisfied by installed dependency "{}".'.format(
@@ -196,8 +201,7 @@ def is_requirement(requirement: Requirement) -> bool:
     Parameters
     ----------
     requirement : Requirement
-        `setuptools`-specific object encapsulating this package's requisite name
-        and version.
+        Object describing this package or module's required name and version.
 
     Returns
     ----------
@@ -205,30 +209,18 @@ def is_requirement(requirement: Requirement) -> bool:
         `True` only if this requirement is satisfiable.
     '''
 
-    # Attempt to...
     try:
-        # Validate this requirement via setuptools.
-        pkg_resources.get_distribution(requirement)
+        # Object describing the currently installed version of the package or
+        # module satisfying this requirement if any or "None" if this
+        # requirement cannot be guaranteed to be unsatisfied.
+        distribution = get_requirement_distribution_or_none(requirement)
 
-        # If no exception was raised, this requirement is satisfied.
-        return True
-    # If setuptools fails to find this requirement, this does *NOT* necessarily
-    # imply this requirement to be unimportable as a package. Rather, this only
-    # implies this requirement was *NOT* installed as a setuptools-managed egg.
-    # This requirement is still installable and hence importable (e.g., by
-    # manually copying this requirement's package into the "site-packages"
-    # subdirectory of the top-level directory for this Python interpreter).
-    # However, does this edge-case actually occur in reality? *YES.*
-    # PyInstaller-frozen applications embed requirements without corresponding
-    # setuptools-managed eggs. Hence, this edge-case *MUST* be handled.
-    except DistributionNotFound:
-        pass
-    # If this requirement is found to be an insufficient version, fail.
+        # If this requirement is satisfied, we're done here.
+        if distribution is not None:
+            return True
+    # If setuptools found only requirements of insufficient version, fail.
     except (UnknownExtra, VersionConflict):
         return False
-
-    # Avoid circular import dependencies.
-    from betse.util.py import modules
 
     # If no setuptools-managed egg exists for this requirement, fallback to this
     # lower-level strategy:
@@ -256,6 +248,96 @@ def is_requirement(requirement: Requirement) -> bool:
     return package_version is not None and package_version in requirement
 
 # ....................{ GETTERS                            }....................
+@type_check
+def get_requirement_distribution_or_none(
+    requirement: Requirement) -> (Distribution, NoneType):
+    '''
+    Get a :class:`Distribution` instance describing the currently installed
+    version of the top-level third-party package or module satisfying the passed
+    `setuptools`-specific requirement if any _or_ raise an exception if this
+    requirement is guaranteed to be unsatisfied (e.g., due to a version
+    mismatch) _or_ `None` if this requirement cannot be guaranteed to be
+    unsatisfied (e.g., due to this requirement being installed either without
+    `setuptools` or with the `setuptools` subcommand `develop`).
+
+    This high-level getter should _always_ be called in lieu of the low-level
+    :func:`pkg_resources.get_distribution` function, which raises spurious
+    exceptions in common non-erroneous edge cases (e.g., packages installed via
+    the `setuptools` subcommand `develop`) and is thus unsafe for
+    general-purpose use.
+
+    Parameters
+    ----------
+    requirement : Requirement
+        Object describing this package or module's required name and version.
+
+    Returns
+    ----------
+    Distribution or NoneType
+        Object describing the currently installed version of the package or
+        module satisfying this requirement if any _or_ `None` otherwise.
+        Specifically, `None` is returned in all of the following conditions --
+        only one of which genuinely corresponds to an error:
+        * This requirement is _not_ installed at all. (**Error.**)
+        * This requirement was installed manually rather than with `setuptools`,
+          in which case no such :class:`Distribution` exists. (**Non-error.**)
+        * This requirement was installed with the `setuptools` subcommand
+          `develop`, in which case a :class:`Distribution` technically exists
+          but in a sufficiently inconsistent state that the low-level
+          :func:`pkg_resources.get_distribution` function raises an exception on
+          attempting to retrieve that object. (**Non-error.**)
+        Since distinguishing the erroneous from non-erroneous cases exceeds the
+        mandate of this getter, the caller is expected to do so.
+
+    Raises
+    ----------
+    VersionConflict
+        If the currently installed version of this package or module fails to
+        satisfy this requirement's version constraints.
+    '''
+
+    # If setuptools finds this requirement, return its distribution as is.
+    try:
+        return pkg_resources.get_distribution(requirement)
+    # If setuptools fails to find this requirement, this does *NOT* necessarily
+    # imply this requirement to be unimportable as a package. Rather, this only
+    # implies this requirement was *NOT* installed as a setuptools-managed egg.
+    # This requirement is still installable and hence importable (e.g., by
+    # manually copying this requirement's package into the "site-packages"
+    # subdirectory of the top-level directory for this Python interpreter).
+    # However, does this edge-case actually occur in reality? *YES.*
+    # PyInstaller-frozen applications embed requirements without corresponding
+    # setuptools-managed eggs. Hence, this edge-case *MUST* be handled.
+    except DistributionNotFound:
+        return None
+    # If setuptools fails to find the distribution-packaged version of this
+    # requirement (e.g., due to having been editably installed with "sudo
+    # python3 setup.py develop"), this version may still be manually parseable
+    # from this requirement's package. Since setuptools fails to raise an
+    # exception whose type is unique to this error condition, the contents of
+    # this exception are parsed to distinguish this expected error condition
+    # from other unexpected error conditions. In the former case, a
+    # non-human-readable exception resembling the following is raised:
+    #
+    #     ValueError: ("Missing 'Version:' header and/or PKG-INFO file", networkx [unknown version] (/home/leycec/py/networkx))
+    except ValueError as version_missing:
+        # If this exception was *NOT*...
+        if not (
+            # ...instantiated with two arguments
+            len(version_missing.args) == 2 and
+            # ...whose second argument is suffixed by a suffix indicating the
+            # version of this distribution to have been ignored rather than
+            # recorded during installation...
+            str(version_missing.args[1]).endswith(' [unknown version]')
+        ):
+            # Then this exception indicates an unexpected and hence
+            # non-ignorable error condition. Reraise this exception!
+            raise
+
+        # Else, this exception indicates an expected ignorable error condition.
+        return None
+
+
 @type_check
 def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
     '''
@@ -302,7 +384,7 @@ def get_requirement_module_name(requirement: Requirement) -> str:
     Parameters
     ----------
     requirement : Requirement
-        This requirement.
+        Object describing this package or module's required name and version.
 
     Returns
     ----------
@@ -347,7 +429,7 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
     Parameters
     ----------
     requirement : Requirement
-        `setuptools`-specific object encapsulating this module or package.
+        Object describing this package or module's required name and version.
 
     Returns
     ----------
@@ -356,31 +438,22 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
         any or the string `not installed` or `unknown` (as detailed above).
     '''
 
-    # Attempt to...
     try:
-        # Query setuptools for the setuptools-specific "Distribution" object
-        # describing the currently installed third-party package satisfying this
-        # requirement if any.
-        distribution = pkg_resources.get_distribution(requirement)
+        # Object describing the currently installed version of the package or
+        # module satisfying this requirement if any or "None" if this
+        # requirement cannot be guaranteed to be unsatisfied.
+        distribution = get_requirement_distribution_or_none(requirement)
 
-        # If no exception was raised, this requirement is satisfied. In this
-        # case, return this package's version.
-        return distribution.version
-    # If setuptools fails to find this requirement, this does *NOT* necessarily
-    # imply this requirement to be unimportable as a package. See the
-    # is_requirement() function for details.
-    except DistributionNotFound:
-        pass
-    # If this requirement is found to be an insufficient version, circumvent
-    # this by returning this package's version as is.
+        # If this requirement is satisfied, return its version.
+        if distribution is not None:
+            return distribution.version
+    # If setuptools found only requirements of insufficient version, return this
+    # version regardless (with a suffix noting this to be the case).
     except VersionConflict as version_conflict:
         return '{} <fails to satisfy {}>'.format(
             version_conflict.dist.version,
             version_conflict.req)
     #FIXME: Handle the "UnknownExtra" exception as well.
-
-    # Avoid circular import dependencies.
-    from betse.util.py import modules
 
     # Attempt to import this package.
     try:
@@ -518,7 +591,7 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     Parameters
     ----------
     requirement : Requirement
-        `setuptools`-specific object encapsulating this package.
+        Object describing this package or module's required name and version.
 
     Returns
     ----------
@@ -530,9 +603,6 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     ImportError
         If this package is unimportable.
     '''
-
-    # Avoid circular import dependencies.
-    from betse.util.py import modules
 
     # Fully-qualified name of this requirement's package.
     package_name = get_requirement_module_name(requirement)
