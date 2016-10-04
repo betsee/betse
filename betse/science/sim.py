@@ -194,11 +194,9 @@ class Simulator(object):
 
         self.Jn = np.zeros(self.mdl)  # net normal current density at membranes
 
+        # Current averaged to cell centres:
         self.J_cell_x = np.zeros(self.cdl)
         self.J_cell_y = np.zeros(self.cdl)
-
-        self.J_mem_x = np.zeros(self.mdl)
-        self.J_mem_y = np.zeros(self.mdl)
 
         # Membrane current data structure initialization
         self.flx_mem_i = np.zeros(self.mdl)
@@ -459,6 +457,9 @@ class Simulator(object):
         self.gjl = np.zeros(len(cells.mem_i))  # gj length for each gj
         self.gjl[:] = cells.gj_len
 
+        # GJ fluxes storage vector:
+        self.fluxes_gj = np.copy(self.fluxes_mem)
+
     def init_tissue(self, cells, p):
         '''
         Prepares data structures pertaining to tissue profiles, dynamic
@@ -509,7 +510,7 @@ class Simulator(object):
             self.fluxes_env_x = np.asarray(self.fluxes_env_x)
             self.fluxes_env_y = np.asarray(self.fluxes_env_x)
 
-            self.J_TJ = np.zeros(self.mdl)  # tight junction current density
+            # self.J_TJ = np.zeros(self.mdl)  # tight junction current density
 
         # Initialize an array structure that will hold user-scheduled changes to membrane permeabilities:
         Dm_cellsA = np.asarray(self.Dm_cells)
@@ -785,14 +786,12 @@ class Simulator(object):
 
                 # Reinitialize flux storage devices:
                 self.fluxes_mem.fill(0)
-                self.d_rho.fill(0)
+                self.fluxes_gj.fill(0)
 
                 if p.sim_ECM is True:
 
                     self.fluxes_env_x.fill(0)
                     self.fluxes_env_y.fill(0)
-
-                    self.J_TJ.fill(0)
 
                 # Calculate the values of scheduled and dynamic quantities (e.g.
                 # ion channel multipliers).
@@ -838,10 +837,6 @@ class Simulator(object):
                 self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
                 self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
 
-                self.d_rho[cells.bflags_mems] = self.d_rho[cells.bflags_mems] - \
-                                                fNa_NaK[cells.bflags_mems]*p.F*self.zs[self.iNa]\
-                                                - fK_NaK[cells.bflags_mems]*p.F*self.zs[self.iK]
-
                 if p.metabolism_enabled:
                     # update ATP concentrations after pump action:
                     self.metabo.update_ATP(fNa_NaK, self, cells, p)
@@ -883,9 +878,6 @@ class Simulator(object):
 
                     # add membrane flux to storage
                     self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
-
-                    self.d_rho[cells.bflags_mems] = self.d_rho[cells.bflags_mems] - \
-                                                    f_ED[cells.bflags_mems]* p.F * self.zs[i]
 
                     # update ion concentrations in cell and ecm:
                     self.cc_cells[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
@@ -1079,7 +1071,7 @@ class Simulator(object):
 
         # clear mass flux storage vectors:
         self.fluxes_mem = np.zeros(self.fluxes_mem.shape)
-        self.d_rho = np.zeros(self.mdl)  # storage for boundary flux from membranes
+        self.fluxes_gj = np.zeros(self.fluxes_gj.shape)
 
         self.cc_time = []  # data array holding the concentrations at time points
         self.cc_env_time = [] # data array holding environmental concentrations at time points
@@ -1424,7 +1416,6 @@ class Simulator(object):
         # # # integrate over the mini-grid to get an averaged vm:
         # self.vm = np.dot(cells.M_int_mems, self.vm) + (1 / 2) * vcell_at_mids
 
-
     def acid_handler(self,cells,p):
 
         IdM = np.ones(self.mdl)
@@ -1732,230 +1723,36 @@ class Simulator(object):
         v_env[0,:] = self.bound_V['B']
         v_env[-1,:] = self.bound_V['T']
 
+        cenv[:,0] =  self.c_env_bound[i]
+        cenv[:,-1] =  self.c_env_bound[i]
+        cenv[0,:] =  self.c_env_bound[i]
+        cenv[-1,:] =  self.c_env_bound[i]
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
         gvx, gvy = fd.gradient(v_env, cells.delta)
 
         self.E_env_x = self.E_env_x + gvx
-        self.E_env_y = self.E_env_x + gvy
+        self.E_env_y = self.E_env_y + gvy
 
-        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.E_env_x, self.E_env_y, 0, 0, self.D_env[i].reshape(cells.X.shape), self.zs[i],
+        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.E_env_x, self.E_env_y, 0, 0,
+                                        self.D_env[i].reshape(cells.X.shape), self.zs[i],
                                         self.T, p)
 
-        div_fa = fd.divergence(fx, fy, cells.delta, cells.delta)
+        # fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, 0, 0, 0, 0,
+        #                                 self.D_env[i].reshape(cells.X.shape), self.zs[i],
+        #                                 self.T, p)
+
+
+        div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
         self.fluxes_env_x[i] = self.fluxes_env_x[i] + fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = self.fluxes_env_y[i] + fy.ravel()  # store ecm junction flux for this ion
 
-        cenv = cenv - div_fa * p.dt
+        cenv = cenv + div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
 
-
-        # Calculate flux across TJ for this ion:
-
-        IdM = np.ones(self.mdl)
-
-        f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
-                            self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
-                               self.T, p)
-
-
-        self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
-
-
-        # #-----old way------------------------------------------------------------
-        #
-        #
-        # if p.closed_bound is True:
-        #     btag = 'closed'
-        #
-        # else:
-        #     btag = 'open'
-        #
-        # # make v_env and cc_env into 2d matrices
-        # cenv = self.cc_env[i]
-        #
-        # v_env = self.v_env.reshape(cells.X.shape)
-        #
-        # # enforce voltage at boundary:
-        # v_env[:,0] = self.bound_V['L']
-        # v_env[:,-1] = self.bound_V['R']
-        # v_env[0,:] = self.bound_V['B']
-        # v_env[-1,:] = self.bound_V['T']
-        #
-        # cenv = cenv.reshape(cells.X.shape)
-        #
-        # # if p.smooth_level > 0.0:
-        # #     cenv = gaussian_filter(cenv, p.smooth_level)
-        #
-        # # prepare concentrations and diffusion constants for MACs grid format
-        # # by resampling the values at the u v coordinates of the flux:
-        # cenv_x = np.zeros(cells.grid_obj.u_shape)
-        # cenv_y = np.zeros(cells.grid_obj.v_shape)
-        #
-        # # create the proper shape for the concentrations and state appropriate boundary conditions:
-        # cenv_x[:,1:] = cenv
-        #
-        # cenv_y[1:,:] = cenv
-        #
-        # if p.closed_bound is True: # insulation boundary conditions
-        #
-        #     cenv_x[:,0] = cenv_x[:,1]
-        #     cenv_x[:,-1] = cenv_x[:,-2]
-        #     cenv_x[0,:] = cenv_x[1,:]
-        #     cenv_x[-1,:] = cenv_x[-2,:]
-        #
-        #     cenv_y[0,:] = cenv_y[1,:]
-        #     cenv_y[-1,:] = cenv_y[-2,:]
-        #     cenv_y[:,0] = cenv_y[:,1]
-        #     cenv_y[:,-1] = cenv_y[:,-2]
-        #
-        # else:   # open and electrically grounded boundary conditions
-        #     cenv_x[:,0] =  self.c_env_bound[i]
-        #     cenv_x[:,-1] =  self.c_env_bound[i]
-        #     cenv_x[0,:] =  self.c_env_bound[i]
-        #     cenv_x[-1,:] =  self.c_env_bound[i]
-        #
-        #     cenv_y[0,:] =  self.c_env_bound[i]
-        #     cenv_y[-1,:] =  self.c_env_bound[i]
-        #     cenv_y[:,0] =  self.c_env_bound[i]
-        #     cenv_y[:,-1] =  self.c_env_bound[i]
-        #
-        #
-        # # calculate gradients in the environment
-        # grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
-        #
-        # grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
-        #
-        #
-        # grad_V_env_x[:,1:] = grad_V_env_x[:,1:]  + self.E_env_x
-        #
-        # grad_V_env_y[1:,:] = grad_V_env_y[1:,:] + self.E_env_y
-        #
-        # # calculate fluxes for electrodiffusive transport:
-        # if p.fluid_flow is True:
-        #
-        #     uenvx = np.zeros(cells.grid_obj.u_shape)
-        #     uenvy = np.zeros(cells.grid_obj.v_shape)
-        #
-        #     uenvx[:,1:] = self.u_env_x
-        #     uenvy[1:,:] = self.u_env_y
-        #
-        #     if p.closed_bound is False:
-        #
-        #         uenvx[:,0] = uenvx[:,1]
-        #         uenvx[:,-1]= uenvx[:,-2]
-        #         uenvx[0,:] = uenvx[1,:]
-        #         uenvx[-1,:] = uenvx[-2,:]
-        #
-        #         uenvy[:,0] = uenvy[:,1]
-        #         uenvy[:,-1]= uenvy[:,-2]
-        #         uenvy[0,:] = uenvy[1,:]
-        #         uenvy[-1,:] = uenvy[-2,:]
-        #
-        #     else:
-        #
-        #         uenvx[:,0] = 0
-        #         uenvx[:,-1]= 0
-        #         uenvx[0,:] = 0
-        #         uenvx[-1,:] = 0
-        #
-        #         uenvy[:,0] = 0
-        #         uenvy[:,-1]= 0
-        #         uenvy[0,:] = 0
-        #         uenvy[-1,:] = 0
-        #
-        #
-        # else:
-        #     uenvx = 0
-        #     uenvy = 0
-        #
-        # # distance over which electric field is active is affected by electrolyte screening. Therefore
-        # # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
-        # # which is assumed to be about 1 nm:
-        #
-        # # self.field_mod = (1e-9/p.cell_space)
-        # self.field_mod = 0.0
-        #
-        # f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
-        #     self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
-        #     self.zs[i],self.T,p)
-        #
-        #
-        # IdM = np.ones(self.mdl)
-        #
-        #
-        # # Calculate flux across TJ for this ion:
-        #
-        # f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
-        #                     self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
-        #                        self.T, p)
-        #
-        #
-        # self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
-        #
-        #
-        # if p.closed_bound is False:
-        #
-        #     f_env_x[:,0] = f_env_x[:,1]
-        #     f_env_x[:,-1]= f_env_x[:,-2]
-        #     f_env_x[0,:] = f_env_x[1,:]
-        #     f_env_x[-1,:] = f_env_x[-2,:]
-        #
-        #     f_env_y[:,0] = f_env_y[:,1]
-        #     f_env_y[:,-1]= f_env_y[:,-2]
-        #     f_env_y[0,:] = f_env_y[1,:]
-        #     f_env_y[-1,:] = f_env_y[-2,:]
-        #
-        # else:
-        #
-        #     f_env_x[:,0] = 0
-        #     f_env_x[:,-1]= 0
-        #     f_env_x[0,:] = 0
-        #     f_env_x[-1,:] = 0
-        #
-        #     f_env_y[:,0] = 0
-        #     f_env_y[:,-1]= 0
-        #     f_env_y[0,:] = 0
-        #     f_env_y[-1,:] = 0
-        #
-        # # calculate the divergence of the total flux, which is equivalent to the total change per unit time
-        #
-        # d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
-        # d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
-        #
-        # delta_c = d_fenvx + d_fenvy
-        #
-        # #-----------------------
-        # cenv = cenv + delta_c*p.dt
-        #
-        #
-        # if p.closed_bound is True:
-        #     # Neumann boundary condition (flux at boundary)
-        #     # zero flux boundaries for concentration:
-        #
-        #     cenv[:,-1] = cenv[:,-2]
-        #     cenv[:,0] = cenv[:,1]
-        #     cenv[0,:] = cenv[1,:]
-        #     cenv[-1,:] = cenv[-2,:]
-        #
-        # elif p.closed_bound is False:
-        #     # if the boundary is open, set the concentration at the boundary
-        #     # open boundary
-        #     cenv[:,-1] = self.c_env_bound[i]
-        #     cenv[:,0] = self.c_env_bound[i]
-        #     cenv[0,:] = self.c_env_bound[i]
-        #     cenv[-1,:] = self.c_env_bound[i]
-        #
-        # self.cc_env[i] = cenv.ravel()
-        #
-        # fenvx = (f_env_x[:, 1:] + f_env_x[:, 0:-1]) / 2
-        # fenvy = (f_env_y[1:, :] + f_env_y[0:-1, :]) / 2
-        #
-        # self.fluxes_env_x[i] = self.fluxes_env_x[i] + fenvx.ravel()  # store ecm junction flux for this ion
-        # self.fluxes_env_y[i] = self.fluxes_env_y[i] + fenvy.ravel()  # store ecm junction flux for this ion
 
     def get_ion(self,label):
         """
@@ -2020,7 +1817,8 @@ class Simulator(object):
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
             dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            # dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            dummyMems[cells.bflags_mems] = self.D_free[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
             if p.env_type is True:
@@ -2033,7 +1831,7 @@ class Simulator(object):
 
             Denv_o = Denv_o.ravel()
             Denv_o[cells.inds_env] = self.D_free[i]
-            Denv_o[cells.map_cell2ecm][cells.bflags_cells][:] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+            Denv_o[cells.map_cell2ecm][cells.bflags_cells] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
 
             # create an ecm diffusion grid filled with the environmental values
             self.D_env[i] = Denv_o[:]*1
@@ -2233,3 +2031,210 @@ class Simulator(object):
 #         c_env = c_env + delta_env * p.dt
 #         # assume auto-mixing of environmental concentrations:
 #         self.cc_env[ion_i][:] = c_env.mean()
+
+
+
+
+# Calculate flux across TJ for this ion:
+
+# IdM = np.ones(self.mdl)
+#
+# f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
+#                     self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
+#                        self.T, p)
+#
+#
+# self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
+
+
+# #-----old way------------------------------------------------------------
+#
+#
+# if p.closed_bound is True:
+#     btag = 'closed'
+#
+# else:
+#     btag = 'open'
+#
+# # make v_env and cc_env into 2d matrices
+# cenv = self.cc_env[i]
+#
+# v_env = self.v_env.reshape(cells.X.shape)
+#
+# # enforce voltage at boundary:
+# v_env[:,0] = self.bound_V['L']
+# v_env[:,-1] = self.bound_V['R']
+# v_env[0,:] = self.bound_V['B']
+# v_env[-1,:] = self.bound_V['T']
+#
+# cenv = cenv.reshape(cells.X.shape)
+#
+# # if p.smooth_level > 0.0:
+# #     cenv = gaussian_filter(cenv, p.smooth_level)
+#
+# # prepare concentrations and diffusion constants for MACs grid format
+# # by resampling the values at the u v coordinates of the flux:
+# cenv_x = np.zeros(cells.grid_obj.u_shape)
+# cenv_y = np.zeros(cells.grid_obj.v_shape)
+#
+# # create the proper shape for the concentrations and state appropriate boundary conditions:
+# cenv_x[:,1:] = cenv
+#
+# cenv_y[1:,:] = cenv
+#
+# if p.closed_bound is True: # insulation boundary conditions
+#
+#     cenv_x[:,0] = cenv_x[:,1]
+#     cenv_x[:,-1] = cenv_x[:,-2]
+#     cenv_x[0,:] = cenv_x[1,:]
+#     cenv_x[-1,:] = cenv_x[-2,:]
+#
+#     cenv_y[0,:] = cenv_y[1,:]
+#     cenv_y[-1,:] = cenv_y[-2,:]
+#     cenv_y[:,0] = cenv_y[:,1]
+#     cenv_y[:,-1] = cenv_y[:,-2]
+#
+# else:   # open and electrically grounded boundary conditions
+#     cenv_x[:,0] =  self.c_env_bound[i]
+#     cenv_x[:,-1] =  self.c_env_bound[i]
+#     cenv_x[0,:] =  self.c_env_bound[i]
+#     cenv_x[-1,:] =  self.c_env_bound[i]
+#
+#     cenv_y[0,:] =  self.c_env_bound[i]
+#     cenv_y[-1,:] =  self.c_env_bound[i]
+#     cenv_y[:,0] =  self.c_env_bound[i]
+#     cenv_y[:,-1] =  self.c_env_bound[i]
+#
+#
+# # calculate gradients in the environment
+# grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
+#
+# grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
+#
+#
+# grad_V_env_x[:,1:] = grad_V_env_x[:,1:]  + self.E_env_x
+#
+# grad_V_env_y[1:,:] = grad_V_env_y[1:,:] + self.E_env_y
+#
+# # calculate fluxes for electrodiffusive transport:
+# if p.fluid_flow is True:
+#
+#     uenvx = np.zeros(cells.grid_obj.u_shape)
+#     uenvy = np.zeros(cells.grid_obj.v_shape)
+#
+#     uenvx[:,1:] = self.u_env_x
+#     uenvy[1:,:] = self.u_env_y
+#
+#     if p.closed_bound is False:
+#
+#         uenvx[:,0] = uenvx[:,1]
+#         uenvx[:,-1]= uenvx[:,-2]
+#         uenvx[0,:] = uenvx[1,:]
+#         uenvx[-1,:] = uenvx[-2,:]
+#
+#         uenvy[:,0] = uenvy[:,1]
+#         uenvy[:,-1]= uenvy[:,-2]
+#         uenvy[0,:] = uenvy[1,:]
+#         uenvy[-1,:] = uenvy[-2,:]
+#
+#     else:
+#
+#         uenvx[:,0] = 0
+#         uenvx[:,-1]= 0
+#         uenvx[0,:] = 0
+#         uenvx[-1,:] = 0
+#
+#         uenvy[:,0] = 0
+#         uenvy[:,-1]= 0
+#         uenvy[0,:] = 0
+#         uenvy[-1,:] = 0
+#
+#
+# else:
+#     uenvx = 0
+#     uenvy = 0
+#
+# # distance over which electric field is active is affected by electrolyte screening. Therefore
+# # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
+# # which is assumed to be about 1 nm:
+#
+# # self.field_mod = (1e-9/p.cell_space)
+# self.field_mod = 0.0
+#
+# f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
+#     self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
+#     self.zs[i],self.T,p)
+#
+#
+# IdM = np.ones(self.mdl)
+#
+#
+# # Calculate flux across TJ for this ion:
+#
+# f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
+#                     self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
+#                        self.T, p)
+#
+#
+# self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
+#
+#
+# if p.closed_bound is False:
+#
+#     f_env_x[:,0] = f_env_x[:,1]
+#     f_env_x[:,-1]= f_env_x[:,-2]
+#     f_env_x[0,:] = f_env_x[1,:]
+#     f_env_x[-1,:] = f_env_x[-2,:]
+#
+#     f_env_y[:,0] = f_env_y[:,1]
+#     f_env_y[:,-1]= f_env_y[:,-2]
+#     f_env_y[0,:] = f_env_y[1,:]
+#     f_env_y[-1,:] = f_env_y[-2,:]
+#
+# else:
+#
+#     f_env_x[:,0] = 0
+#     f_env_x[:,-1]= 0
+#     f_env_x[0,:] = 0
+#     f_env_x[-1,:] = 0
+#
+#     f_env_y[:,0] = 0
+#     f_env_y[:,-1]= 0
+#     f_env_y[0,:] = 0
+#     f_env_y[-1,:] = 0
+#
+# # calculate the divergence of the total flux, which is equivalent to the total change per unit time
+#
+# d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
+# d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
+#
+# delta_c = d_fenvx + d_fenvy
+#
+# #-----------------------
+# cenv = cenv + delta_c*p.dt
+#
+#
+# if p.closed_bound is True:
+#     # Neumann boundary condition (flux at boundary)
+#     # zero flux boundaries for concentration:
+#
+#     cenv[:,-1] = cenv[:,-2]
+#     cenv[:,0] = cenv[:,1]
+#     cenv[0,:] = cenv[1,:]
+#     cenv[-1,:] = cenv[-2,:]
+#
+# elif p.closed_bound is False:
+#     # if the boundary is open, set the concentration at the boundary
+#     # open boundary
+#     cenv[:,-1] = self.c_env_bound[i]
+#     cenv[:,0] = self.c_env_bound[i]
+#     cenv[0,:] = self.c_env_bound[i]
+#     cenv[-1,:] = self.c_env_bound[i]
+#
+# self.cc_env[i] = cenv.ravel()
+#
+# fenvx = (f_env_x[:, 1:] + f_env_x[:, 0:-1]) / 2
+# fenvy = (f_env_y[1:, :] + f_env_y[0:-1, :]) / 2
+#
+# self.fluxes_env_x[i] = self.fluxes_env_x[i] + fenvx.ravel()  # store ecm junction flux for this ion
+# self.fluxes_env_y[i] = self.fluxes_env_y[i] + fenvy.ravel()  # store ecm junction flux for this ion

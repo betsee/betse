@@ -38,21 +38,20 @@ class Cells(object):
 
     Parameters
     ----------
-    constants                           Cells requires an instance of NumVars, see the Parameters module.
-
-    worldtype (default = None)          'full' creates a complex world with extracellular
-                                        matrix points, in addition to cell-cell GJ connections.
-
-                                        'basic' creates a simple world with cell-cell GJ connections.
+    p                           Cells requires an instance of the Parameters module.
 
     Methods
     -------
-    makeWorld()                       Create a cell cluster for simulation purposes
     fileInit()                        Create directories for file saving and loading
+    makeWorld()                       Create a cell cluster for simulation purposes
+    deformWorld(p, ecm_verts)         Modifies Cells object under a deformation
     makeSeeds()                       Create a 2D random scatter of points which will serve as cell centres
     makeVoronoi()                     Make and clip/close a Voronoi diagram from the seed points
     cell_index()                      Returns a list of [x,y] points defining the cell centres in order
     cellVerts()                       Copy & scale in points from the ecm matrix to create unique polygonal cells
+    quickVerts()                      Reformulates an exisitng cell world
+    cellMatrices()                    Calculates for matrices for BETSE
+    cell_vols()                       Calculates cell patch volumes
     near_neigh()                      Calculate the nearest neighbour (nn) array for each cell (make gap junctions)
     voronoiGrid()
     makeECM()                         Make the Marker and Cell (MACs) grid for extracellular calculations
@@ -100,6 +99,7 @@ class Cells(object):
         self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
 
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
+        self.cellDivM(p)    # create matrix to invert divergence
 
         logs.log_info('Creating gap junctions... ')
         self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
@@ -122,10 +122,10 @@ class Cells(object):
 
             # FIXME check for the voltage one -- don't need it by default
 
-            logs.log_info('Creating environmental Poisson solver for voltage...')
-            bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
-            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
-            self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+            # logs.log_info('Creating environmental Poisson solver for voltage...')
+            # bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
+            # self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
+            # self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
 
             logs.log_info('Creating environmental Poisson solver for currents...')
             bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
@@ -147,8 +147,8 @@ class Cells(object):
         self.lapGJ = None
         self.lapGJ_P = None
 
-        # # Lapalcian inverses on the env grid
-        # self.lapENVinv = None
+        # Lapalcian inverses on the env grid
+        self.lapENVinv = None
 
         # other matrices
         self.M_sum_mem_to_ecm = None   # used for deformation
@@ -927,12 +927,6 @@ class Cells(object):
             self.matrixMap2Verts[i,indices[0]]=1/2
             self.matrixMap2Verts[i,indices[1]]=1/2
 
-        # Updating cell concentrations when receiving multiple membrane fluxes ---------------------------------------
-        # self.cell_UpdateMatrix = np.zeros((len(self.mem_i),len(self.cell_i)))
-        #
-        # for i, cell_index in enumerate(self.mem_to_cells):
-        #     self.cell_UpdateMatrix[i,cell_index] = 1
-
         # matrix for summing property on membranes for each cell and a count of number of mems per cell:---------------
         self.M_sum_mems = np.zeros((len(self.cell_i),len(self.mem_i)))
         self.num_mems = []
@@ -944,6 +938,8 @@ class Cells(object):
                 n = n+1
 
             self.num_mems.append(n)
+
+        # self.cellDivM(p)
 
         self.num_mems = np.asarray(self.num_mems)  # number of membranes per cell
 
@@ -1007,8 +1003,6 @@ class Cells(object):
         mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
         mem_nn = [[] for x in self.mem_i]
         mem_bound = []
-        # self.mem_tx = np.zeros(len(self.mem_i))
-        # self.mem_ty = np.zeros(len(self.mem_i))
 
         for i, ind_pair in enumerate(mem_nn_o):
 
@@ -1079,51 +1073,6 @@ class Cells(object):
 
         ecm_mids = list(ecm_mids)
         self.ecm_mids = np.asarray(ecm_mids)
-
-        #------------------------------------
-
-        # # define conversion between ecm midpoints and the membrane midpoints
-        # if self.ecmTree is None:
-        #
-        #     self.ecmTree = sps.KDTree(self.ecm_mids)
-        #
-        # self.mem_to_ecm_mids = list(self.ecmTree.query(self.mem_mids_flat,k=1))[1]
-        #
-        # dist_mems = list(self.ecmTree.query(self.mem_mids_flat,k=1))[0]
-        # dist_max = dist_mems.max()
-        #
-        # # and converse conversion between membrane midpoints and the ecm midpoints
-        # memTree = sps.KDTree(self.mem_mids_flat)
-        #
-        # search = list(memTree.query(self.ecm_mids,k=2))
-        # dist_ecms = search[0]
-        # ecm_to_mem_inds = search[1]
-        #
-        # ex = []
-        # ey = []
-        #
-        # for i, inds in enumerate(ecm_to_mem_inds):
-        #
-        #     dist = dist_ecms[i]
-        #     ind_i = inds[0]
-        #     ind_j = inds[1]
-        #
-        #     if dist[0] > dist_max: # check the distance between the found ecm and membrane midpoint
-        #
-        #         ind_pair = [ind_j,ind_j]
-        #
-        #     elif dist[1] > dist_max:
-        #
-        #         ind_pair = [ind_i, ind_i]
-        #
-        #     elif dist[0] <= dist_max and dist[1] <= dist_max:
-        #
-        #         ind_pair = [ind_i,ind_j]
-        #
-        #     ex.append(ind_pair[0])
-        #     ey.append(ind_pair[1])
-        #
-        # self.ecm_to_mem_mids = np.column_stack((ex,ey))
 
     def near_neigh(self,p):
 
@@ -1437,6 +1386,60 @@ class Cells(object):
             # if time0dependent deformation is selected, also save the direct Laplacian operator:
             self.lapGJ = lapGJ
             self.lapGJ_P = lapGJ_P
+
+    def cellDivM(self, p):
+
+        """
+        Defines a matrix, self.divCell_inv, which
+        performs the inverse of divergence operation
+        for membranes on individual cells of the cluster.
+
+        If we consider a scalar property Phi, which is
+        defined at points immediately inside and outside
+        of cell membranes, for the Poisson equation:
+
+         Del^2 Phi = rho
+
+        self.divMem_inv returns Del Phi which is
+        the gradient of Phi with respect to Phi's
+        values inside and outside of the cell at each
+        membrane.
+
+        (only normal components to the membrane
+        are considered possible)
+
+        """
+
+        # # matrix for summing property on membranes for each cell and a count of number of mems per cell:---------------
+        # self.M_sum_mems = np.zeros((len(self.cell_i), len(self.mem_i)))
+
+        # matrix for computing divergence of a property defined on a membrane of each cell patch:
+        divCell = np.zeros((len(self.cell_i), len(self.mem_i)))
+
+        # self.num_mems = []
+
+        for i, inds in enumerate(self.cell_to_mems):
+
+            # n = 0
+
+            # get the volume for the cell:
+            cell_vol = self.cell_vol[i]
+
+            for j in inds:
+                # self.M_sum_mems[i,j] = 1
+
+                # get the membrane surface area for this membrane patch:
+                mem_sa = self.mem_sa[j]
+
+                # set the divergence term:
+                divCell[i, j] = mem_sa/cell_vol
+
+                # n = n+1
+
+            # self.num_mems.append(n)
+
+        # calculate the inverse of the divergence matrix:
+        self.divCell_inv = np.linalg.pinv(divCell)
 
     def maxwellCapMatrix(self, p):
         """
@@ -1975,70 +1978,6 @@ class Cells(object):
 
         self.inds2ecmVerts = np.asarray(self.inds2ecmVerts)
 
-        # also need a data structure to map between environmental grid points and ecm_verts_unique:
-
-        # # ---------Deformation matrices-----------------------------------------------------------------------------
-        #
-        # # Create a matrix that will sum value from the membranes to the ecm midpoint:
-        #
-        # self.M_sum_mem_to_ecm = np.zeros((len(self.ecm_mids), len(self.mem_i)))
-        #
-        # for i_ecm, ind_pair in enumerate(self.ecm_to_mem_mids):
-        #
-        #     if ind_pair[0] == ind_pair[1]:  # if the indices are equal, it's a boundary point
-        #
-        #         ind = ind_pair[0]
-        #         self.M_sum_mem_to_ecm[i_ecm, ind] = 1
-        #
-        #     else:
-        #         ind1 = ind_pair[0]
-        #         ind2 = ind_pair[1]
-        #         self.M_sum_mem_to_ecm[i_ecm, ind1] = 1 / 2
-        #         self.M_sum_mem_to_ecm[i_ecm, ind2] = 1 / 2
-        #
-        # # create the deformation matrix, which will apply strain at mem mids to the vertices
-        # # (np.dot(mem_verts,strain)):
-        # # Calculate the deforM matrix to work with ecm rather than cell vertices:
-        # midsTree = sps.KDTree(self.ecm_mids)
-        # vertTree = sps.KDTree(self.ecm_verts_unique)
-        #
-        # self.deforM = np.zeros((len(self.ecm_verts_unique), len(self.ecm_mids)))
-        #
-        # for i_cell, ecm_verts in enumerate(self.ecm_verts):
-        #
-        #     mem_i_set = self.cell_to_mems[i_cell]
-        #
-        #     ecm_mids = self.ecm_mids[self.mem_to_ecm_mids[mem_i_set]]
-        #
-        #     if len(ecm_mids) == len(ecm_verts):
-        #         seq_i_verts = np.arange(0, len(ecm_mids))
-        #         seq_ip_mids = np.roll(seq_i_verts, 0)
-        #         seq_im_mids = np.roll(seq_i_verts, -1)
-        #
-        #         ecm_mids = np.asarray(ecm_mids)
-        #
-        #         vert_points = ecm_verts[seq_i_verts]
-        #         ecm_points_p = ecm_mids[seq_ip_mids]
-        #         ecm_points_m = ecm_mids[seq_im_mids]
-        #
-        #         # find these points in the flattened vectors:
-        #         vert_inds = list(vertTree.query(vert_points))[1]
-        #         ecm_inds_p = list(midsTree.query(ecm_points_p))[1]
-        #         ecm_inds_m = list(midsTree.query(ecm_points_m))[1]
-        #
-        #         self.deforM[vert_inds, ecm_inds_p] = 1
-        #         self.deforM[vert_inds, ecm_inds_m] = 1
-        #
-        # # ---------------------------------------------------------------------
-        #
-        # # Finally, build a list of inds (self.ecmInds) to map between unique and flattened ecm_verts vectors:
-        # ecm_verts_flat, map_a, map_b = tb.flatten(self.ecm_verts)
-        # ecm_verts_flat = np.asarray(ecm_verts_flat)
-        #
-        # ecmTree = sps.KDTree(self.ecm_verts_unique)
-        #
-        # self.ecmInds = list(ecmTree.query(ecm_verts_flat))[1]
-
     def intra_updater(self,p):
         """
         Calculates a matrix that takes values on
@@ -2084,170 +2023,6 @@ class Cells(object):
             self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
             self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
-#-----------WASTELANDS-------------------------------------------------------------------------------------------------
-# def gj_matrix(self, p):
-#     # mapping between gap junction index and cell:
-#     self.cell_to_nn_full = [[] for x in range(len(self.cell_i))]
-#
-#     for i, (cell_i, cell_j) in enumerate(self.cell_nn_i):
-#
-#         if cell_i != cell_j:  # if it's not a boundary membrane...
-#
-#             self.cell_to_nn_full[cell_i].append(i)
-#             self.cell_to_nn_full[cell_j].append(i)
-#
-#     self.cell_to_nn_full = np.asarray(self.cell_to_nn_full)
-#
-#     # calculate matrix for gj divergence of the flux calculation -- this is now simply a sum over nn values:
-#     # self.gjMatrix = np.zeros((len(self.cell_i), len(self.mem_i)))
-#     #
-#     # for cell_i, i_mem_set in enumerate(self.cell_to_mems):
-#     #
-#     #     for i_mem in i_mem_set:
-#     #
-#     #         j_mem = self.nn_i[i_mem]  # get the neighbouring membrane for this cell's membrane
-#     #
-#     #         if i_mem != j_mem: # if we're not on a neighbourless boundary membrane...
-#     #
-#     #             self.gjMatrix[cell_i,i_mem] = 1
-#
-#     # the nnAveMatrix will take a property defined from two cells onto a single gap junction and average
-#     # the property to provide one unique result:
-#     if p.gj_flux_sensitive is True:  # if the user desires flux sensitive gj, construct the very large nnAveMatrix:
-#         self.nnAveMatrix = np.zeros((len(self.mem_i), len(self.mem_i)))
-#
-#         for i, j in enumerate(self.nn_i):
-#             # find the index of the duplicate point in the gj matrix:
-#             self.nnAveMatrix[i, j] = 1 / 2
-#             self.nnAveMatrix[j, i] = 1 / 2
-
-
-#-----------------------------------------------------------------------------------------------------------------------
-#   WASTELANDS
-#-----------------------------------------------------------------------------------------------------------------------
-
-            # def env_weighting(self,p):  #
-            #
-            #     #----------------------------------------------------------------
-            #     # Method to create a source function to accurately map number of cell mem fluxes to env grid
-            #
-            #     # get the subset of points corresponding to the cluster:
-            #     ecm_clust_xy = self.xypts[self.inds_clust]
-            #
-            #     # get a search tree for the membrane mids:
-            #     memTree = sps.KDTree(self.mem_mids_flat)
-            #
-            #     # search within a slightly larger (i.e. 1.74 instead of 2.0 divisor) area than half grid space:
-            #     search_results = memTree.query_ball_point(ecm_clust_xy, self.delta / 1.738)
-            #
-            #     # find out how many membrane mids are located per unit of ecm square:
-            #     mems_per_square = []
-            #     # membrane surface area per square of Env Grid:
-            #     memSa_per_square = []
-            #
-            #     for lst in search_results:
-            #         num_mems = len(lst)
-            #         mem_sas = np.sum(self.mem_sa[lst])  # get the sum of the mem surface areas for this block
-            #         mems_per_square.append(num_mems)
-            #         memSa_per_square.append(mem_sas)
-            #
-            #     # create a new data structure that contains the spatially-preserved info:
-            #     self.mems_per_envSquare = np.zeros(len(self.xypts))
-            #     self.mems_per_envSquare[self.inds_clust] = mems_per_square
-            #
-            #     self.memSa_per_envSquare = np.zeros(len(self.xypts))
-            #     self.memSa_per_envSquare[self.inds_clust] = memSa_per_square
-            #
-            #     # as well as an average value
-            #     mems_per_square = np.asarray(mems_per_square)
-            #
-            #     self.mean_mems_per_envSquare = mems_per_square.mean()
-
-
-    #----------------------------
-        #
-        # def maxwellCapMatrix_o(self, p):
-        #     """
-        #     This method defines the Maxwell Capacitance matrix
-        #     for the collection of cells with their structured
-        #     Voronoi lattice.
-        #
-        #     Each cell and respective extracellular space are
-        #     considered to be conductors separated by the insulating
-        #     region of the cell membrane.
-        #
-        #     Each cell interacts with its N nearest ecm spaces.
-        #     Likewise, each ecm space interacts with two neighbouring cells,
-        #     or if the ecm space is on an external boundary, with one
-        #     neighbouring cell.
-        #
-        #     The Maxwell Capacitance matrix is created by solving for the
-        #     charge in each cell or ecm space, given the voltages of the space
-        #     and the capacitive connections between spaces. The matrix is
-        #     then inverted, so that we can use it to solve for voltages
-        #     knowing charges.
-        #
-        #     """
-        #
-        #     data_length = len(self.mem_i) + len(self.ecm_mids)
-        #     # define ranges within the total data length where we can
-        #     # work with cell centres or ecm mids specifically:
-        #     self.mem_range_a = 0
-        #     self.mem_range_b = len(self.mem_i)
-        #     self.ecm_range_a = self.mem_range_b
-        #     self.ecm_range_b = len(self.ecm_mids) + len(self.mem_i)
-        #
-        #     M_max_cap = np.zeros((data_length, data_length))
-        #
-        #     # first do cells -- where index of Maxwell vector is equal to cell index
-        #     for mem_i in range(self.mem_range_a, self.mem_range_b):
-        #         # mem_i_set = self.cell_to_mems[cell_i]  # get the membranes for this cell
-        #
-        #         # cm_sum = p.cm * self.num_mems[cell_i]  # sum up the caps per unit surface for diagonal term
-        #
-        #         cm_mem = p.cm * self.mem_sa[mem_i]  # capacitance for cell diagonal term
-        #         cs_mem = p.electrolyte_screening * self.mem_sa[mem_i]  # calculate self-capacitance
-        #
-        #         # get the ecm spaces for each membrane
-        #         # we must add on the cells data length to make these indices of the max cap vector and matrix:
-        #         ecm_i_set = self.mem_to_ecm_mids[mem_i] + len(self.mem_i)
-        #
-        #         # set the diagonal element for cells:
-        #         # M_max_cap[cell_i,cell_i] = cm_sum + p.electrolyte_screening # plus self-capacitance
-        #         M_max_cap[mem_i, mem_i] = cm_mem + cs_mem  # membrane plus self-capacitance
-        #
-        #         # set the off-diagonal elements for cells:
-        #         # M_max_cap[cell_i,ecm_i_set] = -p.cm
-        #         M_max_cap[mem_i, ecm_i_set] = -p.cm * self.mem_sa[mem_i]
-        #
-        #     # next do ecm spaces -- index of maxwell vector equal to ecm index - len(cell_i)
-        #     for ecm_i in range(self.ecm_range_a, self.ecm_range_b):
-        #
-        #         ecm_i_o = ecm_i - len(self.mem_i)  # get the true ecm index wrt to the cell world
-        #
-        #         mem_pair = self.ecm_to_mem_mids[ecm_i_o]  # get the pair of mem inds corresponding to each ecm space
-        #
-        #         cm = p.cm * self.mem_sa[mem_pair[0]]  # get the capacitance of the individual membrane
-        #         cs = p.electrolyte_screening * self.mem_sa[mem_pair[0]]  # get the self-capacitance of the ecm space
-        #
-        #         # cell_j = self.mem_to_cells[mem_pair[0]]   # get the indices of cells corresponding to each membrane
-        #         # cell_k = self.mem_to_cells[mem_pair[1]]
-        #
-        #         if mem_pair[0] == mem_pair[1]:  # then we're on a boundary
-        #
-        #             M_max_cap[ecm_i, ecm_i] = cm + cs  # plus self capacitance
-        #             M_max_cap[ecm_i, mem_pair[0]] = -cm
-        #
-        #
-        #         else:
-        #             M_max_cap[ecm_i, ecm_i] = 2 * cm + 2 * cs  # plus self capacitance
-        #             M_max_cap[ecm_i, mem_pair[0]] = -cm
-        #             M_max_cap[ecm_i, mem_pair[1]] = -cm
-        #
-        #     # get the inverse of the matrix:
-        #     self.M_max_cap_inv = np.linalg.pinv(M_max_cap)
-        #     # self.M_max_cap = M_max_cap
-
     def zero_div_cell(self, Fn, rho=0.0, bc = 0.0, open_bounds=True):
 
         """
@@ -2279,10 +2054,10 @@ class Cells(object):
             Phi = np.dot(self.lapGJ_P_inv, div_F + rho)
 
 
-        gPhi = (Phi[self.cell_nn_i[:, 1]] - Phi[self.cell_nn_i[:, 0]]) / (2*self.nn_len)
+        gPhi = (Phi[self.cell_nn_i[:, 1]] - Phi[self.cell_nn_i[:, 0]]) / (self.nn_len)
 
         # make the field divergence-free:
-        Fn = Fn - gPhi
+        Fn = Fn + gPhi
 
         # assign the boundary condition:
         Fn[self.bflags_mems] = bc

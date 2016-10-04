@@ -4808,10 +4808,10 @@ class Molecule(object):
         # reassign the new data vector to the object:
         self.c_cells = ccells2[:]
 
-        # remove cells from the mems concentration list:
-        cmems2 = np.delete(self.c_mems, target_inds_mem)
-        # reassign the new data vector to the object:
-        self.c_mems = cmems2[:]
+        # # remove cells from the mems concentration list:
+        # cmems2 = np.delete(self.c_mems, target_inds_mem)
+        # # reassign the new data vector to the object:
+        # self.c_mems = cmems2[:]
 
         if self.simple_growth is True:
 
