@@ -1564,8 +1564,8 @@ class MasterOfNetworks(object):
 
                 vmem_tex = "V_{mem}"
 
-                in_delta_term_react = "-self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
-                in_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
+                in_delta_term_react = "(np.dot(cells.M_sum_mems, -self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
+                in_delta_term_prod = "(np.dot(cells.M_sum_mems, self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
 
                 if p.sim_ECM is True:
 
@@ -1587,9 +1587,9 @@ class MasterOfNetworks(object):
                                                 .format(transp_name)
 
                 else:
-                    out_delta_term_react = "-self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
+                    out_delta_term_react = "(np.dot(cells.M_sum_mems, -self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
 
-                    out_delta_term_prod = "self.transporters['{}'].flux*(cells.mem_sa/cells.mem_vol)".format(transp_name)
+                    out_delta_term_prod = "(np.dot(cells.M_sum_mems, self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
 
                 all_alpha, alpha_tex, trans_tex_var_list = self.get_influencers(a_list, Km_a_list,
                                                                 n_a_list, i_list,
@@ -1773,22 +1773,36 @@ class MasterOfNetworks(object):
 
             for i, (name, coeff, tag) in enumerate(zip(reactant_names, reactant_coeff, react_transfer_tag)):
 
-                if tag != 'env_concs' or p.sim_ECM is False:
+                if tag == 'mem_concs':
 
+                    tag2 = 'cell_concs'
+
+                    denomo_string_Q += "(self.{}['{}'][cells.mem_to_cells]".format(tag2, name)
+                    tex_name = name
+
+                elif tag == 'mit_concs':
                     denomo_string_Q += "(self.{}['{}']".format(tag, name)
+                    tex_name = name + '_{mit}'
 
-                    if tag == 'mit_concs':
-                        tex_name = name + '_{mit}'
-
-                    else:
-                        tex_name = name
+                elif tag == 'cell_concs':
+                    denomo_string_Q += "(self.{}['{}']".format(tag, name)
+                    tex_name = name
 
                 # get the concentration from the environment, mapped to respective membranes:
-                else:
+                elif tag == 'env_concs':
 
-                    denomo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+                    if p.sim_ECM is True:
+
+                        denomo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+
+                    else:
+                        denomo_string_Q += "(self.{}['{}']".format(tag, name)
 
                     tex_name = name + '_{env}'
+
+                else:
+
+                    raise BetseParametersException("Transporter tag not properly defined!")
 
                 denomo_string_Q += "**{})".format(coeff)
 
@@ -1805,21 +1819,35 @@ class MasterOfNetworks(object):
 
             for i, (name, coeff, tag) in enumerate(zip(product_names, product_coeff, prod_transfer_tag)):
 
-                if tag != 'env_concs' or p.sim_ECM is False:
+                if tag == 'mem_concs':
 
+                    tag2 = 'cell_concs'
+
+                    numo_string_Q += "(self.{}['{}'][cells.mem_to_cells]".format(tag2, name)
+                    tex_name = name
+
+                elif tag == 'mit_concs':
                     numo_string_Q += "(self.{}['{}']".format(tag, name)
+                    tex_name = name + "_{mit}"
 
-                    if tag == 'mit_concs':
-                        tex_name = name + "_{mit}"
-
-                    else:
-                        tex_name = name
+                elif tag == 'cell_concs':
+                    numo_string_Q += "(self.{}['{}']".format(tag, name)
+                    tex_name = name
 
                 # get the concentration from the environment mapped to the respective membranes:
-                else:
-                    numo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+                elif tag == 'env_concs':
+
+                    if p.sim_ECM is True:
+                        numo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+
+                    else:
+                        numo_string_Q += "(self.{}['{}']".format(tag, name)
 
                     tex_name = name + "_{env}"
+
+                else:
+
+                    raise BetseParametersException("Transporter tag not properly defined!")
 
                 numo_string_Q += "**{})".format(coeff)
 
@@ -1849,22 +1877,44 @@ class MasterOfNetworks(object):
 
             for i, (name, n, Km, tag) in enumerate(zip(reactant_names, reactant_coeff, reactant_Km, react_transfer_tag)):
 
-                if tag != 'env_concs' or p.sim_ECM is False:
+                if tag == 'mem_concs':
+
+                    tag2 = 'cell_concs'
+
+                    numo_string_r = "((self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
+                    denomo_string_r = "(1 + (self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
+                    tex_name = name
+
+                elif tag == 'mit_concs':
 
                     numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
 
-                    if tag == 'mit_concs':
-                        tex_name = name + "_{mit}"
+                    tex_name = name + "_{mit}"
+
+                elif tag == 'cell_concs':
+
+                    numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                    denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                    tex_name = name
+
+                elif tag == 'env_concs':
+
+                    if p.sim_ECM is True:
+
+                        numo_string_r = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+                        denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+
                     else:
-                        tex_name = name
+
+                        numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                        denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+
+                    tex_name = name + "_{env}"
 
                 else:
 
-                    numo_string_r = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
-                    denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
-
-                    tex_name = name + "_{env}"
+                    raise BetseParametersException("Transporter tag not properly defined!")
 
                 term = "(" + numo_string_r + "/" + denomo_string_r + ")"
 
@@ -1896,22 +1946,46 @@ class MasterOfNetworks(object):
 
             for i, (name, n, Km, tag) in enumerate(zip(product_names, product_coeff, product_Km, prod_transfer_tag)):
 
-                if tag != 'env_concs' or p.sim_ECM is False:
+                if tag == 'mem_concs':
+
+                    tag2 = 'cell_concs'
+
+                    numo_string_p = "((self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
+                    denomo_string_p = "(1 + (self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
+
+                    tex_name = name
+
+                elif tag == 'mit_concs':
 
                     numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
 
-                    if tag == 'mit_concs':
-                        tex_name = name + "_{mit}"
+                    tex_name = name + "_{mit}"
+
+                elif tag == 'cell_concs':
+
+                    numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                    denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+
+                    tex_name = name
+
+                elif tag == 'env_concs':
+
+                    if p.sim_ECM is True:
+
+                        numo_string_p = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+                        denomo_string_p = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
+
                     else:
-                        tex_name = name
+
+                        numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                        denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
+
+                    tex_name = name + "_{env}"
 
                 else:
 
-                    numo_string_p = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
-                    denomo_string_p = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
-
-                    tex_name = name + "_{env}"
+                    raise BetseParametersException("Transporter tag not properly defined!")
 
 
                 term = "(" + numo_string_p + "/" + denomo_string_p + ")"
@@ -2346,6 +2420,8 @@ class MasterOfNetworks(object):
             targ_cell = self.transporters[name].transporter_targets_cell
             targ_env = self.transporters[name].transporter_targets_env
 
+            # print(self.transporters[name].transporter_eval_string)
+
             # calculate the flux
             self.transporters[name].flux = sim.rho_pump*eval(self.transporters[name].transporter_eval_string,
                 self.globals, self.locals)
@@ -2360,9 +2436,9 @@ class MasterOfNetworks(object):
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].react_transport_tag[i] == 'mem_concs':
 
-                    self.cell_concs[self.transporters[name].reactants_list[i]][cells.mem_to_cells][targ_mem] = \
-                        self.cell_concs[self.transporters[name].reactants_list[i]][cells.mem_to_cells][targ_mem] + \
-                        delta_react[targ_mem]*p.dt
+                    self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] = \
+                        self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] + \
+                        delta_react[targ_cell]*p.dt
 
                 elif self.transporters[name].react_transport_tag[i] == 'env_concs':
 
@@ -2406,9 +2482,9 @@ class MasterOfNetworks(object):
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].prod_transport_tag[i] == 'mem_concs':
 
-                    self.cell_concs[self.transporters[name].products_list[i]][cells.mem_to_cells][targ_mem] = \
-                        self.cell_concs[self.transporters[name].products_list[i]][cells.mem_to_cells][targ_mem] + \
-                        delta_prod[targ_mem]*p.dt
+                    self.cell_concs[self.transporters[name].products_list[i]][targ_cell] = \
+                        self.cell_concs[self.transporters[name].products_list[i]][targ_cell] + \
+                        delta_prod[targ_cell]*p.dt
 
                 elif self.transporters[name].prod_transport_tag[i] == 'env_concs':
 
