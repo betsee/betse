@@ -1073,6 +1073,9 @@ class Simulator(object):
         self.fluxes_mem = np.zeros(self.fluxes_mem.shape)
         self.fluxes_gj = np.zeros(self.fluxes_gj.shape)
 
+        # self.Ax_time = []
+        # self.Ay_time = []
+
         self.cc_time = []  # data array holding the concentrations at time points
         self.cc_env_time = [] # data array holding environmental concentrations at time points
 
@@ -1371,50 +1374,22 @@ class Simulator(object):
         # get the charge density in the cells:
         self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
 
-        # if p.sim_ECM is True:
-        #     # get charge in the environment:
-        #     self.rho_env = stb.get_charge_density(self.cc_env, self.z_array_env, p) + self.extra_rho_env
-        #     #optional smoothing of current using gaussian:
-        #     # if p.smooth_level > 0.0:
-        #     #     self.rho_env = gaussian_filter(self.rho_env.reshape(cells.X.shape), p.smooth_level).ravel()
-        #
-        #     # self.rho_env[cells.inds_env] = 0 # assumes charge screening in the bulk env
-        #
-        #     # get average charge in cell and store in time vector:
-        #     # rho_env_sm = self.rho_env[:]
-        #     # # as flux is done in terms of env-grid squares, correct the volume density of charge:
-        #     # rho_env_sm = (cells.true_ecm_vol / cells.ecm_vol) * rho_env_sm
-        #
-        #     q_cells = self.rho_cells * cells.cell_vol
-        #     q_env = self.rho_env * cells.delta * cells.delta * p.cell_height
-        #
-        #     qtot = np.zeros(self.edl)
-        #     qtot[cells.map_cell2ecm] = (q_cells + q_env[cells.map_cell2ecm]) / np.sum(cells.cell_vol)
-        #
-        #     # calculate voltage in the environment using the Poisson equation:
-        #     # self.v_env = np.dot(cells.lapENVinv, -qtot/1.0e-3)
-        #     self.v_env = np.dot(cells.lapENVinv, -q_env/(100*p.eo))
-        #     # set area outside of cluster to zero voltage to account for electrolyte screening:
-        #     # self.v_env[cells.inds_env] = 0
-        #
-        #     #optional smoothing of current using gaussian:
-        #     # if p.smooth_level > 0.0:
-        #     #     self.v_env = gaussian_filter(self.v_env.reshape(cells.X.shape), p.smooth_level).ravel()
-
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
         # # update Vmem in terms of current across each membrane segment:
-        self.vm = self.vm - (1/p.cm)*self.Jn*p.field_modulation*p.dt
+        dv = - (1/p.cm)*self.Jn*p.dt
 
+        self.vm = self.vm + dv
 
-        # # finite volume integral of membrane pie-box values:
-        # # get the average Vmem in the cell:
-        # v_cell_aveo = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
-        # # get the vm at the chord midpoints:
-        # vcell_at_mids = (self.vm + v_cell_aveo[cells.mem_to_cells]) / 2
-        # # # integrate over the mini-grid to get an averaged vm:
-        # self.vm = np.dot(cells.M_int_mems, self.vm) + (1 / 2) * vcell_at_mids
+        # # try calculating a vector potential based on current density:
+        #
+        # self.Ax = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_x)
+        # self.Ay = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_y)
+        #
+        # self.Ax_time.append(self.Ax)
+        # self.Ay_time.append(self.Ay)
+
 
     def acid_handler(self,cells,p):
 
@@ -1738,10 +1713,6 @@ class Simulator(object):
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.E_env_x, self.E_env_y, 0, 0,
                                         self.D_env[i].reshape(cells.X.shape), self.zs[i],
                                         self.T, p)
-
-        # fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, 0, 0, 0, 0,
-        #                                 self.D_env[i].reshape(cells.X.shape), self.zs[i],
-        #                                 self.T, p)
 
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)

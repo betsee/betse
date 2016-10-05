@@ -222,7 +222,7 @@ def pipeline_plots(
         mem_i = cells.cell_to_mems[p.plot_cell][0]
 
         figConcsNa, axConcsNa = viz.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iNa, mem_i, fig=None,
+            sim.cc_time, sim.time, sim.iNa, p.plot_cell, fig=None,
             ax=None, lncolor='g', ionname='Na+')
 
         titNa = 'Sodium concentration in cell ' + str(p.plot_cell)
@@ -237,7 +237,7 @@ def pipeline_plots(
 
         # Plot cell potassium concentration versus time.
         figConcsK, axConcsK = viz.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iK, mem_i, fig=None,
+            sim.cc_time, sim.time, sim.iK, p.plot_cell, fig=None,
             ax=None, lncolor='b', ionname='K+')
 
         titK = 'Potassium concentration in cell ' + str(p.plot_cell)
@@ -253,7 +253,7 @@ def pipeline_plots(
         # plot-cell anion (bicarbonate) concentration vs time:
 
         figConcsM, axConcsM = viz.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iM, mem_i,
+            sim.cc_time, sim.time, sim.iM, p.plot_cell,
             fig=None,
             ax=None,
             lncolor='r',
@@ -272,7 +272,7 @@ def pipeline_plots(
 
         # Plot single cell Vmem vs time.
         figVt, axVt = viz.plotSingleCellVData(
-            sim, plot_cell_ecm, p, fig=None, ax=None, lncolor='k')
+            sim, mem_i, p, fig=None, ax=None, lncolor='k')
         titV = 'Voltage (Vmem) in cell ' + str(p.plot_cell)
         axVt.set_title(titV)
 
@@ -285,7 +285,7 @@ def pipeline_plots(
 
         # Plot fast-Fourier-transform (fft) of Vmem.
         figFFT, axFFT = viz.plotFFT(
-            sim.time, sim.vm_time, plot_cell_ecm, lab="Power")
+            sim.time, sim.vm_time, mem_i, lab="Power")
         titFFT = 'Fourier transform of Vmem in cell ' + str(p.plot_cell)
         axFFT.set_title(titFFT)
 
@@ -379,7 +379,7 @@ def pipeline_plots(
         # Plot cell calcium vs time (if Ca enabled in ion profiles).
         if p.ions_dict['Ca'] ==1:
             figA, axA = viz.plotSingleCellCData(
-                sim.cc_time, sim.time, sim.iCa, mem_i,
+                sim.cc_time, sim.time, sim.iCa, p.plot_cell,
                 fig=None,
                 ax=None,
                 lncolor='g',
@@ -439,30 +439,6 @@ def pipeline_plots(
     #                       2D Data Map Plotting
     #-------------------------------------------------------------------------------------------------------------------
 
-    # if p.plot_venv is True and p.sim_ECM is True:
-    #     plt.figure()
-    #     venv_plt = plt.imshow(
-    #         1000*sim.v_env.reshape(cells.X.shape),
-    #         origin='lower',
-    #         extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-    #         cmap=p.default_cm)
-    #
-    #     if p.autoscale_venv is False:
-    #         venv_plt.set_clim(p.venv_min_clr, p.venv_max_clr)
-    #
-    #     plt.colorbar()
-    #     plt.title('Environmental Voltage [mV]')
-    #
-    #     if p.autosave is True:
-    #         savename10 = savedImg + 'Final_environmental_V' + '.png'
-    #         plt.savefig(savename10,format='png',transparent=True)
-    #
-    #     if p.turn_all_plots_off is False:
-    #         plt.show(block=False)
-
-
-    #------------------------------------------------------------------------------------------------------------------
-
     if p.plot_vm2d is True:
 
         figV, axV, cbV = viz.plotPrettyPolyData(1000*sim.vm_time[-1],
@@ -515,11 +491,17 @@ def pipeline_plots(
 
     #-------------------------------------------------------------------------------------------------------------------
 
-    # FIXME if we keep new computations need to make this a cell based plot
     if p.plot_ca2d is True and p.ions_dict['Ca'] == 1:
-        figCa, axCa, cbCa = viz.plotPrettyPolyData(sim.cc_time[-1][sim.iCa][cells.mem_to_cells]*1e6, sim,cells,p,
-            number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_Ca,
-            clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
+
+
+        figCa, axCa, cbCa = viz.plotPolyData(sim, cells, p, zdata=sim.cc_time[-1][sim.iCa]*1e6, number_cells=p.enumerate_cells,
+                         clrAutoscale=p.autoscale_Ca, clrMin=p.Ca_min_clr, clrMax=p.Ca_max_clr,
+                         clrmap=p.default_cm)
+
+        #
+        # figCa, axCa, cbCa = viz.plotPrettyPolyData(sim.cc_time[-1][sim.iCa][cells.mem_to_cells]*1e6, sim,cells,p,
+        #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_Ca,
+        #     clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
         axCa.set_title('Final cytosolic Ca2+')
         axCa.set_xlabel('Spatial distance [um]')
@@ -552,14 +534,17 @@ def pipeline_plots(
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-    # FIXME if we keep new computations need to make this a cell based plot
 
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
-        pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH][cells.mem_to_cells])
+        pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH])
 
-        figH, axH, cbH = viz.plotPrettyPolyData(pHdata, sim,cells,p,
-            number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
-            clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
+        figH, axH, cbH = viz.plotPolyData(sim, cells, p, zdata=pHdata, number_cells=p.enumerate_cells,
+                         clrAutoscale=p.autoscale_pH, clrMin=p.pH_min_clr, clrMax=p.pH_max_clr,
+                         clrmap=p.default_cm)
+
+        # figH, axH, cbH = viz.plotPrettyPolyData(pHdata, sim,cells,p,
+        #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
+        #     clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
 
         axH.set_title('Final cytosolic pH')
         axH.set_xlabel('Spatial distance [um]')
@@ -780,6 +765,9 @@ def pipeline_plots(
 
         if p.turn_all_plots_off is False:
             plt.show(block=False)
+
+
+    # FIXME I don't know why these aren't working!
 
     # if (p.plot_Vel is True and p.fluid_flow is True and sim.run_sim is True):
     #     viz.plotStreamField(

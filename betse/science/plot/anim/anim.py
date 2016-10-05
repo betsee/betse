@@ -382,6 +382,85 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
             self.collection.set_array(zz_grid)
 
 
+class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
+    '''
+    Animation of an arbitrary gap junction-centric time series (e.g., the gap
+    junction open state as a function of time) overlayed an arbitrary cell-
+    centric time series (e.g., cell voltage as a function of time) on the cell
+    cluster.
+
+    Attributes
+    ----------
+    _cell_plot : ???
+        Artists signifying cell data for the prior or current frame.
+    _cell_time_series : list
+        Arbitrary cell data as a function of time to be underlayed.
+    _gapjunc_plot : LineCollection
+        Lines signifying gap junction state for the prior or current frame.
+    _gapjunc_time_series : list
+        Arbitrary gap junction data as a function of time to be overlayed.
+    '''
+
+    @type_check
+    def __init__(
+        self,
+        time_series: SequenceTypes,
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this animation.
+
+        Parameters
+        ----------
+        cell_time_series : Sequence
+            Arbitrary cell data as a function of time
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+
+        # Initialize the superclass.
+        super().__init__(
+            time_step_count=len(time_series),
+            is_current_overlayable=True,
+            *args, **kwargs
+        )
+
+        # Classify all remaining parameters.
+        self._cell_time_series = time_series
+
+        # Cell data series for the first frame.
+        data_set = self._cell_time_series[0]
+
+        # Add a collection of cell polygons with animated voltage data.
+        if self._p.showCells is True:
+            self._cell_plot, self._axes = cell_mosaic(
+                data_set, self._axes, self._cells, self._p, self._colormap)
+        else:
+            self._cell_plot, self._axes = cell_mesh(
+                data_set, self._axes, self._cells, self._p, self._colormap)
+
+        # Display and/or save this animation.
+        self._animate(
+            color_mapping=self._cell_plot,
+            color_data=self._cell_time_series,
+        )
+
+
+    @type_check
+    def _plot_frame_figure(self):
+
+        # Cell data series for this frame.
+        zv = self._cell_time_series[self._time_step]
+        if self._p.showCells is True:
+            zz_grid = zv
+        else:
+            zz_grid = np.zeros(len(self._cells.voronoi_centres))
+            zz_grid[self._cells.cell_to_grid] = zv
+
+        # Update the cell plot for this frame.
+        self._cell_plot.set_array(zz_grid)
+
+
 class AnimEnvTimeSeries(AnimCellsAfterSolving):
     '''
     Animation of an arbitrary cell-agnostic time series (e.g., environmental
@@ -731,6 +810,8 @@ class AnimFieldIntracellular(AnimField):
             field_y = self._y_time_series[time_step]
 
             #FIXME: What's this about then? Buttercups and bitter nightingales!
+            # If the user passes somethign defined on membranes, this automatically
+            # averages it to cell centers
             if len(field_x) != len(self._cells.cell_i):
                 field_x = (
                     np.dot(self._cells.M_sum_mems, field_x) /

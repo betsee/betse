@@ -23,6 +23,7 @@ from betse.science.plot.anim.anim import (
     AnimFieldExtracellular,
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
+    AnimFlatCellsTimeSeries,
 )
 from betse.science.plot import plot
 from betse.util.io.log import logs
@@ -59,10 +60,12 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     # Log animation creation.
     logs.log_info('Creating animations...')
 
+
+
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1:
-        AnimCellsTimeSeries(
+        AnimFlatCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[1e6*arr[sim.iCa][cells.mem_to_cells] for arr in sim.cc_time],
+            time_series=[1e6*arr[sim.iCa] for arr in sim.cc_time],
             label='Ca',
             figure_title='Cytosolic Ca2+',
             colorbar_title='Concentration [nmol/L]',
@@ -72,9 +75,9 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         )
 
     if p.ani_pH2d is True and p.ions_dict['H'] == 1:
-        AnimCellsTimeSeries(
+        AnimFlatCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[-np.log10(1.0e-3*arr[sim.iH][cells.mem_to_cells]) for arr in sim.cc_time],
+            time_series=[-np.log10(1.0e-3*arr[sim.iH]) for arr in sim.cc_time],
             label='pH',
             figure_title='Cytosolic pH',
             colorbar_title='pH',
@@ -174,7 +177,7 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
     if p.deform_osmo is True:
 
         if p.ani_Pcell is True:
-            AnimCellsTimeSeries(
+            AnimFlatCellsTimeSeries(
                 sim=sim, cells=cells, p=p,
                 time_series=sim.P_cells_time,
                 label='Pcell',
@@ -186,7 +189,7 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             )
 
         if p.ani_osmoP is True:
-            AnimCellsTimeSeries(
+            AnimFlatCellsTimeSeries(
                 sim=sim, cells=cells, p=p,
                 time_series=sim.osmo_P_delta_time,
                 label='OsmoP',

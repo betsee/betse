@@ -99,7 +99,7 @@ class Cells(object):
         self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
 
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
-        self.cellDivM(p)    # create matrix to invert divergence
+        # self.cellDivM(p)    # create matrix to invert divergence
 
         logs.log_info('Creating gap junctions... ')
         self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
@@ -2057,7 +2057,7 @@ class Cells(object):
         gPhi = (Phi[self.cell_nn_i[:, 1]] - Phi[self.cell_nn_i[:, 0]]) / (self.nn_len)
 
         # make the field divergence-free:
-        Fn = Fn + gPhi
+        Fn = Fn - gPhi*0.99
 
         # assign the boundary condition:
         Fn[self.bflags_mems] = bc

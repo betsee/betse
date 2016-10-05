@@ -52,6 +52,8 @@ def get_current(sim, cells, p):
 
     gPhi = (Phi[cells.cell_nn_i[:, 1]] - Phi[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
+    sim.Phi_cell = Phi
+
     # make the field divergence-free:
     sim.Jn = Jn - gPhi*0.99
 
@@ -142,8 +144,10 @@ def get_current(sim, cells, p):
             cells.delta, cells.delta)
 
         # Find the value of the environmental electric potential:
-        Phi = np.dot(cells.lapENV_P_inv, div_J_env_o.ravel())
+        Phi = np.dot(cells.lapENV_P_inv, div_J_env_o.ravel())    # FIXME I think this is the environmental voltage
         Phi = Phi.reshape(cells.X.shape)
+
+        sim.Phi_env = Phi
 
         # Take the grid gradient of the scaled internal potential:
         gPhix, gPhiy = fd.gradient(Phi, cells.delta)

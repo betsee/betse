@@ -15,7 +15,7 @@ from betse.science import sim_toolbox as stb
 from betse.science.tissue.handler import TissueHandler
 from betse.science.event import modulators as mods
 from betse.science.plot import plot as viz
-from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.plot.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from betse.util.io.log import logs
 from betse.util.path import paths
@@ -5114,9 +5114,9 @@ class Molecule(object):
         Create 2D animation of cell concentration.
         """
 
-        AnimCellsTimeSeries(
+        AnimFlatCellsTimeSeries(
             sim=sim, cells=cells, p=p,
-            time_series=[arr[cells.mem_to_cells] for arr in self.c_cells_time],
+            time_series=self.c_cells_time,
             label=self.name + '_cells',
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]',
