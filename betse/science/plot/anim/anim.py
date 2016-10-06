@@ -547,7 +547,6 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
     @type_check
     def __init__(
         self,
-        cell_time_series: SequenceTypes,
         gapjunc_time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
@@ -574,7 +573,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         )
 
         # Classify all remaining parameters.
-        self._cell_time_series = cell_time_series
+        # self._cell_time_series = cell_time_series
         self._gapjunc_time_series = gapjunc_time_series
 
         # Gap junction data series for the first frame plotted as lines.
@@ -593,20 +592,20 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         self._axes.add_collection(self._gapjunc_plot)
 
         # Cell data series for the first frame.
-        data_set = self._cell_time_series[0]
+        # data_set = self._cell_time_series[0]
 
-        # Add a collection of cell polygons with animated voltage data.
-        if self._p.showCells is True:
-            self._cell_plot, self._axes = cell_mosaic(
-                data_set, self._axes, self._cells, self._p, self._colormap)
-        else:
-            self._cell_plot, self._axes = cell_mesh(
-                data_set, self._axes, self._cells, self._p, self._colormap)
+        # # Add a collection of cell polygons with animated voltage data.
+        # if self._p.showCells is True:
+        #     self._cell_plot, self._axes = cell_mosaic(
+        #         data_set, self._axes, self._cells, self._p, self._colormap)
+        # else:
+        #     self._cell_plot, self._axes = cell_mesh(
+        #         data_set, self._axes, self._cells, self._p, self._colormap)
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._cell_plot,
-            color_data=self._cell_time_series,
+            color_mapping=self._gapjunc_plot,
+            color_data=self._gapjunc_time_series,
         )
 
 
@@ -617,16 +616,16 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         self._gapjunc_plot.set_array(
             self._gapjunc_time_series[self._time_step])
 
-        # Cell data series for this frame.
-        zv = self._cell_time_series[self._time_step]
-        if self._p.showCells is True:
-            zz_grid = zv
-        else:
-            zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = zv
+        # # Cell data series for this frame.
+        # zv = self._cell_time_series[self._time_step]
+        # if self._p.showCells is True:
+        #     zz_grid = zv
+        # else:
+        #     zz_grid = np.zeros(len(self._cells.voronoi_centres))
+        #     zz_grid[self._cells.cell_to_grid] = zv
 
         # Update the cell plot for this frame.
-        self._cell_plot.set_array(zz_grid)
+        # self._cell_plot.set_array(zz_grid)
 
 
 class AnimMembraneTimeSeries(AnimCellsAfterSolving):

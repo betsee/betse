@@ -4810,6 +4810,8 @@ class Molecule(object):
 
                     else:
 
+                        # print(self.c_env.mean())
+
                         Dm_mod_mol = self.gating_max_val * tb.hill(self.c_env[cells.map_mem2ecm],
                                                                    self.gating_Hill_K, self.gating_Hill_n)
 

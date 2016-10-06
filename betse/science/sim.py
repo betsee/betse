@@ -206,7 +206,7 @@ class Simulator(object):
         self.P_cells = np.zeros(self.cdl)  # initialize pressure in cells
 
         self.v_cell = np.zeros(self.cdl)  # initialize intracellular voltage
-        self.vm = np.zeros(self.mdl)     # initialize vmem
+        self.vm = -50.0e-3*np.ones(self.mdl)     # initialize vmem
 
         self.E_gj_x = np.zeros(self.mdl)   # electric field components across gap junctions
         self.E_gj_y = np.zeros(self.mdl)
@@ -1259,7 +1259,7 @@ class Simulator(object):
             self.cc_env_time.append(ecmsc)
             ecmsc = None
 
-            self.venv_time.append(self.v_env[:])
+            self.venv_time.append(self.v_env)
 
             if p.fluid_flow is True:
                 self.u_env_x_time.append(self.u_env_x[:])
@@ -1702,6 +1702,8 @@ class Simulator(object):
         cenv[:,-1] =  self.c_env_bound[i]
         cenv[0,:] =  self.c_env_bound[i]
         cenv[-1,:] =  self.c_env_bound[i]
+        #
+        # print(self.bound_V['L'])
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
@@ -1723,6 +1725,8 @@ class Simulator(object):
         cenv = cenv + div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
+
+        self.v_env = v_env.ravel()
 
 
     def get_ion(self,label):
