@@ -65,10 +65,11 @@ def eosmosis(sim, cells, p):
     #     # # get the normal component to the membrane:
     #     # E_tang = (Ex * tx + Ey * ty)*p.media_sigma
 
-    # Ex = (np.dot(cells.M_sum_mems, sim.E_gj_x)/cells.num_mems)[cells.mem_to_cells]
-    # Ey = (np.dot(cells.M_sum_mems, sim.E_gj_y)/cells.num_mems)[cells.mem_to_cells]
-    Ex = p.media_sigma*sim.J_cell_x[cells.mem_to_cells]
-    Ey = p.media_sigma*sim.J_cell_y[cells.mem_to_cells]
+    Ex = (np.dot(cells.M_sum_mems, sim.E_gj_x)/cells.num_mems)[cells.mem_to_cells]
+    Ey = (np.dot(cells.M_sum_mems, sim.E_gj_y)/cells.num_mems)[cells.mem_to_cells]
+
+    # Ex = p.media_sigma*sim.J_cell_x[cells.mem_to_cells]
+    # Ey = p.media_sigma*sim.J_cell_y[cells.mem_to_cells]
 
     E_tang = (Ex * tx + Ey * ty)
 
@@ -102,8 +103,8 @@ def eosmosis(sim, cells, p):
 
     divF_chan = ddfx_ch + ddfy_ch
 
-    sim.rho_pump = sim.rho_pump - divF_pump * p.dt*p.gj_acceleration
-    sim.rho_channel = sim.rho_channel - divF_chan * p.dt*p.gj_acceleration
+    sim.rho_pump = sim.rho_pump - divF_pump * p.dt
+    sim.rho_channel = sim.rho_channel - divF_chan * p.dt
 
     # ------------------------------------------------
     # make sure nothing is non-zero:

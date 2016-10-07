@@ -547,7 +547,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
     @type_check
     def __init__(
         self,
-        gapjunc_time_series: SequenceTypes,
+        time_series: SequenceTypes,
         *args, **kwargs
     ) -> None:
         '''
@@ -565,30 +565,26 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Initialize the superclass.
         super().__init__(
-            time_step_count=len(gapjunc_time_series),
+            time_step_count=len(time_series),
             # Since this class already plots an overlay, prevent the
             # superclass from plotting another overlay.
-            is_current_overlayable=False,
+            is_current_overlayable=True,
             *args, **kwargs
         )
 
         # Classify all remaining parameters.
         # self._cell_time_series = cell_time_series
-        self._gapjunc_time_series = gapjunc_time_series
+        self._time_series = time_series
 
         # Gap junction data series for the first frame plotted as lines.
         self._gapjunc_plot = LineCollection(
             np.asarray(self._cells.nn_edges) * self._p.um,
-            array=self._gapjunc_time_series[0],
+            array=self._time_series[0],
             cmap=self._p.gj_cm,
             linewidths=2.0,
-
-            #FIXME: This isn't the best. Text should still be displayed
-            #above this. Ideally, this should be something like
-            #"(ZORDER_LINE + ZORDER_STREAM) / 2" instead.
             zorder=10,
         )
-        self._gapjunc_plot.set_clim(0.0, 1.0)
+        # self._gapjunc_plot.set_clim(0.0, 1.0)
         self._axes.add_collection(self._gapjunc_plot)
 
         # Cell data series for the first frame.
@@ -605,16 +601,16 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_mapping=self._gapjunc_plot,
-            color_data=self._gapjunc_time_series,
+            color_data=self._time_series,
         )
 
-
-    @type_check
+    #
+    # @type_check
     def _plot_frame_figure(self):
 
         # Update the gap junction plot for this frame.
         self._gapjunc_plot.set_array(
-            self._gapjunc_time_series[self._time_step])
+            self._time_series[self._time_step])
 
         # # Cell data series for this frame.
         # zv = self._cell_time_series[self._time_step]

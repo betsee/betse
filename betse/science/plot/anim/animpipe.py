@@ -109,7 +109,7 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 
         AnimGapJuncTimeSeries(
             sim=sim, cells=cells, p=p,
-            gapjunc_time_series=sim.gjopen_time,
+            time_series=sim.gjopen_time,
             label='Vmem_gj',
             figure_title='Gap Junction State over Vmem',
             colorbar_title='Voltage [mV]',
