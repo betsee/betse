@@ -27,10 +27,10 @@ https://pytest.org/latest/builtin.html#_pytest.python.FixtureRequest
 
 # ....................{ IMPORTS                            }....................
 from pytest import Function
-from _pytest.python import FixtureLookupError
 from betse.util.type import sequences
 from betse.util.type.types import type_check, TestableTypes
 from betse_test.exceptions import BetseTestFixtureException
+from betse_test.util import pytests
 
 # ....................{ CONSTANTS                          }....................
 _DEFAULT_VALUE_NONE = object()
@@ -358,7 +358,7 @@ def get_requested_fixture(
 
     Raises
     ----------
-    _pytest.python.FixtureLookupError
+    `pytests.get_fixture_lookup_error_type()`
         If this fixture is either unavailable _or_ is available but
         unretrievable (e.g., this fixture is the child of the current fixture).
     '''
@@ -396,13 +396,18 @@ def get_requested_fixture_or_none(
 
     Returns
     ----------
-    _pytest.python.FixtureDef, None
+    _pytest.python.FixtureDef or None
         This fixture if this fixture is both available and retrievable _or_
-        `None` otherwise..
+        `None` otherwise.
     '''
 
+    # Class of all "FixtureLookupError" exceptions raised by "pytest".
+    FixtureLookupError = pytests.get_fixture_lookup_error_type()
+
+    # Attempt to retrieve and return this fixture for this request.
     try:
         return get_requested_fixture(request, fixture_name)
+    # If no such fixture exists, return None.
     except FixtureLookupError:
         return None
 
