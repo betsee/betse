@@ -49,7 +49,13 @@ def get_current(sim, cells, p):
 
     d_rho[cells.bflags_cells] = div_J[cells.bflags_cells]*TJ_load
 
-    Phi = np.dot(cells.lapGJ_P_inv, div_J - d_rho)
+    if p.cluster_open is False:
+
+        Phi = np.dot(cells.lapGJ_P_inv, div_J - d_rho)
+
+    else:
+
+        Phi = np.dot(cells.lapGJinv, div_J)
 
     gPhi = (Phi[cells.cell_nn_i[:, 1]] - Phi[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 

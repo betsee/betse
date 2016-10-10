@@ -1402,7 +1402,7 @@ class Simulator(object):
     def update_V(self,cells,p):
 
         # get the charge density in the cells:
-        self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
+        self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
 
         d_rho_extra = ((self.extra_rho_cells - self.extra_rho_cells_o)/p.dt)*(cells.cell_vol/cells.cell_sa)
 
@@ -1413,10 +1413,12 @@ class Simulator(object):
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
-        # # update Vmem in terms of current across each membrane segment:
+        # update Vmem in terms of current across each membrane segment:
         dv = - (1/p.cm)*self.Jn*p.dt
 
-        self.vm = self.vm + dv
+        # self.vm = self.vm + dv
+
+        self.vm = (1/p.cm)*self.rho_cells[cells.mem_to_cells]*p.field_modulation
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
