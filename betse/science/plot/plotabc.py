@@ -16,7 +16,7 @@ import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
-from betse.util.io.log import logs
+# from betse.util.io.log import logs
 from betse.util.type import types, objects
 from betse.util.type.types import (
     type_check, NoneType, NumericTypes, SequenceTypes)
@@ -93,7 +93,7 @@ class PlotCells(object, metaclass=ABCMeta):
         these files.
     '''
 
-    # ..................{ LIFECYCLE                          }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -216,7 +216,7 @@ class PlotCells(object, metaclass=ABCMeta):
         # Initialize this plot's figure.
         self._init_figure()
 
-
+    # ..................{ INITIALIZERS ~ figure              }..................
     def _init_figure(self) -> None:
         '''
         Initialize this plot's figure.
@@ -238,6 +238,29 @@ class PlotCells(object, metaclass=ABCMeta):
         # need *NOT* do so as well here.
         self._axes = weakref.proxy(pyplot.subplot(111))
 
+        # If this object was initialized with both a figure and axes title,
+        # display the former above the latter.
+        if self._axes_title:
+            # logs.log_debug('Setting supertitle!')
+            self._figure.suptitle(
+                self._figure_title, fontsize=14, fontweight='bold')
+        # Else, display the figure title as the axes title.
+        else:
+            # logs.log_debug('Setting normal title!')
+            self._axes_title = self._figure_title
+        assert types.is_str_nonempty(self._axes_title), (
+            types.assert_not_str_nonempty(self._axes_title, 'Axis title'))
+
+        # Initialize the X and Y axes of this plot's figure *AFTER* classifying
+        # the axes title above.
+        self._init_figure_axes()
+
+
+    def _init_figure_axes(self) -> None:
+        '''
+        Initialize the X and Y axes of this plot's figure.
+        '''
+
         # Extent of the current 2D environment.
         self._axes_bounds = [
             self._cells.xmin * self._p.um,
@@ -250,25 +273,28 @@ class PlotCells(object, metaclass=ABCMeta):
         self._axes.axis('equal')
         self._axes.axis(self._axes_bounds)
 
-        # If this object was initialized with both a figure and axes title,
-        # display the former above the latter.
-        if self._axes_title:
-            logs.log_debug('Setting supertitle!')
-            self._figure.suptitle(
-                self._figure_title, fontsize=14, fontweight='bold')
-        # Else, display the figure title as the axes title.
-        else:
-            logs.log_debug('Setting normal title!')
-            self._axes_title = self._figure_title
-
         # Display passed human-readable strings as axes attributes.
-        assert types.is_str_nonempty(self._axes_title), (
-            types.assert_not_str_nonempty(self._axes_title, 'Axis title'))
         self._axes.set_xlabel(self._axes_x_label)
         self._axes.set_ylabel(self._axes_y_label)
         self._axes.set_title(self._axes_title)
 
 
+    def _reinit_figure_axes(self) -> None:
+        '''
+        Reinitialize the X and Y axes of this plot's figure, removing all
+        artists previously drawn to these axes.
+
+        This method is typically called by animation subclasses _before_
+        redrawing cell data of the current animation frame onto these axes.
+        '''
+
+        # Remove all artists previously drawn to these axes.
+        self._axes.clear()
+
+        # Reinitialize these axes.
+        self._init_figure_axes()
+
+    # ..................{ PREPARERS ~ figure                 }..................
     @type_check
     def _prep_figure(
         self,
@@ -371,7 +397,7 @@ class PlotCells(object, metaclass=ABCMeta):
         colorbar = self._figure.colorbar(color_mapping[0])
         colorbar.set_label(self._colorbar_title)
 
-
+    # ..................{ DEINITIALIZERS                     }..................
     def close(self) -> None:
         '''
         Destroy this plot and deallocate all memory associated with this plot.

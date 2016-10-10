@@ -6,17 +6,19 @@
 Abstract base classes of all Matplotlib-based animation classes.
 '''
 
-#FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean and
-#animation-specific configuration options), appear to be broken. Panic station!
+#FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean
+#and animation-specific configuration options), appear to be broken. Panic
+#station!
 #FIXME: Actually, the current approach to implementing animation overlays is
 #fundamentally flawed. We currently attempt to provide a crude form of plot
 #composition (i.e., merging two or more types of plots together into a single
 #plot) by adding new booleans to the "AnimCells" base class (e.g.,
-#"is_current_overlayable") -- a fundamentally unwieldy and ultimately unworkable
-#approach. By definition, you cannot provide true composability frow within a
-#single class hierarchy. Instead, we need to split the specific process of
-#plotting different types of artists (e.g., mesh plots, stream plots) from the
-#general process of animating and saving frames and plots as follows:
+#"is_current_overlayable") -- a fundamentally unwieldy and ultimately
+#unworkable approach. By definition, you cannot provide true composability frow
+#within a single class hierarchy. Instead, we need to split the specific
+#process of plotting different types of artists (e.g., mesh plots, stream
+#plots) from the general process of animating and saving frames and plots as
+#follows:
 #
 #* Define a new "betse.science.plot.anim.plotter" submodule.
 #* Define a new "CellsPlotterABC" abstract base class in this submodule. Plotter
@@ -84,14 +86,36 @@ Abstract base classes of all Matplotlib-based animation classes.
 #So, yes. It's quite a bit of work. But it's absolutely essential as well,
 #particularly for implementing a general-purpose BETSE GUI.
 
+#FIXME: All animations should be displayed in a non-blocking rather than
+#blocking manner, as required for parallelizing the animation pipeline. To
+#minimize memory leaks while doing so, consider responding to animation window
+#close events by explicitly closing the current animation on such events: e.g.,
+#
+#    def _hook_on_close(event) -> None:
+#        print('Animation "{}" window closed.'.format(self._label))
+#
+#        #FIXME: Is this safe to call here? Presumably, but consider.
+#        self._close()
+#
+#
+#    def __init__(...):
+#            .
+#            -
+#            .
+#       # Register the close event handler defined above.
+#       self._figure.canvas.mpl_connect('close_event', self._hook_on_close)
+#            .
+#            -
+#            .
+
 #FIXME: We should probably animate non-blockingly (e.g., by passing
-#"block=False" to the plt.show() command. To do so, however, we'll probably have
-#to implement an analogue to Matplotlib's "_pylab_helper.Gcf" global-like static
-#class to ensure that object references are retained for all animations whose
-#windows have not yet been closed. This implies, in turn, that we'll probably
-#have to monkey-patch the appropriate Matplotlib event handlers on window close
-#to release these object references. To do so, grep the Matplotlib codebase for
-#"Gcf.destroy". Thunderous tales of woe!
+#"block=False" to the plt.show() command). To do so, however, we'll probably
+#have to implement an analogue to Matplotlib's "_pylab_helper.Gcf" global-like
+#static class to ensure that object references are retained for all animations
+#whose windows have not yet been closed. This implies, in turn, that we'll
+#probably have to monkey-patch the appropriate Matplotlib event handlers on
+#window close to release these object references. To do so, grep the Matplotlib
+#codebase for "Gcf.destroy". Thunderous tales of woe!
 #
 #Actually, I believe that a simpler approach might be available. Rather
 #than implementing yet another "_pylab_helper.Gcf"-like construct, we leverage

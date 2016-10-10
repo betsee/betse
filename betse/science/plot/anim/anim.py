@@ -344,10 +344,16 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
         # Cell data for the first frame.
         data_points = self._time_series[0]
-        data_verts = np.dot(self._cells.matrixMap2Verts, data_points)
 
+        #FIXME: Generalize this logic, which is repeated below by the
+        #_plot_frame_figure() method, into a new private method for reuse both
+        #here and below. Or perhaps not? In the case of the
+        #_plot_frame_figure() method, we'll probably need to refactor that
+        #method to cease calling pretty_patch_plot() and simply repainting the
+        #existing triangulation, in which case little to no duplication exists.
         #FIXME: Rename "self.collection" to something more descriptive.
         if self._p.showCells is True:
+            data_verts = np.dot(self._cells.matrixMap2Verts, data_points)
             self.collection, self._axes = pretty_patch_plot(
                 data_verts, self._axes, self._cells, self._p, self._colormap,
                 cmin=self._color_min, cmax=self._color_max)
@@ -355,6 +361,13 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         else:
             self.collection, self._axes = cell_mesh(
                 data_points, self._axes, self._cells, self._p, self._colormap)
+
+        #FIXME: "self.collection" is basically useless here if the
+        #pretty_patch_plot() function was called above, which only returns the
+        #last collection for a single arbitrary cell rather than a collection
+        #representing all cell data. This will result in a colorbar than fails
+        #to correspond to any cell data except that of the arbitrarily selected
+        #cell. See below for details on fixing this.
 
         # Display and/or save this animation.
         self._animate(
@@ -367,14 +380,60 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
     def _plot_frame_figure(self) -> None:
 
         zz = self._time_series[self._time_step]
-        data_verts = np.dot(self._cells.matrixMap2Verts, zz)
 
         # If displaying individual cells...
         if self._p.showCells:
-            # self.collection.set_array(zz)
+            # Average voltage of each cell membrane, situated at the midpoint
+            # of that membrane.
+            cell_membrane_data_vertices = np.dot(
+                self._cells.matrixMap2Verts, zz)
+
+            #FIXME: It would seem that this is tripcolor()-produced meshes are
+            #updatable *WITHOUT* recreating the entire meshes. To do so,
+            #however, will require (in order):
+            #
+            #1. Unravelling the contents of the pretty_patch_plot() function
+            #   directly into the __init__() method of this subclass. This
+            #   function isn't terribly arduous, thankfully, so this should
+            #   impose no strenuous code burden.
+            #2. In the unravelled logic, improving the for loop iteration to
+            #   preserve each "TriMesh" instance created by each call to the
+            #   tripcolor() function. Currently, only the last such instance is
+            #   retained -- which is a little useless. To preserve these
+            #   instances, a new "self._cell_tri_meshes" list attribute should
+            #   be defined and then appended to in each iteration.
+            #3. In this method, the call to pretty_patch_plot() should be
+            #   replaced entirely with the following (untested) logic:
+            #
+            #     for cell_index in range(len(self._cells.cell_verts)):
+            #         self._cell_tri_meshes[cell_index].set_array(
+            #             cell_membrane_data_vertices[
+            #                 self._cells.cell_to_mems[i]])
+            #
+            #That should do it, folks.
+            #FIXME: For reusability, we should probably consider shifting the
+            #aforementioned functionality into a new helper class -- say, named
+            #"betse.science.plot.plotter.PlotterCellsShaded". This class should
+            #define two methods:
+            #
+            #* __init__(), which should implement the unravelled
+            #  pretty_patch_plot() scheme detailed above. This method should be
+            #  called in the __init__() method above.
+            #* plot_frame(self, time_step: int), which should implement the
+            #  iteration detailed above. This method should be called here.
+            #
+            #Yes, this resembles the hypothesized "CellsPlotterABC" design. No,
+            #we should *NOT* take the unctuous time to actually implement that
+            #design now. We simply need to get this working. The aforementioned
+            #design does so with minimal mess.
+
+            # Plot each membrane voltage as a triangulated gradient isolated
+            # onto the cell containing that membrane.
             self.collection, self._axes = pretty_patch_plot(
-                data_verts, self._axes, self._cells, self._p, self._colormap,
-                cmin=self._color_min, cmax=self._color_max)
+                cell_membrane_data_vertices,
+                self._axes, self._cells, self._p, self._colormap,
+                cmin=self._color_min, cmax=self._color_max,
+            )
         # Else, display only an amorphous continuum of cells.
         else:
             zz_grid = np.zeros(len(self._cells.voronoi_centres))

@@ -432,7 +432,8 @@ def plotPrettyPolyData(data, sim, cells, p, fig=None, ax=None, clrAutoscale = Tr
             clrmap = p.default_cm
 
         if p.showCells is True:
-            coll, ax = pretty_patch_plot(data_verts,ax,cells,p,p.default_cm, cmin=minval, cmax=maxval)
+            coll, ax = pretty_patch_plot(
+                data_verts,ax,cells,p,p.default_cm, cmin=minval, cmax=maxval)
         else:
             coll, ax = cell_mesh(data,ax,cells,p,p.default_cm)
 
@@ -1473,7 +1474,12 @@ def cell_mesh(data, ax, cells, p, clrmap):
 
     return msh, ax
 
-def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None, use_other_verts = None):
+def pretty_patch_plot(
+    data_verts, ax, cells, p, clrmap,
+    cmin=None,
+    cmax=None,
+    use_other_verts=None
+):
     """
     Maps data on mem midpoints to vertices, and
     uses tripcolor on every cell patch to create a
@@ -1492,10 +1498,9 @@ def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None, us
     # data_verts = data
 
     # colormap clim
-    if cmin == None:
+    if cmin is None:
         amin = data_verts.min()
         amax = data_verts.max()
-
     else:
         amin = cmin
         amax = cmax
@@ -1506,17 +1511,28 @@ def pretty_patch_plot(data_verts, ax, cells, p, clrmap, cmin=None, cmax=None, us
     # collection of cell patchs at vertices:
     if use_other_verts is None:
         cell_faces = np.multiply(cells.cell_verts, p.um)
-
     else:
         cell_faces = np.multiply(use_other_verts, p.um)
-
 
     # Cell membrane (Vmem) plotter (slow but beautiful!)
     for i in range(len(cell_faces)):
         x = cell_faces[i][:, 0]
         y = cell_faces[i][:, 1]
+
+        # Average color value of each cell membrane, situated at the midpoint
+        # of that membrane. This parameter is referred to as "C" in both the
+        # documentation and implementation of the tripcolor() function.
         dati = data_verts[cells.cell_to_mems[i]]
+
+        # "matplotlib.collections.TriMesh" instance providing the
+        # Gouraud-shaded triangulation mesh for the non-triangular vertices of
+        # this cell from the Delaunay hull of these vertices.
         col_cell = ax.tripcolor(x, y, dati, shading='gouraud', cmap=clrmap)
+
+        #FIXME: No need to manually call set_clim() here. Instead, pass the
+        #"vmin=amin, vmax=amax" parameters to the above tripcolor() call.
+
+        # Autoscale this mesh's colours as desired.
         col_cell.set_clim(amin, amax)
 
     return col_cell, ax
