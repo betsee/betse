@@ -85,8 +85,6 @@ def getDeformation(sim, cells, t, p):
     # get the normal component of the deformation at the membranes:
     u_n = ux_galvo_mem * cells.mem_vects_flat[:, 2] + uy_galvo_mem * cells.mem_vects_flat[:, 3]
 
-    # FIXME redo this with new cells method for calculating divergence free fields!
-
     # calculate divergence as the sum of this vector times each surface area, divided by cell volume:
     div_u = (np.dot(cells.M_sum_mems, u_n * cells.mem_sa) / cells.cell_vol) - sim.div_u_osmo
 
@@ -102,7 +100,7 @@ def getDeformation(sim, cells, t, p):
         # P_react = lsmr(cells.lapGJ, div_u)[0]
 
     # calculate its gradient:
-    gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (2*cells.nn_len)
+    gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
     # correct the deformation:
     u_net = u_n - gradP_react

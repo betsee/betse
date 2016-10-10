@@ -247,7 +247,7 @@ class MasterOfMetabolism(object):
             # if self.modulators:
             #     self.core.run_loop_modulators(sim, self.core, cells, p)
 
-            self.core.run_dummy_loop(t, sim, cells, p)
+            self.core.run_loop(t, sim, cells, p)
 
             # # update core ions in sim:
             # for i in sim.movingIons:
@@ -289,19 +289,19 @@ class MasterOfMetabolism(object):
 
         """
 
-        cATP = self.core.mem_concs['ATP']
-        cADP = self.core.mem_concs['ADP']
-        cPi = self.core.mem_concs['Pi']
+        cATP = self.core.cell_concs['ATP']
+        cADP = self.core.cell_concs['ADP']
+        cPi = self.core.cell_concs['Pi']
 
-        deltac = ((flux*cells.mem_sa)/cells.mem_vol)*p.dt
+        deltac = (np.dot(cells.M_sum_mems, flux*cells.mem_sa)/cells.cell_vol)*p.dt
 
-        self.core.mem_concs['ATP'] = cATP + deltac
-        self.core.mem_concs['ADP'] = cADP - deltac
-        self.core.mem_concs['Pi'] = cPi - deltac
+        self.core.cell_concs['ATP'] = cATP + deltac
+        self.core.cell_concs['ADP'] = cADP - deltac
+        self.core.cell_concs['Pi'] = cPi - deltac
 
-        sim.met_concs = {'cATP': self.core.mem_concs['ATP'],
-            'cADP': self.core.mem_concs['ADP'],
-            'cPi': self.core.mem_concs['Pi']}
+        sim.met_concs = {'cATP': self.core.cell_concs['ATP'][cells.mem_to_cells],
+            'cADP': self.core.cell_concs['ADP'][cells.mem_to_cells],
+            'cPi': self.core.cell_concs['Pi'][cells.mem_to_cells]}
 
 
 

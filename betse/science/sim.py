@@ -166,6 +166,8 @@ class Simulator(object):
         self.extra_rho_cells = np.zeros(self.cdl)
         self.extra_rho_env = np.zeros(self.edl)
 
+        self.extra_rho_cells_o = np.zeros(self.cdl)
+
         self.vgj = np.zeros(self.mdl)
 
         self.gj_block = 1 # will update this according to user preferences in self.init_tissue()
@@ -833,6 +835,10 @@ class Simulator(object):
                 fNa_NaK = self.rho_pump*fNa_NaK
                 fK_NaK = self.rho_pump*fK_NaK
 
+                if p.cluster_open is False:
+                    fNa_NaK[cells.bflags_mems] = 0
+                    fK_NaK[cells.bflags_mems] = 0
+
                 # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
                 self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
                 self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
@@ -875,6 +881,8 @@ class Simulator(object):
                                                self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
                                         self.vm,self.T,p,rho=self.rho_channel)
 
+                    if p.cluster_open is False:
+                        f_ED[cells.bflags_mems] = 0
 
                     # add membrane flux to storage
                     self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
@@ -1111,6 +1119,16 @@ class Simulator(object):
 
         self.rate_NaKATP_time =[]
 
+        self.pol_x_time = []  # polarization vectors
+        self.pol_y_time = []
+
+        self.Pol_tot_x_time = []
+        self.Pol_tot_y_time = []
+
+        self.Pol_tot_time = []
+
+        self.vm_ave_time = []
+
         if p.deformation is True:
             self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
 
@@ -1195,8 +1213,8 @@ class Simulator(object):
 
         self.vm_time.append(self.vm[:])
 
-        vm_ave = np.dot(cells.M_sum_mems,self.vm)/cells.num_mems
-        self.vm_ave_time.append(vm_ave)
+        # vm_ave = np.dot(cells.M_sum_mems,self.vm)/cells.num_mems
+        # self.vm_ave_time.append(vm_ave)
 
         self.rho_cells_time.append(self.rho_cells[:])
 
@@ -1264,6 +1282,18 @@ class Simulator(object):
             if p.fluid_flow is True:
                 self.u_env_x_time.append(self.u_env_x[:])
                 self.u_env_y_time.append(self.u_env_y[:])
+
+        # polarizations:
+
+        self.pol_x_time.append(self.pol_cell_x)
+        self.pol_y_time.append(self.pol_cell_y)
+
+        self.Pol_tot_x_time.append(self.Pol_x)
+        self.Pol_tot_y_time.append(self.Pol_y)
+
+        self.Pol_tot_time.append(self.Pol_tot)
+
+        self.vm_ave_time.append(self.vm_ave)
 
     def save_and_report(self,cells,p):
 
@@ -1374,6 +1404,12 @@ class Simulator(object):
         # get the charge density in the cells:
         self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
 
+        d_rho_extra = ((self.extra_rho_cells - self.extra_rho_cells_o)/p.dt)*(cells.cell_vol/cells.cell_sa)
+
+        self.extra_mem_J = d_rho_extra
+
+        self.extra_rho_cells_o = self.extra_rho_cells*1
+
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
@@ -1381,6 +1417,25 @@ class Simulator(object):
         dv = - (1/p.cm)*self.Jn*p.dt
 
         self.vm = self.vm + dv
+
+        # average vm:
+        self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
+
+        # polarization vectors at the membranes:
+        pol_mem_x = -self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,2]
+        pol_mem_y = -self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,3]
+
+        # calculate polarization vectors for individual cells:
+        self.pol_cell_x = np.dot(cells.M_sum_mems, pol_mem_x)/cells.num_mems
+        self.pol_cell_y = np.dot(cells.M_sum_mems, pol_mem_y)/cells.num_mems
+
+        # polarization density for whole cluster:
+        self.Pol_x = np.sum(pol_mem_x)*(self.mdl/np.sum(cells.cell_vol))
+
+        self.Pol_y = np.sum(pol_mem_y)*(self.mdl/np.sum(cells.cell_vol))
+
+        self.Pol_tot = np.sqrt(self.Pol_x**2 + self.Pol_y**2)
+
 
         # # try calculating a vector potential based on current density:
         #
@@ -1412,6 +1467,10 @@ class Simulator(object):
                 f_H2 = self.rho_pump * f_H2
                 f_K2 = self.rho_pump * f_K2
 
+                if p.cluster_open is False:
+                    f_H2[cells.bflags_mems] = 0
+                    f_K2[cells.bflags_mems] = 0
+
                 self.HKATPase_rate = f_H2[:]
 
                 self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
@@ -1427,6 +1486,10 @@ class Simulator(object):
                 # modulate by asymmetric pump factor if lateral membrane movements are being considered:
                 f_H2 = self.rho_pump*f_H2
                 f_K2 = self.rho_pump*f_K2
+
+                if p.cluster_open is False:
+                    f_H2[cells.bflags_mems] = 0
+                    f_K2[cells.bflags_mems] = 0
 
                 # capture rate:
                 self.HKATPase_rate = f_H2[:]
@@ -1473,6 +1536,10 @@ class Simulator(object):
                 # modify flux by any uneven redistribution of pump location:
                 f_H3 = self.rho_pump * f_H3
 
+                if p.cluster_open is False:
+
+                    f_H3[cells.bflags_mems] = 0
+
                 self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H3
 
             else:
@@ -1481,6 +1548,9 @@ class Simulator(object):
                 f_H3 = stb.pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],
                                     self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block,
                                     met = self.met_concs)
+
+                if p.cluster_open is False:
+                    f_H3[cells.bflags_mems] = 0
 
                 self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3
 
@@ -1597,6 +1667,11 @@ class Simulator(object):
             else:
                 f_NaEx = np.zeros(self.mdl)
                 f_CaEx = np.zeros(self.mdl)
+
+        if p.cluster_open is False:
+            f_CaATP[cells.bflags_mems] = 0
+            f_NaEx[cells.bflags_mems] = 0
+            f_CaEx[cells.bflags_mems] = 0
 
         # store the transmembrane flux for this ion
         self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa]  + self.rho_pump*(f_CaATP + f_CaEx)

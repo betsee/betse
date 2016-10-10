@@ -464,6 +464,32 @@ def pipeline_plots(
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+        figVa, axVa, cbVa = viz.plotPolyData(
+            sim, cells, p,
+            zdata=1000*sim.vm_ave,
+            clrAutoscale=p.autoscale_Vmem,
+            clrMin=p.Vmem_min_clr,
+            clrMax=p.Vmem_max_clr,
+            number_cells=p.enumerate_cells,
+            clrmap=p.default_cm,
+            current_overlay=p.I_overlay,
+            plotIecm=p.IecmPlot,
+        )
+
+        # axVa.quiver(p.um*cells.cell_centres[:,0], p.um*cells.cell_centres[:,1], sim.pol_cell_x, sim.pol_cell_y)
+
+        figVa.suptitle('Final Average Vmem', fontsize=14, fontweight='bold')
+        axVa.set_xlabel('Spatial distance [um]')
+        axVa.set_ylabel('Spatial distance [um]')
+        cbVa.set_label('Voltage [mV]')
+
+        if p.autosave is True:
+            savename5 = savedImg + 'final_AverageVmem_2D' + '.png'
+            plt.savefig(savename5, format='png', transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
     if p.GHK_calc is True:
         figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(
             sim, cells, p,

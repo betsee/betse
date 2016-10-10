@@ -2190,7 +2190,7 @@ class MasterOfNetworks(object):
 
         gad_rates = []
 
-        self.extra_rho_cells = np.zeros(sim.mdl)
+        self.extra_rho_cells = np.zeros(sim.cdl)
         self.extra_rho_env = np.zeros(sim.edl)
         self.extra_rho_mit = np.zeros(sim.cdl)
 
@@ -2266,12 +2266,6 @@ class MasterOfNetworks(object):
             # calculate energy charge in the cell:
             self.energy_charge(sim)
 
-            # if name == 'H+':  # "Hard" buffer for case where H+ falls below zero
-            #
-            #     inds_neg = (obj.c_cells <0.0).nonzero()
-            #     obj.c_cells[inds_neg] = 1.0e-5
-            #     sim.cc_cells[sim.iM][inds_neg] =  sim.cc_cells[sim.iM][inds_neg] + 1.0e-5   # add an equal amount of charge comp ion
-
             # ensure no negs:
             stb.no_negs(obj.c_cells)
             stb.no_negs(obj.c_env)
@@ -2281,18 +2275,13 @@ class MasterOfNetworks(object):
                 # update concentration due to chemical reactions in mitochondria:
                 obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
 
-                # if name == 'H+':
-                #     # ensure that data has no less than zero values:
-                #     inds_neg = (obj.c_mit < 0.0).nonzero()
-                #     obj.c_mit[inds_neg] = 1.0e-5
-                #     sim.cc_mit[sim.iM][inds_neg] = sim.cc_mit[sim.iM][inds_neg] + 1.0e-5  # add an equal amount of charge comp ion
                 # ensure no negative values:
                 stb.no_negs(obj.c_mit)
 
 
             if p.substances_affect_charge:
                 # calculate the charge density this substance contributes to cell and environment:
-                self.extra_rho_cells[:] += p.F*obj.c_mems*obj.z
+                self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z
                 self.extra_rho_env[:] += p.F*obj.c_env*obj.z
 
                 if self.mit_enabled:
@@ -2306,109 +2295,6 @@ class MasterOfNetworks(object):
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
             self.mit.extra_rho = self.extra_rho_mit[:]
             self.mit.update(sim, cells, p)
-
-    # def run_dummy_loop(self,t,sim,cells,p):
-    #
-    #     gad_rates_o = []
-    #
-    #     gad_targs = []
-    #
-    #     init_rates = []
-    #
-    #     gad_rates = []
-    #
-    #     self.extra_rho_cells = np.zeros(sim.mdl)
-    #     self.extra_rho_env = np.zeros(sim.edl)
-    #     self.extra_rho_mit = np.zeros(sim.cdl)
-    #
-    #     for mol in self.molecules:
-    #
-    #         # calculate rates of growth/decay:
-    #         gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, self.globals, self.locals))
-    #
-    #         gad_targs.append(self.molecules[mol].growth_targets_cell)
-    #
-    #         init_rates.append(np.zeros(sim.cdl))
-    #
-    #     for mat, trgs, rts in zip(init_rates, gad_targs, gad_rates_o):
-    #
-    #         mat[trgs] = rts[trgs]
-    #
-    #         gad_rates.append(mat)
-    #
-    #     gad_rates = np.asarray(gad_rates)
-    #
-    #     # ... and rates of chemical reactions:
-    #     self.reaction_rates = np.asarray(
-    #         [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
-    #
-    #
-    #     # stack into an integrated data structure:
-    #     if len(self.reaction_rates) > 0:
-    #         all_rates = np.vstack((gad_rates, self.reaction_rates))
-    #
-    #     else:
-    #         all_rates = gad_rates
-    #
-    #     # calculate concentration rate of change using linear algebra:
-    #     self.delta_conc = np.dot(self.reaction_matrix, all_rates)
-    #
-    #     if self.mit_enabled and len(self.reactions_mit)>0:
-    #         # ... rates of chemical reactions in mitochondria:
-    #         self.reaction_rates_mit = np.asarray(
-    #             [eval(self.reactions_mit[rn].reaction_eval_string, self.globals, self.locals) for
-    #                 rn in self.reactions_mit])
-    #
-    #         # calculate concentration rate of change using linear algebra:
-    #         self.delta_conc_mit = np.dot(self.reaction_matrix_mit, self.reaction_rates_mit)
-    #
-    #     # get the name of the specific substance:
-    #     for ii, (name, deltac) in enumerate(zip(self.molecules, self.delta_conc)):
-    #
-    #         obj = self.molecules[name]
-    #
-    #         # update concentration due to growth/decay and chemical reactions:
-    #         obj.c_cells = obj.c_cells + deltac*p.dt
-    #
-    #         if self.mit_enabled and len(self.reactions_mit)>0:
-    #             # update concentration due to chemical reactions in mitochondria:
-    #             obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
-    #             # ensure no negative values:
-    #             stb.no_negs(obj.c_mit)
-    #
-    #         # if pumping is enabled:
-    #         if obj.active_pumping:
-    #             obj.pump(sim, cells, p)
-    #
-    #         # update the substance on the inside of the cell:
-    #         obj.updateIntra(sim, self, cells, p)
-    #
-    #         # calculate energy charge in the cell:
-    #         self.energy_charge(sim)
-    #
-    #         # average the environmental concs instead of costly diffusion:
-    #         self.env_concs[name][:] = self.env_concs[name].mean()
-    #
-    #         # ensure no negs:
-    #         stb.no_negs(obj.c_cells)
-    #         stb.no_negs(obj.c_env)
-    #
-    #         if p.substances_affect_charge:
-    #             # calculate the charge density this substance contributes to cell and environment:
-    #             self.extra_rho_cells[:] += p.F*obj.c_mems*obj.z
-    #             self.extra_rho_env[:] += p.F*obj.c_env*obj.z
-    #
-    #             if self.mit_enabled:
-    #                 # calculate the charge density this substance contributes to mit:
-    #                 self.extra_rho_mit[:] += p.F*obj.c_mit*obj.z
-    #
-    #     if p.substances_affect_charge:
-    #         sim.extra_rho_cells = self.extra_rho_cells[:]
-    #         sim.extra_rho_env = self.extra_rho_env[:]
-    #
-    #     if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
-    #         self.mit.extra_rho = self.extra_rho_mit[:]
-    #         self.mit.update(sim, cells, p)
 
     def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
 
@@ -2526,7 +2412,7 @@ class MasterOfNetworks(object):
 
             # compute the channel activity
             # calculate the value of the channel modulation constant:
-            moddy = eval(self.channels[name].alpha_eval_string, self.globals,    # FIXME eval string has mems
+            moddy = eval(self.channels[name].alpha_eval_string, self.globals,
                 self.locals)
 
             self.channels[name].channel_core.modulator = moddy[self.channels[name].channel_targets_mem]
@@ -2584,12 +2470,12 @@ class MasterOfNetworks(object):
 
         if tag == 'cell':
 
-            if Q < 0 and np.abs(Q) <= sim.cc_mems[sim.iP].mean():  # if net charge is anionic
-                sim.cc_mems[sim.iP] = sim.cc_mems[sim.iP] - np.abs(Q)
+            if Q < 0 and np.abs(Q) <= sim.cc_cells[sim.iP].mean():  # if net charge is anionic
+
                 sim.cc_cells[sim.iP] = sim.cc_cells[sim.iP] - np.abs(Q)
 
-            elif Q > 0 and np.abs(Q) <= sim.cc_mems[sim.iK].mean():
-                sim.cc_mems[sim.iK] = sim.cc_mems[sim.iK] - np.abs(Q)
+            elif Q > 0 and np.abs(Q) <= sim.cc_cells[sim.iK].mean():
+
                 sim.cc_cells[sim.iK] = sim.cc_cells[sim.iK] - np.abs(Q)
 
             elif Q < 0 and np.abs(Q) > sim.cc_mems[sim.iP].mean():  # if net charge is anionic
@@ -2603,7 +2489,7 @@ class MasterOfNetworks(object):
                                                "compensate for. Either turn 'substances "
                                                "affect Vmem' off, or try again.")
 
-            sim.extra_rho_cells = p.F*Q*np.ones(sim.mdl)
+            sim.extra_rho_cells = p.F*Q*np.ones(sim.cdl)
 
         elif tag == 'env':
 
@@ -2682,7 +2568,7 @@ class MasterOfNetworks(object):
             self.mit.remove_mits(sim, target_inds_cell)
 
         if sim.met_concs is not None and met_tag is True:  # update metabolism object if it's being simulated
-            sim.met_concs = {'cATP': self.cell_concs['ATP'][cells.mem_to_cells],     # FIXME somehow deal with mem_concs!
+            sim.met_concs = {'cATP': self.cell_concs['ATP'][cells.mem_to_cells],
                 'cADP': self.cell_concs['ADP'][cells.mem_to_cells],
                 'cPi': self.cell_concs['Pi'][cells.mem_to_cells]}
 

@@ -123,7 +123,6 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):
         cPi = met['cPi']  # concentration of Pi in mmol/L
 
 
-
     # calculate the reaction coefficient Q:
     Qnumo = cADP * cPi * (cNao ** 3) * (cKi ** 2)
     Qdenomo = cATP * (cNai ** 3) * (cKo ** 2)
@@ -1072,6 +1071,9 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
 
         f_X = rho* alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
+    if p.cluster_open is False:
+        f_X[cells.bflags_mems] = 0
+
     # update cell and environmental concentrations
     cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
 
@@ -1186,6 +1188,9 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
         f_X = rho*alpha * (numo_E / denomo_E)  # flux as [mol/m2s]   scaled to concentrations Na in and K out
 
+    if p.cluster_open is False:
+        f_X[cells.bflags_mems] = 0
+
     # update cell and environmental concentrations
     cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM= ignoreECM)
 
@@ -1251,6 +1256,9 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     IdM = np.ones(sim.mdl)
 
     f_X_ED = electroflux(cX_env, cX_mems, Dm_vect, p.tm*IdM, z*IdM, sim.vm, sim.T, p, rho = rho)
+
+    if p.cluster_open is False:
+        f_X_ED[cells.bflags_mems] = 0
 
     # update concentrations due to electrodiffusion:
 
@@ -1320,9 +1328,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         # Calculate the final concentration change (the acceleration effectively speeds up time):
         cX_cells = cX_cells + p.dt*delta_cco*p.gj_acceleration
-
-
-        # FIXME if we use new current based methods, it'll be essential to keep track of all fluxes
 
 
     else:

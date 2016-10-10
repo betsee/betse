@@ -20,6 +20,7 @@ def get_current(sim, cells, p):
     # for now, add the two current sources together into a single transmembrane current:
     Jn = Jn + Jgj
 
+    # FIXME add in the extra current term at some point...
 
     # calculate a rate of change of current at the boundary prior to modification of sim.Jn:
     # initialize an empty cell-centred storge vector
