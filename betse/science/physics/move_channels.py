@@ -71,6 +71,9 @@ def eosmosis(sim, cells, p):
     # Ex = p.media_sigma*sim.J_cell_x[cells.mem_to_cells]
     # Ey = p.media_sigma*sim.J_cell_y[cells.mem_to_cells]
 
+    # Ex = sim.E_env_x.ravel()[cells.map_mem2ecm]
+    # Ey = sim.E_env_y.ravel()[cells.map_mem2ecm]
+
     E_tang = (Ex * tx + Ey * ty)
 
 

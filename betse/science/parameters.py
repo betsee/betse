@@ -882,7 +882,7 @@ class Parameters(object):
 
         # self.electrolyte_screening = float(iu['electrolyte screening factor'])
 
-        self.field_modulation = float(iu['field modulation factor'])
+        self.cell_polarizability = float(iu['cell polarizability factor'])
 
         self.substances_affect_charge = iu['substances affect Vmem']
 

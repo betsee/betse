@@ -99,7 +99,7 @@ class Cells(object):
         self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
 
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
-        # self.cellDivM(p)    # create matrix to invert divergence
+        self.cellDivM(p)    # create matrix to invert divergence
 
         logs.log_info('Creating gap junctions... ')
         self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
@@ -1420,8 +1420,6 @@ class Cells(object):
 
         for i, inds in enumerate(self.cell_to_mems):
 
-            # n = 0
-
             # get the volume for the cell:
             cell_vol = self.cell_vol[i]
 
@@ -1434,9 +1432,6 @@ class Cells(object):
                 # set the divergence term:
                 divCell[i, j] = mem_sa/cell_vol
 
-                # n = n+1
-
-            # self.num_mems.append(n)
 
         # calculate the inverse of the divergence matrix:
         self.divCell_inv = np.linalg.pinv(divCell)
@@ -1664,7 +1659,6 @@ class Cells(object):
         self.nn_ty = np.asarray(self.nn_ty)
         self.nn_len = np.asarray(self.nn_len)
         self.nn_edges = np.asarray(self.nn_edges)
-
 
         self.cell_nn_tx = []
         self.cell_nn_ty = []
@@ -2059,19 +2053,12 @@ class Cells(object):
         # make the field divergence-free:
         Fn = Fn - gPhi*0.99
 
-        # assign the boundary condition:
-        Fn[self.bflags_mems] = bc
+        # # assign the boundary condition:
+        # Fn[self.bflags_mems] = bc
 
         Fx = Fn * self.mem_vects_flat[:, 2]
         Fy = Fn * self.mem_vects_flat[:, 3]
 
-        # assign boundary condition (second and third methods):
-
-        # Fx[self.bflags_mems] = Fx[self.bflags_mems] + bc* self.mem_vects_flat[:, 2][self.bflags_mems]
-        # Fy[self.bflags_mems] = Fy[self.bflags_mems] + bc* self.mem_vects_flat[:, 3][self.bflags_mems]
-
-        # Fx[self.bflags_mems] = bc* self.mem_vects_flat[:, 2][self.bflags_mems]
-        # Fy[self.bflags_mems] = bc* self.mem_vects_flat[:, 3][self.bflags_mems]
 
         # calculate the net displacement of cell centres under the applied force under incompressible conditions:
         F_cell_x = np.dot(self.M_sum_mems, Fx) / self.num_mems

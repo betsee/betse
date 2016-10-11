@@ -1068,7 +1068,7 @@ internal parameters:
 
   interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
 
-  gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
+  gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
   smooth concentrations: True   # apply gaussian smoothing to substance concentration?
 
@@ -1078,7 +1078,7 @@ internal parameters:
 
   membrane capacitance: 0.05 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
-  field modulation factor: 1.0e-5  # (1.0 to 1.0e-4) factor decreasing electrophoretic component of cytoplasm transport
+  cell polarizability factor: 0.0  # (-1.0 to 1.0) factor determines electrical polarizability of cells in fields
 
   media resistivity: 0.021  # electrical resistivity of bulk electrolyte (Ohms.m)
 

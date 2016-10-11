@@ -109,7 +109,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
             sim.cc_env[ion_index]= sim.cc_env[ion_index] + delta_env * p.dt
 
         # recalculate the net, unbalanced charge and voltage in each cell:
-        sim.update_V(cells, p)
+        # sim.update_V(cells, p)
 
     def clip_flux(self, delta_Q, threshold = 1.0e-3):
         """

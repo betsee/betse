@@ -353,7 +353,8 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         #existing triangulation, in which case little to no duplication exists.
         #FIXME: Rename "self.collection" to something more descriptive.
         if self._p.showCells is True:
-            data_verts = np.dot(self._cells.matrixMap2Verts, data_points)
+            data_verts = np.dot(data_points, self._cells.matrixMap2Verts)
+
             self.collection, self._axes = pretty_patch_plot(
                 data_verts, self._axes, self._cells, self._p, self._colormap,
                 cmin=self._color_min, cmax=self._color_max)
@@ -385,8 +386,7 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         if self._p.showCells:
             # Average voltage of each cell membrane, situated at the midpoint
             # of that membrane.
-            cell_membrane_data_vertices = np.dot(
-                self._cells.matrixMap2Verts, zz)
+            cell_membrane_data_vertices = np.dot(zz, self._cells.matrixMap2Verts)
 
             #FIXME: It would seem that this is tripcolor()-produced meshes are
             #updatable *WITHOUT* recreating the entire meshes. To do so,

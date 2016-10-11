@@ -195,6 +195,7 @@ class Simulator(object):
         self.T = p.T  # set the base temperature for the simulation
 
         self.Jn = np.zeros(self.mdl)  # net normal current density at membranes
+        self.rho_mems = np.zeros(self.mdl)  # membrane charge
 
         # Current averaged to cell centres:
         self.J_cell_x = np.zeros(self.cdl)
@@ -839,6 +840,9 @@ class Simulator(object):
                     fNa_NaK[cells.bflags_mems] = 0
                     fK_NaK[cells.bflags_mems] = 0
 
+                # fNa_NaK, _, _ = cells.zero_div_cell(fNa_NaK, rho=0.0, bc=0.0, open_bounds=p.cluster_open)
+                # fK_NaK, _, _ = cells.zero_div_cell(fK_NaK, rho=0.0, bc=0.0, open_bounds=p.cluster_open)
+
                 # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
                 self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
                 self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
@@ -883,6 +887,8 @@ class Simulator(object):
 
                     if p.cluster_open is False:
                         f_ED[cells.bflags_mems] = 0
+
+                    # f_ED, _, _ = cells.zero_div_cell(f_ED, rho=0.0, bc=0.0, open_bounds=p.cluster_open)
 
                     # add membrane flux to storage
                     self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
@@ -983,7 +989,7 @@ class Simulator(object):
                         self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = self.ignore_ecm)
 
                     # recalculate the net, unbalanced charge and voltage in each cell:
-                    self.update_V(cells, p)
+                    # self.update_V(cells, p)
 
                 #-----forces, fields, and flow-----------------------------------------------------------------------------
 
@@ -1414,11 +1420,13 @@ class Simulator(object):
         get_current(self, cells, p)
 
         # update Vmem in terms of current across each membrane segment:
-        dv = - (1/p.cm)*self.Jn*p.dt
-
+        # dv = - (1/p.cm)*self.Jn*p.dt  - (p.cell_polarizability/p.cm)*self.gPhi*p.dt
         # self.vm = self.vm + dv
 
-        self.vm = (1/p.cm)*self.rho_cells[cells.mem_to_cells]*p.field_modulation
+        # self.rho_mems = self.rho_mems - self.Jn*p.dt + (p.cell_polarizability/p.cm)*self.gPhi*p.dt
+        # self.vm = (1/p.cm)*self.rho_mems
+
+        self.vm = (1/p.cm)*self.rho_cells[cells.mem_to_cells]*1.0e-5 + (self.Jn - self.gPhi)*p.cell_polarizability
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
@@ -1446,7 +1454,6 @@ class Simulator(object):
         #
         # self.Ax_time.append(self.Ax)
         # self.Ay_time.append(self.Ay)
-
 
     def acid_handler(self,cells,p):
 
@@ -1592,6 +1599,8 @@ class Simulator(object):
 
             f_Na, f_K, f_Cl = stb.exch_NaKCl(cNai,cNao,cKi,cKo,cCli,cClo,self.vm,self.T,p)
 
+            # FIXME where does this add to fluxes_mems?
+
             # update concentrations of Na, K and Cl in cells and environment:
 
             self.cc_cells[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_cells[self.iNa][:],
@@ -1618,6 +1627,8 @@ class Simulator(object):
                 cClo = self.cc_env[self.iCl]
 
             f_K, f_Cl = stb.symp_ClK(cKi, cKo, cCli, cClo, self.vm, self.T, p)
+
+            # FIXME add to flux_mems
 
             # update concentrations of K and Cl in cells and environment:
             self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
@@ -1684,12 +1695,13 @@ class Simulator(object):
             # update ATP concentrations after pump action:
             self.metabo.update_ATP(f_CaATP, self, cells, p)
 
-        # # update calcium concentrations in cell and ecm:
+        # update calcium concentrations in cell and ecm:
 
         self.cc_cells[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self, self.cc_cells[self.iCa],
             self.cc_env[self.iCa], f_CaATP + f_CaEx, cells, p, ignoreECM = True)
 
         if p.NaCa_exch_dyn:
+
 
             self.cc_cells[self.iNa], self.cc_env[self.iNa] = stb.update_Co(self, self.cc_cells[self.iNa],
                 self.cc_env[self.iNa], f_NaEx, cells, p, ignoreECM = True)
@@ -1751,13 +1763,16 @@ class Simulator(object):
         # enforce zero flux at outer boundary:
         fgj_X[cells.bflags_mems] = 0.0
 
+        # fgj_X, _, _ = cells.zero_div_cell(fgj_X, rho=0.0, bc=0.0, open_bounds=False)
+
         # divergence calculation for individual cells (finite volume expression)
         delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
 
         # Calculate the final concentration change:
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
 
-        self.fluxes_mem[i] = self.fluxes_mem[i] - fgj_X  # store gap junction flux for this ion
+        # self.fluxes_mem[i] = self.fluxes_mem[i] - fgj_X  # store gap junction flux for this ion
+        self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X  # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
 
@@ -1786,8 +1801,8 @@ class Simulator(object):
 
         gvx, gvy = fd.gradient(v_env, cells.delta)
 
-        self.E_env_x = self.E_env_x + gvx
-        self.E_env_y = self.E_env_y + gvy
+        self.E_env_x = self.J_env_x*self.D_env_weight + gvx
+        self.E_env_y = self.J_env_y*self.D_env_weight + gvy
 
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.E_env_x, self.E_env_y, 0, 0,
                                         self.D_env[i].reshape(cells.X.shape), self.zs[i],
