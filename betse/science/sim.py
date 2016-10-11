@@ -196,6 +196,8 @@ class Simulator(object):
 
         self.Jn = np.zeros(self.mdl)  # net normal current density at membranes
         self.rho_mems = np.zeros(self.mdl)  # membrane charge
+        self.dvm = np.zeros(self.mdl)   # rate of change of Vmem
+        self.drho = np.zeros(self.cdl)  # rate of change of charge in cell
 
         # Current averaged to cell centres:
         self.J_cell_x = np.zeros(self.cdl)
@@ -209,7 +211,9 @@ class Simulator(object):
         self.P_cells = np.zeros(self.cdl)  # initialize pressure in cells
 
         self.v_cell = np.zeros(self.cdl)  # initialize intracellular voltage
-        self.vm = -50.0e-3*np.ones(self.mdl)     # initialize vmem
+        # self.vm = -50.0e-3*np.ones(self.mdl)     # initialize vmem
+        self.vm = np.zeros(self.mdl)     # initialize vmem
+        self.rho_cells = np.zeros(self.cdl)
 
         self.E_gj_x = np.zeros(self.mdl)   # electric field components across gap junctions
         self.E_gj_y = np.zeros(self.mdl)
@@ -225,6 +229,9 @@ class Simulator(object):
             self.D_env = []  # an array of diffusion constants for each ion defined on env grid
             self.c_env_bound = []  # moving ion concentration at global boundary
             self.Dtj_rel = []  # relative diffusion constants for ions across tight junctions
+
+            self.E_env_x = np.zeros(self.edl).reshape(cells.X.shape)
+            self.E_env_y = np.zeros(self.edl).reshape(cells.X.shape)
 
 
         else:  # items specific to simulation *without* extracellular spaces:
@@ -1407,26 +1414,46 @@ class Simulator(object):
 
     def update_V(self,cells,p):
 
+        # save the voltage as a placeholder:
+        vmo = self.vm*1
+        rhoo = self.rho_cells*1
+
         # get the charge density in the cells:
         self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
-
-        d_rho_extra = ((self.extra_rho_cells - self.extra_rho_cells_o)/p.dt)*(cells.cell_vol/cells.cell_sa)
-
-        self.extra_mem_J = d_rho_extra
-
-        self.extra_rho_cells_o = self.extra_rho_cells*1
 
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
-        # update Vmem in terms of current across each membrane segment:
-        # dv = - (1/p.cm)*self.Jn*p.dt  - (p.cell_polarizability/p.cm)*self.gPhi*p.dt
+        # update charge at membranes:
+        self.rho_mems = self.rho_mems - self.Jn*p.dt
+
+        # CHOICE 1: update Vmem in terms of current across each membrane segment:
+        # dv = - (1/p.cm)*self.Jn*p.dt
         # self.vm = self.vm + dv
 
-        # self.rho_mems = self.rho_mems - self.Jn*p.dt + (p.cell_polarizability/p.cm)*self.gPhi*p.dt
-        # self.vm = (1/p.cm)*self.rho_mems
 
-        self.vm = (1/p.cm)*self.rho_cells[cells.mem_to_cells]*1.0e-5 + (self.Jn - self.gPhi)*p.cell_polarizability
+        # CHOICE 2: calculate vmem via average rho in cell; GJ calculations are with respect to specific Vmem:
+        self.vm = (1/p.cm)*self.rho_cells[cells.mem_to_cells]*(1/p.F)  + self.Jn*p.cell_polarizability
+
+        # CHOICE 3: calculate vmem via specific rho at membranes (and ideally use cell-average GJ and channels):
+        # self.vm = (1/p.cm)*self.rho_mems + self.Jn*p.cell_polarizability
+
+
+        if p.sim_ECM is True:  # handle polarization induced by external electric field:
+            # determine electric field at membranes:
+            Ex = self.E_env_x.ravel()[cells.map_cell2ecm]
+            Ey = self.E_env_y.ravel()[cells.map_cell2ecm]
+
+            E_mem = Ex[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + Ey[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
+
+            self.vm = self.vm + E_mem*p.tm
+
+            # print(E_mem.max()*p.tm)
+
+
+        # calculate the derivative of Vmem:
+        self.dvm = (self.vm - vmo)/p.dt
+        self.drho = (self.rho_cells - rhoo)/p.dt
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
@@ -1801,8 +1828,8 @@ class Simulator(object):
 
         gvx, gvy = fd.gradient(v_env, cells.delta)
 
-        self.E_env_x = self.J_env_x*self.D_env_weight + gvx
-        self.E_env_y = self.J_env_y*self.D_env_weight + gvy
+        self.E_env_x = self.J_env_x/self.D_env_weight + gvx
+        self.E_env_y = self.J_env_y/self.D_env_weight + gvy
 
         fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.E_env_x, self.E_env_y, 0, 0,
                                         self.D_env[i].reshape(cells.X.shape), self.zs[i],

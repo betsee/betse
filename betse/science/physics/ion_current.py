@@ -9,45 +9,27 @@ from scipy.ndimage.filters import gaussian_filter
 def get_current(sim, cells, p):
 
 
-    # # Basic method with no correction to currents -----------------------------------------------------------------
-    #
-    # # calculate current across cell membranes:
-    # # (reverse polarity to account for direction of cell membrane normals)
-    # Jn = -np.dot(sim.zs*p.F, sim.fluxes_mem)
-    #
-    # # calculate current across cell membranes via gap junctions:
-    # Jgj = np.dot(sim.zs*p.F, sim.fluxes_gj)
-    #
-    # # for now, add the two current sources together into a single transmembrane current:
-    # sim.Jn = Jn + Jgj
-    #
-    # # get components of corrected current at membrane mids:
-    # Jnx = sim.Jn * cells.mem_vects_flat[:, 2]
-    # Jny = sim.Jn * cells.mem_vects_flat[:, 3]
-    #
-    # # map current to the cell centers:
-    # sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
-    # sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
-    #
-    # # multiply final result by membrane surface area to obtain current (negative assigns into cell + for plotting)
-    # sim.I_mem = -sim.Jn*cells.mem_sa
-
     # Whole System Method: --------------------------------------------------------------------------------------
 
-    # calculate current across cell membranes:
+    # calculate current density across cell membranes:
     # (reverse polarity to account for direction of cell membrane normals)
     Jn = -np.dot(sim.zs*p.F, sim.fluxes_mem)
 
-    # calculate current across cell membranes via gap junctions:
+    # calculate current density across cell membranes via gap junctions:
     Jgj = np.dot(sim.zs*p.F, sim.fluxes_gj)
 
-    # for now, add the two current sources together into a single transmembrane current:
+    # calculate current density due to membrane capacitance:
+    # Jcm = p.cm*sim.dvm
+
+    # add the current sources together into a single transmembrane current:
     sim.Jn = Jn + Jgj
+
+    # correct the current density using the continuity equation:
 
     # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
     div_J = (np.dot(cells.M_sum_mems, sim.Jn * cells.mem_sa) / cells.cell_vol)
 
-    Phi = np.dot(cells.lapGJ_P_inv, div_J)
+    Phi = np.dot(cells.lapGJ_P_inv, div_J + sim.drho)
 
     gPhi = (Phi[cells.cell_nn_i[:, 1]] - Phi[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
@@ -62,7 +44,10 @@ def get_current(sim, cells, p):
     sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
 
-    # multiply final result by membrane surface area to obtain current (negative assigns into cell + for plotting)
+    # reassign the normal current to the corrected component
+    sim.Jn = Jn_corr*1
+
+    # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa
 
 
@@ -77,6 +62,7 @@ def get_current(sim, cells, p):
         J_env_x_o = np.zeros(sim.edl)
         J_env_y_o = np.zeros(sim.edl)
 
+        # due to electrolyte screening and fluxes, current in extracellular spaces opposite that of in cells:
         J_env_x_o[cells.map_cell2ecm] = sim.J_cell_x
         J_env_y_o[cells.map_cell2ecm] = sim.J_cell_y
 
@@ -102,8 +88,8 @@ def get_current(sim, cells, p):
         gPhix, gPhiy = fd.gradient(Phi, cells.delta)
 
         # subtract the potential term from the solution to yield the actual current density in the environment:
-        sim.J_env_x = J_env_x_o.reshape(cells.X.shape) - gPhix
-        sim.J_env_y = J_env_y_o.reshape(cells.X.shape) - gPhiy
+        sim.J_env_x = (J_env_x_o.reshape(cells.X.shape) - gPhix)
+        sim.J_env_y = (J_env_y_o.reshape(cells.X.shape) - gPhiy)
 
         # if p.smooth_level > 0.0:
         #     sim.J_env_x = gaussian_filter(sim.J_env_x, p.smooth_level)
