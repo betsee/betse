@@ -7,84 +7,9 @@ Abstract base classes of all Matplotlib-based animation classes.
 '''
 
 #FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean
-#and animation-specific configuration options), appear to be broken. Panic
-#station!
-#FIXME: Actually, the current approach to implementing animation overlays is
-#fundamentally flawed. We currently attempt to provide a crude form of plot
-#composition (i.e., merging two or more types of plots together into a single
-#plot) by adding new booleans to the "AnimCells" base class (e.g.,
-#"is_current_overlayable") -- a fundamentally unwieldy and ultimately
-#unworkable approach. By definition, you cannot provide true composability frow
-#within a single class hierarchy. Instead, we need to split the specific
-#process of plotting different types of artists (e.g., mesh plots, stream
-#plots) from the general process of animating and saving frames and plots as
-#follows:
-#
-#* Define a new "betse.science.plot.anim.plotter" submodule.
-#* Define a new "CellsPlotterABC" abstract base class in this submodule. Plotter
-#  classes encapsulate the plotting of a single type of plot (e.g., Vmem-style
-#  cell cluster meshplot, electrical current streamplot). While they may
-#  internally cache one or more time series required for this plotting, they do
-#  *NOT* contain the axes, figure, plot, or animation currently being plotted.
-#  Since these Matplotlib artists are shared between multiple plotters, the
-#  existing "PlotCells" and "AnimCells" base classes retain ownership of these
-#  artists.
-#* Define the following abstract methods in "CellsPlotterABC":
-#  * An init() method. Subclasses *MUST* redefine this method to initialize this
-#    plotter instance (e.g., by internally caching one or more time series).
-#  * A plot() method presumably accepting the index of the frame to be plotted.
-#    Subclasses *MUST* redefine this method to plot the time series data for
-#    this frame into the current plot or animation figure. To avoid circular
-#    references (and hence unallocated figures), it wouldn't necessarily be a
-#    bad idea to repass all objects required for plotting to each
-#    CellsPlotterABC.plot() call rather than to the CellsPlotterABC.__init__()
-#    constructor. Food for pleasant thought, anyway.
-#  * *UHM.* Wait. There would clearly be *NO* circular references here, so
-#    passing objects to CellsPlotterABC.__init__() once rather than repeatedly
-#    to CellsPlotterABC.plot() probably makes the most sense. We absolutely
-#    *MUST*, however, avoid passing the current "AnimCells" instance to
-#    CellsPlotterABC.__init__(). Passing that instance to
-#    CellsPlotterABC.plot(), however, should both be safe and desirable, as
-#    doing so would then permit plotters to access relevant data on the current
-#    animation (e.g., "AnimCells.time_step" providing the current frame number).
-#* Add a new "plotters" parameter to the AnimCells.__init__() constructor,
-#  classified as a new "AnimCells._plotters" instance variable. This parameter
-#  and variable *MUST* be a list of "CellsPlotterABC" instances. The order of
-#  plotters in this list defines the order in which these plotters are drawn and
-#  hence overlaid one another (i.e., z-order).
-#* Refactor AnimCells.__init__() or a method called by that method to iterate
-#  over "self._plotters" and initialize each such plotter by calling
-#  plotter.init().
-#* Refactor AnimCells.plot_frame() or a related method to iterate over
-#  "self._plotters" and draw each such plotter by calling plotter.draw().
-#* Refactor all subclasses of "AnimCells" into one or more subclasses of
-#  "CellsPlotterABC" instead, which may then be instantiated and composed
-#  together into a new "plotters" list passed to CellsPlotterABC.__init__(). For
-#  example:
-#  * Split the existing "AnimGapJuncTimeSeries" subclass into:
-#    * A new "CellsPlotterGapJunc" subclass plotting *ONLY* the gap junction
-#      open state as a "LineCollection" overlay. This plotter subclass would
-#      probably only be used for this specific purpose.
-#    * A new "CellsPlotterTimeSeries" subclass plotting *ONLY* an arbitrary
-#      time series for the cell cluster as a mesh plot underlay. Clearly, this
-#      plotter subclass would be extensively reused elsewhere as well.
-#* Replace all current overlay functionality in "AnimCells" with "plotters".
-#* Refactor the configuration file from the current hard-coded non-composable
-#  approach to a dynamic list-based approach permitting zero or more
-#  user-defined animations, each consisting of one or more stock BETSE-defined
-#  plotters, to be defined. Users would then be able to construct arbitrarily
-#  simple or complex animations as required.
-#
-#Note that the "CellsPlotterABC" nomenclature used above is overly ambiguous
-#and hence non-ideal. Non-ambiguous alternative names for this concept include:
-#
-#* "PlottableABC". Yes, we quite appreciate this one. Such objects are
-#  certainly plottable, so this is coherent.
-#* "ComposableABC".
-#* "DrawableABC".
-#
-#So, yes. It's quite a bit of work. But it's absolutely essential as well,
-#particularly for implementing a general-purpose BETSE GUI.
+#and animation-specific configuration options), appear to be broken. In theory,
+#refactoring the current overlay approach into a "PlotterCellsABC" subclass
+#should correct the breakage. Until then, panic stations!
 
 #FIXME: All animations should be displayed in a non-blocking rather than
 #blocking manner, as required for parallelizing the animation pipeline. To
@@ -122,10 +47,10 @@ Abstract base classes of all Matplotlib-based animation classes.
 #the fact that animation objects should only live as long as their underlying
 #figure objects by explicitly adding circular references between the two: e.g.,
 #
-#    # This is already done by the "PlotCells" superclass.
+#    # This is already done by the "PlotCellsABC" superclass.
 #    self._figure = pyplot.figure()
 #
-#    # Then just add this to the AnimCells.__init__() method *BEFORE* the
+#    # Then just add this to the AnimCellsABC.__init__() method *BEFORE* the
 #    # self._figure.show(block=False) method is called.
 #    self._figure.__BETSE_anim__ = self
 #
@@ -150,7 +75,7 @@ from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
-from betse.science.plot.plotabc import PlotCells
+from betse.science.plot.plotabc import PlotCellsABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, NoneType, SequenceTypes
@@ -159,19 +84,56 @@ from matplotlib.animation import FuncAnimation
 from scipy import interpolate
 
 # ....................{ BASE                               }....................
-#FIXME: Rename to simply "AnimABC".
-class AnimCells(PlotCells):
+class AnimCellsABC(PlotCellsABC):
     '''
     Abstract base class of all animation classes.
 
     Instances of this class animate the spatial distribution of modelled
     variables (e.g., Vmem) over all time steps of the simulation.
 
-    Attributes
+    Attributes (Public)
+    ----------
+
+    Attributes (Private)
     ----------
     _anim : FuncAnimation
         Low-level Matplotlib animation object instantiated by this high-level
         BETSE wrapper object.
+
+    Attributes (Private: Time)
+    ----------
+    _time_step_count : int
+        Number of frames to be plotted.
+    _time_step_last : int
+        0-based index of the last frame to be plotted, exactly equivalent to
+        `self._time_step_count - 1`.
+    _time_step : int
+        0-based index of the frame currently being plotted, corresponding to the
+        0-based sampled time step currently being simulated.
+    _time_step_absolute : int
+        0-based index of the last frame to be plotted.
+
+    Attributes (Private: Saving)
+    ----------
+    _is_saving_shown_frames : bool
+        `True` only if both saving _and_ displaying animation frames.
+    _save_frame_template : str
+        `str.format()`-formatted template which, when formatted with the 0-based
+        index of the current frame, yields the absolute path of the image file
+        to be saved for that frame.
+    _writer_images : MovieWriter
+        Matplotlib object saving animation frames as images if doing so _or_
+        `None` otherwise.
+    _writer_savefig_kwargs : dict
+        Dictionary of all keyword arguments to be passed to the
+        `Figure.savefig()` method called to save each animation frame for both
+        images and video.
+    _writer_video : MovieWriter
+        Matplotlib object saving animation frames as video if doing so _or_
+        `None` otherwise.
+
+    Attributes (Private: Current)
+    ----------
     _current_density_magnitude_time_series : ndarray
         Time series of all current density magnitudes (i.e., `Jmag_M`) if the
         optional `_init_current_density()` method has been called for
@@ -203,32 +165,6 @@ class AnimCells(PlotCells):
         `True` only if overlaying intracellular current _or_ `False` otherwise
         (i.e., if overlaying both intra- and extracellular current). Ignored
         unless overlaying current (i.e., if `_is_overlaying_current` is `True`).
-    _is_saving_shown_frames : bool
-        `True` only if both saving _and_ displaying animation frames.
-    _save_frame_template : str
-        `str.format()`-formatted template which, when formatted with the 0-based
-        index of the current frame, yields the absolute path of the image file
-        to be saved for that frame.
-    _time_step_count : int
-        Number of frames to be plotted.
-    _time_step_last : int
-        0-based index of the last frame to be plotted, exactly equivalent to
-        `self._time_step_count - 1`.
-    _time_step : int
-        0-based index of the frame currently being plotted, corresponding to the
-        0-based sampled time step currently being simulated.
-    _time_step_absolute : int
-        0-based index of the last frame to be plotted.
-    _writer_images : MovieWriter
-        Matplotlib object saving animation frames as images if doing so _or_
-        `None` otherwise.
-    _writer_savefig_kwargs : dict
-        Dictionary of all keyword arguments to be passed to the
-        `Figure.savefig()` method called to save each animation frame for both
-        images and video.
-    _writer_video : MovieWriter
-        Matplotlib object saving animation frames as video if doing so _or_
-        `None` otherwise.
     '''
 
     # ..................{ LIFECYCLE                          }..................
@@ -281,7 +217,7 @@ class AnimCells(PlotCells):
 
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
-        if is_ecm_required and not self._p.sim_ECM:
+        if is_ecm_required and not self.p.sim_ECM:
             raise BetseParametersException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
@@ -290,9 +226,9 @@ class AnimCells(PlotCells):
         # Default unpassed parameters.
         if is_current_overlay_only_gj is None:
             is_current_overlay_only_gj = not (
-                self._p.sim_ECM and self._p.IecmPlot)
+                self.p.sim_ECM and self.p.IecmPlot)
         if time_step_count is None:
-            time_step_count = len(self._sim.time)
+            time_step_count = len(self.sim.time)
 
         # Classify all remaining parameters.
         self._is_current_overlay_only_gj = is_current_overlay_only_gj
@@ -306,7 +242,7 @@ class AnimCells(PlotCells):
         # * Requested by the current simulation configuration via "p.I_overlay".
         # * This configuration is modelling currents via "p.calc_J".
         self._is_overlaying_current = (
-            is_current_overlayable and self._p.I_overlay)
+            is_current_overlayable and self.p.I_overlay)
 
         #FIXME: Is this obsolete now? Excise if so, please.
 
@@ -384,25 +320,25 @@ class AnimCells(PlotCells):
         #of the current loop type until we sort out just what is going on with
         #this boolean and/or string enumeration elsewhere.
         #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        if hasattr(self._p, 'plot_type'):
-            plot_type = self._p.plot_type
+        if hasattr(self.p, 'plot_type'):
+            plot_type = self.p.plot_type
         else:
-            plot_type = 'sim' if self._p.run_sim else 'init'
+            plot_type = 'sim' if self.p.run_sim else 'init'
 
         # Path of the phase-specific parent directory of the subdirectory to
         # which these files will be saved.
         loop_dirname = None
         if plot_type == 'sim':
-            loop_dirname = self._p.sim_results
+            loop_dirname = self.p.sim_results
         elif plot_type == 'init':
-            loop_dirname = self._p.init_results
+            loop_dirname = self.p.init_results
         else:
             raise BetseParametersException(
                 'Animation saving unsupported during the "{}" loop.'.format(
                     plot_type))
 
         # Animation configuration localized for convenience.
-        anim_config = self._p.anim
+        anim_config = self.p.anim
 
         # If saving animation frames as either images or video, prepare to do so
         # in a manner common to both.
@@ -527,11 +463,11 @@ class AnimCells(PlotCells):
     # ..................{ PROPERTIES                         }..................
     @property
     def _is_showing(self) -> bool:
-        return self._p.anim.is_after_sim_show
+        return self.p.anim.is_after_sim_show
 
     @property
     def _is_saving(self) -> bool:
-        return self._p.anim.is_after_sim_save
+        return self.p.anim.is_after_sim_save
 
     # ..................{ ANIMATORS                          }..................
     @type_check
@@ -811,7 +747,7 @@ class AnimCells(PlotCells):
         # this index is assumed to be the last index of the current
         # simulation's array of time steps.
         if time_step == -1:
-            time_step_absolute = len(self._sim.time) - 1
+            time_step_absolute = len(self.sim.time) - 1
         # Else, the passed index is already absolute and hence used as is.
         else:
             time_step_absolute = time_step
@@ -894,7 +830,7 @@ class AnimCells(PlotCells):
 
         # Duration in seconds of the current simulation phase (e.g., "init",
         # "run"), accelerated by the current gap junction acceleration factor.
-        time_len = self._p.total_time_accelerated
+        time_len = self.p.total_time_accelerated
 
         # If this phase runs for less than or equal to 100ms, report
         # simulation time in milliseconds (i.e., units of 0.001s).
@@ -922,7 +858,7 @@ class AnimCells(PlotCells):
         # place for readability.
         self._axes.set_title('{} (time: {:.1f}{})'.format(
             self._axes_title,
-            time_unit_factor *self._p.gj_acceleration*self._sim.time[self._time_step],
+            time_unit_factor * self.p.gj_acceleration * self.sim.time[self._time_step],
             time_unit_suffix,
         ))
 
@@ -953,25 +889,25 @@ class AnimCells(PlotCells):
 
             # Interpolate data from cell centres to the xy-grid.
             cell_centres = (
-                self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
-            cell_grid = (self._cells.X, self._cells.Y)
+                self.cells.cell_centres[:, 0], self.cells.cell_centres[:, 1])
+            cell_grid = (self.cells.X, self.cells.Y)
 
-            for i in range(0, len(self._sim.I_cell_x_time)):
-                I_gj_x = self._cells.maskECM * interpolate.griddata(
+            for i in range(0, len(self.sim.I_cell_x_time)):
+                I_gj_x = self.cells.maskECM * interpolate.griddata(
                     cell_centres,
-                    self._sim.I_cell_x_time[i],
+                    self.sim.I_cell_x_time[i],
                     cell_grid,
                     fill_value=0,
-                    method=self._p.interp_type,
+                    method=self.p.interp_type,
                 )
                 I_grid_x_time.append(I_gj_x)
 
-                I_gj_y = self._cells.maskECM * interpolate.griddata(
+                I_gj_y = self.cells.maskECM * interpolate.griddata(
                     cell_centres,
-                    self._sim.I_cell_y_time[i],
+                    self.sim.I_cell_y_time[i],
                     cell_grid,
                     fill_value=0,
-                    method=self._p.interp_type,
+                    method=self.p.interp_type,
                 )
                 I_grid_y_time.append(I_gj_y)
 
@@ -979,8 +915,8 @@ class AnimCells(PlotCells):
             self._current_density_y_time_series = I_grid_y_time
 
         else:
-            self._current_density_x_time_series = self._sim.I_tot_x_time
-            self._current_density_y_time_series = self._sim.I_tot_y_time
+            self._current_density_x_time_series = self.sim.I_tot_x_time
+            self._current_density_y_time_series = self.sim.I_tot_y_time
 
         # Time series of all current density magnitudes (i.e., `Jmag_M`),
         # multiplying by 100 to obtain current density in units of uA/cm2.
@@ -1005,7 +941,7 @@ class AnimCells(PlotCells):
             # self._current_density_stream_plot, self._axes = cell_stream(
             #     self._current_density_x_time_series[-1],
             #     self._current_density_y_time_series[-1],
-            #     self._axes, self._cells, self._p)
+            #     self._axes, self.cells, self.p)
         # If animating both extracellular and intracellular current, do so.
         else:
             self._axes_title = 'Total Current Overlay'
@@ -1014,7 +950,7 @@ class AnimCells(PlotCells):
             # self._current_density_stream_plot, self._axes = env_stream(
             #     self._current_density_x_time_series[-1],
             #     self._current_density_y_time_series[-1],
-            #     self._axes, self._cells, self._p)
+            #     self._axes, self.cells, self.p)
             #
 
 
@@ -1050,7 +986,7 @@ class AnimCells(PlotCells):
 #* Define a new "while" submodule of this subpackage.
 #* Shift this and the following subclasses to the "after" submodule.
 #* Shift the "AnimCellsWhileSolving" subclass to the "while" submodule.
-class AnimCellsAfterSolving(AnimCells):
+class AnimCellsAfterSolving(AnimCellsABC):
     '''
     Out-of-place animation of an arbitrary membrane-centric time series (e.g.,
     cell Vmem as a function of time), plotted over the cell cluster _after_
@@ -1133,7 +1069,7 @@ class AnimField(AnimCellsAfterSolving):
         self._unit_y_time_series = []
 
         # Prefer an alternative colormap.
-        self._colormap = self._p.background_cm
+        self._colormap = self.p.background_cm
 
 
 class AnimVelocity(AnimCellsAfterSolving):
@@ -1152,4 +1088,4 @@ class AnimVelocity(AnimCellsAfterSolving):
             *args, **kwargs)
 
         # Prefer an alternative colormap.
-        self._colormap = self._p.background_cm
+        self._colormap = self.p.background_cm

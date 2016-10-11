@@ -1868,7 +1868,7 @@ class Molecule(object):
         AnimCellsTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=[arr for arr in self.c_mems_time],
-            label=self.name + '_cells',
+            label=self.name + 'cells',
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]',
             is_color_autoscaled=self.plot_autoscale,

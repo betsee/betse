@@ -9,6 +9,7 @@ PEP 484-style type checking based on Python 3.x function annotations.
 '''
 
 # ....................{ IMPORTS                            }....................
+from random import Random
 import pytest
 
 # ....................{ TESTS                              }....................
@@ -114,10 +115,35 @@ def test_type_check_pass_param_custom() -> None:
     def hrud(gugann: str, delphic_plague: CustomTestStr) -> str:
         return gugann + delphic_plague
 
-    # Call this function with each of the two types listed in the above tuple.
+    # Call this function with each of the above type.
     assert hrud(
         'Troglydium hruddi', delphic_plague=CustomTestStr('Delphic Sink')) == (
         'Troglydium hruddiDelphic Sink')
+
+
+def test_type_check_pass_param_str() -> None:
+    '''
+    Test type checking for a function call successfully passed a parameter
+    annotated as a string.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Dates between which the Sisters of Battle must have been established.
+    ESTABLISHMENT_DATE_MIN = 36000
+    ESTABLISHMENT_DATE_MAX = 37000
+
+    # Function to be type checked.
+    @type_check
+    def sisters_of_battle(
+        leader: str, establishment: 'random.Random') -> int:
+        return establishment.randint(
+            ESTABLISHMENT_DATE_MIN, ESTABLISHMENT_DATE_MAX)
+
+    # Call this function with an instance of the type named above.
+    assert sisters_of_battle('Abbess Sanctorum', Random()) in range(
+        ESTABLISHMENT_DATE_MIN, ESTABLISHMENT_DATE_MAX + 1)
 
 # ....................{ TESTS ~ pass : return              }....................
 def test_type_check_pass_return_none() -> None:
@@ -184,6 +210,30 @@ def test_type_check_fail_param_name() -> None:
             return weaponsmith + __beartype_func
 
 # ....................{ TESTS ~ fail : type                }....................
+def test_type_check_fail_param_str() -> None:
+    '''
+    Test type checking for an annotated function call failing a string
+    parameter type check.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Dates between which the Black Legion must have been established.
+    ESTABLISHMENT_DATE_MIN = 30000
+    ESTABLISHMENT_DATE_MAX = 31000
+
+    # Function to be type checked.
+    @type_check
+    def black_legion(primarch: str, establishment: 'random.Random') -> int:
+        return establishment.randint(
+            ESTABLISHMENT_DATE_MIN, ESTABLISHMENT_DATE_MAX)
+
+    # Call this function with an invalid type and assert the expected exception.
+    with pytest.raises(TypeError):
+        black_legion('Horus', 'Abaddon the Despoiler')
+
+
 def test_type_check_fail_param_nonvariadic_type() -> None:
     '''
     Test type checking for an annotated function call failing a non-variadic
@@ -243,9 +293,10 @@ def test_type_check_fail_return_type() -> None:
         necron("C'tan", 'Elder Thing')
 
 # ....................{ TESTS ~ fail : annotation          }....................
-def test_type_check_fail_annotation_param() -> None:
+def test_type_check_fail_annotation_param_int() -> None:
     '''
-    Test type checking for a function with an unsupported parameter annotation.
+    Test type checking for a function with an unsupported integer parameter
+    annotation.
     '''
 
     # Import this decorator.
@@ -255,8 +306,40 @@ def test_type_check_fail_annotation_param() -> None:
     # with a parameter annotation that is *NOT* a type.
     with pytest.raises(TypeError):
         @type_check
-        def nurgle(nurgling: str, great_unclean_one: 'Bringer of Poxes') -> str:
-            return nurgling + great_unclean_one
+        def nurgle(nurgling: str, great_unclean_one: 0x8BADF00D) -> str:
+            return nurgling + str(great_unclean_one)
+
+
+def test_type_check_fail_annotation_param_str() -> None:
+    '''
+    Test type checking for a function with unsupported string parameter
+    annotations.
+    '''
+
+    # Import this decorator.
+    from betse.util.type.types import type_check
+
+    # Assert the expected exception from attempting to type check a function
+    # with a string parameter annotation that (in order):
+    #
+    # * Is not "."-delimited and hence not the fully-qualified name of a module
+    #   attribute.
+    # * Is not a valid module name and hence unimportable.
+    # * Is not a valid attribute name of an importable module.
+    with pytest.raises(TypeError):
+        @type_check
+        def wolves_of_horus(champion: str, chaos_lord: 'random') -> str:
+            return champion + chaos_lord
+    with pytest.raises(ImportError):
+        @type_check
+        def eye_of_terror(
+            ocularis_terribus: str, segmentum_obscurus: 'random!?.Warp') -> str:
+            return ocularis_terribus + segmentum_obscurus
+    with pytest.raises(AttributeError):
+        @type_check
+        def navigator(
+            astronomicon: str, navis_nobilite: 'random.PsychicLight!?') -> str:
+            return astronomicon + navis_nobilite
 
 
 def test_type_check_fail_annotation_return() -> None:

@@ -7,7 +7,7 @@ Abstract base classes of all Matplotlib-based plotting classes.
 '''
 
 #FIXME: Refactor all procedural cell cluster-specific "betse.plot.plot"
-#functions into subclasses of the "PlotCells" base class defined below.
+#functions into subclasses of the "PlotCellsABC" base class defined below.
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
@@ -26,22 +26,43 @@ from matplotlib.colors import Colormap
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ BASE                               }....................
-#FIXME: Rename to simply "PlotABC".
-class PlotCells(object, metaclass=ABCMeta):
+class PlotCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting the cell cluster.
 
-    Instances of this class plot the spatial distribution of modelled variables
-    (e.g., Vmem) over some time step(s) of the simulation.
+    Subclasses of this class plot the spatial distribution of one or more
+    modelled variables (e.g., charge distribution, membrane voltage) for either:
 
-    Attributes
+    * A single simulation time step, in which this subclass plots a still frame
+      of these variables for this step.
+    * One or more simulation time steps, in which this subclass animates a video
+      of these variables for these steps.
+
+    Attributes (Public)
     ----------
-    _sim : Simulation
-        Current simulation.
-    _cells : Cells
+    cells : Cells
         Current cell cluster.
-    _p : Parameters
+    p : Parameters
         Current simulation configuration.
+    sim : Simulation
+        Current simulation.
+
+    Attributes (Private)
+    ----------
+    _label : str
+        Basename of the subdirectory in the phase-specific results directory
+        to which all files exported for this plot or animation are saved _and_
+        the basename prefix of these files.
+
+    Attributes (Private: Figure)
+    ----------
+    _figure : Figure
+        Matplotlib figure providing the current animation frame.
+    _figure_title : str
+        Text displayed above the figure itself.
+
+    Attributes (Private: Axes)
+    ----------
     _axes : FigureAxes
         Matplotlib figure axes providing the current animation frame data.
     _axes_bounds : list
@@ -60,6 +81,9 @@ class PlotCells(object, metaclass=ABCMeta):
         Text displayed below the figure's X axis.
     _axes_y_label : str
         Text displayed to the left of the figure's Y axis.
+
+    Attributes (Private: Color)
+    ----------
     _color_mappings : list
         List of all plotted mappables (i.e., instances of the `ScalarMappable`
         Matplotlib class added to this plot) whose minimum and maximum values
@@ -78,19 +102,11 @@ class PlotCells(object, metaclass=ABCMeta):
         subclass is responsible for redefining this value as appropriate.
     _colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
-    _figure : Figure
-        Matplotlib figure providing the current animation frame.
-    _figure_title : str
-        Text displayed above the figure itself.
     _is_color_autoscaled : bool
         `True` if dynamically resetting the minimum and maximum colorbar values
         to be the corresponding minimum and maximum values for the current
         frame _or_ `False` if statically setting the minimum and maximum
         colorbar values to predetermined constants.
-    _label : str
-        Basename of the subdirectory in the phase-specific results directory
-        to which all animation files will be saved _and_ the basename prefix of
-        these files.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -176,20 +192,21 @@ class PlotCells(object, metaclass=ABCMeta):
         '''
 
         # Classify core parameters with weak rather than strong (the default)
-        # references, thus avoiding circular references and all resulting
+        # references, thus avoiding circular references and the resulting
         # complications thereof (e.g., increased memory overhead). Since these
         # objects necessarily live significantly longer than this plot, no
-        # complications arise. These attributes *ALWAYS* provide the expected
-        # objects rather than non-deterministically returning "None".
-        self._sim = weakref.proxy(sim)
-        self._p = weakref.proxy(p)
+        # complications arise. Ergo, these attributes *ALWAYS* yield these
+        # objects rather than non-deterministically returning "None" if these
+        # objects are unexpectedly garbage-collected.
+        self.sim = weakref.proxy(sim)
+        self.p = weakref.proxy(p)
 
         #FIXME: For currently unknown reasons, this object occasionally retains
         #the only remaining reference to the passed "Cells" instance -- which
         #*CANNOT* therefore be safely classified as a weak reference. This is
         #highly unexpected, however, and should thus be investigated.
-        # self._cells = weakref.proxy(cells)
-        self._cells = cells
+        # self.cells = weakref.proxy(cells)
+        self.cells = cells
 
         # Default unpassed parameters.
         if colormap is None:
@@ -263,10 +280,10 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # Extent of the current 2D environment.
         self._axes_bounds = [
-            self._cells.xmin * self._p.um,
-            self._cells.xmax * self._p.um,
-            self._cells.ymin * self._p.um,
-            self._cells.ymax * self._p.um,
+            self.cells.xmin * self.p.um,
+            self.cells.xmax * self.p.um,
+            self.cells.ymin * self.p.um,
+            self.cells.ymax * self.p.um,
         ]
 
         # Bound these axes by this extent.
@@ -357,11 +374,11 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # If labelling each plotted cell with that cell's unique 0-based index,
         # do so.
-        if self._p.enumerate_cells is True:
-            for cell_index, cell_centre in enumerate(self._cells.cell_centres):
+        if self.p.enumerate_cells is True:
+            for cell_index, cell_centre in enumerate(self.cells.cell_centres):
                 self._axes.text(
-                    self._p.um * cell_centre[0],
-                    self._p.um * cell_centre[1],
+                    self.p.um * cell_centre[0],
+                    self.p.um * cell_centre[1],
                     cell_index,
                     va='center',
                     ha='center',
@@ -372,7 +389,7 @@ class PlotCells(object, metaclass=ABCMeta):
         if color_data is not None and self._is_color_autoscaled:
             #FIXME: This appears to be failing when "color_data" is
             #"self._current_density_magnitude_time_series" (e.g.,
-            #"self._sim.I_gj_x_time").
+            #"self.sim.I_gj_x_time").
 
             # Flatten this two-dimensional matrix to a one-dimensional array,
             # providing efficient retrieval of minimum and maximum values.
@@ -482,7 +499,7 @@ class PlotCells(object, metaclass=ABCMeta):
     # Because chicken-and-the-egg constraints. Specifically, the latter approach
     # prevents subclasses from passing a value dependent on the current
     # "Parameters" object to __init__(), as that object has yet to be classified
-    # as the "_p" attribute yet. (Ugh.)
+    # as the "p" attribute yet. (Ugh.)
 
     @property
     def _is_showing(self) -> bool:
@@ -493,7 +510,7 @@ class PlotCells(object, metaclass=ABCMeta):
         may concurrently also be `True`.
         '''
 
-        return not self._p.turn_all_plots_off
+        return not self.p.turn_all_plots_off
 
 
     @property
@@ -505,7 +522,7 @@ class PlotCells(object, metaclass=ABCMeta):
         may concurrently also be `True`.
         '''
 
-        return self._p.autosave
+        return self.p.autosave
 
     # ..................{ COLORS                             }..................
     def _rescale_colors(self):
@@ -625,10 +642,10 @@ class PlotCells(object, metaclass=ABCMeta):
             One-dimensional vector flow magnitudes.
         grid_x : np.ndarray
             Optional scaled X components of the cell cluster grid. Defaults to
-            `None`, in which case the default `self._cells.X` array is used.
+            `None`, in which case the default `self.cells.X` array is used.
         grid_y : np.ndarray
             Optional scaled Y components of the cell cluster grid. Defaults to
-            `None`, in which case the default `self._cells.Y` array is used.
+            `None`, in which case the default `self.cells.Y` array is used.
         magnitude_max: float
             Optional maximum magnitude in the passed `magnitude` array. Defaults
             to `None`, in which case this array is searched for this value.
@@ -659,9 +676,9 @@ class PlotCells(object, metaclass=ABCMeta):
         if magnitude_max is None:
             magnitude_max = np.max(magnitude)
         if grid_x is None:
-            grid_x = self._cells.X * self._p.um
+            grid_x = self.cells.X * self.p.um
         if grid_y is None:
-            grid_y = self._cells.Y * self._p.um
+            grid_y = self.cells.Y * self.p.um
         assert types.is_numeric(magnitude_max), (
             types.assert_not_numeric(magnitude_max))
         assert types.is_sequence_nonstr(grid_x), (
@@ -695,9 +712,9 @@ class PlotCells(object, metaclass=ABCMeta):
         # Plot and return this streamplot.
         return self._axes.streamplot(
             grid_x, grid_y, x, y,
-            density=self._p.stream_density,
+            density=self.p.stream_density,
             linewidth=(3.0*magnitude/magnitude_max) + 0.5,
-            color=self._p.vcolor,
+            color=self.p.vcolor,
             cmap=self._colormap,
             arrowsize=1.5,
 
@@ -738,7 +755,7 @@ class PlotCells(object, metaclass=ABCMeta):
             Plot produced by plotting the passed cell data.
         '''
 
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             return self._plot_cell_mosaic(*args, **kwargs)
         else:
             return self._plot_cell_mesh(*args, **kwargs)
@@ -770,7 +787,7 @@ class PlotCells(object, metaclass=ABCMeta):
             types.assert_not_sequence_nonstr(cell_data))
 
         # If plotting individuals cells, update this plot with this data as is.
-        if self._p.showCells:
+        if self.p.showCells:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
             cell_plot.set_array(cell_data)
@@ -780,8 +797,8 @@ class PlotCells(object, metaclass=ABCMeta):
             assert types.is_matplotlib_trimesh(cell_plot), (
                 types.assert_not_matplotlib_trimesh(cell_plot))
 
-            # cell_data = np.zeros(len(self._cells.voronoi_centres))
-            # cell_data[self._cells.cell_to_grid] = cell_data
+            # cell_data = np.zeros(len(self.cells.voronoi_centres))
+            # cell_data[self.cells.cell_to_grid] = cell_data
 
             # Update this plot with this gridded data.
             cell_plot.set_array(cell_data)
@@ -837,13 +854,13 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # If plotting individual cells, the passed cell plot *MUST* be a polygon
         # collection previously returned by the _plot_cell_mosaic() method.
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
 
             # Update this plot in-place.
             cell_plot.set_array(cell_data)
-            cell_plot.set_verts(np.asarray(self._cells.cell_verts) * self._p.um)
+            cell_plot.set_verts(np.asarray(self.cells.cell_verts) * self.p.um)
 
             # Return the same plot.
             return cell_plot
@@ -882,7 +899,7 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=np.asarray(self._cells.cell_verts) * self._p.um,
+            verts=np.asarray(self.cells.cell_verts) * self.p.um,
             cmap=self._colormap,
             edgecolors='none',
         )
@@ -921,13 +938,13 @@ class PlotCells(object, metaclass=ABCMeta):
 
         # If the passed cell data is defined on membrane midpoints, average that
         # to correspond to cell centres instead.
-        if len(cell_data) == len(self._cells.mem_i):
+        if len(cell_data) == len(self.cells.mem_i):
             cell_data = np.dot(
-                self._cells.M_sum_mems, cell_data) / self._cells.num_mems
+                self.cells.M_sum_mems, cell_data) / self.cells.num_mems
 
         # Unstructured triangular grid assigned the passed cell data.
-        triangular_grid = np.zeros(len(self._cells.voronoi_centres))
-        triangular_grid[self._cells.cell_to_grid] = cell_data
+        triangular_grid = np.zeros(len(self.cells.voronoi_centres))
+        triangular_grid[self.cells.cell_to_grid] = cell_data
 
         # cmin = cell_data.min()
         # cmax = cell_data.max()
@@ -940,8 +957,8 @@ class PlotCells(object, metaclass=ABCMeta):
         #
         # Behold! The ultimate examplar of nonsensical API design.
         return self._axes.tripcolor(
-            self._p.um*self._cells.cell_centres[:,0],
-            self._p.um*self._cells.cell_centres[:,1],
+            self.p.um * self.cells.cell_centres[:, 0],
+            self.p.um * self.cells.cell_centres[:, 1],
             cell_data,
             shading='gouraud',
             cmap=self._colormap

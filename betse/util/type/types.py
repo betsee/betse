@@ -17,7 +17,7 @@ objects).
 # third-party packages.)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import inspect, re
+import importlib, inspect, re
 from collections.abc import (
     Container, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence,
     Set, Sized,
@@ -340,7 +340,8 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
         # For the name of each parameter passed to this callable and the
         # "inspect.Parameter" instance encapsulating this parameter (in the
         # passed order)...
-        for func_arg_index, func_arg in enumerate(func_sig.parameters.values()):
+        for func_arg_index, func_arg in enumerate(
+            func_sig.parameters.values()):
             # If this callable redefines a parameter initialized to a default
             # value by this wrapper, raise an exception. Permitting this
             # unlikely edge case would permit unsuspecting users to
@@ -350,13 +351,30 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                     'Parameter {} reserved for use by @type_check.'.format(
                         func_arg.name))
 
+            # Value of this annotation.
+            func_arg_annotation = func_arg.annotation
+
             # If this parameter is both annotated and non-ignorable for
             # purposes of type checking, type check this parameter.
-            if (func_arg.annotation is not Parameter.empty and
+            if (func_arg_annotation is not Parameter.empty and
                 func_arg.kind not in _PARAMETER_KIND_IGNORED):
+                # If this annonation is a string...
+                if isinstance(func_arg_annotation, str):
+                    # Replace the local copy of this annotation with the value
+                    # of the module attribute whose fully-qualified name is
+                    # this annotation's string value.
+                    func_arg_annotation = _get_module_attr(func_arg_annotation)
+
+                    # Replace the external copy of this annotation stored with
+                    # this function's signature as well, ensuring that runtime
+                    # access of this annotation via
+                    # "__beartype_func.__annotations__" accesses the expected
+                    # type rather than that type's name.
+                    func.__annotations__[func_arg.name] = func_arg_annotation
+
                 # Validate this annotation.
                 _check_type_annotation(
-                    annotation=func_arg.annotation,
+                    annotation=func_arg_annotation,
                     label='{} parameter "{}" type'.format(
                         func_name, func_arg.name))
 
@@ -435,12 +453,21 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                     arg_value_pos_expr=func_arg_value_pos_expr,
                 )
 
+        # Value of the annotation for this callable's return value.
+        func_return_annotation = func_sig.return_annotation
+
         # If this callable's return value is both annotated and non-ignorable
         # for purposes of type checking, type check this value.
-        if func_sig.return_annotation not in _RETURN_ANNOTATION_IGNORED:
+        if func_return_annotation not in _RETURN_ANNOTATION_IGNORED:
+            # If this annotation is a string... see above for similar logic.
+            if isinstance(func_arg_annotation, str):
+                func_return_annotation = _get_module_attr(
+                    func_return_annotation)
+                func.__annotations__['return'] = func_return_annotation
+
             # Validate this annotation.
             _check_type_annotation(
-                annotation=func_sig.return_annotation,
+                annotation=func_return_annotation,
                 label='{} return type'.format(func_name))
 
             # Strings evaluating to this parameter's annotated type and
@@ -448,8 +475,8 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
             func_return_type_expr = (
                 "__beartype_func.__annotations__['return']")
 
-            # Call this callable, type check the returned value, and return this
-            # value from this wrapper.
+            # Call this callable, type check the returned value, and return
+            # this value from this wrapper.
             func_body += '''
     return_value = __beartype_func(*args, **kwargs)
     if not isinstance(return_value, {return_type}):
@@ -484,6 +511,66 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
 else:
     def type_check(func: callable) -> callable:
         return func
+
+
+# Due to chicken-and-egg issues, this implementation duplicates rather than
+# defers to similar functions in the "betse.util.py.modules" submodule.
+def _get_module_attr(module_attr_name: str) -> object:
+    '''
+    Value of the module attribute with the passed name.
+
+    Parameters
+    ----------
+    module_attr_name : str
+        Fully-qualified `.`-delimited name of the module attribute to retrieve
+        (e.g., `betse.science.sim.Simulator`). This name _must_ contain at
+        least one `.`. The substring of this name:
+        * Preceding the last `.` signifies the fully-qualified name of the
+          module containing this attribute (e.g., `betse.science.sim`).
+        * Following the last `.` signifies the unqualified basename of this
+          attribute in this module (e.g., `Simulator`).
+
+    Raises
+    ----------
+    AttributeError
+        If this module contains no such attribute.
+    ImportError
+        If the module containing this attribute is unimportable.
+    TypeError
+        If the passed string contains no `.` delimiter and hence is _not_ a
+        fully-qualified module attribute name.
+    '''
+    assert isinstance(module_attr_name, str), (
+        '"{}" not a string.'.format(module_attr_name))
+
+    # If this name contains no "." delimiter and hence *CANNOT* be a
+    # fully-qualified module attribute name, raise an exception. Sadly, the
+    # str.rsplit() method called below returns a list containing the passed
+    # string as is rather than raising an exception when that string does *NOT*
+    # contain the passed delimiter.
+    if '.' not in module_attr_name:
+        raise TypeError(
+            '"{}" not a fully-qualified module attribute name '
+            '(i.e., contains no "." delimiter).'.format(
+                module_attr_name))
+
+    # Fully-qualified module name and unqualified attribute basename split
+    # from the passed fully-qualified module attribute name. (It is good.)
+    module_name, attr_name = module_attr_name.rsplit(sep='.', maxsplit=1)
+
+    # Attempt to dynamically import this module, implicitly raising a
+    # human-readable "ImportError" exception on failure.
+    module = importlib.import_module(module_name)
+
+    # Attempt to dynamically retrieve and return this attribute from this
+    # module, explicitly converting the non-human-readable "AttributeError"
+    # exception on failure into a human-readable exception of the same type.
+    try:
+        return getattr(module, attr_name)
+    except AttributeError:
+        raise AttributeError(
+            'Module "{}" attribute "{}" not found.'.format(
+                module_name, attr_name))
 
 
 def _check_type_annotation(annotation: object, label: str) -> None:

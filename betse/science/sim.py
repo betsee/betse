@@ -274,7 +274,7 @@ class Simulator(object):
                         self.movingIons.append(vars(self)[str1])
 
                     # cell concentration for the ion
-                    str_cells = 'c' + name + '_cells'
+                    str_cells = 'c' + name + 'cells'
                     setattr(self, str_cells, np.zeros(self.cdl))
                     vars(self)[str_cells][:] = p.cell_concs[name]
 

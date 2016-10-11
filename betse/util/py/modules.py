@@ -205,12 +205,11 @@ def get_dirname(module: (str, ModuleType)) -> str:
     # Return this dirname.
     return paths.get_dirname(get_filename(module))
 
-# ....................{ GETTERS ~ path : file              }....................
+
 #FIXME: The current approach is trivial and therefore terrible, breaking down
 #under commonplace real-world conditions (e.g., modules embedded within egg-like
 #archives). Consider generalizing this approach via the new setuptools-based
 #"betse.lib.setuptool.resources" submodule.
-
 @type_check
 def get_filename(module: (str, ModuleType)) -> str:
     '''
@@ -250,12 +249,13 @@ def get_filename(module: (str, ModuleType)) -> str:
     # provide this attribute.
     if hasattr(module, '__file__'):
         return module.__file__
-    else:
-        raise BetseModuleException(
-            'Module "{}.__file__" attribute not found '
-            '(e.g., as "{}" is a builtin module).'.format(module.__name__))
 
-# ....................{ GETTERS ~ attr                     }....................
+    # Else, raise an exception.
+    raise BetseModuleException(
+        'Module "{}.__file__" attribute not found '
+        '(e.g., as "{}" is a builtin module).'.format(module.__name__))
+
+# ....................{ GETTERS ~ global                   }....................
 @type_check
 def get_global_names(module: (str, ModuleType)) -> SetType:
     '''

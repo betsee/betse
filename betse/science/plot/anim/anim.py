@@ -35,7 +35,7 @@ from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.science.plot import plot
 from betse.science.plot.anim.animabc import (
-    AnimCells, AnimCellsAfterSolving, AnimField, AnimVelocity)
+    AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, NoneType, SequenceTypes
@@ -66,7 +66,7 @@ from betse.science.plot.plot import (
 #FIXME: Rename "_cell_data_plot" to "_cell_body_plot".
 #FIXME: Rename "_cell_edges_plot" to "_cell_edge_plot".
 
-class AnimCellsWhileSolving(AnimCells):
+class AnimCellsWhileSolving(AnimCellsABC):
     '''
     In-place animation of an arbitrary membrane-centric time series (e.g., cell
     Vmem as a function of time), plotted over the cell cluster _during_ rather
@@ -80,7 +80,7 @@ class AnimCellsWhileSolving(AnimCells):
         Plot of the current or prior frame's cell contents.
     _cell_verts_id : int
         Unique identifier for the array of cell vertices (i.e.,
-        `_cells.cell_verts`) when plotting the current or prior frame.
+        `cells.cell_verts`) when plotting the current or prior frame.
         Retaining this identifier permits the `_plot_frame_figure()` method to
         efficiently detect and respond to physical changes (e.g., deformation
         forces, cutting events) in the fundamental structure of the previously
@@ -147,16 +147,16 @@ class AnimCellsWhileSolving(AnimCells):
         self._is_time_step_first = True
 
         # Unique identifier for the array of cell vertices. (See docstring.)
-        self._cell_verts_id = id(self._cells.cell_verts)
+        self._cell_verts_id = id(self.cells.cell_verts)
 
         # average the voltage to the cell centre
         # FIXME this is a temp change until we get this right
-        vm_o = np.dot(self._cells.M_sum_mems,self._sim.vm)/self._cells.num_mems
+        vm_o = np.dot(self.cells.M_sum_mems, self.sim.vm) / self.cells.num_mems
 
-        # self._cell_time_series = self._sim.vm_time
-        self._cell_time_series = self._sim.vm_ave_time
+        # self._cell_time_series = self.sim.vm_time
+        self._cell_time_series = self.sim.vm_ave_time
 
-        # cell_data_current = self._sim.vm
+        # cell_data_current = self.sim.vm
         cell_data_current = vm_o
 
         # Upscaled cell data for the first frame.
@@ -183,11 +183,11 @@ class AnimCellsWhileSolving(AnimCells):
     # ..................{ PROPERTIES                         }..................
     @property
     def _is_showing(self) -> bool:
-        return self._p.anim.is_while_sim_show
+        return self.p.anim.is_while_sim_show
 
     @property
     def _is_saving(self) -> bool:
-        return self._p.anim.is_while_sim_save
+        return self.p.anim.is_while_sim_save
 
     # ..................{ PLOTTERS                           }..................
     def _plot_frame_figure(self) -> None:
@@ -202,7 +202,7 @@ class AnimCellsWhileSolving(AnimCells):
         # If the unique identifier for the array of cell vertices has *NOT*
         # changed, the cell cluster has *NOT* fundamentally changed and need
         # only be updated with this time step's cell data.
-        if self._cell_verts_id == id(self._cells.cell_verts):
+        if self._cell_verts_id == id(self.cells.cell_verts):
             # loggers.log_info(
             #     'Updating animation "{}" cell plots...'.format(self._type))
             self._update_cell_plots(cell_data)
@@ -214,7 +214,7 @@ class AnimCellsWhileSolving(AnimCells):
 
             # Prevent subsequent calls to this method from erroneously
             # recreating the cell cluster again.
-            self._cell_verts_id = id(self._cells.cell_verts)
+            self._cell_verts_id = id(self.cells.cell_verts)
 
             # Recreate the cell cluster.
             self._revive_cell_plots(cell_data)
@@ -352,16 +352,15 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         #method to cease calling pretty_patch_plot() and simply repainting the
         #existing triangulation, in which case little to no duplication exists.
         #FIXME: Rename "self.collection" to something more descriptive.
-        if self._p.showCells is True:
-            data_verts = np.dot(data_points, self._cells.matrixMap2Verts)
-
+        if self.p.showCells is True:
+            data_verts = np.dot(data_points, self.cells.matrixMap2Verts)
             self.collection, self._axes = pretty_patch_plot(
-                data_verts, self._axes, self._cells, self._p, self._colormap,
+                data_verts, self._axes, self.cells, self.p, self._colormap,
                 cmin=self._color_min, cmax=self._color_max)
         # Else, plot a smooth continuum approximating the cell cluster.
         else:
             self.collection, self._axes = cell_mesh(
-                data_points, self._axes, self._cells, self._p, self._colormap)
+                data_points, self._axes, self.cells, self.p, self._colormap)
 
         #FIXME: "self.collection" is basically useless here if the
         #pretty_patch_plot() function was called above, which only returns the
@@ -383,10 +382,11 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         zz = self._time_series[self._time_step]
 
         # If displaying individual cells...
-        if self._p.showCells:
+        if self.p.showCells:
             # Average voltage of each cell membrane, situated at the midpoint
             # of that membrane.
-            cell_membrane_data_vertices = np.dot(zz, self._cells.matrixMap2Verts)
+            cell_membrane_data_vertices = np.dot(
+                zz, self.cells.matrixMap2Verts)
 
             #FIXME: It would seem that this is tripcolor()-produced meshes are
             #updatable *WITHOUT* recreating the entire meshes. To do so,
@@ -405,10 +405,10 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
             #3. In this method, the call to pretty_patch_plot() should be
             #   replaced entirely with the following (untested) logic:
             #
-            #     for cell_index in range(len(self._cells.cell_verts)):
+            #     for cell_index in range(len(self.cells.cell_verts)):
             #         self._cell_tri_meshes[cell_index].set_array(
             #             cell_membrane_data_vertices[
-            #                 self._cells.cell_to_mems[i]])
+            #                 self.cells.cell_to_mems[i]])
             #
             #That should do it, folks.
             #FIXME: For reusability, we should probably consider shifting the
@@ -431,13 +431,13 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
             # onto the cell containing that membrane.
             self.collection, self._axes = pretty_patch_plot(
                 cell_membrane_data_vertices,
-                self._axes, self._cells, self._p, self._colormap,
+                self._axes, self.cells, self.p, self._colormap,
                 cmin=self._color_min, cmax=self._color_max,
             )
         # Else, display only an amorphous continuum of cells.
         else:
-            zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = zz
+            zz_grid = np.zeros(len(self.cells.voronoi_centres))
+            zz_grid[self.cells.cell_to_grid] = zz
             self.collection.set_array(zz_grid)
 
 
@@ -489,12 +489,12 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
         data_set = self._cell_time_series[0]
 
         # Add a collection of cell polygons with animated voltage data.
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             self._cell_plot, self._axes = cell_mosaic(
-                data_set, self._axes, self._cells, self._p, self._colormap)
+                data_set, self._axes, self.cells, self.p, self._colormap)
         else:
             self._cell_plot, self._axes = cell_mesh(
-                data_set, self._axes, self._cells, self._p, self._colormap)
+                data_set, self._axes, self.cells, self.p, self._colormap)
 
         # Display and/or save this animation.
         self._animate(
@@ -508,11 +508,11 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
 
         # Cell data series for this frame.
         zv = self._cell_time_series[self._time_step]
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             zz_grid = zv
         else:
-            zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = zv
+            zz_grid = np.zeros(len(self.cells.voronoi_centres))
+            zz_grid[self.cells.cell_to_grid] = zv
 
         # Update the cell plot for this frame.
         self._cell_plot.set_array(zz_grid)
@@ -573,18 +573,18 @@ class AnimFieldMeshTimeSeries(AnimCellsAfterSolving):
         vy = self._y_time_series[0]/normV
 
         # Add a collection of cell polygons with animated voltage data.
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             self._cell_plot, self._axes = cell_mosaic(
-                data_set, self._axes, self._cells, self._p, self._colormap)
+                data_set, self._axes, self.cells, self.p, self._colormap)
         else:
             self._cell_plot, self._axes = cell_mesh(
-                data_set, self._axes, self._cells, self._p, self._colormap)
+                data_set, self._axes, self.cells, self.p, self._colormap)
 
         self._vect_plot, self._axes = cell_quiver(
             vx, vy,
-            self._axes, self._cells, self._p)
+            self._axes, self.cells, self.p)
 
-        # self._vect_plot = self._axes.quiver(self._p.um*self._cells.cell_centres[:,0], self._p.um*self._cells.cell_centres[:,1],
+        # self._vect_plot = self._axes.quiver(self.p.um*self.cells.cell_centres[:,0], self.p.um*self.cells.cell_centres[:,1],
         #     self._x_time_series[0], self._y_time_series[0])
 
 
@@ -600,11 +600,11 @@ class AnimFieldMeshTimeSeries(AnimCellsAfterSolving):
 
         # Cell data series for this frame.
         zv = self._cell_time_series[self._time_step]
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             zz_grid = zv
         else:
-            zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = zv
+            zz_grid = np.zeros(len(self.cells.voronoi_centres))
+            zz_grid[self.cells.cell_to_grid] = zv
 
         # Update the cell plot for this frame.
         self._cell_plot.set_array(zz_grid)
@@ -735,9 +735,9 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Gap junction data series for the first frame plotted as lines.
         self._gapjunc_plot = LineCollection(
-            np.asarray(self._cells.nn_edges) * self._p.um,
+            np.asarray(self.cells.nn_edges) * self.p.um,
             array=self._time_series[0],
-            cmap=self._p.gj_cm,
+            cmap=self.p.gj_cm,
             linewidths=2.0,
             zorder=10,
         )
@@ -748,12 +748,12 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         # data_set = self._cell_time_series[0]
 
         # # Add a collection of cell polygons with animated voltage data.
-        # if self._p.showCells is True:
+        # if self.p.showCells is True:
         #     self._cell_plot, self._axes = cell_mosaic(
-        #         data_set, self._axes, self._cells, self._p, self._colormap)
+        #         data_set, self._axes, self.cells, self.p, self._colormap)
         # else:
         #     self._cell_plot, self._axes = cell_mesh(
-        #         data_set, self._axes, self._cells, self._p, self._colormap)
+        #         data_set, self._axes, self.cells, self.p, self._colormap)
 
         # Display and/or save this animation.
         self._animate(
@@ -771,11 +771,11 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # # Cell data series for this frame.
         # zv = self._cell_time_series[self._time_step]
-        # if self._p.showCells is True:
+        # if self.p.showCells is True:
         #     zz_grid = zv
         # else:
-        #     zz_grid = np.zeros(len(self._cells.voronoi_centres))
-        #     zz_grid[self._cells.cell_to_grid] = zv
+        #     zz_grid = np.zeros(len(self.cells.voronoi_centres))
+        #     zz_grid[self.cells.cell_to_grid] = zv
 
         # Update the cell plot for this frame.
         # self._cell_plot.set_array(zz_grid)
@@ -831,7 +831,7 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
 
         # Membrane edges coloured for the first frame.
         self._mem_edges = LineCollection(
-            self._cells.mem_edges_flat * self._p.um,
+            self.cells.mem_edges_flat * self.p.um,
             array=self._time_series[0],
             cmap=self._colormap,
             linewidths=4.0,
@@ -906,11 +906,11 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
         #* "collection" to "_mesh_plot".
 
         self.bkgPlot = self._plot_image(
-            pixel_data=self._env_time_series[0].reshape(self._cells.X.shape))
+            pixel_data=self._env_time_series[0].reshape(self.cells.X.shape))
 
-        #FIXME: Try reducing to: self._cells.cell_verts * self._p.um
+        #FIXME: Try reducing to: self.cells.cell_verts * self.p.um
         # Polygon collection based on individual cell polygons.
-        points = np.multiply(self._cells.cell_verts, self._p.um)
+        points = np.multiply(self.cells.cell_verts, self.p.um)
         self.collection = PolyCollection(
             points, cmap=self._colormap, edgecolors='none')
         self.collection.set_array(self._cell_time_series[0])
@@ -934,7 +934,7 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
             self._cell_time_series[self._time_step])
         self.bkgPlot.set_data(
             self._env_time_series[self._time_step].reshape(
-                self._cells.X.shape))
+                self.cells.X.shape))
 
 # ....................{ SUBCLASSES ~ field                 }....................
 class AnimFieldIntracellular(AnimField):
@@ -964,13 +964,13 @@ class AnimFieldIntracellular(AnimField):
             #FIXME: What's this about then? Buttercups and bitter nightingales!
             # If the user passes somethign defined on membranes, this automatically
             # averages it to cell centers
-            if len(field_x) != len(self._cells.cell_i):
+            if len(field_x) != len(self.cells.cell_i):
                 field_x = (
-                    np.dot(self._cells.M_sum_mems, field_x) /
-                    self._cells.num_mems)
+                    np.dot(self.cells.M_sum_mems, field_x) /
+                    self.cells.num_mems)
                 field_y = (
-                    np.dot(self._cells.M_sum_mems, field_y) /
-                    self._cells.num_mems)
+                    np.dot(self.cells.M_sum_mems, field_y) /
+                    self.cells.num_mems)
 
             # Electric field magnitudes for this frame.
             field_magnitude = np.sqrt(field_x**2 + field_y**2)
@@ -995,12 +995,12 @@ class AnimFieldIntracellular(AnimField):
         # Electric field streamplot for the first frame.
         self._stream_plot, self._axes = cell_quiver(
             self._unit_x_time_series[-1], self._unit_y_time_series[-1],
-            self._axes, self._cells, self._p)
+            self._axes, self.cells, self.p)
 
         # Electric field magnitude meshplot for the first frame.
         self._mesh_plot, self._axes = cell_mesh(
             self._magnitude_time_series[-1],
-            self._axes, self._cells, self._p, self._colormap)
+            self._axes, self.cells, self.p, self._colormap)
 
         # Display and/or save this animation.
         self._animate(
@@ -1014,8 +1014,8 @@ class AnimFieldIntracellular(AnimField):
         #FIXME: This is probably code copied from the helpers called above
         #(e.g., cell_mesh()). It'd be great to centralize this code somewhere.
         #Skinny trees fronded with blue ribbons!
-        emag_grid = np.zeros(len(self._cells.voronoi_centres))
-        emag_grid[self._cells.cell_to_grid] = (
+        emag_grid = np.zeros(len(self.cells.voronoi_centres))
+        emag_grid[self.cells.cell_to_grid] = (
             self._magnitude_time_series[self._time_step])
 
         # Electric field streamplot for this frame.
@@ -1047,11 +1047,11 @@ class AnimFieldExtracellular(AnimField):
             self._x_time_series[-1] ** 2 + self._y_time_series[-1] ** 2)
 
         self.msh, self._axes = env_mesh(
-            efield_mag, self._axes, self._cells, self._p, self._colormap,
+            efield_mag, self._axes, self.cells, self.p, self._colormap,
             ignore_showCells=True)
         self.streamE, self._axes = env_quiver(
             self._x_time_series[-1],
-            self._y_time_series[-1], self._axes, self._cells, self._p)
+            self._y_time_series[-1], self._axes, self.cells, self.p)
 
         # Autoscale the colorbar range if desired.
         if self._is_color_autoscaled is True:
@@ -1120,7 +1120,7 @@ class AnimVelocityIntracellular(AnimVelocity):
         # Meshplot the first frame's velocity field magnitude.
         self._mesh_plot = self._plot_image(
             pixel_data=vfield,
-            colormap=self._p.background_cm,
+            colormap=self.p.background_cm,
         )
 
         #FIXME: How expensive would caching these calculations be? Oh, just do
@@ -1165,25 +1165,25 @@ class AnimVelocityIntracellular(AnimVelocity):
         '''
 
         cell_centres = (
-            self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
-        cell_grid = (self._cells.X, self._cells.Y)
+            self.cells.cell_centres[:, 0], self.cells.cell_centres[:, 1])
+        cell_grid = (self.cells.X, self.cells.Y)
 
         #FIXME: Ugh. Duplicate code already performed by the superclass
-        #AnimCells._init_current_density() method. We clearly need a
+        #AnimCellsABC._init_current_density() method. We clearly need a
         #general-purpose interpolation utility method. Hawkish doves in a cove!
-        u_gj_x = self._cells.maskECM * interpolate.griddata(
+        u_gj_x = self.cells.maskECM * interpolate.griddata(
             cell_centres,
-            self._sim.u_cells_x_time[time_step],
+            self.sim.u_cells_x_time[time_step],
             cell_grid,
             fill_value=0,
-            method=self._p.interp_type,
+            method=self.p.interp_type,
         )
-        u_gj_y = self._cells.maskECM * interpolate.griddata(
+        u_gj_y = self.cells.maskECM * interpolate.griddata(
             cell_centres,
-            self._sim.u_cells_y_time[time_step],
+            self.sim.u_cells_y_time[time_step],
             cell_grid,
             fill_value=0,
-            method=self._p.interp_type,
+            method=self.p.interp_type,
         )
 
         # Current velocity field magnitudes and the maximum such magnitude.
@@ -1233,8 +1233,8 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Time series of all velocity magnitudes.
         self._magnitude_time_series = np.sqrt(
-            np.asarray(self._sim.u_env_x_time) ** 2 +
-            np.asarray(self._sim.u_env_y_time) ** 2) * 1e9
+            np.asarray(self.sim.u_env_x_time) ** 2 +
+            np.asarray(self.sim.u_env_y_time) ** 2) * 1e9
 
         # Velocity field and maximum velocity field value for the first frame.
         vfield = self._magnitude_time_series[0]
@@ -1243,17 +1243,17 @@ class AnimVelocityExtracellular(AnimVelocity):
         # Velocity field meshplot for the first frame.
         self._mesh_plot = self._plot_image(
             pixel_data=vfield,
-            colormap=self._p.background_cm,
+            colormap=self.p.background_cm,
         )
 
         #FIXME: Doesn't this streamplot the last frame instead?
 
         # Velocity field streamplot for the first frame.
         self._stream_plot = self._axes.quiver(
-            self._cells.xypts[:,0] * self._p.um,
-            self._cells.xypts[:,1] * self._p.um,
-            self._sim.u_env_x_time[-1].ravel() / vnorm,
-            self._sim.u_env_y_time[-1].ravel() / vnorm,
+            self.cells.xypts[:, 0] * self.p.um,
+            self.cells.xypts[:, 1] * self.p.um,
+            self.sim.u_env_x_time[-1].ravel() / vnorm,
+            self.sim.u_env_y_time[-1].ravel() / vnorm,
         )
 
         # Display and/or save this animation.
@@ -1274,8 +1274,8 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Update the current velocity streamplot.
         self._stream_plot.set_UVC(
-            self._sim.u_env_x_time[self._time_step] / vnorm,
-            self._sim.u_env_y_time[self._time_step] / vnorm,
+            self.sim.u_env_x_time[self._time_step] / vnorm,
+            self.sim.u_env_y_time[self._time_step] / vnorm,
         )
 
 # ....................{ SUBCLASSES ~ other                 }....................
@@ -1296,7 +1296,7 @@ class AnimCurrent(AnimCellsAfterSolving):
         )
 
         # Prefer an alternative colormap *BEFORE* plotting below.
-        self._colormap = self._p.background_cm
+        self._colormap = self.p.background_cm
 
         # Initialize all attributes pertaining to current density.
         self._init_current_density()
@@ -1315,7 +1315,7 @@ class AnimCurrent(AnimCellsAfterSolving):
         # Meshplot the first frame's current density magnitude.
         self._mesh_plot = self._plot_image(
             pixel_data=Jmag_M,
-            colormap=self._p.background_cm,
+            colormap=self.p.background_cm,
         )
 
         # Display and/or save this animation.
@@ -1355,7 +1355,7 @@ AnimDeformStyle = Enum('AnimDeformStyle', ('STREAMLINE', 'VECTOR'))
 #this class was last revised. We'll need to take this incrementally. As a
 #temporary todo list:
 #
-#1. Enable movie writing in the "AnimCells" superclass.
+#1. Enable movie writing in the "AnimCellsABC" superclass.
 #2. Create a new "test_sim_config_deform" test testing deformations.
 #3. Abandon this implementation of this class.
 #4. Derive the "AnimateDeformation" class from the "AnimCellsAfterSolving"
@@ -1415,28 +1415,28 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
         dd = self._cell_time_series[0]
 
         # Cell displacement X and Y components for the first frame.
-        dx = self._sim.dx_cell_time[0]
-        dy = self._sim.dy_cell_time[0]
+        dx = self.sim.dx_cell_time[0]
+        dy = self.sim.dy_cell_time[0]
 
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             dd_collection, self._axes = cell_mosaic(
-                dd, self._axes, self._cells, self._p, self._colormap)
+                dd, self._axes, self.cells, self.p, self._colormap)
         else:
             dd_collection, self._axes = cell_mesh(
-                dd, self._axes, self._cells, self._p, self._colormap)
+                dd, self._axes, self.cells, self.p, self._colormap)
 
-        if self._p.ani_Deformation_style == 'vector':
+        if self.p.ani_Deformation_style == 'vector':
             self._quiver_plot, self._axes = cell_quiver(
-                dx, dy, self._axes, self._cells, self._p)
-        elif self._p.ani_Deformation_style == 'streamline':
+                dx, dy, self._axes, self.cells, self.p)
+        elif self.p.ani_Deformation_style == 'streamline':
             self._stream_plot, self._axes = cell_stream(
-                dx, dy, self._axes, self._cells, self._p,
+                dx, dy, self._axes, self.cells, self.p,
                 showing_cells=False)
-        elif self._p.ani_Deformation_style != 'None':
+        elif self.p.ani_Deformation_style != 'None':
             raise BetseParametersException(
                 'Deformation animation style "{}" not '
                 '"vector", "streamline", or "None".'.format(
-                    self._p.ani_Deformation_style))
+                    self.p.ani_Deformation_style))
 
         # Display and/or save this animation.
         self._animate(
@@ -1464,47 +1464,47 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
         self._axes.set_ylabel('Spatial distance [um]')
 
         # Arrays of all cell deformation X and Y components for this frame.
-        dx = self._sim.dx_cell_time[self._time_step]
-        dy = self._sim.dy_cell_time[self._time_step]
+        dx = self.sim.dx_cell_time[self._time_step]
+        dy = self.sim.dy_cell_time[self._time_step]
 
         # Array of all cell Vmem values for this frame.
-        if self._p.ani_Deformation_data == 'Vmem':
-            if self._p.sim_ECM is False:
-                dd = self._sim.vm_time[self._time_step] * 1e3
+        if self.p.ani_Deformation_data == 'Vmem':
+            if self.p.sim_ECM is False:
+                dd = self.sim.vm_time[self._time_step] * 1e3
             else:
-                dd = self._sim.vcell_time[self._time_step] * 1e3
+                dd = self.sim.vcell_time[self._time_step] * 1e3
         # Array of all cell deformation magnitudes for this frame.
-        elif self._p.ani_Deformation_data == 'Displacement':
+        elif self.p.ani_Deformation_data == 'Displacement':
             dd = 1e6 * np.sqrt(dx**2 + dy**2)
 
         # Reset the superclass colorbar mapping to this newly created mapping,
         # permitting the superclass plot_frame() method to clip this mapping.
         # dd_collection.remove()
         # self.ax.collections = []
-        if self._p.showCells is True:
+        if self.p.showCells is True:
             dd_collection, self._axes = cell_mosaic(
-                dd, self._axes, self._cells, self._p, self._colormap)
+                dd, self._axes, self.cells, self.p, self._colormap)
             # points = np.multiply(self.cells.cell_verts, self.p.um)
             # dd_collection = PolyCollection(
             #     points, cmap=self.colormap, edgecolors='none')
             # dd_collection.set_array(dd)
         else:
             dd_collection, self._axes = cell_mesh(
-                dd, self._axes, self._cells, self._p, self._colormap)
+                dd, self._axes, self.cells, self.p, self._colormap)
 
         dd_collection.set_clim(self._color_min, self._color_max)
         # cb = self.fig.colorbar(dd_collection)
         # cb.set_label(self._colorbar_title)
 
-        if self._p.ani_Deformation_style == 'vector':
+        if self.p.ani_Deformation_style == 'vector':
             # self._quiver_plot.remove()
             quiver_plot, self._axes = cell_quiver(
-                dx, dy, self._axes, self._cells, self._p)
-        elif self._p.ani_Deformation_style == 'streamline':
+                dx, dy, self._axes, self.cells, self.p)
+        elif self.p.ani_Deformation_style == 'streamline':
             # self._stream_plot.lines.remove()
             stream_plot, self._axes = cell_stream(
-                dx, dy, self._axes, self._cells, self._p,
-                showing_cells=self._p.showCells)
+                dx, dy, self._axes, self.cells, self.p,
+                showing_cells=self.p.showCells)
 
 
 #FIXME: Obsoleted. Replace with the existing "AnimDeformTimeSeries" subclass.
