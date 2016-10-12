@@ -19,11 +19,16 @@ from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 # from betse.util.io.log import logs
 from betse.util.type import types, objects
 from betse.util.type.types import (
-    type_check, NoneType, NumericTypes, SequenceTypes)
+    type_check, NoneType,
+    NumericTypes, NumericOrNoneTypes,
+    SequenceTypes, SequenceOrNoneTypes,
+)
 from matplotlib import pyplot
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Colormap
+from matplotlib.image import AxesImage
 from matplotlib.patches import FancyArrowPatch
+from matplotlib.streamplot import StreamplotSet
 
 # ....................{ BASE                               }....................
 class PlotCellsABC(object, metaclass=ABCMeta):
@@ -114,26 +119,10 @@ class PlotCellsABC(object, metaclass=ABCMeta):
     def __init__(
         self,
 
-        #FIXME: Ideally, we would type check the first three parameters like so:
-        #
-        #    sim: Simulator,
-        #    cells: Cells,
-        #    p: Parameters,
-        #
-        #Sadly, doing so introduces circular import issues. To circumvent this,
-        #@type_check should be improved to support annotations as strings. When
-        #an annotation is a string, this decorator should attempt to dynamically
-        #import this string as the fully-qualified name of a class *AND* then
-        #use this class to type check this parameter: e.g.,
-        #
-        #    sim: 'betse.science.sim.Simulator',
-        #    cells: 'betse.science.cells.Cells',
-        #    p: 'betse.science.parameters.Parameters',
-
         # Mandatory parameters.
-        sim,
-        cells,
-        p,
+        sim: 'betse.science.sim.Simulator',
+        cells: 'betse.science.cells.Cells',
+        p: 'betse.science.parameters.Parameters',
         label: str,
         figure_title: str,
         colorbar_title: str,
@@ -556,15 +545,16 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             color_mapping.set_clim(self._color_min, self._color_max)
 
     # ..................{ PLOTTERS                           }..................
+    @type_check
     def _plot_image(
         self,
 
         # Mandatory parameters.
-        pixel_data: np.ndarray,
+        pixel_data: SequenceTypes,
 
         # Optional parameters.
-        colormap : 'matplotlib.cm.Colormap' = None,
-    ) -> 'matplotlib.image.AxesImage':
+        colormap : Colormap = None,
+    ) -> AxesImage:
         '''
         Plot and return an image of the passed pixel data onto the current
         figure's axes.
@@ -596,14 +586,10 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         http://matplotlib.org/api/pyplot_api.html#matplotlib.pyplot.imshow
             Further details on Matplotlib-based axes image plotting.
         '''
-        assert types.is_sequence_nonstr(pixel_data), (
-            types.assert_not_sequence_nonstr(pixel_data))
 
         # Default unpassed parameters.
         if colormap is None:
             colormap = self._colormap
-        assert types.is_matplotlib_colormap(colormap), (
-            types.assert_not_matplotlib_colormap(colormap))
 
         # Plot and return this image.
         return self._axes.imshow(
@@ -614,42 +600,43 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         )
 
 
+    @type_check
     def _plot_stream(
         self,
 
         # Mandatory arguments.
-        x: np.ndarray,
-        y: np.ndarray,
-        magnitude: np.ndarray,
+        x: SequenceTypes,
+        y: SequenceTypes,
+        magnitude: SequenceTypes,
 
         # Optional arguments.
-        grid_x: np.ndarray = None,
-        grid_y: np.ndarray = None,
-        magnitude_max: float = None,
-        old_stream_plot: 'matplotlib.streamplot.StreamplotSet' = None,
-    ) -> 'matplotlib.streamplot.StreamplotSet':
+        grid_x: SequenceOrNoneTypes = None,
+        grid_y: SequenceOrNoneTypes = None,
+        magnitude_max: NumericOrNoneTypes = None,
+        old_stream_plot: (StreamplotSet, NoneType) = None,
+    ) -> StreamplotSet:
         '''
         Plot and return a streamplot of all streamlines of the passed vector
         flow data onto the current figure's axes.
 
         Parameters
         ----------
-        x : np.ndarray
-            Two-dimensional X components of the vector flow velocity.
-        y : np.ndarray
-            Two-dimensional Y components of the vector flow velocity.
-        magnitude: np.ndarray
-            One-dimensional vector flow magnitudes.
-        grid_x : np.ndarray
+        x : SequenceTypes
+            Two-dimensional sequence of X components of vector flow velocity.
+        y : SequenceTypes
+            Two-dimensional sequence of Y components of vector flow velocity.
+        magnitude: SequenceTypes
+            One-dimensional sequence of vector flow magnitudes.
+        grid_x : SequenceTypes or NoneType
             Optional scaled X components of the cell cluster grid. Defaults to
             `None`, in which case the default `self.cells.X` array is used.
-        grid_y : np.ndarray
+        grid_y : SequenceTypes or NoneType
             Optional scaled Y components of the cell cluster grid. Defaults to
             `None`, in which case the default `self.cells.Y` array is used.
-        magnitude_max: float
+        magnitude_max: NumericTypes or NoneType
             Optional maximum magnitude in the passed `magnitude` array. Defaults
             to `None`, in which case this array is searched for this value.
-        old_stream_plot: StreamplotSet
+        old_stream_plot: StreamplotSet or NoneType
             Optional streamplot returned by a prior call to this method
             (typically for a prior frame) _or_ `None` if this is the first call
             to this method for this animation. If non-`None`, this streamplot
@@ -665,12 +652,6 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes.streamplot
             Further details on Matplotlib-based axes streamplotting.
         '''
-        assert types.is_sequence_nonstr(x), (
-            types.assert_not_sequence_nonstr(x))
-        assert types.is_sequence_nonstr(y), (
-            types.assert_not_sequence_nonstr(y))
-        assert types.is_sequence_nonstr(magnitude), (
-            types.assert_not_sequence_nonstr(magnitude))
 
         # Default all unpassed optional arguments.
         if magnitude_max is None:
@@ -679,18 +660,9 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             grid_x = self.cells.X * self.p.um
         if grid_y is None:
             grid_y = self.cells.Y * self.p.um
-        assert types.is_numeric(magnitude_max), (
-            types.assert_not_numeric(magnitude_max))
-        assert types.is_sequence_nonstr(grid_x), (
-            types.assert_not_sequence_nonstr(grid_x))
-        assert types.is_sequence_nonstr(grid_y), (
-            types.assert_not_sequence_nonstr(grid_y))
 
         # If a prior streamplot to be erased was passed, do so.
         if old_stream_plot is not None:
-            assert types.is_matplotlib_streamplot(old_stream_plot), (
-                types.assert_not_matplotlib_streamplot(old_stream_plot))
-
             # Erase this streamplot's streamlines before replotting.
             old_stream_plot.lines.remove()
 

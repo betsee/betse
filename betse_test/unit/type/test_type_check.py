@@ -320,26 +320,47 @@ def test_type_check_fail_annotation_param_str() -> None:
     from betse.util.type.types import type_check
 
     # Assert the expected exception from attempting to type check a function
-    # with a string parameter annotation that (in order):
-    #
-    # * Is not "."-delimited and hence not the fully-qualified name of a module
-    #   attribute.
-    # * Is not a valid module name and hence unimportable.
-    # * Is not a valid attribute name of an importable module.
+    # with a string parameter annotation that is not "."-delimited and hence not
+    # the fully-qualified name of a module attribute.
     with pytest.raises(TypeError):
         @type_check
         def wolves_of_horus(champion: str, chaos_lord: 'random') -> str:
             return champion + chaos_lord
+
+    # Assert the expected exception from attempting to type check a function
+    # with a string parameter annotation referencing an unimportable module.
     with pytest.raises(ImportError):
         @type_check
         def eye_of_terror(
-            ocularis_terribus: str, segmentum_obscurus: 'random!?.Warp') -> str:
+            ocularis_terribus: str,
+
+            # While highly unlikely that a top-level module with this name will
+            # ever exist, the possibility cannot be discounted. Since there
+            # appears to be no syntactically valid module name prohibited from
+            # existing, this is probably the best we can do.
+            segmentum_obscurus: '__rand0m__.Warp',
+        ) -> str:
             return ocularis_terribus + segmentum_obscurus
-    with pytest.raises(AttributeError):
+
+        eye_of_terror('Perturabo', 'Crone Worlds')
+
+    # Assert the expected exception from attempting to type check a function
+    # with a string parameter annotation referencing a missing attribute of an
+    # importable module.
+    with pytest.raises(ImportError):
         @type_check
         def navigator(
-            astronomicon: str, navis_nobilite: 'random.PsychicLight!?') -> str:
+            astronomicon: str,
+
+            # While highly unlikely that a top-level module attribute with this
+            # name will ever exist, the possibility cannot be discounted. Since
+            # there appears to be no syntactically valid module attribute name
+            # prohibited from existing, this is probably the best we can do.
+            navis_nobilite: 'random.__Psych1cL1ght__',
+        ) -> str:
             return astronomicon + navis_nobilite
+
+        navigator('Homo navigo', 'Kartr Hollis')
 
 
 def test_type_check_fail_annotation_return() -> None:
