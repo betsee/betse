@@ -1323,6 +1323,10 @@ def env_quiver(datax,datay,ax,cells,p):
         Fx = datax/F_mag.max()
         Fy = datay/F_mag.max()
 
+    else:
+        Fx = datax/F_mag.mean()
+        Fy = datay/F_mag.mean()
+
     vplot = ax.quiver(p.um*cells.xypts[:,0], p.um*cells.xypts[:,1], Fx.ravel(),
         Fy.ravel(), pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7,zorder=10)
 

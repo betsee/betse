@@ -195,9 +195,11 @@ class Simulator(object):
         self.T = p.T  # set the base temperature for the simulation
 
         self.Jn = np.zeros(self.mdl)  # net normal current density at membranes
+        self.J_weight = np.ones(self.mdl)  # moments of current passing through membranes
         self.rho_mems = np.zeros(self.mdl)  # membrane charge
         self.dvm = np.zeros(self.mdl)   # rate of change of Vmem
         self.drho = np.zeros(self.cdl)  # rate of change of charge in cell
+        self.Phi_env = np.zeros(cells.X.shape)
 
         # Current averaged to cell centres:
         self.J_cell_x = np.zeros(self.cdl)
@@ -1097,6 +1099,8 @@ class Simulator(object):
         # self.Ax_time = []
         # self.Ay_time = []
 
+        self.Bz_time = []
+
         self.cc_time = []  # data array holding the concentrations at time points
         self.cc_env_time = [] # data array holding environmental concentrations at time points
 
@@ -1433,22 +1437,38 @@ class Simulator(object):
 
 
         # CHOICE 2: calculate vmem via average rho in cell; GJ calculations are with respect to specific Vmem:
-        self.vm = (1/p.cm)*self.rho_cells[cells.mem_to_cells]*(1/p.F)  + self.Jn*p.cell_polarizability
+        Q_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
+        #
+        # surface_charge = Q_cell[cells.mem_to_cells] * (self.Jn*p.cell_polarizability + 1.0)
+        #
+        # self.vm = (1 / p.cm) * surface_charge
+
+        self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells] + self.Jn*p.cell_polarizability
+
+        # self.vm = (1/p.cm)*(self.rho_cells[cells.mem_to_cells])*(1/p.F) + self.Jn*p.cell_polarizability
 
         # CHOICE 3: calculate vmem via specific rho at membranes (and ideally use cell-average GJ and channels):
-        # self.vm = (1/p.cm)*self.rho_mems + self.Jn*p.cell_polarizability
+        # self.vm = (1/p.cm)*self.rho_mems
 
 
         if p.sim_ECM is True:  # handle polarization induced by external electric field:
+
+            pass
+
+            # Em = p.media_sigma*(self.J_env_x.ravel()[cells.map_mem2ecm]*cells.mem_vects_flat[:,2] +
+            #      self.J_env_y.ravel()[cells.map_mem2ecm]*cells.mem_vects_flat[:,3])
+
             # determine electric field at membranes:
-            Ex = self.E_env_x.ravel()[cells.map_cell2ecm]
-            Ey = self.E_env_y.ravel()[cells.map_cell2ecm]
+            # Ex = self.E_env_x.ravel()[cells.map_cell2ecm]
+            # Ey = self.E_env_y.ravel()[cells.map_cell2ecm]
+            #
+            # E_mem = Ex[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + Ey[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
+            #
+            # self.vm = self.vm + E_mem*p.tm
 
-            E_mem = Ex[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + Ey[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
-
-            self.vm = self.vm + E_mem*p.tm
-
-            # print(E_mem.max()*p.tm)
+            # correct the membrane voltage with the potentially finite environment voltage:
+            self.vm = self.vm - p.env_modulator*self.v_env[cells.map_mem2ecm]
+            # self.vm = self.vm + Em*1.0e-3
 
 
         # calculate the derivative of Vmem:
@@ -1459,8 +1479,8 @@ class Simulator(object):
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
 
         # polarization vectors at the membranes:
-        pol_mem_x = -self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,2]
-        pol_mem_y = -self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,3]
+        pol_mem_x = self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,2]
+        pol_mem_y = self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,3]
 
         # calculate polarization vectors for individual cells:
         self.pol_cell_x = np.dot(cells.M_sum_mems, pol_mem_x)/cells.num_mems
@@ -1474,13 +1494,17 @@ class Simulator(object):
         self.Pol_tot = np.sqrt(self.Pol_x**2 + self.Pol_y**2)
 
 
-        # # try calculating a vector potential based on current density:
-        #
-        # self.Ax = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_x)
-        # self.Ay = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_y)
-        #
+        # try calculating a vector potential based on current density:
+
+        self.Ax = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_x)
+        self.Ay = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_y)
+
         # self.Ax_time.append(self.Ax)
         # self.Ay_time.append(self.Ay)
+
+        _, _, self.Bz = cells.curl(self.Ax, self.Ay, 0)
+
+        self.Bz_time.append(self.Bz)
 
     def acid_handler(self,cells,p):
 
@@ -1744,6 +1768,8 @@ class Simulator(object):
 
         self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
 
+        # self.vgj = self.vm_ave[cells.mem_to_cells][cells.nn_i] - self.vm_ave[cells.mem_to_cells][cells.mem_i]
+
         self.Egj = -self.vgj/cells.gj_len
 
         self.E_gj_x = self.Egj*cells.mem_vects_flat[:,2]
@@ -1806,8 +1832,8 @@ class Simulator(object):
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
-        if p.smooth_level > 0.0:
-            cenv = gaussian_filter(cenv, p.smooth_level)
+        # if p.smooth_level > 0.0:
+        #     cenv = gaussian_filter(cenv, p.smooth_level)
 
         v_env = self.v_env.reshape(cells.X.shape)
 
@@ -1828,10 +1854,10 @@ class Simulator(object):
 
         gvx, gvy = fd.gradient(v_env, cells.delta)
 
-        self.E_env_x = self.J_env_x/self.D_env_weight + gvx
-        self.E_env_y = self.J_env_y/self.D_env_weight + gvy
+        self.E_env_x = -gvx
+        self.E_env_y = -gvy
 
-        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, self.E_env_x, self.E_env_y, 0, 0,
+        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
                                         self.D_env[i].reshape(cells.X.shape), self.zs[i],
                                         self.T, p)
 
@@ -1844,8 +1870,6 @@ class Simulator(object):
         cenv = cenv + div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
-
-        self.v_env = v_env.ravel()
 
 
     def get_ion(self,label):
