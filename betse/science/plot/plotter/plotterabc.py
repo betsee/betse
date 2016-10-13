@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all Matplotlib-based plotter classes.
+Abstract base classes of all Matplotlib-based plotter subclasses.
 '''
 
 #FIXME: The current approach to implementing animation overlays is
@@ -17,56 +17,20 @@ Abstract base classes of all Matplotlib-based plotter classes.
 #plots) from the general process of animating and saving frames and plots as
 #follows:
 #
-#* Define a new "betse.science.plot.anim.plotter" submodule.
-#* Define a new "CellsPlotterABC" abstract base class in this submodule. Plotter
-#  classes encapsulate the plotting of a single type of plot (e.g., Vmem-style
-#  cell cluster meshplot, electrical current streamplot). While they may
-#  internally cache one or more time series required for this plotting, they do
-#  *NOT* contain the axes, figure, plot, or animation currently being plotted.
-#  Since these Matplotlib artists are shared between multiple plotters, the
-#  existing "PlotCellsABC" and "AnimCellsABC" base classes retain ownership of these
-#  artists.
-#* Define the following abstract methods in "CellsPlotterABC":
-#  * An __init__() method accepting *NO* parameters except constants
-#    parametrizing this plotter's behaviour. In particular, this method must
-#    *NOT* accept the current "AnimABC" instance or Matplotlib figure or axes
-#    objects. Why? Because plotters are instantiated by external callers rather
-#    than that "AnimABC" instance *BEFORE* that "AnimABC" instance is
-#    instantiated.
-#  * A prep() method accepting as parameters all internal attributes
-#    subsequently required by the plot() method. Subclasses *MUST* redefine
-#    this method to initialize this plotter instance (e.g., by internally
-#    caching one or more time series). This method is internally called by the
-#    current "AnimABC" instance.
-#  * A plot() method presumably accepting the index of the frame to be plotted.
-#    Subclasses *MUST* redefine this method to plot the time series data for
-#    this frame into the current plot or animation figure. To avoid circular
-#    references (and hence unallocated figures), it wouldn't necessarily be a
-#    bad idea to repass all objects required for plotting to each
-#    CellsPlotterABC.plot() call rather than to the CellsPlotterABC.__init__()
-#    constructor. Food for pleasant thought, anyway.
-#  * *UHM.* Wait. There would clearly be *NO* circular references here, so
-#    passing objects to CellsPlotterABC.__init__() once rather than repeatedly
-#    to CellsPlotterABC.plot() probably makes the most sense. We absolutely
-#    *MUST*, however, avoid passing the current "AnimCellsABC" instance to
-#    CellsPlotterABC.__init__(). Passing that instance to
-#    CellsPlotterABC.plot(), however, should both be safe and desirable, as
-#    doing so would then permit plotters to access relevant data on the current
-#    animation (e.g., "AnimCellsABC.time_step" providing the current frame number).
 #* Add a new "plotters" parameter to the AnimCellsABC.__init__() constructor,
-#  classified as a new "AnimCellsABC._plotters" instance variable. This parameter
-#  and variable *MUST* be a list of "CellsPlotterABC" instances. The order of
-#  plotters in this list defines the order in which these plotters are drawn
-#  and hence overlaid onto one another (i.e., z-order).
+#  classified as a new "AnimCellsABC._plotters" instance variable. This
+#  parameter and variable *MUST* be a list of "CellsPlotterABC" instances. The
+#  order of plotters in this list defines the order in which these plotters are
+#  drawn and hence overlaid onto one another (i.e., z-order).
 #* Refactor AnimCellsABC.__init__() or a method called by that method to iterate
 #  over "self._plotters" and initialize each such plotter by calling
 #  plotter.init().
 #* Refactor AnimCellsABC.plot_frame() or a related method to iterate over
 #  "self._plotters" and draw each such plotter by calling plotter.draw().
-#* Refactor all subclasses of "AnimCellsABC" into one or more subclasses of
-#  "CellsPlotterABC" instead, which may then be instantiated and composed
-#  together into a new "plotters" list passed to CellsPlotterABC.__init__(). For
-#  example:
+#* Refactor all concrete subclasses of "AnimCellsABC" into one or more
+#  subclasses of "CellsPlotterABC" instead, which may then be instantiated and
+#  composed together into a new "plotters" list passed to
+#  CellsPlotterABC.__init__(). For example:
 #  * Split the existing "AnimGapJuncTimeSeries" subclass into:
 #    * A new "CellsPlotterGapJunc" subclass plotting *ONLY* the gap junction
 #      open state as a "LineCollection" overlay. This plotter subclass would
@@ -81,31 +45,12 @@ Abstract base classes of all Matplotlib-based plotter classes.
 #  plotters, to be defined. Users would then be able to construct arbitrarily
 #  simple or complex animations as required.
 #
-#Note that the "CellsPlotterABC" nomenclature used above is overly ambiguous
-#and hence non-ideal. Non-ambiguous alternative names for this concept include:
-#
-#* "PlottableABC". Yes, we quite appreciate this one. Such objects are
-#  certainly plottable, so this is coherent.
-#* "ComposableABC".
-#* "DrawableABC".
-#
 #So, yes. It's quite a bit of work. But it's absolutely essential as well,
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
-# import numpy as np
-import weakref
-from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
-# from betse.exceptions import BetseMethodException
-# from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
-# # from betse.util.io.log import logs
-# from betse.util.type import types, objects
-# from betse.util.type.types import (
-#     type_check, NoneType, NumericTypes, SequenceTypes)
-# from matplotlib import pyplot
-# from matplotlib.collections import PolyCollection
-# from matplotlib.colors import Colormap
-# from matplotlib.patches import FancyArrowPatch
+from abc import ABCMeta, abstractmethod
+# from betse.util.type.types import type_check
 
 # ....................{ BASE                               }....................
 class PlotterCellsABC(object, metaclass=ABCMeta):
@@ -131,48 +76,53 @@ class PlotterCellsABC(object, metaclass=ABCMeta):
     two or more types of plots or animations may be trivially composed into a
     unique third type of plot or animation with _no_ modification to existing
     plotters, plots, or animations.
-
-    Attributes
-    ----------
-    _plot : PlotCellsABC
-        Parent plot or animation object uniquely containing this plotter object.
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(
-        self,
-
-        #FIXME: Ideally, we would type check the first three parameters like so:
-        #
-        #    sim: Simulator,
-        #    cells: Cells,
-        #    p: Parameters,
-        #
-        #Sadly, doing so introduces circular import issues. To circumvent this,
-        #@type_check should be improved to support annotations as strings. When
-        #an annotation is a string, this decorator should attempt to dynamically
-        #import this string as the fully-qualified name of a class *AND* then
-        #use this class to type check this parameter: e.g.,
-        #
-        #    sim: 'betse.science.sim.Simulator',
-        #    cells: 'betse.science.cells.Cells',
-        #    p: 'betse.science.parameters.Parameters',
-
-    ) -> None:
+    def __init__(self) -> None:
         '''
         Initialize this plotter.
 
-        Parameters
+        This method intentionally accepts _no_ parameters except constants
+        parametrizing this plotter's behaviour. In particular, this method
+        accepts _no_ reference to the parent
+        :class:`betse.science.plot.PlotCellsABC` instance containing this
+        plotter instance _or_ to any other instances also contained by that
+        parent instance (e.g., Matplotlib figure or axes objects). Why? Because
+        plotters are instantiated by callers _before_ their parent
+        `PlotCellsABC` instances are instantiated.
+
+        See Also
         ----------
+        :meth:`plot`
+            Further details on class design.
         '''
 
-        # Classify core parameters with weak rather than strong (the default)
-        # references, thus avoiding circular references and the resulting
-        # complications thereof (e.g., increased memory overhead). Since these
-        # higher-level objects uniquely own this lower-level object, no
-        # complications arise. Ergo, these attributes *ALWAYS* yield these
-        # objects rather than non-deterministically returning "None" if these
-        # objects are unexpectedly garbage-collected.
-        # self.sim = weakref.proxy(sim)
+        pass
+
+    # ..................{ ABSTRACT                           }..................
+    @abstractmethod
+    def plot(self, plot: 'betse.science.plot.PlotCellsABC') -> None:
+        '''
+        Plot the spatial distribution of a single modelled variable (e.g.,
+        cell membrane voltage) onto the figure axes of the passed parent plot or
+        animation for the current simulation time step.
+
+        Parameters
+        ----------
+        plot : PlotCellsABC
+            Parent plot or animation instance to plot onto, passed to this
+            rather than the :meth:`__init__` method to avoid chicken-and-egg
+            issues. Doing so:
+            * Avoids long-lived circular references between plotter, plot, and
+              animation instances and the resulting memory costs.
+            * Permits callers to:
+              * Create plotter instances _before_ plot or animation instances.
+              * Cache previously created plotter instances.
+              * Share previously cached plotter instances between two or more
+                plot or animation instances, reducing memory footprint.
+              * Pass previously cached plotter instances to the :meth:`__init__`
+                methods of plot or animation subclasses.
+        '''
+
         pass

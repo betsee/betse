@@ -12,6 +12,7 @@ from scipy import interpolate
 from betse.exceptions import BetseParametersException
 from betse.util.path import dirs
 from betse.util.type import types
+from betse.util.type.types import type_check, NumericOrSequenceTypes
 from betse.util.io.log import logs
 
 
@@ -600,7 +601,18 @@ def plotMemData(cells, p, fig= None, ax = None, zdata=None,clrmap=None):
 
         if zdata is None:
             z = np.ones(len(cell_edges_flat))
-        elif zdata == 'random':
+        #FIXME: This is a bit cumbersome. Ideally, a new "is_zdata_random"
+        #boolean parameter defaulting to "False" should be tested, instead.
+        #Whack-a-mole with a big-fat-pole!
+
+        # If random data is requested, do so. To avoid erroneous and expensive
+        # elementwise comparisons when "zdata" is neither None nor a string,
+        # "zdata" must be guaranteed to be a string *BEFORE* testing this
+        # parameter as a string. Numpy prints scary warnings otherwise: e.g.,
+        #
+        #     FutureWarning: elementwise comparison failed; returning scalar
+        #     instead, but in the future will perform elementwise comparison
+        elif isinstance(zdata, str) and zdata == 'random':
             z = np.random.random(len(cell_edges_flat))
         else:
             z = zdata
@@ -664,8 +676,18 @@ def plotConnectionData(cells, p, fig = None, ax=None, zdata=None,clrmap=None,col
 
         if zdata is None:
             z = np.ones(len(cells.gap_jun_i))
+        #FIXME: This is a bit cumbersome. Ideally, a new "is_zdata_random"
+        #boolean parameter defaulting to "False" should be tested, instead.
+        #Whack-a-mole with a big-fat-pole!
 
-        elif zdata == 'random':
+        # If random data is requested, do so. To avoid erroneous and expensive
+        # elementwise comparisons when "zdata" is neither None nor a string,
+        # "zdata" must be guaranteed to be a string *BEFORE* testing this
+        # parameter as a string. Numpy prints scary warnings otherwise: e.g.,
+        #
+        #     FutureWarning: elementwise comparison failed; returning scalar
+        #     instead, but in the future will perform elementwise comparison
+        elif isinstance(zdata, str) and zdata == 'random':
             z = np.random.random(len(cells.gap_jun_i))
 
         else:
@@ -1478,6 +1500,10 @@ def cell_mesh(data, ax, cells, p, clrmap):
 
     return msh, ax
 
+#FIXME: Obsoleted by the more general-purpose, reliable, and efficient
+#"betse.science.plot.plotter.plottershaded.PlotterCellsGouraudShaded" class.
+#Replace all remaining calls to this function with usage of that class; then,
+#remove this function.
 def pretty_patch_plot(
     data_verts, ax, cells, p, clrmap,
     cmin=None,
@@ -1645,8 +1671,8 @@ def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
 
 
 #FIXME: Use everywhere in "betse.science.plot.anim.pipeline".
-def upscale_data(data: (int, float, np.ndarray, 'SequenceTypes')) -> (
-    int, float, np.ndarray):
+@type_check
+def upscale_data(data: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
     '''
     Upscale the contents of the passed object for use in plots and animations.
 
@@ -1672,11 +1698,12 @@ def upscale_data(data: (int, float, np.ndarray, 'SequenceTypes')) -> (
     '''
 
     # Positive multiplier with which to upscale.
-    upscale_factor = 1000
+    UPSCALE_FACTOR = 1000
 
+    # If the passed parameter is numeric, return this number upscaled.
     if types.is_numeric(data):
-        return data * upscale_factor
+        return data * UPSCALE_FACTOR
+    # Else, this parameter is a sequence. Return this sequence converted into a
+    # Numpy array and then upscaled.
     else:
-        assert types.is_sequence_nonstr(data), (
-            types.assert_not_sequence_nonstr(data))
-        return np.asarray(data) * upscale_factor
+        return np.asarray(data) * UPSCALE_FACTOR

@@ -38,7 +38,8 @@ from betse.science.plot.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
-from betse.util.type.types import type_check, NoneType, SequenceTypes
+from betse.util.type.types import (
+    type_check, SequenceTypes, SequenceOrNoneTypes)
 from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
@@ -68,9 +69,9 @@ from betse.science.plot.plot import (
 
 class AnimCellsWhileSolving(AnimCellsABC):
     '''
-    In-place animation of an arbitrary membrane-centric time series (e.g., cell
-    Vmem as a function of time), plotted over the cell cluster _during_ rather
-    than _after_ simulation modelling.
+    Mid-simulation animation of an arbitrary membrane-centric time series
+    (e.g., cell membrane voltage as a function of time), plotted over the cell
+    cluster _during_ rather than _after_ simulation modelling.
 
     Attributes
     ----------
@@ -102,17 +103,24 @@ class AnimCellsWhileSolving(AnimCellsABC):
     def __init__(
         self,
 
+        # Mandatory parameters.
+        p: 'betse.science.parameters.Parameters',
+
+        # Optional parameters.
+
         #FIXME: Permit this option to be configured via a new configuration
         #option in the YAML file.
         is_colorbar_autoscaling_telescoped: bool = False,
         *args, **kwargs
     ) -> None:
         '''
-        Initialize this animation.
+        Initialize this mid-simulation animation.
 
         Parameters
         ----------
-        is_colorbar_autoscaling_telescoped : bool
+        p : Parameters
+            Current simulation configuration.
+        is_colorbar_autoscaling_telescoped : optional[bool]
             `True` if colorbar autoscaling is permitted to increase but _not_
             decrease the colorbar range _or_ `False` otherwise (i.e., if
             colorbar autoscaling is permitted to both increase and decrease the
@@ -127,15 +135,26 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         # Initialize the superclass.
         super().__init__(
-            # Save in-place animations to a different parent directory than
-            # that to which out-of-place animations are saved.
-            save_dir_parent_basename='anim_while_solving',
+            # Pass this simulation configuration as is to our superclass.
+            p=p,
 
             # Prevent the superclass from overlaying electric current or
             # concentration flux. Although this class does *NOT* animate a
             # streamplot, the time series required to plot this overlay is
             # unavailable until after the simulation ends.
             is_current_overlayable=False,
+
+            # Save and show this mid-simulation animation only if this
+            # configuration has enabled doing so.
+            is_save=p.anim.is_while_sim_save,
+            is_show=p.anim.is_while_sim_show,
+
+            # Save this mid-simulation animation to a different parent
+            # directory than that to which the corresponding post-simulation
+            # animation is saved.
+            save_dir_parent_basename='anim_while_solving',
+
+            # Pass all remaining arguments as is to our superclass.
             *args, **kwargs
         )
 
@@ -177,17 +196,8 @@ class AnimCellsWhileSolving(AnimCellsABC):
         )
 
         # Id displaying this animation, do so in a non-blocking manner.
-        if self._is_showing:
+        if self._is_show:
             plt.show(block=False)
-
-    # ..................{ PROPERTIES                         }..................
-    @property
-    def _is_showing(self) -> bool:
-        return self.p.anim.is_while_sim_show
-
-    @property
-    def _is_saving(self) -> bool:
-        return self.p.anim.is_while_sim_save
 
     # ..................{ PLOTTERS                           }..................
     def _plot_frame_figure(self) -> None:
@@ -246,7 +256,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
             self._rescale_colors()
 
         # If displaying this frame, do so.
-        if self._is_showing:
+        if self._is_show:
             self._figure.canvas.draw()
 
 
@@ -306,14 +316,14 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         Arbitrary cell data as a function of time to be plotted.
     '''
 
-
+    # ..................{ SUPERCLASS                         }..................
     #FIXME: Document the "scaling_series" parameter.
     @type_check
     def __init__(
         self,
         time_series: SequenceTypes,
         is_ecm_ignored: bool = True,
-        scaling_series: SequenceTypes + (NoneType,) = None,
+        scaling_series: SequenceOrNoneTypes = None,
         *args, **kwargs
     ) -> None:
         '''
@@ -342,9 +352,6 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         self._time_series = time_series
         self._is_ecm_ignored = is_ecm_ignored
 
-        # Cell data for the first frame.
-        data_points = self._time_series[0]
-
         #FIXME: Generalize this logic, which is repeated below by the
         #_plot_frame_figure() method, into a new private method for reuse both
         #here and below. Or perhaps not? In the case of the
@@ -353,14 +360,14 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         #existing triangulation, in which case little to no duplication exists.
         #FIXME: Rename "self.collection" to something more descriptive.
         if self.p.showCells is True:
-            data_verts = np.dot(data_points, self.cells.matrixMap2Verts)
+            data_verts = np.dot(self.cell_data, self.cells.matrixMap2Verts)
             self.collection, self._axes = pretty_patch_plot(
                 data_verts, self._axes, self.cells, self.p, self._colormap,
                 cmin=self._color_min, cmax=self._color_max)
         # Else, plot a smooth continuum approximating the cell cluster.
         else:
             self.collection, self._axes = cell_mesh(
-                data_points, self._axes, self.cells, self.p, self._colormap)
+                self.cell_data, self._axes, self.cells, self.p, self._colormap)
 
         #FIXME: "self.collection" is basically useless here if the
         #pretty_patch_plot() function was called above, which only returns the
@@ -379,14 +386,12 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
     def _plot_frame_figure(self) -> None:
 
-        zz = self._time_series[self._time_step]
-
         # If displaying individual cells...
         if self.p.showCells:
             # Average voltage of each cell membrane, situated at the midpoint
             # of that membrane.
             cell_membrane_data_vertices = np.dot(
-                zz, self.cells.matrixMap2Verts)
+                self.cell_data, self.cells.matrixMap2Verts)
 
             #FIXME: It would seem that this is tripcolor()-produced meshes are
             #updatable *WITHOUT* recreating the entire meshes. To do so,
@@ -437,8 +442,19 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         # Else, display only an amorphous continuum of cells.
         else:
             zz_grid = np.zeros(len(self.cells.voronoi_centres))
-            zz_grid[self.cells.cell_to_grid] = zz
+            zz_grid[self.cells.cell_to_grid] = self.cell_data
             self.collection.set_array(zz_grid)
+
+    # ..................{ PROPERTIES ~ read-only             }..................
+    # Read-only properties.
+
+    @property
+    def cell_data(self) -> SequenceTypes:
+        '''
+        Arbitrary cell data for the current time step to be plotted.
+        '''
+
+        return self._time_series[self._time_step]
 
 
 class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):

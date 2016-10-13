@@ -228,6 +228,16 @@ except:
     SequenceTypes = (Sequence,)
 
 # ....................{ TUPLES : none                      }....................
+# Tuples of types assuming the above initialization to have been performed.
+NumericOrSequenceTypes = NumericTypes + SequenceTypes
+'''
+Tuple of all numeric types _and_ all container base classes conforming to (but
+_not_ necessarily subclassing) the canonical `collections.abc.Sequence` API.
+'''
+
+# ....................{ TUPLES : none                      }....................
+# Tuples of types containing at least the type of the singleton "None" object.
+
 NoneTypes = (NoneType,)
 '''
 Tuple of only the type of the singleton `None` object.

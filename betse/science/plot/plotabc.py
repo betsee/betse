@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all Matplotlib-based plotting classes.
+Abstract base classes of all Matplotlib-based plotting subclasses.
 '''
 
 #FIXME: Refactor all procedural cell cluster-specific "betse.plot.plot"
@@ -135,10 +135,12 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         axes_x_label: str = 'Spatial Distance [um]',
         axes_y_label: str = 'Spatial Distance [um]',
         colormap: (Colormap, NoneType) = None,
+        is_save: bool = None,
+        is_show: bool = None,
         # scaling_series: np.nadarray = None,
     ) -> None:
         '''
-        Initialize this plot.
+        Initialize this plot or animation.
 
         Parameters
         ----------
@@ -156,28 +158,38 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             Text displayed above the figure itself.
         colorbar_title: str
             Text displayed above the figure colorbar.
-        axes_title : str
-            Optional text displayed above the figure axes but below the figure
-            title _or_ `None` if no text is to be displayed. Defaults to `None`.
-        axes_x_label : str
-            Text displayed below the figure's X axis. Defaults to a general-
-            purpose string.
-        axes_y_label : str
-            Text displayed to the left of the figure's Y axis. Defaults to a
-            general-purpose string.
         is_color_autoscaled : bool
             `True` if dynamically resetting the minimum and maximum colorbar
             values to be the corresponding minimum and maximum values for the
             current frame _or_ `False` if statically setting the minimum and
             maximum colorbar values to predetermined constants.
         color_min : NumericTypes
-            Minimum colorbar value to be used if `clrAutoscale` is `False`.
+            Minimum colorbar value to be used if `is_color_autoscaled` is
+            `False`.
         color_max : NumericTypes
-            Maximum colorbar value to be used if `clrAutoscale` is `False`.
-        colormap : matplotlib.cm.Colormap
+            Maximum colorbar value to be used if `is_color_autoscaled` is
+            `False`.
+        axes_title : optional[str]
+            Optional text displayed above the figure axes but below the figure
+            title _or_ `None` if no text is to be displayed. Defaults to `None`.
+        axes_x_label : optional[str]
+            Text displayed below this figure's X axis. Defaults to a general-
+            purpose string.
+        axes_y_label : optional[str]
+            Text displayed to the left of this figure's Y axis. Defaults to a
+            general-purpose string.
+        colormap : optional[Colormap]
             Matplotlib colormap to be used by default for all animation artists
             (e.g., colorbar, images) _or_ `None`, in which case the default
             colormap will be used.
+        is_save : optional[bool]
+            `True` only if non-interactively saving this plot or animation.
+            Defaults to `None`, in which case this boolean is `True` only if the
+            current simulation configuration non-interactively saves plots.
+        is_show : optional[bool]
+            `True` only if interactively displaying this plot or animation.
+            Defaults to `None`, in which case this boolean is `True` only if the
+            current simulation configuration interactively displays plots.
         '''
 
         # Classify core parameters with weak rather than strong (the default)
@@ -200,18 +212,24 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         # Default unpassed parameters.
         if colormap is None:
             colormap = p.default_cm
+        if is_save is None:
+            is_save = p.plot.is_after_sim_save
+        if is_show is None:
+            is_show = p.plot.is_after_sim_show
 
         # Classify *AFTER* validating parameters.
-        self._label = label
-        self._figure_title = figure_title
         self._axes_title = axes_title
         self._axes_x_label = axes_x_label
         self._axes_y_label = axes_y_label
-        self._colorbar_title = colorbar_title
-        self._is_color_autoscaled = is_color_autoscaled
-        self._color_min = color_min
         self._color_max = color_max
+        self._color_min = color_min
+        self._colorbar_title = colorbar_title
         self._colormap = colormap
+        self._is_color_autoscaled = is_color_autoscaled
+        self._is_save = is_save
+        self._is_show = is_show
+        self._figure_title = figure_title
+        self._label = label
         # self._scaling_series = scaling_series
 
         # Classify attributes to be subsequently defined.
@@ -472,46 +490,25 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         # Explicitly garbage collect.
         # gc.collect()
 
-    # ..................{ PROPERTIES                         }..................
-    #FIXME: Convert all of the following properties back into normal instance
-    #variables initialized from parameters passed to this class' __init__()
-    #method. Doing so requires subclass __init__() methods to explicitly accept
-    #the "p" parameter, permitting such methods to initialize these paremeters
-    #in the expected way. Doing so is trivial. The current approach is both
-    #obscene design overkill *AND* inefficient. This saddens us.
-
-    # The following testers are intended to be overridden by subclasses.
-    #
-    # The corresponding attributes (e.g., "_is_showing" for _is_showing())
-    # *MUST* be defined as dynamic methods rather than static attributes passed
-    # to this class' __init__() method (e.g., as an "is_saving" parameter.) Why?
-    # Because chicken-and-the-egg constraints. Specifically, the latter approach
-    # prevents subclasses from passing a value dependent on the current
-    # "Parameters" object to __init__(), as that object has yet to be classified
-    # as the "p" attribute yet. (Ugh.)
+    # ..................{ PROPERTIES ~ read-only             }..................
+    # Read-only properties.
 
     @property
-    def _is_showing(self) -> bool:
+    def color_min(self) -> float:
         '''
-        `True` only if interactively displaying this plot or animation.
-
-        This property is orthogonal to the `_is_saving` property, whose value
-        may concurrently also be `True`.
+        Minimum color value displayed on this plot or animation's colorbar.
         '''
 
-        return not self.p.turn_all_plots_off
+        return self._color_min
 
 
     @property
-    def _is_saving(self) -> bool:
+    def color_max(self) -> float:
         '''
-        `True` only if non-interactively saving this plot or animation.
-
-        This property is orthogonal to the `_is_showing` property, whose value
-        may concurrently also be `True`.
+        Maximum color value displayed on this plot or animation's colorbar.
         '''
 
-        return self.p.autosave
+        return self._color_max
 
     # ..................{ COLORS                             }..................
     def _rescale_colors(self):

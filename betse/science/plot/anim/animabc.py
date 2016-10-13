@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all Matplotlib-based animation classes.
+Abstract base classes of all Matplotlib-based animation subclasses.
 '''
 
 #FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean
@@ -91,9 +91,6 @@ class AnimCellsABC(PlotCellsABC):
     Instances of this class animate the spatial distribution of modelled
     variables (e.g., Vmem) over all time steps of the simulation.
 
-    Attributes (Public)
-    ----------
-
     Attributes (Private)
     ----------
     _anim : FuncAnimation
@@ -108,19 +105,17 @@ class AnimCellsABC(PlotCellsABC):
         0-based index of the last frame to be plotted, exactly equivalent to
         `self._time_step_count - 1`.
     _time_step : int
-        0-based index of the frame currently being plotted, corresponding to the
-        0-based sampled time step currently being simulated.
+        0-based index of the frame currently being plotted, corresponding to
+        the 0-based sampled time step currently being simulated.
     _time_step_absolute : int
         0-based index of the last frame to be plotted.
 
     Attributes (Private: Saving)
     ----------
-    _is_saving_shown_frames : bool
-        `True` only if both saving _and_ displaying animation frames.
     _save_frame_template : str
-        `str.format()`-formatted template which, when formatted with the 0-based
-        index of the current frame, yields the absolute path of the image file
-        to be saved for that frame.
+        :func:`str.format`-formatted template which, when formatted with the
+        0-based index of the current frame, yields the absolute path of the
+        image file to be saved for that frame.
     _writer_images : MovieWriter
         Matplotlib object saving animation frames as images if doing so _or_
         `None` otherwise.
@@ -171,8 +166,12 @@ class AnimCellsABC(PlotCellsABC):
     @type_check
     def __init__(
         self,
+
+        # Mandatory parameters.
         is_current_overlayable: bool,
         save_dir_parent_basename: str,
+
+        # Optional parameters.
         is_current_overlay_only_gj: (bool, NoneType) = None,
         is_ecm_required: bool = False,
         time_step_count: (int, NoneType) = None,
@@ -191,14 +190,16 @@ class AnimCellsABC(PlotCellsABC):
             `True` if overlaying either electric current or concentration flux
             streamlines on this animation when requested by the current
             simulation configuration (as governed by the `p.I_overlay` and
-            `p.calc_J` parameters) _or_ `False` otherwise. All subclasses except
-            those already plotting streamlines (e.g., by calling the superclass
-            `_plot_stream()` method) should unconditionally enable this boolean.
+            `p.calc_J` parameters) _or_ `False` otherwise. All subclasses
+            except those already plotting streamlines (e.g., by calling the
+            superclass :meth:`_plot_stream` method) should unconditionally
+            enable this boolean.
         is_current_overlay_only_gj : optional[bool]
             `True` if only overlaying intracellular current _or_ `False` if
-            overlaying both intra- and extracellular current. Ignored if current
-            is _not_ being overlayed at all (i.e., if `_is_overlaying_current`
-            is `False`). If `None`, defaults to the following state:
+            overlaying both intra- and extracellular current. Ignored if
+            current is _not_ being overlayed at all (i.e., if
+            `_is_overlaying_current` is `False`). If `None`, defaults to the
+            following state:
             * `False` if extracellular spaces are enabled _and_ both
                intracellular and extracellular current is to be animated.
             * `True` if either extracellular spaces are disabled _or_ are
@@ -244,24 +245,19 @@ class AnimCellsABC(PlotCellsABC):
         self._is_overlaying_current = (
             is_current_overlayable and self.p.I_overlay)
 
-        #FIXME: Is this obsolete now? Excise if so, please.
-
-        # True if both saving and displaying animation frames.
-        self._is_saving_showing = self._is_showing and self._is_saving
-
         # Type of animation attempt to be logged below.
         animation_verb = None
-        if self._is_showing:
+        if self._is_show:
             animation_verb = 'Plotting'
-        elif self._is_saving:
+        elif self._is_save:
             animation_verb = 'Saving'
         # If neither displaying nor saving this animation, this animation would
         # ideally reduce to a noop. Since this is a superclass method, however,
         # simply returning would have little effect; while raising an exception
         # would certainly have an effect, doing so would also require all
-        # callers to explicitly catch and ignore that exception -- in which case
-        # this object would hardly have reduced to a noop. In short, ignoring
-        # this edge case is currently the only sane policy.
+        # callers to explicitly catch and ignore that exception -- in which
+        # case this object would hardly have reduced to a noop. In short,
+        # ignoring this edge case is currently the only sane policy.
 
         # Log this animation as early as reasonably feasible.
         if animation_verb is not None:
@@ -302,7 +298,7 @@ class AnimCellsABC(PlotCellsABC):
         '''
 
         # If this animation is unsaved, noop.
-        if not self._is_saving:
+        if not self._is_save:
             return
 
         #FIXME: This is silly. Rather than prohibiting animation names
@@ -340,8 +336,8 @@ class AnimCellsABC(PlotCellsABC):
         # Animation configuration localized for convenience.
         anim_config = self.p.anim
 
-        # If saving animation frames as either images or video, prepare to do so
-        # in a manner common to both.
+        # If saving animation frames as either images or video, prepare to do
+        # so in a manner common to both.
         if anim_config.is_images_save or anim_config.is_video_save:
             # Dictionary of all keyword arguments to be passed to the
             # `Figure.savefig()` method called to save each animation frame for
@@ -363,10 +359,10 @@ class AnimCellsABC(PlotCellsABC):
         # If saving animation frames as images, prepare to do so.
         if anim_config.is_images_save:
             #FIXME: This currently defaults to padding frames with six or seven
-            #zeroes, on average. Let's make this a bit more aesthetic by padding
-            #frames to only as many zeroes are absolutely required by the
-            #current frame count. To do that, in turn, we'll probably need to
-            #shift everything that follows in this method to the _animate()
+            #zeroes, on average. Let's make this a bit more aesthetic by
+            #padding frames to only as many zeroes are absolutely required by
+            #the current frame count. To do that, in turn, we'll probably need
+            #to shift everything that follows in this method to the _animate()
             #method, where the actual frame count is finally passed.
 
             # Template expanding to the basename of each image to be saved.
@@ -376,7 +372,8 @@ class AnimCellsABC(PlotCellsABC):
             save_frame_template_basename = '{}_{{:07d}}.{}'.format(
                 self._label, anim_config.image_filetype)
 
-            # Template expanding to the absolute path of each image to be saved.
+            # Template expanding to the absolute path of each image to be
+            # saved.
             writer_images_template = paths.join(
                 save_dirname, save_frame_template_basename)
 
@@ -459,15 +456,6 @@ class AnimCellsABC(PlotCellsABC):
         # If overlaying current, do so.
         if self._is_overlaying_current:
             self._plot_current_density()
-
-    # ..................{ PROPERTIES                         }..................
-    @property
-    def _is_showing(self) -> bool:
-        return self.p.anim.is_after_sim_show
-
-    @property
-    def _is_saving(self) -> bool:
-        return self.p.anim.is_after_sim_save
 
     # ..................{ ANIMATORS                          }..................
     @type_check
@@ -557,12 +545,12 @@ class AnimCellsABC(PlotCellsABC):
             # Indefinitely repeat this animation unless saving animations, as
             # doing so under the current implementation would repeatedly (and
             # hence unnecessarily) overwrite previously written files.
-            repeat=not self._is_saving,
+            repeat=not self._is_save,
         )
 
         try:
             # If displaying and optionally saving this animations, do so.
-            if self._is_showing:
+            if self._is_show:
                 #FIXME: If the current backend is non-interactive (e.g.,
                 #"Agg"), the following function call reduces to a noop. This is
                 #insane, frankly. In this case, this animation's plot_frame()
@@ -595,7 +583,7 @@ class AnimCellsABC(PlotCellsABC):
                 pyplot.show()
             # Else if only saving but not displaying this animation *AND* at
             # least one animation writer doing so is enabled, do so.
-            elif self._is_saving and (
+            elif self._is_save and (
                 self._writer_images is not None or
                 self._writer_video is not None
             ):
@@ -776,7 +764,7 @@ class AnimCellsABC(PlotCellsABC):
         self._plot_frame_figure()
 
         # If saving this animation, save this frame.
-        if self._is_saving:
+        if self._is_save:
             # If saving animation frames as images, save this frame as such.
             if self._writer_images is not None:
                 self._writer_images.grab_frame(**self._writer_savefig_kwargs)
@@ -988,19 +976,44 @@ class AnimCellsABC(PlotCellsABC):
 #* Shift the "AnimCellsWhileSolving" subclass to the "while" submodule.
 class AnimCellsAfterSolving(AnimCellsABC):
     '''
-    Out-of-place animation of an arbitrary membrane-centric time series (e.g.,
-    cell Vmem as a function of time), plotted over the cell cluster _after_
-    rather than _during_ simulation modelling.
+    Post-simulation animation of an arbitrary membrane-centric time series
+    (e.g., cell membrane voltage as a function of time), plotted over the cell
+    cluster _after_ rather than _during_ simulation modelling.
     '''
 
     @type_check
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        p: 'betse.science.parameters.Parameters',
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this post-simulation animation.
 
-        # Pass all parameters *NOT* listed above to our superclass.
+        Parameters
+        ----------
+        p : Parameters
+            Current simulation configuration.
+
+        See the superclass `__init__()` method for all remaining parameters.
+        '''
+
+        # Initialize our superclass.
         super().__init__(
-            # Save out-of-place animations to a different parent directory than
-            # that to which in-place animations are saved.
+            # Pass this simulation configuration as is to our superclass.
+            p=p,
+
+            # Save and show this post-simulation animation only if this
+            # configuration has enabled doing so.
+            is_save=p.anim.is_after_sim_save,
+            is_show=p.anim.is_after_sim_show,
+
+            # Save this post-simulation animation to a different parent
+            # directory than that to which the corresponding mid-simulation
+            # animation would be saved.
             save_dir_parent_basename='anim',
+
+            # Pass all remaining arguments as is to our superclass.
             *args, **kwargs
         )
 
@@ -1043,11 +1056,11 @@ class AnimField(AnimCellsAfterSolving):
         Parameters
         ----------
         x_time_series : SequenceTypes
-            SequenceTypes (e.g., list, numpy array) of all electric field strength X
-            components indexed by simulation time.
+            SequenceTypes (e.g., list, numpy array) of all electric field
+            strength X components indexed by simulation time.
         y_time_series : SequenceTypes
-            SequenceTypes (e.g., list, numpy array) of all electric field strength Y
-            components indexed by simulation time.
+            SequenceTypes (e.g., list, numpy array) of all electric field
+            strength Y components indexed by simulation time.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''

@@ -8,11 +8,11 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseDecoratorException
-from betse.util.type import types
+import inspect
+# from betse.exceptions import BetseDecoratorException
 from betse.util.type.types import (
-    type_check, CallableTypes, FunctionType, MethodType)
-from functools import wraps
+    type_check, CallableTypes, GeneratorType)
+# from functools import wraps
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -66,11 +66,14 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
     return method if method is not None and callable(method) else None
 
 # ....................{ ITERATORS                          }....................
-def iter_fields_nonbuiltin(obj: object):
+#FIXME: For disambiguity, rename to iter_fields_simple_custom().
+def iter_fields_nonbuiltin(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each **non-builtin
-    field** (i.e., variable with name _not_ both prefixed and suffixed by `__`)
-    bound to the passed object, in lexicographically sorted field name order.
+    non-property field** (i.e., variable whose name is _not_ both prefixed and
+    suffixed by `__` and whose value _not_ dynamically defined by the
+    `@property` decorator  to be the implicit result of a method call) bound to
+    the passed object, in lexicographically sorted field name order.
 
     Only fields registered in this object's internal dictionary (e.g.,
     `__dict__` in standard unslotted objects) will be yielded. Fields defined
@@ -89,24 +92,37 @@ def iter_fields_nonbuiltin(obj: object):
         object, in lexicographically sorted field name order.
     '''
 
-    # Note that:
+    # Ideally, this function would be internally reimplemented in terms of
+    # the canonical inspect.getmembers() function. Dynamic inspection is
+    # surprisingly non-trivial in the general case, particularly when virtual
+    # base classes rear their diamond-studded faces. Moreover, doing so would
+    # support edge-case attributes when passed class objects, including:
     #
-    # * Calling the dir() wrapper inspect.getmembers() here would allow to us to
-    #   support edge-case attributes when passed class objects, including:
-    #   * Metaclass attributes of the passed class.
-    #   * Attributes decorated by "@DynamicClassAttribute" of the passed class.
-    #   Since BETSE currently requires neither, we prefer calling the slightly
-    #   lower-level but substantially faster dir() builtin.
-    # * Calling vars() rather than dir() here would allow us to avoid calling
-    #   getattr() and hence slightly increase time efficiency at a cost of
-    #   failing for builtin containers (e.g., "dict", "list") *AND* copying
-    #   object attribute values into a new dictionary. You do the ugly math.
+    # * Metaclass attributes of the passed class.
+    # * Attributes decorated by "@DynamicClassAttribute" of the passed class.
+    #
+    # Sadly, inspect.getmembers() internally accesses attributes via the
+    # dangerous getattr() builtin rather than the safe inspect.getattr_static()
+    # function. Since the codebase explicitly requires the latter, this function
+    # reimplements rather than defers to inspect.getmembers(). (Sadness reigns.)
+    #
+    # For the same reason, the unsafe vars() builtin cannot be called either.
+    # Since that builtin fails for builtin containers (e.g., "dict", "list"),
+    # this is not altogether a bad thing.
     for attr_name in dir(obj):
         # If this attribute is *NOT* a builtin...
         if not (attr_name.startswith('__') and attr_name.endswith('__')):
-            # ...and is a field, yield this field.
-            attr_value = getattr(obj, attr_name)
-            if not callable(attr_value):
+            # Value of this attribute guaranteed to be statically rather than
+            # dynamically retrieved. The getattr() builtin performs the latter,
+            # dynamically calling this attribute's getter if this attribute is
+            # a property. Since such call could conceivably raise unwanted
+            # exceptions *AND* since this function explicitly ignores
+            # properties, static attribute retrievable is strongly preferable.
+            attr_value = inspect.getattr_static(obj, attr_name)
+
+            # If this value is neither callable nor a property, this attribute
+            # is a field. In this case, yield this field.
+            if not (callable(attr_value) or isinstance(attr_value, property)):
                 yield attr_name, attr_value
 
 # ....................{ DECORATORS                         }....................
