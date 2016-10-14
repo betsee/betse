@@ -1453,8 +1453,6 @@ class Simulator(object):
 
         if p.sim_ECM is True:  # handle polarization induced by external electric field:
 
-            pass
-
             # Em = p.media_sigma*(self.J_env_x.ravel()[cells.map_mem2ecm]*cells.mem_vects_flat[:,2] +
             #      self.J_env_y.ravel()[cells.map_mem2ecm]*cells.mem_vects_flat[:,3])
 
@@ -1832,8 +1830,8 @@ class Simulator(object):
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
-        # if p.smooth_level > 0.0:
-        #     cenv = gaussian_filter(cenv, p.smooth_level)
+        if p.smooth_level > 0.0:
+            cenv = gaussian_filter(cenv, p.smooth_level)
 
         v_env = self.v_env.reshape(cells.X.shape)
 

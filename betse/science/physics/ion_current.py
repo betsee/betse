@@ -21,13 +21,18 @@ def get_current(sim, cells, p):
     # add the current sources together into a single transmembrane current:
     Jn_o = Jn + Jgj
 
+    drho = np.zeros(sim.cdl)
+
+    # bsigma = np.zeros(sim.cdl)
+    # bsigma[cells.bflags_cells] = p.D_tj
+
     # correct the current density using the continuity equation:
 
     # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-    div_J = (np.dot(cells.M_sum_mems, Jn_o * cells.mem_sa) / cells.cell_vol)
+    div_J = (np.dot(cells.M_sum_mems, Jn_o*cells.mem_sa) / cells.cell_vol)
 
-    drho = np.zeros(sim.cdl)
-    # drho[cells.bflags_cells] = div_J[cells.bflags_cells]
+    # this boundary condition allows us to accumulate a surface charge:
+    drho[cells.bflags_cells] = div_J[cells.bflags_cells]
 
     Phi = np.dot(cells.lapGJ_P_inv, div_J - drho)
 
@@ -57,14 +62,14 @@ def get_current(sim, cells, p):
 
     #------------------------------------------------------------------
 
-    # finally, obtain a weighting function describing individual membrane moments of current/field:
-    J_ave = np.dot(cells.M_sum_mems, sim.Jn) / cells.num_mems
-
-    inds_zero = (J_ave == 0.0).nonzero()
-
-    J_ave[inds_zero] = 1.0  # add some small number for the case that net current is zero
-
-    sim.J_weight = sim.Jn / J_ave[cells.mem_to_cells]
+    # # finally, obtain a weighting function describing individual membrane moments of current/field:
+    # J_ave = np.dot(cells.M_sum_mems, sim.Jn) / cells.num_mems
+    #
+    # inds_zero = (J_ave == 0.0).nonzero()
+    #
+    # J_ave[inds_zero] = 1.0  # add some small number for the case that net current is zero
+    #
+    # sim.J_weight = sim.Jn / J_ave[cells.mem_to_cells]
 
 
     # Current in the environment --------------------------------------------------------------------------------------
@@ -105,8 +110,8 @@ def get_current(sim, cells, p):
         sim.Phi_env = Phi
 
         sim.v_env = np.copy(sim.Phi_env.ravel())
-        # sim.v_env[cells.inds_env] = 0.0
-        # sim.v_env[cells.ecm_bound_k] = 0.0
+        sim.v_env[cells.inds_env] = 0.0
+        sim.v_env[cells.ecm_bound_k] = 0.0
 
         # Take the grid gradient of the scaled internal potential:
         gPhix, gPhiy = fd.gradient(Phi, cells.delta)
@@ -115,12 +120,6 @@ def get_current(sim, cells, p):
         sim.J_env_x = (J_env_x_o.reshape(cells.X.shape) - gPhix)
         sim.J_env_y = (J_env_y_o.reshape(cells.X.shape) - gPhiy)
 
-        # if p.smooth_level > 0.0:
-        #     sim.J_env_x = gaussian_filter(sim.J_env_x, p.smooth_level)
-        #     sim.J_env_y = gaussian_filter(sim.J_env_y, p.smooth_level)
-
-        # sim.E_env_x = sim.J_env_x*(sim.D_env_weight)
-        # sim.E_env_y = sim.J_env_y*(sim.D_env_weight)
 
 
 

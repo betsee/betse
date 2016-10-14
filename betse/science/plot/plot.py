@@ -1170,6 +1170,13 @@ def exportData(cells,sim,p):
 
     headr = headr + ',' + 'Displacement_um'
 
+    # cluster polarization vector------------------------------
+    polar_x = sim.Pol_tot_x_time
+    headr = headr + ',' + 'Polarization x_C/m'
+    polar_y = sim.Pol_tot_y_time
+    headr = headr + ',' + 'Polarization y_C/m'
+
+
     # FFT of voltage :
     sample_size = len(sim.time)
     sample_spacing = sim.time[1] - sim.time[0]
@@ -1181,7 +1188,7 @@ def exportData(cells,sim,p):
     fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
 
     dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T, dd_cell.T,
-                             p_hydro,p_osmo,disp))
+                             p_hydro,p_osmo,disp, polar_x, polar_y))
 
     headr2 = 'frequency_Hz'
     headr2 = headr2 + ',' + 'FFT_Vmem'
@@ -1191,7 +1198,7 @@ def exportData(cells,sim,p):
     np.savetxt(savedData,dataM,delimiter = ',',header = headr)
     np.savetxt(savedData_FFT,dataFFT,delimiter = ',',header = headr2)
 
-def export2dData(i, simdata,cells,p):
+def export2dData(i, simdata,cells,p, foldername = 'Vmem2D_TextExport', filebit = 'Vmem2D_'):
 
     if p.plot_type == 'sim':
         results_path =  p.sim_results
@@ -1199,9 +1206,9 @@ def export2dData(i, simdata,cells,p):
     elif p.plot_type == 'init':
         results_path = p.init_results
 
-    filename = 'Vmem2D_' + str(i) + '.csv'
+    filename = filebit + str(i) + '.csv'
 
-    filepath = os.path.join(results_path, 'Vmem2D_TextExport')
+    filepath = os.path.join(results_path, foldername)
 
     os.makedirs(filepath, exist_ok=True)
     savedData_2d = os.path.join(filepath, filename)

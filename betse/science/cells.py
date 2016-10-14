@@ -545,11 +545,11 @@ class Cells(object):
                 cell_polya = cell_poly.tolist()
                 self.voronoi_verts.append(cell_polya)
 
-                if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
-                    self.ecm_verts.append(cell_polya) # This makes a jagged boundary of cells
+                # if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
+                #     self.ecm_verts.append(cell_polya) # This makes a jagged boundary of cells
 
-                # if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
-                #     self.ecm_verts.append(cell_polya)   # this makes a more solid boundary of cells
+                if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
+                    self.ecm_verts.append(cell_polya)   # this makes a more solid boundary of cells
 
         self.cluster_mask = self.bitmasker.clipping_matrix  # keep track of cluster mask and its size
         self.msize = self.bitmasker.msize
