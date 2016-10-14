@@ -66,8 +66,7 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
     return method if method is not None and callable(method) else None
 
 # ....................{ ITERATORS                          }....................
-#FIXME: For disambiguity, rename to iter_fields_simple_custom().
-def iter_fields_nonbuiltin(obj: object) -> GeneratorType:
+def iter_fields_simple_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each **non-builtin
     non-property field** (i.e., variable whose name is _not_ both prefixed and

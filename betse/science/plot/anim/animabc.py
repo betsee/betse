@@ -465,11 +465,11 @@ class AnimCellsABC(PlotCellsABC):
         simulation configuration.
 
         This method is intended to be called as the last statement in the
-        `__init__()` method of all subclasses of this superclass.
+        :meth:`__init__` method of all subclasses of this superclass.
 
         Parameters
         ----------
-        All parameters are passed to the superclass `__prep_figure()` method.
+        All parameters are passed to the :meth:`_prep_figure` method.
         '''
 
         # Prepare for plotting immediately *BEFORE* plotting the first frame.

@@ -43,10 +43,8 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
         self._cell_tri_meshes = None
 
     # ..................{ SUPERCLASS                         }..................
-    #FIXME: Implement us up.
     @type_check
-    def plot(
-        self, plot: 'betse.science.plot.PlotCellsABC') -> None:
+    def plot(self, plot: 'betse.science.plot.PlotCellsABC') -> None:
         '''
         Plot a single modelled variable (e.g., membrane voltage) for each cell
         of this cell cluster as a discontiguous Gouraud-shaded surface
@@ -59,16 +57,60 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
             Parent plot or animation instance to plot onto.
         '''
 
-        # Array of arbitrary cell data mapped from the midpoints of each cell
-        # membrane onto the vertices of each cell membrane.
-        cell_vertex_data = np.dot(plot.cell_data, plot.cells.matrixMap2Verts)
+        # Two-dimensional array of all cell data for the current time step,
+        # mapped from the midpoints onto the vertices of each cell membrane.
+        cells_vertex_data = np.dot(plot.cell_data, plot.cells.matrixMap2Verts)
 
         # If the cell cluster has yet to be triangulated, this *MUST* be the
         # first call to this method. In this case, create this triangulation.
         if self._cell_tri_meshes is None:
-            # Array of cell patches at vertices.
-            cell_vertex_faces = upscale_data(plot.cells.cell_verts)
+            # Set of triangulation meshes created by iteration below.
+            self._cell_tri_meshes = set()
+
+            # Three-dimensional array of all upscaled cell vertex coordinates.
+            # See "Cells.cell_verts" documentation for further details.
+            cells_vertices_coords = upscale_data(plot.cells.cell_verts)
+
+            # For the index and two-dimensional array of vertex coordinates for
+            # each cell in this cluster...
+            for cell_index, cell_vertices_coords in enumerate(
+                cells_vertices_coords):
+                # X coordinates of all vertices defining this cell's polygon.
+                cell_vertices_x = cell_vertices_coords[:, 0]
+
+                # Y coordinates of all vertices defining this cell's polygon.
+                cell_vertices_y = cell_vertices_coords[:, 1]
+
+                # Average color values of all cell vertices, referred to as "C"
+                # in both the documentation and implementation of the
+                # tripcolor() function. Why "C"? Because you will believe.
+                cell_vertex_data = cells_vertex_data[
+                    plot.cells.cell_to_mems[cell_index]]
+
+                # Gouraud-shaded triangulation mesh for this cell, computed from
+                # the Delaunay hull of the non-triangular vertices of this cell.
+                cell_tri_mesh = plot.axes.tripcolor(
+                    # For equally obscure and uninteresting reasons, this
+                    # function requires these parameters be passed positionally.
+                    cell_vertices_x, cell_vertices_y, cell_vertex_data,
+
+                    # All remaining parameters may be passed by keyword.
+                    shading='gouraud',
+                    cmap=plot.colormap,
+                    vmin=plot.color_min,
+                    vmax=plot.color_max,
+                )
+
+                # Add this triangulation mesh to the cached set of such meshes.
+                self._cell_tri_meshes.add(cell_tri_mesh)
         # Else, the cell cluster has already been triangulated. In this case,
         # simply reshade the triangulated mesh for each cell.
         else:
-            pass
+            # For the index and triangulation mesh for each cell...
+            for cell_index, cell_tri_mesh in enumerate(self._cell_tri_meshes):
+                # Average color values of all cell vertices.
+                cell_vertex_data = cells_vertex_data[
+                    plot.cells.cell_to_mems[cell_index]]
+
+                # Gouraud-shade this triangulation mesh with these color values.
+                cell_tri_mesh.set_array(cell_vertex_data)

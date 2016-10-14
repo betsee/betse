@@ -23,22 +23,18 @@ from betse.util.io.log import logs
 
 
 class Cells(object):
-    """
+    '''
     High-level tissue simulation object encapsulating the cell population.
 
     Specifically, this object:
 
     * Creates and stores data structures relating to the geometric properties
       of the cell cluster grid and (optional) environmental computational grid.
-    * Provides functions to facilitate data association and plotting on the geometric
-      structures (e.g., cell volumes, membrane surface area, etc).
-    * Constructs computational matrices used in simulation for direct computation of
-      gradients, divergence, and Laplacians on cell, membrane and environmental points (as required).
-
-
-    Parameters
-    ----------
-    p                           Cells requires an instance of the Parameters module.
+    * Provides functions to facilitate data association and plotting on the
+      geometric structures (e.g., cell volumes, membrane surface area, etc).
+    * Constructs computational matrices used in simulation for direct
+      computation of gradients, divergence, and Laplacians on cell, membrane
+      and environmental points (as required).
 
     Methods
     -------
@@ -58,7 +54,23 @@ class Cells(object):
     environment()                     Calculate details for the extracellular calculations, including mappings
     graphLaplacian()                  Creates an abstract discrete Laplacian for the irregular Voronoi-based cell grid
     redo_gj()                         Create gap junction connection network after assessing tissue profile requests
-    """
+
+    Attributes
+    ----------
+    cell_verts : np.ndarray
+        Three-dimensional Numpy array of all cell vertex coordinates, whose:
+        . First dimension indexes cells, whose length is the number of cells.
+          Each element of this dimension is a Matplotlib-compatible **polygon
+          patch** (i.e., a two-dimensional Numpy array of all vertex
+          coordinates defining the current cell's polygon), suitable for
+          passing as is to the `matplotlib.patches.Polygon` class constructor.
+        . Second dimension indexes cell vertices, whose length is the number of
+          vertices for the current cell.
+        . Third dimension indexes cell vertex coordinates, whose length is
+          unconditionally guaranteed to be 2 _and_ whose:
+          . First element is the X coordinate of the current cell vertex.
+          . Second element is the Y coordinate of the current cell vertex.
+    '''
 
     def __init__(self, p):
         # Extract the constants from the input object:

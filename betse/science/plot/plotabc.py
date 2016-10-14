@@ -17,6 +17,7 @@ from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 # from betse.util.io.log import logs
+from betse.science.plot import plot
 from betse.util.type import types, objects
 from betse.util.type.types import (
     type_check, NoneType,
@@ -24,8 +25,10 @@ from betse.util.type.types import (
     SequenceTypes, SequenceOrNoneTypes,
 )
 from matplotlib import pyplot
+from matplotlib.axes import Axes
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Colormap
+from matplotlib.cm import ScalarMappable
 from matplotlib.image import AxesImage
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.streamplot import StreamplotSet
@@ -68,7 +71,7 @@ class PlotCellsABC(object, metaclass=ABCMeta):
 
     Attributes (Private: Axes)
     ----------
-    _axes : FigureAxes
+    _axes : Axes
         Matplotlib figure axes providing the current animation frame data.
     _axes_bounds : list
         Spacial extent of the current 2D environment as a 4-element list
@@ -89,7 +92,7 @@ class PlotCellsABC(object, metaclass=ABCMeta):
 
     Attributes (Private: Color)
     ----------
-    _color_mappings : list
+    _color_mappables : list
         List of all plotted mappables (i.e., instances of the `ScalarMappable`
         Matplotlib class added to this plot) whose minimum and maximum values
         define the range of colors displayed by this plot. Due to Matplotlib
@@ -165,10 +168,12 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             maximum colorbar values to predetermined constants.
         color_min : NumericTypes
             Minimum colorbar value to be used if `is_color_autoscaled` is
-            `False`.
+            `False`. If `is_color_autoscaled` is `True`, this parameter is
+            silently ignored.
         color_max : NumericTypes
             Maximum colorbar value to be used if `is_color_autoscaled` is
-            `False`.
+            `False`. If `is_color_autoscaled` is `True`, this parameter is
+            silently ignored.
         axes_title : optional[str]
             Optional text displayed above the figure axes but below the figure
             title _or_ `None` if no text is to be displayed. Defaults to `None`.
@@ -221,8 +226,6 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         self._axes_title = axes_title
         self._axes_x_label = axes_x_label
         self._axes_y_label = axes_y_label
-        self._color_max = color_max
-        self._color_min = color_min
         self._colorbar_title = colorbar_title
         self._colormap = colormap
         self._is_color_autoscaled = is_color_autoscaled
@@ -232,8 +235,17 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         self._label = label
         # self._scaling_series = scaling_series
 
+        # If autoscaling colors, ignore the passed minimum and maximum.
+        if is_color_autoscaled:
+            self._color_max = None
+            self._color_min = None
+        # Else, classify the passed minimum and maximum.
+        else:
+            self._color_max = color_max
+            self._color_min = color_min
+
         # Classify attributes to be subsequently defined.
-        self._color_mappings = color_min
+        self._color_mappables = None
         self._writer_frames = None
         self._writer_video = None
 
@@ -319,12 +331,13 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         self._init_figure_axes()
 
     # ..................{ PREPARERS ~ figure                 }..................
+    #FIXME: Update docstring.
     @type_check
     def _prep_figure(
         self,
 
         # Mandatory parameters.
-        color_mapping: object,
+        color_mappables: (ScalarMappable,) + SequenceTypes,
 
         # Optional parameters.
         color_data: SequenceTypes = None,
@@ -339,86 +352,77 @@ class PlotCellsABC(object, metaclass=ABCMeta):
           cell by labelled with that cell's unique 0-based index, do so. To
           ensure that these labels are plotted over rather than under the
           contents of their corresponding cells, we do so only _after_ all
-          subclass plotting has been performed by delaying such labelling to
-          this method rather than the above `__init__()` method.
-        * If the optional `axes_title` parameter was passed to `__init__()`:
-          * Adds the current `_figure_title` to this figure as a "super title."
+          subclass plotting has been performed by delaying this labelling to
+          this method rather than the :meth:`__init__` method.
+        * If the optional `axes_title` parameter was passed to :meth:`__init__`:
+          * Adds the current :attr:`_figure_title` to this figure as a "super
+            title."
           * Adds that `axes_title` to this figure's axes as a "subtitle."
-        * Else, add the current `_figure_title` to this figure's axes.
+        * Else, add the current :attr:`_figure_title` to this figure's axes.
         * If the optional `colorbar_values` parameter is passed _and_
-          `_is_color_autoscaled` is `True`, clip the colorbar to the minimum and
-          maximum values in the `color_data` array.
-        * Else, clip the colorbar to the current `clrMin` and `clrMax` values.
+          :attr:`_is_color_autoscaled` is `True`, clip the colorbar to the
+          minimum and maximum values in the `color_data` array.
+        * Else, clip the colorbar to the current :attr:`_color_min` and
+          :attr:`color_max` values.
         * Add a colorbar whose:
-          * Title is the current `_colorbar_title` string.
-          * Mapping is the passed `_colorbar_mapping` parameter.
+          * Title is the current :attr:`_colorbar_title` string.
+          * Mappable is the passed `colorbar_mappables` parameter.
 
         Parameters
         ----------
-        color_mapping : mpl.cm.ScalarMappable, list
+        color_mappables : ScalarMappable or SequenceTypes
             One or more color mappables (e.g., `Image`, `ContourSet`) to
             associate with this animation's colorbar. This may be either:
             * A single mappable, in which case this colorbar will be associated
               with this mappable as is.
             * A non-string sequence (e.g., `list`) of one or more mappables, in
-              which case this colorbar will be associated with the **first**
-              mappable in this sequence.
+              which case this colorbar will be arbitrarily associated with the
+              first mappable in this sequence.
         color_data : optional[SequenceTypes]
-            Optional multi-dimensional Numpy array containing all data values
-            to be animated _or_ `None` if calculating this data during the
-            animation initialization is infeasible or impractical (e.g., due to
-            space and time constraints). If the colorbar is being autoscaled
-            _and_ this parameter is:
-            * Non-`None`, the colorbar will be clipped to the minimum and
-              maximum scalar values unravelled from this array.
-            * `None`, the subclass will be responsible for colorbar autoscaling.
-            Defaults to `None`.
+            Multi-dimensional sequence of all color values to be plotted _or_
+            `None` if calculating these values on initialization is impractical
+            (e.g., due to space or time constraints). Defaults to `None`. If
+            colorbar autoscaling is enabled _and_ this parameter is:
+            * Non-`None`, the colorbar is clipped to the minimum and maximum
+              scalar values unravelled from this array.
+            * `None`, the subclass is responsible for colorbar autoscaling.
         '''
 
-        #FIXME: Why is this logic deferred to here rather than performed in
-        #__init__()? There's presumably a reasonable reason for this... but we
-        #failed to document whatever that might have been.
+        #FIXME: Refactor into a proper plotter subclass. The current approach
+        #assumes no subsequent artists are added to the axes, which (of course)
+        #is probably the case in numerous subclasses. A plotter this must be!
 
-        # If labelling each plotted cell with that cell's unique 0-based index,
-        # do so.
-        if self.p.enumerate_cells is True:
-            for cell_index, cell_centre in enumerate(self.cells.cell_centres):
+        # If labelling each cell with that cell's 0-based index, do so. To
+        # layer cell labels above cell data, defer doing so until this method.
+        if self.p.enumerate_cells:
+            # For the index and 2-tuple of X and Y coordinates of the center of
+            # each cell, display this index centered at these coordinates.
+            for cell_index, cell_center in enumerate(self.cells.cell_centres):
                 self._axes.text(
-                    self.p.um * cell_centre[0],
-                    self.p.um * cell_centre[1],
+                    plot.upscale_data(cell_center[0]),
+                    plot.upscale_data(cell_center[1]),
                     cell_index,
                     va='center',
                     ha='center',
                 )
 
-        # If a time series is passed *AND* colorbar autoscaling is requested,
-        # clip the colorbar to the minimum and maximum values of this series.
-        if color_data is not None and self._is_color_autoscaled:
-            #FIXME: This appears to be failing when "color_data" is
-            #"self._current_density_magnitude_time_series" (e.g.,
-            #"self.sim.I_gj_x_time").
+        # If color values are passed, autoscale colors to these values.
+        if color_data is not None:
+            self._autoscale_colors(color_data)
 
-            # Flatten this two-dimensional matrix to a one-dimensional array,
-            # providing efficient retrieval of minimum and maximum values.
-            time_series_flat = np.ravel(color_data)
-
-            # Overwrite the current minimum and maximum color values.
-            self._color_min = np.ma.min(time_series_flat)
-            self._color_max = np.ma.max(time_series_flat)
-
-        # If a single mappable rather than a list of mappables was passed,
+        # If a single mappable rather than a sequence of mappables was passed,
         # convert the former to the latter.
-        if not types.is_sequence_nonstr(color_mapping):
-            color_mapping = (color_mapping,)
+        if not types.is_sequence_nonstr(color_mappables):
+            color_mappables = (color_mappables,)
 
         # Classify this list of mappables.
-        self._color_mappings = color_mapping
+        self._color_mappables = color_mappables
 
         # Scale these mappables by previously established color values.
-        self._rescale_colors()
+        self._rescale_color_mappables()
 
         # Create a colorbar associated with the first such mappable.
-        colorbar = self._figure.colorbar(color_mapping[0])
+        colorbar = self._figure.colorbar(color_mappables[0])
         colorbar.set_label(self._colorbar_title)
 
     # ..................{ DEINITIALIZERS                     }..................
@@ -449,7 +453,7 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             pyplot.close(self._figure)
 
         # For each name and value of a field bound to this object...
-        for field_name, field_value in objects.iter_fields_nonbuiltin(self):
+        for field_name, field_value in objects.iter_fields_simple_custom(self):
             # If this field itself contains a "figure" attribute, explicitly
             # nullify the latter to break this figure's circular references in a
             # manner ignoring "AttributeError: can't set attribute" exceptions.
@@ -491,7 +495,19 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         # gc.collect()
 
     # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties.
+    # Read-only properties, preventing callers from setting these attributes.
+
+    @property
+    def axes(self) -> Axes:
+        '''
+        Matplotlib axes for this plot or animation's figure.
+
+        All modelled variables for this cell cluster are spatially plotted onto
+        this axes at each time step of this plot or animation.
+        '''
+
+        return self._axes
+
 
     @property
     def color_min(self) -> float:
@@ -510,21 +526,61 @@ class PlotCellsABC(object, metaclass=ABCMeta):
 
         return self._color_max
 
-    # ..................{ COLORS                             }..................
-    def _rescale_colors(self):
-        '''
-        Rescale all color mappables (i.e., the `color_mapping` parameter passed
-        to the `_prep_figure()` method) to the current minimum and maximum color
-        values for this plot.
 
-        This method may only be called _after_ the `_prep_figure()` method has
-        been called. Failing to do so will result in exceptions.
+    @property
+    def colormap(self) -> Colormap:
+        '''
+        Matplotlib colormap, mapping all numeric data for one modelled variable
+        for this cell cluster into color values displayed on this plot or
+        animation's colorbar.
+        '''
+
+        return self._colormap
+
+    # ..................{ COLORS                             }..................
+    def _autoscale_colors(self, color_data: SequenceTypes) -> None:
+        '''
+        Autoscale the colorbar for this plot or animation's figure to the
+        minimum and maximum scalar values unravelled from the passed sequence
+        by setting the :attr:`_color_min` and :attr:`_color_max` attributes to
+        such values if colorbar autoscaling is both enabled and has not already
+        been performed (i.e., these attributes are `None`) _or_ noop otherwise.
+
+        Parameters
+        ----------
+        color_data : SequenceTypes
+            Multi-dimensional sequence of all color values to be plotted _or_
+            `None` if calculating these values on initialization is impractical
+            (e.g., due to space or time constraints).
+        '''
+
+        # If colorbar autoscaling is disabled, noop.
+        if not self._is_color_autoscaled:
+            return
+
+        # Flatten this multi-dimensional array to a one-dimensional array,
+        # permitting efficient retrieval of minimum and maximum values.
+        time_series_flat = np.ravel(color_data)
+
+        # Set the current minimum and maximum color values.
+        self._color_min = np.ma.min(time_series_flat)
+        self._color_max = np.ma.max(time_series_flat)
+
+
+    def _rescale_color_mappables(self) -> None:
+        '''
+        Rescale all color mappables (i.e., the `color_mappables` parameter
+        passed to the :meth:`_prep_figure` method) to the current minimum and
+        maximum color values for this plot.
+
+        This method may only be called _after_ the :meth:`_prep_figure` method
+        has been called. Failing to do so will result in exceptions.
         '''
 
         # If the _prep_figure() method has yet to be called, raise an exception.
-        if self._color_mappings is None:
+        if self._color_mappables is None:
             raise BetseMethodException(
-                '{class_name}._rescale_colors() called before '
+                '{class_name}._rescale_color_mappables() called before '
                 '{class_name}._prep_figure().'.format(class_name=type(self)))
 
         # If these values are identical, coerce them to differ. Failing to do so
@@ -536,10 +592,10 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         # For each color mappable, clip that mappable to the minimum and maximum
         # values discovered above. Note this also has the beneficial side-effect
         # of establishing the colorbar's range.
-        for color_mapping in self._color_mappings:
-            assert types.is_matplotlib_mappable(color_mapping), (
-                types.assert_not_matplotlib_mappable(color_mapping))
-            color_mapping.set_clim(self._color_min, self._color_max)
+        for color_mappable in self._color_mappables:
+            assert types.is_matplotlib_mappable(color_mappable), (
+                types.assert_not_matplotlib_mappable(color_mappable))
+            color_mappable.set_clim(self._color_min, self._color_max)
 
     # ..................{ PLOTTERS                           }..................
     @type_check

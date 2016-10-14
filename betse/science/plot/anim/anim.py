@@ -34,6 +34,7 @@ from enum import Enum
 from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.science.plot import plot
+from betse.science.plot.plotter.plottershaded import PlotterCellsGouraudShaded
 from betse.science.plot.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
@@ -191,7 +192,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         # Perform all superclass plotting preparation immediately *BEFORE*
         # plotting this animation's first frame.
         self._prep_figure(
-            color_mapping=self._cell_data_plot,
+            color_mappables=self._cell_data_plot,
             color_data=cell_data,
         )
 
@@ -253,7 +254,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
                 self._is_time_step_first = False
 
             # Autoscale the colorbar to these colors.
-            self._rescale_colors()
+            self._rescale_color_mappables()
 
         # If displaying this frame, do so.
         if self._is_show:
@@ -312,6 +313,9 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
     ----------
     _is_ecm_ignored : bool
         `True` if ignoring extracellular spaces _or_ `False` otherwise.
+    _plotter_cells : PlotterCellsABC or NoneType
+        Plotter plotting each individual cell if plotting individual cells _or_
+        `None` otherwise.
     _time_series : numpy.ndarray
         Arbitrary cell data as a function of time to be plotted.
     '''
@@ -352,6 +356,15 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         self._time_series = time_series
         self._is_ecm_ignored = is_ecm_ignored
 
+        # Default all remaining attributes.
+        self._plotter_cells = None
+
+        #FIXME: Call the following method here:
+        #    self._autoscale_colors(
+        #        scaling_series if scaling_series else time_series)
+        #
+        #On doing so, cease passing "color_data" below.
+
         #FIXME: Generalize this logic, which is repeated below by the
         #_plot_frame_figure() method, into a new private method for reuse both
         #here and below. Or perhaps not? In the case of the
@@ -360,6 +373,11 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         #existing triangulation, in which case little to no duplication exists.
         #FIXME: Rename "self.collection" to something more descriptive.
         if self.p.showCells is True:
+            # Plotter Gouraud-shading each individual cell.
+            self._plotter_cells = PlotterCellsGouraudShaded()
+
+            #FIXME: Replace with a call to:
+            #    self._plotter_cells.plot(self)
             data_verts = np.dot(self.cell_data, self.cells.matrixMap2Verts)
             self.collection, self._axes = pretty_patch_plot(
                 data_verts, self._axes, self.cells, self.p, self._colormap,
@@ -372,15 +390,14 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         #FIXME: "self.collection" is basically useless here if the
         #pretty_patch_plot() function was called above, which only returns the
         #last collection for a single arbitrary cell rather than a collection
-        #representing all cell data. This will result in a colorbar than fails
+        #representing all cell data. This will result in a colorbar that fails
         #to correspond to any cell data except that of the arbitrarily selected
         #cell. See below for details on fixing this.
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self.collection,
-            color_data=(
-                scaling_series if scaling_series else self._time_series),
+            color_mappables=self.collection,
+            color_data=scaling_series if scaling_series else time_series,
         )
 
 
@@ -446,12 +463,18 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
             self.collection.set_array(zz_grid)
 
     # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties.
+    # Read-only properties, preventing callers from setting these attributes.
 
     @property
     def cell_data(self) -> SequenceTypes:
         '''
-        Arbitrary cell data for the current time step to be plotted.
+        Two-dimensional sequence of all cell membrane data for the current
+        animation time step, whose:
+        . First dimension indexes cells, whose length is the number of cells.
+        . Second dimension indexes cell membranes, whose length is the number
+          of membranes for the current cell. Each element of this dimension is
+          arbitrary cell membrane data spatially situated at this membrane's
+          midpoint.
         '''
 
         return self._time_series[self._time_step]
@@ -514,7 +537,7 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._cell_plot,
+            color_mappables=self._cell_plot,
             color_data=self._cell_time_series,
         )
 
@@ -606,7 +629,7 @@ class AnimFieldMeshTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._cell_plot,
+            color_mappables=self._cell_plot,
             color_data=self._cell_time_series,
         )
 
@@ -681,7 +704,7 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._mesh_plot,
+            color_mappables=self._mesh_plot,
             color_data=self._time_series,
         )
 
@@ -773,7 +796,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._gapjunc_plot,
+            color_mappables=self._gapjunc_plot,
             color_data=self._time_series,
         )
 
@@ -856,7 +879,7 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._mem_edges,
+            color_mappables=self._mem_edges,
             color_data=self._time_series,
         )
 
@@ -934,7 +957,7 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=(self.collection, self.bkgPlot),
+            color_mappables=(self.collection, self.bkgPlot),
 
             # If colorbar autoscaling is requested, clip the colorbar to the
             # minimum and maximum morphogen concentrations -- regardless of
@@ -1020,7 +1043,7 @@ class AnimFieldIntracellular(AnimField):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._mesh_plot,
+            color_mappables=self._mesh_plot,
             color_data=self._magnitude_time_series,
         )
 
@@ -1074,7 +1097,7 @@ class AnimFieldExtracellular(AnimField):
             self._color_min = np.min(efield_mag)
             self._color_max = np.max(efield_mag)
 
-        self._animate(color_mapping=self.msh)
+        self._animate(color_mappables=self.msh)
 
 
     def _plot_frame_figure(self) -> None:
@@ -1149,7 +1172,7 @@ class AnimVelocityIntracellular(AnimVelocity):
         # manually rescales the colorbar on each frame according to the minimum
         # and maximum velocity field magnitude. While non-ideal, every
         # alternative is currently worse.
-        self._animate(color_mapping=self._mesh_plot)
+        self._animate(color_mappables=self._mesh_plot)
 
 
     def _plot_frame_figure(self) -> None:
@@ -1274,7 +1297,7 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._mesh_plot,
+            color_mappables=self._mesh_plot,
             color_data=self._magnitude_time_series,
         )
 
@@ -1336,7 +1359,7 @@ class AnimCurrent(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=self._mesh_plot,
+            color_mappables=self._mesh_plot,
             color_data=self._current_density_magnitude_time_series,
         )
 
@@ -1456,7 +1479,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
 
         # Display and/or save this animation.
         self._animate(
-            color_mapping=dd_collection,
+            color_mappables=dd_collection,
             color_data=self._cell_time_series,
         )
 
