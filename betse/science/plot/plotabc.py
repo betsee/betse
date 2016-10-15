@@ -17,10 +17,12 @@ from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 # from betse.util.io.log import logs
-from betse.science.plot import plot
-from betse.util.type import types, objects
+from betse.science.plot.plot import upscale_cell_coordinates
+from betse.util.type import iterables, objects, types
 from betse.util.type.types import (
-    type_check, NoneType,
+    type_check,
+    IterableTypes,
+    NoneType,
     NumericTypes, NumericOrNoneTypes,
     SequenceTypes, SequenceOrNoneTypes,
 )
@@ -92,12 +94,13 @@ class PlotCellsABC(object, metaclass=ABCMeta):
 
     Attributes (Private: Color)
     ----------
-    _color_mappables : list
-        List of all plotted mappables (i.e., instances of the `ScalarMappable`
-        Matplotlib class added to this plot) whose minimum and maximum values
-        define the range of colors displayed by this plot. Due to Matplotlib
-        constraints, only the first mappable in this list will be associated
-        with this plot's colorbar.
+    _color_mappables : IterableTypes
+        Iterable of all plotted mappables (i.e., instances of the
+        :class:`ScalarMappable` class added to the figure axes of this plot or
+        animation) whose minimum and maximum values define the color range
+        displayed both in the figure axes and colorbar of this plot or
+        animation. Due to Matplotlib constraints, only the first mappable in
+        this iterable is associated with this colorbar.
     _colorbar_title: str
         Text displayed above the figure colorbar.
     _color_min : float
@@ -336,8 +339,12 @@ class PlotCellsABC(object, metaclass=ABCMeta):
     def _prep_figure(
         self,
 
+        #FIXME: Such type permissiveness is highly non-ideal. Callers should be
+        #required to *ALWAYS* pass an iterable. Permitting callers to pass a
+        #non-iterable mappable only obscures the interface to no benefit.
+
         # Mandatory parameters.
-        color_mappables: (ScalarMappable,) + SequenceTypes,
+        color_mappables: (ScalarMappable,) + IterableTypes,
 
         # Optional parameters.
         color_data: SequenceTypes = None,
@@ -370,14 +377,15 @@ class PlotCellsABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        color_mappables : ScalarMappable or SequenceTypes
-            One or more color mappables (e.g., `Image`, `ContourSet`) to
-            associate with this animation's colorbar. This may be either:
+        color_mappables : ScalarMappable or IterableTypes
+            One or more Matplotlib-specific mappables (e.g., :class:`AxesImage`,
+            :class:`ContourSet`) to associate with this plot or animation's
+            colorbar. For convenience, this parameter may be either:
             * A single mappable, in which case this colorbar will be associated
               with this mappable as is.
-            * A non-string sequence (e.g., `list`) of one or more mappables, in
-              which case this colorbar will be arbitrarily associated with the
-              first mappable in this sequence.
+            * A non-string iterable (e.g., :class:`list`, :class:`set`) of one
+              or more mappables, in which case this colorbar will be arbitrarily
+              associated with the first mappable in this iterable.
         color_data : optional[SequenceTypes]
             Multi-dimensional sequence of all color values to be plotted _or_
             `None` if calculating these values on initialization is impractical
@@ -399,8 +407,8 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             # each cell, display this index centered at these coordinates.
             for cell_index, cell_center in enumerate(self.cells.cell_centres):
                 self._axes.text(
-                    plot.upscale_data(cell_center[0]),
-                    plot.upscale_data(cell_center[1]),
+                    upscale_cell_coordinates(cell_center[0]),
+                    upscale_cell_coordinates(cell_center[1]),
                     cell_index,
                     va='center',
                     ha='center',
@@ -412,7 +420,7 @@ class PlotCellsABC(object, metaclass=ABCMeta):
 
         # If a single mappable rather than a sequence of mappables was passed,
         # convert the former to the latter.
-        if not types.is_sequence_nonstr(color_mappables):
+        if not types.is_iterable_nonstr(color_mappables):
             color_mappables = (color_mappables,)
 
         # Classify this list of mappables.
@@ -421,8 +429,11 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         # Scale these mappables by previously established color values.
         self._rescale_color_mappables()
 
-        # Create a colorbar associated with the first such mappable.
-        colorbar = self._figure.colorbar(color_mappables[0])
+        # First mappable safely retrieved from this iterable of mappables.
+        color_mappable_first = iterables.get_item_first(self._color_mappables)
+
+        # Create a colorbar associated with this mappable.
+        colorbar = self._figure.colorbar(color_mappable_first)
         colorbar.set_label(self._colorbar_title)
 
     # ..................{ DEINITIALIZERS                     }..................
@@ -687,8 +698,9 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             Optional scaled Y components of the cell cluster grid. Defaults to
             `None`, in which case the default `self.cells.Y` array is used.
         magnitude_max: NumericTypes or NoneType
-            Optional maximum magnitude in the passed `magnitude` array. Defaults
-            to `None`, in which case this array is searched for this value.
+            Optional maximum magnitude in the passed `magnitude` array.
+            Defaults to `None`, in which case this array is implicitly searched
+            for this value.
         old_stream_plot: StreamplotSet or NoneType
             Optional streamplot returned by a prior call to this method
             (typically for a prior frame) _or_ `None` if this is the first call

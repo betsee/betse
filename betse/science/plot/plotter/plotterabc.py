@@ -102,7 +102,7 @@ class PlotterCellsABC(object, metaclass=ABCMeta):
 
     # ..................{ ABSTRACT                           }..................
     @abstractmethod
-    def plot(self, plot: 'betse.science.plot.PlotCellsABC') -> None:
+    def plot(self, plot: 'betse.science.plot.plotabc.PlotCellsABC') -> None:
         '''
         Plot the spatial distribution of a single modelled variable (e.g.,
         cell membrane voltage) onto the figure axes of the passed parent plot or

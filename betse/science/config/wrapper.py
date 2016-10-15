@@ -216,12 +216,14 @@ class SimConfigWrapper(object):
     # ..................{ ENABLERS                           }..................
     def enable_visuals_all(self) -> None:
         '''
-        Enable all supported plots and animations _and_ all features required by
-        these plots and animations.
+        Enable all supported plots and animations, all features required by
+        these plots and animations, and any additional features trivially
+        enabled _without_ substantially increasing time or space complexity.
 
         This method is intended to be called by non-interactive test suites
         exercising all plots and animations. Specifically, this method enables:
 
+        * **Cell enumeration** (i.e., labelling each cell by its 0-based index).
         * The calcium (Ca) plot and animation by enabling:
           * The mammalian ion profile (i.e., `animal`), enabling all ions
             including calcium.
@@ -253,6 +255,9 @@ class SimConfigWrapper(object):
         general = self._config['general options']
         results = self._config['results options']
         variable = self._config['variable settings']
+
+        # Enable cell enumeration.
+        results['enumerate cells'] = True
 
         # Enable all plots.
         results['Vmem 2D']['plot Vmem'] = True

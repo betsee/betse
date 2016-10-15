@@ -52,6 +52,61 @@ iterables of insufficient length).
 
 # ....................{ GETTERS                            }....................
 @type_check
+def get_item_first(iterable: IterableTypes) -> object:
+    '''
+    First element non-destructively retrieved from the passed iterable if this
+    iterable is non-empty _or_ raise an exception otherwise (i.e., if this
+    iterable is empty).
+
+    If the passed iterable is a:
+
+    * Sequence, this is guaranteed to be the first item of this sequence.
+    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
+      to be a random item of this non-sequence. While most non-sequences
+      guarantee predictable order of retrieval assuming no intervening changes,
+      this is a fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+
+    Returns
+    ----------
+    object
+        First element non-destructively retrieved from this iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable is empty.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/40054478/2809027
+        Cecil's Stackoverflow answer strongly inspiring this function, complete
+        with detailed timings of all alternative solutions.
+    '''
+
+    # If this iterable is empty, raise an exception. Since iteration of empty
+    # iterables always succeeds, this condition must be manually tested
+    # beforehand. Failing to do so would result Python raising the following
+    # non-human-readable exception below:
+    #
+    #     NameError: name 'first_item' is not defined
+    if not iterable:
+        raise BetseIterableException('Iterable "{}" empty.'.format(iterable))
+
+    # Yup! Shockingly, the most verbose and unwieldy solution is the fastest.
+    # Break immediately after the first iteration of this iterable.
+    for first_item in iterable:
+        break
+
+    # Return the first element iterated above.
+    return first_item
+
+# ....................{ CONSUMERS                          }....................
+@type_check
 def consume(iterable: IterableTypes, iterations: int) -> object:
     '''
     Consume the passed number of iterations from the passed iterable by
@@ -62,7 +117,7 @@ def consume(iterable: IterableTypes, iterations: int) -> object:
 
     Parameters
     ----------
-    iterable : Iterable
+    iterable : IterableTypes
         Iterable to be consumed.
     iterations : int
         Number of iterations to advance this iterable. This number should be
@@ -110,7 +165,7 @@ def exhaust(iterable: IterableTypes) -> object:
 
     Parameters
     ----------
-    iterable : Iterable
+    iterable : IterableTypes
         Iterable to be exhausted.
 
     Returns
@@ -147,7 +202,7 @@ def sort_lexicographic_ascending(iterable: IterableTypes) -> IterableTypes:
 
     Parameters
     ----------
-    iterable : Iterable
+    iterable : IterableTypes
         Unsorted iterable to be returned sorted. For generality, this iterable
         is _not_ modified by this function.
 
@@ -174,7 +229,7 @@ def zip_isometric(*iterables: IterableTypes) -> GeneratorType:
 
     Parameters
     ----------
-    iterables : Iterable
+    iterables : IterableTypes
         Tuple of iterables of the same length to be zipped.
 
     Returns
@@ -247,8 +302,6 @@ def _zip_isometric_error(iterables: tuple, ntuple: tuple) -> None:
 
     # This erroneously short iterable.
     iterable_short = iterables[iterable_short_index]
-    # print('\n!!!!faulty n-tuple: {}'.format(ntuple))
-    # print('!!!!faulty iterable index: {}'.format(iterable_short_index))
 
     # If the first iterable is of predefined length (e.g., is *NOT* a generator
     # of dynamic length), end this exception message with this length.

@@ -360,7 +360,7 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
 
     # Scaled membrane voltage time series.
     if p.sim_ECM is False:
-        return plot.upscale_data(sim.vm_time)
+        return plot.upscale_cell_data(sim.vm_time)
     else:
         #FIXME: What's the difference between "sim.vcell_time" and
         #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "AnimCellsWhileSolving"
@@ -375,4 +375,4 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
         #  ECM and "sim.vm_time" for non-ECM.
         #* _get_vmem_time_series_discontinuous(), returning "sim.vcell_time" for
         #  ECM and "sim.vm_time" for non-ECM.
-        return plot.upscale_data(sim.vcell_time)
+        return plot.upscale_cell_data(sim.vcell_time)

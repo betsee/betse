@@ -8,9 +8,9 @@ Matplotlib-based plotter of shaded cell clusters.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.science.plot.plot import upscale_data
+from betse.science.plot.plot import upscale_cell_coordinates
 from betse.science.plot.plotter.plotterabc import PlotterCellsABC
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ BASE                               }....................
 class PlotterCellsGouraudShaded(PlotterCellsABC):
@@ -25,9 +25,11 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
 
     Attributes
     ----------
-    _cell_tri_meshes : set
-        Set of `matplotlib.collections.TriMesh` instances, each encapsulating
-        the triangulation mesh for an arbitrary cell in this cell cluster.
+    _cell_tri_meshes : list
+        List of `matplotlib.collections.TriMesh` instances, each encapsulating
+        the triangulation mesh for the cell in this cell cluster whose 0-based
+        index is the same as that of the
+        :attr:`betse.science.cells.Cells.cell_verts` array.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -42,9 +44,38 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
         # Sanitize all instance attributes.
         self._cell_tri_meshes = None
 
+    # ..................{ PROPERTIES                         }..................
+    #FIXME: This property is somewhat but *NOT* perfectly general. It doesn't
+    #particularly apply to the perfecetly general-purpose "PlotterCellsABC"
+    #class (e.g., because of text-only plotters, for example). Perhaps a new
+    #"PlotterCellsMappableABC" class should be constructed, in which case this
+    #property should be shifted there. The class hiercharcy in that case would
+    #resemble:
+    #
+    #    PlotterCellsABC
+    #           ^
+    #           |
+    #    PlotterCellsMappableABC
+    #           ^
+    #           |
+    #    PlotterCellsGouraudShaded
+
+    @property
+    def color_mappables(self) -> IterableTypes:
+        '''
+        Iterable of all :class:`matplotlib.cm.ScalarMappable` instances plotted
+        by this plotter.
+
+        Note that, due to Matplotlib constraints, only the first mappable in
+        this iterable defines the range of colors and hence colorbar of the
+        parent plot or animation.
+        '''
+
+        return self._cell_tri_meshes
+
     # ..................{ SUPERCLASS                         }..................
     @type_check
-    def plot(self, plot: 'betse.science.plot.PlotCellsABC') -> None:
+    def plot(self, plot: 'betse.science.plot.plotabc.PlotCellsABC') -> None:
         '''
         Plot a single modelled variable (e.g., membrane voltage) for each cell
         of this cell cluster as a discontiguous Gouraud-shaded surface
@@ -57,6 +88,9 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
             Parent plot or animation instance to plot onto.
         '''
 
+        #FIXME: Do we compute this elsewhere in the codebase? If so, globally
+        #cache this somewhere for reuse.
+
         # Two-dimensional array of all cell data for the current time step,
         # mapped from the midpoints onto the vertices of each cell membrane.
         cells_vertex_data = np.dot(plot.cell_data, plot.cells.matrixMap2Verts)
@@ -64,12 +98,19 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
         # If the cell cluster has yet to be triangulated, this *MUST* be the
         # first call to this method. In this case, create this triangulation.
         if self._cell_tri_meshes is None:
-            # Set of triangulation meshes created by iteration below.
-            self._cell_tri_meshes = set()
+            # List of triangulation meshes created by iteration below.
+            self._cell_tri_meshes = []
+
+            #FIXME: Do we compute this elsewhere in the codebase? If so,
+            #globally cache this somewhere for reuse.
 
             # Three-dimensional array of all upscaled cell vertex coordinates.
             # See "Cells.cell_verts" documentation for further details.
-            cells_vertices_coords = upscale_data(plot.cells.cell_verts)
+            cells_vertices_coords = upscale_cell_coordinates(
+                plot.cells.cell_verts)
+            # cells_vertices_coords = np.multiply(
+            #     plot.cells.cell_verts, plot.p.um)
+            # print('!!!!!!!um: {}'.format(plot.p.um))
 
             # For the index and two-dimensional array of vertex coordinates for
             # each cell in this cluster...
@@ -97,12 +138,13 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
                     # All remaining parameters may be passed by keyword.
                     shading='gouraud',
                     cmap=plot.colormap,
-                    vmin=plot.color_min,
-                    vmax=plot.color_max,
+                    # vmin=plot.color_min,
+                    # vmax=plot.color_max,
                 )
+                cell_tri_mesh.set_clim(plot.color_min, plot.color_max)
 
                 # Add this triangulation mesh to the cached set of such meshes.
-                self._cell_tri_meshes.add(cell_tri_mesh)
+                self._cell_tri_meshes.append(cell_tri_mesh)
         # Else, the cell cluster has already been triangulated. In this case,
         # simply reshade the triangulated mesh for each cell.
         else:

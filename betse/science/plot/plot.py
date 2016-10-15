@@ -12,7 +12,8 @@ from scipy import interpolate
 from betse.exceptions import BetseParametersException
 from betse.util.path import dirs
 from betse.util.type import types
-from betse.util.type.types import type_check, NumericOrSequenceTypes
+from betse.util.type.types import (
+    type_check, NumericTypes, NumericOrSequenceTypes)
 from betse.util.io.log import logs
 
 
@@ -1676,12 +1677,14 @@ def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
     # Force animations to *NOT* repeat (don't FIXME-- we don't want to keep saving the animation over and over and over so please keep this!)
     ani_obj.ani_repeat = False
 
-
+# ....................{ UPSCALERS                          }....................
 #FIXME: Use everywhere in "betse.science.plot.anim.pipeline".
 @type_check
-def upscale_data(data: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
+def upscale_cell_data(
+    cell_data: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
     '''
-    Upscale the contents of the passed object for use in plots and animations.
+    Upscale the contents of the passed object whose units are assumed to be
+    denominated in milli- (i.e., `10**-3`).
 
     This function does _not_ modify the passed object. If this object is:
 
@@ -1694,23 +1697,77 @@ def upscale_data(data: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
       multiplied by a positive constant.
 
     Parameters
-    ----------------------------
-    data : (int, float, np.ndarray, SequenceTypes)
-        Pure-Python number or sequence _or_ NumPy array to be upscaled.
+    ----------
+    cell_data : NumericOrSequenceTypes
+        Number or sequence to be upscaled.
 
     Returns
-    ----------------------------
+    ----------
     object
         Upscaled object as described above.
     '''
 
-    # Positive multiplier with which to upscale.
-    UPSCALE_FACTOR = 1000
+    return _upscale_data_in_units(cell_data, 1000)
 
-    # If the passed parameter is numeric, return this number upscaled.
+
+@type_check
+def upscale_cell_coordinates(
+    cell_coordinates: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
+    '''
+    Upscale the contents of the passed object whose units are assumed to be
+    denominated in micrometers (i.e., `10**-6`), typically to convert spatial
+    data into X and Y coordinates for plot and animation artists.
+
+    Parameters
+    ----------
+    cell_coordinates : NumericOrSequenceTypes
+        Number or sequence to be upscaled.
+
+    Returns
+    ----------
+    object
+        Upscaled object as described above.
+
+    See Also
+    ----------
+    :func:`upscale_cell_data`
+        Further details.
+    '''
+
+    return _upscale_data_in_units(cell_coordinates, 1000000)
+
+
+@type_check
+def _upscale_data_in_units(
+    data: NumericOrSequenceTypes, multiplier: NumericTypes) -> (
+    NumericOrSequenceTypes):
+    '''
+    Upscale the contents of the passed object by the passed multiplier under
+    the assumption that the units of these contents are the reciprocal of this
+    multiplier (i.e., `10**6` for micrometers).
+
+    Parameters
+    ----------
+    data : NumericOrSequenceTypes
+        Number or sequence to be upscaled.
+    multiplier : NumericTypes
+        Reciprocal of the units this object is denominated in.
+
+    Returns
+    ----------
+    object
+        Upscaled object as described above.
+
+    See Also
+    ----------
+    :func:`upscale_cell_data`
+        Further details.
+    '''
+
+    # If the passed object is numeric, return this number upscaled.
     if types.is_numeric(data):
-        return data * UPSCALE_FACTOR
-    # Else, this parameter is a sequence. Return this sequence converted into a
+        return data * multiplier
+    # Else, this object is a sequence. Return this sequence converted into a
     # Numpy array and then upscaled.
     else:
-        return np.asarray(data) * UPSCALE_FACTOR
+        return np.asarray(data) * multiplier
