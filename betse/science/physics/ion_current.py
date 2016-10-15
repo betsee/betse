@@ -32,7 +32,7 @@ def get_current(sim, cells, p):
     div_J = (np.dot(cells.M_sum_mems, Jn_o*cells.mem_sa) / cells.cell_vol)
 
     # this boundary condition allows us to accumulate a surface charge:
-    drho[cells.bflags_cells] = div_J[cells.bflags_cells]
+    # drho[cells.bflags_cells] = div_J[cells.bflags_cells]
 
     Phi = np.dot(cells.lapGJ_P_inv, div_J - drho)
 
