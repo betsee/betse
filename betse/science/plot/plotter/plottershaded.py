@@ -108,9 +108,6 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
             # See "Cells.cell_verts" documentation for further details.
             cells_vertices_coords = upscale_cell_coordinates(
                 plot.cells.cell_verts)
-            # cells_vertices_coords = np.multiply(
-            #     plot.cells.cell_verts, plot.p.um)
-            # print('!!!!!!!um: {}'.format(plot.p.um))
 
             # For the index and two-dimensional array of vertex coordinates for
             # each cell in this cluster...
@@ -138,10 +135,10 @@ class PlotterCellsGouraudShaded(PlotterCellsABC):
                     # All remaining parameters may be passed by keyword.
                     shading='gouraud',
                     cmap=plot.colormap,
-                    # vmin=plot.color_min,
-                    # vmax=plot.color_max,
+                    vmin=plot.color_min,
+                    vmax=plot.color_max,
                 )
-                cell_tri_mesh.set_clim(plot.color_min, plot.color_max)
+                # cell_tri_mesh.set_clim(plot.color_min, plot.color_max)
 
                 # Add this triangulation mesh to the cached set of such meshes.
                 self._cell_tri_meshes.append(cell_tri_mesh)

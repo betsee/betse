@@ -717,8 +717,8 @@ class AnimCellsABC(PlotCellsABC):
 
         Specifically, this method (in order):
 
-        . Calls the subclass `_plot_frame_figure()` method to update the current
-          figure with this frame's data.
+        . Calls the subclass :meth:`_plot_frame_figure` method to update the
+          current figure with this frame's data.
         . Updates the current figure's axes title with the current time.
         . Optionally writes this frame to disk if desired.
 
@@ -754,13 +754,18 @@ class AnimCellsABC(PlotCellsABC):
             #"self._time_step" rather than repass this parameter everywhere.
             self._replot_current_density(self._time_step)
 
-        # Plot this frame's title *BEFORE* this frame, permitting axes changes
+        # Plot this frame's title *BEFORE* this frame, allowing axes changes
         # performed by the subclass implementation of the _plot_frame_figure()
         # method called below to override the default title.
         self._plot_frame_axes_title()
 
-        # Plot this frame *AFTER* performing all superclass-specific plotting,
-        # permitting the subclass to modify that plotting.
+        # Plot this frame via external plotters *BEFORE* plotting this frame
+        # via subclass logic, allowing the latter to override the former.
+        for plotter in self._plotters:
+            plotter.plot(self)
+
+        # Plot this frame via subclass logic *AFTER* performing all
+        # superclass-specific plotting.
         self._plot_frame_figure()
 
         # If saving this animation, save this frame.

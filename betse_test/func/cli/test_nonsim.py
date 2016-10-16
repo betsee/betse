@@ -9,7 +9,8 @@ simulation-specific subcommands (e.g., `betse info`).
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse_test.util.mark.param import parametrize_test_setwise
+import pytest
+from betse_test.util.mark.skip import skip_unless_module
 
 # ....................{ TESTS                              }....................
 def test_cli_no_arg(betse_cli: 'CLITester') -> None:
@@ -72,9 +73,16 @@ def test_cli_config(
     assert sim_config_filepath.check(file=1)
 
 # ....................{ TESTS ~ parametrized               }....................
-#FIXME: Uncomment after support for line-granulity profiling is added.
-# @parametrize_test_setwise(params={'profile_type': ('call', 'line', 'none')})
-@parametrize_test_setwise(params={'profile_type': ('call', 'none')})
+@pytest.mark.parametrize(
+    ('profile_type',), (
+        # Profile types leveraging stdlib functionality guaranteed to exist.
+        ('none',),
+        ('call',),
+
+        # Profile types leveraging third-party packages necessitating checking.
+        skip_unless_module('pprofile')(('line',)),
+    ),
+)
 def test_cli_profile(
     betse_cli: 'CLITester',
     betse_temp_dir: 'LocalPath',

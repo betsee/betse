@@ -198,7 +198,6 @@ def _profile_callable_call(
     return return_value
 
 
-#FIXME: Conditionally functionally test when "pprofile" is importable.
 #FIXME: Consider implementing a non-deterministic alternative as well, which
 #"pprofile" also supports via the "pprofile.StatisticalProfile" class.
 def _profile_callable_line(

@@ -59,8 +59,8 @@ def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
 # parametrization decorator shipped with py.test itself.
 @pytest.mark.parametrize(
     ('writer_name', 'filetype'), (
-        skip_unless_matplotlib_anim_writer('avconv')(('avconv', 'mp4')),
-        skip_unless_matplotlib_anim_writer('ffmpeg')(('ffmpeg', 'mkv')),
+        skip_unless_matplotlib_anim_writer('avconv')(('avconv', 'mp4',)),
+        skip_unless_matplotlib_anim_writer('ffmpeg')(('ffmpeg', 'mkv',)),
 
         #FIXME: Research this deeper, please. Are all Mencoder-based writers
         #genuinely broken (doubtful), is this our fault (very possible), or is
@@ -68,13 +68,13 @@ def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
         #fault (also very possible)?
         # skip_unless_matplotlib_anim_writer('mencoder')(('mencoder', 'avi')),
         xfail(reason='Mencoder-based writers fail with obscure errors.')(
-            ('mencoder', 'avi')),
+            ('mencoder', 'avi',)),
 
         # ImageMagick only supports encoding animated GIFs and hence is
         # effectively a joke writer. Since it remains supported, however, we
         # test it with a reasonable facsimile of a straight face.
         skip_unless_matplotlib_anim_writer('imagemagick')(
-            ('imagemagick', 'gif')),
+            ('imagemagick', 'gif',)),
     ),
 )
 def test_cli_sim_video(

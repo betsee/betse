@@ -6,6 +6,21 @@
 Abstract base classes of all Matplotlib-based plotting subclasses.
 '''
 
+#FIXME: Refactor this subpackage as follows:
+#
+#* Rename this subpackage to "visual".
+#* Rename this submodule to "visualabc".
+#* Rename the "PlotCellsABC" base class to "VisualCellsABC".
+#* Change the "is_save" and "is_show" parameters passed to
+#  VisualCellsABC.__init__() to be mandatory rather than optional.
+#* Rename the "plot" submodule to "visuals".
+#* Define a new "plot" subpackage of this subpackage containing:
+#  * A new "plotabc" submodule containing:
+#    * A new "PlotCellsABC" subclass of "VisualCellsABC" passing plot-specific
+#      "is_save" and "is_show" parameters to the superclass __init__().
+#* Shift all remaining "plot"-prefixed submodules of this subpackage (e.g.,
+#  "plotpipe") into the "plot" subpackage.
+
 #FIXME: Refactor all procedural cell cluster-specific "betse.plot.plot"
 #functions into subclasses of the "PlotCellsABC" base class defined below.
 #Ultimate power fights the dark deceit!
@@ -41,12 +56,13 @@ class PlotCellsABC(object, metaclass=ABCMeta):
     Abstract base class of all classes spatially plotting the cell cluster.
 
     Subclasses of this class plot the spatial distribution of one or more
-    modelled variables (e.g., charge distribution, membrane voltage) for either:
+    modelled variables (e.g., charge distribution, membrane voltage) for
+    either:
 
     * A single simulation time step, in which this subclass plots a still frame
       of these variables for this step.
-    * One or more simulation time steps, in which this subclass animates a video
-      of these variables for these steps.
+    * One or more simulation time steps, in which this subclass animates a
+      video of these variables for these steps.
 
     Attributes (Public)
     ----------
@@ -63,6 +79,9 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         Basename of the subdirectory in the phase-specific results directory
         to which all files exported for this plot or animation are saved _and_
         the basename prefix of these files.
+    _plotters : list
+        List of all :class:`PlotterCellsABC` instances collectively composing
+        this plot or animation.
 
     Attributes (Private: Figure)
     ----------
@@ -141,9 +160,11 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         axes_x_label: str = 'Spatial Distance [um]',
         axes_y_label: str = 'Spatial Distance [um]',
         colormap: (Colormap, NoneType) = None,
+
+        #FIXME: Refactor all of the following to be mandatory instead.
         is_save: bool = None,
         is_show: bool = None,
-        # scaling_series: np.nadarray = None,
+        plotters: SequenceOrNoneTypes = None,
     ) -> None:
         '''
         Initialize this plot or animation.
@@ -178,26 +199,34 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             `False`. If `is_color_autoscaled` is `True`, this parameter is
             silently ignored.
         axes_title : optional[str]
-            Optional text displayed above the figure axes but below the figure
-            title _or_ `None` if no text is to be displayed. Defaults to `None`.
+            Text displayed above the figure axes but below the figure title.
+            Defaults to `None`, in which case no such text is displayed.
         axes_x_label : optional[str]
-            Text displayed below this figure's X axis. Defaults to a general-
-            purpose string.
+            Text displayed below this figure's X axis. Defaults to `None`, in
+            which case a general-purpose string is defaulted to.
         axes_y_label : optional[str]
-            Text displayed to the left of this figure's Y axis. Defaults to a
-            general-purpose string.
+            Text displayed to the left of this figure's Y axis. Defaults to
+            `None`, in which case a general-purpose string is defaulted to.
         colormap : optional[Colormap]
             Matplotlib colormap to be used by default for all animation artists
-            (e.g., colorbar, images) _or_ `None`, in which case the default
-            colormap will be used.
+            (e.g., colorbar, images). Defaults to `None`, in which case the
+            default colormap is used.
         is_save : optional[bool]
             `True` only if non-interactively saving this plot or animation.
-            Defaults to `None`, in which case this boolean is `True` only if the
-            current simulation configuration non-interactively saves plots.
+            Defaults to `None`, in which case this defaults to `True` only if
+            the current simulation configuration non-interactively saves plots.
         is_show : optional[bool]
             `True` only if interactively displaying this plot or animation.
-            Defaults to `None`, in which case this boolean is `True` only if the
-            current simulation configuration interactively displays plots.
+            Defaults to `None`, in which case this defaults to `True` only if
+            the current simulation configuration interactively displays plots.
+        plotters : optional[SequenceTypes]
+            Sequence of all :class:`PlotterCellsABC` instances collectively
+            plotting each frame of this plot or animation. **Order is extremely
+            significant.** Specifically, the order of plotters in this sequence
+            defines the order in which these plotters are plotted and hence
+            overlaid onto one another (i.e., z-order). Defaults to `None`, in
+            which case the subclass is responsible for manually plotting this
+            plot or animation.
         '''
 
         # Classify core parameters with weak rather than strong (the default)
@@ -224,6 +253,8 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             is_save = p.plot.is_after_sim_save
         if is_show is None:
             is_show = p.plot.is_after_sim_show
+        if plotters is None:
+            plotters = []
 
         # Classify *AFTER* validating parameters.
         self._axes_title = axes_title
@@ -236,7 +267,11 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         self._is_show = is_show
         self._figure_title = figure_title
         self._label = label
-        # self._scaling_series = scaling_series
+
+        # Convert the passed sequence of plotters into a new list of plotters,
+        # permitting this sequence to be safely modified *WITHOUT* modifying
+        # the passed sequence.
+        self._plotters = list(plotters)
 
         # If autoscaling colors, ignore the passed minimum and maximum.
         if is_color_autoscaled:
