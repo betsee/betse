@@ -194,6 +194,13 @@ class BetseEnumException(BetseException):
     pass
 
 
+class BetseNumericException(BetseException):
+    '''
+    Exception generally applicable to both integer and float types and values.
+    '''
+    pass
+
+
 #FIXME: Rename to "BetseIntException".
 class BetseIntegerException(BetseException):
     '''

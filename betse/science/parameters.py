@@ -1284,10 +1284,10 @@ class Parameters(object):
             self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons',
                                   'P':'proteins','M':'anion'}
 
+        # Else, this ion profile name is unrecognized. Raise an exception.
         else:
-
-            raise BetseParametersException("Oops! Looks like you've supplied an unavailable name for the ion profile "
-                                               "under General Options of the config file. Please try again.")
+            raise BetseParametersException(
+                'Ion profile name "{}" unrecognized.'.format(self.ion_profile))
 
 
     #FIXME: Apply these changes to our default configuration file as well.

@@ -499,7 +499,7 @@ def uppercase_first_char(text: str) -> str:
     '''
     Uppercase the first character of the passed string.
 
-    Whereas the related `str.capitalize()` method both uppercases the first
+    Whereas the related :meth:`str.capitalize` method both uppercases the first
     character of this string _and_ lowercases all remaining characters, this
     function _only_ uppercases the first character. All remaining characters
     remain unmodified.

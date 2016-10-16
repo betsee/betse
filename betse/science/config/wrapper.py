@@ -13,9 +13,10 @@ dictionaries deserialized from disk.
 
 # ....................{ IMPORTS                            }....................
 import betse.science.config.default
+from betse.exceptions import BetseNumericException
 from betse.science.config import sim_config
 from betse.util.path import files, paths
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ CLASSES                            }....................
 class SimConfigWrapper(object):
@@ -184,6 +185,57 @@ class SimConfigWrapper(object):
 
         sim_config.write(filename, self._config)
 
+    # ..................{ MINIMIZERS                         }..................
+    def minify(self) -> None:
+        '''
+        Minimize the space and time costs associated with running the simulation
+        configured by this configuration while preserving all fundamental
+        configuration features.
+
+        Specifically, this method numerically reduces all configuration options
+        pertaining to either world size _or_ simulation time to their **minimum
+        permissible values** (i.e., the smallest values still preserving
+        simulation stability). This method is intended to be called only by test
+        automation.
+        '''
+
+        # Minify initialization time to exactly ten sampled time steps. For
+        # safety, permit currently defined options smaller than the minimums
+        # defined below to override these minimums.
+        init = self._config['init time settings']
+        # Duration of each time step in seconds.
+        init['time step'] = min(
+            float(init['time step']), 1.0e-3)
+        # Interval to sample such steps at in seconds.
+        init['sampling rate'] = min(
+            float(init['sampling rate']), init['time step'])
+        # Total simulation time in seconds. The first digit effectively defines
+        # the number of sampled time steps, by the above choice of time step.
+        init['total time'] = min(
+            float(init['total time']), 3.0e-3)
+
+        # Minify simulation time to the same durations. To ensure that
+        # property setter validation compares durations in the expected manner,
+        # properties are assigned in order of increasing duration.
+        sim = self._config['sim time settings']
+        self.sim_time_step =   min(self.sim_time_step, init['time step'])
+        self.sim_sample_rate = min(self.sim_sample_rate, sim['time step'])
+        self.sim_time =        min(self.sim_time, init['total time'])
+
+        # Minify the physical dimensions of the cell cluster in meters. By
+        # experimentation, the default simulation configuration exhibits
+        # instabilities (e.g., on performing the cutting event) raising fatal
+        # exceptions for physical dimensions less than that specified below.
+        # Hence, this appears to currently be a fairly hard minimum.
+        world = self._config['world options']
+        world['world size'] = min(float(world['world size']), 100e-6)
+
+        # Minify ECM-specific grid size. For similar reasons as above, the
+        # computational grid size specified below appears to be a hard minimum.
+        ecm = self._config['general options']
+        ecm['comp grid size'] = min(int(ecm['comp grid size']), 20)
+        ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)
+
     # ..................{ DISABLERS                          }..................
     #FIXME: The implementation of the following methods is fundamentally unsafe.
     #If the structure of the underlying YAML file changes, these methods could
@@ -283,7 +335,7 @@ class SimConfigWrapper(object):
         results['Deformation Ani']['animate Deformation'] = True
 
         # Enable all features required by these plots and animations.
-        general['ion profile'] = 'animal'
+        self.ion_profile = 'animal'
         general['simulate extracellular spaces'] = True
         variable['channel electroosmosis']['turn on'] = True
         variable['deformation']['turn on'] = True      # FIXME reimplement after Helmholtz fix up!
@@ -337,54 +389,116 @@ class SimConfigWrapper(object):
         video['filetype'] = filetype
         video['writers'] = [writer_name,]
 
-    # ..................{ MINIMIZERS                         }..................
-    def minify(self) -> None:
+    # ..................{ PROPERTIES ~ time : sim : getter   }..................
+    @property
+    def sim_sample_rate(self) -> float:
         '''
-        Minimize the space and time costs associated with running the simulation
-        configured by this configuration while preserving all fundamental
-        configuration features.
-
-        Specifically, this method numerically reduces all configuration options
-        pertaining to either world size _or_ simulation time to their **minimum
-        permissible values** (i.e., the smallest values still preserving
-        simulation stability). This method is intended to be called only by test
-        automation.
+        Simulation-specific sample rate in seconds for this configuration,
+        guaranteed to be of type `float`.
         '''
 
-        # Minify initialization time to exactly ten sampled time steps. For
-        # safety, permit currently defined options smaller than the minimums
-        # defined below to override these minimums.
-        init = self._config['init time settings']
-        # Duration of each time step in seconds.
-        init['time step'] = min(
-            float(init['time step']), 1.0e-3)
-        # Interval to sample such steps at in seconds.
-        init['sampling rate'] = min(
-            float(init['sampling rate']), init['time step'])
-        # Total simulation time in seconds. The first digit effectively defines
-        # the number of sampled time steps, by the above choice of time step.
-        init['total time'] = min(
-            float(init['total time']), 3.0e-3)
+        return float(self._config['sim time settings']['sampling rate'])
 
-        # Minify simulation time to the same durations.
-        sim = self._config['sim time settings']
-        sim['time step'] = min(
-            float(sim['time step']), init['time step'])
-        sim['sampling rate'] = min(
-            float(sim['sampling rate']), sim['time step'])
-        sim['total time'] = min(
-            float(sim['total time']), init['total time'])
 
-        # Minify the physical dimensions of the cell cluster in meters. By
-        # experimentation, the default simulation configuration exhibits
-        # instabilities (e.g., on performing the cutting event) raising fatal
-        # exceptions for physical dimensions less than that specified below.
-        # Hence, this appears to currently be a fairly hard minimum.
-        world = self._config['world options']
-        world['world size'] = min(float(world['world size']), 100e-6)
+    @property
+    def sim_time(self) -> float:
+        '''
+        Simulation-specific duration in seconds for this configuration,
+        guaranteed to be of type `float`.
+        '''
 
-        # Minify ECM-specific grid size. For similar reasons as above, the
-        # computational grid size specified below appears to be a hard minimum.
-        ecm = self._config['general options']
-        ecm['comp grid size'] = min(int(ecm['comp grid size']), 20)
-        ecm['plot grid size'] = min(int(ecm['plot grid size']), 50)
+        return float(self._config['sim time settings']['total time'])
+
+
+    @property
+    def sim_time_step(self) -> float:
+        '''
+        Simulation-specific time step in seconds for this configuration,
+        guaranteed to be of type `float`.
+        '''
+
+        return float(self._config['sim time settings']['time step'])
+
+    # ..................{ PROPERTIES ~ time : sim : setter   }..................
+    @sim_sample_rate.setter
+    @type_check
+    def sim_sample_rate(self, sim_sample_rate: NumericTypes) -> None:
+        '''
+        Set the simulation-specific time step in seconds for this configuration
+        to the passed integer or float.
+        '''
+
+        # If this sample rate is less than the current time step, raise an
+        # exception.
+        if sim_sample_rate < self.sim_time_step:
+            raise BetseNumericException(
+                'Simulation sample rate {} < time step {}.'.format(
+                    sim_sample_rate, self.sim_time_step))
+
+        # Coerce the passed number to a float for safety.
+        self._config['sim time settings']['sampling rate'] = float(
+            sim_sample_rate)
+
+
+    @sim_time.setter
+    @type_check
+    def sim_time(self, sim_time: NumericTypes) -> None:
+        '''
+        Set the simulation-specific duration in seconds for this configuration
+        to the passed integer or float.
+        '''
+
+        # If this duration is less than the current sample rate, raise an
+        # exception.
+        if sim_time < self.sim_sample_rate:
+            raise BetseNumericException(
+                'Simulation duration {} < sample rate {}.'.format(
+                    sim_time, self.sim_sample_rate))
+
+        # Coerce the passed number to a float for safety.
+        self._config['sim time settings']['total time'] = float(sim_time)
+
+
+    @sim_time_step.setter
+    @type_check
+    def sim_time_step(self, sim_time_step: NumericTypes) -> None:
+        '''
+        Set the simulation-specific time step in seconds for this configuration
+        to the passed integer or float.
+        '''
+
+        # If this time step is non-positive, raise an exception.
+        if sim_time_step <= 0:
+            raise BetseNumericException(
+                'Simulation time step {} <= 0.'.format(sim_time_step))
+
+        # Coerce the passed number to a float for safety.
+        self._config['sim time settings']['time step'] = float(sim_time_step)
+
+    # ..................{ PROPERTIES ~ ion profile           }..................
+    @property
+    def ion_profile(self) -> str:
+        '''
+        Name of the currently enabled ion profile for this configuration.
+        '''
+
+        return self._config['general options']['ion profile']
+
+
+    #FIXME: Validate the passed string. Presumably, we have logic elsewhere
+    #already doing so. Leverage such logic here.
+
+    @ion_profile.setter
+    @type_check
+    def ion_profile(self, ion_profile_name: str) -> None:
+        '''
+        Set the ion profile for this configuration to that with the passed name.
+
+        Parameters
+        ----------
+        ion_profile_name : str
+            Name of the ion profile to be enabled. See the default simulation
+            configuration file for a list of all supported strings.
+        '''
+
+        self._config['general options']['ion profile'] = ion_profile_name

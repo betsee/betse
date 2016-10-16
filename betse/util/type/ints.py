@@ -10,7 +10,7 @@ Low-level integer facilities.
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseIntegerException
 from betse.util.type import types
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
 BITS_PER_BYTE = 8
@@ -63,30 +63,33 @@ def die_unless(*objects) -> None:
                 'Object "{}" not an integer.'.format(obj))
 
 
-def die_unless_positive(*numbers) -> None:
+@type_check
+def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
     '''
-    Raise an exception unless all passed objects are positive integers.
+    Raise an exception prefixed by the passed label unless all passed objects
+    are positive integers.
 
     Parameters
     ----------
     numbers : tuple
         Tuple of all objects to be validated.
+    label : optional[str]
+        Human-readable label prefixing exception messages raised by this method.
+        Defaults to a general-purpose string.
 
     Raises
     ----------
     BetseIntegerException
-        If any passed integer is _not_ a positive integer.
+        If any passed object is _not_ a positive integer.
     '''
 
-    # For each passed object...
+    # For each passed integer...
     for number in numbers:
-        # Validate this object to be an integer.
-        die_unless(number)
-
-        # Validate this integer to be positive.
+        # If this integer is non-positive...
         if number <= 0:
+            # Raise an exception.
             raise BetseIntegerException(
-                'Integer "{}" not positive.'.format(number))
+                '{} "{}" not positive.'.format(label.capitalize(), number))
 
 # ....................{ TESTERS                            }....................
 @type_check

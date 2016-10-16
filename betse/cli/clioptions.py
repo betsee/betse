@@ -47,7 +47,7 @@ OPTION_PROFILE_TYPE = '''
 type of profiling to perform (defaults to "{default}"):
 ;* "none", disabling profiling
 ;* "call", profiling callables (e.g., functions, methods)
-;* "line", profiling lines via the third-party "
+;* "line", profiling lines via the "pprofile" dependency
 '''
 '''
 Help string template synopsizing the `--profile-type` option.
