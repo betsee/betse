@@ -13,6 +13,9 @@ from scipy.interpolate import SmoothBivariateSpline
 from scipy.sparse.linalg import lsmr
 
 
+# FIXME!!! change over to HH decomposition!
+
+
 def getDeformation(sim, cells, t, p):
     """
     Calculates the deformation of the cell cluster under the action

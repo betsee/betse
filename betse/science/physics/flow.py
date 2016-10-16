@@ -9,6 +9,8 @@ from betse.science import finitediff as fd
 from scipy.sparse.linalg import lsmr
 
 
+# FIXME!!! change over to HH decomposition!
+
 def getFlow(sim, cells, p):   # FIXME env flow should use MACs grid formalism
     """
     Calculate the electroosmotic fluid flow in the cell and extracellular

@@ -1362,7 +1362,7 @@ class Cells(object):
 
         for cell_i, cell_inds in enumerate(self.cell_nn):
 
-            vol = self.cell_vol[cell_i]
+            # vol = self.cell_vol[cell_i]
 
             for cell_j in cell_inds:
 
@@ -1371,20 +1371,20 @@ class Cells(object):
                 ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
                 len_ij = np.sqrt(lx ** 2 + ly ** 2)
 
-                # find the shared membrane index for the pair:
-                mem_ij = cell_nn_pairs.index([cell_i, cell_j])
+                # # find the shared membrane index for the pair:
+                # mem_ij = cell_nn_pairs.index([cell_i, cell_j])
+                #
+                # # and the membrane surface area:
+                # mem_sa = self.mem_sa[mem_ij]
 
-                # and the membrane surface area:
-                mem_sa = self.mem_sa[mem_ij]
+                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij))
 
-                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - mem_sa * (1 / (len_ij)) * (1 / vol)
-
-                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - mem_sa * (1 / (len_ij)) * (1 / vol)
-                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + mem_sa * (1 / (len_ij)) * (1 / vol)
+                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij))
+                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij))
 
                 if cell_j not in self.bflags_cells:
 
-                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + mem_sa * (1 / (len_ij)) * (1 / vol)
+                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij))
 
             # deal with boundary values:
             if cell_i in self.bflags_cells:
@@ -1398,6 +1398,9 @@ class Cells(object):
             # if time0dependent deformation is selected, also save the direct Laplacian operator:
             self.lapGJ = lapGJ
             self.lapGJ_P = lapGJ_P
+
+        # weighting function for the voronoi lattice:
+        self.geom_weight = np.dot(self.M_sum_mems, self.mem_sa / self.mem_vol) * p.cell_height
 
     def cellDivM(self, p):
 

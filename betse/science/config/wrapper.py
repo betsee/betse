@@ -275,9 +275,7 @@ class SimConfigWrapper(object):
         results['Ca Ani']['animate Ca2+'] = True
         results['pH Ani']['animate pH'] = True
         results['Vmem GJ Ani']['animate Vmem with gj'] = True
-        # results['Venv Ani']['animate Venv'] = True
         results['Osmotic P Ani']['animate Osmotic P'] = True
-        # results['Force Ani']['animate force'] = True
         results['Current Ani']['animate current'] = True
         results['Membrane Ani']['animate membrane'] = True
         results['Efield Ani']['animate Efield'] = True
@@ -288,10 +286,10 @@ class SimConfigWrapper(object):
         general['ion profile'] = 'animal'
         general['simulate extracellular spaces'] = True
         variable['channel electroosmosis']['turn on'] = True
-        variable['deformation']['turn on'] = True
-        variable['fluid flow']['include fluid flow'] = True
-        # variable['pressures']['include electrostatic pressure'] = True
-        # variable['pressures']['include osmotic pressure'] = True
+        variable['deformation']['turn on'] = True      # FIXME reimplement after Helmholtz fix up!
+        variable['fluid flow']['include fluid flow'] = True  # FIXME reimplement after Helmholtz fix up!
+        # variable['pressures']['include electrostatic pressure'] = True  # FIXME check this!
+        # variable['pressures']['include osmotic pressure'] = True # FIXME check this!
 
 
     def enable_anim_saving(self) -> None:
