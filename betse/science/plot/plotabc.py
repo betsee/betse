@@ -584,6 +584,12 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         return self._colormap
 
     # ..................{ COLORS                             }..................
+    #FIXME: Improve this method to internally ignore the first time step of
+    #the passed array (i.e., "color_data[0]") if this array is non-empty. Why?
+    #Because this step typically contains spurious outlier data resulting in
+    #the more "normal" data plotted for the remaining time steps appear to
+    #exhibit no changes in color. Ignoring such outlier data should improve
+    #this lamentable situation.
     def _autoscale_colors(self, color_data: SequenceTypes) -> None:
         '''
         Autoscale the colorbar for this plot or animation's figure to the

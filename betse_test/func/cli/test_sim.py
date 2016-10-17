@@ -47,10 +47,32 @@ def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
 
     # Persist all in-memory configuration changes back to disk.
     betse_cli_sim.sim_state.config.overwrite()
-    # print('\n!!!!!after solving: {}'.format(betse_cli_sim.sim_state.config._config['results options']['after solving']))
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()
+
+
+def test_cli_sim_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
+    '''
+    Test simulating all voltage-gated ion channels (e.g., sodium, potassium)
+    _and_ simulation features required by these channels.
+
+    Parameters
+    ----------
+    betse_cli_sim : CLISimTester
+        Object running multiple BETSE CLI simulation subcommands.
+    '''
+
+    # Enable all voltage-gated ion channels and features required by these
+    # channels.
+    betse_cli_sim.sim_state.config.enable_voltage_gated_ion_channels_all()
+
+    # Persist all in-memory configuration changes back to disk.
+    betse_cli_sim.sim_state.config.overwrite()
+
+    # Test all simulation-specific subcommands *EXCLUDING* plotting subcommands
+    # (which other tests already exercise) with this configuration.
+    betse_cli_sim.run_subcommands(('seed',), ('init',), ('sim',),)
 
 
 # Sadly, all existing higher-level parametrization decorators defined by the
