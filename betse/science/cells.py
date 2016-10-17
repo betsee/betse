@@ -1371,20 +1371,22 @@ class Cells(object):
                 ly = self.cell_centres[cell_j, 1] - self.cell_centres[cell_i, 1]
                 len_ij = np.sqrt(lx ** 2 + ly ** 2)
 
-                # # find the shared membrane index for the pair:
-                # mem_ij = cell_nn_pairs.index([cell_i, cell_j])
-                #
-                # # and the membrane surface area:
-                # mem_sa = self.mem_sa[mem_ij]
+                # find the shared membrane index for the pair:
+                mem_ij = cell_nn_pairs.index([cell_i, cell_j])
 
-                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij))
+                # correction constant as membrane normals and segments connecting centers aren't quite parallel:
+                norm_cor = self.nn_tx[mem_ij] * self.mem_vects_flat[mem_ij, 2] + self.nn_ty[mem_ij] * \
+                                                                                   self.mem_vects_flat[mem_ij, 3]
+                # norm_cor = 1.0
 
-                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij))
-                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij))
+                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij))*norm_cor
+
+                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij))*norm_cor
+                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij))*norm_cor
 
                 if cell_j not in self.bflags_cells:
 
-                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij))
+                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij))*norm_cor
 
             # deal with boundary values:
             if cell_i in self.bflags_cells:
@@ -2080,3 +2082,100 @@ class Cells(object):
         F_cell_y = np.dot(self.M_sum_mems, Fy) / self.num_mems
 
         return Fn, F_cell_x, F_cell_y
+
+    def HelmholtzHodge(self, Fx, Fy):
+        """
+        Computes a 2D Helmholtz-Hodge decompositon of a
+        vector field F into solenoidal (divF = 0) and
+        irrotational (curlF = 0) vector field components,
+        which sum to reproduce the original field.
+
+        The solenoidal field is described by the curl of
+        a vector potential A, while the irrotational field
+        is described by the gradient of a scalar potential Phi:
+
+        F = grad Phi + curl A
+
+        However, for 2D, this can be simplified:
+        F = grad Phi + U grad A
+
+        Where U is a rotation matrix for pi/2 counter clockwise
+        rotation.
+
+        Reference: Bhatia et al (2013). The Helmholtz-Hodge
+        Decomposition: a Survey.
+
+        This function is specific to vector fields with
+        components defined wrt cell membrane midpoints.
+
+        Parameters
+        ------------
+        Fx, Fy         x and y components of a vector field defined
+                       on membrane midpoints of each cell
+
+        Returns
+        -----------
+        gPhix, gPhiy   x and y components of irrotational field
+        gAx, gAy       x and y components of solenoidal field
+
+
+        """
+
+        # membrane normal vectors short form:
+        nx = self.mem_vects_flat[:, 2]
+        ny = self.mem_vects_flat[:, 3]
+
+        # obtain the normal component of the field to membranes
+        Fn = Fx * nx + Fy * ny
+
+        # calculate the scalar potential Phi:-------------------------------------------
+
+        # obtain the divergence of the field across membranes of each cell:
+        div_F = np.dot(self.M_sum_mems, Fn * self.mem_sa) / self.cell_vol
+
+        # boundary values:
+        div_Fb = np.zeros(len(self.cell_i))
+        div_Fb[self.bflags_cells] = div_F[self.bflags_cells]
+
+        # calculate the scalar potential:
+        # Phi = np.dot(self.lapGJinv, (div_F - div_Fb) / (self.geom_weight))
+        Phi = np.dot(self.lapGJ_P_inv, (div_F - div_Fb) / (self.geom_weight))  # FIXME not sure which bc to use?
+
+        # calculate the gradient of the scalar potential between cell centres:
+        gPhi = (Phi[self.mem_to_cells][self.nn_i] - Phi[self.mem_to_cells][self.mem_i]) / self.nn_len
+
+        # The boundary values for the scalar gradient are equal to those of the normal component of the
+        # original field:
+        gPhi[self.bflags_mems] = Fn[self.bflags_mems]
+
+        # components of irrotational field Phi:
+        gPhix = gPhi * nx
+        gPhiy = gPhi * ny
+
+        # calculate the solenoidal field A:-------------------------------------------------------------
+
+        # transform the original field by rotating each vector by pi/2:
+        Fxr = - Fy
+        Fyr = Fx
+
+        # recalculate rotated current vectors membrane normal component
+        Fr = Fxr * nx + Fyr * ny
+
+        # calculate the divergence:
+        div_Fr = np.dot(self.M_sum_mems, Fr * self.mem_sa) / self.cell_vol
+
+        # calculate the vector potential z-component:
+        A_cell = np.dot(self.lapGJinv, -div_Fr / (self.geom_weight))
+
+        # calcualte the gradient of the vector potential wrt cell centers (zero at outer boundary):
+        gA = (A_cell[self.mem_to_cells][self.nn_i] - A_cell[self.mem_to_cells][self.mem_i]) / self.nn_len
+
+        # calculate comonents of the field:
+        gAxo = gA * nx
+        gAyo = gA * ny
+
+        # calculate rotation of the field by Pi/2:
+        gAx = -gAyo
+        gAy = gAxo
+
+        return gPhix, gPhiy, gAx, gAy

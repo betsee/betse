@@ -200,6 +200,7 @@ class Simulator(object):
         self.dvm = np.zeros(self.mdl)   # rate of change of Vmem
         self.drho = np.zeros(self.cdl)  # rate of change of charge in cell
         self.Phi_env = np.zeros(cells.X.shape)
+        self.Pol_mem = np.zeros(self.mdl)  # polarization density at the membrane
 
         # Current averaged to cell centres:
         self.J_cell_x = np.zeros(self.cdl)
@@ -1096,8 +1097,8 @@ class Simulator(object):
         self.fluxes_mem = np.zeros(self.fluxes_mem.shape)
         self.fluxes_gj = np.zeros(self.fluxes_gj.shape)
 
-        # self.Ax_time = []
-        # self.Ay_time = []
+        self.Ax_time = []
+        self.Ay_time = []
 
         self.Bz_time = []
 
@@ -1302,8 +1303,8 @@ class Simulator(object):
 
         # polarizations:
 
-        self.pol_x_time.append(self.pol_cell_x)
-        self.pol_y_time.append(self.pol_cell_y)
+        self.pol_x_time.append(self.pol_cell_x*1)
+        self.pol_y_time.append(self.pol_cell_y*1)
 
         self.Pol_tot_x_time.append(self.Pol_x)
         self.Pol_tot_y_time.append(self.Pol_y)
@@ -1429,7 +1430,7 @@ class Simulator(object):
         get_current(self, cells, p)
 
         # update charge at membranes:
-        self.rho_mems = self.rho_mems - self.Jn*p.dt
+        # self.rho_mems = self.rho_mems - self.Jn*p.dt
 
         # CHOICE 1: update Vmem in terms of current across each membrane segment:
         # dv = - (1/p.cm)*self.Jn*p.dt
@@ -1438,35 +1439,19 @@ class Simulator(object):
 
         # CHOICE 2: calculate vmem via average rho in cell; GJ calculations are with respect to specific Vmem:
         Q_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
-        #
-        # surface_charge = Q_cell[cells.mem_to_cells] * (self.Jn*p.cell_polarizability + 1.0)
-        #
-        # self.vm = (1 / p.cm) * surface_charge
 
-        self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells] + self.Jn*p.cell_polarizability
+        # self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells]
+        # self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells] - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
 
-        # self.vm = (1/p.cm)*(self.rho_cells[cells.mem_to_cells])*(1/p.F) + self.Jn*p.cell_polarizability
-
-        # CHOICE 3: calculate vmem via specific rho at membranes (and ideally use cell-average GJ and channels):
-        # self.vm = (1/p.cm)*self.rho_mems
+        self.vm = (1 / p.cm) * (Q_cell[cells.mem_to_cells] + self.Pol_mem) + self.Jn*p.dt*p.mem_resistivity
+        # self.vm = self.vm + (1/p.cm)*self.dPmem*p.dt*1.0e-3
+        # self.vm = self.vm - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
 
 
         if p.sim_ECM is True:  # handle polarization induced by external electric field:
 
-            # Em = p.media_sigma*(self.J_env_x.ravel()[cells.map_mem2ecm]*cells.mem_vects_flat[:,2] +
-            #      self.J_env_y.ravel()[cells.map_mem2ecm]*cells.mem_vects_flat[:,3])
-
-            # determine electric field at membranes:
-            # Ex = self.E_env_x.ravel()[cells.map_cell2ecm]
-            # Ey = self.E_env_y.ravel()[cells.map_cell2ecm]
-            #
-            # E_mem = Ex[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + Ey[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
-            #
-            # self.vm = self.vm + E_mem*p.tm
-
             # correct the membrane voltage with the potentially finite environment voltage:
             self.vm = self.vm - p.env_modulator*self.v_env[cells.map_mem2ecm]
-            # self.vm = self.vm + Em*1.0e-3
 
 
         # calculate the derivative of Vmem:
@@ -1494,11 +1479,11 @@ class Simulator(object):
 
         # try calculating a vector potential based on current density:
 
-        self.Ax = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_x)
-        self.Ay = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_y)
+        self.Ax = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_x/cells.geom_weight)
+        self.Ay = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_y/cells.geom_weight)
 
-        # self.Ax_time.append(self.Ax)
-        # self.Ay_time.append(self.Ay)
+        self.Ax_time.append(self.Ax)
+        self.Ay_time.append(self.Ay)
 
         _, _, self.Bz = cells.curl(self.Ax, self.Ay, 0)
 

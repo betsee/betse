@@ -104,22 +104,22 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             color_max=p.Vmem_ani_max_clr,
         )
 
-        # do a plot of average vmem as it's useful now too:
-
-        vmplt = [1000 * arr for arr in sim.vm_ave_time]
-
-        AnimFieldMeshTimeSeries(
-            sim=sim, cells=cells, p=p,
-            mesh_time_series=vmplt,
-            x_time_series = sim.pol_x_time,
-            y_time_series= sim.pol_y_time,
-            label='Average_Vmem',
-            figure_title='Average Vmem with Polarization Vector',
-            colorbar_title='Vmem [mV]',
-            is_color_autoscaled=p.autoscale_Vmem_ani,
-            color_min=p.Vmem_ani_min_clr,
-            color_max=p.Vmem_ani_max_clr,
-        )
+        # # do a plot of average vmem as it's useful now too:
+        #
+        # vmplt = [1000 * arr for arr in sim.vm_ave_time]
+        #
+        # AnimFieldMeshTimeSeries(
+        #     sim=sim, cells=cells, p=p,
+        #     mesh_time_series=vmplt,
+        #     x_time_series = sim.pol_x_time,
+        #     y_time_series= sim.pol_y_time,
+        #     label='Average_Vmem',
+        #     figure_title='Average Vmem with Polarization Vector',
+        #     colorbar_title='Vmem [mV]',
+        #     is_color_autoscaled=p.autoscale_Vmem_ani,
+        #     color_min=p.Vmem_ani_min_clr,
+        #     color_max=p.Vmem_ani_max_clr,
+        # )
 
     # Animate the gap junction state over cell membrane voltage if desired.
     if p.ani_vmgj2d is True:

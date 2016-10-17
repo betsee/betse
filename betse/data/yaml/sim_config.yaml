@@ -1078,7 +1078,9 @@ internal parameters:
 
   membrane capacitance: 0.05 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
-  cell polarizability factor: 0.0  # (0.0 to 0.1) factor determines electrical polarizability of cells in E fields
+  cell polarizability factor: 0.5  # (0.0 to 1.0) polarizability of the membrane (dynamic behaviour of vm wrt Jmem)
+
+  membrane resistivity factor: 0.5 # (0.0 to 1.0) resistivity of the membrane (dynamic behaviour of vm wrt Jmem)
 
   env modulation factor: 0.0   #  (0.0 to 50.0) factor enhancing env voltage (accounts for smaller TJ width in reality)
 
