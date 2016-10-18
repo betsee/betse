@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all Matplotlib-based plotter subclasses.
+Abstract base classes of all Matplotlib-based layer subclasses.
 '''
 
 #FIXME: The current approach to implementing animation overlays is
@@ -23,21 +23,21 @@ Abstract base classes of all Matplotlib-based plotter subclasses.
 #  order of plotters in this list defines the order in which these plotters are
 #  drawn and hence overlaid onto one another (i.e., z-order).
 #* Refactor AnimCellsABC.__init__() or a method called by that method to iterate
-#  over "self._plotters" and initialize each such plotter by calling
-#  plotter.init().
+#  over "self._plotters" and initialize each such layer by calling
+#  layer.init().
 #* Refactor AnimCellsABC.plot_frame() or a related method to iterate over
-#  "self._plotters" and draw each such plotter by calling plotter.draw().
+#  "self._plotters" and draw each such layer by calling layer.draw().
 #* Refactor all concrete subclasses of "AnimCellsABC" into one or more
 #  subclasses of "CellsPlotterABC" instead, which may then be instantiated and
 #  composed together into a new "plotters" list passed to
 #  CellsPlotterABC.__init__(). For example:
 #  * Split the existing "AnimGapJuncTimeSeries" subclass into:
 #    * A new "CellsPlotterGapJunc" subclass plotting *ONLY* the gap junction
-#      open state as a "LineCollection" overlay. This plotter subclass would
+#      open state as a "LineCollection" overlay. This layer subclass would
 #      probably only be used for this specific purpose.
 #    * A new "CellsPlotterTimeSeries" subclass plotting *ONLY* an arbitrary
 #      time series for the cell cluster as a mesh plot underlay. Clearly, this
-#      plotter subclass would be extensively reused elsewhere as well.
+#      layer subclass would be extensively reused elsewhere as well.
 #* Replace all current overlay functionality in "AnimCellsABC" with "plotters".
 #* Refactor the configuration file from the current hard-coded non-composable
 #  approach to a dynamic list-based approach permitting zero or more
@@ -53,7 +53,7 @@ from abc import ABCMeta, abstractmethod
 # from betse.util.type.types import type_check
 
 # ....................{ BASE                               }....................
-class PlotterCellsABC(object, metaclass=ABCMeta):
+class LayerCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting a single feature of
     the cell cluster.
@@ -63,14 +63,14 @@ class PlotterCellsABC(object, metaclass=ABCMeta):
 
     Instances of these subclasses are contained by, and hence lower-level than,
     instances of the higher-level
-    :class:`betse.science.plot.plotabc.PlotCellsABC` abstract base class.
+    :class:`betse.science.visual.visualabc.VisualCellsABC` abstract base class.
     Architecturally speaking, each instance of that abstract base class
     contains one or more instances of subclasses of this abstract base class.
     Human-readably speaking, each high-level plot and animation object contains
-    multiple low-level plotter objects implementing the drawing of that plot or
+    multiple low-level layer objects implementing the drawing of that plot or
     animation object.
 
-    Separating low-level plotter logic from high-level plot and animation logic
+    Separating low-level layer logic from high-level plot and animation logic
     (e.g., multithreaded animation frame iteration, video and image exporting)
     enables composition between otherwise unrelated types. Thanks to plotters,
     two or more types of plots or animations may be trivially composed into a
@@ -81,20 +81,20 @@ class PlotterCellsABC(object, metaclass=ABCMeta):
     # ..................{ INITIALIZERS                       }..................
     def __init__(self) -> None:
         '''
-        Initialize this plotter.
+        Initialize this layer.
 
         This method intentionally accepts _no_ parameters except constants
-        parametrizing this plotter's behaviour. In particular, this method
+        parametrizing this layer's behaviour. In particular, this method
         accepts _no_ reference to the parent
-        :class:`betse.science.plot.PlotCellsABC` instance containing this
-        plotter instance _or_ to any other instances also contained by that
-        parent instance (e.g., Matplotlib figure or axes objects). Why? Because
-        plotters are instantiated by callers _before_ their parent
-        `PlotCellsABC` instances are instantiated.
+        :class:`betse.science.visual.visualabc.VisualCellsABC` instance
+        containing this layer instance _or_ to any other instances also
+        contained by that parent instance (e.g., Matplotlib figure or axes
+        objects). Why? Because plotters are instantiated by callers _before_
+        their parent `VisualCellsABC` instances are instantiated.
 
         See Also
         ----------
-        :meth:`plot`
+        :meth:`layer`
             Further details on class design.
         '''
 
@@ -102,26 +102,27 @@ class PlotterCellsABC(object, metaclass=ABCMeta):
 
     # ..................{ ABSTRACT                           }..................
     @abstractmethod
-    def plot(self, plot: 'betse.science.plot.plotabc.PlotCellsABC') -> None:
+    def layer(
+        self, visual: 'betse.science.visual.visualabc.VisualCellsABC') -> None:
         '''
-        Plot the spatial distribution of a single modelled variable (e.g.,
+        Layer the spatial distribution of a single modelled variable (e.g.,
         cell membrane voltage) onto the figure axes of the passed parent plot or
         animation for the current simulation time step.
 
         Parameters
         ----------
-        plot : PlotCellsABC
+        plot : VisualCellsABC
             Parent plot or animation instance to plot onto, passed to this
             rather than the :meth:`__init__` method to avoid chicken-and-egg
             issues. Doing so:
-            * Avoids long-lived circular references between plotter, plot, and
+            * Avoids long-lived circular references between layer, plot, and
               animation instances and the resulting memory costs.
             * Permits callers to:
-              * Create plotter instances _before_ plot or animation instances.
-              * Cache previously created plotter instances.
-              * Share previously cached plotter instances between two or more
+              * Create layer instances _before_ plot or animation instances.
+              * Cache previously created layer instances.
+              * Share previously cached layer instances between two or more
                 plot or animation instances, reducing memory footprint.
-              * Pass previously cached plotter instances to the :meth:`__init__`
+              * Pass previously cached layer instances to the :meth:`__init__`
                 methods of plot or animation subclasses.
         '''
 

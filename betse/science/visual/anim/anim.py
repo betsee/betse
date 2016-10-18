@@ -33,9 +33,9 @@ import numpy as np
 from enum import Enum
 from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
-from betse.science.plot import plot
-from betse.science.plot.plotter.plottershaded import PlotterCellsGouraudShaded
-from betse.science.plot.anim.animabc import (
+from betse.science.visual import visuals
+from betse.science.visual.layer.layershaded import LayerCellsGouraudShaded
+from betse.science.visual.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
@@ -51,7 +51,7 @@ from scipy import interpolate
 #methods of the "Anim" superclass. Right. After investigation, absolutely the
 #latter approach. This should permit us to avoid passing *ANY* parameters to
 #these methods, which is rather nice.
-from betse.science.plot.plot import (
+from betse.science.visual.plot.plot import (
     _setup_file_saving, env_mesh, cell_mosaic, cell_mesh,
     env_quiver, cell_quiver, cell_stream, pretty_patch_plot,
 )
@@ -180,7 +180,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         cell_data_current = vm_o
 
         # Upscaled cell data for the first frame.
-        cell_data = plot.upscale_cell_data(cell_data_current)
+        cell_data = visuals.upscale_cell_data(cell_data_current)
 
         # Collection of cell polygons with animated voltage data.
         #
@@ -204,7 +204,8 @@ class AnimCellsWhileSolving(AnimCellsABC):
     def _plot_frame_figure(self) -> None:
 
         # Upscaled cell data for the current time step.
-        cell_data = plot.upscale_cell_data(self._cell_time_series[self._time_step])
+        cell_data = visuals.upscale_cell_data(
+            self._cell_time_series[self._time_step])
 
         #FIXME: Duplicated from above. What we probably want to do is define a
         #new _get_cell_data() method returning this array in a centralized
@@ -313,9 +314,6 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
     ----------
     _is_ecm_ignored : bool
         `True` if ignoring extracellular spaces _or_ `False` otherwise.
-    _plotter_cells : PlotterCellsABC or NoneType
-        Plotter plotting each individual cell if plotting individual cells _or_
-        `None` otherwise.
     _time_series : numpy.ndarray
         Arbitrary cell data as a function of time to be plotted.
     '''
@@ -356,9 +354,6 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         self._time_series = time_series
         self._is_ecm_ignored = is_ecm_ignored
 
-        # Default all remaining attributes.
-        self._plotter_cells = None
-
         # Set the "color_min" and "color_max" properties *BEFORE* instantiating
         # plotters requiring these properties below.
         self._autoscale_colors(
@@ -366,16 +361,23 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
         # If animating individual cells...
         if self.p.showCells is True:
-            # Plotter Gouraud-shading each cell.
-            self._plotter_cells = PlotterCellsGouraudShaded()
+            # Layer Gouraud-shading each cell.
+            cells_shaded = LayerCellsGouraudShaded()
 
-            # Gouraud-shade each cell for the first time step.
-            self._plotter_cells.plot(self)
+            # Append this layer to the current layer sequence.
+            self._append_layer(cells_shaded)
+
+            # Gouraud-shade each cell for the first time step to produce the
+            # requisite sequence of color mappables referenced below.
+            cells_shaded.layer(self)
 
             # Display and/or save this animation.
-            self._animate(color_mappables=self._plotter_cells.color_mappables)
+            self._animate(color_mappables=cells_shaded.color_mappables)
         # Else, animate a smooth continuum approximating the cell cluster.
         else:
+            #FIXME: To generalize this function into a proper layer, see the
+            #superclass _plot_cell_mesh() method (which may ultimately derive
+            #from this function).
             #FIXME: Rename "self.collection" to something more descriptive.
             self.collection, self._axes = cell_mesh(
                 self.cell_data, self._axes, self.cells, self.p, self._colormap)
@@ -386,12 +388,9 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
     def _plot_frame_figure(self) -> None:
 
-        # If animating individual cells, efficiently update only the
-        # Gouraud-shading of each cell for the current time step.
-        if self.p.showCells:
-            self._plotter_cells.plot(self)
-        # Else, display only an amorphous continuum of cells.
-        else:
+        # If individual cells are *NOT* being animated, display only an
+        # amorphous continuum of cells.
+        if not self.p.showCells:
             zz_grid = np.zeros(len(self.cells.voronoi_centres))
             zz_grid[self.cells.cell_to_grid] = self.cell_data
             self.collection.set_array(zz_grid)
@@ -490,6 +489,8 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
         # Update the cell plot for this frame.
         self._cell_plot.set_array(zz_grid)
 
+
+#FIXME: This appears to be unused now. Contemplate removal.
 class AnimFieldMeshTimeSeries(AnimCellsAfterSolving):
     '''
     Animation of an arbitrary cell-centric time series (e.g., voltage
@@ -591,6 +592,7 @@ class AnimFieldMeshTimeSeries(AnimCellsAfterSolving):
         self._vect_plot.set_UVC(vx, vy)
 
 
+#FIXME: This appears to be unused now. Contemplate removal.
 class AnimEnvTimeSeries(AnimCellsAfterSolving):
     '''
     Animation of an arbitrary cell-agnostic time series (e.g., environmental

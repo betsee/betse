@@ -16,20 +16,20 @@ from betse.util.io.log import logs
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
-from betse.science.plot.anim.anim import AnimCellsWhileSolving
 from betse.science import sim_toolbox as stb
-from betse.science.tissue.channels.gap_junction import Gap_Junction
-from betse.science.tissue.handler import TissueHandler
+from betse.science.chemistry.networks import MasterOfNetworks
+from betse.science.chemistry.metabolism import  MasterOfMetabolism
+from betse.science.chemistry.gene import MasterOfGenes
+from betse.science.organelles.endo_retic import EndoRetic
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.flow import getFlow
 from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
-from betse.science.chemistry.networks import MasterOfNetworks
-from betse.science.chemistry.metabolism import  MasterOfMetabolism
-from betse.science.chemistry.gene import MasterOfGenes
-from betse.science.organelles.endo_retic import EndoRetic
+from betse.science.tissue.channels.gap_junction import Gap_Junction
+from betse.science.tissue.handler import TissueHandler
+from betse.science.visual.anim.anim import AnimCellsWhileSolving
 
 
 # FIXME update plotting

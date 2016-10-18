@@ -10,19 +10,20 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
+
 from betse.exceptions import (
     BetseFileException, BetseSimulationException, BetseParametersException)
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
+from betse.science.chemistry.gene import MasterOfGenes
+from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
-from betse.science.plot import plot as viz
-from betse.science.plot import plotpipe
 from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
+from betse.science.visual.plot import plot as viz
+from betse.science.visual.plot import plotpipe
 from betse.util.io.log import logs
 from betse.util.path import files, paths
-from betse.science.chemistry.metabolism import MasterOfMetabolism
-from betse.science.chemistry.gene import MasterOfGenes
 
 
 class SimRunner(object):

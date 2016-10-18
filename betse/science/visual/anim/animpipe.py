@@ -12,11 +12,11 @@ High-level facilities for displaying and/or saving all enabled animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.science.plot.anim.anim import (
+from betse.science.visual.anim.anim import (
     AnimCellsTimeSeries,
     AnimCurrent,
     AnimateDeformation,
-    AnimEnvTimeSeries,
+    # AnimEnvTimeSeries,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
     AnimFieldIntracellular,
@@ -24,14 +24,20 @@ from betse.science.plot.anim.anim import (
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
     AnimFlatCellsTimeSeries,
-    AnimFieldMeshTimeSeries,
+    # AnimFieldMeshTimeSeries,
 )
-from betse.science.plot import plot
+from betse.science.visual import visuals
 from betse.util.io.log import logs
 from betse.util.type import types
+from betse.util.type.types import type_check
 
 # ....................{ PIPELINES                          }....................
-def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
+@type_check
+def pipeline_anims(
+    sim: 'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p: 'betse.science.parameters.Parameters',
+) -> None:
     '''
     Serially (i.e., in series) display and/or save all enabled animations for
     the current simulation phase if animations are enabled _or_ noop otherwise.
@@ -50,9 +56,6 @@ def pipeline_anims(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         * `init`, for plotting simulation initialization results.
         * `sim`, for plotting simulation run results.
     '''
-    assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_cells(cells), types.assert_not_parameters(cells)
-    assert types.is_parameters(p), types.assert_not_parameters(p)
 
     # If post-simulation animations are disabled, noop.
     if not p.anim.is_after_sim:
@@ -350,17 +353,19 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
 # ....................{ PRIVATE ~ getters                  }....................
 #FIXME: Use everywhere above. Since recomputing this is heavy, we probably want
 #to refactor this module's functions into class methods. Fair dandylion hair!
-def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
+@type_check
+def _get_vmem_time_series(
+    sim: 'betse.science.sim.Simulator',
+    p: 'betse.science.parameters.Parameters',
+) -> list:
     '''
     Get the membrane voltage time series for the current simulation, upscaled
     for use in animations.
     '''
-    assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_parameters(p), types.assert_not_parameters(p)
 
     # Scaled membrane voltage time series.
     if p.sim_ECM is False:
-        return plot.upscale_cell_data(sim.vm_time)
+        return visuals.upscale_cell_data(sim.vm_time)
     else:
         #FIXME: What's the difference between "sim.vcell_time" and
         #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "AnimCellsWhileSolving"
@@ -375,4 +380,4 @@ def _get_vmem_time_series(sim: 'Simulator', p: 'Parameters') -> list:
         #  ECM and "sim.vm_time" for non-ECM.
         #* _get_vmem_time_series_discontinuous(), returning "sim.vcell_time" for
         #  ECM and "sim.vm_time" for non-ECM.
-        return plot.upscale_cell_data(sim.vcell_time)
+        return visuals.upscale_cell_data(sim.vcell_time)

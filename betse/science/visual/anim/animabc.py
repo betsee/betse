@@ -8,7 +8,7 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 
 #FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean
 #and animation-specific configuration options), appear to be broken. In theory,
-#refactoring the current overlay approach into a "PlotterCellsABC" subclass
+#refactoring the current overlay approach into a "LayerCellsABC" subclass
 #should correct the breakage. Until then, panic stations!
 
 #FIXME: All animations should be displayed in a non-blocking rather than
@@ -47,7 +47,7 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #the fact that animation objects should only live as long as their underlying
 #figure objects by explicitly adding circular references between the two: e.g.,
 #
-#    # This is already done by the "PlotCellsABC" superclass.
+#    # This is already done by the "VisualCellsABC" superclass.
 #    self._figure = pyplot.figure()
 #
 #    # Then just add this to the AnimCellsABC.__init__() method *BEFORE* the
@@ -75,7 +75,7 @@ from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
-from betse.science.plot.plotabc import PlotCellsABC
+from betse.science.visual.visualabc import VisualCellsABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, NoneType, SequenceTypes
@@ -84,7 +84,7 @@ from matplotlib.animation import FuncAnimation
 from scipy import interpolate
 
 # ....................{ BASE                               }....................
-class AnimCellsABC(PlotCellsABC):
+class AnimCellsABC(VisualCellsABC):
     '''
     Abstract base class of all animation classes.
 
@@ -700,6 +700,9 @@ class AnimCellsABC(PlotCellsABC):
             self._writer_video = None
 
     # ..................{ PLOTTERS                           }..................
+    #FIXME: Shift this method and similar methods called by this method (e.g.,
+    #_plot_frame_axes_title()) into the "VisualCellsABC" superclass. When doing
+    #so, consider renaming this method to visualize_time_step() for generality.
     #FIXME: Insanity. For "PlotAfterSolving"-style plots, the first frame is
     #uselessly plotted twice. Investigate, please.
 
@@ -759,10 +762,9 @@ class AnimCellsABC(PlotCellsABC):
         # method called below to override the default title.
         self._plot_frame_axes_title()
 
-        # Plot this frame via external plotters *BEFORE* plotting this frame
+        # Plot this frame via external layers *BEFORE* plotting this frame
         # via subclass logic, allowing the latter to override the former.
-        for plotter in self._plotters:
-            plotter.plot(self)
+        self._visualize_layers()
 
         # Plot this frame via subclass logic *AFTER* performing all
         # superclass-specific plotting.
@@ -975,15 +977,15 @@ class AnimCellsABC(PlotCellsABC):
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Refactor as follows:
 #
-#* Rename the existing "anim" submodule of this subpackage to "after".
-#* Define a new "while" submodule of this subpackage.
-#* Shift this and the following subclasses to the "after" submodule.
-#* Shift the "AnimCellsWhileSolving" subclass to the "while" submodule.
+#* Rename the existing "anim" submodule of this subpackage to "animafter".
+#* Define a new "animwhile" submodule of this subpackage.
+#* Shift this and the following subclasses to the "animafter" submodule.
+#* Shift the "AnimCellsWhileSolving" subclass to the "animwhile" submodule.
 class AnimCellsAfterSolving(AnimCellsABC):
     '''
-    Post-simulation animation of an arbitrary membrane-centric time series
-    (e.g., cell membrane voltage as a function of time), plotted over the cell
-    cluster _after_ rather than _during_ simulation modelling.
+    Abstract base class of all post-simulation cell animation subclasses,
+    animating simulation data over the cell cluster _after_ rather than
+    _during_ simulation modelling.
     '''
 
     @type_check
@@ -1009,13 +1011,11 @@ class AnimCellsAfterSolving(AnimCellsABC):
             p=p,
 
             # Save and show this post-simulation animation only if this
-            # configuration has enabled doing so.
+            # configuration enables doing so.
             is_save=p.anim.is_after_sim_save,
             is_show=p.anim.is_after_sim_show,
 
-            # Save this post-simulation animation to a different parent
-            # directory than that to which the corresponding mid-simulation
-            # animation would be saved.
+            # Save all post-simulation animations to the same parent directory.
             save_dir_parent_basename='anim',
 
             # Pass all remaining arguments as is to our superclass.

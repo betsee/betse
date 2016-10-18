@@ -3,26 +3,11 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all Matplotlib-based plotting subclasses.
+Abstract base classes of all Matplotlib-based plot and animation subclasses.
 '''
 
-#FIXME: Refactor this subpackage as follows:
-#
-#* Rename this subpackage to "visual".
-#* Rename this submodule to "visualabc".
-#* Rename the "PlotCellsABC" base class to "VisualCellsABC".
-#* Change the "is_save" and "is_show" parameters passed to
-#  VisualCellsABC.__init__() to be mandatory rather than optional.
-#* Rename the "plot" submodule to "visuals".
-#* Define a new "plot" subpackage of this subpackage containing:
-#  * A new "plotabc" submodule containing:
-#    * A new "PlotCellsABC" subclass of "VisualCellsABC" passing plot-specific
-#      "is_save" and "is_show" parameters to the superclass __init__().
-#* Shift all remaining "plot"-prefixed submodules of this subpackage (e.g.,
-#  "plotpipe") into the "plot" subpackage.
-
 #FIXME: Refactor all procedural cell cluster-specific "betse.plot.plot"
-#functions into subclasses of the "PlotCellsABC" base class defined below.
+#functions into subclasses of the "LayerCellsABC" base class defined elsewhere.
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
@@ -31,8 +16,8 @@ import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
-# from betse.util.io.log import logs
-from betse.science.plot.plot import upscale_cell_coordinates
+from betse.science.visual import visuals
+from betse.science.visual.layer.layerabc import LayerCellsABC
 from betse.util.type import iterables, objects, types
 from betse.util.type.types import (
     type_check,
@@ -51,9 +36,10 @@ from matplotlib.patches import FancyArrowPatch
 from matplotlib.streamplot import StreamplotSet
 
 # ....................{ BASE                               }....................
-class PlotCellsABC(object, metaclass=ABCMeta):
+class VisualCellsABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all classes spatially plotting the cell cluster.
+    Abstract base class of all subclasses spatially plotting or animating the
+    currently simulated cell cluster.
 
     Subclasses of this class plot the spatial distribution of one or more
     modelled variables (e.g., charge distribution, membrane voltage) for
@@ -79,8 +65,8 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         Basename of the subdirectory in the phase-specific results directory
         to which all files exported for this plot or animation are saved _and_
         the basename prefix of these files.
-    _plotters : list
-        List of all :class:`PlotterCellsABC` instances collectively composing
+    _layers : list
+        List of all :class:`LayerCellsABC` instances collectively composing
         this plot or animation.
 
     Attributes (Private: Figure)
@@ -148,6 +134,8 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         sim: 'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
         p: 'betse.science.parameters.Parameters',
+        is_save: bool,
+        is_show: bool,
         label: str,
         figure_title: str,
         colorbar_title: str,
@@ -161,10 +149,8 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         axes_y_label: str = 'Spatial Distance [um]',
         colormap: (Colormap, NoneType) = None,
 
-        #FIXME: Refactor all of the following to be mandatory instead.
-        is_save: bool = None,
-        is_show: bool = None,
-        plotters: SequenceOrNoneTypes = None,
+        #FIXME: Refactor this to be mandatory instead.
+        layers: SequenceOrNoneTypes = None,
     ) -> None:
         '''
         Initialize this plot or animation.
@@ -177,10 +163,15 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             Current cell cluster.
         p : Parameters
             Current simulation configuration.
+        is_save : bool
+            `True` only if non-interactively saving this plot or animation.
+        is_show : bool
+            `True` only if interactively displaying this plot or animation.
         label : str
-            Basename of the subdirectory in the phase-specific results directory
-            to which all animation files will be saved _and_ the basename prefix
-            of these files.
+            Terse machine-readable string (e.g., `Vmem`) serving as both:
+            * The basename of the subdirectory of the phase-specific results
+              directory containing all files saved by this plot or animation.
+            * The basename prefix of these files.
         figure_title : str
             Text displayed above the figure itself.
         colorbar_title: str
@@ -211,19 +202,11 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             Matplotlib colormap to be used by default for all animation artists
             (e.g., colorbar, images). Defaults to `None`, in which case the
             default colormap is used.
-        is_save : optional[bool]
-            `True` only if non-interactively saving this plot or animation.
-            Defaults to `None`, in which case this defaults to `True` only if
-            the current simulation configuration non-interactively saves plots.
-        is_show : optional[bool]
-            `True` only if interactively displaying this plot or animation.
-            Defaults to `None`, in which case this defaults to `True` only if
-            the current simulation configuration interactively displays plots.
-        plotters : optional[SequenceTypes]
-            Sequence of all :class:`PlotterCellsABC` instances collectively
+        layers : optional[SequenceTypes]
+            Sequence of all :class:`LayerCellsABC` instances collectively
             plotting each frame of this plot or animation. **Order is extremely
-            significant.** Specifically, the order of plotters in this sequence
-            defines the order in which these plotters are plotted and hence
+            significant.** Specifically, the order of layers in this sequence
+            defines the order in which these layers are plotted and hence
             overlaid onto one another (i.e., z-order). Defaults to `None`, in
             which case the subclass is responsible for manually plotting this
             plot or animation.
@@ -249,12 +232,8 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         # Default unpassed parameters.
         if colormap is None:
             colormap = p.default_cm
-        if is_save is None:
-            is_save = p.plot.is_after_sim_save
-        if is_show is None:
-            is_show = p.plot.is_after_sim_show
-        if plotters is None:
-            plotters = []
+        if layers is None:
+            layers = ()
 
         # Classify *AFTER* validating parameters.
         self._axes_title = axes_title
@@ -268,10 +247,12 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         self._figure_title = figure_title
         self._label = label
 
-        # Convert the passed sequence of plotters into a new list of plotters,
+        # Convert the passed sequence of layers into a new list of layers,
         # permitting this sequence to be safely modified *WITHOUT* modifying
-        # the passed sequence.
-        self._plotters = list(plotters)
+        # the passed sequence. To validate the type of each such layer, call an
+        # existing method rather than manually perform this conversion.
+        self._layers = []
+        self._append_layer(*layers)
 
         # If autoscaling colors, ignore the passed minimum and maximum.
         if is_color_autoscaled:
@@ -431,9 +412,9 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             * `None`, the subclass is responsible for colorbar autoscaling.
         '''
 
-        #FIXME: Refactor into a proper plotter subclass. The current approach
+        #FIXME: Refactor into a proper layer subclass. The current approach
         #assumes no subsequent artists are added to the axes, which (of course)
-        #is probably the case in numerous subclasses. A plotter this must be!
+        #is probably the case in numerous subclasses. A layer this must be!
 
         # If labelling each cell with that cell's 0-based index, do so. To
         # layer cell labels above cell data, defer doing so until this method.
@@ -442,8 +423,8 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             # each cell, display this index centered at these coordinates.
             for cell_index, cell_center in enumerate(self.cells.cell_centres):
                 self._axes.text(
-                    upscale_cell_coordinates(cell_center[0]),
-                    upscale_cell_coordinates(cell_center[1]),
+                    visuals.upscale_cell_coordinates(cell_center[0]),
+                    visuals.upscale_cell_coordinates(cell_center[1]),
                     cell_index,
                     va='center',
                     ha='center',
@@ -629,25 +610,51 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         has been called. Failing to do so will result in exceptions.
         '''
 
-        # If the _prep_figure() method has yet to be called, raise an exception.
+        # If the _prep_figure() method has not been called, raise an exception.
         if self._color_mappables is None:
             raise BetseMethodException(
                 '{class_name}._rescale_color_mappables() called before '
                 '{class_name}._prep_figure().'.format(class_name=type(self)))
 
-        # If these values are identical, coerce them to differ. Failing to do so
-        # produces spurious visual artifacts in both the axes and colorbar.
+        # If these values are identical, coerce them to differ. Failing to do
+        # so produces spurious visual artifacts in both the axes and colorbar.
         # if self._color_min == self._color_max:
         #     self._color_min = self._color_min - 1
         #     self._color_max = self._color_max + 1
 
-        # For each color mappable, clip that mappable to the minimum and maximum
-        # values discovered above. Note this also has the beneficial side-effect
-        # of establishing the colorbar's range.
+        # For each color mappable, clip that mappable to the minimum and
+        # maximum values discovered above. Note this also has the beneficial
+        # side-effect of establishing the colorbar's range.
         for color_mappable in self._color_mappables:
             assert types.is_matplotlib_mappable(color_mappable), (
                 types.assert_not_matplotlib_mappable(color_mappable))
             color_mappable.set_clim(self._color_min, self._color_max)
+
+    # ..................{ LAYERS                             }..................
+    @type_check
+    def _append_layer(self, *layers: LayerCellsABC) -> None:
+        '''
+        Append all passed layers to the current sequence of layers, ensuring
+        the subsequently called :meth:`_visualize_layers` method will visualize
+        these layers after (and hence above) all previously appended layers.
+
+        Parameters
+        ----------
+        layers : Tuple[LayerCellsABC]
+            Tuple of all layers to be appended to this sequence of layers.
+        '''
+
+        self._layers.extend(layers)
+
+
+    def _visualize_layers(self) -> None:
+        '''
+        Iteratively visualize all layers onto this plot or animation for the
+        current time step of this simulation.
+        '''
+
+        for layer in self._layers:
+            layer.layer(self)
 
     # ..................{ PLOTTERS                           }..................
     @type_check
@@ -802,6 +809,11 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         )
 
     # ..................{ PLOTTERS ~ cell                    }..................
+    #FIXME: Pretty intense, and obviously better refactored two distinct
+    #"LayerCellsABC" subclasses. This will probably prove pivotal to
+    #implementing deformations sanely.
+    #FIXME: After doing so, excise *ALL* of the methods below.
+
     def _plot_cells_sans_ecm(self, *args, **kwargs) -> 'Collection':
         '''
         Plot and return an intracellular plot of all cells with colours
@@ -948,23 +960,23 @@ class PlotCellsABC(object, metaclass=ABCMeta):
             assert types.is_matplotlib_trimesh(cell_plot), (
                 types.assert_not_matplotlib_trimesh(cell_plot))
 
-
             cell_plot.remove()
             return self._plot_cell_mesh(cell_data=cell_data, *args, **kwargs)
 
 
-    def _plot_cell_mosaic(self, cell_data: np.ndarray) -> PolyCollection:
+    def _plot_cell_mosaic(self, cell_data: SequenceTypes) -> PolyCollection:
         '''
-        Plot and return a mosaic plot of all cells with colours corresponding to
-        the passed vector of arbitrary cell data (e.g., transmembrane voltages
-        for all cells for the current time step) onto the current figure's axes.
+        Plot and return a mosaic plot of all cells with colours corresponding
+        to the passed vector of arbitrary cell data (e.g., transmembrane
+        voltages for all cells for the current time step) onto the current
+        figure's axes.
 
         The returned plot will be a polygon collection such that each polygon
         signifies a cell in this simulation's cell cluster.
 
         Parameters
         -----------
-        cell_data : np.ndarray
+        cell_data : SequenceTypes
             Arbitrary cell data defined on an environmental grid to be plotted.
 
         Returns
@@ -972,8 +984,6 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         PolyCollection
             Mosaic plot produced by plotting the passed cell data.
         '''
-        assert types.is_sequence_nonstr(cell_data), (
-            types.assert_not_sequence_nonstr(cell_data))
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
@@ -992,6 +1002,9 @@ class PlotCellsABC(object, metaclass=ABCMeta):
         return mosaic_plot
 
 
+    #FIXME: This plots somewhat similarly to the presumably superior
+    #"LayerCellsGouraudShaded" subclass. Generalize this method into a new
+    #"LayerCellsGouraudAveraged" subclass of the same submodule.
     def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
         '''
         Plot and return a mesh plot of all cells with colours corresponding to

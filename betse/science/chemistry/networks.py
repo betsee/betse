@@ -14,8 +14,8 @@ from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.science.tissue.handler import TissueHandler
 from betse.science.event import modulators as mods
-from betse.science.plot import plot as viz
-from betse.science.plot.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.visual import plot as viz
+from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from betse.util.io.log import logs
 from betse.util.path import paths

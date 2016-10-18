@@ -358,11 +358,12 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
     'pprofile': '>= 1.8',
     'ptpython': '>= 0.29',
 
-    # NetworkX 1.11 broke backwards compatibility by coercing use of "pydotplus"
-    # rather than "pydot". This would be fine, of course, if "pydotplus" were
-    # still in active development. It isn't. "pydot", however, is. Ergo,
-    # NetworkX >= 1.11 is blacklisted until "pydot" support is restored.
-    'networkx': '>= 1.8, < 1.11',
+    # A relatively modern version of NetworkX other than 1.11 is required, which
+    # critically broke backwards compatibility by coercing use of the unofficial
+    # inactive "pydotplus" PyDot fork rather than the official active "pydot"
+    # PyDot project. Since NetworkX >= 1.12 reverted PyDot support back to the
+    # latter, only NetworkX 1.11 warrants blacklisting. It is confusing, maybe?
+    'networkx': '>= 1.8, != 1.11',
 
     #FIXME: PyDot requires GraphViz. Hence, GraphViz should *ALSO* be validated
     #whenever validating PyDot. Since PyDot is unlikely to be installable in the

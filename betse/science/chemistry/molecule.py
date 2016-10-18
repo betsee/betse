@@ -24,8 +24,8 @@ from betse.science.event import modulators as mods
 from betse.util.io.log import logs
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseParametersException
-from betse.science.plot import plot as viz
-from betse.science.plot.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.visual import plot as viz
+from betse.science.visual.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from matplotlib import colors
 from matplotlib import cm

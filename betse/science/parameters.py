@@ -3,20 +3,23 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
+from collections import OrderedDict
+
 import numpy as np
+
 from betse.exceptions import BetseParametersException
 from betse.lib.matplotlib import matplotlibs
 from betse.science.config import sim_config
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
-from betse.science.plot.plotconfig import PlotConfig
-from betse.science.plot.anim.animconfig import AnimConfig
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
+from betse.science.visual.anim.animconfig import AnimConfig
+from betse.science.visual.plot.plotconfig import PlotConfig
 from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.types import type_check, SequenceTypes
-from collections import OrderedDict
+
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".

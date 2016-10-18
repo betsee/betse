@@ -34,9 +34,6 @@ from betse.util.io.log.logs import log_info, log_exception
 # The following includes are generally required for scripts to be useful,
 # but as they are undergoing changes, we do not import them (for now).
 
-# This is a must if scripts are going to generate consistent plots
-# import betse.science.plot as plot
-
 # Filehandling provides the `loadSim` and `loadInit` functions; necessary
 # for... you know... loading simulations and initializations.
 # import betse.science.filehandling as fh
