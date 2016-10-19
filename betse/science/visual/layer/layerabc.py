@@ -105,19 +105,18 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     def layer(
         self, visual: 'betse.science.visual.visualabc.VisualCellsABC') -> None:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g.,
-        cell membrane voltage) onto the figure axes of the passed parent plot or
-        animation for the current simulation time step.
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the current time step and each cell of the current
+        cluster onto the figure axes of the passed plot or animation.
 
         Parameters
         ----------
         plot : VisualCellsABC
-            Parent plot or animation instance to plot onto, passed to this
-            rather than the :meth:`__init__` method to avoid chicken-and-egg
-            issues. Doing so:
-            * Avoids long-lived circular references between layer, plot, and
+            Plot or animation to layer onto, passed to this rather than the
+            :meth:`__init__` method to avoid chicken-and-egg issues and hence:
+            * Avoid long-lived circular references between layer, plot, and
               animation instances and the resulting memory costs.
-            * Permits callers to:
+            * Permit callers to:
               * Create layer instances _before_ plot or animation instances.
               * Cache previously created layer instances.
               * Share previously cached layer instances between two or more

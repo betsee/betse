@@ -16,8 +16,8 @@ import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
-from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.science.visual.layer.layertext import LayerCellsIndex
 from betse.util.type import iterables, objects, types
 from betse.util.type.types import (
     type_check,
@@ -394,14 +394,15 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Parameters
         ----------
         color_mappables : ScalarMappable or IterableTypes
-            One or more Matplotlib-specific mappables (e.g., :class:`AxesImage`,
-            :class:`ContourSet`) to associate with this plot or animation's
-            colorbar. For convenience, this parameter may be either:
+            One or more Matplotlib-specific mappables (e.g.,
+            :class:`AxesImage`, :class:`ContourSet`) to associate with this
+            plot or animation's colorbar. For convenience, this parameter may
+            be either:
             * A single mappable, in which case this colorbar will be associated
               with this mappable as is.
             * A non-string iterable (e.g., :class:`list`, :class:`set`) of one
-              or more mappables, in which case this colorbar will be arbitrarily
-              associated with the first mappable in this iterable.
+              or more mappables, in which case this colorbar will be
+              arbitrarily associated with the first mappable in this iterable.
         color_data : optional[SequenceTypes]
             Multi-dimensional sequence of all color values to be plotted _or_
             `None` if calculating these values on initialization is impractical
@@ -412,23 +413,21 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             * `None`, the subclass is responsible for colorbar autoscaling.
         '''
 
-        #FIXME: Refactor into a proper layer subclass. The current approach
-        #assumes no subsequent artists are added to the axes, which (of course)
-        #is probably the case in numerous subclasses. A layer this must be!
-
-        # If labelling each cell with that cell's 0-based index, do so. To
-        # layer cell labels above cell data, defer doing so until this method.
+        # If labelling each cell by its 0-based index, append a layer doing so.
+        # To ensure these labels are layered above spatial cell data, doing so
+        # is deferred until sufficiently late in the initialization process.
         if self.p.enumerate_cells:
-            # For the index and 2-tuple of X and Y coordinates of the center of
-            # each cell, display this index centered at these coordinates.
-            for cell_index, cell_center in enumerate(self.cells.cell_centres):
-                self._axes.text(
-                    visuals.upscale_cell_coordinates(cell_center[0]),
-                    visuals.upscale_cell_coordinates(cell_center[1]),
-                    cell_index,
-                    va='center',
-                    ha='center',
-                )
+            self._append_layer(LayerCellsIndex())
+            # # For the index and 2-tuple of X and Y coordinates of the center of
+            # # each cell, display this index centered at these coordinates.
+            # for cell_index, cell_center in enumerate(self.cells.cell_centres):
+            #     self._axes.text(
+            #         visuals.upscale_cell_coordinates(cell_center[0]),
+            #         visuals.upscale_cell_coordinates(cell_center[1]),
+            #         cell_index,
+            #         va='center',
+            #         ha='center',
+            #     )
 
         # If color values are passed, autoscale colors to these values.
         if color_data is not None:

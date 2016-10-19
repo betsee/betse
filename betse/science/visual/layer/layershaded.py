@@ -3,8 +3,10 @@
 # See "LICENSE" for further details.
 
 '''
-Matplotlib-based layer of shaded cell clusters.
+Layer subclasses spatially shading the current cell cluster.
 '''
+
+#FIXME: Rename this submodule to "layershade".
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
@@ -13,11 +15,11 @@ from betse.science.visual.layer.layerabc import LayerCellsABC
 from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ BASE                               }....................
-#FIXME: Consider renaming to "LayerCellsShadedDiscrete", in anticipation of a
-#new "LayerCellsShadedContinuum" subclass.
+#FIXME: Rename to "LayerCellsShadeDiscrete", in anticipation of a
+#new "LayerCellsShadeContinuum" subclass.
 class LayerCellsGouraudShaded(LayerCellsABC):
     '''
-    Layer subclass spatially plotting each cell in this cell cluster as a
+    Layer subclass spatially plotting each cell in the current cell cluster as a
     discontiguous Gouraud-shaded surface represented as a polygonal mesh.
 
     This layer is somewhat more computationally expensive in both space and
@@ -80,15 +82,15 @@ class LayerCellsGouraudShaded(LayerCellsABC):
     def layer(
         self, visual: 'betse.science.visual.visualabc.VisualCellsABC') -> None:
         '''
-        Layer a single modelled variable (e.g., membrane voltage) for each cell
-        of this cell cluster as a discontiguous Gouraud-shaded surface
-        represented as a polygonal mesh onto the figure axes of the passed
-        parent plot or animation for the current simulation time step.
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the current time step and each cell of the current
+        cluster onto the figure axes of the passed plot or animation as a
+        discontiguous Gouraud-shaded surface represented as a polygonal mesh.
 
         Parameters
         ----------
         visual : VisualCellsABC
-            Parent plot or animation instance to plot onto.
+            Plot or animation to layer onto.
         '''
 
         #FIXME: Do we compute this elsewhere in the codebase? If so, globally
