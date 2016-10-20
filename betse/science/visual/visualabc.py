@@ -50,17 +50,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     * One or more simulation time steps, in which this subclass animates a
       video of these variables for these steps.
 
-    Attributes (Public)
-    ----------
-    cells : Cells
-        Current cell cluster.
-    p : Parameters
-        Current simulation configuration.
-    sim : Simulation
-        Current simulation.
-
     Attributes (Private)
     ----------
+    _cells : Cells
+        Current cell cluster.
+    _p : Parameters
+        Current simulation configuration.
+    _sim : Simulator
+        Current simulation.
     _label : str
         Basename of the subdirectory in the phase-specific results directory
         to which all files exported for this plot or animation are saved _and_
@@ -217,17 +214,17 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # complications thereof (e.g., increased memory overhead). Since these
         # objects necessarily live significantly longer than this plot, no
         # complications arise. Ergo, these attributes *ALWAYS* yield these
-        # objects rather than non-deterministically returning "None" if these
+        # objects rather than non-deterministically yielding "None" if these
         # objects are unexpectedly garbage-collected.
-        self.sim = weakref.proxy(sim)
-        self.p = weakref.proxy(p)
+        self._sim = weakref.proxy(sim)
+        self._p = weakref.proxy(p)
 
         #FIXME: For currently unknown reasons, this object occasionally retains
         #the only remaining reference to the passed "Cells" instance -- which
         #*CANNOT* therefore be safely classified as a weak reference. This is
         #highly unexpected, however, and should thus be investigated.
         # self.cells = weakref.proxy(cells)
-        self.cells = cells
+        self._cells = cells
 
         # Default unpassed parameters.
         if colormap is None:
@@ -288,9 +285,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Figure axes scaled to the extent of the current 2D environment as a
         # weak rather than strong (the default) reference, thus avoiding
-        # circular references and complications thereof (e.g., memory overhead).
-        # Since figures already contain their axes as a strong reference, we
-        # need *NOT* do so as well here.
+        # circular references and complications thereof (e.g., memory
+        # overhead). Since figures already contain their axes as a strong
+        # reference, we need *NOT* do so as well here.
         self._axes = weakref.proxy(pyplot.subplot(111))
 
         # If this object was initialized with both a figure and axes title,
@@ -318,10 +315,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Extent of the current 2D environment.
         self._axes_bounds = [
-            self.cells.xmin * self.p.um,
-            self.cells.xmax * self.p.um,
-            self.cells.ymin * self.p.um,
-            self.cells.ymax * self.p.um,
+            self._cells.xmin * self._p.um,
+            self._cells.xmax * self._p.um,
+            self._cells.ymin * self._p.um,
+            self._cells.ymax * self._p.um,
         ]
 
         # Bound these axes by this extent.
@@ -416,18 +413,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # If labelling each cell by its 0-based index, append a layer doing so.
         # To ensure these labels are layered above spatial cell data, doing so
         # is deferred until sufficiently late in the initialization process.
-        if self.p.enumerate_cells:
+        if self._p.enumerate_cells:
             self._append_layer(LayerCellsIndex())
-            # # For the index and 2-tuple of X and Y coordinates of the center of
-            # # each cell, display this index centered at these coordinates.
-            # for cell_index, cell_center in enumerate(self.cells.cell_centres):
-            #     self._axes.text(
-            #         visuals.upscale_cell_coordinates(cell_center[0]),
-            #         visuals.upscale_cell_coordinates(cell_center[1]),
-            #         cell_index,
-            #         va='center',
-            #         ha='center',
-            #     )
+
+        # Prepare all layers to be layered onto this plot or animation *AFTER*
+        # appending all such layers.
+        self._prep_layers()
 
         # If color values are passed, autoscale colors to these values.
         if color_data is not None:
@@ -521,7 +512,34 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # gc.collect()
 
     # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties, preventing callers from setting these attributes.
+    # Read-only properties, preventing callers from resetting these attributes.
+
+    @property
+    def cells(self) -> 'betse.science.cells.Cells':
+        '''
+        Current cell cluster.
+        '''
+
+        return self._cells
+
+
+    @property
+    def p(self) -> 'betse.science.parameters.Parameters':
+        '''
+        Current simulation configuration.
+        '''
+
+        return self._p
+
+
+    @property
+    def sim(self) -> 'betse.science.sim.Simulator':
+        '''
+        Current simulation.
+        '''
+
+        return self._sim
+
 
     @property
     def axes(self) -> Axes:
@@ -646,6 +664,16 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self._layers.extend(layers)
 
 
+    def _prep_layers(self) -> None:
+        '''
+        Iteratively prepare all layers to be subsequently layered onto this
+        plot or animation.
+        '''
+
+        for layer in self._layers:
+            layer.prep(self)
+
+
     def _visualize_layers(self) -> None:
         '''
         Iteratively visualize all layers onto this plot or animation for the
@@ -653,7 +681,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         '''
 
         for layer in self._layers:
-            layer.layer(self)
+            layer.layer()
 
     # ..................{ PLOTTERS                           }..................
     @type_check
@@ -769,9 +797,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         if magnitude_max is None:
             magnitude_max = np.max(magnitude)
         if grid_x is None:
-            grid_x = self.cells.X * self.p.um
+            grid_x = self._cells.X * self._p.um
         if grid_y is None:
-            grid_y = self.cells.Y * self.p.um
+            grid_y = self._cells.Y * self._p.um
 
         # If a prior streamplot to be erased was passed, do so.
         if old_stream_plot is not None:
@@ -796,9 +824,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Plot and return this streamplot.
         return self._axes.streamplot(
             grid_x, grid_y, x, y,
-            density=self.p.stream_density,
+            density=self._p.stream_density,
             linewidth=(3.0*magnitude/magnitude_max) + 0.5,
-            color=self.p.vcolor,
+            color=self._p.vcolor,
             cmap=self._colormap,
             arrowsize=1.5,
 
@@ -844,7 +872,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             Plot produced by plotting the passed cell data.
         '''
 
-        if self.p.showCells is True:
+        if self._p.showCells is True:
             return self._plot_cell_mosaic(*args, **kwargs)
         else:
             return self._plot_cell_mesh(*args, **kwargs)
@@ -876,7 +904,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             types.assert_not_sequence_nonstr(cell_data))
 
         # If plotting individuals cells, update this plot with this data as is.
-        if self.p.showCells:
+        if self._p.showCells:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
             cell_plot.set_array(cell_data)
@@ -943,13 +971,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # If plotting individual cells, the passed cell plot *MUST* be a polygon
         # collection previously returned by the _plot_cell_mosaic() method.
-        if self.p.showCells is True:
+        if self._p.showCells is True:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
 
             # Update this plot in-place.
             cell_plot.set_array(cell_data)
-            cell_plot.set_verts(np.asarray(self.cells.cell_verts) * self.p.um)
+            cell_plot.set_verts(np.asarray(self._cells.cell_verts) * self._p.um)
 
             # Return the same plot.
             return cell_plot
@@ -986,7 +1014,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=np.asarray(self.cells.cell_verts) * self.p.um,
+            verts=np.asarray(self._cells.cell_verts) * self._p.um,
             cmap=self._colormap,
             edgecolors='none',
         )
@@ -1028,13 +1056,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # If the passed cell data is defined on membrane midpoints, average that
         # to correspond to cell centres instead.
-        if len(cell_data) == len(self.cells.mem_i):
+        if len(cell_data) == len(self._cells.mem_i):
             cell_data = np.dot(
-                self.cells.M_sum_mems, cell_data) / self.cells.num_mems
+                self._cells.M_sum_mems, cell_data) / self._cells.num_mems
 
         # Unstructured triangular grid assigned the passed cell data.
-        triangular_grid = np.zeros(len(self.cells.voronoi_centres))
-        triangular_grid[self.cells.cell_to_grid] = cell_data
+        triangular_grid = np.zeros(len(self._cells.voronoi_centres))
+        triangular_grid[self._cells.cell_to_grid] = cell_data
 
         # cmin = cell_data.min()
         # cmax = cell_data.max()
@@ -1047,8 +1075,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #
         # Behold! The ultimate examplar of nonsensical API design.
         return self._axes.tripcolor(
-            self.p.um * self.cells.cell_centres[:, 0],
-            self.p.um * self.cells.cell_centres[:, 1],
+            self._p.um * self._cells.cell_centres[:, 0],
+            self._p.um * self._cells.cell_centres[:, 1],
             cell_data,
             shading='gouraud',
             cmap=self._colormap

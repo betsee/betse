@@ -49,10 +49,11 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
+import weakref
 from abc import ABCMeta, abstractmethod
-# from betse.util.type.types import type_check
+from betse.util.type.types import type_check
 
-# ....................{ BASE                               }....................
+# ....................{ CLASSES                            }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting a single feature of
@@ -76,6 +77,14 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     two or more types of plots or animations may be trivially composed into a
     unique third type of plot or animation with _no_ modification to existing
     plotters, plots, or animations.
+
+    Attributes
+    ----------
+    _is_layered : bool
+        `True` only if the :meth:`layer` method has been called at least once
+        for this layer instance.
+    _visual : VisualCellsABC
+        Plot or animation to layer onto.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -98,31 +107,74 @@ class LayerCellsABC(object, metaclass=ABCMeta):
             Further details on class design.
         '''
 
-        pass
+        # Default instance attributes.
+        self._is_layered = False
+        self._visual = None
 
-    # ..................{ ABSTRACT                           }..................
-    @abstractmethod
-    def layer(
+
+    @type_check
+    def prep(
         self, visual: 'betse.science.visual.visualabc.VisualCellsABC') -> None:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the current time step and each cell of the current
-        cluster onto the figure axes of the passed plot or animation.
+        Prepare this layer to be layered onto the passed plot or animation.
 
         Parameters
         ----------
-        plot : VisualCellsABC
-            Plot or animation to layer onto, passed to this rather than the
-            :meth:`__init__` method to avoid chicken-and-egg issues and hence:
-            * Avoid long-lived circular references between layer, plot, and
-              animation instances and the resulting memory costs.
-            * Permit callers to:
-              * Create layer instances _before_ plot or animation instances.
-              * Cache previously created layer instances.
-              * Share previously cached layer instances between two or more
-                plot or animation instances, reducing memory footprint.
-              * Pass previously cached layer instances to the :meth:`__init__`
-                methods of plot or animation subclasses.
+        visual : VisualCellsABC
+            Plot or animation to layer onto.
+        '''
+
+        # Classify this plot or animation with a weak rather than strong (the
+        # default) reference, thereby avoiding circular references and the
+        # resulting complications thereof (e.g., increased memory overhead).
+        # Since the parent plot or animation necessarily lives significantly
+        # longer than this layer, no complications arise. Ergo, this attribute
+        # *ALWAYS* yields this object (rather than non-deterministically
+        # yielding "None" if this object is unexpectedly garbage-collected).
+        self._visual = weakref.proxy(visual)
+
+    # ..................{ LAYERS                             }..................
+    def layer(self) -> None:
+        '''
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the current time step and each cell of the current
+        cluster onto the figure axes of the current plot or animation.
+        '''
+
+        # If this method has yet to be called...
+        if not self._is_layered:
+            # Perform logic specific to this call.
+            self._layer_first()
+
+            # Prevent subsequent calls to this method from repeating this logic.
+            self._is_layered = True
+        # Else, this method has been called at least once.
+        else:
+            # Perform logic specific to all subsequent calls.
+            self._layer_next()
+
+
+    @abstractmethod
+    def _layer_first(self) -> None:
+        '''
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the first time step and each cell of the current
+        cluster onto the figure axes of the current plot or animation.
+
+        Layer subclasses are required to implement this abstract method.
+        '''
+
+        pass
+
+
+    def _layer_next(self) -> None:
+        '''
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the next time step and each cell of the current
+        cluster onto the figure axes of the current plot or animation.
+
+        Layer subclasses are recommended but _not_ required to reimplement this
+        empty method.
         '''
 
         pass

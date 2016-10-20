@@ -1490,6 +1490,10 @@ def env_stream(datax,datay,ax,cells,p, cmap=None):
     return streams, ax
 
 
+#FIXME: Fix us up, please. This function is effectively broken at the moment,
+#plotting a spatially symmetric distribution even where the underlying data is
+#asymmetric (in which case one would hope for some sort of distinct gradient).
+#This function is frequently leveraged elsewhere and hence fairly critical.
 def cell_mesh(data, ax, cells, p, clrmap):
 
     # If the data is defined on membrane midpoints, average to cell centres.

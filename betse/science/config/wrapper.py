@@ -334,7 +334,8 @@ class SimConfigWrapper(object):
         This method is intended to be called by non-interactive test suites
         exercising all plots and animations. Specifically, this method enables:
 
-        * **Cell enumeration** (i.e., labelling each cell by its 0-based index).
+        * Cell enumeration, labelling each cell by its 0-based index.
+        * Current overlays, displaying current density streamlines.
         * The calcium (Ca) plot and animation by enabling:
           * The mammalian ion profile (i.e., `animal`), enabling all ions
             including calcium.
@@ -366,8 +367,10 @@ class SimConfigWrapper(object):
         results = self._config['results options']
         variable = self._config['variable settings']
 
-        # Enable cell enumeration.
+        # Enable optional features improving test coverage but *NOT* required by
+        # the plots and animations enabled below.
         results['enumerate cells'] = True
+        results['overlay currents'] = True
 
         # Enable all plots.
         results['Vmem 2D']['plot Vmem'] = True

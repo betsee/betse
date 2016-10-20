@@ -105,8 +105,8 @@ class AnimCellsABC(VisualCellsABC):
         0-based index of the last frame to be plotted, exactly equivalent to
         `self._time_step_count - 1`.
     _time_step : int
-        0-based index of the frame currently being plotted, corresponding to
-        the 0-based sampled time step currently being simulated.
+        0-based index of the current frame being plotted, corresponding to the
+        0-based sampled time step currently being simulated.
     _time_step_absolute : int
         0-based index of the last frame to be plotted.
 
@@ -147,25 +147,42 @@ class AnimCellsABC(VisualCellsABC):
         `True` _or_ `None` otherwise.
     _is_overlaying_current : bool
         `True` if overlaying either electric current or concentration flux
-        streamlines on this animation _or_ `False` otherwise. By design, this
+        streamlines onto this animation _or_ `False` otherwise. By design, this
         boolean is `True` if and only if the following are all also `True`:
-        * The `p.I_overlay` boolean, implying the current simulation
+        * The :attr:`Parameters.I_overlay` boolean, implying this simulation
           configuration to request current overlays.
-        * The `p.calc_J` boolean, implying the current simulation
-          configuration to model such currents.
+        * The :attr:`Parameters.calc_J` boolean, implying this simulation
+          configuration to model these currents.
         * The `is_current_overlayable` boolean parameter passed to the
-          `__init__()` method of this class, implying the current animation to
-          support current overlays.
+          :meth:`__init__` method of this class, implying the current plot or
+          animation to support current overlays.
     _is_current_overlay_only_gj : bool
         `True` only if overlaying intracellular current _or_ `False` otherwise
         (i.e., if overlaying both intra- and extracellular current). Ignored
-        unless overlaying current (i.e., if `_is_overlaying_current` is `True`).
+        unless overlaying current (i.e., if `_is_overlaying_current` is
+        `True`).
     '''
 
     # ..................{ LIFECYCLE                          }..................
     @type_check
     def __init__(
         self,
+
+        #FIXME: Remove the "is_current_overlayable" and
+        #"is_current_overlay_only_gj" parameters but *NOT* the corresponding
+        #private attributes. Currently, the former parameter is only enabled
+        #by subclasses that do *NOT* already plot streamlines. (Makes sense.)
+        #Thanks to the new layer API, however, this base class can now
+        #automatically detect when the subclass is plotting streamlines by:
+        #
+        #* Iteratively searching through the "_layers" list in the
+        #  animate() function, permitting subclasses to append one or more
+        #  layers that plot streamlines.
+        #* If any layer in this list is an instance of the new
+        #  "LayerCellsStreamCurrent" subclass, then the
+        #  "_is_current_overlayable" attribute should be disabled.
+        #* Else, that attribute should default to the corresponding setting(s)
+        #  in the current simulation configuration.
 
         # Mandatory parameters.
         is_current_overlayable: bool,
@@ -201,9 +218,9 @@ class AnimCellsABC(VisualCellsABC):
             `_is_overlaying_current` is `False`). If `None`, defaults to the
             following state:
             * `False` if extracellular spaces are enabled _and_ both
-               intracellular and extracellular current is to be animated.
+               intracellular and extracellular current is being animated.
             * `True` if either extracellular spaces are disabled _or_ are
-               enabled but only intracellular current is to be animated.
+               enabled but only intracellular current is being animated.
         is_ecm_required : optional[bool]
             `True` if this animation is specific to extracellular spaces or
             `False` otherwise. If `True` and extracellular spaces are currently
@@ -218,7 +235,7 @@ class AnimCellsABC(VisualCellsABC):
 
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
-        if is_ecm_required and not self.p.sim_ECM:
+        if is_ecm_required and not self._p.sim_ECM:
             raise BetseParametersException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
@@ -227,9 +244,9 @@ class AnimCellsABC(VisualCellsABC):
         # Default unpassed parameters.
         if is_current_overlay_only_gj is None:
             is_current_overlay_only_gj = not (
-                self.p.sim_ECM and self.p.IecmPlot)
+                self._p.sim_ECM and self._p.IecmPlot)
         if time_step_count is None:
-            time_step_count = len(self.sim.time)
+            time_step_count = len(self._sim.time)
 
         # Classify all remaining parameters.
         self._is_current_overlay_only_gj = is_current_overlay_only_gj
@@ -243,7 +260,7 @@ class AnimCellsABC(VisualCellsABC):
         # * Requested by the current simulation configuration via "p.I_overlay".
         # * This configuration is modelling currents via "p.calc_J".
         self._is_overlaying_current = (
-            is_current_overlayable and self.p.I_overlay)
+            is_current_overlayable and self._p.I_overlay)
 
         # Type of animation attempt to be logged below.
         animation_verb = None
@@ -316,25 +333,25 @@ class AnimCellsABC(VisualCellsABC):
         #of the current loop type until we sort out just what is going on with
         #this boolean and/or string enumeration elsewhere.
         #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        if hasattr(self.p, 'plot_type'):
-            plot_type = self.p.plot_type
+        if hasattr(self._p, 'plot_type'):
+            plot_type = self._p.plot_type
         else:
-            plot_type = 'sim' if self.p.run_sim else 'init'
+            plot_type = 'sim' if self._p.run_sim else 'init'
 
         # Path of the phase-specific parent directory of the subdirectory to
         # which these files will be saved.
         loop_dirname = None
         if plot_type == 'sim':
-            loop_dirname = self.p.sim_results
+            loop_dirname = self._p.sim_results
         elif plot_type == 'init':
-            loop_dirname = self.p.init_results
+            loop_dirname = self._p.init_results
         else:
             raise BetseParametersException(
                 'Animation saving unsupported during the "{}" loop.'.format(
                     plot_type))
 
         # Animation configuration localized for convenience.
-        anim_config = self.p.anim
+        anim_config = self._p.anim
 
         # If saving animation frames as either images or video, prepare to do
         # so in a manner common to both.
@@ -445,7 +462,19 @@ class AnimCellsABC(VisualCellsABC):
                     dpi=anim_config.video_dpi,
                 )
 
+    # ..................{ PROPERTIES                         }..................
+    # Read-only properties, preventing callers from resetting these attributes.
 
+    @property
+    def time_step(self) -> int:
+        '''
+        0-based index of the current frame being plotted, corresponding to the
+        0-based sampled time step currently being simulated.
+        '''
+
+        return self._time_step
+
+    # ..................{ ANIMATORS                          }..................
     # This method has been overridden to support subclasses that manually
     # handle animations rather than calling the _animate() method (e.g., the
     # "AnimCellsWhileSolving" subclass).
@@ -457,7 +486,7 @@ class AnimCellsABC(VisualCellsABC):
         if self._is_overlaying_current:
             self._plot_current_density()
 
-    # ..................{ ANIMATORS                          }..................
+
     @type_check
     def _animate(self, *args, **kwargs) -> None:
         '''
@@ -738,7 +767,7 @@ class AnimCellsABC(VisualCellsABC):
         # this index is assumed to be the last index of the current
         # simulation's array of time steps.
         if time_step == -1:
-            time_step_absolute = len(self.sim.time) - 1
+            time_step_absolute = len(self._sim.time) - 1
         # Else, the passed index is already absolute and hence used as is.
         else:
             time_step_absolute = time_step
@@ -825,7 +854,7 @@ class AnimCellsABC(VisualCellsABC):
 
         # Duration in seconds of the current simulation phase (e.g., "init",
         # "run"), accelerated by the current gap junction acceleration factor.
-        time_len = self.p.total_time_accelerated
+        time_len = self._p.total_time_accelerated
 
         # If this phase runs for less than or equal to 100ms, report
         # simulation time in milliseconds (i.e., units of 0.001s).
@@ -853,7 +882,7 @@ class AnimCellsABC(VisualCellsABC):
         # place for readability.
         self._axes.set_title('{} (time: {:.1f}{})'.format(
             self._axes_title,
-            time_unit_factor * self.p.gj_acceleration * self.sim.time[self._time_step],
+            time_unit_factor * self._p.gj_acceleration * self._sim.time[self._time_step],
             time_unit_suffix,
         ))
 
@@ -863,6 +892,7 @@ class AnimCellsABC(VisualCellsABC):
         '''
         Plot the current frame of this animation onto this animation's figure.
         '''
+
         pass
 
     # ..................{ PRIVATE ~ plot : current           }..................
@@ -884,25 +914,25 @@ class AnimCellsABC(VisualCellsABC):
 
             # Interpolate data from cell centres to the xy-grid.
             cell_centres = (
-                self.cells.cell_centres[:, 0], self.cells.cell_centres[:, 1])
-            cell_grid = (self.cells.X, self.cells.Y)
+                self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
+            cell_grid = (self._cells.X, self._cells.Y)
 
-            for i in range(0, len(self.sim.I_cell_x_time)):
-                I_gj_x = self.cells.maskECM * interpolate.griddata(
+            for i in range(0, len(self._sim.I_cell_x_time)):
+                I_gj_x = self._cells.maskECM * interpolate.griddata(
                     cell_centres,
-                    self.sim.I_cell_x_time[i],
+                    self._sim.I_cell_x_time[i],
                     cell_grid,
                     fill_value=0,
-                    method=self.p.interp_type,
+                    method=self._p.interp_type,
                 )
                 I_grid_x_time.append(I_gj_x)
 
-                I_gj_y = self.cells.maskECM * interpolate.griddata(
+                I_gj_y = self._cells.maskECM * interpolate.griddata(
                     cell_centres,
-                    self.sim.I_cell_y_time[i],
+                    self._sim.I_cell_y_time[i],
                     cell_grid,
                     fill_value=0,
-                    method=self.p.interp_type,
+                    method=self._p.interp_type,
                 )
                 I_grid_y_time.append(I_gj_y)
 
@@ -910,8 +940,8 @@ class AnimCellsABC(VisualCellsABC):
             self._current_density_y_time_series = I_grid_y_time
 
         else:
-            self._current_density_x_time_series = self.sim.I_tot_x_time
-            self._current_density_y_time_series = self.sim.I_tot_y_time
+            self._current_density_x_time_series = self._sim.I_tot_x_time
+            self._current_density_y_time_series = self._sim.I_tot_y_time
 
         # Time series of all current density magnitudes (i.e., `Jmag_M`),
         # multiplying by 100 to obtain current density in units of uA/cm2.
@@ -930,9 +960,9 @@ class AnimCellsABC(VisualCellsABC):
         if self._is_current_overlay_only_gj:
             self._axes_title = 'Intracellular Current'
 
-            # #FIXME: Is there any point to this? From what we can tell, the
-            # #"self._current_density_stream_plot" will simply be outright
-            # #replaced for the first and all subsequent frames. Galloping fish!
+            #FIXME: Is there any point to this? From what we can tell, the
+            #"self._current_density_stream_plot" will simply be outright
+            #replaced for the first and all subsequent frames. Galloping fish!
             # self._current_density_stream_plot, self._axes = cell_stream(
             #     self._current_density_x_time_series[-1],
             #     self._current_density_y_time_series[-1],
@@ -941,7 +971,7 @@ class AnimCellsABC(VisualCellsABC):
         else:
             self._axes_title = 'Total Current Overlay'
 
-            # #FIXME: Likewise.
+            #FIXME: Likewise.
             # self._current_density_stream_plot, self._axes = env_stream(
             #     self._current_density_x_time_series[-1],
             #     self._current_density_y_time_series[-1],
@@ -1087,7 +1117,7 @@ class AnimField(AnimCellsAfterSolving):
         self._unit_y_time_series = []
 
         # Prefer an alternative colormap.
-        self._colormap = self.p.background_cm
+        self._colormap = self._p.background_cm
 
 
 class AnimVelocity(AnimCellsAfterSolving):
@@ -1106,4 +1136,4 @@ class AnimVelocity(AnimCellsAfterSolving):
             *args, **kwargs)
 
         # Prefer an alternative colormap.
-        self._colormap = self.p.background_cm
+        self._colormap = self._p.background_cm
