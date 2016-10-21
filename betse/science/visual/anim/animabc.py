@@ -11,6 +11,36 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #refactoring the current overlay approach into a "LayerCellsABC" subclass
 #should correct the breakage. Until then, panic stations!
 
+#FIXME: A potential substantial speedup (albeit possibly non-portable to all
+#possible Matplotlib backends) is as follows:
+#
+#    "One limitation of the methods presented above is that all figure elements
+#     are redrawn with every call to draw, but we are only updating a single
+#     element. Often what we want to do is draw a background, and animate just
+#     one or two elements on top of it. As of matplotlib-0.87, GTKAgg, TkAgg,
+#     WXAgg, and FLTKAgg support the methods discussed here.
+#     The basic idea is to set the 'animated' property of the Artist you want
+#     to animate (all figure elements from Figure to Axes to Line2D to Text
+#     derive from the base class Artist). Then, when the standard canvas draw
+#     operation is called, all the artists except the animated one will be
+#     drawn. You can then use the method background =
+#     canvas.copy_from_bbox(bbox) to copy a rectangular region (eg the axes
+#     bounding box) into a a pixel buffer. In animation, you restore the
+#     background with canvas.restore_region(background), and then call
+#     ax.draw_artist(something) to draw your animated artist onto the clean
+#     background, and canvas.blit(bbox) to blit the updated axes rectangle to
+#     the figure. When I run the example below in the same environment that
+#     produced 36 FPS for GTKAgg above, I measure 327 FPS with the techniques
+#     below. See the caveats on performance numbers mentioned above. Suffice it
+#     to say, quantitatively and qualitiatively it is much faster."
+#
+#For further details, see:
+#
+#    https://scipy.github.io/old-wiki/pages/Cookbook/Matplotlib/Animations.html#Animating_selected_plot_elements
+#
+#As the URL fragment "old-wiki" suggests, there probably exists a newer version
+#of this technique ideally generalizable to all possible Matplotlib backends.
+
 #FIXME: All animations should be displayed in a non-blocking rather than
 #blocking manner, as required for parallelizing the animation pipeline. To
 #minimize memory leaks while doing so, consider responding to animation window
@@ -896,6 +926,7 @@ class AnimCellsABC(VisualCellsABC):
         pass
 
     # ..................{ PRIVATE ~ plot : current           }..................
+    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
     def _init_current_density(self) -> None:
         '''
         Initialize all attributes pertaining to current density.
@@ -950,6 +981,7 @@ class AnimCellsABC(VisualCellsABC):
             np.asarray(self._current_density_y_time_series) ** 2) + 1e-15
 
 
+    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
     def _plot_current_density(self) -> None:
         '''
         Overlay the first frame of this subclass' animation with a streamplot of
@@ -979,6 +1011,7 @@ class AnimCellsABC(VisualCellsABC):
             #
 
 
+    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
     #FIXME: Replace all usage of the "frame_number" parameter with the existing
     #"self._time_step" variable; then remove this parameter.
     @type_check

@@ -57,19 +57,13 @@ from betse.util.type.types import type_check
 class LayerCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting a single feature of
-    the cell cluster.
+    the cell cluster for a parent plot or animation.
 
-    Subclasses of this class plot the spatial distribution of a single modelled
-    variable (e.g., membrane voltage) for one on more simulation time steps.
-
-    Instances of these subclasses are contained by, and hence lower-level than,
-    instances of the higher-level
-    :class:`betse.science.visual.visualabc.VisualCellsABC` abstract base class.
-    Architecturally speaking, each instance of that abstract base class
-    contains one or more instances of subclasses of this abstract base class.
-    Human-readably speaking, each high-level plot and animation object contains
-    multiple low-level layer objects implementing the drawing of that plot or
-    animation object.
+    Each subclass of this class plots the spatial distribution of a single
+    modelled variable (e.g., membrane voltage) for one on more simulation time
+    steps. Each instance of the higher-level
+    :class:`betse.science.visual.visualabc.VisualCellsABC` abstract base class
+    contains one or more instances of subclasses of this lower-level class.
 
     Separating low-level layer logic from high-level plot and animation logic
     (e.g., multithreaded animation frame iteration, video and image exporting)

@@ -739,6 +739,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         )
 
 
+    #FIXME: Replace entirely by the appropriate "LayerCellsStream" subclass.
     @type_check
     def _plot_stream(
         self,
