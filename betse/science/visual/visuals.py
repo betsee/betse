@@ -7,7 +7,7 @@ Utility functions of general-purpose relevance to all plots and animations.
 '''
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
+from betse.lib.numpy import arrays
 from betse.util.type import types
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, NumericTypes)
@@ -105,4 +105,4 @@ def _upscale_data_in_units(
     # Else, this object is a sequence. Return this sequence converted into a
     # Numpy array and then upscaled.
     else:
-        return np.asarray(data) * multiplier
+        return arrays.from_sequence(data) * multiplier

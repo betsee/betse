@@ -17,32 +17,22 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #plots) from the general process of animating and saving frames and plots as
 #follows:
 #
-#* Add a new "plotters" parameter to the AnimCellsABC.__init__() constructor,
-#  classified as a new "AnimCellsABC._plotters" instance variable. This
-#  parameter and variable *MUST* be a list of "CellsPlotterABC" instances. The
-#  order of plotters in this list defines the order in which these plotters are
-#  drawn and hence overlaid onto one another (i.e., z-order).
-#* Refactor AnimCellsABC.__init__() or a method called by that method to iterate
-#  over "self._plotters" and initialize each such layer by calling
-#  layer.init().
-#* Refactor AnimCellsABC.plot_frame() or a related method to iterate over
-#  "self._plotters" and draw each such layer by calling layer.draw().
 #* Refactor all concrete subclasses of "AnimCellsABC" into one or more
-#  subclasses of "CellsPlotterABC" instead, which may then be instantiated and
-#  composed together into a new "plotters" list passed to
-#  CellsPlotterABC.__init__(). For example:
+#  subclasses of "LayerCellsABC" instead, which may then be instantiated and
+#  composed together into a new "layers" list passed to
+#  CellsLayerABC.__init__(). For example:
 #  * Split the existing "AnimGapJuncTimeSeries" subclass into:
-#    * A new "CellsPlotterGapJunc" subclass plotting *ONLY* the gap junction
+#    * A new "CellsLayerGapJunc" subclass plotting *ONLY* the gap junction
 #      open state as a "LineCollection" overlay. This layer subclass would
 #      probably only be used for this specific purpose.
-#    * A new "CellsPlotterTimeSeries" subclass plotting *ONLY* an arbitrary
+#    * A new "CellsLayerTimeSeries" subclass plotting *ONLY* an arbitrary
 #      time series for the cell cluster as a mesh plot underlay. Clearly, this
 #      layer subclass would be extensively reused elsewhere as well.
-#* Replace all current overlay functionality in "AnimCellsABC" with "plotters".
+#* Replace all current overlay functionality in "AnimCellsABC" with "layers".
 #* Refactor the configuration file from the current hard-coded non-composable
 #  approach to a dynamic list-based approach permitting zero or more
 #  user-defined animations, each consisting of one or more stock BETSE-defined
-#  plotters, to be defined. Users would then be able to construct arbitrarily
+#  layers, to be defined. Users would then be able to construct arbitrarily
 #  simple or complex animations as required.
 #
 #So, yes. It's quite a bit of work. But it's absolutely essential as well,

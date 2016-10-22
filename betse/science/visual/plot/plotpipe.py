@@ -45,7 +45,7 @@ import numpy as np
 import os
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
-from betse.exceptions import BetseParametersException
+from betse.exceptions import BetseSimConfigException
 from betse.science.visual.plot import plot as viz
 from betse.science.visual.anim.animpipe import pipeline_anims
 from betse.util.io.log import logs
@@ -194,7 +194,7 @@ def pipeline_plots(
 
     # check that the plot cell is in range of the available cell indices:
     if p.plot_cell not in cells.cell_i:
-        raise BetseParametersException(
+        raise BetseSimConfigException(
             'The "plot cell" defined in the "results" section of your '
             'configuration file does not exist in your cluster. '
             'Choose a plot cell number smaller than the maximum cell number.')

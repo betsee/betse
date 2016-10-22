@@ -31,8 +31,9 @@ Matplotlib-based animation classes.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from enum import Enum
-from betse.exceptions import BetseParametersException
+from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
+from betse.lib.numpy import arrays
 from betse.science.visual import visuals
 from betse.science.visual.layer.layershaded import LayerCellsGouraudShaded
 from betse.science.visual.anim.animabc import (
@@ -656,7 +657,7 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
 #gap junction-centric time series displayed. Alternately, might it be possible
 #to filter the cell-centric time series with some sort of alpha-based fading
 #effect -- reducing the prominance of that series but not entirely eliminating
-#that series. Contemplate us up, anyways.
+#that series? Contemplate us up, anyways.
 
 class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
     '''
@@ -711,7 +712,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Gap junction data series for the first frame plotted as lines.
         self._gapjunc_plot = LineCollection(
-            np.asarray(self._cells.nn_edges) * self._p.um,
+            visuals.upscale_cell_coordinates(self._cells.nn_edges),
             array=self._time_series[0],
             cmap=self._p.gj_cm,
             linewidths=2.0,
@@ -1209,8 +1210,8 @@ class AnimVelocityExtracellular(AnimVelocity):
 
         # Time series of all velocity magnitudes.
         self._magnitude_time_series = np.sqrt(
-            np.asarray(self._sim.u_env_x_time) ** 2 +
-            np.asarray(self._sim.u_env_y_time) ** 2) * 1e9
+            arrays.from_sequence(self._sim.u_env_x_time) ** 2 +
+            arrays.from_sequence(self._sim.u_env_y_time) ** 2) * 1e9
 
         # Velocity field and maximum velocity field value for the first frame.
         vfield = self._magnitude_time_series[0]
@@ -1313,6 +1314,85 @@ class AnimCurrent(AnimCellsAfterSolving):
         self._mesh_plot.set_data(Jmag_M)
 
 
+    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
+    def _init_current_density(self) -> None:
+        '''
+        Initialize all attributes pertaining to current density.
+
+        Specifically, this method defines the `_current_density_x_time_series`,
+        `_current_density_y_time_series`, and
+        `_current_density_magnitude_time_series` attributes. These attributes
+        are required both by this superclass for animating current overlays
+        _and_ by current-specific subclasses.
+        '''
+
+        # Time series of all current density X and Y components.
+        if self._is_current_overlay_only_gj is True:
+            I_grid_x_time = []
+            I_grid_y_time = []
+
+            # Interpolate data from cell centres to the xy-grid.
+            cell_centres = (
+                self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
+            cell_grid = (self._cells.X, self._cells.Y)
+
+            for i in range(0, len(self._sim.I_cell_x_time)):
+                I_gj_x = self._cells.maskECM * interpolate.griddata(
+                    cell_centres,
+                    self._sim.I_cell_x_time[i],
+                    cell_grid,
+                    fill_value=0,
+                    method=self._p.interp_type,
+                )
+                I_grid_x_time.append(I_gj_x)
+
+                I_gj_y = self._cells.maskECM * interpolate.griddata(
+                    cell_centres,
+                    self._sim.I_cell_y_time[i],
+                    cell_grid,
+                    fill_value=0,
+                    method=self._p.interp_type,
+                )
+                I_grid_y_time.append(I_gj_y)
+
+            self._current_density_x_time_series = I_grid_x_time
+            self._current_density_y_time_series = I_grid_y_time
+
+        else:
+            self._current_density_x_time_series = self._sim.I_tot_x_time
+            self._current_density_y_time_series = self._sim.I_tot_y_time
+
+        # Time series of all current density magnitudes (i.e., `Jmag_M`),
+        # multiplying by 100 to obtain current density in units of uA/cm2.
+        self._current_density_magnitude_time_series = 100*np.sqrt(
+            np.asarray(self._current_density_x_time_series) ** 2 +
+            np.asarray(self._current_density_y_time_series) ** 2) + 1e-15
+
+
+    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
+    def _replot_current_density(self, frame_number: int) -> None:
+        '''
+        Overlay the passed frame of this subclass' animation with a streamplot
+        of either electric current or concentration flux.
+
+        Parameters
+        -----------
+        frame_number : int
+            0-based index of the frame to be plotted.
+        '''
+
+        # Current density magnitudes for this frame.
+        Jmag_M = self._current_density_magnitude_time_series[frame_number]
+
+        # Erase the prior frame's overlay and streamplot this frame's overlay.
+        self._current_density_stream_plot = self._plot_stream(
+            old_stream_plot=self._current_density_stream_plot,
+            x=self._current_density_x_time_series[frame_number] / Jmag_M,
+            y=self._current_density_y_time_series[frame_number] / Jmag_M,
+            magnitude=Jmag_M,
+        )
+
+
 #FIXME: Use below in lieu of string constants. Or maybe we won't need this
 #after we split "AnimDeformTimeSeries" into two subclasses, as suggested below?
 AnimDeformStyle = Enum('AnimDeformStyle', ('STREAMLINE', 'VECTOR'))
@@ -1409,7 +1489,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
                 dx, dy, self._axes, self._cells, self._p,
                 showing_cells=False)
         elif self._p.ani_Deformation_style != 'None':
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 'Deformation animation style "{}" not '
                 '"vector", "streamline", or "None".'.format(
                     self._p.ani_Deformation_style))
@@ -1549,7 +1629,7 @@ class AnimateDeformation(object):
                 dx[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 2] +
                 dy[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 3])
         else:
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 "Definition of 'data type' in deformation animation\n"
                 "must be either 'Vmem' or 'Displacement'.")
 
@@ -1568,7 +1648,7 @@ class AnimateDeformation(object):
         elif p.ani_Deformation_style == 'None':
             pass
         else:
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 "Definition of 'style' in deformation animation\n"
                 "must be either 'vector' or 'streamline'.")
 
@@ -1612,7 +1692,7 @@ class AnimateDeformation(object):
             elif self.p.plot_type == 'init':
                 phase_dirname = self.p.init_results
             else:
-                raise BetseParametersException(
+                raise BetseSimConfigException(
                     'Anim saving unsupported during the "{}" phase.'.format(
                         self.p.plot_type))
 

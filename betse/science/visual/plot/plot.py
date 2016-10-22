@@ -12,7 +12,7 @@ import numpy.ma as ma
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
 
-from betse.exceptions import BetseParametersException
+from betse.exceptions import BetseSimConfigException
 from betse.util.io.log import logs
 from betse.util.path import dirs
 from betse.util.type import types
@@ -1668,7 +1668,7 @@ def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
         images_dirname = os.path.join(p.init_results, ani_obj.saveFolder)
 
     else:
-        raise BetseParametersException(
+        raise BetseSimConfigException(
             'Anim saving for phase "{}" unsupported.'.format(p.plot_type))
 
     #FIXME: Refactor all calls to os.makedirs() everywhere similarly.

@@ -100,7 +100,7 @@ def run_script(
 
     # Avoid polluting the module namespace captured into the "repl_env" global
     # below with these function-specific attributes.
-    from betse.exceptions import BetseArgumentParserException
+    from betse.exceptions import BetseCLIArgParserException
     from betse.script import argv
     from betse.util.io.log.logs import log_info
 
@@ -126,7 +126,7 @@ def run_script(
                 exec(script_file.read(), g, l)
             else:
                 exec(script_file.read())
-    except BetseArgumentParserException:
+    except BetseCLIArgParserException:
         pass
     finally:
         argv.uninitialize()

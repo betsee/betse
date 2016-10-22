@@ -7,7 +7,7 @@
 import argparse
 from argparse import Namespace
 from betse.exceptions import (
-    BetseArgumentException, BetseArgumentParserException)
+    BetseCLIArgException, BetseCLIArgParserException)
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ CLASSES                            }....................
@@ -125,13 +125,13 @@ class BetseScriptArguments(object):
 
         Raises
         ----------
-        BetseArgumentException
+        BetseCLIArgException
             If this argument list has yet to be set.
         '''
 
         # If an argument list has yet to be set, raise an exception.
         if not self.is_initialized:
-            raise BetseArgumentException('Argument list undefined.')
+            raise BetseCLIArgException('Argument list undefined.')
 
         # Else, return the desired argument.
         return self.argv[index]
@@ -229,7 +229,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 return super().parse_args(args=argv[1:], namespace=namespace)
             return super().parse_args(args=args, namespace=namespace)
         except SystemExit as e:
-            raise BetseArgumentParserException(e.code)
+            raise BetseCLIArgParserException(e.code)
 
 # ....................{ SINGLETONS                         }....................
 argv = BetseScriptArguments()

@@ -9,7 +9,7 @@ profiles.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
-from betse.exceptions import BetseParametersException
+from betse.exceptions import BetseSimConfigException
 from betse.science.tissue.picker import (TissuePicker, TissuePickerBitmap)
 from betse.util.type import types
 
@@ -105,7 +105,7 @@ class Profile(object, metaclass = ABCMeta):
 
             # Else, this profile is invalid. Raise an exception, matey!
             else:
-                raise BetseParametersException(
+                raise BetseSimConfigException(
                     'Profile type "{}"' 'unrecognized.'.format(profile_type))
 
         return profile

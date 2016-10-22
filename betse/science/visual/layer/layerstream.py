@@ -9,9 +9,11 @@ Layer subclasses spatially overlaying streamlines onto the current cell cluster.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import abstractmethod
-# from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
+from betse.exceptions import BetseSimConfigException
+from betse.lib.numpy import arrays
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.util.type import sequences
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
 from scipy import interpolate
@@ -81,8 +83,7 @@ class LayerCellsStream(LayerCellsABC):
         pass
 
     # ..................{ SUPERCLASS                         }..................
-    @type_check
-    def layer_first(self) -> None:
+    def _layer_first(self) -> None:
         '''
         Simulate and layer streamlines of a single modelled vector field (e.g.,
         intracellular current) for the next time step onto the figure axes of
@@ -134,18 +135,10 @@ class LayerCellsStream(LayerCellsABC):
 
             # Factor by which to upscale the size of all streamline arrowheads.
             arrowsize=1.5,
-
-            #FIXME: Are either of the following required? We suspect... not.
-
-            # Draw this streamplot over all patch and line artists, by default.
-            # See the "ZORDER_STREAM" docstring for further commentary.
-            # zorder=ZORDER_STREAM,
-            # cmap=self._colormap,
         )
 
 
-    @type_check
-    def layer_next(self) -> None:
+    def _layer_next(self) -> None:
         '''
         Simulate and layer streamlines of a single modelled vector field (e.g.,
         intracellular current) for the first time step onto the figure axes of
@@ -171,7 +164,7 @@ class LayerCellsStream(LayerCellsABC):
             ]
 
         # Replot this streamplot for this time step.
-        self.layer_first()
+        self._layer_first()
 
 
 class LayerCellsStreamCurrent(LayerCellsStream):
@@ -186,15 +179,15 @@ class LayerCellsStreamCurrent(LayerCellsStream):
 
     Attributes
     ----------
-    _time_current_x : SequenceTypes
+    _time_currents_x : SequenceTypes
         Two-dimensional sequence whose:
         * First dimension indexes each time step of this simulation.
         * Second dimension indexes the X components of all current density
           vectors computed for the corresponding time step.
-    _time_current_y : SequenceTypes
+    _time_currents_y : SequenceTypes
         Two-dimensional sequence of the same format as `time_current_x`,
         replacing "X components" by "Y components".
-    _time_current_magnitude : SequenceTypes
+    _time_currents_magnitude : SequenceTypes
         Two-dimensional sequence whose:
         * First dimension indexes each time step of this simulation.
         * Second dimension indexes the magnitudes (commonly referred to as
@@ -227,8 +220,16 @@ class LayerCellsStreamCurrent(LayerCellsStream):
         self._prep_time_currents_components()
 
         # For efficiency, coerce these possibly non-array sequences into arrays.
-        self._time_currents_x = np.asarray(self._time_current_x)
-        self._time_currents_y = np.asarray(self._time_current_y)
+        self._time_currents_x = arrays.from_sequence(self._time_currents_x)
+        self._time_currents_y = arrays.from_sequence(self._time_currents_y)
+
+        # If either of these arrays is empty (e.g., due to erroneously
+        # attempting to layer extracellular current with extracellular spaces
+        # disabled), raise an exception.
+        sequences.die_if_empty(
+            self._time_currents_x, label='X current components')
+        sequences.die_if_empty(
+            self._time_currents_y, label='Y current components')
 
         # Array of current density magnitude computed from these arrays:
         #
@@ -289,7 +290,16 @@ class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
         Define the :attr:`_time_currents_x` and :attr:`_time_currents_y` arrays
         to simply be synonyms of the :attr:`Simulator.sim.I_tot_x_time` and
         :attr:`Simulator.sim.I_tot_y_time` arrays (_respectively_).
+
+        Raises
+        ----------
+        BetseSimConfigException
+            If extracellular spaces are disabled.
         '''
+
+        # If extracellular spaces are disabled, raise an exception.
+        if not self._visual.p.sim_ECM:
+            raise BetseSimConfigException('Extracellular spaces disabled.')
 
         self._time_currents_x = self._visual.sim.I_tot_x_time
         self._time_currents_y = self._visual.sim.I_tot_y_time
@@ -316,6 +326,7 @@ class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrent):
         computed here.
         '''
 
+        # print('!!!!in Intra')
         # Two-dimensional tuple of the X and Y components of all cell centers.
         dimensions_cells_center = (
             self._visual.cells.cell_centres[:, 0],

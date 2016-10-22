@@ -11,7 +11,7 @@ import matplotlib.cm as cm
 import numpy as np
 import os, os.path
 import time
-from betse.exceptions import BetseSimulationException
+from betse.exceptions import BetseSimException
 from matplotlib.collections import LineCollection, PolyCollection
 from matplotlib import animation
 from betse import ignition, pathtree

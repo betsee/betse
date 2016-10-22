@@ -99,19 +99,19 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from abc import abstractmethod
-from betse.exceptions import BetseParametersException
+from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
 from betse.science.visual.visualabc import VisualCellsABC
+from betse.science.visual.layer.layerstream import (
+    LayerCellsStreamCurrentIntra, LayerCellsStreamCurrentIntraExtra,)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, NoneType, SequenceTypes
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
-from scipy import interpolate
 
 # ....................{ BASE                               }....................
 class AnimCellsABC(VisualCellsABC):
@@ -159,22 +159,6 @@ class AnimCellsABC(VisualCellsABC):
 
     Attributes (Private: Current)
     ----------
-    _current_density_magnitude_time_series : ndarray
-        Time series of all current density magnitudes (i.e., `Jmag_M`) if the
-        optional `_init_current_density()` method has been called for
-        this animation _or_ `None` otherwise.
-    _current_density_x_time_series : list
-        Time series of all current density X components if the optional
-        `_init_current_density()` method has been called for this
-        animation _or_ `None` otherwise.
-    _current_density_y_time_series : list
-        Time series of all current density Y components if the optional
-        `_init_current_density()` method has been called for this
-        animation _or_ `None` otherwise.
-    _current_density_stream_plot : matplotlib.streamplot.StreamplotSet
-        Streamplot of either electric current or concentration flux overlayed
-        over this subclass' animation if `_is_overlaying_current` is
-        `True` _or_ `None` otherwise.
     _is_overlaying_current : bool
         `True` if overlaying either electric current or concentration flux
         streamlines onto this animation _or_ `False` otherwise. By design, this
@@ -266,7 +250,7 @@ class AnimCellsABC(VisualCellsABC):
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
         if is_ecm_required and not self._p.sim_ECM:
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
                 self._label))
@@ -312,10 +296,6 @@ class AnimCellsABC(VisualCellsABC):
                 '%s animation "%s"...', animation_verb, self._label)
 
         # Classify attributes to be possibly redefined below.
-        self._current_density_magnitude_time_series = None
-        self._current_density_x_time_series = None
-        self._current_density_y_time_series = None
-        self._current_density_stream_plot = None
         self._writer_images = None
         self._writer_video = None
 
@@ -324,10 +304,6 @@ class AnimCellsABC(VisualCellsABC):
 
         # If saving animations, prepare to do so.
         self._init_saving(save_dir_parent_basename)
-
-        # If overlaying current, prepare to do so.
-        if self._is_overlaying_current:
-            self._init_current_density()
 
 
     @type_check
@@ -376,7 +352,7 @@ class AnimCellsABC(VisualCellsABC):
         elif plot_type == 'init':
             loop_dirname = self._p.init_results
         else:
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 'Animation saving unsupported during the "{}" loop.'.format(
                     plot_type))
 
@@ -510,11 +486,23 @@ class AnimCellsABC(VisualCellsABC):
     # "AnimCellsWhileSolving" subclass).
     def _prep_figure(self, *args, **kwargs) -> None:
 
-        super()._prep_figure(*args, **kwargs)
+        #FIXME: Shift this logic into the superclass _prep_figure()
+        #implementation *AFTER* eliminating these boolean attributes, as
+        #detailed in an __init__() method FIXME comment above.
 
-        # If overlaying current, do so.
+        # If overlaying current, append a layer doing so *AFTER* all lower
+        # layers (e.g., cell data) have been appended but *BEFORE* all higher
+        # layers (e.g., cell labelling) have been appended.
         if self._is_overlaying_current:
-            self._plot_current_density()
+            # If layering only intracellular current, do so.
+            if self._is_current_overlay_only_gj:
+                self._append_layer(LayerCellsStreamCurrentIntra())
+            # Else, layer both intra- and extracellular current.
+            else:
+                self._append_layer(LayerCellsStreamCurrentIntraExtra())
+
+        # Perform superclass figure preparation.
+        super()._prep_figure(*args, **kwargs)
 
 
     @type_check
@@ -810,12 +798,6 @@ class AnimCellsABC(VisualCellsABC):
         # Classify this time step for subsequent access by subclasses.
         self._time_step = time_step
 
-        # If plotting a current overlay, do so.
-        if self._is_overlaying_current:
-            #FIXME: Refactor _replot_current_density() to use
-            #"self._time_step" rather than repass this parameter everywhere.
-            self._replot_current_density(self._time_step)
-
         # Plot this frame's title *BEFORE* this frame, allowing axes changes
         # performed by the subclass implementation of the _plot_frame_figure()
         # method called below to override the default title.
@@ -823,7 +805,7 @@ class AnimCellsABC(VisualCellsABC):
 
         # Plot this frame via external layers *BEFORE* plotting this frame
         # via subclass logic, allowing the latter to override the former.
-        self._visualize_layers()
+        self._plot_layers()
 
         # Plot this frame via subclass logic *AFTER* performing all
         # superclass-specific plotting.
@@ -924,118 +906,6 @@ class AnimCellsABC(VisualCellsABC):
         '''
 
         pass
-
-    # ..................{ PRIVATE ~ plot : current           }..................
-    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
-    def _init_current_density(self) -> None:
-        '''
-        Initialize all attributes pertaining to current density.
-
-        Specifically, this method defines the `_current_density_x_time_series`,
-        `_current_density_y_time_series`, and
-        `_current_density_magnitude_time_series` attributes. These attributes
-        are required both by this superclass for animating current overlays
-        _and_ by current-specific subclasses.
-        '''
-
-        # Time series of all current density X and Y components.
-        if self._is_current_overlay_only_gj is True:
-            I_grid_x_time = []
-            I_grid_y_time = []
-
-            # Interpolate data from cell centres to the xy-grid.
-            cell_centres = (
-                self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
-            cell_grid = (self._cells.X, self._cells.Y)
-
-            for i in range(0, len(self._sim.I_cell_x_time)):
-                I_gj_x = self._cells.maskECM * interpolate.griddata(
-                    cell_centres,
-                    self._sim.I_cell_x_time[i],
-                    cell_grid,
-                    fill_value=0,
-                    method=self._p.interp_type,
-                )
-                I_grid_x_time.append(I_gj_x)
-
-                I_gj_y = self._cells.maskECM * interpolate.griddata(
-                    cell_centres,
-                    self._sim.I_cell_y_time[i],
-                    cell_grid,
-                    fill_value=0,
-                    method=self._p.interp_type,
-                )
-                I_grid_y_time.append(I_gj_y)
-
-            self._current_density_x_time_series = I_grid_x_time
-            self._current_density_y_time_series = I_grid_y_time
-
-        else:
-            self._current_density_x_time_series = self._sim.I_tot_x_time
-            self._current_density_y_time_series = self._sim.I_tot_y_time
-
-        # Time series of all current density magnitudes (i.e., `Jmag_M`),
-        # multiplying by 100 to obtain current density in units of uA/cm2.
-        self._current_density_magnitude_time_series = 100*np.sqrt(
-            np.asarray(self._current_density_x_time_series) ** 2 +
-            np.asarray(self._current_density_y_time_series) ** 2) + 1e-15
-
-
-    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
-    def _plot_current_density(self) -> None:
-        '''
-        Overlay the first frame of this subclass' animation with a streamplot of
-        either electric current or concentration flux.
-        '''
-
-        # If animating only intracellular current, do so.
-        if self._is_current_overlay_only_gj:
-            self._axes_title = 'Intracellular Current'
-
-            #FIXME: Is there any point to this? From what we can tell, the
-            #"self._current_density_stream_plot" will simply be outright
-            #replaced for the first and all subsequent frames. Galloping fish!
-            # self._current_density_stream_plot, self._axes = cell_stream(
-            #     self._current_density_x_time_series[-1],
-            #     self._current_density_y_time_series[-1],
-            #     self._axes, self.cells, self.p)
-        # If animating both extracellular and intracellular current, do so.
-        else:
-            self._axes_title = 'Total Current Overlay'
-
-            #FIXME: Likewise.
-            # self._current_density_stream_plot, self._axes = env_stream(
-            #     self._current_density_x_time_series[-1],
-            #     self._current_density_y_time_series[-1],
-            #     self._axes, self.cells, self.p)
-            #
-
-
-    #FIXME: Replace by the appropriate "LayerCellsStreamCurrent" subclass.
-    #FIXME: Replace all usage of the "frame_number" parameter with the existing
-    #"self._time_step" variable; then remove this parameter.
-    @type_check
-    def _replot_current_density(self, frame_number: int) -> None:
-        '''
-        Overlay the passed frame of this subclass' animation with a streamplot
-        of either electric current or concentration flux.
-
-        Parameters
-        -----------
-        frame_number : int
-            0-based index of the frame to be plotted.
-        '''
-
-        # Current density magnitudes for this frame.
-        Jmag_M = self._current_density_magnitude_time_series[frame_number]
-
-        # Erase the prior frame's overlay and streamplot this frame's overlay.
-        self._current_density_stream_plot = self._plot_stream(
-            old_stream_plot=self._current_density_stream_plot,
-            x=self._current_density_x_time_series[frame_number] / Jmag_M,
-            y=self._current_density_y_time_series[frame_number] / Jmag_M,
-            magnitude=Jmag_M,
-        )
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Refactor as follows:

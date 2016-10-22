@@ -34,8 +34,7 @@ class BetseOSException(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ python                }....................
-#FIXME: Rename to BetsePyException().
-class BetseInterpreterException(BetseException):
+class BetsePyException(BetseException):
     '''
     General-purpose low-level Python interpreter exception.
 
@@ -46,8 +45,7 @@ class BetseInterpreterException(BetseException):
     pass
 
 
-#FIXME: Rename to BetsePyFrozenException().
-class BetseFrozenException(BetseInterpreterException):
+class BetsePyFrozenException(BetsePyException):
     '''
     Low-level exception pertaining to **frozen executables** (i.e., Python
     codebases converted into platform-specific executables).
@@ -55,24 +53,22 @@ class BetseFrozenException(BetseInterpreterException):
     pass
 
 
-class BetseModuleException(BetseInterpreterException):
+class BetseModuleException(BetsePyException):
     '''
     Module-specific exception.
     '''
     pass
 
 # ....................{ EXCEPTIONS ~ arg                  }....................
-#FIXME: Rename to BetseCLIArgException().
 #FIXME: Raise this exception throughout the "betse.cli" subpackage.
-class BetseArgumentException(BetseException):
+class BetseCLIArgException(BetseException):
     '''
     Command-line argument-specific exception.
     '''
     pass
 
 
-#FIXME: Rename to BetseCLIArgParserException().
-class BetseArgumentParserException(SystemExit):
+class BetseCLIArgParserException(SystemExit):
     '''
     :class:`betse.script.argparse.ArgumentParser`-specific exception connoting
     the :meth:`betse.script.argparse.parse_args` method to have unsuccessfully
@@ -201,8 +197,7 @@ class BetseNumericException(BetseException):
     pass
 
 
-#FIXME: Rename to "BetseIntException".
-class BetseIntegerException(BetseException):
+class BetseIntException(BetseException):
     '''
     Integer-specific type or value exception.
     '''
@@ -216,8 +211,14 @@ class BetseIterableException(BetseException):
     pass
 
 
-#FIXME: Rename to "BetseStrException".
-class BetseStringException(BetseException):
+class BetseSequenceException(BetseException):
+    '''
+    Sequence-specific type or value exception.
+    '''
+    pass
+
+
+class BetseStrException(BetseException):
     '''
     String-specific type or value exception.
     '''
@@ -231,26 +232,23 @@ class BetseRegexException(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ science               }....................
-#FIXME: Rename to "BetseSimConfigException".
-class BetseParametersException(BetseException):
+class BetseSimException(BetseException):
     '''
-    Parameters-specific exception.
-    '''
-    pass
-
-
-#FIXME: Rename to "BetseSimException".
-class BetseSimulationException(BetseException):
-    '''
-    Simulation-specific exception.
+    General-purpose simulation exception.
     '''
     pass
 
 
-#FIXME: Rename to "BetseSimInstabilityException".
-class BetseSimulationInstabilityException(BetseSimulationException):
+class BetseSimConfigException(BetseException):
     '''
-    Simulation-specific exception connoting the current simulation to have
-    gone computationally unstable.
+    Simulation configuration-specific exception.
+    '''
+    pass
+
+
+class BetseSimInstabilityException(BetseSimException):
+    '''
+    Exception indicating the current simulation to have erroneously become
+    computationally unstable.
     '''
     pass

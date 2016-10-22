@@ -16,6 +16,8 @@ import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
+from betse.lib.numpy import arrays
+from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
 from betse.science.visual.layer.layertext import LayerCellsIndex
 from betse.util.type import iterables, objects, types
@@ -410,9 +412,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             * `None`, the subclass is responsible for colorbar autoscaling.
         '''
 
-        # If labelling each cell by its 0-based index, append a layer doing so.
-        # To ensure these labels are layered above spatial cell data, doing so
-        # is deferred until sufficiently late in the initialization process.
+        # If labelling each cell with its 0-based index, append a layer doing
+        # so *AFTER* all lower layers (e.g., cell data) have been appended,
         if self._p.enumerate_cells:
             self._append_layer(LayerCellsIndex())
 
@@ -674,10 +675,23 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             layer.prep(self)
 
 
-    def _visualize_layers(self) -> None:
+    def _plot_layers(self) -> None:
         '''
-        Iteratively visualize all layers onto this plot or animation for the
+        Iteratively plot all layers onto this plot or animation for the
         current time step of this simulation.
+
+        If this is:
+
+        * The first time step, each such layer adds one or more Matplotlib
+          artists to the figure for this plot or animation.
+        * Any time step _except_ the first, each such layer either:
+          * Updates the contents of all artists previously added by that layer.
+            This is the most efficient and hence ideal approach, but infeasible
+            in cases in which updating artists is infeasible (e.g., the
+            streamlines of a streamplot).
+          * Removes all artists previously added by that layer _and_ adds new
+            artists whose contents reflect this time step. This is the least
+            efficient and hence least ideal approach.
         '''
 
         for layer in self._layers:
@@ -978,7 +992,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
             # Update this plot in-place.
             cell_plot.set_array(cell_data)
-            cell_plot.set_verts(np.asarray(self._cells.cell_verts) * self._p.um)
+            cell_plot.set_verts(
+                arrays.from_sequence(self._cells.cell_verts) * self._p.um)
 
             # Return the same plot.
             return cell_plot
@@ -1015,7 +1030,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=np.asarray(self._cells.cell_verts) * self._p.um,
+            verts=visuals.upscale_cell_coordinates(self._cells.cell_verts),
             cmap=self._colormap,
             edgecolors='none',
         )

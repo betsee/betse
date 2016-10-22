@@ -9,7 +9,7 @@ Low-level string facilities.
 
 # ....................{ IMPORTS                            }....................
 import textwrap
-from betse.exceptions import BetseStringException
+from betse.exceptions import BetseStrException
 from betse.util.type import types
 from betse.util.type.types import type_check, SequenceTypes
 from textwrap import TextWrapper
@@ -51,7 +51,7 @@ def die_if_empty(text: str, exception_message: str = None) -> None:
             exception_message = 'Text empty.'.format()
 
         # Raise this exception.
-        raise BetseStringException(exception_message)
+        raise BetseStrException(exception_message)
 
 
 @type_check
@@ -81,7 +81,7 @@ def die_unless_prefix(
                 text, prefix)
 
         # Raise this exception.
-        raise BetseStringException(exception_message)
+        raise BetseStrException(exception_message)
 
 # ....................{ TESTERS                            }....................
 def is_prefix(text: str, prefix: str) -> bool:
@@ -469,7 +469,7 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
 
     Raises
     ----------
-    BetseStringException
+    BetseStrException
         If either:
         * This string does _not_ contain this suffix prefix.
         * This suffix prefix is the empty string.
@@ -486,7 +486,7 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
         # ...failing to provide the contents of these arguments, wrap this
         # exception with a fine-grained exception providing these contents.
         if str(exception) == 'substring not found':
-            raise BetseStringException(
+            raise BetseStrException(
                 'Text "{}" contains no suffix prefix "{}".'.format(
                     text, suffix_prefix))
 

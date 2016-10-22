@@ -18,7 +18,7 @@ poor form. Call these functions _only_ where necessary.
 # ....................{ IMPORTS                            }....................
 import platform, sys
 from betse import metadata
-from betse.exceptions import BetseInterpreterException
+from betse.exceptions import BetsePyException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
@@ -173,7 +173,7 @@ def get_filename() -> str:
 
     # If this path is retrievable by Python, raise an exception.
     if not py_filename:
-        raise BetseInterpreterException(
+        raise BetsePyException(
             'Absolute path of Python interpreter not retrievable.')
 
     # Return this path.

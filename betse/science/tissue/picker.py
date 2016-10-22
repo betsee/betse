@@ -10,7 +10,7 @@ of the total cell population to the corresponding tissue profile.
 # ....................{ IMPORTS                            }....................
 import random
 from abc import ABCMeta, abstractmethod
-from betse.exceptions import BetseParametersException
+from betse.exceptions import BetseSimConfigException
 from betse.science import toolbox
 from betse.util.path import files, paths
 from betse.util.type import types
@@ -86,7 +86,7 @@ class TissuePicker(object, metaclass = ABCMeta):
         elif picker_type == 'random':
             picker = TissuePickerRandom(config['random'])
         else:
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 'Tissue picker type "{}"' 'unrecognized.'.format(picker_type))
 
         return picker
@@ -301,7 +301,7 @@ class TissuePickerRandom(TissuePicker):
         # If this is not a valid percentage, raise an exception. This is
         # important enough to always test rather than defer to assertions.
         if not 0.0 <= percentage <= 100.0:
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 '{} not in the range [0.0, 100.0].'.format(percentage))
 
         self.percentage = percentage

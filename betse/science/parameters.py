@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 import numpy as np
 
-from betse.exceptions import BetseParametersException
+from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib import matplotlibs
 from betse.science.config import sim_config
 from betse.science.event.cut import ActionCut
@@ -1291,7 +1291,7 @@ class Parameters(object):
 
         # Else, this ion profile name is unrecognized. Raise an exception.
         else:
-            raise BetseParametersException(
+            raise BetseSimConfigException(
                 'Ion profile name "{}" unrecognized.'.format(self.ion_profile))
 
 

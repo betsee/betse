@@ -14,11 +14,85 @@ betse.util.type.types.is_sequence
 '''
 
 # ....................{ IMPORTS                            }....................
-from collections.abc import Container, Mapping
-
+from betse.exceptions import BetseSequenceException
 from betse.util.type import types
 from betse.util.type.types import type_check, CallableTypes, SequenceTypes
+from collections.abc import Container, Mapping
 
+# ....................{ EXCEPTIONS                         }....................
+@type_check
+def die_if_empty(
+    *sequences: SequenceTypes, label: str = 'Sequence') -> None:
+    '''
+    Raise an exception prefixed by the passed label unless all passed sequences
+    are **non-empty** (i.e., contain at least one element).
+
+    Parameters
+    ----------
+    sequences: tuple
+        Tuple of all sequences to be validated.
+    label : optional[str]
+        Human-readable label prefixing exception messages raised by this method.
+        Defaults to a general-purpose string.
+
+    Raises
+    ----------
+    BetseSequenceException
+        If any passed sequence is empty.
+    '''
+
+    # If only one sequence is passed...
+    if len(sequences) == 1:
+        # If this sequence is non-empty, raise a simplistic exception.
+        if is_empty(sequences[0]):
+            raise BetseSequenceException('{} empty.'.format(label.capitalize()))
+    # Else, multiple sequences are passed.
+    else:
+        # For each such sequence...
+        for sequence_index, sequence in enumerate(sequences):
+            # If this sequence is non-empty, raise an exception identifying the
+            # index of this sequence in this parameter list.
+            if is_empty(sequence):
+                raise BetseSequenceException(
+                    '{} {} empty.'.format(label.capitalize(), sequence_index))
+
+# ....................{ TESTERS                            }....................
+@type_check
+def is_empty(*sequences: SequenceTypes) -> bool:
+    '''
+    `True` only if all passed sequences are **empty** (i.e., contain no
+    elements).
+
+    Parameters
+    ----------
+    sequences: tuple
+        Tuple of all sequences to be tested.
+
+    Returns
+    ----------
+    bool
+        `True` only if these sequences are all empty.
+    '''
+
+    # For each such sequence...
+    for sequence_index, sequence in enumerate(sequences):
+        # If this sequence is non-empty, return False. To transparently support
+        # Numpy arrays, the length of this sequence *MUST* be explicitly tested
+        # via the len() builtin rather than implicitly tested as a boolean. On
+        # attempting the latter, Numpy raises the following exception:
+        #
+        #     ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
+        #
+        # For the same reason, this inefficient iteration *CANNOT* be
+        # efficiently reimplemented in terms of the all() builtin:
+        #
+        #     # Numpy raises the same exception as above, sadly.
+        #     return all(not sequence for sequence in sequences)
+        if len(sequence) != 0:
+            return False
+
+    # Else, these sequences are all empty. Return True.
+    return True
 
 # ....................{ GETTERS                            }....................
 @type_check

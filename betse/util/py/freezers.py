@@ -10,7 +10,7 @@ converted into one or more platform-specific executable binaries) facilities.
 
 # ....................{ IMPORTS                            }....................
 import sys
-from betse.exceptions import BetseFrozenException
+from betse.exceptions import BetsePyFrozenException
 # from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ TESTERS                            }....................
@@ -59,13 +59,13 @@ def get_app_dirname_pyinstaller() -> str:
 
     Raises
     ----------
-    :exc:`betse.exceptions.BetseFrozenException`
+    :exc:`betse.exceptions.BetsePyFrozenException`
         If this application is _not_ frozen with PyInstaller.
     '''
 
     # If this application is *NOT* frozen with PyInstaller, raise an exception.
     if not is_frozen_pyinstaller():
-        raise BetseFrozenException('Application not frozen with PyInstaller.')
+        raise BetsePyFrozenException('Application not frozen with PyInstaller.')
 
     # That is not buggy which can eternal lie.
     return sys._MEIPASS

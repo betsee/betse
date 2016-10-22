@@ -12,7 +12,7 @@ import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
 
 from betse.exceptions import (
-    BetseFileException, BetseSimulationException, BetseParametersException)
+    BetseFileException, BetseSimException, BetseSimConfigException)
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
@@ -154,7 +154,7 @@ class SimRunner(object):
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
             else:
-                raise BetseSimulationException(
+                raise BetseSimException(
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
@@ -214,7 +214,7 @@ class SimRunner(object):
                 sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             elif p.autoInit is False:
-                raise BetseSimulationException("Simulation terminated due to missing initialization. Please run "
+                raise BetseSimException("Simulation terminated due to missing initialization. Please run "
                                                "an initialization and try again.")
 
         # Reinitialize save and load directories in case params defines new ones
@@ -277,7 +277,7 @@ class SimRunner(object):
                 cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
             else:
-                raise BetseSimulationException(
+                raise BetseSimException(
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
@@ -360,7 +360,7 @@ class SimRunner(object):
                 cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
 
             else:
-                raise BetseSimulationException(
+                raise BetseSimException(
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
@@ -425,7 +425,7 @@ class SimRunner(object):
         if files.is_file(sim.savedInit):
             sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
         else:
-            raise BetseSimulationException(
+            raise BetseSimException(
                 "Ooops! No such initialization file found to plot!")
 
         # Display and/or save all enabled plots and animations.
@@ -562,7 +562,7 @@ class SimRunner(object):
             p.sim_ECM = cells.sim_ECM
             logs.log_info('Cell cluster loaded.')
         else:
-            raise BetseSimulationException("Ooops! No such cell cluster file found to load!")
+            raise BetseSimException("Ooops! No such cell cluster file found to load!")
 
         sim.baseInit_all(cells,p)
         dyna = TissueHandler(sim,cells,p)
@@ -679,7 +679,7 @@ class SimRunner(object):
             # logs.log_warning(' of this config file.')
             # logs.log_warning('---------------------------------------------------')
 
-                raise BetseParametersException(
+                raise BetseSimConfigException(
                     'Important config file options are out of sync between '
                     'seed and this init/sim attempt! '
                     'Run "betse seed" again to match the current settings of '
