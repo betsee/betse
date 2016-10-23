@@ -50,7 +50,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     the cell cluster for a parent plot or animation.
 
     Each subclass of this class plots the spatial distribution of a single
-    modelled variable (e.g., membrane voltage) for one on more simulation time
+    modelled variable (e.g., membrane voltage) for one or more simulation time
     steps. Each instance of the higher-level
     :class:`betse.science.visual.visualabc.VisualCellsABC` abstract base class
     contains one or more instances of subclasses of this lower-level class.

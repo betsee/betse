@@ -278,6 +278,16 @@ class LayerCellsStreamCurrent(LayerCellsStream):
         return self._time_currents_magnitude[self._visual.time_step]
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Refactor to leverage the new "VectorFieldCurrentIntraExtra" class by:
+#
+#* Adding a new LayerCellsStreamCurrent._get_vector_field() abstract method.
+#* Redefining this method in this subclass to return a new instance of the
+#  "VectorFieldCurrentIntraExtra" class.
+#* Refactoring the LayerCellsStreamCurrent.prep() implementation to call:
+#     self._vector_field = self._get_vector_field()
+#* Refactoring all other methods of that superclass to access properties of the
+#  new "self._vector_field" attribute.
+
 class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
     '''
     Layer subclass plotting streamlines of the current density of all
@@ -305,6 +315,7 @@ class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
         self._time_currents_y = self._visual.sim.I_tot_y_time
 
 
+#FIXME: Refactor to leverage the new "VectorFieldCurrentIntra" class as above.
 class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrent):
     '''
     Layer subclass plotting streamlines of the current density of all
