@@ -39,8 +39,8 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
-import weakref
 from abc import ABCMeta, abstractmethod
+from betse.util.py import references
 from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
@@ -115,7 +115,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         # longer than this layer, no complications arise. Ergo, this attribute
         # *ALWAYS* yields this object (rather than non-deterministically
         # yielding "None" if this object is unexpectedly garbage-collected).
-        self._visual = weakref.proxy(visual)
+        self._visual = references.proxy_weak(visual)
 
     # ..................{ LAYERS                             }..................
     def layer(self) -> None:

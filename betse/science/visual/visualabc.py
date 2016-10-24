@@ -12,7 +12,6 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-import weakref
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
@@ -20,6 +19,7 @@ from betse.lib.numpy import arrays
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
 from betse.science.visual.layer.layertext import LayerCellsIndex
+from betse.util.py import references
 from betse.util.type import iterables, objects, types
 from betse.util.type.types import (
     type_check,
@@ -218,14 +218,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # complications arise. Ergo, these attributes *ALWAYS* yield these
         # objects rather than non-deterministically yielding "None" if these
         # objects are unexpectedly garbage-collected.
-        self._sim = weakref.proxy(sim)
-        self._p = weakref.proxy(p)
+        self._sim = references.proxy_weak(sim)
+        self._p = references.proxy_weak(p)
 
         #FIXME: For currently unknown reasons, this object occasionally retains
         #the only remaining reference to the passed "Cells" instance -- which
         #*CANNOT* therefore be safely classified as a weak reference. This is
         #highly unexpected, however, and should thus be investigated.
-        # self.cells = weakref.proxy(cells)
+        # self.cells = references.proxy_weak(cells)
         self._cells = cells
 
         # Default unpassed parameters.
@@ -283,14 +283,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # explicitly closed -- either non-interactively by a close() call or
         # interactively by the corresponding GUI window being closed. Hence,
         # strong figure references should typically *NOT* be retained.
-        self._figure = weakref.proxy(pyplot.figure())
+        self._figure = references.proxy_weak(pyplot.figure())
 
         # Figure axes scaled to the extent of the current 2D environment as a
         # weak rather than strong (the default) reference, thus avoiding
         # circular references and complications thereof (e.g., memory
         # overhead). Since figures already contain their axes as a strong
         # reference, we need *NOT* do so as well here.
-        self._axes = weakref.proxy(pyplot.subplot(111))
+        self._axes = references.proxy_weak(pyplot.subplot(111))
 
         # If this object was initialized with both a figure and axes title,
         # display the former above the latter.

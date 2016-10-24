@@ -25,6 +25,7 @@ from collections.abc import (
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
+from weakref import CallableProxyType, ProxyType
 
 # Import the following types as is into the namespace of this submodule,
 # permitting callers to reference these types conveniently. Since the
@@ -206,6 +207,16 @@ TestableTypes = (tuple, ClassType,)
 Tuple of all **testable classes** (i.e., classes whose instances are passable
 as the second parameter to the built-in :func:`isinstance` and
 :func:`issubclass` functions).
+'''
+
+
+WeakRefProxyTypes = (CallableProxyType, ProxyType)
+'''
+Tuple of all **weak reference proxy classes** (i.e., classes whose instances
+are weak references to other instances masquerading as those instances).
+
+This tuple contains classes matching both callable and uncallable weak
+reference proxies.
 '''
 
 # ....................{ TUPLES : init                      }....................

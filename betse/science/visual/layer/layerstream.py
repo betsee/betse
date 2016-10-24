@@ -6,17 +6,34 @@
 Layer subclasses spatially overlaying streamlines onto the current cell cluster.
 '''
 
+#FIXME: Optimize. The current _get_time_currents() approach is extremely
+#inefficient, as this entire vector field will be recomputed for each plot and
+#animation when current overlays are enabled. The simpliest alternative is to
+#add two new properties to the "Simulator" class:
+#
+#* Simulator.time_currents_intra(), returning the vector field...
+#FIXME: Oh, wait. These vector fields require the "sim", "cells", and "p"
+#parameters -- which, due to arguably poor Simulator design, are currently
+#unavailable as attributes there. Very well. We see little choice but to finally
+#define a pipeline class. As these vector fields are currently only required by
+#plots and animations, sequestering these fields to that pipeline class would be
+#trivial. However, we would then need to pass the same instance of that class to
+#*EVERY* instantiated plot and animation.
+#
+#Doing so is ultimately trivial but tedious and hence deferred to another day.
+
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import abstractmethod
-from betse.exceptions import BetseSimConfigException
-from betse.lib.numpy import arrays
+from betse.science.vector.fieldcurrent import (
+    VectorFieldCurrentABC,
+    VectorFieldCurrentIntra,
+    VectorFieldCurrentIntraExtra,
+)
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
-from betse.util.type import sequences
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
-from scipy import interpolate
 
 # ....................{ SUPERCLASSES                       }....................
 class LayerCellsStream(LayerCellsABC):
@@ -56,8 +73,8 @@ class LayerCellsStream(LayerCellsABC):
     @abstractmethod
     def _get_velocities_x(self) -> SequenceTypes:
         '''
-        Array of the X components of all velocity vectors in this vector field
-        for the current time step.
+        Numpy array of the X components of all velocity vectors in this vector
+        field for the current time step.
         '''
 
         pass
@@ -66,18 +83,18 @@ class LayerCellsStream(LayerCellsABC):
     @abstractmethod
     def _get_velocities_y(self) -> SequenceTypes:
         '''
-        Array of the Y components of all velocity vectors in this vector field
-        for the current time step.
+        Numpy array of the Y components of all velocity vectors in this vector
+        field for the current time step.
         '''
 
         pass
 
 
     @abstractmethod
-    def _get_velocities_magnitude(self) -> SequenceTypes:
+    def _get_velocities_magnitudes(self) -> SequenceTypes:
         '''
-        Array of the magnitudes of all velocity vectors in this vector field for
-        the current time step.
+        Numpy array of the magnitudes of all velocity vectors in this vector
+        field for the current time step.
         '''
 
         pass
@@ -98,20 +115,20 @@ class LayerCellsStream(LayerCellsABC):
         # for this time step.
         velocities_x = self._get_velocities_x()
         velocities_y = self._get_velocities_y()
-        velocities_magnitude = self._get_velocities_magnitude()
+        velocities_magnitudes = self._get_velocities_magnitudes()
 
         # Arrays of all normalized X and Y components of this vector field for
         # this time step.
-        normalized_velocities_x = velocities_x / velocities_magnitude
-        normalized_velocities_y = velocities_y / velocities_magnitude
+        normalized_velocities_x = velocities_x / velocities_magnitudes
+        normalized_velocities_y = velocities_y / velocities_magnitudes
 
         # Maximum magnitude of this vector field for this time step.
-        velocities_magnitude_max = np.max(velocities_magnitude)
+        velocities_magnitude_max = np.max(velocities_magnitudes)
 
         # Array of display-specific line widths for all vectors of this vector
         # field for this time step.
         streamlines_width = (
-            3.0 * velocities_magnitude / velocities_magnitude_max) + 0.5
+            3.0 * velocities_magnitudes / velocities_magnitude_max) + 0.5
 
         # Streamplot of all streamlines plotted for this time step. See the
         # matplotlib.streamplot.streamplot() docstring for further details.
@@ -179,20 +196,9 @@ class LayerCellsStreamCurrent(LayerCellsStream):
 
     Attributes
     ----------
-    _time_currents_x : SequenceTypes
-        Two-dimensional sequence whose:
-        * First dimension indexes each time step of this simulation.
-        * Second dimension indexes the X components of all current density
-          vectors computed for the corresponding time step.
-    _time_currents_y : SequenceTypes
-        Two-dimensional sequence of the same format as `time_current_x`,
-        replacing "X components" by "Y components".
-    _time_currents_magnitude : SequenceTypes
-        Two-dimensional sequence whose:
-        * First dimension indexes each time step of this simulation.
-        * Second dimension indexes the magnitudes (commonly referred to as
-          `Jmag_M` elsewhere in the codebase) of all current density vectors
-          computed for the corresponding time step, in units of uA/cm2.
+    _time_currents : VectorFieldCurrentABC
+        Vector field of the current densities of all intracellular and/or
+        extracellular spaces for all time steps of the current simulation.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -206,9 +212,7 @@ class LayerCellsStreamCurrent(LayerCellsStream):
         super().__init__()
 
         # Default instance attributes.
-        self._time_currents_x = None
-        self._time_currents_y = None
-        self._time_currents_magnitude = None
+        self._time_currents = None
 
 
     def prep(self, *args, **kwargs) -> None:
@@ -216,36 +220,15 @@ class LayerCellsStreamCurrent(LayerCellsStream):
         # Prepare our superclass with all passed parameters.
         super().prep(*args, **kwargs)
 
-        # Define the "_time_currents_x" and "_time_currents_y" attributes.
-        self._prep_time_currents_components()
-
-        # For efficiency, coerce these possibly non-array sequences into arrays.
-        self._time_currents_x = arrays.from_sequence(self._time_currents_x)
-        self._time_currents_y = arrays.from_sequence(self._time_currents_y)
-
-        # If either of these arrays is empty (e.g., due to erroneously
-        # attempting to layer extracellular current with extracellular spaces
-        # disabled), raise an exception.
-        sequences.die_if_empty(
-            self._time_currents_x, label='X current components')
-        sequences.die_if_empty(
-            self._time_currents_y, label='Y current components')
-
-        # Array of current density magnitude computed from these arrays:
-        #
-        # * Incremented by a negligible positive value approximately equal to 0,
-        #   avoiding division-by-zero errors when the layer() method
-        #   subsequently divides by elements of this array.
-        # * Multiplied by 100, yielding magnitude in units of uA/cm2.
-        self._time_currents_magnitude = 1e-15 + 100 * np.sqrt(
-            self._time_currents_x ** 2 +
-            self._time_currents_y ** 2)
+        # Vector field of the current densities defined by the subclass.
+        self._time_currents = self._get_time_currents()
 
     # ..................{ SUBCLASS                           }..................
     @abstractmethod
-    def _prep_time_currents_components(self) -> None:
+    def _get_time_currents(self) -> VectorFieldCurrentABC:
         '''
-        Define the :attr:`_time_currents_x` and :attr:`_time_currents_y` arrays.
+        Vector field of the current densities of all intracellular and/or
+        extracellular spaces for all time steps of the current simulation.
         '''
 
         pass
@@ -253,41 +236,31 @@ class LayerCellsStreamCurrent(LayerCellsStream):
     # ..................{ SUPERCLASS                         }..................
     def _get_velocities_x(self) -> SequenceTypes:
         '''
-        Array of the X components of all velocity vectors in this vector field
-        for the current time step.
+        Numpy array of the X components of all velocity vectors in this vector
+        field for the current time step.
         '''
 
-        return self._time_currents_x[self._visual.time_step]
+        return self._time_currents.x[self._visual.time_step]
 
 
     def _get_velocities_y(self) -> SequenceTypes:
         '''
-        Array of the Y components of all velocity vectors in this vector field
-        for the current time step.
+        Numpy array of the Y components of all velocity vectors in this vector
+        field for the current time step.
         '''
 
-        return self._time_currents_y[self._visual.time_step]
+        return self._time_currents.y[self._visual.time_step]
 
 
-    def _get_velocities_magnitude(self) -> SequenceTypes:
+    def _get_velocities_magnitudes(self) -> SequenceTypes:
         '''
-        Array of the magnitudes of all velocity vectors in this vector field for
-        the current time step.
+        Numpy array of the magnitudes of all velocity vectors in this vector
+        field for the current time step.
         '''
 
-        return self._time_currents_magnitude[self._visual.time_step]
+        return self._time_currents.magnitudes[self._visual.time_step]
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Refactor to leverage the new "VectorFieldCurrentIntraExtra" class by:
-#
-#* Adding a new LayerCellsStreamCurrent._get_vector_field() abstract method.
-#* Redefining this method in this subclass to return a new instance of the
-#  "VectorFieldCurrentIntraExtra" class.
-#* Refactoring the LayerCellsStreamCurrent.prep() implementation to call:
-#     self._vector_field = self._get_vector_field()
-#* Refactoring all other methods of that superclass to access properties of the
-#  new "self._vector_field" attribute.
-
 class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
     '''
     Layer subclass plotting streamlines of the current density of all
@@ -295,147 +268,34 @@ class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
     '''
 
     # ..................{ SUPERCLASS                         }..................
-    def _prep_time_currents_components(self) -> None:
+    def _get_time_currents(self) -> VectorFieldCurrentABC:
         '''
-        Define the :attr:`_time_currents_x` and :attr:`_time_currents_y` arrays
-        to simply be synonyms of the :attr:`Simulator.sim.I_tot_x_time` and
-        :attr:`Simulator.sim.I_tot_y_time` arrays (_respectively_).
-
-        Raises
-        ----------
-        BetseSimConfigException
-            If extracellular spaces are disabled.
+        Vector field of the current densities of all intracellular and
+        extracellular spaces for all time steps of the current simulation.
         '''
 
-        # If extracellular spaces are disabled, raise an exception.
-        if not self._visual.p.sim_ECM:
-            raise BetseSimConfigException('Extracellular spaces disabled.')
+        return VectorFieldCurrentIntraExtra(
+            sim=self._visual._sim,
+            cells=self._visual._cells,
+            p=self._visual._p,
+        )
 
-        self._time_currents_x = self._visual.sim.I_tot_x_time
-        self._time_currents_y = self._visual.sim.I_tot_y_time
 
-
-#FIXME: Refactor to leverage the new "VectorFieldCurrentIntra" class as above.
 class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrent):
     '''
-    Layer subclass plotting streamlines of the current density of all
+    Layer subclass plotting streamlines of the current density of only all
     intracellular spaces (e.g., gap junctions) onto the cell cluster.
     '''
 
     # ..................{ SUPERCLASS                         }..................
-    def _prep_time_currents_components(self) -> None:
+    def _get_time_currents(self) -> VectorFieldCurrentABC:
         '''
-        Interpolate the :attr:`_time_currents_x` and :attr:`_time_currents_y`
-        arrays from the current density of only intracellular spaces defined
-        at cell centers to the X/Y grid of this cell cluster's environment.
-
-        In the case of the :class:`LayerCellsStreamCurrentIntraExtra` subclass,
-        the current density of all intracellular and extracellular spaces is
-        precomputed by the :class:`Simulator` class and hence reusable as is.
-        In the case of this subclass, however, the current density of only
-        intracellular spaces is _not_ precomputed elsewhere and hence must be
-        computed here.
+        Vector field of the current densities of only all intracellular spaces
+        for all time steps of the current simulation.
         '''
 
-        # print('!!!!in Intra')
-        # Two-dimensional tuple of the X and Y components of all cell centers.
-        dimensions_cells_center = (
-            self._visual.cells.cell_centres[:, 0],
-            self._visual.cells.cell_centres[:, 1])
-
-        # Two-dimensional tuple of the X and Y components of all grid points.
-        dimensions_grid_points = (self._visual.cells.X, self._visual.cells.Y)
-
-        # Two-dimensional lists of the X and Y components of all current density
-        # vectors over all time steps.
-        self._time_currents_x = self._prep_currents_component(
-            times_currents_center=self._visual.sim.I_cell_x_time,
-            dimensions_cells_center=dimensions_cells_center,
-            dimensions_grid_points=dimensions_grid_points,
+        return VectorFieldCurrentIntra(
+            sim=self._visual._sim,
+            cells=self._visual._cells,
+            p=self._visual._p,
         )
-        self._time_currents_y = self._prep_currents_component(
-            times_currents_center=self._visual.sim.I_cell_y_time,
-            dimensions_cells_center=dimensions_cells_center,
-            dimensions_grid_points=dimensions_grid_points,
-        )
-
-
-    @type_check
-    def _prep_currents_component(
-        self,
-        times_currents_center: SequenceTypes,
-        dimensions_cells_center: SequenceTypes,
-        dimensions_grid_points: SequenceTypes,
-    ) -> SequenceTypes:
-        '''
-        Interpolate the passed array of the X or Y components of all
-        intracellular current density vectors defined at cell centers onto the
-        passed X/Y grid of this cell cluster's environment.
-
-        Parameters
-        ----------
-        times_currents_center : SequenceTypes
-            Two-dimensional sequence whose:
-            * First dimension indexes each time step of this simulation.
-            * Second dimension indexes the X or Y components of all
-              intracellular current density vectors computed at the center of
-              each cell for the corresponding time step.
-        dimensions_cells_center : SequenceTypes
-            Two-dimensional sequence, whose:
-            * First dimension indexes first X and then Y dimensions.
-            * Second dimension indexes cells, whose elements are the coordinates
-              in that X or Y dimension of the centers of those cells.
-        dimensions_grid_points : SequenceTypes
-            Two-dimensional sequence, whose:
-            * First dimension indexes first X and then Y dimensions.
-            * Second dimension indexes the coordinates in that X or Y dimension
-              of each grid point.
-
-        Returns
-        ----------
-        SequenceTypes
-            Two-dimensional sequence whose:
-            * First dimension indexes each time step of this simulation.
-            * Second dimension indexes the X or Y components of all current
-              density vectors computed for the corresponding time step.
-        '''
-
-        # Output two-dimensional sequence as documented above.
-        time_currents_grid = []
-
-        # For each one-dimensional array of the X or Y components of all
-        # intracellular current density vectors computed at the center of each
-        # cell for each time step...
-        for currents_center in times_currents_center:
-            # One-dimensional array of the X or Y components of all
-            # intracellular current density vectors defined on the X/Y grid of
-            # this cell cluster's environment for this time step, interpolated
-            # from the corresponding components defined at cell centers.
-            currents_grid = self._visual.cells.maskECM * interpolate.griddata(
-                # Tuple of X and Y coordinates to interpolate from.
-                points=dimensions_cells_center,
-
-                # Tuple of X and Y coordinates to interpolate onto.
-                xi=dimensions_grid_points,
-
-                # Array of X or Y current vector components to interpolate.
-                values=currents_center,
-
-                # Machine-readable string specifying the type of interpolation
-                # to perform, established by the current configuration.
-                method=self._visual.p.interp_type,
-
-                # Default value for all environmental grid points residing
-                # outside the convex hull of the cell centers being interpolated
-                # from, which are thus non-interpolatable. To nullify all
-                # extracellular current density vectors. this is zero. By
-                # default, this is NaN.
-                fill_value=0,
-            )
-
-            # Append this grid-interpolated to this output sequence, providing
-            # the X or Y components of all current vectors for this time step.
-            time_currents_grid.append(currents_grid)
-
-        # Return this output sequence.
-        return time_currents_grid
