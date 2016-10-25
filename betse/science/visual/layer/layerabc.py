@@ -39,11 +39,11 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 from betse.util.py import references
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, IterableTypes
 
-# ....................{ CLASSES                            }....................
+# ....................{ SUPERCLASS                         }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting a single feature of
@@ -159,6 +159,29 @@ class LayerCellsABC(object, metaclass=ABCMeta):
 
         Layer subclasses are recommended but _not_ required to reimplement this
         empty method.
+        '''
+
+        pass
+
+# ....................{ SUBCLASSES                         }....................
+class LayerCellsMappableABC(LayerCellsABC):
+    '''
+    Abstract base class of all classes spatially plotting a single feature of
+    the cell cluster for a parent plot or animation.
+    '''
+
+    # ..................{ PROPERTIES                         }..................
+    @abstractproperty
+    def color_mappables(self) -> IterableTypes:
+        '''
+        Iterable of all **mappables** (i.e.,
+        :class:`matplotlib.cm.ScalarMappable` instances) previously added by
+        this layer to the figure axes of the current plot or animation to be
+        associated with a figure colorbar for this plot or animation.
+
+        Note that, by Matplotlib design, only the first mappable in this
+        iterable defines the color range for the figure colorbar; all other
+        mappables are artificially constrained onto the same range.
         '''
 
         pass

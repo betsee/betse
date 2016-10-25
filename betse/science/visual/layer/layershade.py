@@ -6,18 +6,14 @@
 Layer subclasses spatially shading the current cell cluster.
 '''
 
-#FIXME: Rename this submodule to "layershade".
-
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.visual import visuals
-from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.science.visual.layer.layerabc import LayerCellsMappableABC
 from betse.util.type.types import IterableTypes, SequenceTypes
 
 # ....................{ CLASSES                            }....................
-#FIXME: Rename to "LayerCellsShadeDiscrete", in anticipation of a
-#new "LayerCellsShadeContinuum" subclass.
-class LayerCellsGouraudShaded(LayerCellsABC):
+class LayerCellsShadeDiscrete(LayerCellsMappableABC):
     '''
     Layer subclass spatially plotting each cell in the current cell cluster as a
     discontiguous Gouraud-shaded surface represented as a polygonal mesh.
@@ -45,47 +41,20 @@ class LayerCellsGouraudShaded(LayerCellsABC):
         # Initialize our superclass.
         super().__init__()
 
-        # List of triangulation meshes created by iteration below.
-        self._cell_tri_meshes = []
+        # Default instance attributes.
+        self._cell_tri_meshes = None
 
     # ..................{ PROPERTIES                         }..................
-    #FIXME: This property is somewhat but *NOT* perfectly general. It doesn't
-    #particularly apply to the perfecetly general-purpose "LayerCellsABC"
-    #class (e.g., because of text-only plotters, for example). Perhaps a new
-    #"PlotterCellsMappableABC" class should be constructed, in which case this
-    #property should be shifted there. The class hiercharcy in that case would
-    #resemble:
-    #
-    #    LayerCellsABC
-    #           ^
-    #           |
-    #    PlotterCellsMappableABC
-    #           ^
-    #           |
-    #    LayerCellsGouraudShaded
-
     @property
     def color_mappables(self) -> IterableTypes:
-        '''
-        Iterable of all :class:`matplotlib.cm.ScalarMappable` instances plotted
-        by this layer.
 
-        Note that, due to Matplotlib constraints, only the first mappable in
-        this iterable defines the range of colors and hence colorbar of the
-        parent plot or animation.
-        '''
+        # If triangulation meshes have yet to be defined, do so.
+        if self._cell_tri_meshes is None:
+            self._layer_first()
 
+        # Map the figure colorbar to these meshes.
+        # print('cell_tri_meshes: {}'.format(self._cell_tri_meshes))
         return self._cell_tri_meshes
-
-    # ..................{ GETTERS                            }..................
-    def _get_cells_vertex_data(self) -> SequenceTypes:
-        '''
-        Two-dimensional array of all cell data for the current time step,
-        mapped from the midpoints onto the vertices of each cell membrane.
-        '''
-
-        return np.dot(
-            self._visual.cell_data, self._visual.cells.matrixMap2Verts)
 
     # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
@@ -103,6 +72,9 @@ class LayerCellsGouraudShaded(LayerCellsABC):
         # See "Cells.cell_verts" documentation for further details.
         cells_vertices_coords = visuals.upscale_cell_coordinates(
             self._visual.cells.cell_verts)
+
+        # List of triangulation meshes created by iteration below.
+        self._cell_tri_meshes = []
 
         # For the index and two-dimensional array of vertex coordinates for
         # each cell in this cluster...
@@ -160,3 +132,13 @@ class LayerCellsGouraudShaded(LayerCellsABC):
 
             # Gouraud-shade this triangulation mesh with these color values.
             cell_tri_mesh.set_array(cell_vertex_data)
+
+    # ..................{ GETTERS                            }..................
+    def _get_cells_vertex_data(self) -> SequenceTypes:
+        '''
+        Two-dimensional array of all cell data for the current time step,
+        mapped from the midpoints onto the vertices of each cell membrane.
+        '''
+
+        return np.dot(
+            self._visual.cell_data, self._visual.cells.matrixMap2Verts)

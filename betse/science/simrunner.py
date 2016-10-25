@@ -20,7 +20,7 @@ from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
 from betse.science.tissue.handler import TissueHandler
-from betse.science.visual.plot import plot as viz
+from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.plot import plotpipe
 from betse.util.io.log import logs
 from betse.util.path import files, paths

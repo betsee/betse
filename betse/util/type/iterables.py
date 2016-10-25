@@ -18,7 +18,13 @@ import itertools
 from betse.exceptions import BetseIterableException
 from betse.util.type import types
 from betse.util.type.types import (
-    type_check, GeneratorType, IterableTypes, SizedType,)
+    type_check,
+    CallableTypes,
+    GeneratorType,
+    IterableTypes,
+    SizedType,
+    TestableTypes,
+)
 from collections import deque
 
 # ....................{ CLASSES                            }....................
@@ -62,9 +68,9 @@ def get_item_first(iterable: IterableTypes) -> object:
 
     * Sequence, this is guaranteed to be the first item of this sequence.
     * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
-      to be a random item of this non-sequence. While most non-sequences
-      guarantee predictable order of retrieval assuming no intervening changes,
-      this is a fairly unreliable assumption.
+      to be a random item. While most non-sequences guarantee predictable order
+      of retrieval assuming no intervening changes, this is a fairly unreliable
+      assumption.
 
     Parameters
     ----------
@@ -104,6 +110,109 @@ def get_item_first(iterable: IterableTypes) -> object:
 
     # Return the first element iterated above.
     return first_item
+
+
+@type_check
+def get_item_first_satisfying(
+    iterable: IterableTypes,
+    predicate: CallableTypes,
+    exception_message: str = None,
+) -> object:
+    '''
+    First element of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter and returning `True` only if this
+    parameter suffices) if this iterable contains such an element _or_ raise an
+    exception otherwise (i.e., if this iterable contains no such element).
+
+    If the passed iterable is a:
+
+    * Sequence, this is guaranteed to be the first such element.
+    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
+      to be a random such element. While most non-sequences guarantee
+      predictable order of retrieval assuming no intervening changes, this is a
+      fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    predicate : CallableTypes
+        Callable accepting one parameter and returning `True` only if this
+        parameter suffices.
+    exception_message : optional[str]
+        Exception message to be raised if no such element is found. Defaults to
+        `None`, in which case a suitably general-purpose message is synthesized.
+
+    Returns
+    ----------
+    object
+        First element satisfying this predicate in this iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+    '''
+
+    # First item satisfying this predicate in this iterable if any *OR* the
+    # sentinel placeholder otherwise.
+    first_item = next(
+        (item for item in iterable if predicate(item)), SENTINEL)
+
+    # If no item satifies this predicate, raise an exception.
+    if first_item is SENTINEL:
+        # If no exception message is passed, synthesize a default message.
+        if exception_message is None:
+            exception_message = (
+                'Iterable "{}" item satisfying predicate {} not found.'.format(
+                    iterable, predicate))
+
+        # Raise this exception.
+        raise BetseIterableException(exception_message)
+
+    # Else, return this element.
+    return first_item
+
+
+@type_check
+def get_item_first_instance_of(
+    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
+    '''
+    First instance of the passed class retrieved from the passed iterable if
+    this iterable such an element _or_ raise an exception otherwise (i.e., if
+    this iterable contains no such element).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    cls : TestableTypes
+        Type of the element to be retrieved.
+    kwargs : dict
+        Dictionary of all remaining keyword arguments to be passed as is to the
+        :func:`get_item_first_satisfying` function.
+
+    Returns
+    ----------
+    object
+        First instance of this class in this iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+
+    See Also
+    ----------
+    :func:`get_item_first_satisfying`
+        Further details on ordering guarantees.
+    '''
+
+    return get_item_first_satisfying(
+        iterable=iterable,
+        predicate=lambda item: isinstance(item, cls),
+        **kwargs
+    )
 
 # ....................{ CONSUMERS                          }....................
 @type_check

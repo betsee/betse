@@ -35,7 +35,7 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
 from betse.science.visual import visuals
-from betse.science.visual.layer.layershaded import LayerCellsGouraudShaded
+from betse.science.visual.layer.layershade import LayerCellsShadeDiscrete
 from betse.science.visual.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
@@ -52,7 +52,7 @@ from scipy import interpolate
 #methods of the "Anim" superclass. Right. After investigation, absolutely the
 #latter approach. This should permit us to avoid passing *ANY* parameters to
 #these methods, which is rather nice.
-from betse.science.visual.plot.plot import (
+from betse.science.visual.plot.plotutil import (
     _setup_file_saving, env_mesh, cell_mosaic, cell_mesh,
     env_quiver, cell_quiver, cell_stream, pretty_patch_plot,
 )
@@ -137,7 +137,6 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         # Initialize the superclass.
         super().__init__(
-            # Pass this simulation configuration as is to our superclass.
             p=p,
 
             # Prevent the superclass from overlaying electric current or
@@ -324,7 +323,12 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
     @type_check
     def __init__(
         self,
+
+        # Mandatory parameters.
+        p: 'betse.science.parameters.Parameters',
         time_series: SequenceTypes,
+
+        # Optional parameters.
         is_ecm_ignored: bool = True,
         scaling_series: SequenceOrNoneTypes = None,
         *args, **kwargs
@@ -334,6 +338,8 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
+        p : Parameters
+            Current simulation configuration.
         time_series : Sequence
             Arbitrary cell data as a function of time to be plotted.
         is_ecm_ignored : optional[bool]
@@ -345,6 +351,15 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
         # Initialize the superclass.
         super().__init__(
+            p=p,
+
+            # If animating each cell, Gouraud-shade each cell discretely; else,
+            # Gouraud-shade the cell cluster continuously.
+            layers = (LayerCellsShadeDiscrete(),) if p.showCells else None,
+
+            #FIXME: Eliminate after improving the superclass to search the
+            #passed layers for an appropriate layer instance.
+
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
             is_current_overlayable=True,
@@ -355,38 +370,25 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         self._time_series = time_series
         self._is_ecm_ignored = is_ecm_ignored
 
-        # Set the "color_min" and "color_max" properties *BEFORE* instantiating
-        # plotters requiring these properties below.
-        self._autoscale_colors(
-            scaling_series if scaling_series is not None else time_series)
+        #FIXME: Eliminate after generalizing the logic below into a layer.
+        color_mappables = None
 
-        # If animating individual cells...
-        if self._p.showCells is True:
-            # Layer Gouraud-shading each cell.
-            cells_shaded = LayerCellsGouraudShaded()
-
-            # Append this layer to the current layer sequence.
-            self._append_layer(cells_shaded)
-
-            # Gouraud-shade each cell for the first time step to produce the
-            # requisite sequence of color mappables referenced below.
-            cells_shaded.prep(self)
-            cells_shaded.layer()
-
-            # Display and/or save this animation.
-            self._animate(color_mappables=cells_shaded.color_mappables)
         # Else, animate a smooth continuum approximating the cell cluster.
-        else:
-            #FIXME: To generalize this function into a proper layer, see the
-            #superclass _plot_cell_mesh() method (which probably ultimately
-            #derives from this function).
-            #FIXME: Rename "self.collection" to something more descriptive.
+        if not self._p.showCells:
+            #FIXME: Generalize this function into a new
+            #"LayerCellsShadeContinuum" layer type. To do so sanely, see the
+            #superclass _plot_cell_mesh() method -- which probably ultimately
+            #derived from this function.
             self.collection, self._axes = cell_mesh(
                 self.cell_data, self._axes, self._cells, self._p, self._colormap)
+            color_mappables = self.collection
 
-            # Display and/or save this animation.
-            self._animate(color_mappables=self.collection)
-
+        # Display and/or save this animation.
+        self._animate(
+            color_data=(
+                scaling_series if scaling_series is not None else time_series),
+            color_mappables=color_mappables,
+        )
 
     def _plot_frame_figure(self) -> None:
 
@@ -417,8 +419,8 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
 
 class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
     '''
-    Animation of an arbitrary cell-centric time series (e.g., average cell voltage
-     as a function of time)
+    Animation of an arbitrary cell-centric time series (e.g., average cell
+    voltage as a function of time).
 
     Attributes
     ----------
@@ -495,8 +497,8 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
 #FIXME: This appears to be unused now. Contemplate removal.
 class AnimFieldMeshTimeSeries(AnimCellsAfterSolving):
     '''
-    Animation of an arbitrary cell-centric time series (e.g., voltage
-     as a function of time) with an overlayed vector plot (e.g. polarization)
+    Animation of an arbitrary cell-centric time series (e.g., voltage as a
+    function of time) with an overlaid vector plot (e.g., polarization).
 
     Attributes
     ----------

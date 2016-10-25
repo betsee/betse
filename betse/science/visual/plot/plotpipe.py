@@ -46,7 +46,7 @@ import os
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 from betse.exceptions import BetseSimConfigException
-from betse.science.visual.plot import plot as viz
+from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.anim.animpipe import pipeline_anims
 from betse.util.io.log import logs
 from betse.util.type import types

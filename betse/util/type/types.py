@@ -202,11 +202,10 @@ that API.
 '''
 
 
-TestableTypes = (tuple, ClassType,)
+TestableTypes = (ClassType, tuple)
 '''
-Tuple of all **testable classes** (i.e., classes whose instances are passable
-as the second parameter to the built-in :func:`isinstance` and
-:func:`issubclass` functions).
+Tuple of all **testable types** (i.e., types suitable for use as the second
+parameter passed to the :func:`isinstance` and :func:`issubclass` builtins).
 '''
 
 
@@ -255,6 +254,14 @@ Tuple of only the type of the singleton `None` object.
 
 This tuple is principally intended for use in efficiently constructing other
 tuples of types containing this type.
+'''
+
+
+IterableOrNoneTypes = IterableTypes + NoneTypes
+'''
+Tuple of all container base classes conforming to (but _not_ necessarily
+subclassing) the canonical `collections.abc.Iterable` API as well as the type
+of the singleton `None` object.
 '''
 
 

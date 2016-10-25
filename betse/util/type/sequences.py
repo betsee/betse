@@ -95,6 +95,9 @@ def is_empty(*sequences: SequenceTypes) -> bool:
     return True
 
 # ....................{ GETTERS                            }....................
+#FIXME: Generalize into a function of the same name accepting an iterable rather
+#than sequence and shift into the "iterables" submodule. When doing so, rename
+#the "item_satisfier" parameter to "predicate" for orthogonality and clarity.
 @type_check
 def get_items_satisfying(
     sequence: SequenceTypes, item_satisfier: CallableTypes) -> SequenceTypes:
@@ -130,6 +133,9 @@ def get_items_satisfying(
     return sequence_type(item for item in sequence if item_satisfier(item))
 
 # ....................{ GETTERS ~ str                      }....................
+#FIXME: Generalize into a function of the same name accepting an iterable rather
+#than sequence and shift into the "iterables" submodule. When doing so, rename
+#the "item_prefix" parameter to simply "prefix".
 @type_check
 def get_items_prefixed_by(
     sequence: SequenceTypes, item_prefix: str) -> SequenceTypes:

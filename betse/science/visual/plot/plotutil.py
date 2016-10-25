@@ -2,6 +2,10 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+'''
+Low-level utility functions specific to single-frame plots.
+'''
+
 import os
 import os.path
 
@@ -1681,5 +1685,3 @@ def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
 
     # Force animations to *NOT* repeat (don't FIXME-- we don't want to keep saving the animation over and over and over so please keep this!)
     ani_obj.ani_repeat = False
-
-
