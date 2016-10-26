@@ -1424,7 +1424,7 @@ class Simulator(object):
         rhoo = self.rho_cells*1
 
         # get the charge density in the cells:
-        self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p)
+        self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
 
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
@@ -1443,7 +1443,7 @@ class Simulator(object):
         # self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells]
         # self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells] - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
 
-        self.vm = (1 / p.cm) * (Q_cell[cells.mem_to_cells] + self.Pol_mem) + self.Jn*p.dt*p.mem_resistivity
+        self.vm = (1 / p.cm)*Q_cell[cells.mem_to_cells] - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
         # self.vm = self.vm + (1/p.cm)*self.dPmem*p.dt*1.0e-3
         # self.vm = self.vm - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
 

@@ -20,8 +20,8 @@ def get_current(sim, cells, p):
     # calculate current density across cell membranes via gap junctions:
     Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
 
-    # calculate the change in polarization from the displacement current:
-    sim.Pol_mem = sim.Pol_mem + p.dt*sim.dvm*p.cm*p.cell_polarizability
+    # # calculate the change in polarization from the displacement current:
+    # sim.Pol_mem = sim.Pol_mem + p.dt*sim.dvm*p.cm*p.cell_polarizability
 
     # add the free current sources together into a single transmembrane current:
     sim.Jn = Jn + Jgj

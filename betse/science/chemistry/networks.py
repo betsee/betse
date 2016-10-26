@@ -2289,8 +2289,8 @@ class MasterOfNetworks(object):
                     self.extra_rho_mit[:] += p.F*obj.c_mit*obj.z
 
         if p.substances_affect_charge:
-            sim.extra_rho_cells = self.extra_rho_cells[:]
-            sim.extra_rho_env = self.extra_rho_env[:]
+            sim.extra_rho_cells = self.extra_rho_cells
+            sim.extra_rho_env = self.extra_rho_env
 
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
             self.mit.extra_rho = self.extra_rho_mit[:]
