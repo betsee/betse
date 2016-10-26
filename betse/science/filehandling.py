@@ -10,13 +10,29 @@ simulation objects.
 #FIXME: For clarity, rename this module to "simsaver.py".
 
 # ....................{ IMPORTS                            }....................
+import sys
 from collections.abc import Sequence
-
 from betse.lib.pickle import pickles
 from betse.util.type.types import type_check
 
-
 # ....................{ SAVERS                             }....................
+#FIXME: For robustness, enable dill's built-in recursive discovery. By default,
+#dill discovers non-resursively. To do so, pass "recurse=True" to the
+#dill.dump() function called elsewhere. As dill's documentation is scarce, the best
+#documentation on this topic appears to be this stackoverflow comment from the
+#author reading:
+#
+#"Note that many of the authors of sklearn use cloudpickle for enabling parallel
+# computing on sklearn objects, and not dill. dill can pickle more types of
+# objects than cloudpickle, however cloudpickle is slightly better (at this time
+# of writing) at pickling objects that make references to the global dictionary
+# as part of a closure -- by default, dill does this by reference, while
+# cloudpickle physically stores the dependencies. However, dill has a "recurse"
+# mode, that acts like cloudpickle, so the difference when using this mode is
+# minor. (To enable "recurse" mode, do dill.settings['recurse'] = True, or use
+# recurse=True as a flag in dill.dump). Another minor difference is that
+# cloudpickle contains special support for things like scikits.timeseries and
+# PIL.Image, while dill does not."
 #FIXME: Consider replacing all calls to this function with calls to the
 #pickles.save() function and then removing this function. It doesn't appear to
 #serve any demonstrable point anymore. Moreover, the name of this function is
@@ -75,7 +91,10 @@ def loadSim(loadPath) -> tuple:
         3-tuple `(sim, cells, p)` unpickled from this file.
     '''
 
-    # Unpickle these objects.
+    # Preserve backward importability with obsolete pickled objects.
+    _preserve_backward_importability()
+
+    # Unpickle these objects *AFTER* preserving backward importability.
     sim, cells, p = pickles.load(loadPath)
 
     #FIXME: Validate these objects.
@@ -101,10 +120,31 @@ def loadWorld(loadPath) -> tuple:
         2-tuple `(cells, p)` unpickled from this file.
     '''
 
-    # Unpickle these objects.
+    # Preserve backward importability with obsolete pickled objects.
+    _preserve_backward_importability()
+
+    # Unpickle these objects *AFTER* preserving backward importability.
     cells, p = pickles.load(loadPath)
 
     #FIXME: Validate these objects.
 
     # Return these objects.
     return cells, p
+
+# ....................{ LOADERS                            }....................
+def _preserve_backward_importability() -> None:
+    '''
+    Preserve backward compatibility with pickled objects transitively referring
+    to modified modules whose fully-qualified names at the time of pickling now
+    differ from the current names for those these modules, typically due to
+    these modules having since been moved, renamed, or outright removed.
+    '''
+
+    # Import all modules whose fully-qualified names have been modified.
+    from betse.science.visual.anim import animconfig
+    from betse.science.visual.plot import plotconfig
+
+    # Import the same modules under their prior fully-qualified names, aliased
+    # to the current versions of these modules imported above.
+    sys.modules['betse.science.plot.plotconfig'] = plotconfig
+    sys.modules['betse.science.plot.anim.animconfig'] = animconfig
