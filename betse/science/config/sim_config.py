@@ -42,7 +42,7 @@ def read(config_filename: str) -> dict:
     config = None
 
     # Open this filename for reading and read this file into a dictionary.
-    with files.read_text(config_filename) as yaml_file:
+    with files.read_chars(config_filename) as yaml_file:
         config = yaml.load(yaml_file)
 
     #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
@@ -75,7 +75,7 @@ def read_metabo(config_filename: str) -> dict:
     config = None
 
     # Open this filename for reading and read this file into a dictionary.
-    with files.read_text(config_filename) as yaml_file:
+    with files.read_chars(config_filename) as yaml_file:
         config = yaml.load(yaml_file)
 
     #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
@@ -110,7 +110,7 @@ def write(config_filename: str, config: dict) -> None:
     _write_check(config_filename)
 
     # Open this filename for writing and...
-    with files.write_text(config_filename) as yaml_file:
+    with files.write_chars(config_filename) as yaml_file:
         # String serialized from this dictionary.
         config_dump = yaml.dump(
             config,

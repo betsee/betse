@@ -284,7 +284,7 @@ def _profile_callable_line(
             'Writing Callgrind-formatted profile to "%s".', profile_filename)
 
         # Serialize this profile to this file.
-        with files.write_text(profile_filename) as profile_file:
+        with files.write_chars(profile_filename) as profile_file:
             profile.callgrind(out=profile_file)
     #FIXME: Eliminate this branch after logging profiling metadata above.
 

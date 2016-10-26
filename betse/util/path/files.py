@@ -15,7 +15,7 @@ import os, re, shutil
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NoneType, SequenceTypes
-from io import BufferedWriter, TextIOWrapper
+from io import BufferedReader, BufferedWriter, TextIOWrapper
 from os import path
 from tempfile import NamedTemporaryFile
 
@@ -247,12 +247,46 @@ def remove_if_found(filename: str) -> None:
 
 # ....................{ READERS                            }....................
 @type_check
-def read_text(filename: str) -> TextIOWrapper:
+def read_bytes(filename: str) -> BufferedReader:
     '''
-    Open and return the passed file for line-oriented reading.
+    Open and return the passed binary file for byte-oriented reading.
 
     This function returns a `file`-like object, suitable for use wherever the
     builtin `open()` would otherwise be called (e.g., in `with` statements).
+
+    Parameters
+    ----------
+    filename : str
+        Relative or absolute path of the binary text to be read.
+
+    Returns
+    ----------
+    BufferedReader
+        `file`-like object encapsulating this opened file.
+    '''
+
+    # Raise an exception unless this file exists.
+    die_unless_file(filename)
+
+    # Open this file.
+    return open(filename, mode='rb')
+
+
+@type_check
+def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
+    '''
+    Open and return the passed plaintext file encoded with the passed encoding
+    for line-oriented reading.
+
+    This function returns a `file`-like object, suitable for use wherever the
+    builtin `open()` would otherwise be called (e.g., in `with` statements).
+
+    Parameters
+    ----------
+    filename : str
+        Relative or absolute path of the plaintext text to be read.
+    encoding : optional[str]
+        Name of the encoding to be used. Defaults to UTF-8.
 
     Returns
     ----------
@@ -264,7 +298,7 @@ def read_text(filename: str) -> TextIOWrapper:
     die_unless_file(filename)
 
     # Open this file.
-    return open(filename, mode='rt')
+    return open(filename, mode='rt', encoding=encoding)
 
 # ....................{ WRITERS                            }....................
 @type_check
@@ -299,10 +333,10 @@ def write_bytes(filename: str) -> BufferedWriter:
 
 
 @type_check
-def write_text(
-    filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
+def write_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     '''
-    Open and return the passed plaintext file for line-oriented writing.
+    Open and return the passed plaintext file encoded with the passed encoding
+    for line-oriented writing.
 
     This function returns a `file`-like object, suitable for use wherever the
     builtin `open()` would otherwise be called (e.g., in `with` statements).
@@ -358,7 +392,7 @@ def write_bytes_temp(encoding: (str, NoneType) = None):
 
     See Also
     ----------
-    :func:`write_text_temp`
+    :func:`write_chars_temp`
         Further details.
     '''
 
@@ -369,7 +403,7 @@ def write_bytes_temp(encoding: (str, NoneType) = None):
 # "tempfile._TemporaryFileWrapper", which due to being private is intentionally
 # *NOT* type-checked here.
 @type_check
-def write_text_temp(encoding: str = 'utf-8'):
+def write_chars_temp(encoding: str = 'utf-8'):
     '''
     Open and return a temporary named plaintext file for line-oriented writing.
 
@@ -410,33 +444,27 @@ def write_text_temp(encoding: str = 'utf-8'):
     return NamedTemporaryFile(mode='w+', delete=False, encoding=encoding)
 
 # ....................{ REPLACERS                          }....................
-#FIXME: Rename to replace_substrs_inplace().
-def substitute_substrings_inplace(
-    filename: str,
-    #FIXME: Rename to "replacements".
-    substitutions: SequenceTypes,
-    **kwargs) -> None:
+def replace_substrs_inplace(
+    filename: str, replacements: SequenceTypes, **kwargs) -> None:
     '''
     Replace all substrings in the passed non-directory file matching the passed
     regular expressions with the corresponding passed substitutions.
 
     See Also
     ----------
-    `substitute_substrings()`
+    :func:`replace_substrs`
         For further details.
     '''
 
-    substitute_substrings(
-        filename, filename, substitutions, **kwargs)
+    replace_substrs(filename, filename, replacements, **kwargs)
 
 
 #FIXME: Rename to replace_substrs().
 @type_check
-def substitute_substrings(
+def replace_substrs(
     filename_source: str,
     filename_target: str,
-    #FIXME: Rename to "replacements".
-    substitutions: SequenceTypes,
+    replacements: SequenceTypes,
     **kwargs
 ) -> None:
     '''
@@ -467,11 +495,13 @@ def substitute_substrings(
         Absolute path of the source filename to be read.
     filename_target : str
         Absolute path of the target filename to be written.
-    substitutions : Sequence
+    replacements : Sequence
         Non-string sequence (e.g., list, tuple) of non-string sequences of
-        length 2 (i.e., pairs), whose first element is a regular expression and
-        whose second element is the substitution to be performed for all
-        substrings in the source file matching that regular expression.
+        length 2 (i.e., pairs), whose:
+        * First element is a regular expression matching all substrings in the
+          source file to be replaced.
+        * Second element is the substring in the target file to replace all
+          substrings in the source file matching that regular expression.
     '''
 
     # Log this substitution.
@@ -490,9 +520,9 @@ def substitute_substrings(
 
     # For efficiency, replace all passed uncompiled with compiled regular
     # expressions via a tuple comprehension.
-    substitutions = tuple(
+    replacements = tuple(
         (re.compile(regex), substitution)
-        for (regex, substitution) in substitutions
+        for (regex, substitution) in replacements
     )
 
     #FIXME: This functionality is probably quite useful, where at least one
@@ -504,14 +534,14 @@ def substitute_substrings(
     # desired target file *BEFORE* moving the former to the latter. This
     # obscures such writes from other threads and/or processes, avoiding
     # potential race conditions elsewhere.
-    with write_text_temp() as file_target_temp:
-        with read_text(filename_source) as file_source:
+    with write_chars_temp() as file_target_temp:
+        with read_chars(filename_source) as file_source:
             # For each line of the source file...
             for line in file_source:
                 # For each passed regular expression and corresponding
                 # substitution, replace all substrings in this line matching
                 # that regular expression with that substitution.
-                for (regex, substitution) in substitutions:
+                for (regex, substitution) in replacements:
                     # if regex.search(line, **kwargs) is not None:
                     #     is_line_matches = True
                     #     loggers.log_info('Line "%s" matches!', line)

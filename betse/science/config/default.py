@@ -130,10 +130,10 @@ def _write_file(config_filename: str) -> None:
 
     # Write the default configuration to this file, modifying the latter with
     # "sed"-like global string substitution as detailed above.
-    files.substitute_substrings(
+    files.replace_substrs(
         filename_source=pathtree.CONFIG_DEFAULT_FILENAME,
         filename_target=config_filename,
-        substitutions=(
+        replacements=(
             # Prevent static plots from being displayed by default.
             (r'^(\s*plot after solving:\s+)True\b(.*)$', r'\1False\2'),
         ),

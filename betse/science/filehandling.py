@@ -7,7 +7,7 @@ High-level pickling facilities for saving and loading cell cluster and
 simulation objects.
 '''
 
-#FIXME: For clarity, rename this module to "simsaver.py".
+#FIXME: For clarity, rename this module to "simpickler.py".
 
 # ....................{ IMPORTS                            }....................
 import sys
@@ -16,23 +16,6 @@ from betse.lib.pickle import pickles
 from betse.util.type.types import type_check
 
 # ....................{ SAVERS                             }....................
-#FIXME: For robustness, enable dill's built-in recursive discovery. By default,
-#dill discovers non-resursively. To do so, pass "recurse=True" to the
-#dill.dump() function called elsewhere. As dill's documentation is scarce, the best
-#documentation on this topic appears to be this stackoverflow comment from the
-#author reading:
-#
-#"Note that many of the authors of sklearn use cloudpickle for enabling parallel
-# computing on sklearn objects, and not dill. dill can pickle more types of
-# objects than cloudpickle, however cloudpickle is slightly better (at this time
-# of writing) at pickling objects that make references to the global dictionary
-# as part of a closure -- by default, dill does this by reference, while
-# cloudpickle physically stores the dependencies. However, dill has a "recurse"
-# mode, that acts like cloudpickle, so the difference when using this mode is
-# minor. (To enable "recurse" mode, do dill.settings['recurse'] = True, or use
-# recurse=True as a flag in dill.dump). Another minor difference is that
-# cloudpickle contains special support for things like scikits.timeseries and
-# PIL.Image, while dill does not."
 #FIXME: Consider replacing all calls to this function with calls to the
 #pickles.save() function and then removing this function. It doesn't appear to
 #serve any demonstrable point anymore. Moreover, the name of this function is

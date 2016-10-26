@@ -31,7 +31,7 @@ This expression is intended to be used in substitutions converting CamelCase to
 some other format. For example, to convert CamelCase to snake_case:
 
     >>> from betse.util.type import regexes
-    >>> regexes.substitute_substrings(
+    >>> regexes.replace_substrs(
     ...     'MesseIoXaVIaX',
     ...     rexeges.PYTHON_IDENTIFIER_CAMEL_CASE_CHAR_REGEX_RAW,
     ...     r'_\1')
