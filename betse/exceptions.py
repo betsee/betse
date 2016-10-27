@@ -162,6 +162,13 @@ class BetseFileException(BetsePathException):
     pass
 
 
+class BetseArchiveException(BetsePathException):
+    '''
+    Archive-specific exception.
+    '''
+    pass
+
+
 class BetseCommandException(BetseFileException):
     '''
     Command-specific exception.

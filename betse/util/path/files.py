@@ -14,10 +14,9 @@ This module is named `files` rather than `file` to avoid conflict with the stock
 import os, re, shutil
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, NoneType, SequenceTypes
+from betse.util.type.types import type_check, SequenceTypes
 from io import BufferedReader, BufferedWriter, TextIOWrapper
 from os import path
-from tempfile import NamedTemporaryFile
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
@@ -249,10 +248,11 @@ def remove_if_found(filename: str) -> None:
 @type_check
 def read_bytes(filename: str) -> BufferedReader:
     '''
-    Open and return the passed binary file for byte-oriented reading.
+    Open and return a filehandle suitable for reading the binary file with the
+    passed filename.
 
-    This function returns a `file`-like object, suitable for use wherever the
-    builtin `open()` would otherwise be called (e.g., in `with` statements).
+    This function returns a :class:`file`-like object suitable for use wherever
+    the :func:`open` builtin is callable (e.g., in `with` statements).
 
     Parameters
     ----------
@@ -275,11 +275,11 @@ def read_bytes(filename: str) -> BufferedReader:
 @type_check
 def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     '''
-    Open and return the passed plaintext file encoded with the passed encoding
-    for line-oriented reading.
+    Open and return a filehandle suitable for reading the plaintext file with
+    the passed filename encoded with the passed encoding.
 
-    This function returns a `file`-like object, suitable for use wherever the
-    builtin `open()` would otherwise be called (e.g., in `with` statements).
+    This function returns a :class:`file`-like object suitable for use wherever
+    the :func:`open` builtin is callable (e.g., in `with` statements).
 
     Parameters
     ----------
@@ -304,17 +304,16 @@ def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
 @type_check
 def write_bytes(filename: str) -> BufferedWriter:
     '''
-    Open and return the passed binary file for byte-oriented writing.
+    Open and return a filehandle suitable for writing the binary file with the
+    passed filename.
 
-    This function returns a `file`-like object, suitable for use wherever the
-    builtin `open()` would otherwise be called (e.g., in `with` statements).
+    This function returns a :class:`file`-like object suitable for use wherever
+    the :func:`open` builtin is callable (e.g., in `with` statements).
 
     Parameters
     ----------
     filename : str
-        Relative or absolute path of the binary text to be written.
-    encoding : optional[str]
-        Name of the encoding to be used. Defaults to UTF-8.
+        Relative or absolute path of the binary file to be written.
 
     Returns
     ----------
@@ -335,16 +334,16 @@ def write_bytes(filename: str) -> BufferedWriter:
 @type_check
 def write_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     '''
-    Open and return the passed plaintext file encoded with the passed encoding
-    for line-oriented writing.
+    Open and return a filehandle suitable for writing the plaintext file with
+    the passed filename encoded with the passed encoding.
 
-    This function returns a `file`-like object, suitable for use wherever the
-    builtin `open()` would otherwise be called (e.g., in `with` statements).
+    This function returns a :class:`file`-like object suitable for use wherever
+    the :func:`open` builtin is callable (e.g., in `with` statements).
 
     Parameters
     ----------
     filename : str
-        Relative or absolute path of the plaintext text to be written.
+        Relative or absolute path of the plaintext file to be written.
     encoding : optional[str]
         Name of the encoding to be used. Defaults to UTF-8.
 
@@ -367,82 +366,6 @@ def write_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     # Open this file.
     return open(filename, mode='wt', encoding=encoding)
 
-# ....................{ WRITERS ~ temporary                }....................
-#FIXME: Consider shifting into a new "betse.util.path.temps" submodule providing
-#logic specific to both temporary files and directories.
-
-# The type of the return value is the private class
-# "tempfile._TemporaryFileWrapper", which due to being private is intentionally
-# *NOT* type-checked here.
-def write_bytes_temp(encoding: (str, NoneType) = None):
-    '''
-    Open and return a temporary named binary file for byte-oriented writing.
-
-    Parameters
-    ----------
-    encoding : optional[str]
-        Name of the encoding with which to encode bytes into plaintext strings
-        if any or _None_ otherwise (i.e., if bytes are to be written as is
-        without being encoded into such strings). Defaults to `None`.
-
-    Returns
-    ----------
-    tempfile._TemporaryFileWrapper
-        `file`-like object encapsulating the opened file.
-
-    See Also
-    ----------
-    :func:`write_chars_temp`
-        Further details.
-    '''
-
-    return NamedTemporaryFile(delete=False, encoding=encoding)
-
-
-# The type of the return value is the private class
-# "tempfile._TemporaryFileWrapper", which due to being private is intentionally
-# *NOT* type-checked here.
-@type_check
-def write_chars_temp(encoding: str = 'utf-8'):
-    '''
-    Open and return a temporary named plaintext file for line-oriented writing.
-
-    This function returns a `file`-like object, suitable for use wherever the
-    builtin `open()` would otherwise be called (e.g., in `with` statements).
-    The filename for the underlying file is accessible in the typical way for
-    named `file`-like objects (namely, via the `name` attribute of such object).
-    The underlying file will _not_ be implicitly deleted when such object is
-    closed, which typically defeats the purpose of creating a temporary named
-    file in the first place.
-
-    Text Lines
-    ----------
-    Temporary files are _not_ reliably openable for line-oriented writing in a
-    cross-platform manner. Hence, callers are discouraged from calling this
-    function except where absolutely required (e.g., some or all underlying
-    encodings are unknown). Instead, text lines may be manually written in a
-    byte-oriented manner by encoding such lines under a known encoding _and_
-    appending such lines by the newline delimiter specific to the current
-    platform: e.g.,
-
-        >>> from betse.util.path imports files
-        >>> import os
-        >>> tempfile = files.write_bytes_temp(encoding='utf-8')
-        >>> tempfile.write(bytes('Eaarth' + os.linesep))
-
-    Parameters
-    ----------
-    encoding : optional[str]
-        Name of the encoding to be used. Defaults to UTF-8.
-
-    Returns
-    ----------
-    tempfile._TemporaryFileWrapper
-        `file`-like object encapsulating the opened file.
-    '''
-
-    return NamedTemporaryFile(mode='w+', delete=False, encoding=encoding)
-
 # ....................{ REPLACERS                          }....................
 def replace_substrs_inplace(
     filename: str, replacements: SequenceTypes, **kwargs) -> None:
@@ -459,7 +382,6 @@ def replace_substrs_inplace(
     replace_substrs(filename, filename, replacements, **kwargs)
 
 
-#FIXME: Rename to replace_substrs().
 @type_check
 def replace_substrs(
     filename_source: str,
@@ -504,6 +426,9 @@ def replace_substrs(
           substrings in the source file matching that regular expression.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.path import temps
+
     # Log this substitution.
     if filename_source == filename_target:
         logs.log_debug(
@@ -534,7 +459,7 @@ def replace_substrs(
     # desired target file *BEFORE* moving the former to the latter. This
     # obscures such writes from other threads and/or processes, avoiding
     # potential race conditions elsewhere.
-    with write_chars_temp() as file_target_temp:
+    with temps.write_chars() as file_target_temp:
         with read_chars(filename_source) as file_source:
             # For each line of the source file...
             for line in file_source:

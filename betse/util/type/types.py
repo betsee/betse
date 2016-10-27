@@ -278,6 +278,12 @@ NumericOrNoneTypes = NumericTypes + NoneTypes
 Tuple of all numeric types as well as the type of the singleton `None` object.
 '''
 
+
+StrOrNoneTypes = (str, NoneType)
+'''
+Tuple of all string types as well as the type of the singleton `None` object.
+'''
+
 # ....................{ SETS : private                     }....................
 #FIXME: Type-check variadic keyword arguments as well.
 _PARAMETER_KIND_IGNORED = {

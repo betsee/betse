@@ -19,7 +19,8 @@ import collections, importlib, sys
 from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 from betse.util.type import types
-from betse.util.type.types import type_check, ModuleType, NoneType, SetType
+from betse.util.type.types import (
+    type_check, ModuleType, NoneType, SetType, StrOrNoneTypes,)
 from importlib import util as importlib_util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
@@ -43,7 +44,7 @@ All modules and packages unmapped by this dictionary default to the canonical
 # ....................{ EXCEPTIONS                         }....................
 @type_check
 def die_unless_module(
-    module_name: str, exception_message: (str, NoneType) = None) -> None:
+    module_name: str, exception_message: StrOrNoneTypes = None) -> None:
     '''
     Raise an exception with the passed message (defaulting to a message
     synthesized from the passed module name) if the module with the passed name
@@ -123,8 +124,8 @@ def is_imported(*module_names: str) -> bool:
     already been imported under the current Python process.
     '''
 
-    # any(). It is awesome.
-    return any(module_name in sys.modules for module_name in module_names)
+    # all(). It is awesome.
+    return all(module_name in sys.modules for module_name in module_names)
 
 # ....................{ TESTERS ~ type                     }....................
 #FIXME: Add unit tests, as this is a fairly fragile tester.

@@ -13,6 +13,11 @@ betse.util.type.types.is_sequence
     Further details on what constitutes sequences and non-string sequences.
 '''
 
+#FIXME: Most if not all of the existing functionality provided by this submodule
+#should be generalized to support higher-level iterable rather than lower-level
+#sequence types and then shifted into the existing "iterables" submodule.
+#Ideally, this submodule could then be excised entirely.
+
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSequenceException
 from betse.util.type import types
@@ -74,25 +79,15 @@ def is_empty(*sequences: SequenceTypes) -> bool:
         `True` only if these sequences are all empty.
     '''
 
-    # For each such sequence...
-    for sequence_index, sequence in enumerate(sequences):
-        # If this sequence is non-empty, return False. To transparently support
-        # Numpy arrays, the length of this sequence *MUST* be explicitly tested
-        # via the len() builtin rather than implicitly tested as a boolean. On
-        # attempting the latter, Numpy raises the following exception:
-        #
-        #     ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()
-        #
-        # For the same reason, this inefficient iteration *CANNOT* be
-        # efficiently reimplemented in terms of the all() builtin:
-        #
-        #     # Numpy raises the same exception as above, sadly.
-        #     return all(not sequence for sequence in sequences)
-        if len(sequence) != 0:
-            return False
-
-    # Else, these sequences are all empty. Return True.
-    return True
+    # all(). It is awesome.
+    #
+    # To transparently support Numpy arrays, the length of this sequence *MUST*
+    # be explicitly tested via the len() builtin rather than implicitly tested
+    # as a boolean. On the latter, Numpy raises the following exception:
+    #
+    #     ValueError: The truth value of an array with more than one element is
+    #     ambiguous. Use a.any() or a.all()
+    return all(len(sequence) == 0 for sequence in sequences)
 
 # ....................{ GETTERS                            }....................
 #FIXME: Generalize into a function of the same name accepting an iterable rather

@@ -197,8 +197,7 @@ def join_as(
     '''
     Join the passed strings in a human-readable manner.
 
-    This function is typically used to join strings in a human-readable manner.
-    Specifically, if:
+    If:
 
     * No strings are passed, the empty string is returned.
     * One string is passed, this string is returned as is without modification.
@@ -269,12 +268,12 @@ def join_as(
 # ....................{ JOINERS ~ as : conjunction         }....................
 def join_as_conjunction(*texts) -> str:
     '''
-    Get a human-readable string conjunctively joining all passed strings.
+    Conjunctively join all passed strings in a human-readable manner.
 
     Specifically:
 
-    * Delimit all passed string excluding the last two with `, `.
-    * Delimit the last two passed strings with `, and `.
+    * All passed strings excluding the last two are joined with `, `.
+    * The last two passed strings are joined with `, and `.
     '''
 
     return join_as(
@@ -287,33 +286,33 @@ def join_as_conjunction(*texts) -> str:
 
 def join_as_conjunction_double_quoted(*texts) -> str:
     '''
-    Get a human-readable string conjunctively joining all passed strings,
-    double-quoted.
+    Conjunctively double-quote and join all passed strings in a human-readable
+    manner.
 
     Specifically:
 
-    * Double-quote all passed strings.
-    * Delimit all passed strings excluding the last two with `, `.
-    * Delimit the last two passed strings with `, and `.
+    * All passed strings are double-quoted.
+    * All passed strings excluding the last two are joined with `, `.
+    * The last two passed strings are joined with `, and `.
     '''
 
-    # All passed strings, double-quoted. Since the "*" operator applied to this
-    # variable below requires a sequence rather than a generator, this has been
-    # assigned the most space-efficient sequence (i.e., a frozen tuple).
+    # Tuple of all passed strings double-quoted. Since the "*" operator applied
+    # to this tuple below requires a sequence rather than generator, this is the
+    # most space-efficient available sequence (i.e., frozen tuple).
     texts_quoted = tuple(double_quote(text) for text in texts)
 
-    # Return these strings, joined conjunctively.
+    # Conjunctively join these strings.
     return join_as_conjunction(*texts_quoted)
 
 # ....................{ JOINERS ~ as : conjunction         }....................
 def join_as_disjunction(*texts) -> str:
     '''
-    Get a human-readable string disjunctively joining all passed strings.
+    Disjunctively join all passed strings in a human-readable manner.
 
     Specifically:
 
-    * Delimit all passed strings excluding the last two with `, `.
-    * Delimit the last two passed strings with `, or `.
+    * All passed strings excluding the last two are joined with `, `.
+    * The last two passed strings are joined with `, or `.
     '''
 
     return join_as(
@@ -322,6 +321,26 @@ def join_as_disjunction(*texts) -> str:
         delimiter_if_three_or_more_nonlast=', ',
         delimiter_if_three_or_more_last=', or '
     )
+
+
+def join_as_disconjunction_double_quoted(*texts) -> str:
+    '''
+    Disjunctively double-quote and join all passed strings in a human-readable
+    manner.
+
+    Specifically:
+
+    * All passed strings are double-quoted.
+    * All passed strings excluding the last two are joined with `, `.
+    * The last two passed strings are joined with `, or `.
+    '''
+
+    # Tuple of all passed strings double-quoted. See
+    # join_as_conjunction_double_quoted().
+    texts_quoted = tuple(double_quote(text) for text in texts)
+
+    # Disjunctively join these strings.
+    return join_as_disjunction(*texts_quoted)
 
 # ....................{ QUOTERS                            }....................
 #FIXME: We don't actually escape embedded double quotes yet. The reason why is

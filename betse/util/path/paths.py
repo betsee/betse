@@ -15,8 +15,7 @@ This module is named `paths` rather than `path` to avoid conflict with the stock
 import errno, os, shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
-from betse.util.type import types
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, ContainerType
 from os import path
 
 # ....................{ CONSTANTS                          }....................
@@ -268,14 +267,28 @@ def is_basename(pathname: str) -> bool:
 
     return path.sep not in pathname
 
-
+# ....................{ TESTERS ~ filetype                 }....................
 @type_check
-def is_filetype(pathname: str, filetype: str) -> bool:
+def is_filetype_equals(pathname: str, filetype: str) -> bool:
     '''
-    `True` only if the passed pathname has the passed filetype.
+    `True` only if the passed pathname has a filetype _and_ the **last
+    filetype** (i.e., last `.`-prefixed substring of the basename) of this
+    pathname is the passed filetype.
 
-    This filetype may contain arbitrarily many `.` characters, including an
-    optional prefixing `.`. In any case, this function behaves as expected.
+    The passed filetype may contain arbitrarily many `.` characters, including
+    an optional prefixing `.`. In all cases, this function behaves as expected.
+
+    Parameters
+    ----------
+    pathname : str
+        Pathname to be tested.
+    filetype : str
+        Filetype to test whether this pathname is suffixed by.
+
+    Returns
+    ----------
+    bool
+        `True` only if this pathname has this filetype.
     '''
 
     # Avoid circular import dependencies.
@@ -285,13 +298,49 @@ def is_filetype(pathname: str, filetype: str) -> bool:
     return strs.is_suffix(
         pathname, strs.add_prefix_unless_found(filetype, '.'))
 
+
+@type_check
+def is_filetype_undotted_in(
+    pathname: str, filetypes_undotted: ContainerType) -> bool:
+    '''
+    `True` only if the passed pathname has a filetype _and_ the **last undotted
+    filetype** (i.e., last `.`-prefixed substring of the basename excluding this
+    `.`) of this pathname is an element of the passed container.
+
+    Parameters
+    ----------
+    pathname : str
+        Pathname to be tested.
+    filetypes: ContainerType
+        Container of all undotted filetypes to test this pathname against. Each
+        element of this container should be a string _not_ prefixed the `.`
+        character.
+
+    Returns
+    ----------
+    bool
+        `True` only if this pathname has a filetype _and_ the last filetype of
+        this pathname is an element of this container.
+    '''
+
+    # Undotted filetype of this filename if any or None otherwise
+    filetype_undotted = get_filetype_undotted_or_none(pathname)
+
+    # Return True only if...
+    return (
+        # This pathname is suffixed by a filetype.
+        filetype_undotted is not None and
+        # This filetype is in this container.
+        filetype_undotted in filetypes_undotted
+    )
+
 # ....................{ GETTERS                            }....................
+@type_check
 def get_basename(pathname: str) -> str:
     '''
-    Get the **basename** (i.e., last component) of the passed path.
+    **Basename** (i.e., last component) of the passed path.
     '''
-    assert types.is_str_nonempty(pathname), (
-        types.assert_not_str_nonempty(pathname, 'Pathname'))
+
     return path.basename(pathname)
 
 
@@ -312,6 +361,7 @@ def get_type_label(pathname: str) -> str:
 
     If this path does _not_ exist, an exception is raised.
     '''
+
     # Avoid circular import dependencies.
     from betse.util.paths import dirs, files
 

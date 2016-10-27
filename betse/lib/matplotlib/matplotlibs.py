@@ -614,7 +614,7 @@ class MatplotlibConfig(object):
                     for backend_basename in dirs.list_basenames(backends_dir)
                     if strs.is_prefix(
                         backend_basename, BACKEND_BASENAME_PREFIX) and
-                        paths.is_filetype(backend_basename, 'py')
+                        paths.is_filetype_equals(backend_basename, 'py')
                 ])
             # Else, this directory does *NOT* exist.
             else:
