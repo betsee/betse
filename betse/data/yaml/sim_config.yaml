@@ -363,7 +363,7 @@ cutting event:
     wound channel:
       use channel: True      # use a channel associated with wounding (mechanosensitive Na channel)
       max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open
-      closure delay: 1.0       # how fast does the channel close after activation? (larger = faster decay)
+      closure delay: 5.0       # how fast does the channel close after activation? (larger = faster decay)
 
       activators: None         # list of defined substances or simulation ions activating channel
       Km activators: None      # list of half-maximum values for activators
@@ -644,14 +644,14 @@ variable settings:
     turn on: False        # turn on electroosmosis of pumps and channels
     channel charge: -1         # charge of membrane channels
     pump charge: 1          # charge of pumps (controls direction they move in)
-    membrane mobility: 1e-15  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
+    membrane mobility: 1e-16  # mobility factor (diffusion constant) for pumps and channels [m2/s] (1e-10 to 1e-12)
 
 
 
   fluid flow:
 
     include fluid flow: False     # calculate fluid flow between cells and in extracellular environment?
-    water viscocity: 1.0e-1      # viscocity of water [Pa s] (applies to ease of flow)
+    water viscocity: 1.0      # viscocity of water [Pa s] (applies to ease of flow)
 
 
   deformation:
@@ -1078,9 +1078,9 @@ internal parameters:
 
   membrane capacitance: 0.05 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
-  cell polarizability factor: 0.5  # (0.0 to 1.0) polarizability of the membrane (dynamic behaviour of vm wrt Jmem)
+  cell polarizability factor: 0.0  # (0.0 to 1.0) polarizability of the membrane (dynamic behaviour of vm wrt Jmem)
 
-  membrane resistivity factor: 0.5 # (0.0 to 1.0) resistivity of the membrane (dynamic behaviour of vm wrt Jmem)
+  membrane resistivity factor: 0.0 # (0.0 to 1.0) resistivity of the membrane (dynamic behaviour of vm wrt Jmem)
 
   env modulation factor: 0.0   #  (0.0 to 50.0) factor enhancing env voltage (accounts for smaller TJ width in reality)
 
