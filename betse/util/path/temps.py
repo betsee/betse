@@ -71,7 +71,10 @@ def write_chars(encoding: str = 'utf-8'):
         >>> from betse.util.path imports temps
         >>> import os
         >>> tempfile = temps.write_bytes(encoding='utf-8')
-        >>> tempfile.write(bytes('Eaarth' + os.linesep))
+        >>> tempfile.write(b'The strength of a civilization is not measured ')
+        >>> tempfile.write(b'by its ability to fight wars, but rather by its ')
+        >>> tempfile.write(b'ability to prevent them.')
+        >>> tempfile.write(bytes(os.linesep, encoding='utf-8'))
 
     Parameters
     ----------

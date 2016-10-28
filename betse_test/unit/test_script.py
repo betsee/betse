@@ -9,12 +9,8 @@ Unit tests for BETSE's scripting API.
 
 #FIXME: Provide additional tests actually exercising scripting-specific
 #functionality exposed by this API (e.g., the betse.script.api.seed() function).
-#Doing so requires the customary creation of a test simulation configuration.
-#Unfortunately, the fixtures for creating such configurations currently reside
-#under the functional test-specific "betse_test.func.fixtures" subpackage rather
-#than the more general-purpose "betse_test.fixtures" subpackage. It appears that
-#such fixtures (e.g., "betse_sim_config") must now be moved from the former into
-#the latter. In theory, this shouldn't be terribly arduous.
+#Doing so requires the customary creation of a test simulation configuration,
+#available via the general-purpose "betse_sim_config" fixture.
 
 # ....................{ IMPORTS                            }....................
 
