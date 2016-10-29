@@ -36,24 +36,28 @@
 #------------------------------------------------------------------------------------------------------------------------
 # Settings specific to saving simulations and results output
 
-init file saving:
+init file saving:                # Initialization paths to save and load.
+    directory: INITS             # Directory containing the following files.
+    worldfile: world_1.betse.gz  # File containing all cell cluster objects.
+                                 # Supported filetypes include (in order of
+                                 # increased compression):
+                                 # ".betse" (no compression),
+                                 # ".betse.gz" (very fast minimal compression),
+                                 # ".betse.bz2" (slow medium compression), and
+                                 # ".betse.xz" (fast maximal compression).
+    file: init_1.betse.gz        # File containing all initialization objects.
+                                 # Supported filetypes are as above.
 
-    directory: INITS         # directory to load/save init run
+sim file saving:                 # Simulation paths to save and load.
+    directory: SIMS              # Directory containing the following files.
+    file: sim_1.betse.gz         # File containing all simulation objects.
+                                 # Supported filetypes are as above.
 
-    file: init_1.betse        # filename to load/save init run
-
-    worldfile: world_1.betse      # filename to load/save cell cluster
-
-sim file saving:
-
-    directory: SIMS # directory to load/save sim run
-
-    file: sim_1.betse    # filename to load/save sim run
-
-results file saving:
-
-    init directory: RESULTS/init_1  # directory to load/save data, plots, and animations for init
-    sim directory: RESULTS/sim_1  # directory to load/save data, plots, and animations for sim
+results file saving:          # Initialization and simulation exports to save.
+    init directory: RESULTS/init_1  # Directory containing all initialization
+                                    # exports (e.g., plots, animations).
+    sim directory: RESULTS/sim_1    # Directory containing all simulation
+                                    # exports (e.g., plots, animations).
 
 # -----------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
@@ -95,13 +99,13 @@ general options:
   simulate extracellular spaces: False    # include extracellular spaces and true environment simulation?
 
   ion profile: basic   # ion profile options:
-                                # 'basic' (Na+, K+, M-, and proteins-)
-                                # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
-                                # 'animal' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) typical mammal
-                                # 'scratch' (Na+, K+, Cl-, M- and proteins) intra extra values close
-                                # 'xenopus' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) freshwater environment
-                                # 'customized' (user-specified settings, see below)
-                                # profiles contain an unidentified charge-balance anion, M-
+                       # 'basic' (Na+, K+, M-, and proteins-)
+                       # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
+                       # 'animal' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) typical mammal
+                       # 'scratch' (Na+, K+, Cl-, M- and proteins) intra extra values close
+                       # 'xenopus' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) freshwater environment
+                       # 'customized' (user-specified settings, see below)
+                       # profiles contain an unidentified charge-balance anion, M-
 
 
   customized ion profile:      # set user-defined initial values of ion concentrations
@@ -789,11 +793,11 @@ results options:
                                       # defaults to the current year.
 
         # List of the names of all matplotlib animation writers with which to
-        # encode video (in descending order of preference)
+        # encode video (in descending order of preference).
         writers: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
 
         # List of the names of all encoder-specific codecs with which to
-        # encode video (in descending order of preference)
+        # encode video (in descending order of preference).
         codecs: ['auto']
 
     data:              # Saving options for spreadsheet-compatible data.

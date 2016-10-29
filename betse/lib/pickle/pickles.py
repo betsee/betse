@@ -22,22 +22,10 @@ including:
 * Numpy `unfunc` objects.
 '''
 
-#FIXME: Add support to:
-#
-#* The save() function for transparently compressing a pickled file immediately
-#  after pickling that file *IF* the passed filename has a filetype signifying a
-#  supported compression format (e.g., "bz2", "gz", "zip").
-#* The load() function for transparently decompressing a pickled file
-#  immediately before unpickling that file *IF* the passed filename again has a
-#  filetype signifying a supported compression format.
-#
-#For relevant examples, see:
-#    https://stackoverflow.com/questions/18474791/decreasing-the-size-of-cpickle-objects
-
 # ....................{ IMPORTS                            }....................
 import dill as pickle
 from betse.util.io.log import logs
-from betse.util.path import files
+from betse.util.path import archives, files
 from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
@@ -56,6 +44,54 @@ competing tradeoffs:
   support for such edge cases as very large objects and edge-case object types.
 '''
 
+# ....................{ LOADERS                            }....................
+@type_check
+def load(filename: str) -> object:
+    '''
+    Load (i.e., read, unpickle, deserialize) the object previously saved to the
+    file with the passed path.
+
+    This function transparently decompresses these objects into this file when
+    this filename's filetype is that of a supported archive format.
+
+    Parameters
+    ----------
+    filename : str
+        Absolute or relative path of this file. If this filename is suffixed by
+        a supported archive filetype (i.e., if the
+        :func:`betse.util.path.archives.is_filetype_archive` function returns
+        `True` when passed this filename), this file is automatically
+        decompressed as an archive of that filetype.
+
+    Returns
+    ----------
+    object
+        Arbitrarily complex object and all objects transitively referenced by
+        this object loaded from this file.
+    '''
+
+    # Context manager reading this file either compressed or uncompressed.
+    pickle_file_reader = None
+
+    # If this filename has a supported archive filetype...
+    if archives.is_filetype_archive(filename):
+        # Log this type of pickling.
+        logs.log_debug('Loading compressed: %s', filename)
+
+        # Context manager reading this file compressed.
+        pickle_file_reader = archives.read_bytes(filename)
+    # Else, this filename has no such filetype.
+    else:
+        # Log this type of pickling.
+        logs.log_debug('Loading uncompressed: %s', filename)
+
+        # Context manager reading this file uncompressed.
+        pickle_file_reader = files.read_bytes(filename)
+
+    # Load and return all objects saved to this file with this context manager.
+    with pickle_file_reader as unpickle_file:
+        return pickle.load(file=unpickle_file)
+
 # ....................{ SAVERS                             }....................
 @type_check
 def save(*objects: object, filename: str) -> None:
@@ -63,6 +99,9 @@ def save(*objects: object, filename: str) -> None:
     Save (i.e., write, pickle, serialize) the tuple of all passed objects to the
     file with the passed path if two or more objects are passed _or_ the single
     passed object if only one object is passed.
+
+    This function transparently compresses these objects into this file when
+    this filename's filetype is that of a supported archive format.
 
     Parameters
     ----------
@@ -74,7 +113,11 @@ def save(*objects: object, filename: str) -> None:
         * Two or more objects are passed, the tuple of all such objects will be
           saved.
     filename : str
-        Absolute or relative path of this file.
+        Absolute or relative path of this file. If this filename is suffixed by
+        a supported archive filetype (i.e., if the
+        :func:`betse.util.path.archives.is_filetype_archive` function returns
+        `True` when passed this filename), this file is automatically compressed
+        into an archive of that filetype.
     '''
 
     # If only one object is passed, save only that object rather than the
@@ -82,11 +125,26 @@ def save(*objects: object, filename: str) -> None:
     if len(objects) == 1:
         objects = objects[0]
 
-    # Log this pickling.
-    logs.log_debug('Saving "%s"...', filename)
+    # Context manager writing this file either compressed or uncompressed.
+    pickle_file_writer = None
 
-    # Save these objects to this file.
-    with files.write_bytes(filename) as pickle_file:
+    # If this filename has a supported archive filetype...
+    if archives.is_filetype_archive(filename):
+        # Log this type of pickling.
+        logs.log_debug('Saving compressed: %s', filename)
+
+        # Context manager writing this file compressed.
+        pickle_file_writer = archives.write_bytes(filename)
+    # Else, this filename has no such filetype.
+    else:
+        # Log this type of pickling.
+        logs.log_debug('Saving uncompressed: %s', filename)
+
+        # Context manager writing this file uncompressed.
+        pickle_file_writer = files.write_bytes(filename)
+
+    # Save these objects to this file with this context manager.
+    with pickle_file_writer as pickle_file:
         pickle.dump(
             objects,
             file=pickle_file,
@@ -116,29 +174,3 @@ def save(*objects: object, filename: str) -> None:
             # objects, recursive object discovery is *STRONGLY* preferred.
             recurse=True,
         )
-
-# ....................{ LOADERS                            }....................
-@type_check
-def load(filename: str) -> object:
-    '''
-    Load (i.e., read, unpickle, deserialize) the object previously saved to the
-    file with the passed path.
-
-    Parameters
-    ----------
-    filename : str
-        Absolute or relative path of this file.
-
-    Returns
-    ----------
-    object
-        Arbitrarily complex object and all objects transitively referenced by
-        this object loaded from this file.
-    '''
-
-    # Log this unpickling.
-    logs.log_debug('Loading "%s"...', filename)
-
-    # Load and return all objects saved to this file.
-    with files.read_bytes(filename) as unpickle_file:
-        return pickle.load(file=unpickle_file)

@@ -74,6 +74,9 @@ def test_archive_read_write_bytes(
     # This path as a string rather than "LocalPath" object.
     archive_filename = str(archive_filepath)
 
+    # Ensure this archive filetype to be supported.
+    assert archives.is_filetype_archive(archive_filename)
+
     # Create this archive.
     with archives.write_bytes(archive_filename) as archive_writer:
         archive_writer.write(ARCHIVE_BYTES)

@@ -8,7 +8,84 @@ Low-level **path archival** (i.e., compression and decompression of both
 directories _and_ non-directory files) facilities.
 '''
 
-#FIXME: Actually leverage this submodule to transparently archive pickles.
+#FIXME: Add a new convert_format_to_filetype() function defined as follows
+#
+#    @type_check
+#    def convert_format_to_filetype(format: str) -> StrOrNoneType:
+#
+#        #FIXME: Implement this format. Basically, we need to define an additional
+#        #private sequence global -- say:
+#        #
+#        #    _ARCHIVE_FILETYPES_PREFERRED = ('bosc', 'lzo', 'xz', 'bz2', 'gz')
+#        #
+#        #Given that, we then need to perform the intersection of that sequence with
+#        #the "ARCHIVE_FILETYPES" set, producing a new sequence containing only the
+#        #elements of that sequence supported by the current system. Lastly, we then
+#        #need to return the *FIRST* element of that sequence as the implementation
+#        #of this format. For safety, note that this intersection could
+#        #technically be empty, in which case None should be silently returned.
+#        if format == 'auto':
+#            ...  # something something
+#        elif format == 'none':
+#            return None
+#        elif format in ARCHIVE_FILETYPES:
+#            return format
+#        #FIXME: It'd be great to raise a more comprehensive exception, but
+#        #this would certainly do for the moment.
+#        else:
+#            raise BetseArchiveException(
+#                'Archive format "{}" unsupported.'.format(format))
+#FIXME: Refactor the "FILE HANDLING" section of our YAML file to resemble:
+#
+#path:
+#  seed:
+#    object:
+#      file: SEEDS/world_1.betse  # File containing all cell cluster objects.
+#
+#  init:             # Paths for initialization saving and loading.
+#    object:
+#      file: INITS/init_1.betse   # File containing all initialization objects.
+#    export:
+#      directory: RESULTS/init_1  # Directory containing all initialization
+#                                 # exports (e.g., plots, animations).
+#
+#  sim:
+#    object:
+#      file: SIMS/sim_1.betse    # filename to load/save sim run
+#    export:
+#      directory: RESULTS/sim_1  # directory to load/save data, plots, and animations for sim
+#
+#  object:
+#    compression: auto  # Supported object compression formats include:
+#                       # "auto" (smart compression), "none" (no compression),
+#                       # "gz" (fast minimal compression),
+#                       # "bz2" (medium compression), and
+#                       # "xz" (slow maximal compression).
+#FIXME: Pass the current value of the above "path/object/compression" key to the
+#convert_format_to_filetype() function, producing a filetype suitable for use in
+#pickling and unpickling compressed archives of that compression type.
+
+#FIXME: Add support for additional non-stdlib archive packages, including:
+#
+#* https://github.com/Blosc/python-blosc, "...a Python wrapper for the extremely
+#  fast Blosc compression library."
+#* https://github.com/Iotic-Labs/py-lz4framed and
+#  https://github.com/python-lz4/python-lz4, competing Python bindings for the
+#  LZ4 compression library.
+#* https://github.com/sergey-dryabzhinsky/python-zstd and
+#  https://github.com/indygreg/python-zstandard, competing Python bindings for
+#  the ZSTD compression library.
+#
+#While all of the above packages are released under BSD-compatible licenses,
+#note that the following non-stdlib archive packages are strictly constrained by
+#GPL licenses and *MUST* thus be avoided:
+#
+#* https://github.com/jd-boyd/python-lzo.
+#
+#Since the already supported XZ (LZMA) format arguably satisfies the ideal
+#tradeoff between compression speed and ratio for our purposes, there may not
+#exist much incentive to actually implement support for additional non-stdlib
+#formats. Nonetheless, the future exists and it is always coming.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseArchiveException
@@ -20,6 +97,28 @@ from io import BufferedIOBase
 ARCHIVE_FILETYPES = set()
 '''
 Set of all archive filetypes supported by this submodule.
+
+Tradeoffs
+----------
+Most compression algorithms succumb to the typical tradeoff between time and
+space complexity. Specifically, as the **(de)compression speed** (i.e., duration
+of time required to compress or decompress a given sequence of bytes) of a
+compression algorithm increases, the **compression ratio** (i.e., filesize of
+the output compressed archive to the size in bytes of the uncompressed input)
+of that algorithm typically increases. The principal exception to this heuristic
+is BZIP2, which runs slower and compresses less than competing algorithms.
+
+Most benchmarks qualitatively profile the algorithms supported by this submodule
+as follows (_in increasing order of compression ratio_):
+
+* GZIP, exhibiting the worst compression ratio and fastest compression speed.
+* BZIP2, exhibiting average compression ratio and slowest compression speed.
+* XZ (effectively equivalent to LZMA), exhibiting the best compression ratio and
+  average compression speed.
+
+For general-purpose use, the **XZ** algorithm arguably strikes ideal balance
+between compression ratio and speed. Most algorithms exhibit similar
+decompression speed, which is thus ignorable for comparison purposes.
 
 Caveats
 ----------
@@ -38,6 +137,7 @@ modules (e.g., the :class:`bz2.BZ2File` class, :class:`gzip.GzipFile` class).
 '''
 
 # ....................{ EXCEPTIONS                         }....................
+#FIXME: Rename to simply die_unless_filetype().
 @type_check
 def die_unless_filetype_archive(pathname: str) -> None:
     '''
@@ -100,6 +200,7 @@ def die_unless_filetype_archive(pathname: str) -> None:
                     pathname, archive_filetypes))
 
 # ....................{ TESTERS                            }....................
+#FIXME: Rename to simply is_filetype().
 @type_check
 def is_filetype_archive(pathname: str) -> bool:
     '''
@@ -130,7 +231,6 @@ def is_filetype_archive(pathname: str) -> bool:
         pathname=pathname, filetypes_undotted=ARCHIVE_FILETYPES)
 
 # ....................{ IO                                 }....................
-#FIXME: Unit test us up.
 @type_check
 def read_bytes(filename: str) -> BufferedIOBase:
     '''
