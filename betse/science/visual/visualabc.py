@@ -1083,7 +1083,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     #FIXME: This plots somewhat similarly to the presumably superior
     #"LayerCellsShadeDiscrete" subclass. Generalize this method into a new
-    #"LayerCellsGouraudAveraged" subclass of the same submodule.
+    #"LayerCellsGouraudContinuous" subclass of the same submodule.
     def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
         '''
         Plot and return a mesh plot of all cells with colours corresponding to

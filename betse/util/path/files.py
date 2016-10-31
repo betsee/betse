@@ -15,7 +15,7 @@ import os, re, shutil
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
-from io import BufferedReader, BufferedWriter, TextIOWrapper
+from io import BufferedIOBase, BufferedReader, BufferedWriter, TextIOWrapper
 from os import path
 
 # ....................{ EXCEPTIONS ~ unless                }....................
@@ -246,10 +246,11 @@ def remove_if_found(filename: str) -> None:
 
 # ....................{ READERS                            }....................
 @type_check
-def read_bytes(filename: str) -> BufferedReader:
+def read_bytes(filename: str) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for reading the binary file with the
-    passed filename.
+    passed filename, transparently decompressing this file if the filetype of
+    this filename is that of a supported archive format.
 
     This function returns a :class:`file`-like object suitable for use wherever
     the :func:`open` builtin is callable (e.g., in `with` statements).
@@ -257,19 +258,40 @@ def read_bytes(filename: str) -> BufferedReader:
     Parameters
     ----------
     filename : str
-        Relative or absolute path of the binary text to be read.
+        Relative or absolute path of the binary file to be read. If this
+        filename is suffixed by a supported archive filetype (i.e., if the
+        :func:`betse.util.path.archives.is_filetype` function returns `True`
+        for this filename), the returned filehandle automatically reads the
+        decompressed rather than compressed byte contents of this file.
 
     Returns
     ----------
-    BufferedReader
+    BufferedIOBase
         `file`-like object encapsulating this opened file.
+
+    Raises
+    ----------
+    BetseFileException
+        If this filename is _not_ that of an existing file.
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import archives
+
+    # Log this I/O operation.
+    logs.log_debug('Reading bytes: %s', filename)
 
     # Raise an exception unless this file exists.
     die_unless_file(filename)
 
-    # Open this file.
-    return open(filename, mode='rb')
+    # If this file is compressed, open and return a file handle reading
+    # decompressed bytes from this file.
+    if archives.is_filetype(filename):
+        return archives.read_bytes(filename)
+    # Else, this file is uncompressed. Open and return a typical file handle
+    # reading bytes from this file.
+    else:
+        return open(filename, mode='rb')
 
 
 @type_check
@@ -294,6 +316,9 @@ def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
         `file`-like object encapsulating the opened file.
     '''
 
+    # Log this I/O operation.
+    logs.log_debug('Reading chars: %s', filename)
+
     # Raise an exception unless this file exists.
     die_unless_file(filename)
 
@@ -302,10 +327,11 @@ def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
 
 # ....................{ WRITERS                            }....................
 @type_check
-def write_bytes(filename: str) -> BufferedWriter:
+def write_bytes(filename: str) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for writing the binary file with the
-    passed filename.
+    passed filename, transparently compressing this file if the filetype of
+    this filename is that of a supported archive format.
 
     This function returns a :class:`file`-like object suitable for use wherever
     the :func:`open` builtin is callable (e.g., in `with` statements).
@@ -313,22 +339,42 @@ def write_bytes(filename: str) -> BufferedWriter:
     Parameters
     ----------
     filename : str
-        Relative or absolute path of the binary file to be written.
+        Relative or absolute path of the binary file to be written. If this
+        filename is suffixed by a supported archive filetype (i.e., if the
+        :func:`betse.util.path.archives.is_filetype` function returns `True`
+        for this filename), the returned filehandle automatically writes the
+        compressed rather than uncompressed byte contents of this file.
 
     Returns
     ----------
-    TextIOWrapper
+    BufferedIOBase
         `file`-like object encapsulating this opened file.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs
+    from betse.util.path import archives, dirs, paths
+
+    # Log this I/O operation.
+    logs.log_debug('Writing bytes: %s', filename)
+
+    # Raise an exception if this path already exists.
+    paths.die_if_path(filename)
 
     # Create the parent directory of this file if needed.
     dirs.make_parent_unless_dir(filename)
 
-    # Open this file.
-    return open(filename, mode='wb')
+    # If this file is compressed, open and return a file handle writing
+    # compressed bytes to this file.
+    if archives.is_filetype(filename):
+        return archives.write_bytes(filename)
+    # Else, this file is uncompressed. Open and return a file handle simply
+    # writing bytes to this file. To avoid race conditions in the event that
+    # another thread or process has created this file *AFTER* the above call to
+    # the die_if_path() function but before the following call to the open()
+    # builtin, mode "xb" raising an exception if this file has since been
+    # created is called rather than the standard mode "wb".
+    else:
+        return open(filename, mode='xb')
 
 
 @type_check
@@ -354,17 +400,19 @@ def write_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs
+    from betse.util.path import dirs, paths
 
-    # Raise an exception if this path is an existing special file. Such files
-    # must *NEVER* be opened for line-oriented writing.
-    die_if_special(filename)
+    # Log this I/O operation.
+    logs.log_debug('Writing chars: %s', filename)
+
+    # Raise an exception if this path already exists.
+    paths.die_if_path(filename)
 
     # Create the parent directory of this file if needed.
     dirs.make_parent_unless_dir(filename)
 
     # Open this file.
-    return open(filename, mode='wt', encoding=encoding)
+    return open(filename, mode='xt', encoding=encoding)
 
 # ....................{ REPLACERS                          }....................
 def replace_substrs_inplace(

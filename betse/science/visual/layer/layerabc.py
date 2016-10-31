@@ -39,7 +39,7 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from betse.util.py import references
 from betse.util.type.types import type_check, IterableTypes
 
@@ -142,8 +142,8 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     def _layer_first(self) -> None:
         '''
         Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the first time step and each cell of the current
-        cluster onto the figure axes of the current plot or animation.
+        membrane voltage) for the first simulation time step onto the figure
+        axes of the current plot or animation.
 
         Layer subclasses are required to implement this abstract method.
         '''
@@ -154,8 +154,8 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     def _layer_next(self) -> None:
         '''
         Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the next time step and each cell of the current
-        cluster onto the figure axes of the current plot or animation.
+        membrane voltage) for the next simulation time step onto the figure axes
+        of the current plot or animation.
 
         Layer subclasses are recommended but _not_ required to reimplement this
         empty method.
@@ -166,12 +166,32 @@ class LayerCellsABC(object, metaclass=ABCMeta):
 # ....................{ SUBCLASSES                         }....................
 class LayerCellsMappableABC(LayerCellsABC):
     '''
-    Abstract base class of all classes spatially plotting a single feature of
-    the cell cluster for a parent plot or animation.
+    Abstract base class of all classes spatially plotting a single cell-specific
+    modelled variable (e.g., cell membrane voltage) of the cell cluster whose
+    values are mapped as equivalent colors onto the colorbar for a parent plot
+    or animation.
+
+    Attributes
+    ----------
+    _color_mappables : IterableTypes
+        Iterable of all mappables internally cached and returned by the
+        :meth:`color_mappables` property.
     '''
 
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self) -> None:
+        '''
+        Initialize this layer.
+        '''
+
+        # Initialize our superclass.
+        super().__init__()
+
+        # Default all instance attributes.
+        self._color_mappables = None
+
     # ..................{ PROPERTIES                         }..................
-    @abstractproperty
+    @property
     def color_mappables(self) -> IterableTypes:
         '''
         Iterable of all **mappables** (i.e.,
@@ -182,6 +202,49 @@ class LayerCellsMappableABC(LayerCellsABC):
         Note that, by Matplotlib design, only the first mappable in this
         iterable defines the color range for the figure colorbar; all other
         mappables are artificially constrained onto the same range.
+        '''
+
+        # If this iterable of mappables has yet to be cached...
+        if self._color_mappables is None:
+            # Layer the first time step, presumably caching this iterable.
+            self._layer_first()
+
+            # Assert this to be the case.
+            assert self._color_mappables is not None, (
+                '_layer_first() failed to define "self._color_mappables".')
+
+        # Map the figure colorbar to this cached iterable.
+        return self._color_mappables
+
+
+    def _layer_first(self) -> None:
+        '''
+        Layer the spatial distribution of a single cell-specific modelled
+        variable (e.g., cell membrane voltage) for the first simulation time
+        step onto the figure axes of the current plot or animation.
+
+        This method internally caches the :attr:`_color_mappables` attribute
+        returned by the :meth:`color_mappables` property.
+        '''
+
+        # Iterable of mappables layered by the subclass for the first time step.
+        self._color_mappables = self._layer_first_color_mappables()
+
+    # ..................{ SUBCLASS                           }..................
+    @abstractmethod
+    def _layer_first_color_mappables(self) -> IterableTypes:
+        '''
+        Layer the spatial distribution of a single cell-specific modelled
+        variable (e.g., cell membrane voltage) for the first simulation time
+        step onto the figure axes of the current plot or animation.
+
+        Layer subclasses are required to implement this abstract method.
+
+        Returns
+        ----------
+        IterableTypes
+            Iterable of all mappables cached into the :attr:`_color_mappables`
+            attribute by the :meth:`_layer_first` method.
         '''
 
         pass

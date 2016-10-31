@@ -10,13 +10,42 @@ Layer subclasses spatially shading the current cell cluster.
 import numpy as np
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsMappableABC
-from betse.util.type.types import IterableTypes, SequenceTypes
+from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 
 # ....................{ CLASSES                            }....................
+# class LayerCellsShadeContinuous(LayerCellsMappableABC):
+#     '''
+#     Layer plotting the entire cell cluster as a continuous Gouraud-shaded
+#     surface represented as a polygonal mesh, interpolating the cell data for
+#     each cell across the smooth spatial continuum inhabited by that cell.
+#
+#     Attributes
+#     ----------
+#     _cluster_tri_mesh : matplotlib.collections.TriMesh
+#         Unstructured triangulation mesh grid interpolating the cell data for
+#         each cell over the cell cluster as a contiuous whole.
+#     '''
+#
+#     # ..................{ INITIALIZERS                       }..................
+#     def __init__(self) -> None:
+#         '''
+#         Initialize this layer.
+#         '''
+#
+#         # Initialize our superclass.
+#         super().__init__()
+#
+#         # Default instance attributes.
+#         self._cluster_tri_mesh = None
+#
+#     # ..................{ SUPERCLASS                         }..................
+#     #FIXME: Implement us up.
+
+
 class LayerCellsShadeDiscrete(LayerCellsMappableABC):
     '''
-    Layer subclass spatially plotting each cell in the current cell cluster as a
-    discontiguous Gouraud-shaded surface represented as a polygonal mesh.
+    Layer plotting each cell in the cell cluster as a discontiguous
+    Gouraud-shaded surface represented as a polygonal mesh.
 
     This layer is somewhat more computationally expensive in both space and
     time than the average layer. Gouraud-shading the surface of each cell
@@ -44,25 +73,19 @@ class LayerCellsShadeDiscrete(LayerCellsMappableABC):
         # Default instance attributes.
         self._cell_tri_meshes = None
 
-    # ..................{ PROPERTIES                         }..................
-    @property
-    def color_mappables(self) -> IterableTypes:
-
-        # If triangulation meshes have yet to be defined, do so.
-        if self._cell_tri_meshes is None:
-            self._layer_first()
-
-        # Map the figure colorbar to these meshes.
-        # print('cell_tri_meshes: {}'.format(self._cell_tri_meshes))
-        return self._cell_tri_meshes
-
     # ..................{ SUPERCLASS                         }..................
-    def _layer_first(self) -> None:
+    @type_check
+    def _layer_first_color_mappables(self) -> IterableTypes:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the first time step and each cell of the current
-        cluster onto the figure axes of the passed plot or animation as a
-        discontiguous Gouraud-shaded surface represented as a polygonal mesh.
+        Layer the spatial distribution of a single cell-specific modelled
+        variable (e.g., cell membrane voltage) for the first simulation time
+        step onto the figure axes of the current plot or animation.
+
+        Returns
+        ----------
+        IterableTypes
+            Iterable of all mappables cached into the :attr:`_color_mappables`
+            attribute by the :meth:`_layer_first` method.
         '''
 
         # Two-dimensional array of all cell data for the current time step.
@@ -108,6 +131,9 @@ class LayerCellsShadeDiscrete(LayerCellsMappableABC):
 
             # Add this triangulation mesh to the cached set of such meshes.
             self._cell_tri_meshes.append(cell_tri_mesh)
+
+        # Map these triangulation meshes onto the figure colorbar.
+        return self._cell_tri_meshes
 
 
     def _layer_next(self) -> None:

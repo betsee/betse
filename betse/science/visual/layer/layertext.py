@@ -13,8 +13,8 @@ from betse.science.visual.layer.layerabc import LayerCellsABC
 # ....................{ CLASSES                            }....................
 class LayerCellsIndex(LayerCellsABC):
     '''
-    Layer subclass printing the 0-based index of each cell in the current cell
-    cluster as a text label centered on that cell.
+    Layer printing the 0-based index of each cell in the cell cluster as a text
+    label centered on that cell.
     '''
 
     # ..................{ SUPERCLASS                         }..................

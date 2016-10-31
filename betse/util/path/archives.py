@@ -137,9 +137,8 @@ modules (e.g., the :class:`bz2.BZ2File` class, :class:`gzip.GzipFile` class).
 '''
 
 # ....................{ EXCEPTIONS                         }....................
-#FIXME: Rename to simply die_unless_filetype().
 @type_check
-def die_unless_filetype_archive(pathname: str) -> None:
+def die_unless_filetype(pathname: str) -> None:
     '''
     Raise an exception unless the passed pathname is suffixed by a filetype
     corresponding to a supported archive format.
@@ -151,12 +150,12 @@ def die_unless_filetype_archive(pathname: str) -> None:
 
     See Also
     ----------
-    :func:`is_filetype_archive`
+    :func:`is_filetype`
         Further details.
     '''
 
     # If this pathname is *NOT* suffixed by a supported archive filetype...
-    if not is_filetype_archive(pathname):
+    if not is_filetype(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import paths
         from betse.util.py import modules
@@ -200,9 +199,8 @@ def die_unless_filetype_archive(pathname: str) -> None:
                     pathname, archive_filetypes))
 
 # ....................{ TESTERS                            }....................
-#FIXME: Rename to simply is_filetype().
 @type_check
-def is_filetype_archive(pathname: str) -> bool:
+def is_filetype(pathname: str) -> bool:
     '''
     `True` only if the passed pathname is suffixed by a filetype corresponding
     to a supported archive format.
@@ -265,7 +263,7 @@ def read_bytes(filename: str) -> BufferedIOBase:
 
     # Raise an exception unless this filename has a supported archive filetype
     # *AND* is an existing file.
-    die_unless_filetype_archive(filename)
+    die_unless_filetype(filename)
     files.die_unless_file(filename)
 
     # Filetype of this pathname. By the above validation, this filetype is
@@ -315,7 +313,7 @@ def write_bytes(filename: str) -> BufferedIOBase:
 
     # Raise an exception unless this filename has a supported archive filetype
     # *AND* is not already an existing file or directory.
-    die_unless_filetype_archive(filename)
+    die_unless_filetype(filename)
     paths.die_if_path(filename)
 
     # Create the parent directory of this file if needed.
@@ -343,7 +341,7 @@ def _read_bytes_bz2(filename: str) -> BufferedIOBase:
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
-    # importable here, due to the above die_unless_filetype_archive() call.
+    # importable here, due to the above die_unless_filetype() call.
     from bz2 import BZ2File
 
     # Open and return a filehandle suitable for reading this file.
@@ -360,7 +358,7 @@ def _write_bytes_bz2(filename: str) -> BufferedIOBase:
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
-    # importable here, due to the above die_unless_filetype_archive() call.
+    # importable here, due to the above die_unless_filetype() call.
     from bz2 import BZ2File
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
@@ -377,7 +375,7 @@ def _read_bytes_gz(filename: str) -> BufferedIOBase:
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
-    # importable here, due to the above die_unless_filetype_archive() call.
+    # importable here, due to the above die_unless_filetype() call.
     from gzip import GzipFile
 
     # Open and return a filehandle suitable for reading this file.
@@ -394,7 +392,7 @@ def _write_bytes_gz(filename: str) -> BufferedIOBase:
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
-    # importable here, due to the above die_unless_filetype_archive() call.
+    # importable here, due to the above die_unless_filetype() call.
     from gzip import GzipFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
@@ -411,7 +409,7 @@ def _read_bytes_xz(filename: str) -> BufferedIOBase:
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
-    # importable here, due to the above die_unless_filetype_archive() call.
+    # importable here, due to the above die_unless_filetype() call.
     from lzma import LZMAFile
 
     # Open and return a filehandle suitable for reading this file.
@@ -428,7 +426,7 @@ def _write_bytes_xz(filename: str) -> BufferedIOBase:
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
-    # importable here, due to the above die_unless_filetype_archive() call.
+    # importable here, due to the above die_unless_filetype() call.
     from lzma import LZMAFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.

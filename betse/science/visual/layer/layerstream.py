@@ -263,8 +263,8 @@ class LayerCellsStreamCurrent(LayerCellsStream):
 # ....................{ SUBCLASSES                         }....................
 class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
     '''
-    Layer subclass plotting streamlines of the current density of all
-    intracellular and extracellular spaces onto the cell cluster.
+    Layer plotting streamlines of the current density of all intracellular and
+    extracellular spaces onto the cell cluster.
     '''
 
     # ..................{ SUPERCLASS                         }..................
@@ -283,8 +283,8 @@ class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
 
 class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrent):
     '''
-    Layer subclass plotting streamlines of the current density of only all
-    intracellular spaces (e.g., gap junctions) onto the cell cluster.
+    Layer plotting streamlines of the current density of only all intracellular
+    spaces (e.g., gap junctions) onto the cell cluster.
     '''
 
     # ..................{ SUPERCLASS                         }..................
