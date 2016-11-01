@@ -57,19 +57,49 @@ class Cells(object):
 
     Attributes
     ----------
+    cell_to_grid : np.ndarray
+        Numpy array mapping from Voronoi cell centres to cluster cell centres.
     cell_verts : np.ndarray
         Three-dimensional Numpy array of all cell vertex coordinates, whose:
         . First dimension indexes cells, whose length is the number of cells.
           Each element of this dimension is a Matplotlib-compatible **polygon
           patch** (i.e., a two-dimensional Numpy array of all vertex
           coordinates defining the current cell's polygon), suitable for
-          passing as is to the `matplotlib.patches.Polygon` class constructor.
-        . Second dimension indexes cell vertices, whose length is the number of
-          vertices for the current cell.
-        . Third dimension indexes cell vertex coordinates, whose length is
-          unconditionally guaranteed to be 2 _and_ whose:
+          passing as is to the :meth:`matplotlib.patches.Polygon.__init__`
+          method.
+        . Second dimension indexes the vertices of the current cell, whose
+          length is the number of such vertices.
+        . Third dimension indexes the coordinates of the current vertex, whose
+          length is unconditionally guaranteed to be 2 _and_ whose:
           . First element is the X coordinate of the current cell vertex.
           . Second element is the Y coordinate of the current cell vertex.
+    voronoi_centres : np.ndarray
+        Two-dimensional Numpy array of the coordinates of the center points of
+        all polygonal regions in the Voronoi diagram producing this cell
+        cluster, whose:
+        . First dimension indexes the center points of all regions in this
+          diagram, whose length is the total number of regions in this diagram.
+        . Second dimension indexes the coordinates of the current center point,
+          whose length is unconditionally guaranteed to be 2 _and_ whose:
+          . First element is the X coordinate of the current region center.
+          . Second element is the Y coordinate of the current region center.
+    voronoi_grid : np.ndarray
+        Two-dimensional Numpy array of the vertex coordinates of all
+        polygonal regions in the Voronoi diagram producing this cell cluster,
+        whose:
+        . First dimension indexes the vertices of all regions in this diagram,
+          whose length is the total number of vertices in this entire diagram.
+        . Second dimension indexes the coordinates of the current vertex, whose
+          length is unconditionally guaranteed to be 2 _and_ whose:
+          . First element is the X coordinate of the current region vertex.
+          . Second element is the Y coordinate of the current region vertex.
+        This array is equivalent to the :attr:`voronoi_verts` array flattened
+        over the first dimension of that array.
+    voronoi_verts : np.ndarray
+        Three-dimensional Numpy array of the vertex coordinates of all
+        polygonal regions in the Voronoi diagram producing this cell cluster,
+        whose dimensions are structured as those of the :attr:`cell_verts`
+        attribute (replacing "cell" with "Voronoi region").
     '''
 
     def __init__(self, p):
@@ -450,13 +480,14 @@ class Cells(object):
         """
         Calculates the Voronoi diagram from cell seed points.
 
-        The Voronoi diagram is then closed at the global (square) boundaries of the world.
-
-        Finally, cells of the Voronoi diagram are removed to define a cluster shape.
+        The Voronoi diagram is then closed at the square boundaries of the
+        global environment. Finally, the cells of the Voronoi diagram are
+        removed to define a cluster shape.
 
         Parameters
         ----------
-        p                   An instance of the Parameters object.
+        p : Parameters
+            An instance of the Parameters object.
 
         Creates
         ---------
@@ -466,15 +497,7 @@ class Cells(object):
                                     (nulled at world creation endpoint)
         self.cluster_mask           Matrix of booleans defining masked shape of cell cluster
         self.msize                  Size of bitmap (side pixel number)
-
-
-        Notes
-        -------
-        Uses Numpy arrays
-        Uses Scipy spatial
-
         """
-
 
 
         # define the Voronoi diagram from the seed points:
@@ -652,7 +675,6 @@ class Cells(object):
         """
 
         self.cell_centres = np.array([0,0])
-        # self.voronoi_centres = []
 
         for poly in self.ecm_verts:
             aa = np.asarray(poly)
@@ -1744,32 +1766,30 @@ class Cells(object):
             logs.log_info(message)
 
     def voronoiGrid(self,p):
-
         """
-        Creates a set of unique, flat points
-        corresponding to cells in cluster in addition to 'ghost' points
-        of cell centres present in original Voronoi diagram but
-        removed due to cluster shape.
-
+        Creates a set of unique, flat points corresponding to cells in the
+        cluster in addition to "ghost" points of cell centres present in the
+        original Voronoi diagram but removed due to cluster shape.
         """
 
         # first process voronoi_verts to clip out structures larger than the desired size:
         voronoi_verts = []
 
         for verts in self.voronoi_verts:
-
             a = np.asarray(verts)
 
             inds_highx = (a[:,0] <= self.xmax).nonzero()
-            inds_lowx = (a[:,0] >= self.xmin).nonzero()
+            inds_lowx  = (a[:,0] >= self.xmin).nonzero()
             inds_highy = (a[:,1] <= self.ymax).nonzero()
-            inds_lowy = (a[:,1] >= self.ymin).nonzero()
+            inds_lowy  = (a[:,1] >= self.ymin).nonzero()
 
-            if len(inds_highx[0]) == len(a[:,0]) and len(inds_lowx[0]) == len(a[:,0]) and \
-                    len(inds_highy[0]) == len(a[:,0]) and len(inds_lowy[0]) == len(a[:,0]):
-
+            if (
+                len(inds_highx[0]) == len(a[:,0]) and
+                len(inds_lowx [0]) == len(a[:,0]) and
+                len(inds_highy[0]) == len(a[:,0]) and
+                len(inds_lowy[0] ) == len(a[:,0])
+            ):
                 voronoi_verts.append(verts)
-
 
         self.voronoi_verts = np.asarray(voronoi_verts)
 
@@ -1777,10 +1797,8 @@ class Cells(object):
         voronoi_grid = set()
 
         for verts in self.voronoi_verts:
-
             for v in verts:
                 voronoi_grid.add((v[0],v[1]))
-
 
         voronoi_grid = [list(x) for x in voronoi_grid]
         self.voronoi_grid = np.asarray(voronoi_grid)
@@ -1791,14 +1809,24 @@ class Cells(object):
 
         for poly in self.voronoi_verts:
             aa = np.asarray(poly)
+
+            # Center point of this Voronoi region, defined as a 2-element array
+            # whose first and second elements are the X and Y coordinates of
+            # this center point.
             aa = np.mean(aa,axis=0)
+
+            #FIXME: Inefficient. Consider optimizing by redefining
+            #"self.voronoi_centres = []", appending to that list here, and then
+            #converting that list to a proper Numpy array below.
+
+            # Append this center point to this array of these points.
             self.voronoi_centres = np.vstack((self.voronoi_centres,aa))
 
         self.voronoi_centres = np.delete(self.voronoi_centres, 0, 0)
 
         # define a mapping between the voronoi cell centres and the cluster cell centres:
         vertTree = sps.KDTree(self.voronoi_centres)
-        self.cell_to_grid = list(vertTree.query(self.cell_centres))[1]
+        _, self.cell_to_grid = vertTree.query(self.cell_centres)
 
     def make_maskM(self,p):
         """

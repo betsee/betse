@@ -76,7 +76,11 @@ def load(filename: str) -> object:
 
 # ....................{ SAVERS                             }....................
 @type_check
-def save(*objects: object, filename: str) -> None:
+def save(
+    *objects,
+    filename: str,
+    is_overwritable: bool = False
+) -> None:
     '''
     Save (i.e., write, pickle, serialize) the tuple of all passed objects to the
     file with the passed path if two or more objects are passed _or_ the single
@@ -100,6 +104,10 @@ def save(*objects: object, filename: str) -> None:
         :func:`betse.util.path.archives.is_filetype` function returns
         `True` when passed this filename), this file is automatically compressed
         into an archive of that filetype.
+    is_overwritable : optional[bool]
+        `True` if overwriting this file when this file already exists _or_
+        `False` if raising an exception when this file already exists. Defaults
+        to `False` for safety.
     '''
 
     # If only one object is passed, save only that object rather than the
@@ -109,7 +117,8 @@ def save(*objects: object, filename: str) -> None:
 
     # Save these objects to this file, silently compressing this file if this
     # filename is suffixed by an archive filetype.
-    with files.write_bytes(filename) as pickle_file:
+    with files.write_bytes(
+        filename, is_overwritable=is_overwritable) as pickle_file:
         pickle.dump(
             objects,
             file=pickle_file,

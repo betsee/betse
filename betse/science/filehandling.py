@@ -38,7 +38,7 @@ def saveSim(savePath: str, datadump: Sequence) -> None:
         List of all objects to be pickled.
     '''
 
-    pickles.save(datadump, filename=savePath)
+    pickles.save(datadump, filename=savePath, is_overwritable=True)
 
 # ....................{ LOADERS                            }....................
 #FIXME: We should probably perform basic sanity checks on loaded objects --

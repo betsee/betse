@@ -20,7 +20,7 @@ from betse.util.io.log import logs
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseSimConfigException
 from betse.science.visual import plot as viz
-from betse.science.visual.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.visual.anim.anim import AnimCellsMembranesData, AnimEnvTimeSeries
 import copy
 
 

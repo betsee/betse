@@ -279,7 +279,7 @@ def read_bytes(filename: str) -> BufferedIOBase:
 
 
 @type_check
-def write_bytes(filename: str) -> BufferedIOBase:
+def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for writing the binary archive file
     with the passed filename.
@@ -294,6 +294,10 @@ def write_bytes(filename: str) -> BufferedIOBase:
         whose **rightmost filetype** (i.e., substring suffixing the last `.`
         character in this pathname) _must_ be that of a supported archive
         format.
+    is_overwritable : optional[bool]
+        `True` if overwriting this file when this file already exists _or_
+        `False` if raising an exception when this file already exists. Defaults
+        to `False` for safety.
 
     Returns
     ----------
@@ -311,10 +315,13 @@ def write_bytes(filename: str) -> BufferedIOBase:
     # Avoid circular import dependencies.
     from betse.util.path import dirs, paths
 
-    # Raise an exception unless this filename has a supported archive filetype
-    # *AND* is not already an existing file or directory.
+    # Raise an exception unless this filename has a supported archive filetype.
     die_unless_filetype(filename)
-    paths.die_if_path(filename)
+
+    # If this file is *NOT* overwritable, raise an exception if this path
+    # already exists.
+    if not is_overwritable:
+        paths.die_if_path(filename)
 
     # Create the parent directory of this file if needed.
     dirs.make_parent_unless_dir(filename)
@@ -328,7 +335,7 @@ def write_bytes(filename: str) -> BufferedIOBase:
     writer = _ARCHIVE_FILETYPE_TO_WRITER[filetype]
 
     # Open and return a filehandle suitable for writing this archive.
-    return writer(filename)
+    return writer(filename, is_overwritable=is_overwritable)
 
 # ....................{ IO ~ bz2                           }....................
 def _read_bytes_bz2(filename: str) -> BufferedIOBase:
@@ -348,7 +355,7 @@ def _read_bytes_bz2(filename: str) -> BufferedIOBase:
     return BZ2File(filename, mode='rb')
 
 
-def _write_bytes_bz2(filename: str) -> BufferedIOBase:
+def _write_bytes_bz2(filename: str, is_overwritable: bool) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for writing the binary bzip-archived
     file with the passed filename.
@@ -357,12 +364,15 @@ def _write_bytes_bz2(filename: str) -> BufferedIOBase:
     :func:`write_bytes` function.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.path import files
+
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from bz2 import BZ2File
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return BZ2File(filename, mode='xb')
+    return BZ2File(filename, mode=files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ gz                            }....................
 def _read_bytes_gz(filename: str) -> BufferedIOBase:
@@ -382,7 +392,7 @@ def _read_bytes_gz(filename: str) -> BufferedIOBase:
     return GzipFile(filename, mode='rb')
 
 
-def _write_bytes_gz(filename: str) -> BufferedIOBase:
+def _write_bytes_gz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for writing the binary gzip-archived
     file with the passed filename.
@@ -391,12 +401,15 @@ def _write_bytes_gz(filename: str) -> BufferedIOBase:
     :func:`write_bytes` function.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.path import files
+
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from gzip import GzipFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return GzipFile(filename, mode='xb')
+    return GzipFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ xz                            }....................
 def _read_bytes_xz(filename: str) -> BufferedIOBase:
@@ -416,7 +429,7 @@ def _read_bytes_xz(filename: str) -> BufferedIOBase:
     return LZMAFile(filename, mode='rb')
 
 
-def _write_bytes_xz(filename: str) -> BufferedIOBase:
+def _write_bytes_xz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for writing the binary LZMA-archived
     file with the passed filename.
@@ -425,12 +438,15 @@ def _write_bytes_xz(filename: str) -> BufferedIOBase:
     :func:`write_bytes` function.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.path import files
+
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from lzma import LZMAFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return LZMAFile(filename, mode='xb')
+    return LZMAFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ CONSTANTS ~ private                }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -13,7 +13,7 @@ High-level facilities for displaying and/or saving all enabled animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.visual.anim.anim import (
-    AnimCellsTimeSeries,
+    AnimCellsMembranesData,
     AnimCurrent,
     AnimateDeformation,
     # AnimEnvTimeSeries,
@@ -94,9 +94,9 @@ def pipeline_anims(
         vmplt = [1000*arr for arr in sim.vm_time]
         scale_v = vmplt
 
-        AnimCellsTimeSeries(
+        AnimCellsMembranesData(
             sim=sim, cells=cells, p=p,
-            time_series=vmplt,
+            times_cells_membranes_data=vmplt,
             scaling_series=scale_v,
             is_ecm_ignored=False,
             label='Vmem',

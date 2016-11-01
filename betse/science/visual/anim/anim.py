@@ -305,28 +305,33 @@ class AnimCellsWhileSolving(AnimCellsABC):
             cell_data=cell_data)
 
 # ....................{ CLASSES ~ after                    }....................
-class AnimCellsTimeSeries(AnimCellsAfterSolving):
+class AnimCellsMembranesData(AnimCellsAfterSolving):
     '''
     Post-simulation animation of an arbitrary cell-centric time series (e.g.,
-    cell voltage as a function of time), plotted over the cell cluster.
+    cell membrane voltage as a function of time), plotted over the cell
+    cluster.
 
     Attributes
     ----------
     _is_ecm_ignored : bool
         `True` if ignoring extracellular spaces _or_ `False` otherwise.
     _time_series : numpy.ndarray
-        Arbitrary cell data as a function of time to be plotted.
+        Three-dimensional sequence of all cell membrane data for a single
+        modelled membrane-specific variable (e.g., cell membrane voltage) for
+        all animation time steps to be plotted. See the :meth:`__init__`
+        method docstring for further details.
     '''
 
     # ..................{ SUPERCLASS                         }..................
-    #FIXME: Document the "scaling_series" parameter.
+    #FIXME: Document the "scaling_series" parameter and, ideally, rename to
+    #better fit the nomenclature of the "times_cells_membranes_data" parameter.
     @type_check
     def __init__(
         self,
 
         # Mandatory parameters.
         p: 'betse.science.parameters.Parameters',
-        time_series: SequenceTypes,
+        times_cells_membranes_data: SequenceTypes,
 
         # Optional parameters.
         is_ecm_ignored: bool = True,
@@ -340,8 +345,18 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         ----------
         p : Parameters
             Current simulation configuration.
-        time_series : Sequence
-            Arbitrary cell data as a function of time to be plotted.
+        times_cells_membranes_data : Sequence
+            Three-dimensional sequence of all cell membrane data for a single
+            modelled membrane-specific variable (e.g., cell membrane voltage)
+            for all animation time steps to be plotted, whose:
+            . First dimension indexes time steps, whose length is the number of
+              simulation time steps.
+            . First dimension indexes cells, whose length is the number of
+              cells in this cluster.
+            . Second dimension indexes cell membranes, whose length is the
+              number of membranes for the current cell. Each element of this
+              dimension is arbitrary cell membrane data spatially situated at
+              this membrane's midpoint.
         is_ecm_ignored : optional[bool]
             `True` if ignoring extracellular spaces _or_ `False` otherwise.
             Defaults to `True`.
@@ -367,7 +382,7 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         )
 
         # Classify the passed parameters.
-        self._time_series = time_series
+        self._times_cells_membranes_data = times_cells_membranes_data
         self._is_ecm_ignored = is_ecm_ignored
 
         #FIXME: Eliminate after generalizing the logic below into a layer.
@@ -380,15 +395,16 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
             #superclass _plot_cell_mesh() method -- which probably ultimately
             #derived from this function.
             self.collection, self._axes = cell_mesh(
-                self.cell_data, self._axes, self._cells, self._p, self._colormap)
+                self.cells_membranes_data, self._axes, self._cells, self._p, self._colormap)
             color_mappables = self.collection
 
         # Display and/or save this animation.
         self._animate(
             color_data=(
-                scaling_series if scaling_series is not None else time_series),
+                scaling_series if scaling_series is not None else times_cells_membranes_data),
             color_mappables=color_mappables,
         )
+
 
     def _plot_frame_figure(self) -> None:
 
@@ -396,17 +412,18 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
         # amorphous continuum of cells.
         if not self._p.showCells:
             zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = self.cell_data
+            zz_grid[self._cells.cell_to_grid] = self.cells_membranes_data
             self.collection.set_array(zz_grid)
 
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from setting these attributes.
 
     @property
-    def cell_data(self) -> SequenceTypes:
+    def cells_membranes_data(self) -> SequenceTypes:
         '''
         Two-dimensional sequence of all cell membrane data for the current
         animation time step, whose:
+
         . First dimension indexes cells, whose length is the number of cells.
         . Second dimension indexes cell membranes, whose length is the number
           of membranes for the current cell. Each element of this dimension is
@@ -414,9 +431,11 @@ class AnimCellsTimeSeries(AnimCellsAfterSolving):
           midpoint.
         '''
 
-        return self._time_series[self._time_step]
+        return self._times_cells_membranes_data[self._time_step]
 
 
+#FIXME: This class should probably no longer be used, now that the Gouraud
+#shading performed by the "AnimCellsMembranesData" class has been optimized.
 class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
     '''
     Animation of an arbitrary cell-centric time series (e.g., average cell

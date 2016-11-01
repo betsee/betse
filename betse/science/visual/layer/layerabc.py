@@ -138,27 +138,28 @@ class LayerCellsABC(object, metaclass=ABCMeta):
             self._layer_next()
 
 
+    # Layer subclasses are recommended but *NOT* required to reimplement this
+    # empty method. Since simplistic layers plotting artists whose appearance is
+    # constant across all time steps only require the abstract _layer_first()
+    # method to be implemented, this method is concrete rather than abstract.
+    def _layer_next(self) -> None:
+        '''
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the next simulation time step onto the figure axes
+        of the current plot or animation.
+        '''
+
+        pass
+
+    # ..................{ SUBCLASS                           }..................
+    # Subclasses are required to implement the following abstract methods.
+
     @abstractmethod
     def _layer_first(self) -> None:
         '''
         Layer the spatial distribution of a single modelled variable (e.g., cell
         membrane voltage) for the first simulation time step onto the figure
         axes of the current plot or animation.
-
-        Layer subclasses are required to implement this abstract method.
-        '''
-
-        pass
-
-
-    def _layer_next(self) -> None:
-        '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the next simulation time step onto the figure axes
-        of the current plot or animation.
-
-        Layer subclasses are recommended but _not_ required to reimplement this
-        empty method.
         '''
 
         pass
@@ -231,14 +232,14 @@ class LayerCellsMappableABC(LayerCellsABC):
         self._color_mappables = self._layer_first_color_mappables()
 
     # ..................{ SUBCLASS                           }..................
+    # Subclasses are required to implement the following abstract methods.
+
     @abstractmethod
     def _layer_first_color_mappables(self) -> IterableTypes:
         '''
         Layer the spatial distribution of a single cell-specific modelled
         variable (e.g., cell membrane voltage) for the first simulation time
         step onto the figure axes of the current plot or animation.
-
-        Layer subclasses are required to implement this abstract method.
 
         Returns
         ----------

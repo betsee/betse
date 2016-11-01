@@ -15,7 +15,7 @@ import os, re, shutil
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
-from io import BufferedIOBase, BufferedReader, BufferedWriter, TextIOWrapper
+from io import BufferedIOBase, TextIOWrapper
 from os import path
 
 # ....................{ EXCEPTIONS ~ unless                }....................
@@ -161,6 +161,34 @@ def is_symlink_valid(pathname: str) -> bool:
 
 # ....................{ COPIERS                            }....................
 @type_check
+def get_mode_write_bytes(is_overwritable: bool = False) -> str:
+    '''
+    Mode string suitable for opening a file handle for byte-oriented writing via
+    the `mode` parameter to the :func:`open` builtin.
+
+    This low-level utility function is intended to be called _only_ by
+    higher-level utility functions (e.g., :func:`write_bytes`).
+
+    Parameters
+    ----------
+    is_overwritable : optional[bool]
+        `True` if overwriting this file when this file already exists _or_
+        `False` if raising an exception when this file already exists. Defaults
+        to `False` for safety.
+
+    Returns
+    ----------
+    str
+        If `is_overwritable` is:
+        * `True`, this is `"xb"`, raising exceptions when attempting to write
+          files that already exist with this mode.
+        * `False`, this is `"wb"`, silently overwriting such files.
+    '''
+
+    return 'wb' if is_overwritable else 'xb'
+
+# ....................{ COPIERS                            }....................
+@type_check
 def copy(filename_source: str, filename_target: str) -> None:
     '''
     Copy the passed source file to the passed target file or directory.
@@ -201,23 +229,6 @@ def copy(filename_source: str, filename_target: str) -> None:
 
 # ....................{ REMOVERS                           }....................
 @type_check
-def remove(filename: str) -> None:
-    '''
-    Remove the passed non-directory file.
-    '''
-
-    # Log this removal.
-    logs.log_debug('Removing file "%s".', filename)
-
-    # Raise an exception unless such this exists.
-    die_unless_file(filename)
-
-    # Remove this file. Note that the os.remove() and os.unlink() functions are
-    # identical. (That was silly, Guido.)
-    os.remove(filename)
-
-
-@type_check
 def remove_if_found(filename: str) -> None:
     '''
     Remove the passed non-directory file if this file currently exists.
@@ -228,21 +239,38 @@ def remove_if_found(filename: str) -> None:
     '''
 
     # Log this removal if the subsequent removal attempt is likely to actually
-    # remove a file. Due to race conditions with other processes, this file
-    # could be removed after this test succeeds but before the removal is
-    # performed. Since this is largely ignorable, the worst case is an
+    # remove a file. Due to race conditions with other threads and processes,
+    # this file could be removed after this test succeeds but before the removal
+    # is performed. Since this is largely ignorable, the worst case is an
     # extraneous log message.
     if is_file(filename):
-        logs.log_debug('Removing file "%s".', filename)
+        logs.log_debug('Removing file: %s', filename)
 
-    # Remove this file atomically. To avoid race conditions with other
-    # processes, do *NOT* embed this operation in an explicit test for file
-    # existence. Instead, adopt the Pythonic Way.
+    # Remove this file atomically. To avoid race conditions with other threads
+    # and processes, this operation is *NOT* embedded in an explicit test for
+    # file existence. Instead, the Pythonic Way is embraced.
     try:
         os.remove(filename)
     # If this file does *NOT* exist, ignore this exception.
     except FileNotFoundError:
         pass
+
+
+@type_check
+def remove(filename: str) -> None:
+    '''
+    Remove the passed non-directory file.
+    '''
+
+    # Log this removal.
+    logs.log_debug('Removing file: %s', filename)
+
+    # Raise an exception unless this file exists.
+    die_unless_file(filename)
+
+    # Remove this file. Note that the os.remove() and os.unlink() functions are
+    # identical. (That was a tad silly, Guido.)
+    os.remove(filename)
 
 # ....................{ READERS                            }....................
 @type_check
@@ -327,7 +355,7 @@ def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
 
 # ....................{ WRITERS                            }....................
 @type_check
-def write_bytes(filename: str) -> BufferedIOBase:
+def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for writing the binary file with the
     passed filename, transparently compressing this file if the filetype of
@@ -344,6 +372,10 @@ def write_bytes(filename: str) -> BufferedIOBase:
         :func:`betse.util.path.archives.is_filetype` function returns `True`
         for this filename), the returned filehandle automatically writes the
         compressed rather than uncompressed byte contents of this file.
+    is_overwritable : optional[bool]
+        `True` if overwriting this file when this file already exists _or_
+        `False` if raising an exception when this file already exists. Defaults
+        to `False` for safety.
 
     Returns
     ----------
@@ -357,8 +389,10 @@ def write_bytes(filename: str) -> BufferedIOBase:
     # Log this I/O operation.
     logs.log_debug('Writing bytes: %s', filename)
 
-    # Raise an exception if this path already exists.
-    paths.die_if_path(filename)
+    # If this file is *NOT* overwritable, raise an exception if this path
+    # already exists.
+    if not is_overwritable:
+        paths.die_if_path(filename)
 
     # Create the parent directory of this file if needed.
     dirs.make_parent_unless_dir(filename)
@@ -366,17 +400,18 @@ def write_bytes(filename: str) -> BufferedIOBase:
     # If this file is compressed, open and return a file handle writing
     # compressed bytes to this file.
     if archives.is_filetype(filename):
-        return archives.write_bytes(filename)
-    # Else, this file is uncompressed. Open and return a file handle simply
-    # writing bytes to this file. To avoid race conditions in the event that
-    # another thread or process has created this file *AFTER* the above call to
-    # the die_if_path() function but before the following call to the open()
-    # builtin, mode "xb" raising an exception if this file has since been
-    # created is called rather than the standard mode "wb".
+        return archives.write_bytes(filename, is_overwritable=is_overwritable)
+    # Else, this file is uncompressed.
     else:
-        return open(filename, mode='xb')
+        # Mode with which to open this file for byte-oriented writing.
+        mode = get_mode_write_bytes(is_overwritable)
+
+        # Open and return a file handle writing uncompressed bytes to this file.
+        return open(filename, mode=mode)
 
 
+#FIXME: Add the "is_overwritable" parameter, implemented similarly to the same
+#parameter accepted by the write_bytes() function.
 @type_check
 def write_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     '''

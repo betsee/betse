@@ -59,9 +59,6 @@ class LayerCellsStream(LayerCellsABC):
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self) -> None:
-        '''
-        Initialize this layer.
-        '''
 
         # Initialize our superclass.
         super().__init__()
@@ -204,9 +201,6 @@ class LayerCellsStreamCurrent(LayerCellsStream):
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self) -> None:
-        '''
-        Initialize this layer.
-        '''
 
         # Initialize our superclass.
         super().__init__()

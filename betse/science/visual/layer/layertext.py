@@ -19,11 +19,6 @@ class LayerCellsIndex(LayerCellsABC):
 
     # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
-        '''
-        Layer the 0-based index of each cell in the current cluster onto the
-        figure axes of the passed plot or animation as a text label centered on
-        that cell.
-        '''
 
         # For the 0-based index and 2-tuple of X and Y coordinates of the center
         # of each cell, display this index centered at these coordinates.

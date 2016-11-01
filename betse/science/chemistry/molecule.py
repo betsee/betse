@@ -25,7 +25,7 @@ from betse.util.io.log import logs
 import matplotlib.pyplot as plt
 from betse.exceptions import BetseSimConfigException
 from betse.science.visual import plot as viz
-from betse.science.visual.anim.anim import AnimCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.visual.anim.anim import AnimCellsMembranesData, AnimEnvTimeSeries
 from betse.science.organelles.mitochondria import Mito
 from matplotlib import colors
 from matplotlib import cm
@@ -1865,9 +1865,9 @@ class Molecule(object):
         Create 2D animation of cell concentration.
         """
 
-        AnimCellsTimeSeries(
+        AnimCellsMembranesData(
             sim=sim, cells=cells, p=p,
-            time_series=[arr for arr in self.c_mems_time],
+            times_cells_membranes_data=[arr for arr in self.c_mems_time],
             label=self.name + 'cells',
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]',

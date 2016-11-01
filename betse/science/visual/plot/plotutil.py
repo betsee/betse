@@ -114,7 +114,7 @@ def plotFFT(simtime,simdata_time,celli,fig=None,ax=None,lncolor='b',lab='Data'):
     sample_spacing = simtime[1] - simtime[0]
 
     cell_data_o = [arr[celli] for arr in simdata_time]
-    # cell_data = ((1/sample_size)*(cell_data_o/np.mean(cell_data_o)) )   # normalize the signal
+    # cells_membranes_data = ((1/sample_size)*(cell_data_o/np.mean(cell_data_o)) )   # normalize the signal
     cell_data = (1/sample_size)*(cell_data_o - np.mean(cell_data_o))
 
     f_axis = np.fft.rfftfreq(sample_size, d=sample_spacing)
