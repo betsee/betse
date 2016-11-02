@@ -55,8 +55,12 @@ class Cells(object):
     graphLaplacian()                  Creates an abstract discrete Laplacian for the irregular Voronoi-based cell grid
     redo_gj()                         Create gap junction connection network after assessing tissue profile requests
 
-    Attributes
+    Attributes (Cell)
     ----------
+    cell_i : np.ndarray
+        One-dimensional Numpy array of length the number of cells such that
+        each element is that cell's index (i.e., `[0, 1, ..., n-2, n-1]` for
+        the number of cells `n`), required for efficient Numpy slicing.
     cell_to_grid : np.ndarray
         Numpy array mapping from Voronoi cell centres to cluster cell centres.
     cell_verts : np.ndarray
@@ -73,6 +77,63 @@ class Cells(object):
           length is unconditionally guaranteed to be 2 _and_ whose:
           . First element is the X coordinate of the current cell vertex.
           . Second element is the Y coordinate of the current cell vertex.
+
+    Attributes (Cell Membrane)
+    ----------
+    cell_to_mems : np.ndarray
+        Two-dimensional Numpy array of the indices of all membranes for each
+        cell, whose:
+        . First dimension indexes cells, whose length is the number of cells.
+        . Second dimension indexes the indices of all membranes of the current
+          cell, whose length is the number of membranes of this cell.
+        Hence:
+        * `cell_to_mems[0][0]` is the index of the first membrane contained by
+          the first cell -- which is _always_ `0`.
+        * `cell_to_mems[-1][-1]` is the index of the last membrane contained by
+          the last cell -- which is _always_ `mem_i[-1]`.
+    mem_to_cells : np.ndarray
+        One-dimensional Numpy array of length the number of cell membranes such
+        that each element is the index of the cell containing the membrane
+        indexed by that element. Hence:
+        * `mem_to_cells[0]` is the index of the cell containing the first
+          membrane.
+        * `mem_to_cells[-1]` is the index of the cell containing the last
+          membrane.
+    mem_i : np.ndarray
+        One-dimensional Numpy array of length the number of cell membranes such
+        that each element is that cell membrane's index (i.e.,
+        `[0, 1, ..., m-2, m-1]` for the number of cell membranes `m`), required
+        for efficient Numpy slicing.
+    mem_mids_flat : np.ndarray
+        Two-dimensional Numpy array of the coordinates of the midpoints of all
+        cell membranes, whose:
+        . First dimension indexes cell membranes, whose length is the total
+          number of cell membranes in this cluster.
+        . Second dimension indexes the coordinates of the midpoint of the
+          current cell membrane, whose length is unconditionally guaranteed to
+          be 2 _and_ whose:
+          . First element is the X coordinate of the current membrane midpoint.
+          . Second element is the Y coordinate of the current membrane
+            midpoint.
+    num_mems : np.ndarray
+        One-dimensional Numpy array of length the number of cells such that
+        each element is the number of membranes for the cell with that cell's
+        index.
+    M_sum_mems : np.ndarray
+        Sparse matrix (i.e., two-dimensional Numpy array) of size `m x n`,
+        where:
+        * `m` is the total number of cells.
+        * `n` is the total number of cell membranes.
+        For each cell `i` and membrane `j`, element `M_sum_mems[i, j]` is:
+        * 0 if this cell does _not_ contain this membrane.
+        * 1 if this cell contains this membrane.
+        Since most cells do _not_ contain most membranes, this matrix is
+        typically sparse. This matrix is commonly used as the first parameter
+        of dot products, permitting cell membrane properties to be efficiently
+        summed across all membranes.
+
+    Attributes (Voronoi Diagram)
+    ----------
     voronoi_centres : np.ndarray
         Two-dimensional Numpy array of the coordinates of the center points of
         all polygonal regions in the Voronoi diagram producing this cell
@@ -247,6 +308,11 @@ class Cells(object):
 
         for polyc in self.cell_verts:
 
+            #FIXME: Wouldn't the "mps" list of membrane midpoints be more
+            #efficiently calculatable via a single
+            #"mps = np.mean(mps, axis=0)" assignment rather than iteratively
+            #constructed via looping?
+
             # Calculate individual membrane domains, midpoints, and vectors:
             edge = []
             mps = []
@@ -262,6 +328,8 @@ class Cells(object):
                 mps.append(mid.tolist())
 
                 lgth = np.sqrt((pt2[0] - pt1[0]) ** 2 + (pt2[1] - pt1[1]) ** 2)  # length of membrane domain
+
+                #FIXME: Consider removing, as this is currently unused.
                 sa = lgth * p.cell_height  # surface area of membrane
                 surfa.append(lgth)
 
@@ -289,9 +357,13 @@ class Cells(object):
 
         # Finish up by creating indices vectors and converting to Numpy arrays where needed:
 
-        self.cell_i = [x for x in range(0, len(self.cell_centres))]
+        #FIXME: Reduce the following two assignments to simply:
+        #    self.cell_i = np.asarray(range(len(self.cell_centres)))
+        #    self.mem_i =  np.asarray(range(len(self.mem_mids_flat)))
+        #No need for intermediate list comprehensions. Fire-beast flagons!
 
-        self.mem_i = [x for x in range(0, len(self.mem_mids_flat))]
+        self.cell_i = [x for x in range(0, len(self.cell_centres))]
+        self.mem_i =  [x for x in range(0, len(self.mem_mids_flat))]
 
         # convert mem_length into a flat vector
         mem_length, _, _ = tb.flatten(mem_length)
@@ -812,6 +884,9 @@ class Cells(object):
         # define map allowing a dispatch from cell index to each respective membrane -------------------------------
         indmap_mem = np.asarray(indmap_mem)
 
+        #FIXME: This assignment is safely reducible to:
+        #    self.mem_to_cells = indmap_mem[:,0]
+        #Indexing by "[self.mem_i]" is superfluous here. Lively jumping snakes!
         self.mem_to_cells = indmap_mem[self.mem_i][:,0]   # gives cell index for each mem_i index placeholder
 
         # construct a mapping giving membrane index for each cell_i------------------------------------------------
@@ -819,6 +894,10 @@ class Cells(object):
 
         for cell_index in self.cell_i:
 
+            #FIXME: This assignment is safely reducible to:
+            #    index2mems = (self.mem_to_cells == cell_index).nonzero()[0]
+            #Unpacking the contents of this array into a list is unnecessary.
+            #Striving leaping laser-sharks!
             index2mems = list(*(self.mem_to_cells == cell_index).nonzero())
             self.cell_to_mems.append(index2mems)
 

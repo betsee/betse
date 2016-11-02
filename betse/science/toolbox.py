@@ -11,13 +11,16 @@ BETSE project.
 import numpy as np
 import scipy.spatial as sps
 from scipy import interpolate as interp
-from scipy.special import expit
+# from scipy.special import expit
 import math
 import copy
 
-def flatten(ls_of_ls):
+#FIXME: For disambiguity, rename to flatten_list_of_lists(). Whereas the
+#np.flatten() function flattens an array of arbitrary dimensionality, this
+#function only flattens the first and second dimensions of a list of lists.
+def flatten(ls_of_ls: list) -> tuple:
     """
-    Flattens (i.e. un-nests) a nested python "list of lists".
+    Flattens (i.e., un-nests) a doubly-nested Python "list of lists."
 
     Parameters
     ----------
@@ -31,6 +34,13 @@ def flatten(ls_of_ls):
     ind_map        returns the indices of the original nested list-of-lists at
                    the index of the new list, as in:
                     ind_map[5] = [0,5]   which would yield the same value for ls_flat[5] and ls_of_ls[0][5]
+
+    Examples
+    ----------
+    >>> from betse.science import toolbox as tb
+    >>> tb.flatten([['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']])
+    (['a',   'b',   'c',   'd',   'e',   'f',   'g',   'h',   'i'],
+     [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]])
 
     Notes
     -------

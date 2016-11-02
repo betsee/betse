@@ -13,6 +13,11 @@ from betse.science.visual.layer.layerabc import LayerCellsMappableABC
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 
 # ....................{ CLASSES                            }....................
+#FIXME: Fix us up, please. This layer is effectively broken at the moment,
+#plotting a spatially symmetric distribution even where the underlying data is
+#asymmetric (in which case one would hope for some sort of distinct gradient).
+#This layer is frequently leveraged elsewhere and hence fairly critical.
+
 class LayerCellsShadeContinuous(LayerCellsMappableABC):
     '''
     Layer plotting the entire cell cluster as a continuous Gouraud-shaded
