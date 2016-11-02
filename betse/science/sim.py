@@ -669,9 +669,9 @@ class Simulator(object):
             self.metabo.read_metabo_config(self, cells, p)
 
             # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
-            self.met_concs = {'cATP': self.metabo.core.mem_concs['ATP'],
-                              'cADP': self.metabo.core.mem_concs['ADP'],
-                              'cPi': self.metabo.core.mem_concs['Pi']}
+            self.met_concs = {'cATP': self.metabo.core.cell_concs['ATP'][cells.mem_to_cells],
+                              'cADP': self.metabo.core.cell_concs['ADP'][cells.mem_to_cells],
+                              'cPi': self.metabo.core.cell_concs['Pi'][cells.mem_to_cells]}
 
         elif p.metabolism_enabled and self.metabo is not None:
 
@@ -1269,12 +1269,12 @@ class Simulator(object):
 
         if p.metabolism_enabled:
 
-            self.metabo.core.write_data(self, p)
+            self.metabo.core.write_data(self, cells, p)
             self.metabo.core.report(self, p)
 
         if p.grn_enabled:
 
-            self.grn.core.write_data(self, p)
+            self.grn.core.write_data(self, cells, p)
             self.grn.core.report(self, p)
 
         if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:

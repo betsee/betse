@@ -2341,7 +2341,7 @@ class MasterOfNetworks(object):
 
                         self.env_concs[self.transporters[name].reactants_list[i]][targ_mem] = \
                             self.env_concs[self.transporters[name].reactants_list[i]][targ_mem] + \
-                            delta_react[targ_mem] * p.dt
+                            delta_react[targ_cell][cells.mem_to_cells] * p.dt
 
                 elif self.transporters[name].react_transport_tag[i] == 'cell_concs':
 
@@ -2387,7 +2387,7 @@ class MasterOfNetworks(object):
 
                         self.env_concs[self.transporters[name].products_list[i]][targ_mem] = \
                             self.env_concs[self.transporters[name].products_list[i]][targ_mem] + \
-                            delta_prod[targ_mem] * p.dt
+                            delta_prod[targ_cell][cells.mem_to_cells] * p.dt
 
                 elif self.transporters[name].prod_transport_tag[i] == 'cell_concs':
 
