@@ -32,10 +32,6 @@ def from_sequence(sequence: SequenceTypes) -> ndarray:
     and sanity checking, preventing that function's overly permissive design
     imperatives from corrupting the fragile purity of this codebase: e.g.,
 
-        >>> np.asarray(
-        ...     'We are the Bug. '
-        ...     'Your computational and technological distinctiveness '
-        ...     'will be added to our own. Resistance is futile.')
         >>> import numpy as np
         >>> np.asarray(None)
         array(None, dtype=object)

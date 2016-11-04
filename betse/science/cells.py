@@ -8,18 +8,18 @@
 import math
 import os
 import os.path
-
 import numpy as np
 import scipy.spatial as sps
-from scipy import interpolate as interp
-from scipy import ndimage
-
 from betse.exceptions import BetseSimConfigException
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
+from betse.util.type.types import type_check
+from numpy import ndarray
+from scipy import interpolate as interp
+from scipy import ndimage
 
 
 class Cells(object):
@@ -57,12 +57,19 @@ class Cells(object):
 
     Attributes (Cell)
     ----------
+    cell_centres : np.ndarray
+        Two-dimensional Numpy array of the coordinates of the center points of
+        all cells, whose:
+        . First dimension indexes cells, whose length is the number of cells.
+        . Second dimension indexes the coordinates of the center point of the
+          current cell, whose length is unconditionally guaranteed to be 2
+          _and_ whose:
+          . First element is the X coordinate of the current cell center.
+          . Second element is the Y coordinate of the current cell center.
     cell_i : np.ndarray
         One-dimensional Numpy array of length the number of cells such that
         each element is that cell's index (i.e., `[0, 1, ..., n-2, n-1]` for
         the number of cells `n`), required for efficient Numpy slicing.
-    cell_to_grid : np.ndarray
-        Numpy array mapping from Voronoi cell centres to cluster cell centres.
     cell_verts : np.ndarray
         Three-dimensional Numpy array of all cell vertex coordinates, whose:
         . First dimension indexes cells, whose length is the number of cells.
@@ -120,28 +127,44 @@ class Cells(object):
         each element is the number of membranes for the cell with that cell's
         index.
     M_sum_mems : np.ndarray
-        Sparse matrix (i.e., two-dimensional Numpy array) of size `m x n`,
-        where:
+        Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
         * `m` is the total number of cells.
         * `n` is the total number of cell membranes.
         For each cell `i` and membrane `j`, element `M_sum_mems[i, j]` is:
-        * 0 if this cell does _not_ contain this membrane.
+        * 0 if this cell does _not_ contain this membrane. Since most cells do
+          _not_ contain most membranes, most entries of this matrix are zero,
+          implying this matrix to typically (but _not_ necessarily) be sparse.
         * 1 if this cell contains this membrane.
-        Since most cells do _not_ contain most membranes, this matrix is
-        typically sparse. This matrix is commonly used as the first parameter
-        of dot products, permitting cell membrane properties to be efficiently
-        summed across all membranes.
+        The dot product of this matrix by a Numpy vector (i.e., one-dimensional
+        array) of size `n` containing cell membrane-specific data yields
+        another Numpy vector of size `m` containing cell-specific data
+        totalized for each cell over all membranes contained by that cell,
+        where `m` and `n` are as defined above.
 
     Attributes (Voronoi Diagram)
     ----------
+    cell_to_grid : np.ndarray
+        One-dimensional Numpy array of length the number of cells such that
+        each element is the index of the region in the Voronoi diagram
+        producing this cell cluster whose vertices are most closely spatially
+        aligned with those of the cell indexed by that element. Hence:
+        * `cell_to_grid[0]` is the index of the region most closely spatially
+          aligned with the first cell.
+        * `cell_to_grid[-1]` is the index of the region most closely spatially
+          aligned with the last cell.
+        Hence, assigning a Numpy array of length the number of regions indexed
+        by this array from a Numpy array of length the number of cells maps the
+        cell-specific data defined by the latter into region-specific data
+        (e.g., `regions_data[cells.cell_to_grid] = cells_data`).
     voronoi_centres : np.ndarray
         Two-dimensional Numpy array of the coordinates of the center points of
         all polygonal regions in the Voronoi diagram producing this cell
         cluster, whose:
-        . First dimension indexes the center points of all regions in this
-          diagram, whose length is the total number of regions in this diagram.
-        . Second dimension indexes the coordinates of the current center point,
-          whose length is unconditionally guaranteed to be 2 _and_ whose:
+        . First dimension indexes regions in this diagram, whose length is the
+          total number of regions in this diagram.
+        . Second dimension indexes the coordinates of the center point of the
+          current region, whose length is unconditionally guaranteed to be 2
+          _and_ whose:
           . First element is the X coordinate of the current region center.
           . Second element is the Y coordinate of the current region center.
     voronoi_grid : np.ndarray
@@ -1844,6 +1867,7 @@ class Cells(object):
             message = 'Cell cluster saved to' + ' ' + self.savedWorld
             logs.log_info(message)
 
+    # ..................{ VORONOI                            }..................
     def voronoiGrid(self,p):
         """
         Creates a set of unique, flat points corresponding to cells in the
@@ -1960,10 +1984,136 @@ class Cells(object):
 
         self.inds_clust = list(*(self.maskECM.ravel() == 1).nonzero())
 
-    def curl(self,Fx,Fy,phi_z):
+    # ..................{ INTEGRATION                        }..................
+    def intra_updater(self,p):
         """
-        Calculates the curl of a vector field
-        defined on cell centres of the cluster.
+        Calculates a matrix that takes values on membrane midpoints,
+        interpolates them to cell vertices, and adds them all together as half
+        of a finite volume integration for the pie-box regions. The other half
+        will come from the centroid region value.
+        """
+
+        self.M_int_mems = np.zeros((len(self.mem_i), len(self.mem_i)))
+
+        for i, inds in enumerate(self.cell_to_mems):
+
+            # get the set of indices for the cell:
+            inds = np.asarray(inds)
+
+            inds_p1 = np.roll(inds, 1)
+            inds_o = np.roll(inds, 0)
+            inds_n1 = np.roll(inds, -1)
+
+            self.M_int_mems[inds_o, inds_o] = (1/3)
+            self.M_int_mems[inds_o, inds_p1] = (1/12)
+            self.M_int_mems[inds_o, inds_n1] = (1/12)
+
+
+    def integrator(self, f, fmem) -> tuple:
+        """
+        Finite volume integrator for the irregular Voronoi cell grid.
+
+        Interpolates a parameter defined on cell centres to membrane midpoints
+        and then uses a centre-midpoint interpolation scheme to calculate the
+        working 2D integral (volume independent).
+
+        Parameters
+        -----------
+        f                  A parameter defined on cell centres
+        fmem               Same parameter defined on cell membranes
+
+        Returns
+        -----------
+        fcent          Finite volume interpolation integral over each cell grid (volume independent)
+        fmemi          Interpolation of parameter between adjacent membranes
+        """
+
+        # average the parameter between adjacent membranes:
+        fmemi = (fmem[self.nn_i] + fmem[self.mem_i])/2
+
+        # average the values at the cell centre point:
+        fcent = (1/2)*(f + (np.dot(self.M_sum_mems, fmemi)/self.num_mems))
+
+        return fcent, fmemi
+
+    # ..................{ INTERPOLATION                      }..................
+    #FIXME: To reduce code duplication:
+    #
+    #    # Globally replace all instances of this...
+    #    np.dot(cells.M_sum_mems, some_array) / cells.num_mems
+    #
+    #    # ...with this.
+    #    cells.interp_mems_to_cells(some_array)
+    @type_check
+    def interp_mems_to_cells(self, cells_membranes_data: ndarray) -> ndarray:
+        """
+        Interpolate a Numpy array of arbitrary data defined on cell membrane
+        midpoints into a Numpy array of the same data defined on cell centres.
+
+        Each element of the output array is the average of the passed membrane
+        data over all membranes of the corresponding cell, thus interpolating
+        from fine-grained data defined at membrane midpoints to coarse-grained
+        data defined at cell centers.
+
+        Parameters
+        -----------
+        cells_membranes_data : ndarray
+            One-dimensional Numpy array of length the number of cell membranes
+            such that each element is arbitrary cell membrane data spatially
+            situated at the midpoint of the membrane with that 0-based index.
+
+        Returns
+        -----------
+        ndarray
+            One-dimensional Numpy array of length the number of cells such that
+            each element is arbitrary cell data spatially situated at the
+            center of the cell with that 0-based index.
+        """
+
+        return np.dot(self.M_sum_mems, cells_membranes_data) / self.num_mems
+
+
+    def interp_cells_to_mems(
+        self, f: ndarray, interp_method: str = 'linear') -> ndarray:
+        """
+        Interpolate a Numpy array of arbitrary data defined on cell centres
+        into a Numpy array of the same data defined on cell membrane midpoints.
+
+        Parameters
+        -----------
+        f : ndarray
+            One-dimensional Numpy array of length the number of cells such that
+            each element is arbitrary cell data spatially situated at the
+            center of the cell with that 0-based index.
+        interp_method : str
+            Interpolation type to pass to the
+            :func:`scipy.interpolate.gridddata` function (e.g., `nearest`,
+            `linear`, `cubic`).
+
+        Returns
+        -----------
+        ndarray
+            One-dimensional Numpy array of length the number of cell membranes
+            such that each element is arbitrary cell membrane data spatially
+            situated at the midpoint of the membrane with that 0-based index.
+        """
+
+        # interpolate f to mems:
+        f_mem = interp.griddata(
+            (self.cell_centres[:,0], self.cell_centres[:,1]),
+            f,
+            (self.mem_mids_flat[:,0], self.mem_mids_flat[:,1]),
+            fill_value=0,
+            method=interp_method,
+        )
+
+        return f_mem
+
+
+    # ..................{ FIELDS                             }..................
+    def curl(self, Fx, Fy, phi_z) -> tuple:
+        """
+        Curl of a vector field defined on cell centres.
 
         Parameters
         -----------
@@ -1976,7 +2126,6 @@ class Cells(object):
         curl_x      Components of curl.
         curl_y
         curl_z
-
         """
 
         if type(phi_z) == int:
@@ -1997,7 +2146,6 @@ class Cells(object):
             curl_y = 0
 
         elif type(Fx) == int and type(Fy) == int:
-
             # the z-component of the field:
             grad_phi = (phi_z[self.cell_nn_i[:,1]] - phi_z[self.cell_nn_i[:,0]])/(self.nn_len)
 
@@ -2013,7 +2161,6 @@ class Cells(object):
             curl_z = 0
 
         else:
-
             raise BetseSimConfigException("Input to cells.curl not defined properly."
                                            "It takes (Fx = 0, Fy=0, phi)  or "
                                            "(Fx,Fy,phi=0). Also, the 0 must"
@@ -2021,128 +2168,7 @@ class Cells(object):
 
         return curl_x, curl_y, curl_z
 
-    def integrator(self,f, fmem):
-        """
-        Finite volume integrator for the irregular Voronoi cell grid.
-        Interpolates a parameter defined on cell centres to the membrane
-        midpoints and then uses a centre-midpoint interpolation scheme to
-        calculate the working 2D integral (volume independent).
-
-        Parameters
-        -----------
-        f                  A parameter defined on cell centres
-        fmem               Same parameter defined on cell membranes
-
-        Returns
-        -----------
-        fcent          Finite volume interpolation integral over each cell grid (volume independent)
-        fmemi          Interpolation of parameter between adjacent membranes
-
-        """
-
-        # average the parameter between adjacent membranes:
-        fmemi = (fmem[self.nn_i] + fmem[self.mem_i])/2
-
-        # average the values at the cell centre point:
-        fcent = (1/2)*(f + (np.dot(self.M_sum_mems, fmemi)/self.num_mems))
-
-        return fcent, fmemi
-
-    def interp_to_mem(self,f, interp_method = 'linear'):
-
-        """
-        Interpolates a parameter defined on cell centres to the membrane
-        midpoints.
-
-        Parameters
-        -----------
-        f                A parameter defined on cell centres
-        interp_method    Interpolation to use with scipy gridddata ('nearest', 'linear', 'cubic')
-
-        Returns
-        -----------
-        f_mem            Interpolation from cell centres to membrane midpoints
-
-        """
-
-        # interpolate f to mems:
-        f_mem = interp.griddata((self.cell_centres[:,0],self.cell_centres[:,1]),f,
-                             (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),fill_value = 0, method=interp_method)
-
-        return f_mem
-
-    def deform_tools(self,p):
-
-        # Data structures specific for deformation option------------------------------
-
-        logs.log_info('Creating computational tools for mechanical deformation... ')
-
-        # create a data structure that will allow us to repackage ecm_verts and re-build the
-        # cells world after deforming ecm_verts_unique:
-
-        # first get the search-points tree:
-        ecmTree = sps.KDTree(self.ecm_verts_unique)
-
-        self.inds2ecmVerts = []
-
-        for verts in self.ecm_verts:
-
-            sublist = []
-
-            for v in verts:
-                ind = ecmTree.query(v)[1]
-                sublist.append(ind)
-            self.inds2ecmVerts.append(sublist)
-
-        self.inds2ecmVerts = np.asarray(self.inds2ecmVerts)
-
-    def intra_updater(self,p):
-        """
-        Calculates a matrix that takes values on
-        membrane midpoints, interpolates them to cell vertices,
-        and adds them all together as half of a finite volume integration
-        for the pie-box regions. The other half will come from the centroid
-        region value.
-        """
-
-        self.M_int_mems = np.zeros((len(self.mem_i), len(self.mem_i)))
-
-        for i, inds in enumerate(self.cell_to_mems):
-
-            # get the set of indices for the cell:
-            inds = np.asarray(inds)
-
-            inds_p1 = np.roll(inds, 1)
-            inds_o = np.roll(inds, 0)
-            inds_n1 = np.roll(inds, -1)
-
-            self.M_int_mems[inds_o, inds_o] = (1/3)
-            self.M_int_mems[inds_o, inds_p1] = (1/12)
-            self.M_int_mems[inds_o, inds_n1] = (1/12)
-
-    def eosmo_tools(self,p):
-
-        # if studying lateral movement of pumps and channels in membrane,
-        # create a matrix that will take a continuous gradient for a value on a cell membrane:
-        # returns gradient tangent to cell membrane
-
-        self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
-
-        for i, inds in enumerate(self.cell_to_mems):
-
-            inds = np.asarray(inds)
-
-            inds_p1 = np.roll(inds,1)
-            inds_o = np.roll(inds,0)
-
-            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
-            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
-
-            self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
-            self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
-
     def zero_div_cell(self, Fn, rho=0.0, bc = 0.0, open_bounds=True):
-
         """
         Calculates a divergence free field on the cell cluster.
 
@@ -2159,7 +2185,6 @@ class Cells(object):
         Fn              Divergence corrected normal component of field
         F_cell_x        x-axis component of force field defined on cell centres
         F_cell_y        y-axis component of force field defined on cell centres
-
         """
 
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
@@ -2224,8 +2249,6 @@ class Cells(object):
         -----------
         gPhix, gPhiy   x and y components of irrotational field
         gAx, gAy       x and y components of solenoidal field
-
-
         """
 
         # membrane normal vectors short form:
@@ -2286,3 +2309,53 @@ class Cells(object):
         gAy = gAxo
 
         return gPhix, gPhiy, gAx, gAy
+
+    # ..................{ OTHER                              }..................
+    #FIXME: Consider moving to an appropriate deformation-specific module.
+    def deform_tools(self,p):
+
+        # Data structures specific for deformation option------------------------------
+
+        logs.log_info('Creating computational tools for mechanical deformation... ')
+
+        # create a data structure that will allow us to repackage ecm_verts and re-build the
+        # cells world after deforming ecm_verts_unique:
+
+        # first get the search-points tree:
+        ecmTree = sps.KDTree(self.ecm_verts_unique)
+
+        self.inds2ecmVerts = []
+
+        for verts in self.ecm_verts:
+
+            sublist = []
+
+            for v in verts:
+                ind = ecmTree.query(v)[1]
+                sublist.append(ind)
+            self.inds2ecmVerts.append(sublist)
+
+        self.inds2ecmVerts = np.asarray(self.inds2ecmVerts)
+
+    #FIXME: Consider moving to an appropriate osmosis-specific module.
+    def eosmo_tools(self,p):
+
+        # if studying lateral movement of pumps and channels in membrane,
+        # create a matrix that will take a continuous gradient for a value on a cell membrane:
+        # returns gradient tangent to cell membrane
+
+        self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
+
+        for i, inds in enumerate(self.cell_to_mems):
+
+            inds = np.asarray(inds)
+
+            inds_p1 = np.roll(inds,1)
+            inds_o = np.roll(inds,0)
+
+            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
+            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+
+            self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
+            self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
+

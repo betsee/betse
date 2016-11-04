@@ -45,6 +45,7 @@ from betse.util.type.types import (
 from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
+from numpy import ndarray
 from scipy import interpolate
 
 #FIXME: Shift functions called only by this module either to a new
@@ -315,11 +316,11 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
     ----------
     _is_ecm_ignored : bool
         `True` if ignoring extracellular spaces _or_ `False` otherwise.
-    _time_series : numpy.ndarray
-        Three-dimensional sequence of all cell membrane data for a single
+    _time_series : ndarray
+        Three-dimensional Numpy array of all cell membrane data for a single
         modelled membrane-specific variable (e.g., cell membrane voltage) for
-        all animation time steps to be plotted. See the :meth:`__init__`
-        method docstring for further details.
+        all time steps to be animated. See the :meth:`__init__` docstring for
+        further details.
     '''
 
     # ..................{ SUPERCLASS                         }..................
@@ -348,7 +349,7 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         times_cells_membranes_data : Sequence
             Three-dimensional sequence of all cell membrane data for a single
             modelled membrane-specific variable (e.g., cell membrane voltage)
-            for all animation time steps to be plotted, whose:
+            for all time steps to be animated, whose:
             . First dimension indexes time steps, whose length is the number of
               simulation time steps.
             . First dimension indexes cells, whose length is the number of
@@ -382,8 +383,11 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         )
 
         # Classify the passed parameters.
-        self._times_cells_membranes_data = times_cells_membranes_data
         self._is_ecm_ignored = is_ecm_ignored
+
+        # Classify the passed sequence as a Numpy array, for efficiency.
+        self._times_cells_membranes_data = arrays.from_sequence(
+            times_cells_membranes_data)
 
         #FIXME: Eliminate after generalizing the logic below into a layer.
         color_mappables = None
@@ -401,7 +405,8 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         # Display and/or save this animation.
         self._animate(
             color_data=(
-                scaling_series if scaling_series is not None else times_cells_membranes_data),
+                scaling_series if scaling_series is not None else
+                times_cells_membranes_data),
             color_mappables=color_mappables,
         )
 
@@ -418,10 +423,30 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from setting these attributes.
 
+    #FIXME: Rename to cells_centre_data() for disambiguity.
     @property
-    def cells_membranes_data(self) -> SequenceTypes:
+    def cells_data(self) -> ndarray:
         '''
-        Two-dimensional sequence of all cell membrane data for the current
+        One-dimensional Numpy array of length the number of cells such that
+        each element is arbitrary cell data spatially situated at the center of
+        this cell for the current animation time step.
+
+        Each element of this array is the average of the arbitrary membrane
+        data over all membranes of the corresponding cell for this time step,
+        thus interpolating from fine-grained data defined at membrane midpoints
+        to coarse-grained data defined at cell centers.
+        '''
+
+        #FIXME: For efficiency, consider internally caching this result for
+        #each time step into an appropriately sized array defaulting to zeroes.
+        return self._cells.interp_mems_to_cells(self.cells_membranes_data)
+
+
+    #FIXME: Rename to cells_membranes_midpoint_data() for disambiguity.
+    @property
+    def cells_membranes_data(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array of all cell membrane data for the current
         animation time step, whose:
 
         . First dimension indexes cells, whose length is the number of cells.
