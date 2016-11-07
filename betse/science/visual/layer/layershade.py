@@ -98,7 +98,7 @@ class LayerCellsShadeContinuous(LayerCellsMappableABC):
         '''
 
         # Two-dimensional array of all cell data for the current time step.
-        cells_centre_data = self._visual.cells_data
+        cells_centre_data = self._visual.cells_centre_data
 
         #FIXME: Document us up.
         regions_centre_data = np.zeros(len(self._visual.cells.voronoi_centres))
@@ -140,8 +140,8 @@ class LayerCellsShadeDiscrete(LayerCellsMappableABC):
     @type_check
     def _layer_first_color_mappables(self) -> IterableTypes:
 
-        # Two-dimensional array of all cell data for the current time step.
-        cells_membranes_vertex_data = self._get_cells_membranes_vertex_data()
+        # One-dimensional array of all membrane vertex data for this time step.
+        membranes_vertex_data = self._visual.membranes_vertex_data
 
         # Three-dimensional array of all upscaled cell vertex coordinates. See
         # "Cells.cell_verts" documentation for further details.
@@ -161,10 +161,10 @@ class LayerCellsShadeDiscrete(LayerCellsMappableABC):
             # Y coordinates of all vertices defining this cell's polygon.
             cell_vertices_y = cell_vertices_coords[:, 1]
 
-            # Average color values of all cell vertices, referred to as "C"
-            # in both the documentation and implementation of the
+            # Average color values of all vertices of this cell, referred to as
+            # "C" in both the documentation and implementation of the
             # tripcolor() function. Why "C"? Because you will believe.
-            cell_membranes_vertex_data = cells_membranes_vertex_data[
+            cell_membranes_vertex_data = membranes_vertex_data[
                 self._visual.cells.cell_to_mems[cell_index]]
 
             # Gouraud-shaded triangulation mesh for this cell, computed from
@@ -193,31 +193,14 @@ class LayerCellsShadeDiscrete(LayerCellsMappableABC):
         # For efficiency, this method simply reshades the triangulated mesh for
         # each cell previously computed by _layer_first_color_mappables().
 
-        # Two-dimensional array of all cell data for the current time step.
-        cells_membranes_vertex_data = self._get_cells_membranes_vertex_data()
+        # One-dimensional array of all membrane vertex data for this time step.
+        membranes_vertex_data = self._visual.membranes_vertex_data
 
         # For the index and triangulation mesh for each cell...
         for cell_index, cell_tri_mesh in enumerate(self._cell_tri_meshes):
-            # Average color values of all cell vertices.
-            cell_membranes_vertex_data = cells_membranes_vertex_data[
+            # Average color values of all vertices of this cell.
+            cell_membranes_vertex_data = membranes_vertex_data[
                 self._visual.cells.cell_to_mems[cell_index]]
 
             # Gouraud-shade this triangulation mesh with these color values.
             cell_tri_mesh.set_array(cell_membranes_vertex_data)
-
-    # ..................{ GETTERS                            }..................
-    #FIXME: Generalize this into a new
-    #AnimCellsMembranesData.cells_membranes_vertex_data() property; then,
-    #replace all calls to this method above by this property.
-
-    def _get_cells_membranes_vertex_data(self) -> ndarray:
-        '''
-        Two-dimensional Numpy array of all cell data for the current time step,
-        mapped from the midpoints onto the vertices of all cell membranes.
-        '''
-
-        return np.dot(
-            self._visual.cells_membranes_data,
-
-            #FIXME: Document this. Fairly intense, presumably.
-            self._visual.cells.matrixMap2Verts)

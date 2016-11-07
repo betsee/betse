@@ -316,8 +316,8 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
     ----------
     _is_ecm_ignored : bool
         `True` if ignoring extracellular spaces _or_ `False` otherwise.
-    _time_series : ndarray
-        Three-dimensional Numpy array of all cell membrane data for a single
+    _times_membranes_series : ndarray
+        Two-dimensional Numpy array of all cell membrane data for a single
         modelled membrane-specific variable (e.g., cell membrane voltage) for
         all time steps to be animated. See the :meth:`__init__` docstring for
         further details.
@@ -325,14 +325,14 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
 
     # ..................{ SUPERCLASS                         }..................
     #FIXME: Document the "scaling_series" parameter and, ideally, rename to
-    #better fit the nomenclature of the "times_cells_membranes_data" parameter.
+    #better fit the nomenclature of the "times_membranes_data" parameter.
     @type_check
     def __init__(
         self,
 
         # Mandatory parameters.
         p: 'betse.science.parameters.Parameters',
-        times_cells_membranes_data: SequenceTypes,
+        times_membranes_data: SequenceTypes,
 
         # Optional parameters.
         is_ecm_ignored: bool = True,
@@ -346,18 +346,16 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         ----------
         p : Parameters
             Current simulation configuration.
-        times_cells_membranes_data : Sequence
-            Three-dimensional sequence of all cell membrane data for a single
+        times_membranes_data : Sequence
+            Two-dimensional sequence of all cell membrane data for a single
             modelled membrane-specific variable (e.g., cell membrane voltage)
             for all time steps to be animated, whose:
             . First dimension indexes time steps, whose length is the number of
               simulation time steps.
-            . First dimension indexes cells, whose length is the number of
-              cells in this cluster.
             . Second dimension indexes cell membranes, whose length is the
-              number of membranes for the current cell. Each element of this
-              dimension is arbitrary cell membrane data spatially situated at
-              this membrane's midpoint.
+              number of cell membranes in the current cluster. Each element of
+              this dimension is arbitrary cell membrane data spatially situated
+              at that membrane's midpoint.
         is_ecm_ignored : optional[bool]
             `True` if ignoring extracellular spaces _or_ `False` otherwise.
             Defaults to `True`.
@@ -386,8 +384,7 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         self._is_ecm_ignored = is_ecm_ignored
 
         # Classify the passed sequence as a Numpy array, for efficiency.
-        self._times_cells_membranes_data = arrays.from_sequence(
-            times_cells_membranes_data)
+        self._times_membranes_data = arrays.from_sequence(times_membranes_data)
 
         #FIXME: Eliminate after generalizing the logic below into a layer.
         color_mappables = None
@@ -399,14 +396,14 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
             #superclass _plot_cell_mesh() method -- which probably ultimately
             #derived from this function.
             self.collection, self._axes = cell_mesh(
-                self.cells_membranes_data, self._axes, self._cells, self._p, self._colormap)
+                self.membranes_midpoint_data, self._axes, self._cells, self._p, self._colormap)
             color_mappables = self.collection
 
         # Display and/or save this animation.
         self._animate(
             color_data=(
                 scaling_series if scaling_series is not None else
-                times_cells_membranes_data),
+                times_membranes_data),
             color_mappables=color_mappables,
         )
 
@@ -417,19 +414,18 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         # amorphous continuum of cells.
         if not self._p.showCells:
             zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = self.cells_membranes_data
+            zz_grid[self._cells.cell_to_grid] = self.membranes_midpoint_data
             self.collection.set_array(zz_grid)
 
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from setting these attributes.
 
-    #FIXME: Rename to cells_centre_data() for disambiguity.
     @property
-    def cells_data(self) -> ndarray:
+    def cells_centre_data(self) -> ndarray:
         '''
         One-dimensional Numpy array of length the number of cells such that
         each element is arbitrary cell data spatially situated at the center of
-        this cell for the current animation time step.
+        that cell for the current animation time step.
 
         Each element of this array is the average of the arbitrary membrane
         data over all membranes of the corresponding cell for this time step,
@@ -439,24 +435,34 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
 
         #FIXME: For efficiency, consider internally caching this result for
         #each time step into an appropriately sized array defaulting to zeroes.
-        return self._cells.interp_mems_to_cells(self.cells_membranes_data)
+        return self._cells.interp_mems_to_cells(
+            self.membranes_midpoint_data)
 
 
-    #FIXME: Rename to cells_membranes_midpoint_data() for disambiguity.
     @property
-    def cells_membranes_data(self) -> ndarray:
+    def membranes_midpoint_data(self) -> ndarray:
         '''
-        Two-dimensional Numpy array of all cell membrane data for the current
-        animation time step, whose:
-
-        . First dimension indexes cells, whose length is the number of cells.
-        . Second dimension indexes cell membranes, whose length is the number
-          of membranes for the current cell. Each element of this dimension is
-          arbitrary cell membrane data spatially situated at this membrane's
-          midpoint.
+        One-dimensional Numpy array of length the number of cell membranes such
+        that each element is arbitrary cell membrane data spatially situated at
+        the midpoint of that membrane for the current animation time step.
         '''
 
-        return self._times_cells_membranes_data[self._time_step]
+        return self._times_membranes_data[self._time_step]
+
+
+    @property
+    def membranes_vertex_data(self) -> ndarray:
+        '''
+        One-dimensional Numpy array of length the number of cell membrane
+        vertices such that each element is arbitrary cell membrane vertex data
+        spatially situated at that membrane vertex for the current animation
+        time step.
+        '''
+
+        #FIXME: Consider generalizing this into a new public "Cells" method ala
+        #the Cells.interp_mems_to_cells() method called above.
+        return np.dot(
+            self.membranes_midpoint_data, self._cells.matrixMap2Verts)
 
 
 #FIXME: This class should probably no longer be used, now that the Gouraud

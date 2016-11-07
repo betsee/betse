@@ -57,7 +57,7 @@ class Cells(object):
 
     Attributes (Cell)
     ----------
-    cell_centres : np.ndarray
+    cell_centres : ndarray
         Two-dimensional Numpy array of the coordinates of the center points of
         all cells, whose:
         . First dimension indexes cells, whose length is the number of cells.
@@ -66,20 +66,22 @@ class Cells(object):
           _and_ whose:
           . First element is the X coordinate of the current cell center.
           . Second element is the Y coordinate of the current cell center.
-    cell_i : np.ndarray
+    cell_i : ndarray
         One-dimensional Numpy array of length the number of cells such that
         each element is that cell's index (i.e., `[0, 1, ..., n-2, n-1]` for
         the number of cells `n`), required for efficient Numpy slicing.
-    cell_verts : np.ndarray
-        Three-dimensional Numpy array of all cell vertex coordinates, whose:
+    cell_verts : ndarray
+        Three-dimensional Numpy array of the coordinates of the vertices of all
+        cells, whose:
         . First dimension indexes cells, whose length is the number of cells.
           Each element of this dimension is a Matplotlib-compatible **polygon
           patch** (i.e., a two-dimensional Numpy array of all vertex
           coordinates defining the current cell's polygon), suitable for
           passing as is to the :meth:`matplotlib.patches.Polygon.__init__`
           method.
-        . Second dimension indexes the vertices of the current cell, whose
-          length is the number of such vertices.
+        . Second dimension indexes the vertices of the current cell (_in
+          counterclockwise order_), whose length is the number of such
+          vertices.
         . Third dimension indexes the coordinates of the current vertex, whose
           length is unconditionally guaranteed to be 2 _and_ whose:
           . First element is the X coordinate of the current cell vertex.
@@ -87,7 +89,7 @@ class Cells(object):
 
     Attributes (Cell Membrane)
     ----------
-    cell_to_mems : np.ndarray
+    cell_to_mems : ndarray
         Two-dimensional Numpy array of the indices of all membranes for each
         cell, whose:
         . First dimension indexes cells, whose length is the number of cells.
@@ -98,7 +100,7 @@ class Cells(object):
           the first cell -- which is _always_ `0`.
         * `cell_to_mems[-1][-1]` is the index of the last membrane contained by
           the last cell -- which is _always_ `mem_i[-1]`.
-    mem_to_cells : np.ndarray
+    mem_to_cells : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
         that each element is the index of the cell containing the membrane
         indexed by that element. Hence:
@@ -106,12 +108,12 @@ class Cells(object):
           membrane.
         * `mem_to_cells[-1]` is the index of the cell containing the last
           membrane.
-    mem_i : np.ndarray
+    mem_i : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
         that each element is that cell membrane's index (i.e.,
         `[0, 1, ..., m-2, m-1]` for the number of cell membranes `m`), required
         for efficient Numpy slicing.
-    mem_mids_flat : np.ndarray
+    mem_mids_flat : ndarray
         Two-dimensional Numpy array of the coordinates of the midpoints of all
         cell membranes, whose:
         . First dimension indexes cell membranes, whose length is the total
@@ -122,11 +124,11 @@ class Cells(object):
           . First element is the X coordinate of the current membrane midpoint.
           . Second element is the Y coordinate of the current membrane
             midpoint.
-    num_mems : np.ndarray
+    num_mems : ndarray
         One-dimensional Numpy array of length the number of cells such that
         each element is the number of membranes for the cell with that cell's
         index.
-    M_sum_mems : np.ndarray
+    M_sum_mems : ndarray
         Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
         * `m` is the total number of cells.
         * `n` is the total number of cell membranes.
@@ -141,9 +143,61 @@ class Cells(object):
         totalized for each cell over all membranes contained by that cell,
         where `m` and `n` are as defined above.
 
+    Attributes (Cell Membrane Vertices)
+    ----------
+    index_to_mem_verts : ndarray
+        Two-dimensional Numpy array of the indices of the vertices of all cell
+        membranes in the :attr:`mem_verts` array, whose:
+        . First dimension indexes cell membranes, whose length is the number of
+          cell membranes in this cluster.
+        . Second dimension indexes the indices of the pair of vertexes
+          comprising the current membrane, whose length is unconditionally
+          guaranteed to be 2 _and_ whose:
+          . First element is the index of the first vertex defining the current
+            membrane in the :attr:`mem_verts` subarray, guaranteed to be
+            counterclockwise from the second vertex defining this membrane.
+          . Second element is the index of the second vertex defining the
+            current membrane in the :attr:`mem_verts` subarray, guaranteed to
+            be clockwise from the first vertex defining this membrane.
+    mem_verts : ndarray
+        Two-dimensional Numpy array of the coordinates of the vertices of all
+        cell membranes, whose:
+        . First dimension indexes cell membrane vertices, whose length is the
+          number of cell membrane vertices in this cluster. This length is
+          strictly greater than the number of cell membranes in this cluster.
+          Since this array contains _no_ duplicate vertices, this length is
+          strictly less than twice the number of cell membranes.
+        . Second dimension indexes the coordinates of the current membrane
+          vertex, whose length is unconditionally guaranteed to be 2 _and_
+          whose:
+          . First element is the X coordinate of the current membrane vertex.
+          . Second element is the Y coordinate of the current membrane vertex.
+    matrixMap2Verts : ndarray
+        Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
+        * `m` is the total number of cell membranes.
+        * `n` is the total number of cell membrane vertices.
+        For each membrane `i` and membrane vertex `j`, element
+        `matrixMap2Verts[i, j]` is:
+        * 0 if this vertex is _not_ one of the two vertices defining this
+          membrane. Since most vertices do _not_ define most membranes, most
+          entries of this matrix are zero, implying this matrix to typically
+          (but _not_ necessarily) be sparse.
+        * 0.5 if this vertex is one of the two vertices defining this membrane,
+          thus averaging membrane data defined at membrane midpoints over the
+          vertex pairs defining these membranes.
+        The dot product of a Numpy vector (i.e., one-dimensional array) of size
+        `m` containing membrane-specific data by this matrix yields another
+        Numpy vector of size `n` containing membrane vertex-specific data
+        interpolated from these membranes over these vertices, where `m` and
+        `n` are as defined above. Note that, technically, this dot product of a
+        vector by a matrix is undefined; to facilitate what would otherwise be
+        an invalid operation, Numpy implicitly converts:
+        * The input vector of size `n` into a matrix of size `1 x m`.
+        * An output matrix of size `n x 1` into the output vector of size `n`.
+
     Attributes (Voronoi Diagram)
     ----------
-    cell_to_grid : np.ndarray
+    cell_to_grid : ndarray
         One-dimensional Numpy array of length the number of cells such that
         each element is the index of the region in the Voronoi diagram
         producing this cell cluster whose vertices are most closely spatially
@@ -155,8 +209,8 @@ class Cells(object):
         Hence, assigning a Numpy array of length the number of regions indexed
         by this array from a Numpy array of length the number of cells maps the
         cell-specific data defined by the latter into region-specific data
-        (e.g., `regions_data[cells.cell_to_grid] = cells_data`).
-    voronoi_centres : np.ndarray
+        (e.g., `regions_data[cells.cell_to_grid] = cells_centre_data`).
+    voronoi_centres : ndarray
         Two-dimensional Numpy array of the coordinates of the center points of
         all polygonal regions in the Voronoi diagram producing this cell
         cluster, whose:
@@ -167,7 +221,7 @@ class Cells(object):
           _and_ whose:
           . First element is the X coordinate of the current region center.
           . Second element is the Y coordinate of the current region center.
-    voronoi_grid : np.ndarray
+    voronoi_grid : ndarray
         Two-dimensional Numpy array of the vertex coordinates of all
         polygonal regions in the Voronoi diagram producing this cell cluster,
         whose:
@@ -179,7 +233,7 @@ class Cells(object):
           . Second element is the Y coordinate of the current region vertex.
         This array is equivalent to the :attr:`voronoi_verts` array flattened
         over the first dimension of that array.
-    voronoi_verts : np.ndarray
+    voronoi_verts : ndarray
         Three-dimensional Numpy array of the vertex coordinates of all
         polygonal regions in the Voronoi diagram producing this cell cluster,
         whose dimensions are structured as those of the :attr:`cell_verts`
@@ -935,16 +989,17 @@ class Cells(object):
 
         self.cell_sa = np.asarray(self.cell_sa)
 
-        # map from flattened mem midpoints to corresponding edge points of mem segment:---------------------------------
+        #----------------------------------------------------------------------
+        # Construct an array indexing vertices of the membrane vertices array.
 
         cellVertTree = sps.KDTree(self.mem_verts)
 
         self.index_to_mem_verts = []
         for cell_nest in mem_edges:
             for mem_points in cell_nest:
-                pt_ind1 = list(cellVertTree.query(mem_points[0]))[1]
-                pt_ind2 = list(cellVertTree.query(mem_points[1]))[1]
-                self.index_to_mem_verts.append([pt_ind1,pt_ind2])
+                _, pt_ind1 = cellVertTree.query(mem_points[0])
+                _, pt_ind2 = cellVertTree.query(mem_points[1])
+                self.index_to_mem_verts.append([pt_ind1, pt_ind2])
         self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
 
     def quickVerts(self, p):
@@ -1058,10 +1113,12 @@ class Cells(object):
 
         # create a matrix that will map and interpolate data on mem mids to the mem verts -----------------------------
         # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
-        self.matrixMap2Verts = np.zeros((len(self.mem_mids_flat),len(self.mem_verts)))
+        self.matrixMap2Verts = np.zeros(
+            (len(self.mem_mids_flat), len(self.mem_verts)))
+
         for i, indices in enumerate(self.index_to_mem_verts):
-            self.matrixMap2Verts[i,indices[0]]=1/2
-            self.matrixMap2Verts[i,indices[1]]=1/2
+            self.matrixMap2Verts[i, indices[0]] = 1/2
+            self.matrixMap2Verts[i, indices[1]] = 1/2
 
         # matrix for summing property on membranes for each cell and a count of number of mems per cell:---------------
         self.M_sum_mems = np.zeros((len(self.cell_i),len(self.mem_i)))
@@ -1396,8 +1453,8 @@ class Cells(object):
         self.points_tree = sps.KDTree(self.xypts)
 
         # define a mapping between a cell and its ecm space in the full list of xy points for the world:
-        self.map_cell2ecm = list(self.points_tree.query(self.cell_centres))[1]
-        self.map_mem2ecm = list(self.points_tree.query(self.mem_mids_flat,k=1))[1]
+        _, self.map_cell2ecm = self.points_tree.query(self.cell_centres)
+        _, self.map_mem2ecm  = self.points_tree.query(self.mem_mids_flat, k=1)
 
         # get a list of all membranes for boundary cells:
         all_bound_mem_inds = self.cell_to_mems[self.bflags_cells]
@@ -1426,10 +1483,10 @@ class Cells(object):
         bL_pts = np.column_stack((bL_x, bL_y))
         bR_pts = np.column_stack((bR_x, bR_y))
 
-        self.bBot_k = list(self.points_tree.query(bBot_pts))[1]
-        self.bTop_k = list(self.points_tree.query(bTop_pts))[1]
-        self.bL_k = list(self.points_tree.query(bL_pts))[1]
-        self.bR_k = list(self.points_tree.query(bR_pts))[1]
+        _, self.bBot_k = self.points_tree.query(bBot_pts)
+        _, self.bTop_k = self.points_tree.query(bTop_pts)
+        _, self.bL_k = self.points_tree.query(bL_pts)
+        _, self.bR_k = self.points_tree.query(bR_pts)
 
         # get a mapping specifying which mem mids an ecm space interacts with:
         self.map_ecm2mem = [[] for ind in self.xypts]
@@ -1939,7 +1996,7 @@ class Cells(object):
         """
 
         voronoiTree = sps.KDTree(self.voronoi_grid)
-        self.map_voronoi2ecm = list(voronoiTree.query(self.ecm_verts_unique))[1]
+        _, self.map_voronoi2ecm = voronoiTree.query(self.ecm_verts_unique)
 
         self.voronoi_mask = np.zeros(len(self.voronoi_grid))
         self.voronoi_mask[self.map_voronoi2ecm]=1
@@ -2331,7 +2388,7 @@ class Cells(object):
             sublist = []
 
             for v in verts:
-                ind = ecmTree.query(v)[1]
+                _, ind = ecmTree.query(v)
                 sublist.append(ind)
             self.inds2ecmVerts.append(sublist)
 

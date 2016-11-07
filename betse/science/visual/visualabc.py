@@ -965,8 +965,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             assert types.is_matplotlib_trimesh(cell_plot), (
                 types.assert_not_matplotlib_trimesh(cell_plot))
 
-            # cells_membranes_data = np.zeros(len(self.cells.voronoi_centres))
-            # cells_membranes_data[self.cells.cell_to_grid] = cells_membranes_data
+            # membranes_midpoint_data = np.zeros(len(self.cells.voronoi_centres))
+            # membranes_midpoint_data[self.cells.cell_to_grid] = membranes_midpoint_data
 
             # Update this plot with this gridded data.
             cell_plot.set_array(cell_data)
@@ -1116,8 +1116,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         triangular_grid = np.zeros(len(self._cells.voronoi_centres))
         triangular_grid[self._cells.cell_to_grid] = cell_data
 
-        # cmin = cells_membranes_data.min()
-        # cmax = cells_membranes_data.max()
+        # cmin = membranes_midpoint_data.min()
+        # cmax = membranes_midpoint_data.max()
 
         # Create and add this plot to this figure's axes and return this plot.
         # Unfortunately, the tripcolor() function requires:

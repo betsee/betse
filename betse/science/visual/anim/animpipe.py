@@ -96,7 +96,7 @@ def pipeline_anims(
 
         AnimCellsMembranesData(
             sim=sim, cells=cells, p=p,
-            times_cells_membranes_data=vmplt,
+            times_membranes_data=vmplt,
             scaling_series=scale_v,
             is_ecm_ignored=False,
             label='Vmem',
