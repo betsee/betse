@@ -199,9 +199,9 @@ class Cells(object):
     ----------
     cell_to_grid : ndarray
         One-dimensional Numpy array of length the number of cells such that
-        each element is the index of the region in the Voronoi diagram
-        producing this cell cluster whose vertices are most closely spatially
-        aligned with those of the cell indexed by that element. Hence:
+        each element is the index of the Voronoi region whose vertices most
+        closely spatially align with those of the cell indexed by that element.
+        Hence:
         * `cell_to_grid[0]` is the index of the region most closely spatially
           aligned with the first cell.
         * `cell_to_grid[-1]` is the index of the region most closely spatially

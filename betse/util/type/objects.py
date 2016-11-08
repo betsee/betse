@@ -9,10 +9,7 @@ Low-level object facilities.
 
 # ....................{ IMPORTS                            }....................
 import inspect
-# from betse.exceptions import BetseDecoratorException
-from betse.util.type.types import (
-    type_check, CallableTypes, GeneratorType)
-# from functools import wraps
+from betse.util.type.types import type_check, CallableTypes, GeneratorType
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -37,7 +34,7 @@ def is_method(obj: object, method_name: str) -> bool:
     method = getattr(obj, method_name, None)
 
     # Return whether this attribute is a method.
-    return method is not None and callable(method)
+    return callable(method)
 
 # ....................{ GETTERS                            }....................
 @type_check

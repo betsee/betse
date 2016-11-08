@@ -6,11 +6,6 @@
 Abstract base classes of all Matplotlib-based animation subclasses.
 '''
 
-#FIXME: Current overlays (as enabled by the "is_current_overlayable" boolean
-#and animation-specific configuration options), appear to be broken. In theory,
-#refactoring the current overlay approach into a "LayerCellsABC" subclass
-#should correct the breakage. Until then, panic stations!
-
 #FIXME: A potential substantial speedup (albeit possibly non-portable to all
 #possible Matplotlib backends) is as follows:
 #
@@ -99,17 +94,21 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
-from abc import abstractmethod
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
 from betse.science.visual.visualabc import VisualCellsABC
 from betse.science.visual.layer.layerstream import (
-    LayerCellsStreamCurrentIntra, LayerCellsStreamCurrentIntraExtra,)
+    LayerCellsStreamABC,
+    LayerCellsStreamCurrentIntra,
+    LayerCellsStreamCurrentIntraExtra,
+)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
-from betse.util.type.types import type_check, NoneType, SequenceTypes
+from betse.util.type import iterables
+from betse.util.type.types import (
+    type_check, BoolOrNoneTypes, IntOrNoneTypes, SequenceTypes)
 from matplotlib import pyplot
 from matplotlib.animation import FuncAnimation
 
@@ -159,21 +158,15 @@ class AnimCellsABC(VisualCellsABC):
 
     Attributes (Private: Current)
     ----------
-    _is_overlaying_current : bool
+    _is_current_overlayable : BoolOrNoneTypes
         `True` if overlaying either electric current or concentration flux
-        streamlines onto this animation _or_ `False` otherwise. By design, this
-        boolean is `True` if and only if the following are all also `True`:
-        * The :attr:`Parameters.I_overlay` boolean, implying this simulation
-          configuration to request current overlays.
-        * The :attr:`Parameters.calc_J` boolean, implying this simulation
-          configuration to model these currents.
-        * The `is_current_overlayable` boolean parameter passed to the
-          :meth:`__init__` method of this class, implying the current plot or
-          animation to support current overlays.
+        streamlines on this animation when requested by the current
+        simulation configuration (as governed by the `p.I_overlay`
+        parameter) _or_ `False` otherwise.
     _is_current_overlay_only_gj : bool
         `True` only if overlaying intracellular current _or_ `False` otherwise
         (i.e., if overlaying both intra- and extracellular current). Ignored
-        unless overlaying current (i.e., if `_is_overlaying_current` is
+        unless overlaying current (i.e., if `_is_current_overlay` is
         `True`).
     '''
 
@@ -199,13 +192,13 @@ class AnimCellsABC(VisualCellsABC):
         #  in the current simulation configuration.
 
         # Mandatory parameters.
-        is_current_overlayable: bool,
         save_dir_parent_basename: str,
 
         # Optional parameters.
-        is_current_overlay_only_gj: (bool, NoneType) = None,
+        is_current_overlayable: BoolOrNoneTypes = None,
+        is_current_overlay_only_gj: BoolOrNoneTypes = None,
         is_ecm_required: bool = False,
-        time_step_count: (int, NoneType) = None,
+        time_step_count: IntOrNoneTypes = None,
         *args, **kwargs
     ) -> None:
         '''
@@ -217,19 +210,19 @@ class AnimCellsABC(VisualCellsABC):
             Basename of the parent directory of the subdirectory to which this
             animation's frames will be saved when requested by the current
             simulation configuration.
-        is_current_overlayable : bool
+        is_current_overlayable : optional[bool]
             `True` if overlaying either electric current or concentration flux
             streamlines on this animation when requested by the current
-            simulation configuration (as governed by the `p.I_overlay` and
-            `p.calc_J` parameters) _or_ `False` otherwise. All subclasses
-            except those already plotting streamlines (e.g., by calling the
-            superclass :meth:`_plot_stream` method) should unconditionally
-            enable this boolean.
+            simulation configuration (as governed by the `p.I_overlay`
+            parameter) _or_ `False` otherwise. All subclasses except those
+            already plotting streamlines (e.g., by calling the superclass
+            :meth:`_plot_stream` method) should unconditionally enable this
+            boolean.
         is_current_overlay_only_gj : optional[bool]
             `True` if only overlaying intracellular current _or_ `False` if
             overlaying both intra- and extracellular current. Ignored if
             current is _not_ being overlayed at all (i.e., if
-            `_is_overlaying_current` is `False`). If `None`, defaults to the
+            `_is_current_overlay` is `False`). If `None`, defaults to the
             following state:
             * `False` if extracellular spaces are enabled _and_ both
                intracellular and extracellular current is being animated.
@@ -256,6 +249,8 @@ class AnimCellsABC(VisualCellsABC):
                 self._label))
 
         # Default unpassed parameters.
+        if is_current_overlayable is None:
+            is_current_overlayable = self._p.I_overlay
         if is_current_overlay_only_gj is None:
             is_current_overlay_only_gj = not (
                 self._p.sim_ECM and self._p.IecmPlot)
@@ -263,18 +258,12 @@ class AnimCellsABC(VisualCellsABC):
             time_step_count = len(self._sim.time)
 
         # Classify all remaining parameters.
+        self._is_current_overlayable = is_current_overlayable
         self._is_current_overlay_only_gj = is_current_overlay_only_gj
         self._time_step_count = time_step_count
 
         # 0-based index of the last frame to be plotted.
         self._time_step_last = self._time_step_count - 1
-
-        # If this subclass requests a current overlay, do so only if:
-        #
-        # * Requested by the current simulation configuration via "p.I_overlay".
-        # * This configuration is modelling currents via "p.calc_J".
-        self._is_overlaying_current = (
-            is_current_overlayable and self._p.I_overlay)
 
         # Type of animation attempt to be logged below.
         animation_verb = None
@@ -490,10 +479,23 @@ class AnimCellsABC(VisualCellsABC):
         #implementation *AFTER* eliminating these boolean attributes, as
         #detailed in an __init__() method FIXME comment above.
 
+        # True only if...
+        is_current_overlay = (
+            # This simulation configuration requests a current overlay.
+            self._is_current_overlayable and
+
+            # No layer in the layer sequence already plots streamlines. Since
+            # the current overlay also plots streamlines, attempting to plot
+            # streamlines over existing streamlines would produce an
+            # unintelligible plot or animation... which would be bad.
+            not iterables.is_items_any_instance_of(
+                iterable=self._layers, cls=LayerCellsStreamABC)
+        )
+
         # If overlaying current, append a layer doing so *AFTER* all lower
         # layers (e.g., cell data) have been appended but *BEFORE* all higher
         # layers (e.g., cell labelling) have been appended.
-        if self._is_overlaying_current:
+        if is_current_overlay:
             # If layering only intracellular current, do so.
             if self._is_current_overlay_only_gj:
                 self._append_layer(LayerCellsStreamCurrentIntra())
@@ -899,10 +901,14 @@ class AnimCellsABC(VisualCellsABC):
         ))
 
 
-    @abstractmethod
     def _plot_frame_figure(self) -> None:
         '''
-        Plot the current frame of this animation onto this animation's figure.
+        Update this plot or animation's figure (and typically axes) content to
+        reflect the current simulation time step.
+
+        This method defaults to a noop. Subclasses may optionally redefine this
+        method with subclass-specific logic but are strongly encouraged to
+        append layers containing such logic instead.
         '''
 
         pass

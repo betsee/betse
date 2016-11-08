@@ -35,7 +35,8 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
 from betse.science.visual import visuals
-from betse.science.visual.layer.layershade import LayerCellsShadeDiscrete
+from betse.science.visual.layer.layershade import (
+    LayerCellsShadeContinuous, LayerCellsShadeDiscrete)
 from betse.science.visual.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
@@ -316,11 +317,6 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
     ----------
     _is_ecm_ignored : bool
         `True` if ignoring extracellular spaces _or_ `False` otherwise.
-    _times_membranes_series : ndarray
-        Two-dimensional Numpy array of all cell membrane data for a single
-        modelled membrane-specific variable (e.g., cell membrane voltage) for
-        all time steps to be animated. See the :meth:`__init__` docstring for
-        further details.
     '''
 
     # ..................{ SUPERCLASS                         }..................
@@ -333,6 +329,10 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         # Mandatory parameters.
         p: 'betse.science.parameters.Parameters',
         times_membranes_data: SequenceTypes,
+
+        #FIXME: Remove the "is_ecm_ignored" parameter both helow and where
+        #passed in the "animpipe" submodule. This parameter is no longer
+        #actually used for anything.
 
         # Optional parameters.
         is_ecm_ignored: bool = True,
@@ -363,106 +363,32 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         See the superclass `__init__()` method for all remaining parameters.
         '''
 
+        # Type of layer plotted by this animation. If animating each cell,
+        # this layer Gouraud-shades each cell discretely; else, this layer
+        # Gouraud-shades the cell cluster continuously.
+        layer_type = (
+            LayerCellsShadeDiscrete if p.showCells else
+            LayerCellsShadeContinuous)
+
         # Initialize the superclass.
         super().__init__(
             p=p,
 
-            # If animating each cell, Gouraud-shade each cell discretely; else,
-            # Gouraud-shade the cell cluster continuously.
-            layers = (LayerCellsShadeDiscrete(),) if p.showCells else None,
-
-            #FIXME: Eliminate after improving the superclass to search the
-            #passed layers for an appropriate layer instance.
+            # 1-tuple of the single principal layer plotted by this animation.
+            layers=(layer_type(times_membranes_data=times_membranes_data),),
 
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
-            is_current_overlayable=True,
             *args, **kwargs
         )
 
         # Classify the passed parameters.
         self._is_ecm_ignored = is_ecm_ignored
 
-        # Classify the passed sequence as a Numpy array, for efficiency.
-        self._times_membranes_data = arrays.from_sequence(times_membranes_data)
-
-        #FIXME: Eliminate after generalizing the logic below into a layer.
-        color_mappables = None
-
-        # Else, animate a smooth continuum approximating the cell cluster.
-        if not self._p.showCells:
-            #FIXME: Generalize this function into a new
-            #"LayerCellsShadeContinuum" layer type. To do so sanely, see the
-            #superclass _plot_cell_mesh() method -- which probably ultimately
-            #derived from this function.
-            self.collection, self._axes = cell_mesh(
-                self.membranes_midpoint_data, self._axes, self._cells, self._p, self._colormap)
-            color_mappables = self.collection
-
         # Display and/or save this animation.
-        self._animate(
-            color_data=(
-                scaling_series if scaling_series is not None else
-                times_membranes_data),
-            color_mappables=color_mappables,
-        )
-
-
-    def _plot_frame_figure(self) -> None:
-
-        # If individual cells are *NOT* being animated, display only an
-        # amorphous continuum of cells.
-        if not self._p.showCells:
-            zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = self.membranes_midpoint_data
-            self.collection.set_array(zz_grid)
-
-    # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties, preventing callers from setting these attributes.
-
-    @property
-    def cells_centre_data(self) -> ndarray:
-        '''
-        One-dimensional Numpy array of length the number of cells such that
-        each element is arbitrary cell data spatially situated at the center of
-        that cell for the current animation time step.
-
-        Each element of this array is the average of the arbitrary membrane
-        data over all membranes of the corresponding cell for this time step,
-        thus interpolating from fine-grained data defined at membrane midpoints
-        to coarse-grained data defined at cell centers.
-        '''
-
-        #FIXME: For efficiency, consider internally caching this result for
-        #each time step into an appropriately sized array defaulting to zeroes.
-        return self._cells.interp_mems_to_cells(
-            self.membranes_midpoint_data)
-
-
-    @property
-    def membranes_midpoint_data(self) -> ndarray:
-        '''
-        One-dimensional Numpy array of length the number of cell membranes such
-        that each element is arbitrary cell membrane data spatially situated at
-        the midpoint of that membrane for the current animation time step.
-        '''
-
-        return self._times_membranes_data[self._time_step]
-
-
-    @property
-    def membranes_vertex_data(self) -> ndarray:
-        '''
-        One-dimensional Numpy array of length the number of cell membrane
-        vertices such that each element is arbitrary cell membrane vertex data
-        spatially situated at that membrane vertex for the current animation
-        time step.
-        '''
-
-        #FIXME: Consider generalizing this into a new public "Cells" method ala
-        #the Cells.interp_mems_to_cells() method called above.
-        return np.dot(
-            self.membranes_midpoint_data, self._cells.matrixMap2Verts)
+        self._animate(color_data=(
+            scaling_series if scaling_series is not None else
+            times_membranes_data))
 
 
 #FIXME: This class should probably no longer be used, now that the Gouraud

@@ -36,7 +36,7 @@ from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ SUPERCLASSES                       }....................
-class LayerCellsStream(LayerCellsABC):
+class LayerCellsStreamABC(LayerCellsABC):
     '''
     Abstract base class of all layer subclasses plotting streamlines of a single
     modelled vector field (e.g., intracellular current) for one on more
@@ -181,7 +181,7 @@ class LayerCellsStream(LayerCellsABC):
         self._layer_first()
 
 
-class LayerCellsStreamCurrent(LayerCellsStream):
+class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
     '''
     Abstract base class of all layer subclasses plotting streamlines of
     electrical current density onto the cell cluster.
@@ -255,7 +255,7 @@ class LayerCellsStreamCurrent(LayerCellsStream):
         return self._time_currents.magnitudes[self._visual.time_step]
 
 # ....................{ SUBCLASSES                         }....................
-class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
+class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrentABC):
     '''
     Layer plotting streamlines of the current density of all intracellular and
     extracellular spaces onto the cell cluster.
@@ -275,7 +275,7 @@ class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrent):
         )
 
 
-class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrent):
+class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrentABC):
     '''
     Layer plotting streamlines of the current density of only all intracellular
     spaces (e.g., gap junctions) onto the cell cluster.

@@ -39,9 +39,12 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
+import numpy as np
 from abc import ABCMeta, abstractmethod
+from betse.lib.numpy import arrays
 from betse.util.py import references
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import type_check, IterableTypes, SequenceTypes
+from numpy import ndarray
 
 # ....................{ SUPERCLASS                         }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
@@ -169,8 +172,8 @@ class LayerCellsMappableABC(LayerCellsABC):
     '''
     Abstract base class of all classes spatially plotting a single cell-specific
     modelled variable (e.g., cell membrane voltage) of the cell cluster whose
-    values are mapped as equivalent colors onto the colorbar for a parent plot
-    or animation.
+    values are mappable as colors onto the colorbar for a parent plot or
+    animation.
 
     Attributes
     ----------
@@ -191,18 +194,20 @@ class LayerCellsMappableABC(LayerCellsABC):
         # Default all instance attributes.
         self._color_mappables = None
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES ~ read-only             }..................
+    # Read-only properties, preventing callers from setting these attributes.
+
     @property
     def color_mappables(self) -> IterableTypes:
         '''
         Iterable of all **mappables** (i.e.,
         :class:`matplotlib.cm.ScalarMappable` instances) previously added by
         this layer to the figure axes of the current plot or animation to be
-        associated with a figure colorbar for this plot or animation.
+        associated with a figure colorbar.
 
-        Note that, by Matplotlib design, only the first mappable in this
-        iterable defines the color range for the figure colorbar; all other
-        mappables are artificially constrained onto the same range.
+        By Matplotlib design, only the first mappable in this iterable defines
+        the color range for the figure colorbar; all other mappables are
+        artificially constrained onto the same range.
         '''
 
         # If this iterable of mappables has yet to be cached...
@@ -217,7 +222,7 @@ class LayerCellsMappableABC(LayerCellsABC):
         # Map the figure colorbar to this cached iterable.
         return self._color_mappables
 
-
+    # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
         '''
         Layer the spatial distribution of a single cell-specific modelled
@@ -249,3 +254,117 @@ class LayerCellsMappableABC(LayerCellsABC):
         '''
 
         pass
+
+# ....................{ SUBCLASSES                         }....................
+class LayerCellsMappableArrayABC(LayerCellsMappableABC):
+    '''
+    Abstract base class of all classes spatially plotting a single cell-specific
+    modelled variable (e.g., cell membrane voltage) of the cell cluster whose
+    values are mappable as colors onto the colorbar for a parent plot or
+    animation from a two-dimensional Numpy array of these values for all time
+    steps to be animated.
+
+    Attributes
+    ----------
+    _times_membranes_series : ndarray
+        Two-dimensional Numpy array of all cell membrane data for a single cell
+        membrane-specific modelled variable (e.g., cell membrane voltage) for
+        all time steps to be animated. See the :meth:`__init__` docstring for
+        further details.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, times_membranes_data: SequenceTypes) -> None:
+        '''
+        Initialize this layer.
+
+        Parameters
+        ----------
+        times_membranes_data : Sequence
+            Two-dimensional sequence of all cell membrane data for a single
+            cell membrane-specific modelled variable (e.g., cell membrane
+            voltage) for all time steps to be animated, whose:
+            . First dimension indexes time steps, whose length is the number of
+              simulation time steps.
+            . Second dimension indexes cell membranes, whose length is the
+              number of cell membranes in the current cluster. Each element of
+              this dimension is arbitrary cell membrane data spatially situated
+              at that membrane's midpoint.
+        '''
+
+        # Initialize our superclass.
+        super().__init__()
+
+        # For efficiency, convert the passed sequence into a Numpy array.
+        self._times_membranes_data = arrays.from_sequence(times_membranes_data)
+
+    # ..................{ PROPERTIES ~ read-only             }..................
+    # Read-only properties, preventing callers from setting these attributes.
+
+    #FIXME: For efficiency, consider internally caching the results of the
+    #following properties for each time step into appropriately sized internal
+    #arrays defaulting to zeroes.
+
+    @property
+    def cells_centre_data(self) -> ndarray:
+        '''
+        One-dimensional Numpy array of length the number of cells such that
+        each element is arbitrary cell data spatially situated at the center of
+        that cell for the current animation time step.
+
+        Each element of this array is the average of the arbitrary membrane
+        data over all membranes of the corresponding cell for this time step,
+        thus interpolating from fine-grained data defined at membrane midpoints
+        to coarse-grained data defined at cell centers.
+        '''
+
+        return self._visual._cells.interp_mems_to_cells(
+            self.membranes_midpoint_data)
+
+
+    @property
+    def membranes_midpoint_data(self) -> ndarray:
+        '''
+        One-dimensional Numpy array of length the number of cell membranes such
+        that each element is arbitrary cell membrane data spatially situated at
+        the midpoint of that membrane for the current animation time step.
+        '''
+
+        return self._times_membranes_data[self._visual.time_step]
+
+
+    @property
+    def membranes_vertex_data(self) -> ndarray:
+        '''
+        One-dimensional Numpy array of length the number of cell membrane
+        vertices such that each element is arbitrary cell membrane vertex data
+        spatially situated at that membrane vertex for the current animation
+        time step.
+        '''
+
+        #FIXME: Consider generalizing this logic into a new public "Cells"
+        #method ala the Cells.interp_mems_to_cells() method called above.
+        return np.dot(
+            self.membranes_midpoint_data, self._visual.cells.matrixMap2Verts)
+
+
+    @property
+    def regions_centre_data(self) -> ndarray:
+        '''
+        One-dimensional Numpy array of length the number of polygonal regions in
+        the Voronoi diagram producing this cell cluster such that each element
+        is arbitrary region data spatially situated at the centre of that region
+        for the current animation time step.
+        '''
+
+        #FIXME: Consider generalizing this logic into a new public "Cells"
+        #method ala the Cells.interp_mems_to_cells() method called above.
+
+        # One-dimeniosal Numpy array of region-centred data for this time step,
+        # mapped from an input array of cell-centred data.
+        regions_centre_data = np.zeros(len(self._visual.cells.voronoi_centres))
+        regions_centre_data[self._visual.cells.cell_to_grid] = (
+            self.cells_centre_data)
+
+        # Return this array.
+        return regions_centre_data

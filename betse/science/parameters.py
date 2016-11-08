@@ -553,7 +553,9 @@ class Parameters(object):
         self.T = float(self.config['variable settings']['temperature'])  # system temperature
 
         # current calculation---------------------------
-        self.calc_J = True # Fixme remove this parameter and boolean, currents not optional
+
+        # fIXME: Remove this parameter and boolean. Currents are mandatory now!
+        self.calc_J = True
 
         # electroosmotic fluid flow-----------------------------------------------------
         self.fluid_flow = self.config['variable settings']['fluid flow']['include fluid flow']

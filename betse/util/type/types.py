@@ -257,6 +257,18 @@ tuples of types containing this type.
 '''
 
 
+BoolOrNoneTypes = (bool, NoneType)
+'''
+Tuple of both the boolean type _and_ the type of the singleton `None` object.
+'''
+
+
+IntOrNoneTypes = (int, NoneType)
+'''
+Tuple of both the integer type _and_ the type of the singleton `None` object.
+'''
+
+
 IterableOrNoneTypes = IterableTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
@@ -281,7 +293,7 @@ Tuple of all numeric types as well as the type of the singleton `None` object.
 
 StrOrNoneTypes = (str, NoneType)
 '''
-Tuple of all string types as well as the type of the singleton `None` object.
+Tuple of both the string type _and_ the type of the singleton `None` object.
 '''
 
 # ....................{ SETS : private                     }....................
@@ -457,7 +469,7 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
         if not isinstance(__beartype_arg, {arg_type_expr}):
             raise TypeError(
                 '{func_name} positional variadic parameter '
-                '{arg_index}={{}} not a {{!r}}'.format(
+                '{arg_index} {{}} not a {{!r}}'.format(
                     trim(__beartype_arg), {arg_type_expr}))
 '''.format(
                         func_name=func_name,

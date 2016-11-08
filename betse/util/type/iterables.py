@@ -56,7 +56,100 @@ This object is internally leveraged by various utility functions (e.g.,
 iterables of insufficient length).
 '''
 
-# ....................{ GETTERS                            }....................
+# ....................{ TESTERS                            }....................
+@type_check
+def is_reversible(iterable: IterableTypes) -> bool:
+    '''
+    `True` only if the passed iterable is **reversible** (i.e., successfully
+    passable to the :func:`reversed` builtin).
+
+    This function returns `True` if this iterable either:
+
+    * Defines the `__reversed__()` special method.
+    * Defines the `__len__()` and `__getitem__()` special methods, satisfying
+      the sequence protocol.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+
+    Returns
+    ----------
+    bool
+        `True` only if this iterable is reversible.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type import objects
+
+    # Return True only if this iterable either...
+    return (
+        # Defines the __reversed__() special method.
+        objects.is_method(iterable, '__reversed__') or (
+            # Defines the __len__() and __getitem__() special methods.
+            objects.is_method(iterable, '__len__') and
+            objects.is_method(iterable, '__getitem__')
+        )
+    )
+
+# ....................{ TESTERS ~ item                     }....................
+@type_check
+def is_items_any_satisfying(
+    iterable: IterableTypes, predicate: CallableTypes) -> bool:
+    '''
+    `True` only if some element of the passed iterable satisfies the passed
+    **predicate** (i.e., callable accepting one parameter, returning `True` only
+    if this parameter suffices).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    predicate : CallableTypes
+        Callable accepting one parameter and returning `True` only if this
+        parameter suffices.
+
+    Returns
+    ----------
+    bool
+        `True` only if some element of this iterable satisfies this predicate.
+    '''
+
+    # First item satisfying this predicate in this iterable if any *OR* the
+    # sentinel placeholder otherwise.
+    first_item = get_item_first_satisfying_or_sentinel(iterable, predicate)
+
+    # Return True only if this item is *NOT* the sentinel, in which case some
+    # item satisfies this predicate.
+    return first_item is not SENTINEL
+
+
+@type_check
+def is_items_any_instance_of(
+    iterable: IterableTypes, cls: TestableTypes) -> bool:
+    '''
+    `True` only if some element of the passed iterable is an instance of the
+    passed class.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    cls : TestableTypes
+        Type of the element to be tested for.
+
+    Returns
+    ----------
+    bool
+        `True` only if some element of this iterable is an instance of this
+        class.
+    '''
+
+    return is_items_any_satisfying(
+        iterable=iterable, predicate=lambda item: isinstance(item, cls))
+
+# ....................{ GETTERS ~ first                    }....................
 @type_check
 def get_item_first(iterable: IterableTypes) -> object:
     '''
@@ -113,16 +206,13 @@ def get_item_first(iterable: IterableTypes) -> object:
 
 
 @type_check
-def get_item_first_satisfying(
-    iterable: IterableTypes,
-    predicate: CallableTypes,
-    exception_message: str = None,
-) -> object:
+def get_item_first_satisfying_or_sentinel(
+    iterable: IterableTypes, predicate: CallableTypes) -> object:
     '''
     First element of the passed iterable satisfying the passed **predicate**
-    (i.e., callable accepting one parameter and returning `True` only if this
-    parameter suffices) if this iterable contains such an element _or_ raise an
-    exception otherwise (i.e., if this iterable contains no such element).
+    (i.e., callable accepting one parameter, returning `True` only if this
+    parameter suffices) if this iterable contains such an element _or_ the
+    :data:`SENTINEL` placeholder constant otherwise.
 
     If the passed iterable is a:
 
@@ -131,6 +221,42 @@ def get_item_first_satisfying(
       to be a random such element. While most non-sequences guarantee
       predictable order of retrieval assuming no intervening changes, this is a
       fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    predicate : CallableTypes
+        Callable accepting one parameter and returning `True` only if this
+        parameter suffices.
+
+    Returns
+    ----------
+    object
+        First element satisfying this predicate in this iterable if any _or_
+        :data:`SENTINEL` otherwise.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+    '''
+
+    # Collective efficiency is our middle names.
+    return next((item for item in iterable if predicate(item)), SENTINEL)
+
+
+@type_check
+def get_item_first_satisfying(
+    iterable: IterableTypes,
+    predicate: CallableTypes,
+    exception_message: str = None,
+) -> object:
+    '''
+    First element of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter, returning `True` only if this
+    parameter suffices) if this iterable contains such an element _or_ raise an
+    exception otherwise (i.e., if this iterable contains no such element).
 
     Parameters
     ----------
@@ -152,12 +278,16 @@ def get_item_first_satisfying(
     ----------
     BetseIterableException
         If this iterable contains no such element.
+
+    See Also
+    ----------
+    :func:`get_item_first_satisfying_or_sentinel`
+        Further details on ordering guarantees.
     '''
 
     # First item satisfying this predicate in this iterable if any *OR* the
     # sentinel placeholder otherwise.
-    first_item = next(
-        (item for item in iterable if predicate(item)), SENTINEL)
+    first_item = get_item_first_satisfying_or_sentinel(iterable, predicate)
 
     # If no item satifies this predicate, raise an exception.
     if first_item is SENTINEL:
@@ -204,11 +334,107 @@ def get_item_first_instance_of(
 
     See Also
     ----------
-    :func:`get_item_first_satisfying`
+    :func:`get_item_first_satisfying_or_sentinel`
         Further details on ordering guarantees.
     '''
 
     return get_item_first_satisfying(
+        iterable=iterable,
+        predicate=lambda item: isinstance(item, cls),
+        **kwargs
+    )
+
+# ....................{ GETTERS ~ last                    }....................
+@type_check
+def get_item_last_satisfying(
+    iterable: IterableTypes,
+    predicate: CallableTypes,
+    exception_message: str = None,
+) -> object:
+    '''
+    Last element of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter, returning `True` only if this
+    parameter suffices) if this iterable contains such an element _or_ raise an
+    exception otherwise (i.e., if this iterable contains no such element).
+
+    If the passed iterable is a:
+
+    * Sequence, this is guaranteed to be the last such element.
+    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
+      to be a random such element. While most non-sequences guarantee
+      predictable order of retrieval assuming no intervening changes, this is a
+      fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    predicate : CallableTypes
+        Callable accepting one parameter and returning `True` only if this
+        parameter suffices.
+    exception_message : optional[str]
+        Exception message to be raised if no such element is found. Defaults to
+        `None`, in which case a suitably general-purpose message is synthesized.
+
+    Returns
+    ----------
+    object
+        Last element satisfying this predicate in this iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+    '''
+
+    # For simplicity, the existing get_item_first_satisfying() function is
+    # deferred to by returning the first element in the reverse of this iterable
+    # satisfying this predicate.
+    return get_item_first_satisfying(
+        # For safety, this iterable is reversed via the high-level reverse()
+        # function rather than the low-level reversed() builtin; the latter
+        # fails to generically support all possible iterable types.
+        iterable=reverse(iterable),
+        predicate=predicate,
+        exception_message=exception_message,
+    )
+
+
+@type_check
+def get_item_last_instance_of(
+    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
+    '''
+    Last instance of the passed class retrieved from the passed iterable if
+    this iterable such an element _or_ raise an exception otherwise (i.e., if
+    this iterable contains no such element).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    cls : TestableTypes
+        Type of the element to be retrieved.
+    kwargs : dict
+        Dictionary of all remaining keyword arguments to be passed as is to the
+        :func:`get_item_last_satisfying` function.
+
+    Returns
+    ----------
+    object
+        Last instance of this class in this iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+
+    See Also
+    ----------
+    :func:`get_item_last_satisfying`
+        Further details on ordering guarantees.
+    '''
+
+    return get_item_last_satisfying(
         iterable=iterable,
         predicate=lambda item: isinstance(item, cls),
         **kwargs
@@ -301,13 +527,43 @@ def exhaust(iterable: IterableTypes) -> object:
     else:
         return None
 
+# ....................{ REVERSERS                          }....................
+@type_check
+def reverse(iterable: IterableTypes) -> IterableTypes:
+    '''
+    Reverse the passed iterable into a new iterable of differing type containing
+    all elements of the passed iterable in reverse order.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be returned reversed. For generality, this iterable is _not_
+        modified by this function.
+
+    Returns
+    ----------
+    IterableTypes
+        Iterable reversed from the passed iterable. For efficiency, this
+        iterable is only a shallow rather than deep copy of the passed iterable.
+    '''
+
+    # If this iterable is *NOT* reversible as is, convert this iterable into the
+    # most space- and time-efficient iterable containing the same elements that
+    # *IS* reversible -- in this case, a tuple.
+    if not is_reversible(iterable):
+        iterable = tuple(iterable)
+
+    # Return the result of the efficient reversed() builtin on this iterable,
+    # now guaranteed to be reversible as is.
+    return reversed(iterable)
+
 # ....................{ SORTERS                            }....................
 @type_check
 def sort_lexicographic_ascending(iterable: IterableTypes) -> IterableTypes:
     '''
-    Sort the passed non-string iterable into a new non-string iterable in
-    **ascending lexicographic order** (i.e., traditional order of dead-tree
-    dictionaries and encyclopedias).
+    Sort the passed non-string iterable into a new non-string iterable of
+    differing type in **ascending lexicographic order** (i.e., traditional order
+    of dead-tree dictionaries and encyclopedias).
 
     Parameters
     ----------

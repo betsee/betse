@@ -378,10 +378,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
               or more mappables, in which case this colorbar will be
               arbitrarily associated with the first mappable in this iterable.
             Defaults to `None`, in which case this parameter defaults to the
-            iterable of all mappables provided by the first mappable layer in
-            the current layer sequence (i.e., the
+            iterable of all mappables provided by the topmost and hence last
+            mappable layer in the current layer sequence (i.e., the
             :meth:`LayerCellsMappableABC.color_mappables` property of the
-            first instance of the :class:`LayerCellsMappableABC` subclass in
+            last instance of the :class:`LayerCellsMappableABC` subclass in
             the :attr:`_layers` attribute).
         color_data : optional[SequenceTypes]
             Multi-dimensional sequence of all color values to be plotted _or_
@@ -594,7 +594,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     def _automap_colors(self, color_mappables: IterableOrNoneTypes) -> None:
         '''
         Create a figure colorbar for this plot or animation associated with the
-        passed mappables if any or the mappables provided by the first mappable
+        passed mappables if any or the mappables provided by the last mappable
         layer in the current layer sequence otherwise.
 
         Parameters
@@ -605,19 +605,19 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             plot or animation's colorbar. By Matplotlib design, only the first
             mappable in this iterable is arbitrarily associated with this
             colorbar; all other mappables are ignored. Defaults to `None`, in
-            which case the iterable of all mappables provided by the first
-            mappable layer in the current layer sequence is defaulted to (i.e.,
-            the value of the :meth:`LayerCellsMappableABC.color_mappables`
-            property of the first instance of the
-            :class:`LayerCellsMappableABC` subclass in the :attr:`_layers`
-            attribute).
+            which case the iterable of all mappables provided by the topmost
+            and hence last mappable layer in the current layer sequence is
+            defaulted to (i.e., the value of the
+            :meth:`LayerCellsMappableABC.color_mappables` property of the last
+            instance of the :class:`LayerCellsMappableABC` subclass in the
+            :attr:`_layers` attribute).
         '''
 
         # If no color mappables are passed...
         if color_mappables is None:
-            # First mappable layer in this layer sequence if any or raise an
+            # Last mappable layer in this layer sequence if any or raise an
             # exception with this message otherwise.
-            mappable_layer = iterables.get_item_first_instance_of(
+            mappable_layer = iterables.get_item_last_instance_of(
                 iterable=self._layers,
                 cls=LayerCellsMappableABC,
                 exception_message=(
