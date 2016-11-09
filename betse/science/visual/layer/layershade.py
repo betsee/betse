@@ -7,11 +7,11 @@ Layer subclasses spatially shading the current cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
+# import numpy as np
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsMappableArrayABC
-from betse.util.type.types import type_check, IterableTypes  #, SequenceTypes
-from numpy import ndarray
+from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
+# from numpy import ndarray
 
 # ....................{ CLASSES                            }....................
 #FIXME: Fix us up, please. This layer is effectively broken at the moment,
@@ -42,6 +42,13 @@ class LayerCellsShadeContinuous(LayerCellsMappableArrayABC):
         self._cluster_tri_mesh = None
 
     # ..................{ SUPERCLASS                         }..................
+    #FIXME: Actually implement this.
+    @type_check
+    def color_data(self) -> SequenceOrNoneTypes:
+
+        return None
+
+
     def _layer_first_color_mappables(self) -> IterableTypes:
 
         # Upscaled X coordinates of the centers of all polygonol regions of the
@@ -157,10 +164,17 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
 
     # ..................{ SUPERCLASS                         }..................
     @type_check
+    def color_data(self) -> SequenceOrNoneTypes:
+
+        return self.times_membranes_vertex_data
+
+
+    @type_check
     def _layer_first_color_mappables(self) -> IterableTypes:
 
         # One-dimensional array of all membrane vertex data for this time step.
-        membranes_vertex_data = self.membranes_vertex_data
+        membranes_vertex_data = (
+            self.times_membranes_vertex_data[self._visual.time_step])
 
         # Three-dimensional array of all upscaled cell vertex coordinates. See
         # "Cells.cell_verts" documentation for further details.
@@ -213,7 +227,8 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
         # each cell previously computed by _layer_first_color_mappables().
 
         # One-dimensional array of all membrane vertex data for this time step.
-        membranes_vertex_data = self.membranes_vertex_data
+        membranes_vertex_data = (
+            self.times_membranes_vertex_data[self._visual.time_step])
 
         # For the index and triangulation mesh for each cell...
         for cell_index, cell_tri_mesh in enumerate(self._cell_tri_meshes):

@@ -22,6 +22,7 @@ from betse.science.visual.layer.layerabc import (
 from betse.science.visual.layer.layertext import LayerCellsIndex
 from betse.util.py import references
 from betse.util.type import iterables, objects, types
+from betse.util.type.iterables import SENTINEL
 from betse.util.type.types import (
     type_check,
     IterableOrNoneTypes,
@@ -393,10 +394,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             * `None`, the subclass is responsible for colorbar autoscaling.
         '''
 
-        # If color values are passed, autoscale all colors to the range implied
-        # by these values *BEFORE* preparing layers requiring this range below.
-        if color_data is not None:
-            self._autoscale_colors(color_data)
+        # Autoscale colors to the range implied by the passed color values if
+        # any *BEFORE* preparing layers requiring this range.
+        self._autoscale_colors(color_data)
 
         # Prepare all layers to be layered onto this plot or animation *AFTER*
         # previously appending all such layers.
@@ -561,7 +561,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     #the more "normal" data plotted for the remaining time steps appear to
     #exhibit no changes in color. Ignoring such outlier data should improve
     #this lamentable situation.
-    def _autoscale_colors(self, color_data: SequenceTypes) -> None:
+    def _autoscale_colors(self, color_data: SequenceOrNoneTypes) -> None:
         '''
         Autoscale the colorbar for this plot or animation's figure to the
         minimum and maximum scalar values unravelled from the passed sequence
@@ -571,14 +571,41 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        color_data : SequenceTypes
+        color_data : SequenceOrNoneTypes
             Multi-dimensional sequence of all color values to be plotted _or_
-            `None` if calculating these values on initialization is impractical
-            (e.g., due to space or time constraints).
+            `None` if calculating these values on initialization is
+            impractical. See the :meth:`_prep_figure` method for further
+            details.
         '''
 
         # If colorbar autoscaling is disabled, noop.
         if not self._is_color_autoscaled:
+            return
+
+        # If no color values are passed...
+        if color_data is None:
+            #FIXME: Eliminate code duplication between this and the
+            #_automap_colors() method. Ideally, the last mappable layer
+            #instance should only be searched for once. This code is currently
+            #non-trivial to unify, due to the need for a mappable layer to be
+            #optional here but *NOT* in the _automap_colors() method. Ideally,
+            #a mappable layer should be mandatory in both methods. Once this is
+            #the case across all animations, unify the retrieval of this layer
+            #into a single location.
+
+            # Last mappable layer in this layer sequence if any or the sentinel
+            # placeholder constant otherwise.
+            mappable_layer = iterables.get_item_last_instance_of_or_sentinel(
+                iterable=self._layers,
+                cls=LayerCellsMappableABC,
+            )
+
+            # If this layer exists, defer to its color data.
+            if mappable_layer is not SENTINEL:
+                color_data = mappable_layer.color_data
+
+        # If no color values are available, silently noop.
+        if color_data is None:
             return
 
         # Flatten this multi-dimensional array to a one-dimensional array,

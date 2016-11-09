@@ -40,10 +40,11 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
 from betse.lib.numpy import arrays
 from betse.util.py import references
-from betse.util.type.types import type_check, IterableTypes, SequenceTypes
+from betse.util.type.types import (
+    type_check, IterableTypes, SequenceTypes, SequenceOrNoneTypes,)
 from numpy import ndarray
 
 # ....................{ SUPERCLASS                         }....................
@@ -239,6 +240,26 @@ class LayerCellsMappableABC(LayerCellsABC):
     # ..................{ SUBCLASS                           }..................
     # Subclasses are required to implement the following abstract methods.
 
+    @abstractproperty
+    def color_data(self) -> SequenceOrNoneTypes:
+        '''
+        Sequence of arbitrary dimensions of all possible color values for all
+        time steps plotted by this layer _or_ `None` if calculating these values
+        is impractical (e.g., due to space or time constraints).
+
+        If colorbar autoscaling is:
+
+        * Disabled, this sequence is ignored.
+        * Enabled _and_ this sequence is:
+          * `None`, this sequence is ignored. In this case, the subclass is
+            responsible for colorbar autoscaling.
+          * Non-`None`, the colorbar is clipped to the minimum and maximum
+            scalar values unravelled from this sequence.
+        '''
+
+        pass
+
+
     @abstractmethod
     def _layer_first_color_mappables(self) -> IterableTypes:
         '''
@@ -266,21 +287,24 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
 
     Attributes
     ----------
-    _times_membranes_series : ndarray
-        Two-dimensional Numpy array of all cell membrane data for a single cell
-        membrane-specific modelled variable (e.g., cell membrane voltage) for
-        all time steps to be animated. See the :meth:`__init__` docstring for
-        further details.
+    _times_membranes_midpoint_data : ndarray
+        Two-dimensional Numpy array of all arbitrary cell membrane data for all
+        time steps to be animated. See the :meth:`__init__` method for further
+        details.
+    _times_membranes_vertex_data : ndarray
+        Two-dimensional Numpy array of all arbitrary cell membrane vertex data
+        for all time steps to be animated. See the
+        :meth:`times_membranes_vertex_data` property for further details.
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    def __init__(self, times_membranes_data: SequenceTypes) -> None:
+    def __init__(self, times_membranes_midpoint_data: SequenceTypes) -> None:
         '''
         Initialize this layer.
 
         Parameters
         ----------
-        times_membranes_data : Sequence
+        times_membranes_midpoint_data : Sequence
             Two-dimensional sequence of all cell membrane data for a single
             cell membrane-specific modelled variable (e.g., cell membrane
             voltage) for all time steps to be animated, whose:
@@ -296,14 +320,42 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
         super().__init__()
 
         # For efficiency, convert the passed sequence into a Numpy array.
-        self._times_membranes_data = arrays.from_sequence(times_membranes_data)
+        self._times_membranes_midpoint_data = arrays.from_sequence(
+            times_membranes_midpoint_data)
 
-    # ..................{ PROPERTIES ~ read-only             }..................
+        # Default all remaining instance variables.
+        self._times_membranes_vertex_data = None
+
+    # ..................{ PROPERTIES ~ read-only : times     }..................
     # Read-only properties, preventing callers from setting these attributes.
 
-    #FIXME: For efficiency, consider internally caching the results of the
-    #following properties for each time step into appropriately sized internal
-    #arrays defaulting to zeroes.
+    @property
+    def times_membranes_vertex_data(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array of all arbitrary cell membrane vertex data
+        for all time steps to be animated, whose:
+
+        . First dimension indexes time steps, whose length is the number of
+          simulation time steps.
+        . Second dimension indexes cell membrane vertices, whose length is the
+          number of cell membrane vertices in the current cluster. Each element
+          of this dimension is arbitrary data spatially situated at the vertex
+          of a cell membrane for the corresponding time step.
+        '''
+
+        # If this array has *NOT* yet been cached, create and cache this array.
+        if self._times_membranes_vertex_data is None:
+            #FIXME: Consider generalizing this logic into a new public "Cells"
+            #method ala the Cells.interp_mems_to_cells() method called above.
+            self._times_membranes_vertex_data = np.dot(
+                self._times_membranes_midpoint_data,
+                self._visual.cells.matrixMap2Verts)
+
+        # Return this array.
+        return self._times_membranes_vertex_data
+
+    # ..................{ PROPERTIES ~ read-only : time      }..................
+    # Read-only properties, preventing callers from setting these attributes.
 
     @property
     def cells_centre_data(self) -> ndarray:
@@ -330,22 +382,7 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
         the midpoint of that membrane for the current animation time step.
         '''
 
-        return self._times_membranes_data[self._visual.time_step]
-
-
-    @property
-    def membranes_vertex_data(self) -> ndarray:
-        '''
-        One-dimensional Numpy array of length the number of cell membrane
-        vertices such that each element is arbitrary cell membrane vertex data
-        spatially situated at that membrane vertex for the current animation
-        time step.
-        '''
-
-        #FIXME: Consider generalizing this logic into a new public "Cells"
-        #method ala the Cells.interp_mems_to_cells() method called above.
-        return np.dot(
-            self.membranes_midpoint_data, self._visual.cells.matrixMap2Verts)
+        return self._times_membranes_midpoint_data[self._visual.time_step]
 
 
     @property

@@ -328,7 +328,7 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
 
         # Mandatory parameters.
         p: 'betse.science.parameters.Parameters',
-        times_membranes_data: SequenceTypes,
+        times_membranes_midpoint_data: SequenceTypes,
 
         #FIXME: Remove the "is_ecm_ignored" parameter both helow and where
         #passed in the "animpipe" submodule. This parameter is no longer
@@ -346,10 +346,10 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         ----------
         p : Parameters
             Current simulation configuration.
-        times_membranes_data : Sequence
+        times_membranes_midpoint_data : Sequence
             Two-dimensional sequence of all cell membrane data for a single
-            modelled membrane-specific variable (e.g., cell membrane voltage)
-            for all time steps to be animated, whose:
+            cell membrane-specific modelled variable (e.g., cell membrane
+            voltage) for all time steps to be animated, whose:
             . First dimension indexes time steps, whose length is the number of
               simulation time steps.
             . Second dimension indexes cell membranes, whose length is the
@@ -370,12 +370,16 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
             LayerCellsShadeDiscrete if p.showCells else
             LayerCellsShadeContinuous)
 
+        # Layer plotted by this animation.
+        layer = layer_type(
+            times_membranes_midpoint_data=times_membranes_midpoint_data)
+
         # Initialize the superclass.
         super().__init__(
             p=p,
 
             # 1-tuple of the single principal layer plotted by this animation.
-            layers=(layer_type(times_membranes_data=times_membranes_data),),
+            layers=(layer,),
 
             # Since this class does *NOT* plot a streamplot, request that the
             # superclass do so for electric current or concentration flux.
@@ -386,9 +390,11 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         self._is_ecm_ignored = is_ecm_ignored
 
         # Display and/or save this animation.
-        self._animate(color_data=(
-            scaling_series if scaling_series is not None else
-            times_membranes_data))
+        #
+        # If a scaling sequence was passed, scale all color data to the minimum
+        # and maximum scalar values unravelled from that sequence; else, defer
+        # to the color data yielded by the layer instantiated above.
+        self._animate(color_data=scaling_series)
 
 
 #FIXME: This class should probably no longer be used, now that the Gouraud

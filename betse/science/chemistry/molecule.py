@@ -1867,7 +1867,7 @@ class Molecule(object):
 
         AnimCellsMembranesData(
             sim=sim, cells=cells, p=p,
-            times_membranes_data=[arr for arr in self.c_mems_time],
+            times_membranes_midpoint_data=[arr for arr in self.c_mems_time],
             label=self.name + 'cells',
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]',

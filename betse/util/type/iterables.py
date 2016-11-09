@@ -346,6 +346,56 @@ def get_item_first_instance_of(
 
 # ....................{ GETTERS ~ last                    }....................
 @type_check
+def get_item_last_satisfying_or_sentinel(
+    iterable: IterableTypes, predicate: CallableTypes) -> object:
+    '''
+    Last element of the passed iterable satisfying the passed **predicate**
+    (i.e., callable accepting one parameter, returning `True` only if this
+    parameter suffices) if this iterable contains such an element _or_ the
+    :data:`SENTINEL` placeholder constant otherwise.
+
+    If the passed iterable is a:
+
+    * Sequence, this is guaranteed to be the last such element.
+    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
+      to be a random such element. While most non-sequences guarantee
+      predictable order of retrieval assuming no intervening changes, this is a
+      fairly unreliable assumption.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    predicate : CallableTypes
+        Callable accepting one parameter and returning `True` only if this
+        parameter suffices.
+
+    Returns
+    ----------
+    object
+        Last element satisfying this predicate in this iterable if any _or_
+        :data:`SENTINEL` otherwise.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+    '''
+
+    # For simplicity, the existing get_item_first_satisfying_or_sentinel()
+    # function is deferred to by returning the first element in the reverse of
+    # this iterable satisfying this predicate.
+    return get_item_first_satisfying_or_sentinel(
+        # For safety, this iterable is reversed via the high-level reverse()
+        # function rather than the low-level reversed() builtin; the latter
+        # fails to generically support all possible iterable types.
+        iterable=reverse(iterable),
+        predicate=predicate,
+    )
+
+
+
+@type_check
 def get_item_last_satisfying(
     iterable: IterableTypes,
     predicate: CallableTypes,
@@ -356,14 +406,6 @@ def get_item_last_satisfying(
     (i.e., callable accepting one parameter, returning `True` only if this
     parameter suffices) if this iterable contains such an element _or_ raise an
     exception otherwise (i.e., if this iterable contains no such element).
-
-    If the passed iterable is a:
-
-    * Sequence, this is guaranteed to be the last such element.
-    * Non-sequence (e.g., :class:`set`, :class:`dict`), this should be assumed
-      to be a random such element. While most non-sequences guarantee
-      predictable order of retrieval assuming no intervening changes, this is a
-      fairly unreliable assumption.
 
     Parameters
     ----------
@@ -385,6 +427,11 @@ def get_item_last_satisfying(
     ----------
     BetseIterableException
         If this iterable contains no such element.
+
+    See Also
+    ----------
+    :func:`get_item_first_satisfying_or_sentinel`
+        Further details on ordering guarantees.
     '''
 
     # For simplicity, the existing get_item_first_satisfying() function is
@@ -397,6 +444,48 @@ def get_item_last_satisfying(
         iterable=reverse(iterable),
         predicate=predicate,
         exception_message=exception_message,
+    )
+
+
+@type_check
+def get_item_last_instance_of_or_sentinel(
+    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
+    '''
+    Last instance of the passed class retrieved from the passed iterable if
+    this iterable such an element _or_  the :data:`SENTINEL` placeholder
+    constant otherwise (i.e., if this iterable contains no such element).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    cls : TestableTypes
+        Type of the element to be retrieved.
+    kwargs : dict
+        Dictionary of all remaining keyword arguments to be passed as is to the
+        :func:`get_item_last_satisfying` function.
+
+    Returns
+    ----------
+    object
+        Last instance of this class in this iterable if any _or_
+        :data:`SENTINEL` otherwise.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+
+    See Also
+    ----------
+    :func:`get_item_last_satisfying`
+        Further details on ordering guarantees.
+    '''
+
+    return get_item_last_satisfying_or_sentinel(
+        iterable=iterable,
+        predicate=lambda item: isinstance(item, cls),
+        **kwargs
     )
 
 
