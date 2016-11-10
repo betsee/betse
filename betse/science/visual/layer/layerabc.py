@@ -287,14 +287,22 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
 
     Attributes
     ----------
+    _times_cells_centre_data : ndarray
+        Two-dimensional Numpy array of all arbitrary cell data for all time
+        steps to be animated cached and returned by the
+        :meth:`times_cells_centre_data` property.
     _times_membranes_midpoint_data : ndarray
         Two-dimensional Numpy array of all arbitrary cell membrane data for all
-        time steps to be animated. See the :meth:`__init__` method for further
-        details.
+        time steps to be animated cached and returned by the :meth:`__init__`
+        method.
     _times_membranes_vertex_data : ndarray
         Two-dimensional Numpy array of all arbitrary cell membrane vertex data
-        for all time steps to be animated. See the
-        :meth:`times_membranes_vertex_data` property for further details.
+        for all time steps to be animated cached and returned by the
+        :meth:`times_membranes_vertex_data` property.
+    _times_regions_centre_data : ndarray
+        Two-dimensional Numpy array of all arbitrary Voronoi region centre data
+        for all time steps to be animated cached and returned by the
+        :meth:`times_regions_centre_data` property.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -324,10 +332,51 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
             times_membranes_midpoint_data)
 
         # Default all remaining instance variables.
+        self._times_cells_centre_data = None
         self._times_membranes_vertex_data = None
+        self._times_regions_centre_data = None
 
-    # ..................{ PROPERTIES ~ read-only : times     }..................
+    # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from setting these attributes.
+
+    @property
+    def times_cells_centre_data(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array of all arbitrary cell membrane data for all
+        time steps to be animated, whose:
+
+        . First dimension indexes time steps, whose length is the number of
+          simulation time steps.
+        . Second dimension indexes cells, whose length is the number of cell
+          membranes in this cluster and elements are arbitrary data spatially
+          situated at cell centres for this time step.
+        '''
+
+        # If this array has yet to be cached, do so.
+        if self._times_cells_centre_data is None:
+            self._times_cells_centre_data = (
+                self._visual._cells.map_membranes_midpoint_to_cells_centre_data(
+                    self._times_membranes_midpoint_data))
+
+        # Return this cached array.
+        return self._times_cells_centre_data
+
+
+    @property
+    def times_membranes_midpoint_data(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array of all arbitrary cell membrane data for all
+        time steps to be animated, whose:
+
+        . First dimension indexes time steps, whose length is the number of
+          simulation time steps.
+        . Second dimension indexes cell membranes, whose length is the number of
+          cell membranes in this cluster and elements are arbitrary data
+          spatially situated at membrane midpoints for this time step.
+        '''
+
+        return self._times_membranes_midpoint_data
+
 
     @property
     def times_membranes_vertex_data(self) -> ndarray:
@@ -338,55 +387,27 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
         . First dimension indexes time steps, whose length is the number of
           simulation time steps.
         . Second dimension indexes cell membrane vertices, whose length is the
-          number of cell membrane vertices in the current cluster. Each element
-          of this dimension is arbitrary data spatially situated at the vertex
-          of a cell membrane for the corresponding time step.
+          number of cell membrane vertices in this cluster and elements are
+          arbitrary data spatially situated at cell membrane vertices for this
+          time step.
         '''
 
-        # If this array has *NOT* yet been cached, create and cache this array.
+        # If this array has yet to be cached, do so.
         if self._times_membranes_vertex_data is None:
             #FIXME: Consider generalizing this logic into a new public "Cells"
-            #method ala the Cells.interp_mems_to_cells() method called above.
+            #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
+            #method called above.
             self._times_membranes_vertex_data = np.dot(
                 self._times_membranes_midpoint_data,
                 self._visual.cells.matrixMap2Verts)
 
-        # Return this array.
+        # Return this cached array.
         return self._times_membranes_vertex_data
 
-    # ..................{ PROPERTIES ~ read-only : time      }..................
-    # Read-only properties, preventing callers from setting these attributes.
 
+    #FIXME: Update docstring.
     @property
-    def cells_centre_data(self) -> ndarray:
-        '''
-        One-dimensional Numpy array of length the number of cells such that
-        each element is arbitrary cell data spatially situated at the center of
-        that cell for the current animation time step.
-
-        Each element of this array is the average of the arbitrary membrane
-        data over all membranes of the corresponding cell for this time step,
-        thus interpolating from fine-grained data defined at membrane midpoints
-        to coarse-grained data defined at cell centers.
-        '''
-
-        return self._visual._cells.interp_mems_to_cells(
-            self.membranes_midpoint_data)
-
-
-    @property
-    def membranes_midpoint_data(self) -> ndarray:
-        '''
-        One-dimensional Numpy array of length the number of cell membranes such
-        that each element is arbitrary cell membrane data spatially situated at
-        the midpoint of that membrane for the current animation time step.
-        '''
-
-        return self._times_membranes_midpoint_data[self._visual.time_step]
-
-
-    @property
-    def regions_centre_data(self) -> ndarray:
+    def times_regions_centre_data(self) -> ndarray:
         '''
         One-dimensional Numpy array of length the number of polygonal regions in
         the Voronoi diagram producing this cell cluster such that each element
@@ -394,14 +415,21 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
         for the current animation time step.
         '''
 
-        #FIXME: Consider generalizing this logic into a new public "Cells"
-        #method ala the Cells.interp_mems_to_cells() method called above.
+        # If this array has yet to be cached, do so.
+        if self._times_regions_centre_data is None:
+            #FIXME: Consider generalizing this logic into a new public "Cells"
+            #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
+            #method called above.
 
-        # One-dimeniosal Numpy array of region-centred data for this time step,
-        # mapped from an input array of cell-centred data.
-        regions_centre_data = np.zeros(len(self._visual.cells.voronoi_centres))
-        regions_centre_data[self._visual.cells.cell_to_grid] = (
-            self.cells_centre_data)
+            # Initialize this array of the desired shape with zeroes.
+            self._times_regions_centre_data = np.zeros((
+                len(self.times_cells_centre_data),
+                len(self._visual.cells.voronoi_centres)))
 
-        # Return this array.
-        return regions_centre_data
+            # Map cell- to region-centred data for all time steps.
+            self._times_regions_centre_data[
+                :, self._visual.cells.cell_to_grid] = (
+                self.times_cells_centre_data)
+
+        # Return this cached array.
+        return self._times_regions_centre_data

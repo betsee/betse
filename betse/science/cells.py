@@ -140,8 +140,11 @@ class Cells(object):
         The dot product of this matrix by a Numpy vector (i.e., one-dimensional
         array) of size `n` containing cell membrane-specific data yields
         another Numpy vector of size `m` containing cell-specific data
-        totalized for each cell over all membranes contained by that cell,
-        where `m` and `n` are as defined above.
+        totalized for each cell over all membranes this cell contains, where
+        `m` and `n` are as defined above.
+    _mems_midpoint_to_cells_centre : ndarray
+        Numpy matrix both cached and returned by the
+        :meth:`mems_midpoint_to_cells_centre` property.
 
     Attributes (Cell Membrane Vertices)
     ----------
@@ -241,8 +244,15 @@ class Cells(object):
     '''
 
     def __init__(self, p):
-        # Extract the constants from the input object:
+        '''
+        Initialize this cell cluster.
+        '''
+
+        # Extract the constants from the input object.
         self.fileInit(p)
+
+        # Default all remaining instance variables.
+        self._mems_midpoint_to_cells_centre = None
 
     def fileInit(self, p):
         """
@@ -2041,6 +2051,54 @@ class Cells(object):
 
         self.inds_clust = list(*(self.maskECM.ravel() == 1).nonzero())
 
+    # ..................{ PROPERTIES                         }..................
+    # Read-only properties, preventing callers from setting these attributes.
+
+    @property
+    def membranes_midpoint_to_cells_centre(self) -> ndarray:
+        '''
+        Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
+
+        * `m` is the total number of cell membranes.
+        * `n` is the total number of cells.
+
+        For each membrane `i` and cell `j`, element
+        `mems_midpoint_to_cells_centre[i, j]` is:
+
+        * 0 if this cell does _not_ contain this membrane. Since most cells do
+          _not_ contain most membranes, most entries of this matrix are zero,
+          implying this matrix to typically (but _not_ necessarily) be sparse.
+        * `1/k` if this cell contains this membrane, where `k` is the number of
+          membranes this cell contains.
+
+        The dot product of a Numpy vector (i.e., one-dimensional array) of size
+        `m` containing arbitrary data spatially situated at cell membrane
+        midpoints by this matrix by yields another Numpy vector of size `n`
+        containing the same data resituated at cell centres, where `m` and `n`
+        are as defined above.
+        '''
+
+        # If this array has yet to be cached, do so.
+        if self._mems_midpoint_to_cells_centre is None:
+            # Dismantled, this is:
+            #
+            # * "self.M_sum_mems.T", the transpose of the "M_sum_mems" matrix.
+            #   Since this matrix is of size m x n for m the number of cells
+            #   and n is the number of membranes, this transpose is a matrix of
+            #   size n x m. Each element of this transpose is either:
+            #   * 0 if this cell does *NOT* contain this membrane.
+            #   * 1 if this cell contains this membrane.
+            # * "... / self.num_mems", normalizing each cell-membrane element
+            #   of this matrix by the number of membranes in that cell. Since
+            #   "num_mems" is a row vector of length m whose elements are the
+            #   number of membranes in that cell, each column of this transpose
+            #   is divided by the corresponding element of this row vector.
+            self._mems_midpoint_to_cells_centre = (
+                self.M_sum_mems.T / self.num_mems)
+
+        # Return this cached array.
+        return self._mems_midpoint_to_cells_centre
+
     # ..................{ INTEGRATION                        }..................
     def intra_updater(self,p):
         """
@@ -2100,12 +2158,21 @@ class Cells(object):
     #    np.dot(cells.M_sum_mems, some_array) / cells.num_mems
     #
     #    # ...with this.
-    #    cells.interp_mems_to_cells(some_array)
+    #    cells.interp_mems_to_cells_data(some_array)
+    #
+    #After doing so, consider removing the increasingly obsolete "M_sum_mems"
+    #array entirely or at least replacing all remaining usage of this array
+    #with the more general-purpose and efficient
+    #"_mems_midpoint_to_cells_centre" array. Unlike the former, the latter is
+    #applicable to both Numpy arrays and matrices.
+
     @type_check
-    def interp_mems_to_cells(self, cells_membranes_data: ndarray) -> ndarray:
+    def map_membranes_midpoint_to_cells_centre_data(
+        self, membranes_midpoint_data: ndarray) -> ndarray:
         """
-        Interpolate a Numpy array of arbitrary data defined on cell membrane
-        midpoints into a Numpy array of the same data defined on cell centres.
+        Interpolate a Numpy array or matrix of arbitrary data spatially
+        situated at cell membrane midpoints into a Numpy array or matrix of the
+        same data resituated at cell centres.
 
         Each element of the output array is the average of the passed membrane
         data over all membranes of the corresponding cell, thus interpolating
@@ -2114,23 +2181,39 @@ class Cells(object):
 
         Parameters
         -----------
-        cells_membranes_data : ndarray
-            One-dimensional Numpy array of length the number of cell membranes
-            such that each element is arbitrary cell membrane data spatially
-            situated at the midpoint of the membrane with that 0-based index.
+        membranes_midpoint_data : ndarray
+            Either:
+            * One-dimensional Numpy array of length the number of cell
+              membranes, indexing arbitrary data spatially situated at cell
+              membrane midpoints.
+            * Two-dimensional Numpy matrix whose:
+              * First dimension is of arbitrary length, typically indexing time
+                steps and thus of length the number of simulation time steps.
+              * Second dimension is of length the number of cell membranes,
+                indexying arbitrary data spatially situated at cell membrane
+                midpoints.
 
         Returns
         -----------
         ndarray
-            One-dimensional Numpy array of length the number of cells such that
-            each element is arbitrary cell data spatially situated at the
-            center of the cell with that 0-based index.
+            If the passed array is:
+            * One-dimensional, the returned array is also one-dimensional of
+              length the number of cells, indexing the same data as that of the
+              passed array resituated at cell centres.
+            * Two-dimensional, the returned array is also two-dimensional
+              whose:
+              * First dimension is the same length as that of the first
+                dimension of the passed array.
+              * Second dimension has length the number of cells, indexing the
+                same data as that of the passed array resituated at cell
+                centres.
         """
 
-        return np.dot(self.M_sum_mems, cells_membranes_data) / self.num_mems
+        return np.dot(
+            membranes_midpoint_data, self.membranes_midpoint_to_cells_centre)
 
 
-    def interp_cells_to_mems(
+    def map_cells_centre_to_membranes_midpoint_data(
         self, f: ndarray, interp_method: str = 'linear') -> ndarray:
         """
         Interpolate a Numpy array of arbitrary data defined on cell centres
