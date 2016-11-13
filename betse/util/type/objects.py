@@ -9,7 +9,84 @@ Low-level object facilities.
 
 # ....................{ IMPORTS                            }....................
 import inspect
-from betse.util.type.types import type_check, CallableTypes, GeneratorType
+from betse.util.type.types import (
+    type_check, CallableTypes, MethodType, GeneratorType,)
+from functools import wraps
+
+# ....................{ DECORATORS                         }....................
+#FIXME: Grep the codebase for usage of the @property decorator and, where
+#applicable, simplify to use this decorator instead.
+def property_cached(property_method: MethodType) -> CallableTypes:
+    '''
+    Decorate the passed property method to cache the value returned by the first
+    implicit call of this method.
+
+    On the first access of a property decorated with this decorator, the passed
+    method implementing this property is called, the value returned by this
+    property internally cached into a private attribute of this method, and this
+    value returned. On all subsequent accesses of this property, the cached
+    value is returned as is _without_ calling this method. Hence, this method is
+    called at most once for each instance of the class containing this property.
+    '''
+
+    # Raw string of Python statements comprising the body of this wrapper,
+    # including (in order):
+    #
+    # * A "@wraps" decorator propagating the name, docstring, and other
+    #   identifying metadata of the original function to this wrapper.
+    # * A private "__beartype_func" parameter initialized to this function.
+    #   In theory, the "func" parameter passed to this decorator should be
+    #   accessible as a closure-style local in this wrapper. For unknown
+    #   reasons (presumably, a subtle bug in the exec() builtin), this is
+    #   not the case. Instead, a closure-style local must be simulated by
+    #   passing the "func" parameter to this function at function
+    #   definition time as the default value of an arbitrary parameter. To
+    #   ensure this default is *NOT* overwritten by a function accepting a
+    #   parameter of the same name, this edge case is tested for below.
+    #
+    # While there exist numerous alternative implementations for caching
+    # properties, the approach implemented below has been profiled to be the
+    # most efficient. Alternatives include (in order of decreasing efficiency):
+    #
+    # * Dynamically getting and setting a property-specific key-value pair of
+    #   the internal dictionary for the current object, timed to be
+    #   approximately 1.5 times as slow as exception handling: e.g.,
+    #
+    #     if not {property_name!r} in self.__dict__:
+    #         self.__dict__[{property_name!r}] = __property_method(self)
+    #     return self.__dict__[{property_name!r}]
+    #
+    # * Dynamically getting and setting a property-specific attribute of
+    #   the current object: e.g.,
+    #   the internal dictionary for the current object, timed to be
+    #   approximately 1.5 times as slow as exception handling: e.g.,
+    #
+    #     if not hasattr(self, {property_name!r}):
+    #         setattr(self, {property_name!r}, __property_method(self))
+    #     return getattr(self, {property_name!r})
+    func_body = '''
+@wraps(__property_method)
+def property_method_cached(self, __property_method=__property_method):
+    try:
+        return self.{property_name}
+    except AttributeError:
+        self.{property_name} = __property_method(self)
+        return self.{property_name}
+'''.format(property_name='__property_cached_' + property_method.__name__)
+
+    # Dictionary mapping from local attribute name to value. For efficiency,
+    # only attributes required by the body of this wrapper are copied from the
+    # current namespace. (See below.)
+    local_attrs = {'__property_method': property_method}
+
+    # Dynamically define this wrapper as a closure of this decorator. For
+    # obscure and presumably uninteresting reasons, Python fails to locally
+    # declare this closure when the locals() dictionary is passed; to capture
+    # this closure, a local dictionary must be passed instead.
+    exec(func_body, globals(), local_attrs)
+
+    # Return this wrapper method wrapped by a property descriptor.
+    return property(local_attrs['property_method_cached'])
 
 # ....................{ TESTERS                            }....................
 @type_check

@@ -43,6 +43,7 @@ import numpy as np
 from abc import ABCMeta, abstractmethod, abstractproperty
 from betse.lib.numpy import arrays
 from betse.util.py import references
+from betse.util.type.objects import property_cached
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceTypes, SequenceOrNoneTypes,)
 from numpy import ndarray
@@ -287,22 +288,10 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
 
     Attributes
     ----------
-    _times_cells_centre_data : ndarray
-        Two-dimensional Numpy array of all arbitrary cell data for all time
-        steps to be animated cached and returned by the
-        :meth:`times_cells_centre_data` property.
     _times_membranes_midpoint_data : ndarray
         Two-dimensional Numpy array of all arbitrary cell membrane data for all
-        time steps to be animated cached and returned by the :meth:`__init__`
-        method.
-    _times_membranes_vertex_data : ndarray
-        Two-dimensional Numpy array of all arbitrary cell membrane vertex data
-        for all time steps to be animated cached and returned by the
-        :meth:`times_membranes_vertex_data` property.
-    _times_regions_centre_data : ndarray
-        Two-dimensional Numpy array of all arbitrary Voronoi region centre data
-        for all time steps to be animated cached and returned by the
-        :meth:`times_regions_centre_data` property.
+        time steps to be animated cached by the :meth:`__init__` method and
+        returned by the :meth:`times_membranes_midpoint_data` property.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -331,15 +320,10 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
         self._times_membranes_midpoint_data = arrays.from_sequence(
             times_membranes_midpoint_data)
 
-        # Default all remaining instance variables.
-        self._times_cells_centre_data = None
-        self._times_membranes_vertex_data = None
-        self._times_regions_centre_data = None
-
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from setting these attributes.
 
-    @property
+    @property_cached
     def times_cells_centre_data(self) -> ndarray:
         '''
         Two-dimensional Numpy array of all arbitrary cell membrane data for all
@@ -352,14 +336,8 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
           situated at cell centres for this time step.
         '''
 
-        # If this array has yet to be cached, do so.
-        if self._times_cells_centre_data is None:
-            self._times_cells_centre_data = (
-                self._visual._cells.map_membranes_midpoint_to_cells_centre_data(
-                    self._times_membranes_midpoint_data))
-
-        # Return this cached array.
-        return self._times_cells_centre_data
+        return self._visual._cells.map_membranes_midpoint_to_cells_centre_data(
+            self._times_membranes_midpoint_data)
 
 
     @property
@@ -378,7 +356,7 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
         return self._times_membranes_midpoint_data
 
 
-    @property
+    @property_cached
     def times_membranes_vertex_data(self) -> ndarray:
         '''
         Two-dimensional Numpy array of all arbitrary cell membrane vertex data
@@ -392,44 +370,41 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
           time step.
         '''
 
-        # If this array has yet to be cached, do so.
-        if self._times_membranes_vertex_data is None:
-            #FIXME: Consider generalizing this logic into a new public "Cells"
-            #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
-            #method called above.
-            self._times_membranes_vertex_data = np.dot(
-                self._times_membranes_midpoint_data,
-                self._visual.cells.matrixMap2Verts)
+        #FIXME: Consider generalizing this logic into a new public "Cells"
+        #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
+        #method called above.
 
-        # Return this cached array.
-        return self._times_membranes_vertex_data
+        return np.dot(
+            self._times_membranes_midpoint_data,
+            self._visual.cells.matrixMap2Verts)
 
 
-    #FIXME: Update docstring.
-    @property
+    @property_cached
     def times_regions_centre_data(self) -> ndarray:
         '''
-        One-dimensional Numpy array of length the number of polygonal regions in
-        the Voronoi diagram producing this cell cluster such that each element
-        is arbitrary region data spatially situated at the centre of that region
-        for the current animation time step.
+        Two-dimensional Numpy array of all arbitrary Voronoi region centre data
+        for all time steps to be animated, whose:
+
+        . First dimension indexes time steps, whose length is the number of
+          simulation time steps.
+        . Second dimension indexes polygonal regions in the Voronoi diagram,
+          whose length is the number of such regions and elements are arbitrary
+          data spatially situated at region centres for this time step.
         '''
 
-        # If this array has yet to be cached, do so.
-        if self._times_regions_centre_data is None:
-            #FIXME: Consider generalizing this logic into a new public "Cells"
-            #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
-            #method called above.
+        #FIXME: Consider generalizing this logic into a new public "Cells"
+        #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
+        #method called above.
 
-            # Initialize this array of the desired shape with zeroes.
-            self._times_regions_centre_data = np.zeros((
-                len(self.times_cells_centre_data),
-                len(self._visual.cells.voronoi_centres)))
+        # Initialize this array of the desired shape with zeroes.
+        times_regions_centre_data = np.zeros((
+            len(self.times_cells_centre_data),
+            len(self._visual.cells.voronoi_centres)))
 
-            # Map cell- to region-centred data for all time steps.
-            self._times_regions_centre_data[
-                :, self._visual.cells.cell_to_grid] = (
-                self.times_cells_centre_data)
+        # Map cell- to region-centred data for all time steps.
+        times_regions_centre_data[
+            :, self._visual.cells.cell_to_grid] = (
+            self.times_cells_centre_data)
 
-        # Return this cached array.
-        return self._times_regions_centre_data
+        # Return this array for subsequent caching.
+        return times_regions_centre_data

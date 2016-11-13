@@ -16,6 +16,7 @@ from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
+from betse.util.type.objects import property_cached
 from betse.util.type.types import type_check
 from numpy import ndarray
 from scipy import interpolate as interp
@@ -142,9 +143,6 @@ class Cells(object):
         another Numpy vector of size `m` containing cell-specific data
         totalized for each cell over all membranes this cell contains, where
         `m` and `n` are as defined above.
-    _mems_midpoint_to_cells_centre : ndarray
-        Numpy matrix both cached and returned by the
-        :meth:`mems_midpoint_to_cells_centre` property.
 
     Attributes (Cell Membrane Vertices)
     ----------
@@ -250,9 +248,6 @@ class Cells(object):
 
         # Extract the constants from the input object.
         self.fileInit(p)
-
-        # Default all remaining instance variables.
-        self._mems_midpoint_to_cells_centre = None
 
     def fileInit(self, p):
         """
@@ -2054,7 +2049,7 @@ class Cells(object):
     # ..................{ PROPERTIES                         }..................
     # Read-only properties, preventing callers from setting these attributes.
 
-    @property
+    @property_cached
     def membranes_midpoint_to_cells_centre(self) -> ndarray:
         '''
         Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
@@ -2078,26 +2073,20 @@ class Cells(object):
         are as defined above.
         '''
 
-        # If this array has yet to be cached, do so.
-        if self._mems_midpoint_to_cells_centre is None:
-            # Dismantled, this is:
-            #
-            # * "self.M_sum_mems.T", the transpose of the "M_sum_mems" matrix.
-            #   Since this matrix is of size m x n for m the number of cells
-            #   and n is the number of membranes, this transpose is a matrix of
-            #   size n x m. Each element of this transpose is either:
-            #   * 0 if this cell does *NOT* contain this membrane.
-            #   * 1 if this cell contains this membrane.
-            # * "... / self.num_mems", normalizing each cell-membrane element
-            #   of this matrix by the number of membranes in that cell. Since
-            #   "num_mems" is a row vector of length m whose elements are the
-            #   number of membranes in that cell, each column of this transpose
-            #   is divided by the corresponding element of this row vector.
-            self._mems_midpoint_to_cells_centre = (
-                self.M_sum_mems.T / self.num_mems)
-
-        # Return this cached array.
-        return self._mems_midpoint_to_cells_centre
+        # Dismantled, this is:
+        #
+        # * "self.M_sum_mems.T", the transpose of the "M_sum_mems" matrix.
+        #   Since this matrix is of size m x n for m the number of cells
+        #   and n is the number of membranes, this transpose is a matrix of
+        #   size n x m. Each element of this transpose is either:
+        #   * 0 if this cell does *NOT* contain this membrane.
+        #   * 1 if this cell contains this membrane.
+        # * "... / self.num_mems", normalizing each cell-membrane element
+        #   of this matrix by the number of membranes in that cell. Since
+        #   "num_mems" is a row vector of length m whose elements are the
+        #   number of membranes in that cell, each column of this transpose
+        #   is divided by the corresponding element of this row vector.
+        return self.M_sum_mems.T / self.num_mems
 
     # ..................{ INTEGRATION                        }..................
     def intra_updater(self,p):

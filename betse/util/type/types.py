@@ -118,6 +118,10 @@ This class is principally useful for annotating both:
 
 * CallableTypes parameters accepting `None` as a valid value.
 * Callables returning `None` as a valid value.
+
+Note that, for obscure and uninteresting reasons, the standard :mod:`types`
+module defined the same type with the same name under Python 2.x but _not_ 3.x.
+Depressingly, this type must now be manually redefined everywhere.
 '''
 
 
@@ -459,11 +463,6 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
                 # If this parameter is actually a tuple of positional variadic
                 # parameters, iteratively check all such parameters.
                 if func_arg.kind is Parameter.VAR_POSITIONAL:
-                    #FIXME: "{arg_name!r}" obviously isn't right. We need to
-                    #find some means of obtaining the tuple or slice of all
-                    #positionally passed parameters. No idea how, sadly. Let's
-                    #google up "Parameter.VAR_POSITIONAL", please. Something's
-                    #gotta give.
                     func_body += '''
     for __beartype_arg in args[{arg_index!r}:]:
         if not isinstance(__beartype_arg, {arg_type_expr}):
@@ -577,6 +576,19 @@ def func_type_checked(*args, __beartype_func=__beartype_func, **kwargs):
         # obscure and presumably uninteresting reasons, Python fails to locally
         # declare this closure when the locals() dictionary is passed; to
         # capture this closure, a local dictionary must be passed instead.
+        #
+        # Note that the same result may also be achieved via the compile()
+        # builtin and "types.FunctionType" class: e.g.,
+        #
+        #     func_code = compile(func_body, "<string>", "exec").co_consts[0]
+        #     return types.FunctionType(
+        #         code=func_code,
+        #         globals=globals(),
+        #         argdefs=('__beartype_func', func)
+        #     )
+        #
+        # Since doing so is both more verbose and obfuscatory for no tangible
+        # gain, the current circumspect approach is preferred.
         # print('\n{} wrapper: {}'.format(func_name, func_body))
         exec(func_body, globals(), local_attrs)
 

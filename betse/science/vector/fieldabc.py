@@ -8,7 +8,8 @@ Abstract base classes of all vector field subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from abc import ABCMeta, abstractproperty  # abstractmethod,
+from abc import ABCMeta, abstractproperty
+from betse.util.type.objects import property_cached
 from betse.util.type.types import type_check, NumericTypes
 from numpy import ndarray
 
@@ -23,36 +24,14 @@ class VectorFieldABC(object, metaclass=ABCMeta):
 
     Attributes
     ----------
-    _magnitudes : ndarray
-        Two-dimensional Numpy array as documented by the :meth:`magnitudes`
-        property if that property has been read at least once for this instance
-        _or_ `None` otherwise (in which case this attribute is defined on the
-        first read of that property).
     _magnitude_factor : NumericTypes
         Factor by which to multiply each magnitude of each vector in this vector
         field, typically to scale magnitude to the desired units.
-    _x_unit : ndarray
-        Two-dimensional Numpy array as documented by the :meth:`x_unit`
-        property if that property has been read at least once for this instance
-        _or_ `None` otherwise (in which case this attribute is defined on the
-        first read of that property).
-    _y_unit : ndarray
-        Two-dimensional Numpy array as documented by the :meth:`y_unit`
-        property if that property has been read at least once for this instance
-        _or_ `None` otherwise (in which case this attribute is defined on the
-        first read of that property).
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(
-        self,
-
-        # Mandatory parameters.
-
-        # Optional parameters.
-        magnitude_factor: NumericTypes = 1,
-    ) -> None:
+    def __init__(self, magnitude_factor: NumericTypes = 1) -> None:
         '''
         Initialize this vector field.
 
@@ -66,9 +45,6 @@ class VectorFieldABC(object, metaclass=ABCMeta):
 
         # Classify the passed parameters.
         self._magnitude_factor = magnitude_factor
-
-        # Default all remaining attributes.
-        self._magnitudes = None
 
     # ..................{ PROPERTIES ~ abstract              }..................
     @abstractproperty
@@ -97,7 +73,7 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         pass
 
     # ..................{ PROPERTIES ~ concrete              }..................
-    @property
+    @property_cached
     def magnitudes(self) -> ndarray:
         '''
         Two-dimensional Numpy array whose:
@@ -110,25 +86,20 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         deferred to the first read of this property.
         '''
 
-        # If this property has yet to be read...
-        if self._magnitudes is None:
-            # Array of all vector magnitudes computed from the arrays of all
-            # vector X and Y components such that each such magnitude is:
-            #
-            # * Incremented by a negligible positive value approximately equal
-            #   to 0, avoiding inevitable division-by-zero errors elsewhere in
-            #   the codebase when these magnitudes are subsequently divided by
-            #   (e.g., to normalize the X or Y components).
-            # * Multiplied by the previously passed factor, typically to scale
-            #   magnitudes to the desired units.
-            self._magnitudes = (
-                1e-15 + self._magnitude_factor*np.sqrt(self.x**2 + self.y**2))
-
-        # Return the previously cached array.
-        return self._magnitudes
+        # Array of all vector magnitudes computed from the arrays of all
+        # vector X and Y components such that each such magnitude is:
+        #
+        # * Incremented by a negligible positive value approximately equal
+        #   to 0, avoiding inevitable division-by-zero errors elsewhere in
+        #   the codebase when these magnitudes are subsequently divided by
+        #   (e.g., to normalize the X or Y components).
+        # * Multiplied by the previously passed factor, typically to scale
+        #   magnitudes to the desired units.
+        return (
+            1e-15 + self._magnitude_factor*np.sqrt(self.x**2 + self.y**2))
 
 
-    @property
+    @property_cached
     def x_unit(self) -> ndarray:
         '''
         Two-dimensional Numpy array whose:
@@ -142,15 +113,10 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         deferred to the first read of this property.
         '''
 
-        # If this property has yet to be read, define and cache this array.
-        if self._x_unit is None:
-            self._x_unit = self.x / self._magnitudes
-
-        # Return the previously cached array.
-        return self._x_unit
+        return self.x / self._magnitudes
 
 
-    @property
+    @property_cached
     def y_unit(self) -> ndarray:
         '''
         Two-dimensional Numpy array whose:
@@ -164,9 +130,4 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         deferred to the first read of this property.
         '''
 
-        # If this property has yet to be read, define and cache this array.
-        if self._y_unit is None:
-            self._y_unit = self.y / self._magnitudes
-
-        # Return the previously cached array.
-        return self._y_unit
+        return self.y / self._magnitudes
