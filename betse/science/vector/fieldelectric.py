@@ -3,100 +3,45 @@
 # See "LICENSE" for further details.
 
 '''
-Layer subclasses spatially overlaying streamlines onto the current cell cluster.
+Vector field classes describing electromagnetic phenomena, including both
+intracellular and extracellular simulated fields and current density fields.
 '''
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimConfigException
 from betse.lib.numpy import arrays
-from betse.science.vector.fieldabc import VectorFieldABC
-from betse.util.py import references
+from betse.science.vector.fieldabc import VectorFieldSimulatedABC
 from betse.util.type.objects import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from numpy import ndarray
 from scipy import interpolate
 
-# ....................{ SUPERCLASSES                       }....................
-class VectorFieldCurrentABC(VectorFieldABC):
-    '''
-    Abstract base class of all current density vector field subclasses.
+# ....................{ CONSTANTS                          }....................
+_MAGNITUDE_FACTOR_CURRENT = 100
+'''
+Factor by which to multiply each magnitude of each vector in each current
+density vector field, , yielding magnitude in units of uA/cm^2.
+'''
 
-    Each subclass of this class is a vector field of current densities of all
-    intracellular and/or extracellular spaces for all time steps of the current
-    simulation.
+# ....................{ ELECTRIC FIELD                     }....................
 
-    Attributes
-    ----------
-    _cells : Cells
-        Current cell cluster.
-    _p : Parameters
-        Current simulation configuration.
-    _sim : Simulator
-        Current simulation.
-    _x : ndarray
-        Two-dimensional Numpy array as documented by the :meth:`x` property if
-        that property has been read at least once for this instance _or_ `None`
-        otherwise (in which case this attribute is defined on the first read of
-        that property).
-    _y : ndarray
-        Two-dimensional Numpy array as documented by the :meth:`y` property if
-        that property has been read at least once for this instance _or_ `None`
-        otherwise (in which case this attribute is defined on the first read of
-        that property).
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(
-        self,
-        sim: 'betse.science.sim.Simulator',
-        cells: 'betse.science.cells.Cells',
-        p: 'betse.science.parameters.Parameters',
-    ) -> None:
-        '''
-        Initialize this current density vector field.
-
-        Parameters
-        ----------
-        sim : Simulator
-            Current simulation.
-        cells : Cells
-            Current cell cluster.
-        p : Parameters
-            Current simulation configuration.
-        '''
-
-        # Initialize our superclass.
-        super().__init__(
-            # Upscale the magnitude of each current density vector, yielding
-            # magnitude in units of uA/cm^2.
-            magnitude_factor=100,
-        )
-
-        # Classify core parameters with weak rather than strong (the default)
-        # references, thus avoiding circular references and the resulting
-        # complications thereof (e.g., increased memory overhead). Since these
-        # objects necessarily live significantly longer than this plot, no
-        # complications arise. Ergo, these attributes *ALWAYS* yield these
-        # objects rather than non-deterministically yielding "None" if these
-        # objects are unexpectedly garbage-collected.
-        self._sim = references.proxy_weak(sim)
-        self._cells = references.proxy_weak(cells)
-        self._p = references.proxy_weak(p)
-
-# ....................{ SUBCLASSES                         }....................
-class VectorFieldCurrentIntraExtra(VectorFieldCurrentABC):
+# ....................{ CURRENT DENSITY                    }....................
+class VectorFieldCurrentIntraExtra(VectorFieldSimulatedABC):
     '''
     Vector field of the current densities of all intracellular and extracellular
-    spaces for all time steps of the current simulation.
+    spaces spatially situated at grid space centres for all time steps of the
+    current simulation.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, *args, **kwargs) -> None:
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)
+        # Initialize our superclass to upscale magnitudes and with all passed
+        # parameters.
+        super().__init__(
+            magnitude_factor=_MAGNITUDE_FACTOR_CURRENT,
+            *args, **kwargs)
 
         # If extracellular spaces are disabled, raise an exception.
         if not self._p.sim_ECM:
@@ -108,28 +53,81 @@ class VectorFieldCurrentIntraExtra(VectorFieldCurrentABC):
 
     @property_cached
     def x(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array whose:
+
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the X
+          component of the **total current density vector** (i.e., vector of
+          both intra- _and_ extracellular current densities) spatially situated
+          at the center of each grid space for this time step.
+        '''
+
         return arrays.from_sequence(self._sim.I_tot_x_time)
 
 
     @property_cached
     def y(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array whose:
+
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the Y
+          component of the **total current density vector** (i.e., vector of
+          both intra- _and_ extracellular current densities) spatially situated
+          at the center of each grid space for this time step.
+        '''
+
         return arrays.from_sequence(self._sim.I_tot_y_time)
 
 
-class VectorFieldCurrentIntra(VectorFieldCurrentABC):
+class VectorFieldCurrentIntra(VectorFieldSimulatedABC):
     '''
     Vector field of the current densities of all intracellular spaces (e.g., gap
-    junctions) for all time steps of the current simulation.
+    junctions) spatially situated at grid space centres for all time steps of
+    the current simulation.
     '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass to upscale magnitudes and with all passed
+        # parameters.
+        super().__init__(
+            magnitude_factor=_MAGNITUDE_FACTOR_CURRENT,
+            *args, **kwargs)
 
     # ..................{ SUPERCLASS                         }..................
     @property_cached
     def x(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array whose:
+
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the X
+          component of the intracellular current density vector spatially
+          situated at the center of each grid space for this time step.
+        '''
+
         return self._get_component(self._sim.I_cell_x_time)
 
 
     @property_cached
     def y(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array whose:
+
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the Y
+          component of the intracellular current density vector spatially
+          situated at the center of each grid space for this time step.
+        '''
+
         return self._get_component(self._sim.I_cell_y_time)
 
     # ..................{ GETTERS                            }..................
@@ -138,8 +136,7 @@ class VectorFieldCurrentIntra(VectorFieldCurrentABC):
         '''
         Interpolate the passed array of the X and Y components of all
         intracellular current density vectors in this vector field for all time
-        steps from the passed cell centers to the passed X/Y grid of this cell
-        cluster's environment.
+        steps from heterogenous cell centers onto the homogenous world grid.
 
         In the case of the :class:`VectorFieldCurrentIntraExtra` subclass, the
         current density of all intracellular and extracellular spaces is
@@ -152,10 +149,10 @@ class VectorFieldCurrentIntra(VectorFieldCurrentABC):
         ----------
         times_currents_center : SequenceTypes
             Two-dimensional sequence whose:
-            * First dimension indexes each time step of this simulation.
-            * Second dimension indexes the X or Y components of all
-              intracellular current density vectors computed at the center of
-              each cell for the corresponding time step.
+            * First dimension indexes each simulation time step.
+            * Second dimension indexes the X or Y component of each
+              intracellular current density vector computed at the center of
+              each cell for this time step.
 
         Returns
         ----------

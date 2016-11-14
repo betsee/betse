@@ -16,7 +16,6 @@ from betse.science.visual.anim.anim import (
     AnimCellsMembranesData,
     AnimCurrent,
     AnimateDeformation,
-    # AnimEnvTimeSeries,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
     AnimFieldIntracellular,
@@ -24,7 +23,6 @@ from betse.science.visual.anim.anim import (
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
     AnimFlatCellsTimeSeries,
-    # AnimFieldMeshTimeSeries,
 )
 from betse.science.visual import visuals
 from betse.util.io.log import logs
@@ -91,14 +89,10 @@ def pipeline_anims(
         )
 
     if p.ani_vm2d is True:
-        vmplt = [1000*arr for arr in sim.vm_time]
-        scale_v = vmplt
-
         AnimCellsMembranesData(
             sim=sim, cells=cells, p=p,
-            times_membranes_midpoint_data=vmplt,
-            scaling_series=scale_v,
-            is_ecm_ignored=False,
+            times_membranes_midpoint_data=visuals.upscale_cell_data(
+                sim.vm_time),
             label='Vmem',
             figure_title='Transmembrane Voltage',
             colorbar_title='Voltage [mV]',
@@ -107,27 +101,8 @@ def pipeline_anims(
             color_max=p.Vmem_ani_max_clr,
         )
 
-        # # do a plot of average vmem as it's useful now too:
-        #
-        # vmplt = [1000 * arr for arr in sim.vm_ave_time]
-        #
-        # AnimFieldMeshTimeSeries(
-        #     sim=sim, cells=cells, p=p,
-        #     mesh_time_series=vmplt,
-        #     x_time_series = sim.pol_x_time,
-        #     y_time_series= sim.pol_y_time,
-        #     label='Average_Vmem',
-        #     figure_title='Average Vmem with Polarization Vector',
-        #     colorbar_title='Vmem [mV]',
-        #     is_color_autoscaled=p.autoscale_Vmem_ani,
-        #     color_min=p.Vmem_ani_min_clr,
-        #     color_max=p.Vmem_ani_max_clr,
-        # )
-
     # Animate the gap junction state over cell membrane voltage if desired.
     if p.ani_vmgj2d is True:
-
-
         AnimGapJuncTimeSeries(
             sim=sim, cells=cells, p=p,
             time_series=sim.gjopen_time,

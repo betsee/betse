@@ -479,8 +479,8 @@ class AnimCellsABC(VisualCellsABC):
         #implementation *AFTER* eliminating these boolean attributes, as
         #detailed in an __init__() method FIXME comment above.
 
-        # True only if...
-        is_current_overlay = (
+        # If...
+        if (
             # This simulation configuration requests a current overlay.
             self._is_current_overlayable and
 
@@ -490,12 +490,10 @@ class AnimCellsABC(VisualCellsABC):
             # unintelligible plot or animation... which would be bad.
             not iterables.is_items_any_instance_of(
                 iterable=self._layers, cls=LayerCellsStreamABC)
-        )
-
-        # If overlaying current, append a layer doing so *AFTER* all lower
+        # ...then overlay current. Append a layer doing so *AFTER* all lower
         # layers (e.g., cell data) have been appended but *BEFORE* all higher
         # layers (e.g., cell labelling) have been appended.
-        if is_current_overlay:
+        ):
             # If layering only intracellular current, do so.
             if self._is_current_overlay_only_gj:
                 self._append_layer(LayerCellsStreamCurrentIntra())

@@ -42,7 +42,7 @@ class LayerCellsShadeContinuous(LayerCellsMappableArrayABC):
         self._cluster_tri_mesh = None
 
     # ..................{ SUPERCLASS                         }..................
-    @type_check
+    @property
     def color_data(self) -> SequenceOrNoneTypes:
 
         return self.times_regions_centre_data
@@ -121,7 +121,7 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
         self._cell_tri_meshes = None
 
     # ..................{ SUPERCLASS                         }..................
-    @type_check
+    @property
     def color_data(self) -> SequenceOrNoneTypes:
 
         return self.times_membranes_vertex_data

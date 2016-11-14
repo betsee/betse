@@ -24,14 +24,15 @@ Layer subclasses spatially overlaying streamlines onto the current cell cluster.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from abc import abstractmethod
-from betse.science.vector.fieldcurrent import (
-    VectorFieldCurrentABC,
+from abc import abstractmethod, abstractproperty
+from betse.science.vector.fieldelectric import (
+    VectorFieldSimulatedABC,
     VectorFieldCurrentIntra,
     VectorFieldCurrentIntraExtra,
 )
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.util.type.objects import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
 
@@ -190,39 +191,15 @@ class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
     time than the average layer. For each plot or animation frame to be layered
     with streamlines, the subclass solves an internal fluid simulation of the
     current density through this cell cluster specific to this frame.
-
-    Attributes
-    ----------
-    _time_currents : VectorFieldCurrentABC
-        Vector field of the current densities of all intracellular and/or
-        extracellular spaces for all time steps of the current simulation.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(self) -> None:
-
-        # Initialize our superclass.
-        super().__init__()
-
-        # Default instance attributes.
-        self._time_currents = None
-
-
-    def prep(self, *args, **kwargs) -> None:
-
-        # Prepare our superclass with all passed parameters.
-        super().prep(*args, **kwargs)
-
-        # Vector field of the current densities defined by the subclass.
-        self._time_currents = self._get_time_currents()
-
     # ..................{ SUBCLASS                           }..................
-    @abstractmethod
-    def _get_time_currents(self) -> VectorFieldCurrentABC:
+    @abstractproperty
+    def _time_currents(self) -> VectorFieldSimulatedABC:
         '''
         Vector field of the current densities of all intracellular and/or
-        extracellular spaces for all time steps of the current simulation.
+        extracellular spaces spatially situated at grid space centres for all
+        time steps of the current simulation.
         '''
 
         pass
@@ -262,12 +239,8 @@ class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrentABC):
     '''
 
     # ..................{ SUPERCLASS                         }..................
-    def _get_time_currents(self) -> VectorFieldCurrentABC:
-        '''
-        Vector field of the current densities of all intracellular and
-        extracellular spaces for all time steps of the current simulation.
-        '''
-
+    @property_cached
+    def _time_currents(self) -> VectorFieldSimulatedABC:
         return VectorFieldCurrentIntraExtra(
             sim=self._visual._sim,
             cells=self._visual._cells,
@@ -282,12 +255,8 @@ class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrentABC):
     '''
 
     # ..................{ SUPERCLASS                         }..................
-    def _get_time_currents(self) -> VectorFieldCurrentABC:
-        '''
-        Vector field of the current densities of only all intracellular spaces
-        for all time steps of the current simulation.
-        '''
-
+    @property_cached
+    def _time_currents(self) -> VectorFieldSimulatedABC:
         return VectorFieldCurrentIntra(
             sim=self._visual._sim,
             cells=self._visual._cells,

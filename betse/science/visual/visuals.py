@@ -23,13 +23,14 @@ def upscale_cell_data(
 
     This function does _not_ modify the passed object. If this object is:
 
-    * A scalar number (e.g., of type `int` or `float`), this function returns a
-      new scalar number of the same type multiplied by a positive constant.
+    * A scalar number (e.g., of type :class:`int` or :class:`float`), this
+      function returns a new scalar number of the same type multiplied by a
+      positive constant.
     * A NumPy array, this function returns a new NumPy array equal to the
       passed array multiplied by a positive constant.
-    * A Python sequence (e.g., `list`), this function returns a new NumPy array
-      equal to the passed sequence converted into a new NumPy array and then
-      multiplied by a positive constant.
+    * A Python sequence (e.g., :class:`list`), this function returns a new NumPy
+      array equal to the passed sequence converted into a new NumPy array and
+      then multiplied by a positive constant.
 
     Parameters
     ----------

@@ -307,36 +307,21 @@ class AnimCellsWhileSolving(AnimCellsABC):
             cell_data=cell_data)
 
 # ....................{ CLASSES ~ after                    }....................
+#FIXME: Reduce this class to a factory function creating an instance of the
+#"AnimCellsAfterSolving" class with the appropriate layers.
 class AnimCellsMembranesData(AnimCellsAfterSolving):
     '''
     Post-simulation animation of an arbitrary cell-centric time series (e.g.,
     cell membrane voltage as a function of time), plotted over the cell
     cluster.
-
-    Attributes
-    ----------
-    _is_ecm_ignored : bool
-        `True` if ignoring extracellular spaces _or_ `False` otherwise.
     '''
 
     # ..................{ SUPERCLASS                         }..................
-    #FIXME: Document the "scaling_series" parameter and, ideally, rename to
-    #better fit the nomenclature of the "times_membranes_data" parameter.
     @type_check
     def __init__(
         self,
-
-        # Mandatory parameters.
         p: 'betse.science.parameters.Parameters',
         times_membranes_midpoint_data: SequenceTypes,
-
-        #FIXME: Remove the "is_ecm_ignored" parameter both helow and where
-        #passed in the "animpipe" submodule. This parameter is no longer
-        #actually used for anything.
-
-        # Optional parameters.
-        is_ecm_ignored: bool = True,
-        scaling_series: SequenceOrNoneTypes = None,
         *args, **kwargs
     ) -> None:
         '''
@@ -356,9 +341,6 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
               number of cell membranes in the current cluster. Each element of
               this dimension is arbitrary cell membrane data spatially situated
               at that membrane's midpoint.
-        is_ecm_ignored : optional[bool]
-            `True` if ignoring extracellular spaces _or_ `False` otherwise.
-            Defaults to `True`.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
@@ -370,31 +352,15 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
             LayerCellsShadeDiscrete if p.showCells else
             LayerCellsShadeContinuous)
 
-        # Layer plotted by this animation.
-        layer = layer_type(
-            times_membranes_midpoint_data=times_membranes_midpoint_data)
+        # 1-tuple of the single principal layer plotted by this animation.
+        layers = (layer_type(
+            times_membranes_midpoint_data=times_membranes_midpoint_data),)
 
         # Initialize the superclass.
-        super().__init__(
-            p=p,
-
-            # 1-tuple of the single principal layer plotted by this animation.
-            layers=(layer,),
-
-            # Since this class does *NOT* plot a streamplot, request that the
-            # superclass do so for electric current or concentration flux.
-            *args, **kwargs
-        )
-
-        # Classify the passed parameters.
-        self._is_ecm_ignored = is_ecm_ignored
+        super().__init__(p=p, layers=layers, *args, **kwargs)
 
         # Display and/or save this animation.
-        #
-        # If a scaling sequence was passed, scale all color data to the minimum
-        # and maximum scalar values unravelled from that sequence; else, defer
-        # to the color data yielded by the layer instantiated above.
-        self._animate(color_data=scaling_series)
+        self._animate()
 
 
 #FIXME: This class should probably no longer be used, now that the Gouraud
@@ -476,109 +442,6 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
         self._cell_plot.set_array(zz_grid)
 
 
-#FIXME: This appears to be unused now. Contemplate removal.
-class AnimFieldMeshTimeSeries(AnimCellsAfterSolving):
-    '''
-    Animation of an arbitrary cell-centric time series (e.g., voltage as a
-    function of time) with an overlaid vector plot (e.g., polarization).
-
-    Attributes
-    ----------
-    _cell_plot : ???
-        Artists signifying cell data for the prior or current frame.
-    _cell_time_series : list
-        Arbitrary cell data as a function of time to be underlayed.
-    _gapjunc_plot : LineCollection
-        Lines signifying gap junction state for the prior or current frame.
-    _gapjunc_time_series : list
-        Arbitrary gap junction data as a function of time to be overlayed.
-    '''
-
-    @type_check
-    def __init__(
-        self,
-        mesh_time_series: SequenceTypes,
-        x_time_series: SequenceTypes,
-        y_time_series: SequenceTypes,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        cell_time_series : Sequence
-            Arbitrary cell data as a function of time
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-
-        # Initialize the superclass.
-        super().__init__(
-            time_step_count=len(mesh_time_series),
-            is_current_overlayable=True,
-            *args, **kwargs
-        )
-
-        # Classify all remaining parameters.
-        self._cell_time_series = mesh_time_series
-        self._x_time_series = x_time_series
-        self._y_time_series = y_time_series
-
-        # Cell data series for the first frame.
-        data_set = self._cell_time_series[0]
-
-        normV = np.sqrt(self._x_time_series[0]**2 + self._y_time_series[0]**2)
-        vx = self._x_time_series[0]/normV
-        vy = self._y_time_series[0]/normV
-
-        # Add a collection of cell polygons with animated voltage data.
-        if self._p.showCells is True:
-            self._cell_plot, self._axes = cell_mosaic(
-                data_set, self._axes, self._cells, self._p, self._colormap)
-        else:
-            self._cell_plot, self._axes = cell_mesh(
-                data_set, self._axes, self._cells, self._p, self._colormap)
-
-        self._vect_plot, self._axes = cell_quiver(
-            vx, vy,
-            self._axes, self._cells, self._p)
-
-        # self._vect_plot = self._axes.quiver(self.p.um*self.cells.cell_centres[:,0], self.p.um*self.cells.cell_centres[:,1],
-        #     self._x_time_series[0], self._y_time_series[0])
-
-
-        # Display and/or save this animation.
-        self._animate(
-            color_mappables=self._cell_plot,
-            color_data=self._cell_time_series,
-        )
-
-
-    @type_check
-    def _plot_frame_figure(self):
-
-        # Cell data series for this frame.
-        zv = self._cell_time_series[self._time_step]
-        if self._p.showCells is True:
-            zz_grid = zv
-        else:
-            zz_grid = np.zeros(len(self._cells.voronoi_centres))
-            zz_grid[self._cells.cell_to_grid] = zv
-
-        # Update the cell plot for this frame.
-        self._cell_plot.set_array(zz_grid)
-
-
-        normV = np.sqrt(self._x_time_series[self._time_step]**2 + self._y_time_series[self._time_step]**2)
-        vx = self._x_time_series[self._time_step]/normV
-        vy = self._y_time_series[self._time_step]/normV
-
-        # Electric field streamplot for this frame.
-        self._vect_plot.set_UVC(vx, vy)
-
-
-#FIXME: This appears to be unused now. Contemplate removal.
 class AnimEnvTimeSeries(AnimCellsAfterSolving):
     '''
     Animation of an arbitrary cell-agnostic time series (e.g., environmental
@@ -591,7 +454,6 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
     _mesh_plot : matplotlib.image.AxesImage
         Meshplot of the current or prior frame's environmental data.
     '''
-
 
     @type_check
     def __init__(
@@ -923,6 +785,22 @@ class AnimFieldIntracellular(AnimField):
             field_y = self._y_time_series[time_step]
 
             #FIXME: What's this about then? Buttercups and bitter nightingales!
+            #FIXME: Right. Research: what's the length of both
+            #"sim.efield_gj_x_time[0]" and
+            #"sim.F_hydro_x_time[0]"? These are the *ONLY* two X component
+            #arrays ever passed to this method. It seems highly likely that
+            #both are defined on membranes, but let's verify that. It might be
+            #the case that:
+            #
+            #* "sim.efield_gj_x_time[0]" is defined on membrane midpoints.
+            #" "sim.F_hydro_x_time[0]" is defined on cell centres.
+            #
+            #In either case, we want the "x_time_series" parameter accepted by
+            #the superclass __init__() method to be renamed to
+            #"times_membranes_midpoint_data" and likewise with the
+            #"y_time_series" parameter. Depending on what
+            #"sim.F_hydro_x_time[0]" is, we might want additional parameters.
+
             # If the user passes somethign defined on membranes, this automatically
             # averages it to cell centers
             if len(field_x) != len(self._cells.cell_i):

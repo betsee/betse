@@ -9,6 +9,7 @@ Abstract base classes of all vector field subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import ABCMeta, abstractproperty
+from betse.util.py import references
 from betse.util.type.objects import property_cached
 from betse.util.type.types import type_check, NumericTypes
 from numpy import ndarray
@@ -131,3 +132,58 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         '''
 
         return self.y / self._magnitudes
+
+
+class VectorFieldSimulatedABC(VectorFieldABC):
+    '''
+    Abstract base class of all **simulated vector field subclasses** (i.e.,
+    vector fields simulated by the current simulation and hence attributes of
+    the current :class:`Simulator` instance).
+
+    Attributes
+    ----------
+    _cells : Cells
+        Current cell cluster.
+    _p : Parameters
+        Current simulation configuration.
+    _sim : Simulator
+        Current simulation.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(
+        self,
+        sim:   'betse.science.sim.Simulator',
+        cells: 'betse.science.cells.Cells',
+        p:     'betse.science.parameters.Parameters',
+        *args, **kwargs
+    ) -> None:
+        '''
+        Initialize this simulated vector field.
+
+        Parameters
+        ----------
+        sim : Simulator
+            Current simulation.
+        cells : Cells
+            Current cell cluster.
+        p : Parameters
+            Current simulation configuration.
+
+        All remaining parameters are passed as is to the superclass.
+        '''
+
+        # Initialize our superclass with all remaining parameters.
+        super().__init__(*args, **kwargs)
+
+        # Classify core parameters with weak rather than strong (the default)
+        # references, thus avoiding circular references and the resulting
+        # complications thereof (e.g., increased memory overhead). Since these
+        # objects necessarily live significantly longer than this plot, no
+        # complications arise. Ergo, these attributes *ALWAYS* yield these
+        # objects rather than non-deterministically yielding "None" if these
+        # objects are unexpectedly garbage-collected.
+        self._sim = references.proxy_weak(sim)
+        self._cells = references.proxy_weak(cells)
+        self._p = references.proxy_weak(p)

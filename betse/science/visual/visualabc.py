@@ -359,7 +359,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     @type_check
     def _prep_figure(
         self,
-        color_data: SequenceTypes = None,
+        color_data: SequenceOrNoneTypes = None,
+
+        #FIXME: This is awful. For sanity, require callers always pass a
+        #sequence of mappables: e.g.,
+        #   color_mappables: IterableOrNoneTypes = None,
+
         color_mappables: (ScalarMappable,) + IterableOrNoneTypes = None,
     ) -> None:
         '''
@@ -394,16 +399,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             * `None`, the subclass is responsible for colorbar autoscaling.
         '''
 
-        # Autoscale colors to the range implied by the passed color values if
-        # any *BEFORE* preparing layers requiring this range.
-        self._autoscale_colors(color_data)
-
-        # Prepare all layers to be layered onto this plot or animation *AFTER*
-        # previously appending all such layers.
+        # Prepare all layers to be layered onto this plot or animation *BEFORE*
+        # autoscaling colors assuming layers to have been prepared.
         self._prep_layers()
 
-        #FIXME: This is awful. For sanity, require callers always pass a
-        #sequence of mappables.
+        # Autoscale colors to the range implied by the passed color values.
+        self._autoscale_colors(color_data)
 
         # If a single mappable rather than a sequence of mappables was passed,
         # convert the former to the latter.
@@ -561,6 +562,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     #the more "normal" data plotted for the remaining time steps appear to
     #exhibit no changes in color. Ignoring such outlier data should improve
     #this lamentable situation.
+    @type_check
     def _autoscale_colors(self, color_data: SequenceOrNoneTypes) -> None:
         '''
         Autoscale the colorbar for this plot or animation's figure to the

@@ -86,17 +86,69 @@ class Simulator(object):
         In-place animation of cell voltage as a function of time plotted during
         (rather than after) simulation modelling if both requested and a
         simulation is currently being modelled _or_ `None` otherwise.
-    vcell_time : np.ndarray
+
+    Attributes (Voltage)
+    ----------
+    vcell_time : ndarray
         Voltage at the inner membrane surface of each cell as a function of
         time.
-    venv_time : np.ndarray
+    venv_time : ndarray
         Voltage at the outer membrane surface of each cell as a function of
         time.
-    vm : np.ndarray
+    vm : ndarray
         Transmembrane voltage of each cell for the current time step.
-    vm_time : np.ndarray
+    vm_time : ndarray
         Transmembrane voltage of each cell as a function of time.
 
+    Attributes (Current Density)
+    ----------
+    I_cell_x_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes cells, whose length is the number of cells
+          and each element is the X component of the intracellular current
+          density vector spatially situated at the center of each cell for this
+          time step.
+    I_cell_y_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes cells, whose length is the number of cells
+          and each element is the Y component of the intracellular current
+          density vector spatially situated at the center of each cell for this
+          time step.
+    I_tot_x_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the X
+          component of the **total current density vector** (i.e., vector of
+          both intra- _and_ extracellular current densities) spatially situated
+          at the center of each grid space for this time step.
+    I_tot_y_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the Y
+          component of the **total current density vector** (i.e., vector of
+          both intra- _and_ extracellular current densities) spatially situated
+          at the center of each grid space for this time step.
+
+    Attributes (Electric Field)
+    ----------
+    efield_gj_x_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the X
+          component of the intracellular electric field vector spatially
+          situated at the center of each grid space for this time step.
+    efield_gj_y_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the Y
+          component of the intracellular electric field vector spatially
+          situated at the center of each grid space for this time step.
     '''
 
     def __init__(self, p):
