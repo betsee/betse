@@ -74,17 +74,15 @@ class Cells(object):
     cell_verts : ndarray
         Three-dimensional Numpy array of the coordinates of the vertices of all
         cells, whose:
-        . First dimension indexes cells, whose length is the number of cells.
-          Each element of this dimension is a Matplotlib-compatible **polygon
-          patch** (i.e., a two-dimensional Numpy array of all vertex
-          coordinates defining the current cell's polygon), suitable for
-          passing as is to the :meth:`matplotlib.patches.Polygon.__init__`
-          method.
-        . Second dimension indexes the vertices of the current cell (_in
-          counterclockwise order_), whose length is the number of such
-          vertices.
-        . Third dimension indexes the coordinates of the current vertex, whose
-          length is unconditionally guaranteed to be 2 _and_ whose:
+        . First dimension indexes each cell such that each element is a
+          Matplotlib-compatible **polygon patch** (i.e., a two-dimensional
+          Numpy array of all vertex coordinates defining the current cell's
+          polygon), suitable for passing as is to the
+          :meth:`matplotlib.patches.Polygon.__init__` method.
+        . Second dimension indexes each vertex of the current cell (_in
+          counterclockwise order_).
+        . Third dimension indexes each coordinate of the current cell vertex,
+          whose length is guaranteed to be 2 _and_ whose:
           . First element is the X coordinate of the current cell vertex.
           . Second element is the Y coordinate of the current cell vertex.
 
@@ -96,7 +94,7 @@ class Cells(object):
         . First dimension indexes cells, whose length is the number of cells.
         . Second dimension indexes the indices of all membranes of the current
           cell, whose length is the number of membranes of this cell.
-        Hence:
+        For example:
         * `cell_to_mems[0][0]` is the index of the first membrane contained by
           the first cell -- which is _always_ `0`.
         * `cell_to_mems[-1][-1]` is the index of the last membrane contained by
@@ -104,7 +102,7 @@ class Cells(object):
     mem_to_cells : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
         that each element is the index of the cell containing the membrane
-        indexed by that element. Hence:
+        indexed by that element. For example:
         * `mem_to_cells[0]` is the index of the cell containing the first
           membrane.
         * `mem_to_cells[-1]` is the index of the cell containing the last
@@ -117,14 +115,33 @@ class Cells(object):
     mem_mids_flat : ndarray
         Two-dimensional Numpy array of the coordinates of the midpoints of all
         cell membranes, whose:
-        . First dimension indexes cell membranes, whose length is the total
-          number of cell membranes in this cluster.
-        . Second dimension indexes the coordinates of the midpoint of the
-          current cell membrane, whose length is unconditionally guaranteed to
-          be 2 _and_ whose:
+        . First dimension indexes each cell membrane.
+        . Second dimension indexes each coordinate of the midpoint of the
+          current cell membrane, whose length is guaranteed to be 2 _and_
+          whose:
           . First element is the X coordinate of the current membrane midpoint.
           . Second element is the Y coordinate of the current membrane
             midpoint.
+    mem_vects_flat : ndarray
+        Two-dimensional Numpy array of the coordinates of various vectors of
+        all cell membranes, whose:
+        . First dimension indexes each cell membrane.
+        . Second dimension indexes each coordinate of some vector describing
+          the current cell membrane, whose length is guaranteed to be 6 _and_
+          whose:
+          . First element is the X coordinate of the current membrane midpoint,
+            equivalent to :attr:`mem_mids_flat[mem_i,0]` where `mem_i` is the
+            index of the current membrane.
+          . Second element is the Y coordinate of the current membrane
+            midpoint, equivalent to :attr:`mem_mids_flat[mem_i,1]`.
+          . Third element is the X coordinate of the normal unit vector
+            orthogonal to the tangent unit vector of the current membrane
+            defined below.
+          . Fourth element is the Y coordinate of this normal unit vector.
+          . Fifth element is the X coordinate of the tangent unit vector
+            parallel to the vector implied by the pair of coordinates defining
+            the current membrane.
+          . Sixth element is the Y coordinate of this tangent unit vector.
     num_mems : ndarray
         One-dimensional Numpy array of length the number of cells such that
         each element is the number of membranes for the cell with that cell's
@@ -196,19 +213,74 @@ class Cells(object):
         * The input vector of size `n` into a matrix of size `1 x m`.
         * An output matrix of size `n x 1` into the output vector of size `n`.
 
+    Attributes (Cell Gap Junctions)
+    ----------
+    cell_nn_i : ndarray
+        Two-dimensional Numpy array of the indices of the pairs of adjacent
+        cells comprising all gap junctions connecting one cell to another in
+        this cluster, whose:
+        . First dimension indexes cell membranes, whose length is the number of
+          cell membranes in this cluster.
+        . Second dimension indexes the indices of the pair of cells defining
+          the gap junction connecting the current membrane to another membrane,
+          whose length is unconditionally guaranteed to be 2 _and_ whose:
+          . First element is the index of the cell containing the current
+            membrane.
+          . Second element is the index of an adjacent cell containing the
+            adjacent membrane to which the current membrane is connected.
+    gj_len : float
+        Uniform length (in meters) of each gap junction, equivalent to the
+        uniform distance between each pair of neighbouring cells.
+    mem_nn : ndarray
+        Two-dimensional Numpy array of the indices of the pairs of adjacent
+        cell membranes comprising all gap junctions connecting one membrane to
+        another in this cluster, whose:
+        . First dimension indexes cell membranes, whose length is the number of
+          cell membranes in this cluster.
+        . Second dimension indexes the indices of the pair of cell membranes
+          defining the gap junction connecting the current membrane to another
+          membrane, whose length is unconditionally guaranteed to be 2 _and_
+          whose:
+          . First element is the index of the current membrane.
+          . Second element is:
+            * If the current membrane is adjacent to no other membrane (e.g.,
+              due to being situated at either the periphery of this cluster
+              _or_ a discontiguous hole in this cluster), the index of the
+              current membrane again. A solitary membrane thus connects to
+              itself with a self-referential gap junction "loop."
+            * If the current membrane is adjacent to exactly one other membrane
+              (which is the common case), the index of that membrane.
+            * If the current membrane is adjacent to two or more other
+              membranes, the index of the membrane to which the current
+              membrane is most adjacent (excluding itself).
+        Hence, _all_ membranes are guaranteed to participate in exactly one
+        gap junction connection.
+    nn_i : ndarray
+        One-dimensional Numpy array of length the number of cell membranes such
+        that each element is the index of the nearest neighbouring cell
+        membrane of the cell membrane indexed by that element, comprising the
+        gap junction connecting these membranes. Each element thus maps each
+        membrane to its nearest partner. For example:
+        * `nn_i[0]` is the index of the membrane nearest to the first membrane.
+        * `nn_i[-1]` is the index of the membrane nearest to the last membrane.
+        Indexing a Numpy array of length the number of cell membranes providing
+        data spatially situated at these membranes by this array yields another
+        array of the same length providing the corresponding data spatially
+        situated at their adjacent membranes.
+
     Attributes (Voronoi Diagram)
     ----------
     cell_to_grid : ndarray
         One-dimensional Numpy array of length the number of cells such that
         each element is the index of the Voronoi region whose vertices most
         closely spatially align with those of the cell indexed by that element.
-        Hence:
+        For example:
         * `cell_to_grid[0]` is the index of the region most closely spatially
           aligned with the first cell.
         * `cell_to_grid[-1]` is the index of the region most closely spatially
           aligned with the last cell.
-        Hence, assigning a Numpy array of length the number of regions indexed
-        by this array from a Numpy array of length the number of cells maps the
+        Assigning a Numpy array of length the number of regions indexed by this
+        array from a Numpy array of length the number of cells maps the
         cell-specific data defined by the latter into region-specific data
         (e.g., `regions_data[cells.cell_to_grid] = cells_centre_data`).
     voronoi_centres : ndarray
@@ -364,6 +436,12 @@ class Cells(object):
 
         #---------------------------------------------------
 
+        #FIXME: Uh oh! We're in Don't Repeat Yourself (DRY) trouble here. All
+        #or most of the following code appears to be duplicated verbatim from
+        #the cellVerts() method. Since this code is non-trivial and hence
+        #fragile, this is bad... Would it be feasible to simply call
+        #cellVerts() here? If not, how can we unify this logic? Max axolotl!
+
         # calculate basic properties such as volume, surface area, normals, etc for the cell array
         self.cell_verts = []
 
@@ -411,8 +489,7 @@ class Cells(object):
 
                 lgth = np.sqrt((pt2[0] - pt1[0]) ** 2 + (pt2[1] - pt1[1]) ** 2)  # length of membrane domain
 
-                #FIXME: Consider removing, as this is currently unused.
-                sa = lgth * p.cell_height  # surface area of membrane
+                # sa = lgth * p.cell_height  # surface area of membrane
                 surfa.append(lgth)
 
                 tang_a = pt2 - pt1  # tangent
@@ -916,7 +993,7 @@ class Cells(object):
                 mps.append(mid.tolist())
 
                 lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
-                sa = lgth*p.cell_height    # surface area of membrane
+                # sa = lgth*p.cell_height    # surface area of membrane
                 surfa.append(lgth)
 
                 tang_a = pt2 - pt1       # tangent
@@ -934,6 +1011,23 @@ class Cells(object):
             mem_mids.append(mps)
             mem_length.append(surfa)
 
+        #FIXME: For readability, it would be great if we could extract the
+        #last four columns of this array into two new arrays with
+        #human-readable names resembling the "mem_mids_flat" array: e.g.,
+        #
+        #* "self.mem_norms_flat", providing the normal membrane unit vectors.
+        #* "self.mem_tangs_flat", providing the tangent membrane unit vectors.
+        #
+        #Currently, we reference these columns with non-human-readable magic
+        #numbers like "self.mem_vects_flat[:,3]", which is fairly hard to
+        #mentally parse when perusing the code. Calm qualms in an oceanic quay!
+        #FIXME: The first two columns of this array are exact duplicates of the
+        #first (and only) two columns of the "mem_mids_flat" array, defined
+        #below. Since the "mem_mids_flat" array is more human-readable than
+        #this array, that array should probably be preferred everywhere for
+        #obtaining the coordinates of membrane midpoints, in which case the
+        #first two columns of this array (i.e., "cv_x" and "cv_y") should
+        #probably be removed entirely from this array. Idle Ides of March!
         self.mem_vects_flat = np.array([cv_x,cv_y,cv_nx,cv_ny,cv_tx,cv_ty]).T
 
         #---post processing and calculating peripheral structures-----------------------------------------------------
@@ -1053,7 +1147,7 @@ class Cells(object):
                 mps.append(mid.tolist())
 
                 lgth = np.sqrt((pt2[0] - pt1[0])**2 + (pt2[1]-pt1[1])**2)  # length of membrane domain
-                sa = lgth*p.cell_height    # surface area of membrane
+                # sa = lgth*p.cell_height    # surface area of membrane
                 surfa.append(lgth)
 
                 tang_a = pt2 - pt1       # tangent
@@ -1203,19 +1297,19 @@ class Cells(object):
         mem_bound = []
 
         for i, ind_pair in enumerate(mem_nn_o):
-
             if len(ind_pair) == 1:
-
                 mem_bound.append(i)
                 mem_nn[i].append(i)
                 mem_nn[i].append(i)
 
-
             elif len(ind_pair) == 2:
-
                 mem_nn[i].append(ind_pair[0])
                 mem_nn[i].append(ind_pair[1])
 
+            #FIXME: It'd be great if we could document exactly what and how
+            #this algorithm is doing. Are we searching multiple possible
+            #neighboring membranes for the nearest neighboring of the current
+            #membrane to find the membranes participating in this gap junction?
             elif len(ind_pair) > 2:
                 i_n = [self.mem_vects_flat[i,2],self.mem_vects_flat[i,3]]
 
@@ -1224,14 +1318,11 @@ class Cells(object):
                     ia = round(np.dot(i_n,a),1)
 
                     if ia == -1.0:
-
                         mem_nn[i] = []
-
                         mem_nn[i].append(i)
                         mem_nn[i].append(j)
 
                     else:  # in rare cases, tag as self instead of leaving a blank spot:
-
                         mem_nn[i] =[]
                         mem_nn[i].append(i)
                         mem_nn[i].append(i)

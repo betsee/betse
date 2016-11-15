@@ -87,6 +87,13 @@ class Simulator(object):
         (rather than after) simulation modelling if both requested and a
         simulation is currently being modelled _or_ `None` otherwise.
 
+    Attributes (Counts)
+    ----------
+    cdl : int
+        Number of cells in this simulated cluster.
+    mdl : int
+        Number of cell membranes in this simulated cluster.
+
     Attributes (Voltage)
     ----------
     vcell_time : ndarray
@@ -96,9 +103,19 @@ class Simulator(object):
         Voltage at the outer membrane surface of each cell as a function of
         time.
     vm : ndarray
-        Transmembrane voltage of each cell for the current time step.
+        One-dimensional Numpy array of length the number of cell membranes such
+        that each element is the transmembrane voltage spatially situated
+        across the cell membrane indexed by that element for the current time
+        step.
     vm_time : ndarray
-        Transmembrane voltage of each cell as a function of time.
+        Two-dimensional Numpy array of the transmembrane voltage across all
+        cell membranes, whose:
+        . First dimension indexes each simulation time step.
+        . Second dimension indexes each cell membrane in this cluster such that
+          each element is the transmembrane voltage spatially situated across
+          the cell membrane indexed by that element for the current time step.
+        Equivalently, this array is the concatenation of all :attr:`vm` arrays
+        over all time steps.
 
     Attributes (Current Density)
     ----------
@@ -135,20 +152,31 @@ class Simulator(object):
 
     Attributes (Electric Field)
     ----------
+    E_gj_x : ndarray
+        Two-dimensional Numpy array whose:
+        * First dimension indexes each cell membrane in this simulated cluster.
+        * Second dimension indexes square grid spaces, whose length is the
+          number of grid spaces in either dimension and each element is the X
+          component of the intracellular electric field vector spatially
+          situated at the center of each grid space for this time step.
     efield_gj_x_time : list
-        Two-dimensional list whose:
+        Three-dimensional list whose:
         * First dimension indexes each simulation time step.
         * Second dimension indexes square grid spaces, whose length is the
           number of grid spaces in either dimension and each element is the X
           component of the intracellular electric field vector spatially
           situated at the center of each grid space for this time step.
+        Equivalently, this array is the concatenation of all :attr:`E_gj_x`
+        arrays over all time steps.
     efield_gj_y_time : list
-        Two-dimensional list whose:
+        Three-dimensional list whose:
         * First dimension indexes each simulation time step.
         * Second dimension indexes square grid spaces, whose length is the
           number of grid spaces in either dimension and each element is the Y
           component of the intracellular electric field vector spatially
           situated at the center of each grid space for this time step.
+        Equivalently, this array is the concatenation of all :attr:`E_gj_y`
+        arrays over all time steps.
     '''
 
     def __init__(self, p):
@@ -205,12 +233,13 @@ class Simulator(object):
         self.met_concs = None
         self.grn = None
 
+        #FIXME: Consider shifting these attributes from this class into the
+        #more appropriate "Cells" class.
         self.mdl = len(cells.mem_i)  # mems-data-length
         self.cdl = len(cells.cell_i)  # cells-data-length
 
         if p.sim_ECM is True:  # set environnment data length
             self.edl = len(cells.xypts)
-
         else:
             self.edl = self.mdl
 
@@ -1260,7 +1289,6 @@ class Simulator(object):
 
         # add the new concentration and voltage data to the time-storage matrices:
         self.efield_gj_x_time.append(self.E_gj_x[:])
-
         self.efield_gj_y_time.append(self.E_gj_y[:])
 
         concs = np.copy(self.cc_cells[:])
