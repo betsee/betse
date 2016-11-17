@@ -160,6 +160,11 @@ class MasterOfGenes(object):
 
         sim.vm = -50e-3*np.ones(sim.mdl)
 
+
+        # initialize key fields of simulator required to interface (dummy init)
+        sim.rho_pump = 1.0
+        sim.rho_channel = 1.0
+
         # set molecules to not affect charge for sim-grn test-drives:
         p.substances_affect_charge = False
 
@@ -188,13 +193,14 @@ class MasterOfGenes(object):
             # if self.modulators:
             #     self.core.run_loop_modulators(sim, self.core, cells, p)
 
-            self.core.run_dummy_loop(t, sim, cells, p)
+            self.core.run_loop(t, sim, cells, p)
+
 
             if t in tsamples:
 
                 logs.log_info('------------------' + str(np.round(t,3)) +' s --------------------')
                 self.time.append(t)
-                self.core.write_data(sim, p)
+                self.core.write_data(sim, cells, p)
                 self.core.report(sim, p)
 
         logs.log_info('Saving simulation...')

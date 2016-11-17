@@ -2656,6 +2656,9 @@ class MasterOfNetworks(object):
 
         """
 
+        logs.log_info('time: '+ str(np.round(sim.time[-1], 2)) +
+                      ' s of ' + str(np.round(p.total_time, 2)) + ' s')
+
         for name in self.molecules:
 
             obj = self.molecules[name]
@@ -4262,8 +4265,8 @@ class MasterOfNetworks(object):
         # If either NetworkX or PyDot are unimportable, raise an exception.
         libs.die_unless_runtime_optional('networkx', 'pydot')
 
-        # Import both NetworkX and PyDot.
-        import networkx as nx
+        # Import NetworkX's PyDot interface.
+        # import networkx as nx
         from networkx import nx_pydot
 
         mssg = "Optimizing with {} in {} iterations".format(

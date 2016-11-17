@@ -209,12 +209,16 @@ class MasterOfMetabolism(object):
         # sim.metabo = self
 
         # create a dictionary pointing to key metabolic molecules used in sim: ATP, ADP and Pi:
-        sim.met_concs = {'cATP': self.core.mem_concs['ATP'],
-            'cADP': self.core.mem_concs['ADP'],
-            'cPi': self.core.mem_concs['Pi']}
+        sim.met_concs = {'cATP': self.core.cell_concs['ATP'][cells.mem_to_cells],
+            'cADP': self.core.cell_concs['ADP'][cells.mem_to_cells],
+            'cPi': self.core.cell_concs['Pi'][cells.mem_to_cells]}
 
         # initialize Vmem to an initial value common to many cell types:
         sim.vm = -50e-3*np.ones(sim.mdl)
+
+        # initialize key fields of simulator required to interface (dummy init)
+        sim.rho_pump = 1.0
+        sim.rho_channel = 1.0
 
         # p.substances_affect_charge = False
 
@@ -264,7 +268,7 @@ class MasterOfMetabolism(object):
 
                 logs.log_info('------------------' + str(np.round(t,3)) +' s --------------------')
                 self.time.append(t)
-                self.core.write_data(sim, p)
+                self.core.write_data(sim, cells, p)
                 self.core.report(sim, p)
 
         logs.log_info('Saving simulation...')

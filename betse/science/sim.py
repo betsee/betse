@@ -1795,6 +1795,8 @@ class Simulator(object):
                 f_NaEx = np.zeros(self.mdl)
                 f_CaEx = np.zeros(self.mdl)
 
+        self.rate_CaATP = f_CaATP
+
         if p.cluster_open is False:
             f_CaATP[cells.bflags_mems] = 0
             f_NaEx[cells.bflags_mems] = 0
