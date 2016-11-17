@@ -1,10 +1,7 @@
 %YAML 1.1
 ---
-# The BETSE lumped glycolysis metabolism configuration file, which takes a medium-course view of cell metabolism by
-# considering glycolysis as a single reaction that is regulated by activators (AMP) and inhibitors (ATP). It includes
-# models of glucose transporters, including GLUT4, which is activated by extracellular insulin.
-# All metabolism related config files must contain biomolecules with the name 'ATP', 'ADP', and 'Pi',
-# otherwise, the level of complexity/detail can be high or low.
+# This file provides full examples of all features that can be used to define
+# Bioelectricity Integrated Gene and Reaction networks in BETSE
 
 # A Note on YAML
 # ----------
@@ -14,52 +11,49 @@
 # https://en.wikipedia.org/wiki/YAML.
 
 #-----------------------------------------------------------------------------------------------------------------------
-#  BASIC METABOLIC FEATURES
+#  BASIC FEATURES
 #-----------------------------------------------------------------------------------------------------------------------
-optimize network: True
-
-enable mitochondria: True
+optimize network: False    # Prior to simulation, use a basin hopping algorithm to optimize network?
+enable mitochondria: False  # Enable mitochondrial regions inside each cell?
 
 #-----------------------------------------------------------------------------------------------------------------------
-#  MOLECULES of METABOLISM
+# CUSTOM BIOMOLECULES
 #-----------------------------------------------------------------------------------------------------------------------
 
 biomolecules:  # specify the properties of all molecules participating in metabolism
 
-  - name: 'ATP'    # adenosine tri-phosphate **DO NOT** end name with '_cell', '_env' or '_mit' !
+  - name: 'Substance_A'    # supply a unique name; **DO NOT** end name with '_cell', '_env' or '_mit' !
 
     Dm: 1.0e-18          #  membrane diffusion coefficient [m2/s]
     Do: 1.0e-10          # free diffusion constant in extra and intracellular spaces [m2/s]
     z: -2               # charge (oxidation state)
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
-    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L]
-    TJ permeable: False
-    GJ impermeable: False
-    TJ factor: 1.0       # TJ factor (relative to decrease in permeability)
-    ignore ECM: True
-
-    growth and decay:
+    mit conc: 0.0             # initial concentration in the mitochondria [mmol/L] (if mit enabled!)
+    TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+    GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
+    TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+    ignore ECM: True    # treat extracellular spaces as full grid square volume (True)?
+    growth and decay:    # settings for production/decay of substances (standard GRN model)
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
       Km: 1.0                  # Half-maximum value for decay [mmol/L]
       n: 1.0                   # Hill exponent for decay
-      apply to: ['spot']       # apply growth only to a specific tissue profile, or 'all' for everything
-      modulator function: gradient_x        # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
+      apply to: ['spot']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+      modulator function: gradient_x  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
       n activators: None       # list of Hill exponent of activators
       inhibitors: ['B']   # list of defined substances or simulation ions inhibiting expression
       Km inhibitors: [1.0]      # list of half-maximum values for inhibitors
       n inhibitors: [3.0]        # list of Hill exponent of inhibitors
-
     ion channel gating:
-      channel name: P2X          # supply a unique name for this channel (for inclusion on graph)
-      ion channel target: ['Na','K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
+      channel name: P2X          # supply a unique name for the channel (for inclusion on net graph)
+      ion channel target: ['Na', 'K']            # ion channel target ('None', 'Na', 'K', 'Cl','Ca')
       target Hill coefficient: 1.0e-3   # half-max value for channel opening with respect to concentration
-      target Hill exponent: 1.0         # Hill exponent; affects shape of opening-vs-concentration curve
-      peak channel opening: 1e-16        # max mem diffusion constant for target ion when channel fully open
-      acts extracellularly: False        # acts via extracellular (True) or intracellular (False) concentration?
+      target Hill exponent: 1.0     # Hill exponent; affects shape of opening-vs-concentration curve
+      peak channel opening: 1e-16    # max mem diffusion constant for target ion when channel fully open
+      acts extracellularly: False    # acts via extracellular (True) or intracellular (False) concentration?
       activators: None         # list of defined substances or simulation ions activating expression
       Km activators: None      # list of half-maximum values for activators
       n activators: None       # list of Hill exponent of activators
@@ -68,21 +62,18 @@ biomolecules:  # specify the properties of all molecules participating in metabo
       Km inhibitors: None      # list of half-maximum values for inhibitors
       n inhibitors: None        # list of Hill exponent of inhibitors
       zone inhibitors: None   # location of concentration having an influence ('cell' or 'env')
-
-    active pumping:                     # use ATP driven pumps to actively move morphogen?
-      turn on: False                     # turn pumping on?
-      pump to cell: True       # pump from extracellular space to cell (True) or reverse (False)?
-      maximum rate: 1.0e-4              # maximum rate constant of pumping [mol/s]
-      pump Km: 1.0e-3       # Michaelis-Menten coefficient for molecule in pump reaction
+    active pumping:      # use ATP driven pumps to actively move the substance across membranes?
+      turn on: False           # turn pumping on?
+      pump to cell: True      # pump from extracellular space to cell (True) or reverse (False)?
+      maximum rate: 1.0e-8   # maximum rate constant of pumping [mol/s]
+      pump Km: 1.0e-3       # 1/2 rate point coefficient for molecule in pump reaction
       uses ATP: False      # uses ATP or facilitated transport?
-
     change at bounds:      # Change the environmental concentration of molecule from the global boundary
       event happens: False     # turn the event on (True) or off (False)
       change start: 1.0          # time to start change [s]
       change finish: 7.0        # time to end change and return to original [s]
       change rate: 1.0           # rate of change [s]
       concentration: 1e-3      # target concentration for duration of change [mmol/L]
-
     plotting:
       plot 2D: True         # create a unique set of plots for the substance
       animate: True         # animate the substance during the sampled time-steps of the simulation
@@ -97,18 +88,17 @@ biomolecules:  # specify the properties of all molecules participating in metabo
 
 reactions:
 
-  - name: consume_ATP              # unique identifier for the reaction **DO NOT** end with '_growth' or '_decay'
+  - name: consume_A              # unique identifier for the reaction **DO NOT** end with '_growth' or '_decay'
 
     reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
-    reactants: ['ATP']              # list of reagents; must be from set of names defined for biomolecules in above
+    reactants: ['Substance_A']              # list of reagents; must be from set of names defined for biomolecules in above
     reactant multipliers: [1]      # reaction coefficients for reagents, in same order as reagent definition
     Km reactants: [1.0]             # list of half-max coefficients for reagents, in same order as reagents list
-    products: ['ADP', 'Pi']        # list of products; must be from set of names defined for biomolecules in above
+    products: ['B', 'C']        # list of products; must be from set of names defined for biomolecules in above
     product multipliers: [1, 1]   # reaction coefficients for products, in same order as product definition
     Km products: [0.1, 0.1]        # list of half-max coefficients for reagents, in same order as reagents list
     max rate: 5.0e-3                # list of half-max coefficients for reagents, in same order as reagents list
     standard free energy: None   # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
-
     reaction activators: None   # additional defined substances or ions increasing activity of transporter
     activator Km: None
     activator n: None
@@ -126,17 +116,16 @@ reactions:
 # Positive flux moves out of the cell
 transporters:
 
-  - name: MCT         # unique identifier for the transporter **DO NOT** end with '_growth' or '_decay'
-
+  - name: Transport_A         # unique identifier for the transporter **DO NOT** end with '_growth' or '_decay'
     reaction zone: cell    # reaction zone identifier: 'cell' or 'mit'; where reaction takes place
-    reactants: ['Pyr']   # list of reagents; must be from set of names defined for biomolecules in above
+    reactants: ['Substance_A']   # list of reagents; must be from set of names defined for biomolecules in above
     reactant multipliers: [1]  # reaction coefficients for reagents, in same order as reagent definition
     Km reactants: [0.1]   # list of half-max coefficients for reagents, in same order as reagents list
-    products: ['Pyr']         # list of products; must be from set of names defined for biomolecules in above
+    products: ['Substance_A']         # list of products; must be from set of names defined for biomolecules in above
     product multipliers: [1]   # reaction coefficients for products, in same order as product definition
     Km products: [0.1]        # list of half-max coefficients for reagents, in same order as reagents list
     transfered out of cell: []   # items of reaction moved out of cell during forwards reaction
-    transfered into cell: ['Pyr']     # items of reaction moved into cell during forwards reaction
+    transfered into cell: ['Substance_A']     # items of reaction moved into cell during forwards reaction
     max rate: 1.0e-5          # maximum rate of transport [mol/(m2*s)]
     standard free energy: 0  # standard free energy of reaction in J/mol. 'None' creates non-reversible reaction
     apply to: ['nerves', 'spot']      # apply transporter only on certain profiles?
@@ -194,4 +183,3 @@ modulators:
     inhibitor Km: [1.5]
     inhibitor n: [3.0]
     inhibitor zone: ['cell']
-

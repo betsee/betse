@@ -239,6 +239,7 @@ class MasterOfMetabolism(object):
 
         self.core.clear_cache()
         self.time = []
+        sim.time = []
 
         for t in tt:
 
@@ -266,6 +267,8 @@ class MasterOfMetabolism(object):
 
             if t in tsamples:
 
+                sim.time.append(t)
+
                 logs.log_info('------------------' + str(np.round(t,3)) +' s --------------------')
                 self.time.append(t)
                 self.core.write_data(sim, cells, p)
@@ -274,7 +277,9 @@ class MasterOfMetabolism(object):
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
         fh.saveSim(self.savedMoM, datadump)
+        self.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
         self.core.export_eval_strings(p)
+        self.core.export_equations(p)
         message = 'Metabolic network simulation saved to' + ' ' + self.savedMoM
         logs.log_info(message)
 

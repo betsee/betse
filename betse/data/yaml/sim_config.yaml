@@ -581,7 +581,7 @@ metabolism settings:
 
   metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
 
-  metabolism config: extra_configs/metabo_config_basic.yaml  # supply a path to the metabolic model config file
+  metabolism config: extra_configs/metabo_basic.yaml  # supply a path to the metabolic model config file
 
 #-----------------------------------------------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK

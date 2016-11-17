@@ -160,6 +160,8 @@ class MasterOfGenes(object):
 
         sim.vm = -50e-3*np.ones(sim.mdl)
 
+        sim.time = []
+
 
         # initialize key fields of simulator required to interface (dummy init)
         sim.rho_pump = 1.0
@@ -197,6 +199,7 @@ class MasterOfGenes(object):
 
 
             if t in tsamples:
+                sim.time.append(t)
 
                 logs.log_info('------------------' + str(np.round(t,3)) +' s --------------------')
                 self.time.append(t)
@@ -206,6 +209,9 @@ class MasterOfGenes(object):
         logs.log_info('Saving simulation...')
         datadump = [self, cells, p]
         fh.saveSim(self.savedMoG, datadump)
+        self.core.init_saving(cells, p, plot_type='init', nested_folder_name='Gene')
+        self.core.export_eval_strings(p)
+        self.core.export_equations(p)
         message = 'Gene regulatory network simulation saved to' + ' ' + self.savedMoG
         logs.log_info(message)
 
