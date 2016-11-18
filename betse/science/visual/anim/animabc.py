@@ -105,6 +105,7 @@ from betse.science.visual.layer.layerstream import (
     LayerCellsStreamCurrentIntraExtra,
 )
 from betse.util.io.log import logs
+from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.type import iterables
 from betse.util.type.types import (
@@ -810,6 +811,23 @@ class AnimCellsABC(VisualCellsABC):
         # Plot this frame via subclass logic *AFTER* performing all
         # superclass-specific plotting.
         self._plot_frame_figure()
+
+        #FIXME; This doesn't seem quite right, even for Windows. In theory, the
+        #"matplotlib.animation.FuncAnimation" class should handle such low-
+        #level details. Tragically, as the URL below suggests, Matplotlib
+        #developers have disavowed all responsibility for this issue. *sigh*
+
+        # If the current platform is Windows, temporarily yield the time slice
+        # for the minimum amount of time required by the POSIX-incompatible
+        # Windows process model for responding to queued events in the GUI
+        # eventloop of the current process. Failing to do so reliably results in
+        # unresponsive plots and animations *ONLY* under Windows. For further
+        # details, see also:
+        #
+        #     https://gitlab.com/betse/betse/issues/9
+        #     https://github.com/matplotlib/matplotlib/issues/2134/
+        if oses.is_windows():
+            pyplot.pause(0.0001)
 
         # If saving this animation, save this frame.
         if self._is_save:
