@@ -88,17 +88,17 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-
-import betse.util.py.freezers
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
-from betse.util.os import oses
+from betse.util.os import kernels
 from betse.util.path import dirs, paths
-from betse.util.py import modules, pys
+from betse.util.py import freezers, modules, pys
 from betse.util.type import iterables, strs
+from betse.util.type.objects import property_cached
 from betse.util.type.types import type_check
 from collections import OrderedDict
 from contextlib import contextmanager
+from matplotlib.colors import Colormap
 
 # ....................{ CONSTANTS                          }....................
 RC_PARAMS = {
@@ -177,7 +177,7 @@ streamplot z-order. Specifically, streamplots were assigned a default z-order of
 
 # ....................{ GETTERS                            }....................
 @type_check
-def get_colormap(colormap_name: str):
+def get_colormap(colormap_name: str) -> Colormap:
     '''
     Matplotlib colormap uniquely identified by the passed name.
 
@@ -214,22 +214,15 @@ def get_colormap(colormap_name: str):
 # ....................{ CLASSES                            }....................
 class MatplotlibConfig(object):
     '''
-    matplotlib wrapper simplifying configuration and introspection.
-
-    Attributes
-    ----------
-    _backend_names : list
-        List of the strictly lowercase names of all currently available
-        matplotlib-specific backends (e.g., `['gtk3agg', 'tkagg', 'qt4agg']`).
+    High-level wrapper simplifying low-level configuration and introspection of
+    Matplotlib.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     def __init__(self):
 
+        # Initialize our superclass.
         super().__init__()
-
-        # Declare instance variables.
-        self._backend_names = None
 
 
     def init(self) -> None:
@@ -247,59 +240,57 @@ class MatplotlibConfig(object):
         this file has already been loaded at application startup. While this
         does increase startup costs, the alternatives are all absurd at best.
 
-        Sanitization
-        ----------
-        This method imports matplotlib in a safe manner and should be the first
-        call to do so for the active Python process. Unfortunately, the
-        `matplotlib.__init__` module implicitly imported on the first matplotlib
-        importation performs the following unsafe logic:
-
-        * The current command-line argument list `sys.argv` is iteratively
-          searched for arguments matching patterns, including:
-          * Arguments prefixed by `-d` of length greater than or equal to 3
-            (e.g., `-dtkagg` but _not_ simply `-d`). For each such argument,
-            `matplotlib.__init__` attempts to enable the backend whose name is
-            given by such argument excluding the prefixing `-d`, silently
-            ignoring exceptions.
-          * Arguments prefixed by `--verbose-` matching a matplotlib-specific
-            verbosity level (e.g., `--verbose-debug`). For each such argument,
-            `matplotlib.__init__` coerces the global verbosity to that level.
-
-        This is utterly horrible. Since enabling arbitrary backends can have
-        non- negligible side effects, `matplotlib.__init__` _must_ be prevented
-        from performing this logic. Since this module is imported _only_ on the
-        first importation of a matplotlib module, it suffices to perform this
-        preventation _only_ for the following importation of the top-level
-        matplotlib package.
-
-        Backend
-        ----------
-        This method also sets the default matplotlib backend to be implicitly
-        used for subsequent plotting, which matplotlib requires to be configured
-        _before_ the first importation of any the following modules:
-        `matplotlib.pyplot` or `matplotlib.backends`.  Specifically:
-
-        * If this method is called by `py.test`-driven testing and hence
-          possibly by headless remote continuous integration (CI) with no access
-          to a window manager, the non-interactive `Agg` backend is used.
-        * Else, if the current platform is:
-          * Either Linux or Windows, the `TkAgg` backend is used. This is the
-            only backend currently known to survive freezing into executables.
-            Alternatives include:
-            * `Qt4Agg`, an aesthetically inferior backend _not_ appearing to
-              support animation out of the box.
-          * OS X, the `MacOSX` backend is used. This is the only backend
-            currently known to survive freezing into executables. Alternatives
-            include:
-            * `CocoaAgg`, a non-native backend leveraging the cross-platform C++
-              library AGG (Anti-grain Geometry). That's good. Unfortunately,
-              this backend is officially deprecated and fundametally broken.
-              That's bad.
-
         See Also
         ----------
         http://matplotlib.org/users/customizing.html
-            matplotlib configuration details.
+            Matplotlib configuration details.
+        '''
+
+        # Initialize matplotlib in a safe manner.
+        self._init_matplotlib()
+
+        # Set the default matplotlib backend *AFTER* initializing matplotlib.
+        self._init_backend()
+
+        # Import all animation writer classes *AFTER* establishing the backend,
+        # thus implicitly registering these classes with matplotlib. This, in
+        # turn, permits other portions of the codebase to conveniently refer to
+        # these classes by name without having to manually instantiate them.
+        # (While it may or may not be necessary to import these classes after
+        # establishing the backend, it only seems prudent to do so.)
+        from betse.lib.matplotlib.writer import mplclass
+        if False: mplclass    # silence contemptible IDE warning messages
+
+
+    def _init_matplotlib(self) -> None:
+        '''
+        Initialize matplotlib in a safe manner, guaranteeing all subsequent
+        importations of matplotlib elsewhere in the codebase to be safe.
+
+        This method imports matplotlib in a safe manner and should be the first
+        call to do so for the active Python process. Unfortunately, the
+        :mod:`matplotlib.__init__` submodule implicitly imported on the first
+        matplotlib importation performs the following unsafe logic:
+
+        * The current command-line argument list :data:`sys.argv` is iteratively
+          searched for arguments matching patterns, including:
+          * Arguments prefixed by `-d` of length greater than or equal to 3
+            (e.g., `-dtkagg` but _not_ simply `-d`). For each such argument,
+            :mod:`matplotlib.__init__` attempts to enable the backend whose name
+            is given by such argument excluding the prefixing `-d`, silently
+            ignoring exceptions.
+          * Arguments prefixed by `--verbose-` matching a matplotlib-specific
+            verbosity level (e.g., `--verbose-debug`). For each such argument,
+            :mod:`matplotlib.__init__` coerces the global verbosity to that
+            level.
+
+        This is utterly horrible. Since enabling arbitrary backends can have
+        non-negligible side effects, the :mod:`matplotlib.__init__` submodule
+        _must_ be prevented from performing this logic. Since this submodule is
+        imported only on the first importation of a matplotlib module, it
+        performing this preventation _only_ on the first importation of the
+        top-level :mod:`matplotlib` package by this method suffices to sanitize
+        matplotlib behaviour.
         '''
 
         # Copy the current argument list into a temporary list.
@@ -371,6 +362,36 @@ class MatplotlibConfig(object):
         # Unconditionally enable the settings defined by the "RC_PARAMS" global.
         rcParams.update(RC_PARAMS)
 
+
+    #FIXME: Revise docstring in accordance with the iterative platform-specific
+    #fallback process now employed for deciding the default Matplotlib backend.
+    def _init_backend(self) -> None:
+        '''
+        Set the default matplotlib backend to be implicitly used for subsequent
+        plotting, which matplotlib requires to be configured _before_ the first
+        importation of any the following modules: :mod:`matplotlib.pyplot` or
+        :mod:`matplotlib.backends`.
+
+        Specifically:
+
+        * If this method is called by `py.test`-driven testing and hence
+          possibly by headless remote continuous integration (CI) with no access
+          to a window manager, the non-interactive `Agg` backend is used.
+        * Else, if the current platform is:
+          * Either Linux or Windows, the `TkAgg` backend is used. This is the
+            only backend currently known to survive freezing into executables.
+            Alternatives include:
+            * `Qt4Agg`, an (_arguably_) aesthetically inferior backend with
+              (_inarguably_) significant performance concerns.
+          * OS X, the `MacOSX` backend is used. This is the only backend
+            currently known to survive freezing into executables. Alternatives
+            include:
+            * `CocoaAgg`, a non-native backend leveraging the cross-platform C++
+              library AGG (Anti-grain Geometry). That's good. Unfortunately,
+              this backend is officially deprecated and fundametally broken.
+              That's bad.
+        '''
+
         #FIXME: Add transparent support for headless environments here, for
         #which we'll want to default to a headless backend as we currently do
         #when testing (e.g., "Agg"). To do so, add OS-specific logic testing for
@@ -383,35 +404,120 @@ class MatplotlibConfig(object):
         #* Under OS X and Windows, don't bother testing anything. Windows
         #  explicitly fails to support headless operation. OS X technically
         #  supports headless operation via an obscure (albeit well-documented)
-        #  hack where one enters ">console" as the login username, but
-        #  effectively fails to support headless operation as well.
+        #  hack where one enters ">console" as the login username, but basically
+        #  fails to support headless operation for most intents and purposes.
         #
         #This is critical under Linux, as it would render BETSE amenable to
         #scripted, remote, and (hopefully) parallelized usage.
+        #FIXME: Actually, is the above comment relevant anymore in light of the
+        #inclusion of the headless "Agg" backend listed below? Specifically, are
+        #non-headless backends (e.g., "TkAgg") actually importable under
+        #headless environments? Hopefully, this is *NOT* the case. If this is
+        #indeed not the case, then no further work needs be done; the logic
+        #below already implicitly handles headless environments.
+
+        # Dictionary mapping from the name of each supported platform to a tuple
+        # of the names of all matplotlib backends to iteratively fallback to on
+        # that platform (in descending order of preference) in the event the the
+        # end user fails to explicitly specify such a name (e.g., via the
+        # `--matplotlib-backend` option). In this case, this method subsequently
+        # falls back to the first matplotlib backend usable on the current
+        # system whose name is in this tuple.
+        _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES = {
+            #FIXME: Inject the "Qt5Agg" backend somewhere into this list after
+            #shown to be working. Sadly, this backend appears to be overly
+            #fragile and hence unusable. Attempting to use this backend on
+            #Gentoo Linux with matplotlib 1.5.1 yields the following fatal
+            #exception on attempting to plot or animate:
+            #
+            #    QObject::connect: Cannot connect NavigationToolbar2QT::message(QString) to (null)::_show_message()
+            #    TypeError: connect() failed between NavigationToolbar2QT.message[str] and _show_message()
+            #FIXME: Inject the "WxAgg" backend somewhere into this list after
+            #shown to be working under Python 3.x. Sadly, since a stable version
+            #of WxPython Phoenix has yet to be released, this may take
+            #considerably longer than first assumed. The vapourware: it burns!
+
+            # Under Linux, the following backends are preferred:
+            #
+            # * "TkAgg", a GUI backend with adequate (albeit not particularly
+            #   impressive) aesthetics and superior performance by compare to
+            #   less preferable backends. Tcl/Tk: who would have ever thought?
+            # * "Qt4Agg", a GUI backend with (arguably) inferior aesthetics and
+            #   (inarguably) significant performance concerns by compare to more
+            #   preferable backends. Something is better than nothing.
+            # * "Agg", a headless backend ensuring that BETSE remains somewhat
+            #   usable on systems with no usable GUI-oriented backend. This is
+            #   the least preferrable backend and so deferred for last.
+            'Linux': ('TkAgg', 'Qt4Agg', 'Agg',),
+            # 'Linux': (),
+
+            # Under OS X and iOS, the preferred backends are defined below in
+            # terms of the preferred Linux-specific backends defined above.
+            'Darwin': None,
+
+            # Under Windows, the following backends are preferred:
+            #
+            # * "Qt4Agg". While typically less preferable than "TkAgg", this
+            #   backend's implementation is somewhat stabler under many Windows
+            #   systems than that of "TkAgg". Hence, stability wins.
+            # * "TkAgg". (See the prior item.)
+            # * "Agg", a last-ditch headless fallback. (See above.)
+            'Windows': ('Qt4Agg', 'TkAgg', 'Agg',),
+        }
+
+        # Under OS X and iOS, prefer the only genuinely usable Darwin-specific
+        # backend before the same backends as preferred under Linux. Since
+        # Darwin and Linux are both POSIX-compatible, cross-platform backends
+        # (e.g., "Qt5Agg") tend to behave similarly under both platforms.
+        _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES['Darwin'] = (
+            ('MacOSX',) + _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES['Linux'])
+
+        #FIXME: Refactor the test suite to:
+        #
+        #* In functional tests, explicitly pass the "--matplotlib-backend=agg"
+        #  CLI option to all invocations of the "betse" command.
+        #* In unit tests, explicitly set the default backend to be used...
+        #  somehow. But how, exactly? Perhaps this method could accept the name
+        #  of the desired matplotlib backend (if any) as a parameter; this
+        #  method could then be called by a unit test fixture to default to the
+        #  "Agg" backend.
+        #
+        #After doing so, remove the "if pys.is_testing():" branch below.
 
         # If tests are being run, default to the non-interactive "Agg" backend
         if pys.is_testing():
             self.backend_name = 'Agg'
-        # Else if the current platform is OS X, default to the "MacOSX" backend.
-        elif oses.is_os_x():
-            self.backend_name = 'MacOSX'
-        # Else if the current platform is Windows, default to the "Qt4Agg"
-        # backend,
-        elif oses.is_windows():
-            self.backend_name = "Qt4Agg"
-        # Else, the current platform is Linux. In this case, default to the
-        # "TkAgg" backend.
-        else:
-            self.backend_name = 'TkAgg'
+            return
 
-        # Import all animation writer classes *AFTER* establishing the backend,
-        # thus implicitly registering these classes with Matplotlib. This, in
-        # turn, permits other portions of the codebase to conveniently refer to
-        # these classes by name without having to manually instantiate them.
-        # (While it may or may not be necessary to import these classes after
-        # establishing the backend, it only seems prudent to do so.)
-        from betse.lib.matplotlib.writer import mplclass
-        if False: mplclass    # silence contemptible IDE warning messages
+        # Else, tests are *NOT* being run. Default to the first backend usable
+        # under the current system.
+        #
+        # Name of the current platform (e.g., "Linux", "Darwin", "Windows").
+        kernel_name = kernels.get_name()
+
+        # Tuple of the names of all matplotlib backends to iteratively
+        # fallback to on this platform if supported or None otherwise.
+        backend_names = _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES.get(
+            kernel_name, None)
+
+        # If this platform is unsupported, raise an exception.
+        if backend_names is None:
+            raise BetseMatplotlibException(
+                'Platform "{}" unsupported.'.format(kernel_name))
+
+        # For each such backend (in descending order of preference)...
+        for backend_name in backend_names:
+            # If this backend is usable, this tester has already implicitly
+            # enabled this backend. Our work is done here.
+            if self.is_backend_usable(backend_name):
+                break
+        # If no such backend is usable on the current system (e.g., due to
+        # no external widget library being installed), raise an exception.
+        # Due to the inclusion of the "Agg" backend as a last-ditch fallback
+        # for all platforms, this should *NEVER* happen. Damn you, Murphy!
+        else:
+            raise BetseMatplotlibException(
+                'Usable matplotlib backend not found.')
 
     # ..................{ PROPERTIES ~ rc                    }..................
     @property
@@ -497,7 +603,7 @@ class MatplotlibConfig(object):
 
         # If no backend has been set yet, raise an exception.
         if not self.is_backend():
-            raise BetseMatplotlibException('Matplotlib backend not set.')
+            raise BetseMatplotlibException('Matplotlib backend undefined.')
 
         # Name of this backend's module.
         backend_module_name = (
@@ -572,7 +678,7 @@ class MatplotlibConfig(object):
         return list(backend_canvas_class.filetypes.keys())
 
     # ..................{ PROPERTIES ~ backend : names       }..................
-    @property
+    @property_cached
     def backend_names(self) -> list:
         '''
         List of the strictly lowercase names of all currently available
@@ -586,52 +692,46 @@ class MatplotlibConfig(object):
         Instead, this function iteratively inspects the current filesystem.
         '''
 
-        # If this funuction has *NOT* been called at least once, create and
-        # cache this list.
-        if self._backend_names is None:
-            # Importing such module has side effects and hence is deferred.
-            from matplotlib import backends
+        # Importing such module has side effects and hence is deferred.
+        from matplotlib import backends
 
-            # Absolute path of the directory containing all backends for the
-            # currently imported "matplotlib".
-            backends_dir = modules.get_dirname(backends)
+        # Absolute path of the directory containing all backends for the
+        # currently imported "matplotlib".
+        backends_dir = modules.get_dirname(backends)
 
-            # If this directory exists, find all backends in this directory.
-            if dirs.is_dir(backends_dir):
-                # String prefixing the basenames of backend-specific modules.
-                BACKEND_BASENAME_PREFIX = 'backend_'
+        # If this directory exists, find all backends in this directory.
+        if dirs.is_dir(backends_dir):
+            # String prefixing the basenames of backend-specific modules.
+            BACKEND_BASENAME_PREFIX = 'backend_'
 
-                # These names, discovered by:
-                #
-                # * Filtering all basenames in this directory for modules.
-                # * Converting the remaining basenames to backend names.
-                # * Sorting these names in ascending lexicographic order for
-                #   readability (e.g., in the "info" subcommand).
-                self._backend_names = iterables.sort_lexicographic_ascending([
-                    paths.get_pathname_sans_filetype(
-                        strs.remove_prefix_if_found(
-                            backend_basename, BACKEND_BASENAME_PREFIX))
-                    for backend_basename in dirs.list_basenames(backends_dir)
-                    if strs.is_prefix(
-                        backend_basename, BACKEND_BASENAME_PREFIX) and
-                        paths.is_filetype_equals(backend_basename, 'py')
-                ])
-            # Else, this directory does *NOT* exist.
-            else:
-                # If the active Python interpreter is frozen, this is expected
-                # and hence ignorable; else, this is unexpected, in which case a
-                # non-fatal warning is logged and such list is cleared.
-                if not betse.util.py.freezers.is_frozen():
-                    logs.log_warning(
-                        'Directory "{}" not found. '
-                        'Matplotlib backends not queryable.'.format(
-                            backends_dir))
+            # Return and cache a list of these names, discovered by:
+            #
+            # * Filtering all basenames in this directory for modules.
+            # * Converting the remaining basenames to backend names.
+            # * Sorting these names in ascending lexicographic order for
+            #   readability (e.g., in the "info" subcommand).
+            return iterables.sort_lexicographic_ascending([
+                paths.get_pathname_sans_filetype(
+                    strs.remove_prefix_if_found(
+                        backend_basename, BACKEND_BASENAME_PREFIX))
+                for backend_basename in dirs.list_basenames(backends_dir)
+                if strs.is_prefix(
+                    backend_basename, BACKEND_BASENAME_PREFIX) and
+                    paths.is_filetype_equals(backend_basename, 'py')
+            ])
+        # Else, this directory does *NOT* exist.
+        else:
+            # If the active Python interpreter is frozen, this is expected
+            # and hence ignorable; else, this is unexpected, in which case a
+            # non-fatal warning is logged and such list is cleared.
+            if not freezers.is_frozen():
+                logs.log_warning(
+                    'Directory "{}" not found. '
+                    'Matplotlib backends not queryable.'.format(
+                        backends_dir))
 
-                # In either case, clear this list.
-                self._backend_names = []
-
-        # Get the cached list.
-        return self._backend_names
+            # In either case, return and cache the empty list.
+            return []
 
     # ..................{ PROPERTIES ~ backend : name        }..................
     @property
@@ -677,16 +777,17 @@ class MatplotlibConfig(object):
                 # Avoid importing this module at the top-level, for safety.
                 from matplotlib import pyplot
                 pyplot.switch_backend(backend_name)
-        # Since such functions tend to raise non-human-readable exceptions, log
-        # a human-readable error on catching such exception before reraising
-        # such exception.
+        # If presumably non-human-readable exception was raised...
         except Exception:
+            # Log a human-readable error.
             logs.log_error(
                 'Matplotlib backend "{}" not found or not loadable.'.format(
                     backend_name))
+
+            # Reraise this exception up the callstack.
             raise
 
-        # Log such setting *AFTER* succeeding.
+        # Log this setting *AFTER* successfully setting this backend.
         logs.log_debug(
             'Enabled matplotlib backend "{}".'.format(backend_name))
 
@@ -746,8 +847,8 @@ class MatplotlibConfig(object):
         has been called for the current Python session) or `False` otherwise.
         '''
 
-        # This test corresponds exactly to the test performed by the
-        # matplotlib.use() method itself to detect repetitious calls.
+        # While ridiculous, this test corresponds exactly to the test performed
+        # by the matplotlib.use() method itself to detect repetitious calls.
         return 'matplotlib.backends' in sys.modules
 
 
@@ -757,29 +858,33 @@ class MatplotlibConfig(object):
         `True` if the backend with the passed name is **usable** (i.e., safely
         switchable to without raising exceptions) on the current system.
 
-        This method modifies but does _not_ restore the previously set backend.
-        If desired, the caller _must_ manually save and restore the current
-        backend.
+        If this backend is usable, this method also switches the current backend
+        to this backend _without_ restoring the previously set backend. This is
+        as the unavoidable result of performing this test in a reliable manner.
+        Caller requiring the previously set backend to be restored must do so
+        manually _after_ calling this method.
         '''
 
         # Delay importation of the "matplotlib.__init__" module.
         from matplotlib import pyplot
 
-        # Since backend names are case-insensitive, lowercase such name.
+        # Lowercase this name, ensuring case-insensitive backend names.
         backend_name = backend_name.lower()
 
         # If this backend is "Gtk3Agg", immediately report this backend to be
-        # unusable without testing such report. Attempting to use such backend
+        # unusable without testing such report. Attempting to use this backend
         # currently emits the following warning, which only serves to confound
         # the issue for end users:
+        #
         #     UserWarning: The Gtk3Agg backend is not known to work on Python 3.x.
         if backend_name == 'gtk3agg':
             return False
 
-        # Test this backend.
+        # If this backend is successfully enabled and hence usable, return True.
         try:
             pyplot.switch_backend(backend_name)
             return True
+        # Else, return False.
         except:
             return False
 

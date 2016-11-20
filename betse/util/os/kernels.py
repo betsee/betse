@@ -34,7 +34,7 @@ def get_name() -> str:
     '''
 
     # Return platform.system() as is, which appears to exactly corresponding to
-    # the name of the current kernel on all platforms (e.g., "Darwin", "Linux")
+    # the name of the current kernel on all platforms (e.g., "Darwin", "Linux").
     return platform.system()
 
 
