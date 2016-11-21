@@ -41,12 +41,10 @@ from betse.science.visual.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
-from betse.util.type.types import (
-    type_check, SequenceTypes, SequenceOrNoneTypes)
+from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
-from numpy import ndarray
 from scipy import interpolate
 
 #FIXME: Shift functions called only by this module either to a new
@@ -800,6 +798,82 @@ class AnimFieldIntracellular(AnimField):
             #"times_membranes_midpoint_data" and likewise with the
             #"y_time_series" parameter. Depending on what
             #"sim.F_hydro_x_time[0]" is, we might want additional parameters.
+            #FIXME: Each "sim.efield_gj_x_time[time_step]" array is indeed
+            #defined on membranes; likewise, the "sim.F_hydro_x_time" array is
+            #always empty and hence ignorable. Hence, the if conditional below
+            #is *ALWAYS* guaranteed to be True. As with the
+            #"AnimCellsMembranesData" class, this class thus always operates on
+            #membrane midpoint-centric data. Excellent!
+            #FIXME: In light of the above, this entire class can be refactored
+            #in terms of two layers:
+            #
+            #* A new "LayerCellsStreamElectricIntra" layer, defined much like
+            #  the existing "LayerCellsStreamCurrentIntra" layer. Actually,
+            #  this is getting a bit silly. We clearly want the vector field to
+            #  be in the driver seat. Having to define one new layer class for
+            #  each new vector field class we add is simply obnoxious. Instead,
+            #  define a single "LayerCellsStreamVectorField" class resembling:
+            #
+            # class LayerCellsStreamVectorField(LayerCellsStreamABC):
+            #     '''
+            #     Layer subclass plotting streamlines of an arbitrary vector field onto the
+            #     cell cluster.
+            #     '''
+            #
+            #     # ..................{ INITIALIZERS                       }..................
+            #     @type_check
+            #     def __init__(self, *args, times_field: VectorFieldABC, **kwargs) -> None:
+            #
+            #         super().__init__(*args, **kwargs)
+            #
+            #         self._times_field = times_field
+            #
+            #     # ..................{ SUPERCLASS                         }..................
+            #     def _get_velocities_x(self) -> SequenceTypes:
+            #         '''
+            #         Numpy array of the X components of all velocity vectors in this vector
+            #         field for the current time step.
+            #         '''
+            #
+            #         return self._times_field.x[self._visual.time_step]
+            #
+            #
+            #     def _get_velocities_y(self) -> SequenceTypes:
+            #         '''
+            #         Numpy array of the Y components of all velocity vectors in this vector
+            #         field for the current time step.
+            #         '''
+            #
+            #         return self._times_field.y[self._visual.time_step]
+            #
+            #
+            #     def _get_velocities_magnitudes(self) -> SequenceTypes:
+            #         '''
+            #         Numpy array of the magnitudes of all velocity vectors in this vector
+            #         field for the current time step.
+            #         '''
+            #
+            #         return self._times_field.magnitudes[self._visual.time_step]
+            #
+            #* An instance of either "LayerCellsShadeContinuous" or
+            #  "LayerCellsShadeDiscrete" as requested by the current
+            #  configuration. Perhaps we *REALLY* just want to define a new
+            #  "LayerCellsShade" class internally deciding which of these two
+            #  classes to defer to and then instiate this "LayerCellsShade"
+            #  class both here and in the "AnimCellsMembranesData" class, which
+            #  would even further simplify the latter. (Excellent!) In any
+            #  case, this layer would be passed the "magnitudes" property of
+            #  the vector field instance as its membrane-centric data series.
+            #
+            #To do so, we'll also need the following new vector field:
+            #
+            #* "VectorFieldElectricIntra", defined as the electric field across
+            #  membrane-centric gap junctions. Trivial, thankfully.
+            #
+            #Note, however, that we'll still need to perform the mapping from
+            #membrane-centric electric field components to cell-centric
+            #electric field components somewhere. Where? Within the vector
+            #field class itself? Quite a bit to chew on, here.
 
             # If the user passes somethign defined on membranes, this automatically
             # averages it to cell centers

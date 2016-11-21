@@ -193,17 +193,6 @@ class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
     current density through this cell cluster specific to this frame.
     '''
 
-    # ..................{ SUBCLASS                           }..................
-    @abstractproperty
-    def _time_currents(self) -> VectorFieldSimulatedABC:
-        '''
-        Vector field of the current densities of all intracellular and/or
-        extracellular spaces spatially situated at grid space centres for all
-        time steps of the current simulation.
-        '''
-
-        pass
-
     # ..................{ SUPERCLASS                         }..................
     def _get_velocities_x(self) -> SequenceTypes:
         '''
@@ -230,6 +219,17 @@ class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
         '''
 
         return self._time_currents.magnitudes[self._visual.time_step]
+
+    # ..................{ SUBCLASS                           }..................
+    @abstractproperty
+    def _time_currents(self) -> VectorFieldSimulatedABC:
+        '''
+        Vector field of the current densities of all intracellular and/or
+        extracellular spaces spatially situated at grid space centres for all
+        time steps of the current simulation.
+        '''
+
+        pass
 
 # ....................{ SUBCLASSES                         }....................
 class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrentABC):

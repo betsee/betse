@@ -195,6 +195,10 @@ def pipeline_anims(
                 color_max=p.Pcell_ani_max_clr,
             )
 
+        #FIXME: This animation is fundamentally broken. The "sim.F_hydro_x_time"
+        #and "sim.F_hydro_y_time" arrays are *ALWAYS* defined to be the empty
+        #list now. Since hydrostatics have taken a distinct back seat,
+        #correcting this is presumably low priority. Jettison the Jetsons!
         if p.ani_force is True:
             AnimFieldIntracellular(
                 sim=sim, cells=cells, p=p,

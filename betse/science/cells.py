@@ -143,9 +143,8 @@ class Cells(object):
             the current membrane.
           . Sixth element is the Y coordinate of this tangent unit vector.
     num_mems : ndarray
-        One-dimensional Numpy array of length the number of cells such that
-        each element is the number of membranes for the cell with that cell's
-        index.
+        One-dimensional Numpy array indexing each cell such that each element
+        is the number of cell membranes contained by the current cell.
     M_sum_mems : ndarray
         Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
         * `m` is the total number of cells.

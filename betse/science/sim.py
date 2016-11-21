@@ -153,30 +153,33 @@ class Simulator(object):
     Attributes (Electric Field)
     ----------
     E_gj_x : ndarray
-        Two-dimensional Numpy array whose:
-        * First dimension indexes each cell membrane in this simulated cluster.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the X
-          component of the intracellular electric field vector spatially
-          situated at the center of each grid space for this time step.
+        One-dimensional Numpy array indexing each simulated cell membrane, such
+        that each element is the X component of the intracellular electric
+        field vector spatially situated across the gap junction to which the
+        current membrane connects: specifically, the difference of the X
+        component of the voltage situated at this membrane with that of the
+        voltage situated at the gap junction-connected membrane adjacent to
+        this membrane, divided by the length in meters of this gap junction.
+    E_gj_y : ndarray
+        One-dimensional Numpy array indexing each simulated cell membrane, such
+        that each element is the Y component of the intracellular electric
+        field vector defined as for the corresponding :attr:`E_gj_X` array.
     efield_gj_x_time : list
-        Three-dimensional list whose:
+        Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the X
-          component of the intracellular electric field vector spatially
-          situated at the center of each grid space for this time step.
+        * Second dimension indexes each simulated cell membrane, such that each
+          element is the X component of the intracellular electric field vector
+          defined as for the corresponding :attr:`E_gj_x` array.
         Equivalently, this array is the concatenation of all :attr:`E_gj_x`
-        arrays over all time steps.
+        arrays for all time steps.
     efield_gj_y_time : list
-        Three-dimensional list whose:
+        Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the Y
-          component of the intracellular electric field vector spatially
-          situated at the center of each grid space for this time step.
+        * Second dimension indexes each simulated cell membrane, such that each
+          element is the Y component of the intracellular electric field vector
+          defined as for the corresponding :attr:`E_gj_y` array.
         Equivalently, this array is the concatenation of all :attr:`E_gj_y`
-        arrays over all time steps.
+        arrays for all time steps.
     '''
 
     def __init__(self, p):
@@ -1212,8 +1215,15 @@ class Simulator(object):
 
         self.F_electro_x_time = []
         self.F_electro_y_time = []
+
+        #FIXME: Consider removing the following two list attributes, which no
+        #longer appear to be initialized anywhere. Alternately, consider
+        #appending the "sim.F_hydro_x" array onto the "sim.F_hydro_x_time"
+        #array in the "betse.science.physics.pressures" submodule, which
+        #defines the the "sim.F_hydro_x" array; likewise for the Y components.
         self.F_hydro_x_time = []
         self.F_hydro_y_time = []
+
         self.P_electro_time = []
 
         self.rate_NaKATP_time =[]
