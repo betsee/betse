@@ -113,19 +113,19 @@ general options:
                                # note both extracellular and cytosolic levels of all
                                # ions must sum to zero charge.
 
-    extracellular Na+ concentration: 110.0          # extracellular sodium [mmol/L]
-    extracellular K+ concentration: 2.5             # extracellular potassium [mmol/L]
-    extracellular Cl- concentration: 100.0          # extracellular chloride [mmol/L]
-    extracellular Ca2+ concentration: 2.0           # extracellular calcium [mmol/L]
-    extracellular HCO3- concentration: 10.0         # extracellular bicarbonate [mmol/L]
-    extracellular protein- concentration: 0.0       # extracellular protein [mmol/L]
+    extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
+    extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
+    extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
+    extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
+    extracellular HCO3- concentration: 36.0         # extracellular bicarbonate [mmol/L]
+    extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
 
-    cytosolic Na+ concentration: 11.0                # intracellular sodium [mmol/L]
-    cytosolic K+ concentration: 110.00              # intracellular potassium [mmol/L]
-    cytosolic Cl- concentration: 45.0                # intracellular chloride [mmol/L]
-    cytosolic Ca2+ concentration: 3.0e-3            # intracellular calcium [mmol/L]
-    cytosolic HCO3- concentration: 10.0             # intracellular bicarbonate [mmol/L]
-    cytosolic protein- concentration: 50.0         # intracellular protein [mmol/L]
+    cytosolic Na+ concentration: 8.0                # intracellular sodium [mmol/L]
+    cytosolic K+ concentration: 125.00              # intracellular potassium [mmol/L]
+    cytosolic Cl- concentration: 20.0                # intracellular chloride [mmol/L]
+    cytosolic Ca2+ concentration: 1.0e-4            # intracellular calcium [mmol/L]
+    cytosolic HCO3- concentration: 13.0             # intracellular bicarbonate [mmol/L]
+    cytosolic protein- concentration: 100.0         # intracellular protein [mmol/L]
 
     endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
 

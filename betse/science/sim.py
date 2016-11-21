@@ -1403,6 +1403,12 @@ class Simulator(object):
 
         self.vm_ave_time.append(self.vm_ave)
 
+        # magnetic vector potential:
+        self.Ax_time.append(self.Ax)
+        self.Ay_time.append(self.Ay)
+
+        self.Bz_time.append(self.Bz)
+
     def save_and_report(self,cells,p):
 
         # save the init or sim:
@@ -1567,17 +1573,11 @@ class Simulator(object):
         self.Pol_tot = np.sqrt(self.Pol_x**2 + self.Pol_y**2)
 
 
-        # try calculating a vector potential based on current density:
-
+        # calculate a vector potential based on current density:
         self.Ax = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_x/cells.geom_weight)
         self.Ay = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_y/cells.geom_weight)
 
-        self.Ax_time.append(self.Ax)
-        self.Ay_time.append(self.Ay)
-
         _, _, self.Bz = cells.curl(self.Ax, self.Ay, 0)
-
-        self.Bz_time.append(self.Bz)
 
     def acid_handler(self,cells,p):
 

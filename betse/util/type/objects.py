@@ -8,9 +8,9 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import inspect
+import inspect, sys
 from betse.util.type.types import (
-    type_check, CallableTypes, MethodType, GeneratorType,)
+    type_check, CallableTypes, MethodType, GeneratorType, SequenceTypes,)
 from functools import wraps
 
 # ....................{ DECORATORS                         }....................
@@ -138,6 +138,41 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
 
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
+
+
+#FIXME: Generalize to internally sort the returned sequence.
+#FIXME: Document us up.
+#FIXME: Call this method during profiling with our three principal objects:
+#"Simulator", "Cells", and "Parameters".
+#FIXME: Call this method as a new functional test detecting erroneously large
+#attributes in these three principal objects. To do so, determine the largest
+#attribute currently produced in these objects for the minified world
+#environment used for all functional tests. Then raise an exception if any
+#attribute of these objects is greater than or equal to 10 times this
+#expected maximum.
+def get_attrs_size(obj: object) -> SequenceTypes:
+
+    attrs_size = []
+
+    for attr_name, attr_value in iter_fields_simple_custom(obj):
+        #FIXME: Consider permitting the caller to pass this factor.
+        # Convert from bytes to megabytes.
+        attr_size = sys.getsizeof(attr_value) / 1e6
+
+        #FIXME: Probably don't require this anymore.
+        if attr_size > 0.001:
+            attrs_size.append((attr_name, attr_size))
+
+    #FIXME: Sort this here.
+    return attrs_size
+
+# ....................{ PRINTERS                           }....................
+#FIXME: Document us up.
+def print_attrs_size(obj: object) -> None:
+
+    for attr_name, attr_size in get_attrs_size(obj):
+        print('{}: {:.02f} MB'.format(attr_name, attr_size))
+
 
 # ....................{ ITERATORS                          }....................
 def iter_fields_simple_custom(obj: object) -> GeneratorType:
