@@ -220,13 +220,13 @@ def omit_items(sequence: SequenceTypes, items: Container) -> SequenceTypes:
 # ....................{ REMOVERS                           }....................
 def remove_item(sequence: SequenceTypes, item: object) -> None:
     '''
-    Remove all elements equalling the passed object from the passed non-string
-    sequence.
+    Remove all elements equal to the passed object from the passed mutable
+    non-string sequence in-place.
 
     Parameters
     ----------
     sequence : collections.Sequence
-        SequenceTypes to remove elements from.
+        Sequence to remove elements from in-place.
     item : object
         Object to be removed.
     '''
@@ -238,12 +238,12 @@ def remove_item(sequence: SequenceTypes, item: object) -> None:
 def remove_items(sequence: SequenceTypes, items: Container) -> None:
     '''
     Remove all elements contained in the passed non-string container from
-    the passed non-string sequence.
+    the passed mutable non-string sequence in-place.
 
     Parameters
     ----------
     sequence : SequenceTypes
-        SequenceTypes to remove elements from.
+        Sequence to remove elements from in-place.
     items : Container
         Container containing all elements to be remove from this sequence.
     '''
@@ -257,9 +257,9 @@ def remove_items(sequence: SequenceTypes, items: Container) -> None:
 def replace_items(
     sequence: SequenceTypes, replacements: Mapping) -> SequenceTypes:
     '''
-    Get a new non-string sequence transformed from the passed non-string
-    sequence by replacing all elements of the latter equalling any key of the
-    passed dictionary by that key's value.
+    New non-string sequence containing all elements of the passed non-string
+    sequence (_in the same order_) such that each element equal to a key of the
+    passed dictionary is replaced by the value of that key.
 
     This method effectively performs an equality-based global
     search-and-replacement for sequence elements.
@@ -280,7 +280,7 @@ def replace_items(
     Returns
     ----------
     collections.Sequence
-        SequenceTypes transformed from the passed sequence. For efficiency, this
+        Sequence transformed from the passed sequence. For efficiency, this
         sequence is only a shallow rather than deep copy of the passed sequence.
     '''
 

@@ -416,6 +416,12 @@ class MatplotlibConfig(object):
         #indeed not the case, then no further work needs be done; the logic
         #below already implicitly handles headless environments.
 
+        # Name of the non-GUI-based matplotlib backend to fallback to in the
+        # event that *NO* GUI-based matplotlib backend is usable on this system.
+        # For portability, this backend is guaranteed to be usable on all
+        # platforms and systems regardless of matplotlib version.
+        _BACKEND_NAME_FALLBACK = 'Agg'
+
         # Dictionary mapping from the name of each supported platform to a tuple
         # of the names of all matplotlib backends to iteratively fallback to on
         # that platform (in descending order of preference) in the event the the
@@ -423,7 +429,7 @@ class MatplotlibConfig(object):
         # `--matplotlib-backend` option). In this case, this method subsequently
         # falls back to the first matplotlib backend usable on the current
         # system whose name is in this tuple.
-        _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES = {
+        _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED = {
             #FIXME: Inject the "Qt5Agg" backend somewhere into this list after
             #shown to be working. Sadly, this backend appears to be overly
             #fragile and hence unusable. Attempting to use this backend on
@@ -445,10 +451,7 @@ class MatplotlibConfig(object):
             # * "Qt4Agg", a GUI backend with (arguably) inferior aesthetics and
             #   (inarguably) significant performance concerns by compare to more
             #   preferable backends. Something is better than nothing.
-            # * "Agg", a headless backend ensuring that BETSE remains somewhat
-            #   usable on systems with no usable GUI-oriented backend. This is
-            #   the least preferrable backend and so deferred for last.
-            'Linux': ('TkAgg', 'Qt4Agg', 'Agg',),
+            'Linux': ('TkAgg', 'Qt4Agg',),
             # 'Linux': (),
 
             # Under OS X and iOS, the preferred backends are defined below in
@@ -461,16 +464,15 @@ class MatplotlibConfig(object):
             #   backend's implementation is somewhat stabler under many Windows
             #   systems than that of "TkAgg". Hence, stability wins.
             # * "TkAgg". (See the prior item.)
-            # * "Agg", a last-ditch headless fallback. (See above.)
-            'Windows': ('Qt4Agg', 'TkAgg', 'Agg',),
+            'Windows': ('Qt4Agg', 'TkAgg',),
         }
 
         # Under OS X and iOS, prefer the only genuinely usable Darwin-specific
         # backend before the same backends as preferred under Linux. Since
         # Darwin and Linux are both POSIX-compatible, cross-platform backends
         # (e.g., "Qt5Agg") tend to behave similarly under both platforms.
-        _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES['Darwin'] = (
-            ('MacOSX',) + _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES['Linux'])
+        _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Darwin'] = (
+            ('MacOSX',) + _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Linux'])
 
         #FIXME: Refactor the test suite to:
         #
@@ -486,7 +488,7 @@ class MatplotlibConfig(object):
 
         # If tests are being run, default to the non-interactive "Agg" backend
         if pys.is_testing():
-            self.backend_name = 'Agg'
+            self.backend_name = _BACKEND_NAME_FALLBACK
             return
 
         # Else, tests are *NOT* being run. Default to the first backend usable
@@ -497,7 +499,7 @@ class MatplotlibConfig(object):
 
         # Tuple of the names of all matplotlib backends to iteratively
         # fallback to on this platform if supported or None otherwise.
-        backend_names = _KERNEL_NAME_TO_PREFERRED_BACKEND_NAMES.get(
+        backend_names = _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED.get(
             kernel_name, None)
 
         # If this platform is unsupported, raise an exception.
@@ -511,13 +513,25 @@ class MatplotlibConfig(object):
             # enabled this backend. Our work is done here.
             if self.is_backend_usable(backend_name):
                 break
-        # If no such backend is usable on the current system (e.g., due to
-        # no external widget library being installed), raise an exception.
-        # Due to the inclusion of the "Agg" backend as a last-ditch fallback
-        # for all platforms, this should *NEVER* happen. Damn you, Murphy!
+        # Else, no preferred GUI-based backend is usable on the current system
+        # (e.g., due to no external widget library being installed).
         else:
-            raise BetseMatplotlibException(
-                'Usable matplotlib backend not found.')
+            # If the fallback non-GUI-based backend is usable, log a non-fatal
+            # warning and default to this backend.
+            if self.is_backend_usable(_BACKEND_NAME_FALLBACK):
+                logs.log_warning(
+                    'Usable matplotlib GUI backend not found. '
+                    'Defaulting to non-GUI backend "%s". '
+                    'Consider installing support for GUI backends %s.',
+                    _BACKEND_NAME_FALLBACK,
+                    strs.join_as_disconjunction_double_quoted(*backend_names),
+                )
+            # Else, no backends appear to be usable on the current system. For
+            # safety, raise an exception. Due to the ubiquity of the fallback
+            # backend, this should *NEVER* happen. Damn you, Murphy!
+            else:
+                raise BetseMatplotlibException(
+                    'Usable matplotlib backend not found.')
 
     # ..................{ PROPERTIES ~ rc                    }..................
     @property

@@ -814,15 +814,33 @@ class AnimCellsABC(VisualCellsABC):
 
         #FIXME; This doesn't seem quite right, even for Windows. In theory, the
         #"matplotlib.animation.FuncAnimation" class should handle such low-
-        #level details. Tragically, as the URL below suggests, Matplotlib
-        #developers have disavowed all responsibility for this issue. *sigh*
+        #level details, as confirmed by the pyplot.pause() docstring:
+        #
+        #  pause(interval)
+        #
+        #     Pause for *interval* seconds.
+        #
+        #     If there is an active figure it will be updated and displayed,
+        #     and the gui event loop will run during the pause.
+        #
+        #     If there is no active figure, or if a non-interactive backend
+        #     is in use, this executes time.sleep(interval).
+        #
+        #     This can be used for crude animation. For more complex
+        #     animation, see :mod:`matplotlib.animation`.
+        #
+        #Note the last paragraph, suggesting pyplot.pause() is intended to be
+        #used as an *ALTERNATIVE* to "FuncAnimation" rather than in addition to
+        #"FuncAnimation". The fact that pyplot.pause() is required here even
+        #when using "FuncAnimation" under Windows suggests a Windows-specific
+        #issue with that class. Consider reporting.
 
         # If the current platform is Windows, temporarily yield the time slice
         # for the minimum amount of time required by the POSIX-incompatible
         # Windows process model for responding to queued events in the GUI
-        # eventloop of the current process. Failing to do so reliably results in
-        # unresponsive plots and animations *ONLY* under Windows. For further
-        # details, see also:
+        # eventloop of the current process. Failing to do so reliably results
+        # in unresponsive plots and animations *ONLY* under Windows. For
+        # further details, see also:
         #
         #     https://gitlab.com/betse/betse/issues/9
         #     https://github.com/matplotlib/matplotlib/issues/2134/
