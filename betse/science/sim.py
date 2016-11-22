@@ -1946,7 +1946,6 @@ class Simulator(object):
 
         self.cc_env[i] = cenv.ravel()
 
-
     def get_ion(self,label):
         """
         Given a string input, returns the simulation index of the appropriate ion.

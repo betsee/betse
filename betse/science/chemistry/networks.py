@@ -121,7 +121,7 @@ class MasterOfNetworks(object):
                 # add the ion to the conc mappings by its short string name:
                 cell_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.cc_cells[ion_index],
-                    lambda value, ion_index=ion_index: setattr(sim.cc_cells.__setindex__(ion_index, value)))
+                    lambda value, ion_index=ion_index: sim.cc_cells.__setindex__(ion_index, value))
 
                 # mem_concs_mapping[k] = DynamicValue(
                 #     lambda ion_index=ion_index: sim.cc_mems[ion_index],
@@ -129,16 +129,16 @@ class MasterOfNetworks(object):
 
                 env_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.cc_env[ion_index],
-                    lambda value, ion_index=ion_index: setattr(sim.cc_env.__setindex__(ion_index, value)))
+                    lambda value, ion_index=ion_index: sim.cc_env.__setindex__(ion_index, value))
 
                 bound_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.c_env_bound[ion_index],
-                    lambda value, ion_index=ion_index: setattr(sim.c_env_bound.__setindex__(ion_index, value)))
+                    lambda value, ion_index=ion_index: sim.c_env_bound.__setindex__(ion_index, value))
 
                 if self.mit_enabled:
                     mit_concs_mapping[k] = DynamicValue(
-                    lambda ion_index=ion_index: sim.cc_mit[ion_index],
-                    lambda value, ion_index=ion_index: setattr(sim.cc_mit.__setindex__(ion_index, value)))
+                        lambda ion_index=ion_index: sim.cc_mit[ion_index],
+                        lambda value, ion_index=ion_index: sim.cc_mit.__setindex__(ion_index, value))
 
         # Now move on to building the data structures for the user-defined substances:
         for q, mol_dic in enumerate(config_substances):
@@ -163,6 +163,9 @@ class MasterOfNetworks(object):
             # create concentration data arrays:
             mol.c_cells = np.ones(sim.cdl) * mol.c_cello
             # mol.c_mems = np.ones(sim.mdl) * mol.c_cello
+
+            #FIXME: Add explicit checks to avoid name conflicts between user-defined substances defined
+            #below and ions defined above. Na, K, Cl, Ca, H, M, P == reserved names for ions!
 
             # create dynamic mappings for the cell and mem conc vectors:
             cell_concs_mapping[name] = DynamicValue(
@@ -2333,9 +2336,9 @@ class MasterOfNetworks(object):
                         delta_react_expanded = np.zeros(sim.edl)
                         delta_react_expanded[cells.map_mem2ecm] = delta_react[:]
 
-                        self.env_concs[self.transporters[name].reactants_list[i]][targ_env] = \
-                            self.env_concs[self.transporters[name].reactants_list[i]][targ_env] + \
-                            delta_react_expanded[targ_env]*p.dt
+                        self.env_concs[self.transporters[name].reactants_list[i]][targ_env] = (
+                            self.env_concs[self.transporters[name].reactants_list[i]][targ_env] +
+                            delta_react_expanded[targ_env]*p.dt)
 
                     else:
 
