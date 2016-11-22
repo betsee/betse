@@ -10,7 +10,7 @@ BETSE CLI in the active Python interpreter.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, SequenceTypes
-from betse_test.fixture.simconfiger import SimTestState
+from betse_test.fixture.simconfig.simconfer import SimTestState
 from betse_test.func.cli.fixture.clier import CLITester
 from pytest import fixture
 
@@ -97,7 +97,11 @@ class CLISimTester(object):
 
 
     @type_check
-    def run_subcommands(self, *subcommands_args: SequenceTypes) -> None:
+    def run_subcommands(
+        self,
+        *subcommands_args: SequenceTypes,
+        is_overwriting_config: bool = True
+    ) -> None:
         '''
         Run all simulation-specific BETSE CLI subcommands signified by the
         passed argument lists in the active Python process (_in the passed
@@ -119,14 +123,29 @@ class CLISimTester(object):
         subcommands_args : tuple
             Tuple of sequences of **subcommand arguments** (i.e., one or more
             shell words comprising the BETSE CLI subcommand to be tested).
+        is_overwriting_config : optional[bool]
+            If `True`, this method persists all in-memory changes to the current
+            simulation configuration wrapper back to disk. Defaults to `True`.
         '''
 
+        # If persisting all in-memory configuration changes back to disk, do so
+        # *BEFORE* running the passed.subcommands requiring these changes.
+        if is_overwriting_config:
+            self._overwrite_config()
+
+        # For each such subcommand...
         for subcommand_args in subcommands_args:
-            self.run_subcommand(*subcommand_args)
+            # Run this subcommand, preventing the configuration file from being
+            # re-overwritten. While technically safe, doing so would impose
+            # unnecessary I/O inefficiencies.
+            self.run_subcommand(
+                *subcommand_args, is_overwriting_config=False)
 
 
     @type_check
-    def run_subcommand(self, *subcommand_args: str) -> None:
+    def run_subcommand(
+        self, *subcommand_args: str, is_overwriting_config: bool = True
+    ) -> None:
         '''
         Run the simulation-specific BETSE CLI subcommand signified by the passed
         argument list in the active Python process.
@@ -149,7 +168,15 @@ class CLISimTester(object):
         subcommand_args : tuple
             Tuple of **subcommand arguments** (i.e., one or more shell words
             comprising the BETSE CLI subcommand to be tested).
+        is_overwriting_config : optional[bool]
+            If `True`, this method persists all in-memory changes to the current
+            simulation configuration wrapper back to disk. Defaults to `True`.
         '''
+
+        # If persisting all in-memory configuration changes back to disk, do so
+        # *BEFORE* running the passed.subcommands requiring these changes.
+        if is_overwriting_config:
+            self._overwrite_config()
 
         # Temporarily change the CWD to this simulation file's directory.
         with self.sim_state.context():
@@ -168,6 +195,18 @@ class CLISimTester(object):
             self.cli_tester.run(*subcommand_args)
 
     # ..................{ PRIVATE                            }..................
+    def _overwrite_config(self) -> None:
+        '''
+        Persist all in-memory changes to the current simulation configuration
+        wrapper back to disk.
+        '''
+
+        self.sim_state.config.overwrite()
+
+
+    #FIXME: Consider integrating this method the main codebase, ideally by
+    #calling this method before running each simulation phase. This banner is
+    #sufficiently aesthetic that I'd certainly appreciate seeing it everywhere.
     @type_check
     def _print_subcommand_args(self, subcommand_args: tuple) -> None:
         '''

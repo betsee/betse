@@ -18,8 +18,8 @@ from betse_test.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
 # ....................{ IMPORTS ~ fixture                  }....................
-from betse_test.fixture.simconfiger import betse_sim_config
 from betse_test.fixture.tempdirer import betse_temp_dir
+from betse_test.fixture.simconfig.simconfer import betse_sim_config
 
 # ....................{ HOOKS ~ session                    }....................
 #FIXME: This hook doesn't actually appear to be invoked. Deprecated, perhaps?

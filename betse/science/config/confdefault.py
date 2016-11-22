@@ -14,7 +14,7 @@ from betse import pathtree
 
 #FIXME: This isn't particularly good. Contemplate alternatives, please.
 #Actually, this will probably go away when we refactor to use SimConfigWrapper.
-from betse.science.config.sim_config import _write_check
+from betse.science.config.confio import _write_check
 
 from betse.util.io.log import logs
 from betse.util.path import paths, dirs, files
@@ -58,7 +58,7 @@ def write(config_filename: str) -> None:
     '''
 
     # Announce the ugly shape of things to come.
-    logs.log_info('Writing default simulation configuration.')
+    logs.log_info('Writing default simulation configuration...')
 
     # Validate this file *BEFORE* creating this file's parent directory if
     # needed *BEFORE* creating this file.

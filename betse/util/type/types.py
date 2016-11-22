@@ -241,8 +241,17 @@ except:
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 
-# ....................{ TUPLES : none                      }....................
+# ....................{ TUPLES : post-init                 }....................
 # Tuples of types assuming the above initialization to have been performed.
+
+MappingOrSequenceTypes = (MappingType,) + SequenceTypes
+'''
+Tuple of all container base classes conforming to (but _not_ necessarily
+subclassing) the canonical `collections.abc.Mapping` _or_
+`collections.abc.Sequence` APIs.
+'''
+
+
 NumericOrSequenceTypes = NumericTypes + SequenceTypes
 '''
 Tuple of all numeric types _and_ all container base classes conforming to (but

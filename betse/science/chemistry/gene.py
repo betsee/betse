@@ -17,7 +17,7 @@ import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
 from betse.science.chemistry.networks import MasterOfNetworks
-from betse.science.config import sim_config
+from betse.science.config import confio
 
 
 class MasterOfGenes(object):
@@ -38,7 +38,7 @@ class MasterOfGenes(object):
         self.configPath = os.path.join(p.config_dirname, p.grn_config_filename)
 
         # read the config file into a dictionary:
-        self.config_dic = sim_config.read_metabo(self.configPath)
+        self.config_dic = confio.read_metabo(self.configPath)
 
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']
@@ -107,7 +107,7 @@ class MasterOfGenes(object):
         self.configPath = os.path.join(p.config_dirname, p.grn_config_filename)
 
         # read the config file into a dictionary:
-        self.config_dic = sim_config.read_metabo(self.configPath)
+        self.config_dic = confio.read_metabo(self.configPath)
 
         # obtain specific sub-dictionaries from the config file:
         substances_config = self.config_dic['biomolecules']

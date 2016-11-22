@@ -20,7 +20,7 @@ import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
 from betse.science.chemistry.networks import MasterOfNetworks
-from betse.science.config import sim_config
+from betse.science.config import confio
 from betse.exceptions import BetseSimConfigException
 from betse.science import sim_toolbox as stb
 
@@ -45,7 +45,7 @@ class MasterOfMetabolism(object):
         # print("!!!!!!!! Config Path: {}".format(self.configPath))
 
         # read the config file into a dictionary:
-        self.config_dic = sim_config.read_metabo(self.configPath)
+        self.config_dic = confio.read_metabo(self.configPath)
 
         # determine if mitochondria are enabled:
         self.mit_enabled = self.config_dic['enable mitochondria']
@@ -129,7 +129,7 @@ class MasterOfMetabolism(object):
         self.configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
 
         # read the config file into a dictionary:
-        self.config_dic = sim_config.read_metabo(self.configPath)
+        self.config_dic = confio.read_metabo(self.configPath)
 
         # determine if mitochondria are enabled:
         self.mit_enabled = self.config_dic['enable mitochondria']

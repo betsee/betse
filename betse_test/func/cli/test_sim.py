@@ -4,8 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-Functional tests for BETSE's CLI testing all simulation-specific subcommands
-(e.g., `betse try`).
+CLI-specific functional tests exercising all simulation subcommands excluding
+those specific to biochemical reaction and gene regulatory networks (e.g.,
+`betse seed`, `betse init`, `betse sim`).
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -21,11 +22,8 @@ def test_cli_sim_default(betse_cli_sim: 'CLISimTester') -> None:
     Parameters
     ----------
     betse_cli_sim : CLISimTester
-        Object running multiple BETSE CLI simulation subcommands.
+        Object running BETSE CLI simulation subcommands.
     '''
-
-    # Persist all in-memory configuration changes back to disk.
-    betse_cli_sim.sim_state.config.overwrite()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()
@@ -39,14 +37,11 @@ def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
     Parameters
     ----------
     betse_cli_sim : CLISimTester
-        Object running multiple BETSE CLI simulation subcommands.
+        Object running BETSE CLI simulation subcommands.
     '''
 
     # Enable all exported visuals and features required by these visuals.
     betse_cli_sim.sim_state.config.enable_visuals_all()
-
-    # Persist all in-memory configuration changes back to disk.
-    betse_cli_sim.sim_state.config.overwrite()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()
@@ -60,15 +55,12 @@ def test_cli_sim_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
     Parameters
     ----------
     betse_cli_sim : CLISimTester
-        Object running multiple BETSE CLI simulation subcommands.
+        Object running BETSE CLI simulation subcommands.
     '''
 
     # Enable all voltage-gated ion channels and features required by these
     # channels.
-    betse_cli_sim.sim_state.config.enable_voltage_gated_ion_channels_all()
-
-    # Persist all in-memory configuration changes back to disk.
-    betse_cli_sim.sim_state.config.overwrite()
+    betse_cli_sim.sim_state.config.enable_vg_ion_channels_all()
 
     # Test all simulation-specific subcommands *EXCLUDING* plotting subcommands
     # (which other tests already exercise) with this configuration.
@@ -117,7 +109,7 @@ def test_cli_sim_video(
     Parameters
     ----------
     betse_cli_sim : CLISimTester
-        Object running multiple BETSE CLI simulation subcommands.
+        Object running BETSE CLI simulation subcommands.
     writer_name : str
         Name of the matplotlib animation writer with which to encode video
         (e.g., `ffmpeg`, `imagemagick`).
@@ -127,9 +119,6 @@ def test_cli_sim_video(
 
     # Enable encoding of one animation to this filetype with this writer..
     betse_cli_sim.sim_state.config.enable_anim_video(writer_name, filetype)
-
-    # Persist all in-memory configuration changes back to disk.
-    betse_cli_sim.sim_state.config.overwrite()
 
     # Test the minimum number of simulation-specific subcommands required to
     # exercise video encoding with this configuration. Since the "init"

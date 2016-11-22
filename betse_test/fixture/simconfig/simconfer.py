@@ -11,8 +11,8 @@ configurations so as to exercise specific feature sets and edge cases.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check
-from py._path.local import LocalPath
 from pytest import fixture
+from py._path.local import LocalPath
 
 # ....................{ CLASSES                            }....................
 class SimTestState(object):
@@ -61,8 +61,10 @@ class SimTestState(object):
             already exists, an exception is raised.
         '''
 
-        # Defer heavyweight imports.
-        from betse.science.config.wrapper import SimConfigWrapper
+        # Defer heavyweight imports. This subclass inherits a class defined by
+        # the main codebase and is hence *NOT* safely importable above.
+        from betse_test.fixture.simconfig.simconfwrapper import (
+            SimConfigTestWrapper)
 
         # Classify the passed parameters. While the "self.config" object
         # classified below provides this filename as a low-level string, this
@@ -71,7 +73,7 @@ class SimTestState(object):
 
         # Configuration deserialized from this file, reducing this filename from
         # a high-level "py.path.local" instance to a low-level string.
-        self.config = SimConfigWrapper.wrap_new_default(
+        self.config = SimConfigTestWrapper.wrap_new_default(
             filename=str(config_filepath))
 
         # For all child fixtures and tests, unconditionally:

@@ -4,8 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-Functional tests for BETSE's CLI testing all subcommands _except_ for
-simulation-specific subcommands (e.g., `betse info`).
+CLI-specific functional tests exercising all miscellaneous subcommands (e.g.,
+`betse info`), thus excluding those specific to networks and simulations.
 '''
 
 # ....................{ IMPORTS                            }....................

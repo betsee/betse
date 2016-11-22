@@ -19,7 +19,8 @@ file format encapsulating most input and output data for this application.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import numpy
-from betse.util.type.types import type_check, MappingType, SequenceTypes
+from betse.util.path import files
+from betse.util.type.types import type_check, MappingOrSequenceTypes
 
 # ....................{ CONSTANTS                          }....................
 #FIXME: Initialize and leverage this below.
@@ -80,11 +81,11 @@ def init() -> None:
     #       - false
     #       - !!binary |
     #         bxKDwMohCUA=
-    yaml.add_representer(numpy.ndarray, _represent_numpy_ndarray)
-    yaml.add_representer(numpy.bool_, _represent_numpy_bool)
+    yaml.add_representer(numpy.ndarray,  _represent_numpy_ndarray)
+    yaml.add_representer(numpy.bool_,    _represent_numpy_bool)
     yaml.add_representer(numpy.complex_, _represent_numpy_complex)
-    yaml.add_representer(numpy.float_, _represent_numpy_float)
-    yaml.add_representer(numpy.int_, _represent_numpy_int)
+    yaml.add_representer(numpy.float_,   _represent_numpy_float)
+    yaml.add_representer(numpy.int_,     _represent_numpy_int)
 
     #FIXME: Perform this *ONLY* if the selected YAML implementation is PyYAML.
     #ruamel.yaml already fixes all Numpy-specific warnings.
@@ -92,31 +93,9 @@ def init() -> None:
     # Monkeypatch this PyYAML method to eliminate Numpy-specific warnings.
     SafeRepresenter.ignore_aliases = _ignore_aliases_monkeypatch
 
-# ....................{ SAVERS                             }....................
-@type_check
-def save(container: (MappingType,) + SequenceTypes, filename: str) -> None:
-    '''
-    Save (i.e., write, serialize) the passed dictionary or list to the YAML-
-    formatted file with the passed path.
-
-    Parameters
-    ----------
-    container: (MappingType,) + SequenceTypes
-        Dictionary or list to be written as the contents of this file.
-    filename : str
-        Absolute or relative path of this file.
-    '''
-
-    # Delay importation of the desired YAML implementation.
-    import yaml
-
-    # Save this container to this YAML file.
-    with open(filename, 'w') as yaml_file:
-        yaml.dump(container, yaml_file)
-
 # ....................{ LOADERS                            }....................
 @type_check
-def load(filename: str) -> (MappingType,) + SequenceTypes:
+def load(filename: str) -> MappingOrSequenceTypes:
     '''
     Load (i.e., read, deserialize) and return the contents of the YAML-formatted
     file with the passed path as either a dictionary or list.
@@ -128,7 +107,7 @@ def load(filename: str) -> (MappingType,) + SequenceTypes:
 
     Returns
     ----------
-    (MappingType,) + SequenceTypes
+    MappingOrSequenceTypes
         Dictionary or list corresponding to the contents of this file.
     '''
 
@@ -136,8 +115,36 @@ def load(filename: str) -> (MappingType,) + SequenceTypes:
     import yaml
 
     # Load and return the contents of this YAML file.
-    with open(filename, 'r') as yaml_file:
-        return yaml.load(yaml_file)
+    with files.read_chars(filename) as yaml_file:
+        return yaml.load(stream=yaml_file)
+
+# ....................{ SAVERS                             }....................
+@type_check
+def save(container: MappingOrSequenceTypes, filename: str) -> None:
+    '''
+    Save (i.e., write, serialize) the passed dictionary or list to the YAML-
+    formatted file with the passed path.
+
+    Parameters
+    ----------
+    container: MappingOrSequenceTypes
+        Dictionary or list to be written as the contents of this file.
+    filename : str
+        Absolute or relative path of this file.
+    '''
+
+    # Delay importation of the desired YAML implementation.
+    import yaml
+
+    # Save this container to this YAML file.
+    with files.write_chars(filename) as yaml_file:
+        yaml.dump(
+            data=container,
+            stream=yaml_file,
+            allow_unicode=True,
+            default_flow_style=False,
+            encoding=None,
+        )
 
 # ....................{ REPRESENTERS                       }....................
 def _represent_numpy_ndarray(dumper, ndarray: numpy.ndarray) -> str:
@@ -267,8 +274,8 @@ def _represent_numpy_int(dumper, npint: numpy.int_) -> str:
 # ....................{ MONKEYPATCHES                      }....................
 def _ignore_aliases_monkeypatch(self, data):
     '''
-    `yaml.representer.SafeRepresenter.ignore_aliases()` method monkeypatched to
-    eliminate Numpy-specific warnings.
+    :meth:`yaml.representer.SafeRepresenter.ignore_aliases` method monkeypatched
+    to eliminate Numpy-specific warnings.
 
     This method has been refactored to eliminate future warnings resembling:
 
