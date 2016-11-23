@@ -23,6 +23,16 @@ from betse_test.util.mark.skip import skip_unless_module
 #
 # See the "_ARCHIVE_FILETYPE_TO_MODULE_NAME" dictionary for further details.
 ARCHIVE_FILETYPES = (
+    # The higher-level skip_unless_lib_runtime_optional() decorator is
+    # intentionally *NOT* called here. Although the following modules could be
+    # argued to be optional runtime dependencies of this application requiring
+    # addition to the "betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL" dictionary,
+    # these modules are pre-packaged with Python itself rather than installed
+    # via setuptools. Since these modules declare no "__version__" attribute,
+    # there exists no means of validating the satisfiability of these modules as
+    # with customary setuptools-installed optional dependencies.
+    #
+    # The lower-level skip_unless_module() decorator is thus applicable here.
     skip_unless_module('bz2')(('bz2',)),
     skip_unless_module('gzip')(('gz',)),
     skip_unless_module('lzma')(('xz',)),

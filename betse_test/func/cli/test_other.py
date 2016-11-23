@@ -10,7 +10,7 @@ CLI-specific functional tests exercising all miscellaneous subcommands (e.g.,
 
 # ....................{ IMPORTS                            }....................
 import pytest
-from betse_test.util.mark.skip import skip_unless_module
+from betse_test.util.mark.skip import skip_unless_lib_runtime_optional
 
 # ....................{ TESTS                              }....................
 def test_cli_no_arg(betse_cli: 'CLITester') -> None:
@@ -80,7 +80,7 @@ def test_cli_config(
         ('call',),
 
         # Profile types leveraging third-party packages necessitating checking.
-        skip_unless_module('pprofile')(('line',)),
+        skip_unless_lib_runtime_optional('pprofile')(('line',)),
     ),
 )
 def test_cli_profile(

@@ -132,14 +132,68 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
 
 # ....................{ SKIP ~ module                      }....................
 @type_check
+def skip_unless_lib_runtime_optional(*lib_names: str):
+    '''
+    Skip the decorated test if at least one of the optional runtime dependencies
+    of this application with the passed `setuptools`-specific project names are
+    **unsatisfiable** (i.e., unimportable _or_ of an unsatisfactory version).
+
+    Parameters
+    ----------
+    lib_names : str
+        Tuple of the names of all `setuptools`-specific projects corresponding
+        to these dependencies (e.g., `NetworkX`).
+
+    Returns
+    ----------
+    pytest.skipif
+        Decorator describing these requirements if unmet _or_ the identity
+        decorator reducing to a noop otherwise.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.exceptions import BetseLibException
+    from betse.lib import libs
+    from betse.util.io import stderrs
+    from betse.util.type.decorators import noop
+
+    # Validate these dependencies.
+    try:
+        # To reuse the human-readable messages embedded in raised exceptions,
+        # this rather than the libs.is_runtime_optional() method is called.
+        libs.die_unless_runtime_optional(*lib_names)
+    # If at least one such dependency is unsatisfiable, skip this test.
+    except BetseLibException as exc:
+        return skip(str(exc))
+    # If an unexpected exception is raised...
+    except Exception as exc:
+        # Print this exception's stacktrace to stderr.
+        stderrs.output_exception(heading=(
+            'skip_unless_lib_runtime_optional{} '
+            'raised unexpected exception:\n'.format(lib_names)))
+
+        # Skip this test with this exception's message.
+        return skip(str(exc))
+    # Else, these dependencies are all satisfiable. Reduce this decoration to a
+    # noop.
+    else:
+        return noop
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: The higher-level skip_unless_lib_runtime_optional() decorator should
+# *ALWAYS* be called in favor of this lower-level decorator.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+@type_check
 def skip_unless_module(module_name: str, minimum_version: str = None):
     '''
     Skip the decorated test if the module with the passed name is unimportable
     _or_ importable but of a version less than the passed minimum version if
     non-`None`.
 
-    This decorator is typically applied to tests requiring optional third-party
-    Python dependencies.
+    Note that tests requiring optional third-party Python dependencies should
+    call the higher-level :func:`skip_unless_lib_runtime_optional` decorator
+    instead, which implicitly validates the versions of those dependencies
+    rather than requiring those versions be explicitly passed.
 
     Parameters
     ----------

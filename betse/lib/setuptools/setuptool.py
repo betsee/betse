@@ -61,6 +61,11 @@ def die_unless_requirement_str(*requirement_strs: str) -> None:
     ----------
     :func:`is_requirement_str`
         Further details.
+
+    Raises
+    ----------
+    BetseLibException
+        If at least one such requirement is unsatisfiable.
     '''
 
     # List of all high-level "Requirements" objects corresponding to the passed
@@ -83,6 +88,11 @@ def die_unless_requirement(requirement: Requirement) -> None:
     ----------
     requirement : Requirement
         Object describing this package or module's required name and version.
+
+    Raises
+    ----------
+    BetseLibException
+        If this requirement is unsatisfiable.
     '''
 
     # Human-readable exception to be raised below if any.

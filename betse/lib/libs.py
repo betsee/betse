@@ -25,16 +25,22 @@ from collections import OrderedDict
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_runtime_mandatory_all() -> None:
     '''
-    Raise an exception unless all mandatory runtime dependencies of BETSE are
-    **satisfiable** (i.e., importable and of a satisfactory version).
+    Raise an exception unless all mandatory runtime dependencies of this
+    application are **satisfiable** (i.e., both importable and of a satisfactory
+    version).
 
     Equivalently, this function raises an exception if at least one such
     dependency is unsatisfied. For importable unsatisfied dependencies with
     `setuptools`-specific metadata (e.g., `.egg-info/`-suffixed subdirectories
     of the `site-packages/` directory for the active Python 3 interpreter,
     typically created by `setuptools` at install time), this function
-    additionally validates the versions of such dependencies to satisfy BETSE
-    requirements.
+    additionally validates the versions of these dependencies to satisfy all
+    application requirements.
+
+    Raises
+    ----------
+    BetseLibException
+        If at least one mandatory runtime dependency is unsatisfiable.
     '''
 
     # Avoid circular import dependencies.
@@ -57,17 +63,22 @@ def die_unless_runtime_mandatory_all() -> None:
 @type_check
 def die_unless_runtime_optional(*requirement_names: str) -> None:
     '''
-    Raise an exception unless all optional runtime dependencies of BETSE with
-    the passed `setuptools`-specific project names are **satisfiable** (i.e.,
-    importable and of a satisfactory version).
+    Raise an exception unless all optional runtime dependencies of this
+    application with the passed `setuptools`-specific project names are
+    **satisfiable** (i.e., both importable and of a satisfactory version).
 
     Parameters
     ----------
     requirement_names : Tuple[str]
-        Tuple of the names of the `setuptools`-specific projects corresponding
+        Tuple of the names of all `setuptools`-specific projects corresponding
         to these dependencies (e.g., `NetworkX`). If any such name is _not_ a
         key of the :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL`
         dictionary and is thus unrecognized, an exception is raised.
+
+    Raises
+    ----------
+    BetseLibException
+        If at least one such dependency is unsatisfiable.
 
     See Also
     ----------
@@ -88,14 +99,14 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
 @type_check
 def is_runtime_optional(*requirement_names: str) -> bool:
     '''
-    `True` only if all optional runtime dependencies of BETSE with the passed
-    `setuptools`-specific project names are **satisfiable** (i.e., importable
-    and of a satisfactory version).
+    `True` only if all optional runtime dependencies of this application with
+    the passed `setuptools`-specific project names are **satisfiable** (i.e.,
+    both importable and of a satisfactory version).
 
     Parameters
     ----------
     requirement_names : Tuple[str]
-        Tuple of the names of the `setuptools`-specific projects corresponding
+        Tuple of the names of all `setuptools`-specific projects corresponding
         to these dependencies (e.g., `NetworkX`). If any such name is _not_ a
         key of the :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL`
         dictionary and is thus unrecognized, an exception is raised.
@@ -118,7 +129,7 @@ def is_runtime_optional(*requirement_names: str) -> bool:
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
-    Initialize all mandatory runtime dependencies of BETSE.
+    Initialize all mandatory runtime dependencies of this application.
 
     Specifically, this function:
 

@@ -10,10 +10,15 @@ sim-grn`).
 '''
 
 # ....................{ IMPORTS                            }....................
-# import pytest
-# from betse_test.util.mark.fail import xfail
+from betse_test.util.mark.skip import skip_unless_lib_runtime_optional
+
+# ....................{ GLOBALS                            }....................
+# Decorator skipping all tests running network plotting subcommands (e.g., "plot
+# sim-brn", "plot sim-grn") requiring these optional runtime dependencies.
+skip_unless_networkable = skip_unless_lib_runtime_optional('networkx', 'pydot')
 
 # ....................{ TESTS                              }....................
+@skip_unless_networkable
 def test_cli_brn(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Test simulating the default biochemical reaction network (BRN) isolated away
@@ -25,10 +30,11 @@ def test_cli_brn(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
-    # Test the BRN subcommand and all subcommands required by that subcommand.
-    betse_cli_sim.run_subcommands(('seed',), ('sim-brn',),)
+    betse_cli_sim.run_subcommands(
+        ('seed',), ('sim-brn',), ('plot', 'sim-brn',),)
 
 
+@skip_unless_networkable
 def test_cli_grn(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Test simulating the default gene regulatory network (GRN) isolated away from
@@ -40,10 +46,11 @@ def test_cli_grn(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
-    # Test the GRN subcommand and all subcommands required by that subcommand.
-    betse_cli_sim.run_subcommands(('seed',), ('sim-grn',),)
+    betse_cli_sim.run_subcommands(
+        ('seed',), ('sim-grn',), ('plot', 'sim-grn',),)
 
 
+@skip_unless_networkable
 def test_cli_sim_brn_grn(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Test simulating the default biochemical reaction network (BRN) _and_
