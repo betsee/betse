@@ -387,7 +387,11 @@ class Cells(object):
             bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
             self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
+            logs.log_info('Creating environmental Poisson solver for voltages...')
+            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
+
             self.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
+            self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
 
             # logs.log_info('Creating finite volume grid integrator...')
             # self.gridInt = self.grid_obj.makeIntegrator()
@@ -404,7 +408,7 @@ class Cells(object):
         self.lapGJ_P = None
 
         # Lapalcian inverses on the env grid
-        self.lapENVinv = None
+        # self.lapENVinv = None
 
         # other matrices
         self.M_sum_mem_to_ecm = None   # used for deformation

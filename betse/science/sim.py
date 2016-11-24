@@ -364,8 +364,8 @@ class Simulator(object):
 
                     self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
 
-                    if name != 'P':
-                        self.movingIons.append(vars(self)[str1])
+                    # if name != 'P':
+                    self.movingIons.append(vars(self)[str1])
 
                     # cell concentration for the ion
                     str_cells = 'c' + name + 'cells'
@@ -598,14 +598,8 @@ class Simulator(object):
             self.J_env_x = np.zeros(len(cells.xypts))
             self.J_env_y = np.zeros(len(cells.xypts))
 
-            flx_env_ix = np.zeros(self.edl)
-            flx_env_iy = np.zeros(self.edl)
-
-            self.fluxes_env_x = [flx_env_ix for n in self.zs]
-            self.fluxes_env_y = [flx_env_iy for n in self.zs]
-
-            self.fluxes_env_x = np.asarray(self.fluxes_env_x)
-            self.fluxes_env_y = np.asarray(self.fluxes_env_x)
+            self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
+            self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
 
             # self.J_TJ = np.zeros(self.mdl)  # tight junction current density
 
@@ -887,8 +881,8 @@ class Simulator(object):
 
                 if p.sim_ECM is True:
 
-                    self.fluxes_env_x.fill(0)
-                    self.fluxes_env_y.fill(0)
+                    self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
+                    self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
 
                 # Calculate the values of scheduled and dynamic quantities (e.g.
                 # ion channel multipliers).
@@ -1536,18 +1530,16 @@ class Simulator(object):
         # CHOICE 2: calculate vmem via average rho in cell; GJ calculations are with respect to specific Vmem:
         Q_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
 
-        # self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells]
-        # self.vm = (1 / p.cm) * Q_cell[cells.mem_to_cells] - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
-
         self.vm = (1 / p.cm)*Q_cell[cells.mem_to_cells] - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
-        # self.vm = self.vm + (1/p.cm)*self.dPmem*p.dt*1.0e-3
-        # self.vm = self.vm - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
 
-
-        if p.sim_ECM is True:  # handle polarization induced by external electric field:
-
-            # correct the membrane voltage with the potentially finite environment voltage:
-            self.vm = self.vm - p.env_modulator*self.v_env[cells.map_mem2ecm]
+        # if p.sim_ECM is True:  # handle polarization induced by external electric field:
+        #
+        #     # rho_env = np.dot(self.zs * p.F, self.cc_env)
+        #     # self.v_env = np.dot(cells.lapENVinv, -rho_env)
+        #     # self.v_env[cells.inds_env] = 0.0
+        #     #
+        #     # correct the membrane voltage with the potentially finite environment voltage:
+        #     self.vm = self.vm - p.env_modulator*self.v_env[cells.map_mem2ecm]
 
 
         # calculate the derivative of Vmem:
@@ -1929,22 +1921,27 @@ class Simulator(object):
 
         gvx, gvy = fd.gradient(v_env, cells.delta)
 
-        self.E_env_x = -gvx
-        self.E_env_y = -gvy
+        # self.E_env_x = self.E_env_x -gvx
+        # self.E_env_y = self.E_env_y -gvy
 
-        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
+        # self.E_env_x = -gvx
+        # self.E_env_y = -gvy
+
+
+        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, gvx, gvy, 0, 0,
                                         self.D_env[i].reshape(cells.X.shape), self.zs[i],
                                         self.T, p)
 
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
-        self.fluxes_env_x[i] = self.fluxes_env_x[i] + fx.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = self.fluxes_env_y[i] + fy.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
 
         cenv = cenv + div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
+
 
     def get_ion(self,label):
         """

@@ -5,10 +5,10 @@
 import numpy as np
 from betse.science import finitediff as fd
 from scipy.ndimage.filters import gaussian_filter
+from betse.science import sim_toolbox as stb
 
 def get_current(sim, cells, p):
 
-    # Helmholtz-Decomposition method ----------------------------------------------------------------------------
 
     # membrane normal vectors short form:
     nx = cells.mem_vects_flat[:, 2]
@@ -34,139 +34,121 @@ def get_current(sim, cells, p):
     Jny = sim.Jn * ny
 
     # average to cell centres:
-
     sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
 
-    # JJ = np.sqrt(J_cell_x ** 2 + J_cell_y ** 2)
+    Jgj_cell_x = np.dot(cells.M_sum_mems, Jgj*nx) / cells.num_mems
+    Jgj_cell_y = np.dot(cells.M_sum_mems, Jgj*ny) / cells.num_mems
 
-    # # calculate resolution of Jf into solenoidal and irrotational vector field components:
-    # dPx, dPy, cHx, cHy = cells.HelmholtzHodge(Jnx, Jny)
-    # # dPx, dPy, cHx, cHy = HelmholtzHodge(J_cell_x[cells.mem_to_cells], J_cell_y[cells.mem_to_cells])
-    #
-    # # according to the math, the irrotational field is the negative of the polarization change rate:
-    # dPx = - dPx
-    # dPy = - dPy
-    #
-    # # polarization density change normal to membrane:
-    # sim.dPmem = dPx * nx + dPy * ny
-    #
-    # sim.cHx = cHx
-    # sim.cHy = cHy
-
-    # polarization vectors at the membranes:
-    # # calculate polarization vectors for individual cells:
-    # sim.pol_cell_x = np.dot(cells.M_sum_mems, dPx) / cells.num_mems
-    # sim.pol_cell_y = np.dot(cells.M_sum_mems, dPy) / cells.num_mems
-    #
-    # # polarization density for whole cluster:
-    # sim.Pol_x = np.sum(dPx) * (sim.mdl / np.sum(cells.cell_vol))
-    #
-    # sim.Pol_y = np.sum(dPy) * (sim.mdl / np.sum(cells.cell_vol))
-    #
-    # sim.Pol_tot = np.sqrt(sim.Pol_x ** 2 + sim.Pol_y ** 2)
+    Jm_cell_x = np.dot(cells.M_sum_mems, Jn*nx) / cells.num_mems
+    Jm_cell_y = np.dot(cells.M_sum_mems, Jn*ny) / cells.num_mems
 
 
 
-    # # Whole System Method: --------------------------------------------------------------------------------------
-    #
-    # # calculate current density across cell membranes:
-    # # (reverse polarity to account for direction of cell membrane normals)
-    # Jn = -np.dot(sim.zs*p.F, sim.fluxes_mem)
-    #
-    # # calculate current density across cell membranes via gap junctions:
-    # Jgj = np.dot(sim.zs*p.F, sim.fluxes_gj)
-    #
-    # # add the current sources together into a single transmembrane current:
-    # Jn_o = Jn + Jgj
-    #
-    # drho = np.zeros(sim.cdl)
-    #
-    # # bsigma = np.zeros(sim.cdl)
-    # # bsigma[cells.bflags_cells] = p.D_tj
-    #
-    # # correct the current density using the continuity equation:
-    #
-    # # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
-    # div_J = (np.dot(cells.M_sum_mems, Jn_o*cells.mem_sa) / cells.cell_vol)
-    #
-    # # this boundary condition allows us to accumulate a surface charge:
-    # # drho[cells.bflags_cells] = div_J[cells.bflags_cells]
-    #
-    # Phi = np.dot(cells.lapGJ_P_inv, div_J - drho)
-    #
-    # sim.Phi = Phi
-    #
-    # gPhi = (Phi[cells.cell_nn_i[:, 1]] - Phi[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-    #
-    # sim.gPhi = gPhi
-    #
-    # # Jn_corr = Jn_o - gPhi
-    # Jn_corr = Jn_o
-    #
-    # Jnx = Jn_corr*cells.mem_vects_flat[:, 2]
-    # Jny = Jn_corr*cells.mem_vects_flat[:, 3]
-    #
-    # # map current to the cell centers:
-    # sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
-    # sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
-    #
-    # # # reassign the normal current to the un_corrected component
-    # sim.Jn = Jn_o*1
-    #
-    # # assign the normal current to the corrected component
-    # # sim.Jn = Jn_corr*1
-    #
-    # # multiply final result by membrane surface area to obtain current (direction into cell is +)
-    # sim.I_mem = -sim.Jn*cells.mem_sa
 
     # Current in the environment --------------------------------------------------------------------------------------
     if p.sim_ECM is True:
 
         # non divergence free current densities in the environment:
-
-        # J_env_x_o = np.dot(sim.zs, sim.fluxes_env_x)
-        # J_env_y_o = np.dot(sim.zs, sim.fluxes_env_y)
+        # J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
+        # J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
 
         J_env_x_o = np.zeros(sim.edl)
         J_env_y_o = np.zeros(sim.edl)
 
-        # due to electrolyte screening and fluxes, current in extracellular spaces opposite that of in cells:
-        J_env_x_o[cells.map_cell2ecm] = sim.J_cell_x
-        J_env_y_o[cells.map_cell2ecm] = sim.J_cell_y
+        # # base current in environment is equivalent to transmembrane current of cells:
+        # J_env_x_o[cells.map_cell2ecm] = J_env_x_o[cells.map_cell2ecm] + sim.J_cell_x*(
+        #     cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
+        #
+        # J_env_y_o[cells.map_cell2ecm] = J_env_y_o[cells.map_cell2ecm] + sim.J_cell_y*(
+        #     cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
 
-        if p.smooth_level > 0.0:
-            J_env_x_o = gaussian_filter(J_env_x_o.reshape(cells.X.shape), p.smooth_level).ravel()
-            J_env_y_o = gaussian_filter(J_env_y_o.reshape(cells.X.shape), p.smooth_level).ravel()
+        # J_env_x_o[cells.map_mem2ecm] = J_env_x_o[cells.map_mem2ecm] + Jnx*(cells.memSa_per_envSquare[cells.map_mem2ecm]/cells.delta**2)
+        # J_env_y_o[cells.map_mem2ecm] = J_env_y_o[cells.map_mem2ecm] + Jny*(cells.memSa_per_envSquare[cells.map_mem2ecm]/cells.delta**2)
+
+        J_env_x_o[cells.map_cell2ecm] = J_env_x_o[cells.map_cell2ecm] - Jgj_cell_x*(
+            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2) + Jm_cell_x*(
+            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
+
+        J_env_y_o[cells.map_cell2ecm] = J_env_y_o[cells.map_cell2ecm] - Jgj_cell_y*(
+            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)  +  Jm_cell_y*(
+            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
 
 
-        # determine corrected current densities assuming
-        # bulk electrolyte neutrality of entire system:
 
+        # if p.smooth_level > 0.0:
+        #     J_env_x_o = gaussian_filter(J_env_x_o.reshape(cells.X.shape), p.smooth_level).ravel()
+        #     J_env_y_o = gaussian_filter(J_env_y_o.reshape(cells.X.shape), p.smooth_level).ravel()
+
+        AA, Fx, Fy, BB, _, _ = stb.HH_Decomp(J_env_x_o.reshape(cells.X.shape), J_env_y_o.reshape(cells.X.shape), cells)
+
+
+        # sim.v_env = -BB.ravel()/p.media_sigma
+
+        sim.J_env_x = Fx.reshape(cells.X.shape)
+        sim.J_env_y = Fy.reshape(cells.X.shape)
+
+        sim.E_env_x = sim.J_env_x*p.media_sigma
+        sim.E_env_y = sim.J_env_y*p.media_sigma
+
+
+
+
+
+        # # determine corrected current densities assuming
+        # # bulk electrolyte neutrality of entire system:
+        #
         # # Next, calculate the divergence of the environmental current density:
         # div_J_env_o = fd.divergence(J_env_x_o.reshape(cells.X.shape), J_env_y_o.reshape(cells.X.shape),
         #     cells.delta, cells.delta)
+        #
+        #
+        # # Next, calculate the divergence of the environmental current density divided by media conductivity:
+        # # weight_factor = p.media_sigma*sim.D_env_weight
+        # #
+        # # div_J_env_o = fd.divergence((1/weight_factor)*J_env_x_o.reshape(cells.X.shape),
+        # #                             (1/weight_factor)*J_env_y_o.reshape(cells.X.shape),
+        # #                             cells.delta, cells.delta)
+        #
+        # # Find the value of the environmental electric potential:
+        # Phi = np.dot(cells.lapENV_P_inv, -div_J_env_o.ravel())
+        # Phi = Phi.reshape(cells.X.shape)
+        #
+        # sim.Phi_env = Phi
+        #
+        # sim.v_env = np.copy(sim.Phi_env.ravel())
+        # # sim.v_env[cells.inds_env] = 0.0
+        # # sim.v_env[cells.ecm_bound_k] = 0.0
+        #
+        # # Take the grid gradient of the scaled internal potential:
+        # gPhix, gPhiy = fd.gradient(Phi, cells.delta)
+        #
+        # # subtract the potential term from the solution to yield the actual current density in the environment:
+        # # sim.J_env_x = (J_env_x_o.reshape(cells.X.shape) + (weight_factor)*gPhix)
+        # # sim.J_env_y = (J_env_y_o.reshape(cells.X.shape) + (weight_factor)*gPhiy)
+        #
+        # sim.J_env_x = (J_env_x_o.reshape(cells.X.shape) + gPhix)
+        # sim.J_env_y = (J_env_y_o.reshape(cells.X.shape) + gPhiy)
 
-        div_J_env_o = fd.divergence(J_env_x_o.reshape(cells.X.shape)/sim.D_env_weight,
-                                    J_env_y_o.reshape(cells.X.shape)/sim.D_env_weight,
-                                    cells.delta, cells.delta)
 
-        # Find the value of the environmental electric potential:
-        Phi = np.dot(cells.lapENV_P_inv, div_J_env_o.ravel())
-        Phi = Phi.reshape(cells.X.shape)
+        # Calculate a divergence-free net current, which assumes charge compensation of the bulk electrolyte:
+        # This method uses the Helmholtz-Hodge decomposition for a 2D vector field:
 
-        sim.Phi_env = Phi
+        # Jxr = -J_env_y_o.reshape(cells.X.shape)
+        # Jyr = J_env_x_o.reshape(cells.X.shape)
+        #
+        # divJr = fd.divergence(Jxr, Jyr, cells.delta, cells.delta)
+        #
+        # AA = np.dot(cells.lapENVinv, -divJr.ravel())
+        #
+        # gAx, gAy = fd.gradient(AA.reshape(cells.X.shape), cells.delta)
+        #
+        # sim.J_env_x = -gAy
+        # sim.J_env_y = gAx
 
-        sim.v_env = np.copy(sim.Phi_env.ravel())
-        sim.v_env[cells.inds_env] = 0.0
-        sim.v_env[cells.ecm_bound_k] = 0.0
+        # sim.E_env_x = p.media_sigma*sim.J_env_x
+        # sim.E_env_y = p.media_sigma*sim.J_env_y
 
-        # Take the grid gradient of the scaled internal potential:
-        gPhix, gPhiy = fd.gradient(Phi, cells.delta)
-
-        # subtract the potential term from the solution to yield the actual current density in the environment:
-        sim.J_env_x = (J_env_x_o.reshape(cells.X.shape) - gPhix)
-        sim.J_env_y = (J_env_y_o.reshape(cells.X.shape) - gPhiy)
 
 
 

@@ -1084,8 +1084,6 @@ internal parameters:
 
   cell polarizability factor: 0.0  # (0.0 to 1.0) polarizability of the membrane (dynamic behaviour of vm wrt Jmem)
 
-  membrane resistivity factor: 0.0 # (0.0 to 1.0) resistivity of the membrane (dynamic behaviour of vm wrt Jmem)
-
   env modulation factor: 0.0   #  (0.0 to 50.0) factor enhancing env voltage (accounts for smaller TJ width in reality)
 
   media resistivity: 0.021  # electrical resistivity of bulk electrolyte (Ohms.m)

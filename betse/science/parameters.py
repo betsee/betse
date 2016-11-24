@@ -889,7 +889,7 @@ class Parameters(object):
 
         self.cell_polarizability = float(iu['cell polarizability factor'])
 
-        self.mem_resistivity = float(iu['membrane resistivity factor'])
+        # self.mem_resistivity = float(iu['membrane resistivity factor'])
 
         self.env_modulator = float(iu['env modulation factor'])
 
