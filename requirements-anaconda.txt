@@ -10,10 +10,16 @@
 # Dependencies *MUST* be specified in "conda"- rather than "setuptools"- or
 # "pip"-specific format. Hence, the dependencies listed by the top-level
 # "setup.py" script *CANNOT* be reused by merely specifying "." here.
-networkx=1.10
-pydot
+#FIXME: Unfortunately, networkx 1.10 is unavailable under Python 3.5 under
+#Anaconda. Until networkx 1.12 is both released and made available under
+#Anaconda, networkx is currently ignored. Since pydot is ignored without
+#networkx, pydot is necessarily ignored as well.
+
+#networkx
+#pydot
 
 #FIXME: The following packages are unavailable via default "linux-64" channels.
 #Consider grepping about for alternate third-party channels.
+
 #pprofile
 #ptpython
