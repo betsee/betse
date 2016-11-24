@@ -191,7 +191,7 @@ before_script:
 
   # Install all mandatory and optional dependencies of this application *NOT*
   # already installed via the full Anaconda distribution.
-  - conda --quiet --file requirements-anaconda.txt 
+  - conda install --quiet --file requirements-anaconda.txt 
 
 # ....................{ COMMANDS                           }....................
 test:
