@@ -10,7 +10,10 @@
 # Dependencies *MUST* be specified in "conda"- rather than "setuptools"- or
 # "pip"-specific format. Hence, the dependencies listed by the top-level
 # "setup.py" script *CANNOT* be reused by merely specifying "." here.
-pprofile
-ptpython
 networkx=1.10
 pydot
+
+#FIXME: The following packages are unavailable via default "linux-64" channels.
+#Consider grepping about for alternate third-party channels.
+#pprofile
+#ptpython
