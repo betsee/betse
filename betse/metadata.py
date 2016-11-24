@@ -290,6 +290,8 @@ we pretend to require `setuptools` itself. Although non-ideal, so is life.
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by this application.
+# * Gitlab-CI configuration (e.g., the top-level "requirements-anaconda.txt"
+#   file).
 # * Appveyor configuration (e.g., the "CONDA_PACKAGE_NAMES" key of the
 #   "environment.global" list of the top-level "appveyor.yml" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -348,6 +350,8 @@ See Also
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by this application.
+# * Gitlab-CI configuration (e.g., the top-level "requirements-anaconda.txt"
+#   file).
 # * Appveyor configuration (e.g., the "CONDA_PACKAGE_NAMES" key of the
 #   "environment.global" list of the top-level "appveyor.yml" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -404,6 +408,8 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this list *MUST* be synchronized with:
 # * Front-facing documentation (e.g., the top-level "README.rst").
+# * Gitlab-CI configuration (e.g., the top-level "requirements-anaconda.txt"
+#   file).
 # * Appveyor configuration (e.g., the "CONDA_DEPENDENCIES" key of the
 #   "environment.global" list of the top-level "appveyor.yml" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

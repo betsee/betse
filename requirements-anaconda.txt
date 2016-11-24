@@ -1,0 +1,16 @@
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# List of all mandatory or optional dependencies to be installed by the "conda"
+# package manager under the full Anaconda distribution.
+
+# ....................{ DEPENDENCIES                       }....................
+# Dependencies *MUST* be specified in "conda"- rather than "setuptools"- or
+# "pip"-specific format. Hence, the dependencies listed by the top-level
+# "setup.py" script *CANNOT* be reused by merely specifying "." here.
+pprofile
+ptpython
+networkx=1.10
+pydot

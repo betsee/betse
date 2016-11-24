@@ -119,7 +119,7 @@ variables:
 
   # Instruct "pip" to cache all downloads to the build-relative directory
   # repeated in the "cache:" section below.
-  PIP_CACHE_DIR: "pip-cache"
+  # PIP_CACHE_DIR: "pip-cache"
 
 
 cache:
@@ -142,7 +142,7 @@ cache:
 
     # The directory to which pip caches artifacts pertaining to previously
     # installed and possibly compiled dependencies.
-    - pip-cache
+    # - pip-cache
     # - $HOME/.cache/pip
 
 # ....................{ DEPENDENCIES                       }....................
@@ -160,6 +160,12 @@ before_script:
   # Since this image provides all such dependencies by default, this is ignored.
   # - apt-get install -y
 
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  # WARNING: Since this pipeline currently leverages the Anaconda-based "conda"
+  # manager rather than the pure-Python "pip" manager to install dependencies,
+  # the following command is vestigial and is preserved only for posterity.
+  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   # Install all Python-specific dependencies via "pip". Dismantled, this is:
   #
   # * "--quiet", reducing output verbosity.
@@ -173,7 +179,19 @@ before_script:
   #   satisfying application requirements.
   # * "--requirement", the relative path of the file listing all dependencies to
   #   be installed.
-  - pip3 --quiet --disable-pip-version-check --cache-dir "${PIP_CACHE_DIR}" install --upgrade-strategy only-if-needed --requirement requirements.txt
+  # - pip3 --quiet --disable-pip-version-check --cache-dir "${PIP_CACHE_DIR}" install --upgrade-strategy only-if-needed --requirement requirements.txt
+
+  # Automatically pass the "--yes" option to *ALL* Miniconda commands run below.
+  # Technically, this is an ignorable convenience. Practically, this reduces the
+  # likelihood of developer oversight, saving essential sanity.
+  - conda config --set always_yes true
+
+  # For debuggability, print metadata identifying this Anaconda release.
+  - conda info -a
+
+  # Install all mandatory and optional dependencies of this application *NOT*
+  # already installed via the full Anaconda distribution.
+  - conda --quiet --file requirements-anaconda.txt 
 
 # ....................{ COMMANDS                           }....................
 test:

@@ -170,13 +170,16 @@ install:
   # For debuggability, print metadata identifying this Miniconda release.
   - cmd: conda info -a
 
+  #FIXME: For maintainability, convert to use a "requirements-anaconda.txt"-like
+  #file rather than the %CONDA_PACKAGE_NAMES% global; then remove that global.
+
   # Create a new Miniconda environment named "test-environment" specific to the
   # version of Python requested by this profile *AND* install all dependencies
   # listed in the "%CONDA_PACKAGE_NAMES%" string global into this environment.
   - cmd: conda create --quiet --name test-environment python=%PYTHON_VERSION% %CONDA_PACKAGE_NAMES%
 
   # Activate the previously defined environment, prepending the current %PATH%
-  # be this environment's top-level directory.
+  # by this environment's top-level directory.
   - cmd: activate test-environment
 
   # Install this project into this environment in the most efficient means
