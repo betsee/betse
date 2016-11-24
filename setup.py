@@ -46,6 +46,7 @@ BETSE's `setuptools`-based makefile.
 import setuptools
 from betse import metadata
 from betse.util.io import stderrs
+from betse.util.path import files
 from betse_setup import build, freeze, symlink, test
 
 # ....................{ METADATA                           }....................
@@ -143,8 +144,7 @@ def init() -> None:
 
     # Description read from this description file.
     try:
-        with open(DESCRIPTION_FILENAME) as readme:
-            _DESCRIPTION = readme.read()
+        _DESCRIPTION = files.get_chars(DESCRIPTION_FILENAME)
     # If this file is *NOT* readable, print a non-fatal warning and reduce this
     # description to the empty string. While unfortunate, this description is
     # *NOT* required for most operations and hence mostly ignorable.
@@ -179,10 +179,25 @@ setup_options = {
     'classifiers': _CLASSIFIERS,
 
     # ..................{ DEPENDENCIES                       }..................
-    # Runtime dependencies.
+    # Mandatory nuntime dependencies.
     'install_requires': metadata.DEPENDENCIES_RUNTIME_MANDATORY,
 
-    # Testing dependencies.
+    # Optional nuntime dependencies. Whereas mandatory dependencies are defined
+    # as sequences, optional dependencies are defined as a dictionary mapping
+    # from an arbitrary alphanumeric word to a sequence containing one or more
+    # such dependencies. Such dependencies are then installable via "pip" by
+    # suffixing the name of this project by the "["- and "]"-delimited key
+    # defined below whose value lists the dependencies to be installed (e.g.,
+    # "sudo pip3 install betse[all]", installing both BETSE and all mandatory
+    # and optional dependencies transitively required by BETSE).
+    'extras_require': {
+        # All optional runtime dependencies. Since the
+        # "DEPENDENCIES_RUNTIME_OPTIONAL" global is a dictionary rather than a
+        # sequence, a function converting this global into a tuple is called.
+        'all': metadata.get_dependencies_runtime_optional_tuple(),
+    },
+
+    # Mandatory testing dependencies.
     'tests_require': metadata.DEPENDENCIES_TESTING_MANDATORY,
 
     # ..................{ PACKAGES                           }..................
@@ -279,6 +294,7 @@ This dictionary signifies the set of all `betse`-specific `setuptools` options.
 Modules in the `betse`-specific `setup` package customize such options (e.g., by
 defining custom commands).
 '''
+# print('extras: {}'.format(setup_options['extras_require']))
 
 
 setup_options_custom = {

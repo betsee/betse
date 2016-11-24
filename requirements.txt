@@ -14,5 +14,14 @@
 # This package currently requires no custom options.
 
 # ....................{ DEPENDENCIES                       }....................
-# Default to the set of all dependencies listed by the "setup.py" script.
-.
+# Default to the set of all mandatory and optional runtime dependencies listed
+# by the top-level "setup.py" script. Dismantled, this is:
+#
+# * ".", installing the current application from script *AND* all mandatory
+#   runtime dependencies of this application #   declared by this script's
+#   "install_requires" key.
+# * "[all]", installing all optional runtime dependencies of this application
+#   declared by the "all" key of this script's "extras_require" key. While
+#   optional dependencies are of course optional, increasing these
+#   dependencies maximizes test coverage and hence are effectively mandatory.
+.[all]

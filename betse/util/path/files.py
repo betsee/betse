@@ -161,6 +161,29 @@ def is_symlink_valid(pathname: str) -> bool:
 
 # ....................{ COPIERS                            }....................
 @type_check
+def get_chars(filename: str, encoding: str = 'utf-8') -> str:
+    '''
+    String of all characters contained in the plaintext file with the passed
+    filename encoded with the passed encoding.
+
+    Parameters
+    ----------
+    filename : str
+        Relative or absolute path of the plaintext text to be read.
+    encoding : optional[str]
+        Name of the encoding to be used. Defaults to UTF-8.
+
+    Returns
+    ----------
+    str
+        String of all characters decoded from this file's byte content.
+    '''
+
+    with read_chars(filename=filename, encoding=encoding) as text_file:
+        return text_file.read()
+
+
+@type_check
 def get_mode_write_bytes(is_overwritable: bool = False) -> str:
     '''
     Mode string suitable for opening a file handle for byte-oriented writing via

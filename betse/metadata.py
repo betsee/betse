@@ -12,7 +12,7 @@ For uniformity between the BETSE codebase and the `setup.py` setuptools script
 importing this module, this module also validates the version of the active
 Python 3 interpreter. An exception is raised if this version is insufficient.
 
-BETSE currently requires **Python 3.4**, as Python < 3.4:
+This application currently requires **Python 3.4**, as Python < 3.4:
 
 * Provides insufficient machinery for dynamically inspecting modules at runtime.
   In particular, both the long-standing `imp.find_module()` function and the
@@ -20,8 +20,8 @@ BETSE currently requires **Python 3.4**, as Python < 3.4:
   packages of the passed module to be recursively imported _before_ these
   functions are called; failing to do so results in these functions
   unconditionally returning `None`. Since this has been the source of numerous
-  subtle issues throughout the BETSE codebase, Python 3.3 is strictly out. Since
-  most modern Linux distributions have adopted Python 3.4 as the default Python
+  subtle issues throughout this codebase, Python 3.3 is strictly out. Since most
+  modern Linux distributions have adopted Python 3.4 as the default Python
   3 interpreters, this _should_ impose no hardship.
 * Fails to provide the `enum` module introduced by Python 3.4, which both
   standardizes and simplifies enumeration implementations.
@@ -272,7 +272,8 @@ installation.
 
 DEPENDENCY_SETUPTOOLS = 'setuptools >= 3.3'
 '''
-Version of `setuptools` required by BETSE at both install and runtime.
+Version of `setuptools` required by this application at both installation time
+_and_ runtime.
 
 For simplicity, this version is a `setuptools`-specific requirements string.
 
@@ -288,36 +289,36 @@ we pretend to require `setuptools` itself. Although non-ideal, so is life.
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
-#   module names imported by BETSE.
+#   module names imported by this application.
 # * Appveyor configuration (e.g., the "CONDA_PACKAGE_NAMES" key of the
 #   "environment.global" list of the top-level "appveyor.yml" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_MANDATORY = (
     # setuptools is currently required at both install and runtime. At runtime,
     # setuptools is used to validate that dependencies are available.
     DEPENDENCY_SETUPTOOLS,
 
-    # Dependencies directly required by BETSE.
+    # Dependencies directly required by this application.
     'Numpy >= 1.8.0',
     'PyYAML >= 3.10',
     'SciPy >= 0.12.0',
     'dill >= 0.2.3',
     'matplotlib >= 1.4.0',
 
-    # Dependencies indirectly required by BETSE but only optionally required by
-    # dependencies directly required by BETSE. Since the "setup.py" scripts for
-    # the latter do *NOT* list these dependencies as mandatory, these
-    # dependencies *MUST* be explicitly listed here.
+    # Dependencies indirectly required by this application but only optionally
+    # required by dependencies directly required by this application. Since the
+    # "setup.py" scripts for the latter do *NOT* list these dependencies as
+    # mandatory, these dependencies *MUST* be explicitly listed here.
     'Pillow >= 2.3.0',    # required by the "scipy.misc.imread" module
 
-    # Dependencies directly required by dependencies directly required by BETSE.
-    # While these dependencies need *NOT* be explicitly listed here, doing so
-    # improves detection of missing dependencies in a human-readable manner.
+    # Dependencies directly required by dependencies directly required by this
+    # application. While these dependencies need *NOT* be explicitly listed
+    # here, doing so improves detection of missing dependencies in a
+    # human-readable manner.
     'six >= 1.5.2',       # required by everything that should not be
 )
 '''
-Set of all mandatory runtime dependencies for BETSE.
+Set of all mandatory runtime dependencies for this application.
 
 For simplicity, this set is formatted as a tuple of `setuptools`-specific
 requirements strings whose:
@@ -342,19 +343,21 @@ See Also
 #perhaps as so-called "extras"? Contemplate. Consider. Devise.
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: Changes to this list *MUST* be synchronized with:
+# WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
-#   module names imported by BETSE.
+#   module names imported by this application.
+# * Appveyor configuration (e.g., the "CONDA_PACKAGE_NAMES" key of the
+#   "environment.global" list of the top-level "appveyor.yml" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_OPTIONAL = {
     # To simplify subsequent lookup at runtime, project names for optional
     # dependencies should be *STRICTLY LOWERCASE*. Since setuptools parses
     # project names case-insensitively, case is only of internal relevance.
 
-    # Dependencies directly required by BETSE.
-    'numba': '>= 0.27.0',
+    # Dependencies directly required by this application.
+    # 'numba': '>= 0.27.0',
     'pprofile': '>= 1.8',
     'ptpython': '>= 0.29',
 
@@ -373,7 +376,7 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
 }
 '''
 Dictionary mapping from the `setuptools`-specific project name of each optional
-runtime dependency for BETSE to the suffix of a `setuptools`-specific
+runtime dependency for this application to the suffix of a `setuptools`-specific
 requirements string constraining this dependency.
 
 Whereas mandatory runtime dependencies are application prerequisites and hence
@@ -392,6 +395,9 @@ See Also
 ----------
 :download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
+:func:`get_dependencies_runtime_optional_tuple`
+    Function converting this dictionary of key-value string pairs into a tuple
+    of strings (e.g., within :download:`/setup.py`).
 '''
 
 # ....................{ METADATA ~ dependencies : testing  }....................
@@ -409,7 +415,7 @@ DEPENDENCIES_TESTING_MANDATORY = (
     'pytest >= 2.5.0',
 )
 '''
-Set of all mandatory testing dependencies for BETSE.
+Set of all mandatory testing dependencies for this application.
 
 For simplicity, this set is formatted as a tuple of `setuptools`-specific
 requirements strings in the same manner as `DEPENDENCIES_RUNTIME_MANDATORY`.
@@ -429,3 +435,20 @@ with the `py.test` test harness).
 This private global is subject to change and hence_not_ intended to be accessed.
 (Consider calling the public `betse.util.py.pys.is_testing()` function instead.)
 '''
+
+# ....................{ GETTERS                            }....................
+def get_dependencies_runtime_optional_tuple() -> tuple:
+    '''
+    Tuple listing the `setuptools`-specific requirement string containing the
+    mandatory name and optional version and extras constraints of each optional
+    runtime dependency for this application.
+
+    This lower-level tuple is dynamically converted from the higher-level
+    :data:`DEPENDENCIES_RUNTIME_OPTIONAL` dictionary.
+    '''
+
+    return tuple(
+        '{} {}'.format(dependency_name, dependency_constraints)
+        for dependency_name, dependency_constraints in
+            DEPENDENCIES_RUNTIME_OPTIONAL.items()
+    )

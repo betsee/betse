@@ -15,7 +15,7 @@
 #   exist two categories of Runners:
 #   * Project Runners, hosted either directly by project maintainers on private
 #     servers *OR* indirectly by for-profit intermediaries on private servers
-#     paid for by the project maintainers. As the nomenclature implies, Project 
+#     paid for by the project maintainers. As the nomenclature implies, Project
 #     Runners are specific to and hence accessible by only the project to which
 #     they are assigned. In either case, "paid" and "private" are the general
 #     keywords here. (Inapplicable for our use case.)
@@ -58,7 +58,7 @@
 #
 # For a list of all available Docker images, see the search bar at the top of
 # "https://hub.docker.com". To find relevant images, consider (in order):
-# 
+#
 # * Either:
 #   * Google "docker python3 matplotlib". Since Matplotlib transitively requires
 #     most dependencies required by this project, this query (typically) yields
@@ -109,7 +109,19 @@
 #   https://github.com/vishnu2kmohan/anaconda3-docker
 image: continuumio/anaconda3
 
-# ....................{ DEPENDENCIES                       }....................
+# ....................{ GLOBALS                            }....................
+# Dictionary mapping from the name to value of each environment variable to be
+# "globally" exported and hence accessible to *ALL* commands run below.
+variables:
+  # Instruct Matplotlib to cache metadata to the build-relative directory
+  # repeated in the "cache:" section below.
+  MPLCONFIGDIR: "mpl-cache"
+
+  # Instruct "pip" to cache all downloads to the build-relative directory
+  # repeated in the "cache:" section below.
+  PIP_CACHE_DIR: "pip-cache"
+
+
 cache:
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   # WARNING: Due to an outstanding issue, GitLab-CI currently ignores *ALL*
@@ -133,8 +145,9 @@ cache:
     - pip-cache
     # - $HOME/.cache/pip
 
+# ....................{ DEPENDENCIES                       }....................
 # List of all external commands to be run *FIRST* for this CI pipeline.
-# before_script:
+before_script:
   # Update all system packages installed by default with this image for the
   # duration of this CI pipeline.
   #
@@ -147,21 +160,26 @@ cache:
   # Since this image provides all such dependencies by default, this is ignored.
   # - apt-get install -y
 
-  # Install all Python-specific dependencies via pip3, explicitly declaring the
-  # custom pip3 cache directory listed above.
+  # Install all Python-specific dependencies via "pip". Dismantled, this is:
   #
-  # Since this image provides all such dependencies by default, this is ignored.
-  # - export PIP_CACHE_DIR="pip-cache"
-  # - pip3 install -qr requirements.txt
+  # * "--quiet", reducing output verbosity.
+  # * "--disable-pip-version-check", improving both space and time complexity by
+  #   preventing "pip" from unnecessarily upgrading itself.
+  # * "--cache-dir", redefining the same directory exported as an environment
+  #   variable above. While redundant, doing so increases the likelihood that
+  #   "pip" will actually respect this cache request.
+  # * "--upgrade-strategy", improving both space and time complexity by
+  #   preventing "pip" from unnecessarily upgrading dependencies already
+  #   satisfying application requirements.
+  # * "--requirement", the relative path of the file listing all dependencies to
+  #   be installed.
+  - pip3 --quiet --disable-pip-version-check --cache-dir "${PIP_CACHE_DIR}" install --upgrade-strategy only-if-needed --requirement requirements.txt
 
 # ....................{ COMMANDS                           }....................
 test:
   # List of all external commands to be run for each CI pipeline *AFTER* those
   # listed within "before_script" above.
   script:
-    # Instruct Matplotlib to cache metadata to a build-relative path.
-    - export MPLCONFIGDIR="mpl-cache"
-
     # Run the entire "py.test"-based test suite under the following options:
     #
     # * "--maxfail=3", halting testing on the third failure. For discussion, see
