@@ -129,10 +129,12 @@ variables:
   # conflict with third-party applications, the name of each such variable is
   # intentionally prefixed by "_".
 
-  # Name of the Ananconda environment to be created and then reused by this
-  # configuration, identical to the basename of the build-relative directory
-  # section below.
-  _CONDA_ENV_NAME: "conda-env"
+  # Relative path of the top-level directory containing this configuration's
+  # Ananconda environment repeated in the "cache:" section below. To
+  # differentiate this environment from an environment of the same name in the
+  # default system-wide directory for Anaconda environments (e.g.,
+  # "/opt/conda/envs"), this path is intentionally prefixed by "./".
+  _CONDA_ENV_DIRNAME: "./conda-env"
 
 
 cache:
@@ -215,11 +217,11 @@ before_script:
   # default directory for Anaconda environments, the "--prefix" rather than
   # "--name" option is passed. Since these two options are mutually exclusive,
   # only the former is passed.
-  - conda create --quiet --prefix "${_CONDA_ENV_NAME}"
+  - conda create --quiet --prefix "${_CONDA_ENV_DIRNAME}"
 
   # Activate the previously defined environment, prepending the current ${PATH}
   # by this environment's top-level directory.
-  - source activate "${_CONDA_ENV_NAME}"
+  - source activate "${_CONDA_ENV_DIRNAME}"
 
   # Install all mandatory and optional dependencies of this application into
   # this environment.

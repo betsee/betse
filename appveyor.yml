@@ -156,9 +156,10 @@ install:
   # * "always_yes true", automatically pass the "--yes" option to *ALL*
   #   "conda" commands run below. This is a superficial convenience reducing the
   #   likelihood of developer oversight and hence saving essential sanity.
-  # * "auto_update_conda false", improving both space and time complexity by
-  #   preventing "conda" from unnecessarily upgrading itself.
-  - cmd: conda config --set always_yes true --set auto_update_conda false
+  #
+  # Note that the "auto_update_conda" option is unsupported by the older
+  # versions of "conda" installed with Appveyor and hence omitted here.
+  - cmd: conda config --set always_yes true
 
   # Update Miniconda to its most recent stable release.
   - cmd: conda update --quiet conda
