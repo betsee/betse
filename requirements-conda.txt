@@ -1,0 +1,52 @@
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# List of all mandatory or optional runtime dependencies of this application to
+# be installed by the "conda" package manager bundled with both the default
+# Anaconda distribution and minimal Miniconda distribution.
+#
+# This file conforms to the "conda"- rather than "setuptools"- or "pip"-specific
+# file format for dependencies. Hence, the existing dependencies listed by the
+# top-level "setup.py" script *CANNOT* be reused here by merely specifying ".".
+#
+# --------------------( EXAMPLES                           )--------------------
+# To generate a sample file in this format describing all currently installed
+# "conda" packages, run the following command:
+#
+#     $ conda list -e
+
+# ....................{ DEPENDENCIES ~ mandatory           }....................
+# All mandatory runtime dependencies of this application, manually converted from
+# the "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" global.
+setuptools
+numpy
+pyyaml
+scipy
+dill
+matplotlib
+pillow
+six
+
+# All mandatory test dependencies of this application, manually converted from
+# the "betse.metadata.DEPENDENCIES_TESTTIME_MANDATORY" global.
+pytest 
+
+# ....................{ DEPENDENCIES ~ optional            }....................
+# All optional runtime dependencies of this application, manually converted from
+# the "betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL" global.
+
+#FIXME: Unfortunately, networkx 1.10 is unavailable under Python 3.5 under
+#Anaconda. Until networkx 1.12 is both released and made available under
+#Anaconda, networkx is currently ignored. Since pydot is ignored without
+#networkx, pydot is necessarily ignored as well.
+
+#networkx
+#pydot
+
+#FIXME: The following packages are unavailable via default "linux-64" channels.
+#Consider grepping about for alternate third-party channels.
+
+#pprofile
+#ptpython

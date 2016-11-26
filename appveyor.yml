@@ -91,14 +91,6 @@ environment:
   # variable to unconditionally declare for *ALL* build profiles defined by the
   # "matrix" list below.
   global:
-    # Whitespace-delimited list of the names of all Miniconda packages (both
-    # official and third-party) required by this project. The channels providing
-    # third-party packages should be listed in "CONDA_CHANNELS". See also the
-    # "DEPENDENCIES_RUNTIME_MANDATORY" and "DEPENDENCIES_TESTING_MANDATORY"
-    # tuple globals of the "betse.metadata" submodule.
-    CONDA_PACKAGE_NAMES: >-
-      dill matplotlib numpy pillow pytest pyyaml scipy setuptools
-
     # Whitespace-delimited list of the names of all Miniconda channels required
     # by third-party Miniconda packages listed in "CONDA_DEPENDENCIES".
     # CONDA_CHANNELS: ""
@@ -159,28 +151,31 @@ install:
   # done prior to running the "conda" command.
   - cmd: set "PATH=%MINICONDA_DIRNAME%;%MINICONDA_DIRNAME%\\Scripts;%PATH%"
 
-  # Automatically pass the "--yes" option to *ALL* Miniconda commands run below.
-  # Technically, this is an ignorable convenience. Practically, this reduces the
-  # likelihood of developer oversight, saving essential sanity.
-  - cmd: conda config --set always_yes true
+  # Configure "conda" to run in headless mode. Dismantled, this is:
+  #
+  # * "always_yes true", automatically pass the "--yes" option to *ALL*
+  #   "conda" commands run below. This is a superficial convenience reducing the
+  #   likelihood of developer oversight and hence saving essential sanity.
+  # * "auto_update_conda false", improving both space and time complexity by
+  #   preventing "conda" from unnecessarily upgrading itself.
+  - cmd: conda config --set always_yes true --set auto_update_conda false
 
   # Update Miniconda to its most recent stable release.
   - cmd: conda update --quiet conda
 
   # For debuggability, print metadata identifying this Miniconda release.
-  - cmd: conda info -a
+  - cmd: conda info --all
 
-  #FIXME: For maintainability, convert to use a "requirements-anaconda.txt"-like
-  #file rather than the %CONDA_PACKAGE_NAMES% global; then remove that global.
+  #FIXME: This environment should probably be cached. Consider researching
+  #Appveyor-specific conda caching.
 
-  # Create a new Miniconda environment named "test-environment" specific to the
-  # version of Python requested by this profile *AND* install all dependencies
-  # listed in the "%CONDA_PACKAGE_NAMES%" string global into this environment.
-  - cmd: conda create --quiet --name test-environment python=%PYTHON_VERSION% %CONDA_PACKAGE_NAMES%
+  # Create a new Anaconda environment *AND* install all mandatory and optional
+  # dependencies of this application into this environment.
+  - cmd: conda create --quiet --name conda-env-%PYTHON_VERSION% python=%PYTHON_VERSION% --file requirements-conda.txt
 
   # Activate the previously defined environment, prepending the current %PATH%
   # by this environment's top-level directory.
-  - cmd: activate test-environment
+  - cmd: activate conda-env-%PYTHON_VERSION%
 
   # Install this project into this environment in the most efficient means
   # possible (i.e., without copying this project into this environment).

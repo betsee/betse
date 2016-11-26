@@ -113,6 +113,10 @@ image: continuumio/anaconda3
 # Dictionary mapping from the name to value of each environment variable to be
 # "globally" exported and hence accessible to *ALL* commands run below.
 variables:
+  # Instruct "conda" to persist all Anaconda environments to the build-relative
+  # directory repeated in the "cache:" section below.
+  CONDA_PREFIX: "conda-envs"
+
   # Instruct Matplotlib to cache metadata to the build-relative directory
   # repeated in the "cache:" section below.
   MPLCONFIGDIR: "mpl-cache"
@@ -137,6 +141,9 @@ cache:
   # between CI pipelines. (Note that relative paths are relative to the current
   # build directory.)
   paths:
+    # The directory to which "conda" persists Anaconda environments.
+    - conda-envs
+
     # The directory to which Matplotlib caches metadata (e.g., on fonts).
     - mpl-cache
 
@@ -181,17 +188,42 @@ before_script:
   #   be installed.
   # - pip3 --quiet --disable-pip-version-check --cache-dir "${PIP_CACHE_DIR}" install --upgrade-strategy only-if-needed --requirement requirements.txt
 
-  # Automatically pass the "--yes" option to *ALL* Miniconda commands run below.
-  # Technically, this is an ignorable convenience. Practically, this reduces the
-  # likelihood of developer oversight, saving essential sanity.
-  - conda config --set always_yes true
+  # Configure "conda" to run in headless mode. Dismantled, this is:
+  #
+  # * "always_yes true", automatically pass the "--yes" option to *ALL*
+  #   "conda" commands run below. This is a superficial convenience reducing the
+  #   likelihood of developer oversight and hence saving essential sanity.
+  # * "auto_update_conda false", improving both space and time complexity by
+  #   preventing "conda" from unnecessarily upgrading itself.
+  - conda config --set always_yes true --set auto_update_conda false
 
   # For debuggability, print metadata identifying this Anaconda release.
-  - conda info -a
+  - conda info --all
 
-  # Install all mandatory and optional dependencies of this application *NOT*
-  # already installed via the full Anaconda distribution.
-  - conda install --quiet --file requirements-anaconda.txt 
+  # Create an empty Anaconda environment if not already created by a prior job
+  # *OR* fail with an ignorable error otherwise.
+  - conda create --quiet --name conda-env
+
+  # Activate the previously defined environment, prepending the current ${PATH}
+  # by this environment's top-level directory.
+  - source activate conda-env
+
+  # Install all mandatory and optional dependencies of this application into
+  # this environment.
+  #
+  # Note that passing the "--file requirements-conda.txt" option to the above
+  # "conda create" command would suffice to do so for the initial creation of
+  # this environment but fail to account for subsequent changes to these
+  # dependencies; hence, environment creation and dependency installation *MUST*
+  # be separated. The efficiency hit is minimal if any.
+  #
+  # Note that isolating the installation of these dependencies into an
+  # environment is essential. Although this installation is already confined to
+  # a temporary Docker image and hence requires no additional isolation.
+  # Anaconda *ONLY* supports configurable caching via the "${CONDA_PREFIX}"
+  # environment variable specific to Anaconda environments. To persist this
+  # installation across jobs, there exists no sane alternative.
+  - conda install --quiet --file requirements-conda.txt
 
 # ....................{ COMMANDS                           }....................
 test:
