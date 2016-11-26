@@ -453,7 +453,7 @@ class Simulator(object):
 
         # Do H+ separately as it's complicated by the bicarbonate buffer
 
-        if p.ions_dict['H'] == 1:
+        if p.ions_dict['H'] == 1 and p.ion_profile != 'customized':
 
             i = i + 1
 
@@ -584,7 +584,7 @@ class Simulator(object):
                     # print("resetting c_env from ", self.c_env_bound[ion_i], 'to ', p.cbnd[key], "for ", key)
                     self.c_env_bound[ion_i] = p.cbnd[key]
 
-                elif val ==1 and key == 'H':
+                elif val ==1 and key == 'H' and p.ion_profile != 'customized':
                     self.c_env_bound[self.iH] = p.env_concs['H']
 
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
@@ -1573,126 +1573,128 @@ class Simulator(object):
 
     def acid_handler(self,cells,p):
 
-        IdM = np.ones(self.mdl)
+        if p.ion_profile != 'customized':
 
-        # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-        self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
-        self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
+            IdM = np.ones(self.mdl)
 
-        if p.HKATPase_dyn == 1: # if there's an H,K ATPase pump
-
-            if p.sim_ECM is True:
-
-                f_H2, f_K2 = stb.pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                    self.cc_env[self.iH][cells.map_mem2ecm],
-                    self.cc_cells[self.iK][cells.mem_to_cells], self.cc_env[self.iK][cells.map_mem2ecm],
-                    self.vm, self.T, p, self.HKATP_block, met = self.met_concs)
-
-                # modify fluxes by any uneven redistribution of pump location:
-                f_H2 = self.rho_pump * f_H2
-                f_K2 = self.rho_pump * f_K2
-
-                if p.cluster_open is False:
-                    f_H2[cells.bflags_mems] = 0
-                    f_K2[cells.bflags_mems] = 0
-
-                self.HKATPase_rate = f_H2[:]
-
-                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
-                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
-
-            else:
-
-                f_H2, f_K2 = stb.pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                                           self.cc_env[self.iH],self.cc_cells[self.iK][cells.mem_to_cells],
-                                           self.cc_env[self.iK],self.vm,self.T,p,
-                                           self.HKATP_block, met = self.met_concs)
-
-                # modulate by asymmetric pump factor if lateral membrane movements are being considered:
-                f_H2 = self.rho_pump*f_H2
-                f_K2 = self.rho_pump*f_K2
-
-                if p.cluster_open is False:
-                    f_H2[cells.bflags_mems] = 0
-                    f_K2[cells.bflags_mems] = 0
-
-                # capture rate:
-                self.HKATPase_rate = f_H2[:]
-
-                # store fluxes for this pump:
-                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
-                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
-
-
-            if p.metabolism_enabled:
-                # update ATP concentrations after pump action:
-                self.metabo.update_ATP(f_H2, self, cells, p)
-
-
-            # update the concentration in cells (assume environment steady and constant supply of ions)
-            # update bicarbonate instead of H+, assuming buffer action holds:
-
-            # calculate the update to K+ in the cell and environment:
-
-            self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = self.ignore_ecm)
-
-            # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
-            self.cc_cells[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM][:],
-                self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = self.ignore_ecm)
-
-
-            # Calculate the new pH and H+ concentrations:
             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-            self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems,self.cc_cells[self.iM])
-
-            self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env,self.cc_env[self.iM])
-
-
-        if p.VATPase_dyn == 1:  # if there's a V-ATPase pump
-
-            if p.sim_ECM is True:
-
-                # if HKATPase pump is desired, run the H-K-ATPase pump:
-                f_H3 = stb.pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                                    self.cc_env[self.iH][cells.map_mem2ecm],
-                    self.vm, self.T, p, self.VATP_block, met = self.met_concs)
-
-                # modify flux by any uneven redistribution of pump location:
-                f_H3 = self.rho_pump * f_H3
-
-                if p.cluster_open is False:
-
-                    f_H3[cells.bflags_mems] = 0
-
-                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H3
-
-            else:
-
-                # if HKATPase pump is desired, run the H-K-ATPase pump:
-                f_H3 = stb.pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                                    self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block,
-                                    met = self.met_concs)
-
-                if p.cluster_open is False:
-                    f_H3[cells.bflags_mems] = 0
-
-                self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3
-
-            # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
-            self.cc_cells[self.iM], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM],
-                self.cc_env[self.iM], -f_H3, cells, p, ignoreECM= self.ignore_ecm)
-
-            if p.metabolism_enabled:
-                # update ATP concentrations after pump action:
-                self.metabo.update_ATP(f_H3, self, cells, p)
-
-            # Calculate the new pH and H+ concentration:
-             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-
             self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
-
             self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
+
+            if p.HKATPase_dyn == 1: # if there's an H,K ATPase pump
+
+                if p.sim_ECM is True:
+
+                    f_H2, f_K2 = stb.pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],
+                        self.cc_env[self.iH][cells.map_mem2ecm],
+                        self.cc_cells[self.iK][cells.mem_to_cells], self.cc_env[self.iK][cells.map_mem2ecm],
+                        self.vm, self.T, p, self.HKATP_block, met = self.met_concs)
+
+                    # modify fluxes by any uneven redistribution of pump location:
+                    f_H2 = self.rho_pump * f_H2
+                    f_K2 = self.rho_pump * f_K2
+
+                    if p.cluster_open is False:
+                        f_H2[cells.bflags_mems] = 0
+                        f_K2[cells.bflags_mems] = 0
+
+                    self.HKATPase_rate = f_H2[:]
+
+                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
+                    self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
+
+                else:
+
+                    f_H2, f_K2 = stb.pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],
+                                               self.cc_env[self.iH],self.cc_cells[self.iK][cells.mem_to_cells],
+                                               self.cc_env[self.iK],self.vm,self.T,p,
+                                               self.HKATP_block, met = self.met_concs)
+
+                    # modulate by asymmetric pump factor if lateral membrane movements are being considered:
+                    f_H2 = self.rho_pump*f_H2
+                    f_K2 = self.rho_pump*f_K2
+
+                    if p.cluster_open is False:
+                        f_H2[cells.bflags_mems] = 0
+                        f_K2[cells.bflags_mems] = 0
+
+                    # capture rate:
+                    self.HKATPase_rate = f_H2[:]
+
+                    # store fluxes for this pump:
+                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
+                    self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
+
+
+                if p.metabolism_enabled:
+                    # update ATP concentrations after pump action:
+                    self.metabo.update_ATP(f_H2, self, cells, p)
+
+
+                # update the concentration in cells (assume environment steady and constant supply of ions)
+                # update bicarbonate instead of H+, assuming buffer action holds:
+
+                # calculate the update to K+ in the cell and environment:
+
+                self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
+                    self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = self.ignore_ecm)
+
+                # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
+                self.cc_cells[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM][:],
+                    self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = self.ignore_ecm)
+
+
+                # Calculate the new pH and H+ concentrations:
+                # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
+                self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems,self.cc_cells[self.iM])
+
+                self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env,self.cc_env[self.iM])
+
+
+            if p.VATPase_dyn == 1:  # if there's a V-ATPase pump
+
+                if p.sim_ECM is True:
+
+                    # if HKATPase pump is desired, run the H-K-ATPase pump:
+                    f_H3 = stb.pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],
+                                        self.cc_env[self.iH][cells.map_mem2ecm],
+                        self.vm, self.T, p, self.VATP_block, met = self.met_concs)
+
+                    # modify flux by any uneven redistribution of pump location:
+                    f_H3 = self.rho_pump * f_H3
+
+                    if p.cluster_open is False:
+
+                        f_H3[cells.bflags_mems] = 0
+
+                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H3
+
+                else:
+
+                    # if HKATPase pump is desired, run the H-K-ATPase pump:
+                    f_H3 = stb.pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],
+                                        self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block,
+                                        met = self.met_concs)
+
+                    if p.cluster_open is False:
+                        f_H3[cells.bflags_mems] = 0
+
+                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3
+
+                # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
+                self.cc_cells[self.iM], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM],
+                    self.cc_env[self.iM], -f_H3, cells, p, ignoreECM= self.ignore_ecm)
+
+                if p.metabolism_enabled:
+                    # update ATP concentrations after pump action:
+                    self.metabo.update_ATP(f_H3, self, cells, p)
+
+                # Calculate the new pH and H+ concentration:
+                 # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
+
+                self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
+
+                self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
 
     def cl_handler(self, cells, p):
 

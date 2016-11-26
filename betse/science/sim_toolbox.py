@@ -134,6 +134,7 @@ def pumpNaKATP(cNai,cNao,cKi,cKo,Vm,T,p,block, met = None):
 
     Q = Qnumo / Qdenomo
 
+
     # calculate the equilibrium constant for the pump reaction:
     Keq = np.exp(-(deltaGATP_o / (p.R * T) - ((p.F * Vm) / (p.R * T))))
 

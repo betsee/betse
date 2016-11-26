@@ -1258,6 +1258,11 @@ class Parameters(object):
             self.cM_env = float(cip['extracellular HCO3- concentration'])
             self.cP_env = float(cip['extracellular protein- concentration'])
 
+            zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]
+
+            conc_env = [self.cNa_env, self.cK_env, self.cCl_env, self.cCa_env, self.cP_env]
+            self.cM_env, self.z_M_env = bal_charge(conc_env, zs)
+
             self.cNa_cell = float(cip['cytosolic Na+ concentration'])
             self.cK_cell = float(cip['cytosolic K+ concentration'])
             self.cCl_cell = float(cip['cytosolic Cl- concentration'])
@@ -1265,30 +1270,29 @@ class Parameters(object):
             self.cM_cell = float(cip['cytosolic HCO3- concentration'])
             self.cP_cell = float(cip['cytosolic protein- concentration'])
 
+            conc_cell = [self.cNa_cell, self.cK_cell, self.cCl_cell, self.cCa_cell, self.cP_cell]
+            self.cM_cell, self.z_M_cell = bal_charge(conc_cell, zs)
+
+            assert self.z_M_cell == -1
+
             self.cCa_er = float(cip['endoplasmic reticulum Ca2+'])
             self.cM_er = self.cCa_er
 
-            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':1,'P':1,'M':1}
+            self.ions_dict = {'Na':1,'K':1,'Cl':1,'Ca':1,'H':0,'P':1,'M':1}
 
-            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell,
-                              'H':self.cH_cell,'P':self.cP_cell,'M':self.cM_cell}
+            self.cell_concs ={'Na':self.cNa_cell,'K':self.cK_cell,'Ca':self.cCa_cell,'Cl':self.cCl_cell, 'P':self.cP_cell,'M':self.cM_cell}
 
-            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env,
-                             'H':self.cH_env,'P':self.cP_env,'M':self.cM_env}
+            self.env_concs ={'Na':self.cNa_env,'K':self.cK_env,'Ca':self.cCa_env,'Cl':self.cCl_env, 'P':self.cP_env,'M':self.cM_env}
 
-            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl,
-                              'H':self.Dm_H,'P':self.Dm_P,'M':self.Dm_M}
+            self.mem_perms = {'Na':self.Dm_Na,'K':self.Dm_K,'Ca':self.Dm_Ca,'Cl':self.Dm_Cl, 'P':self.Dm_P,'M':self.Dm_M}
 
-            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl,
-                               'H':self.z_H,'P':self.z_P,'M':self.z_M}
+            self.ion_charge = {'Na':self.z_Na,'K':self.z_K,'Ca':self.z_Ca,'Cl':self.z_Cl, 'P':self.z_P,'M':self.z_M}
 
-            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl,
-                              'H':self.Do_H,'P':self.Do_P,'M':self.Do_M}
+            self.free_diff = {'Na':self.Do_Na,'K':self.Do_K,'Ca':self.Do_Ca,'Cl':self.Do_Cl, 'P':self.Do_P,'M':self.Do_M}
 
-            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl,
-                               'H':self.M_H,'P':self.M_P,'M':self.M_M}
+            self.molar_mass = {'Na':self.M_Na,'K':self.M_K,'Ca':self.M_Ca,'Cl':self.M_Cl, 'P':self.M_P,'M':self.M_M}
 
-            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride','H':'protons',
+            self.ion_long_name = {'Na':'sodium','K':'potassium','Ca':'calcium','Cl':'chloride',
                                   'P':'proteins','M':'anion'}
 
         # Else, this ion profile name is unrecognized. Raise an exception.

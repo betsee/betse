@@ -102,6 +102,11 @@ class MasterOfNetworks(object):
         env_concs_mapping = {}
         bound_concs_mapping = {}
 
+        # place to store charge values and membrane diffusivity for all substances AND sim ions:
+        self.zmol = {}
+        self.Dmem = {}
+        self.ED_eval_strings ={}
+
         # if mitochondria are enabled:
         if self.mit_enabled:
             self.mit = Mito(sim, cells, p)
@@ -135,10 +140,15 @@ class MasterOfNetworks(object):
                     lambda ion_index=ion_index: sim.c_env_bound[ion_index],
                     lambda value, ion_index=ion_index: sim.c_env_bound.__setindex__(ion_index, value))
 
+                self.zmol[k] = sim.zs[ion_index]
+                self.Dmem[k] = sim.Dm_cells[ion_index].mean()
+
                 if self.mit_enabled:
                     mit_concs_mapping[k] = DynamicValue(
                         lambda ion_index=ion_index: sim.cc_mit[ion_index],
                         lambda value, ion_index=ion_index: sim.cc_mit.__setindex__(ion_index, value))
+
+
 
         # Now move on to building the data structures for the user-defined substances:
         for q, mol_dic in enumerate(config_substances):
@@ -250,6 +260,9 @@ class MasterOfNetworks(object):
                 mol.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
                 mol.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
                 mol.z = mol_dic['z']  # charge (oxidation state)
+
+                self.zmol[name] = mol.z
+                self.Dmem[name] = mol.Dm
 
                 mol.ignore_ECM_pump = mol_dic['ignore ECM']
 
@@ -440,6 +453,30 @@ class MasterOfNetworks(object):
 
         # write substance growth and decay equations:
         self.write_growth_and_decay()
+
+        # write passive electrodiffusion expressions for each ion and molecule:
+        for k, v in self.cell_concs.items():
+
+            logs.log_info("Writing passive electrodiffusion equations...")
+
+            name = "'{}'".format(k)
+
+            if self.zmol[k] != 0.0:
+
+                self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*((p.F*sim.vm)/(p.R*sim.T))*self.zmol[{}]*" \
+                                      "((self.cell_concs[{}][cells.mem_to_cells] - " \
+                                      "self.env_concs[{}][cells.map_mem2ecm]*" \
+                                      "np.exp(-(self.zmol[{}]*p.F*sim.vm)" \
+                                      "/(p.R*sim.T)))/(1-np.exp(-(self.zmol[{}]*" \
+                                      "p.F*sim.vm)/(p.R*sim.T))))".format(name, name, name, name, name, name)
+
+            else:
+
+                self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.cell_concs[{}][cells.mem_to_cells] - " \
+                                          "self.env_concs[{}][cells.map_mem2ecm])".format(name, name, name)
+
+
+
 
     def build_indices(self):
 
