@@ -113,9 +113,8 @@ image: continuumio/anaconda3
 # Dictionary mapping from the name to value of each environment variable to be
 # "globally" exported and hence accessible to *ALL* commands run below.
 variables:
-  # Instruct "conda" to persist all Anaconda environments to the build-relative
-  # directory repeated in the "cache:" section below.
-  CONDA_PREFIX: "conda-envs"
+  # ...................{ GLOBALS ~ public                   }...................
+  # Public environment variables specific to third-party applications.
 
   # Instruct Matplotlib to cache metadata to the build-relative directory
   # repeated in the "cache:" section below.
@@ -124,6 +123,16 @@ variables:
   # Instruct "pip" to cache all downloads to the build-relative directory
   # repeated in the "cache:" section below.
   # PIP_CACHE_DIR: "pip-cache"
+
+  # ...................{ GLOBALS ~ private                  }...................
+  # Private environment variables specific to this configuration. To avoid
+  # conflict with third-party applications, the name of each such variable is
+  # intentionally prefixed by "_".
+
+  # Name of the Ananconda environment to be created and then reused by this
+  # configuration, identical to the basename of the build-relative directory
+  # section below.
+  _CONDA_ENV_NAME: "conda-env"
 
 
 cache:
@@ -201,12 +210,16 @@ before_script:
   - conda info --all
 
   # Create an empty Anaconda environment if not already created by a prior job
-  # *OR* fail with an ignorable error otherwise.
-  - conda create --quiet --name conda-env
+  # *OR* fail with an ignorable error otherwise. To ensure this environment is
+  # created in a cachable build-local directory rather than the uncachable
+  # default directory for Anaconda environments, the "--prefix" rather than
+  # "--name" option is passed. Since these two options are mutually exclusive,
+  # only the former is passed.
+  - conda create --quiet --prefix "${_CONDA_ENV_NAME}"
 
   # Activate the previously defined environment, prepending the current ${PATH}
   # by this environment's top-level directory.
-  - source activate conda-env
+  - source activate "${_CONDA_ENV_NAME}"
 
   # Install all mandatory and optional dependencies of this application into
   # this environment.

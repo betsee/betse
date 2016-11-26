@@ -90,7 +90,7 @@ environment:
   # Dictionary mapping from the name to the value of each global environment
   # variable to unconditionally declare for *ALL* build profiles defined by the
   # "matrix" list below.
-  global:
+  # global:
     # Whitespace-delimited list of the names of all Miniconda channels required
     # by third-party Miniconda packages listed in "CONDA_DEPENDENCIES".
     # CONDA_CHANNELS: ""
