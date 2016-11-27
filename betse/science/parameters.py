@@ -173,6 +173,8 @@ class Parameters(object):
         # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
 
+        self.target_vmem = float(self.config['tissue profile definition'].get('initial Vmem', 50e-3))
+
         self._init_tissue_and_cut_profiles()
 
         #---------------------------------------------------------------------------------------------------------------
@@ -483,50 +485,17 @@ class Parameters(object):
             self.act_n_IP3 = self.config['Ca dynamics']['act n IP3']     # exponent for IP3 (if included in biomolecules) activates opening
 
         #--------------------------------------------------------------------------------------------------------------
-        #  CUSTOM BIOCHEMISTRY
+        #  CUSTOM GENERAL NETWORK (defined in main config file)
         #--------------------------------------------------------------------------------------------------------------
-        self.molecules_enabled = self.config['biomolecules enabled']
 
-        self.mol_mit_enabled = self.config.get("mitochondria enabled", False)
+        self.network_config = self.config.get('general network', None)
 
-        if self.molecules_enabled:
+        if self.network_config is not None:
+            self.molecules_enabled = self.network_config['implement network']
+            self.mol_mit_enabled = self.network_config['enable mitochondria']
 
-            self.molecules_config = self.config['biomolecules']
-        #--------------------------------------------------------------------------------------------------------------
-        #  CUSTOM REACTIONS
-        #--------------------------------------------------------------------------------------------------------------
-        self.reactions_enabled = self.config.get('reactions enabled', False)
-
-        if self.reactions_enabled and self.molecules_enabled:
-
-            self.reactions_config = self.config['reactions']
-
-        #--------------------------------------------------------------------------------------------------------------
-        #  CUSTOM TRANSPORTERS
-        #--------------------------------------------------------------------------------------------------------------
-        self.transporters_enabled = self.config.get('transporters enabled', False)
-
-        if self.transporters_enabled and self.molecules_enabled:
-
-            self.transporters_config = self.config['transporters']
-
-        #--------------------------------------------------------------------------------------------------------------
-        #  CUSTOM CHANNELS
-        #--------------------------------------------------------------------------------------------------------------
-        self.channels_enabled = self.config.get('channels enabled', False)
-
-        if self.channels_enabled and self.molecules_enabled:
-
-            self.channels_config = self.config['channels']
-
-        #--------------------------------------------------------------------------------------------------------------
-        #  CUSTOM MODULATORS
-        #--------------------------------------------------------------------------------------------------------------
-        self.modulators_enabled = self.config.get('modulators enabled', False)
-
-        if self.modulators_enabled and self.molecules_enabled:
-
-            self.modulators_config = self.config['modulators']
+        else:
+            self.mol_mit_enabled = False
 
         #---------------------------------------------------------------------------------------------------------------
         #  METABOLISM

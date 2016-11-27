@@ -80,8 +80,17 @@ class MasterOfNetworks(object):
         # colormap for plotting series of 1D lines:
         self.plot_cmap = 'viridis'
 
+        # shape identities for network:
+        self.reaction_shape = 'rect'
+        self.transporter_shape = 'diamond'
+        self.channel_shape = 'pentagon'
+        self.vmem_shape = 'ellipse'
+        self.ed_shape = 'hexagon'
+        self.conc_shape = 'oval'
+
         self.globals = globals()
         self.locals = locals()
+
 
     #------------Initializers-------------------------------------------------------------------------------------------
     def read_substances(self, sim, cells, config_substances, p):
@@ -456,35 +465,70 @@ class MasterOfNetworks(object):
         self.write_growth_and_decay()
 
         # write passive electrodiffusion expressions for each ion and molecule:
+        logs.log_info("Writing passive electrodiffusion equations...")
         for k, v in self.cell_concs.items():
-
-            logs.log_info("Writing passive electrodiffusion equations...")
 
             name = "'{}'".format(k)
 
-            if self.zmol[k] != 0.0:
+            if self.zmol[k] != 0.0 and self.Dmem[k] != 0.0:
 
-                self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*((p.F*sim.vm)/(p.R*sim.T))*self.zmol[{}]*" \
+                if p.sim_ECM is True:
+
+                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*((p.F*sim.vm)/(p.R*sim.T))*self.zmol[{}]*" \
                                       "((self.cell_concs[{}][cells.mem_to_cells] - " \
                                       "self.env_concs[{}][cells.map_mem2ecm]*" \
                                       "np.exp(-(self.zmol[{}]*p.F*sim.vm)" \
                                       "/(p.R*sim.T)))/(1-np.exp(-(self.zmol[{}]*" \
                                       "p.F*sim.vm)/(p.R*sim.T))))".format(name, name, name, name, name, name)
 
-            else:
+                else:
 
-                self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.cell_concs[{}][cells.mem_to_cells] - " \
+                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*((p.F*sim.vm)/(p.R*sim.T))*self.zmol[{}]*" \
+                                              "((self.cell_concs[{}][cells.mem_to_cells] - " \
+                                              "self.env_concs[{}][cells.mem_to_cells]*" \
+                                              "np.exp(-(self.zmol[{}]*p.F*sim.vm)" \
+                                              "/(p.R*sim.T)))/(1-np.exp(-(self.zmol[{}]*" \
+                                              "p.F*sim.vm)/(p.R*sim.T))))".format(name, name, name, name, name, name)
+
+
+
+            elif self.zmol[k] == 0.0 and self.Dmem[k] != 0.0:
+
+                if p.sim_ECM is True:
+
+                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.cell_concs[{}][cells.mem_to_cells] - " \
                                           "self.env_concs[{}][cells.map_mem2ecm])".format(name, name, name)
 
+                else:
 
+                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.cell_concs[{}][cells.mem_to_cells] - " \
+                                          "self.env_concs[{}][cells.mem_to_cells])".format(name, name, name)
 
+            elif self.Dmem[k] == 0.0:
 
-    def build_indices(self):
+                self.ED_eval_strings[k] = "np.zeros(sim.mdl)"
+
+    def init_network(self, sim, cells, p):
+
+        # initialize network optimization, etc:
+        if p.network_config is not None:
+
+            opti = p.network_config['optimize network']
+
+            self.opti_method = p.network_config['optimization method']
+            self.opti_N = p.network_config['optimization steps']
+            # after primary initialization, check and see if optimization required:
+
+            if opti is True:
+                logs.log_info("The Metabolic Network is being analyzed for optimal rates...")
+                self.optimizer(sim, cells, p)
+
+    def build_indices(self, sim, cells, p):
 
         # build indices-----------------------------------------------------------------------------------------
         self.molecule_index = {}
 
-        for i, mol_name in enumerate(self.molecules):
+        for i, (mol_name, val) in enumerate(self.cell_concs.items()):
             self.molecule_index[mol_name] = i
 
         self.reaction_index = {}
@@ -499,44 +543,51 @@ class MasterOfNetworks(object):
 
         # build a global dictionary of target concentrations:--------------------------------------------------
         self.conc_handler = OrderedDict({})
-        for mol_name in self.molecules:
+
+        for mol_name, val in self.cell_concs.items():
 
             env_name = mol_name + '_env'
 
-            self.conc_handler[mol_name] = self.molecules[mol_name].c_cello
-            self.conc_handler[env_name] = self.molecules[mol_name].c_envo
+            self.conc_handler[mol_name] = self.cell_concs[mol_name].mean()
+            self.conc_handler[env_name] = self.env_concs[mol_name].mean()
 
             if self.mit_enabled:
 
                 mit_name = mol_name + '_mit'
 
-                if self.molecules[mol_name].c_mito is None:
+                if self.mit_concs[mol_name] is None:
 
                     self.conc_handler[mit_name] = 0
 
                 else:
-                    self.conc_handler[mit_name] = self.molecules[mol_name].c_mito
+                    self.conc_handler[mit_name] = self.mit_concs[mol_name]
 
-        self.conc_handler_index = {}
-
-        for i, conc_name in enumerate(self.conc_handler):
-            self.conc_handler_index[conc_name] = i
 
         # build a global dictionary of all reactions:---------------------------------------------------------
         self.react_handler = OrderedDict({})
 
-        for mol_name in self.molecules:
+        # define a string term to scale membrane-fluxes to cell-wide concentration change:
+        div_string = "*(cells.cell_sa.mean()/cells.cell_vol.mean())"
+        # div_string = '*1.0'
 
-            mol = self.molecules[mol_name]
+        for mol_name, val in self.cell_concs.items():
 
-            if mol.simple_growth is True:
-                rea_name = mol_name + '_growth'
+            # add the transmembrane movement to the mix:
+            ed_name = mol_name + '_ed'
+            self.react_handler[ed_name] = self.ED_eval_strings[mol_name] + div_string
 
-                self.react_handler[rea_name] = mol.gad_eval_string_growth
+            if mol_name not in p.ions_dict:
 
-                rea_name = mol_name + '_decay'
+                mol = self.molecules[mol_name]
 
-                self.react_handler[rea_name] = mol.gad_eval_string_decay
+                if mol.simple_growth is True:
+                    rea_name = mol_name + '_growth'
+
+                    self.react_handler[rea_name] = mol.gad_eval_string_growth
+
+                    rea_name = mol_name + '_decay'
+
+                    self.react_handler[rea_name] = mol.gad_eval_string_decay
 
         for rea_name in self.reactions:
             self.react_handler[rea_name] = self.reactions[rea_name].reaction_eval_string
@@ -546,12 +597,38 @@ class MasterOfNetworks(object):
                 self.react_handler[rea_name_mit] = self.reactions_mit[rea_name_mit].reaction_eval_string
 
         for trans_name in self.transporters:
-            self.react_handler[trans_name] = self.transporters[trans_name].transporter_eval_string
+            self.react_handler[trans_name] = self.transporters[trans_name].transporter_eval_string + div_string
+
+        # # add in an equation that needs to be minimized to
+        # # expression for current density across membrane:
+        # JJ = "("
+        #
+        # for i, (k, v) in enumerate(self.cell_concs.items()):
+        #
+        #     if k in p.ions_dict:
+        #
+        #         zterm = "*self.zmol['{}']*p.F".format(k)
+        #         JJ += self.ED_eval_strings[k] + zterm
+        #         JJ += "+"
+        #
+        # if JJ.endswith("+"):
+        #     JJ = JJ[:-1]
+        #
+        # JJ = JJ + ")"
+        #
+        # self.react_handler['JJ'] = JJ   # expression for current density across membrane (must be zero at eq'm)
+        #
+        # self.conc_handler['J'] =  eval(JJ).mean()  # initialize current expression
 
         self.react_handler_index = {}
 
         for i, rea_name in enumerate(self.react_handler):
             self.react_handler_index[rea_name] = i
+
+        self.conc_handler_index = {}
+
+        for i, conc_name in enumerate(self.conc_handler):
+            self.conc_handler_index[conc_name] = i
 
     def plot_init(self, config_substances):
 
@@ -3141,10 +3218,6 @@ class MasterOfNetworks(object):
         import pydot
 
         alpha_val = 0.5 # alpha value to help tone down node colors
-        reaction_shape = 'rect'
-        transporter_shape = 'diamond'
-        channel_shape = 'pentagon'
-        vmem_shape = 'ellipse'
 
         # define some basic colormap scaling properties for the dataset:
         vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
@@ -3166,7 +3239,7 @@ class MasterOfNetworks(object):
             mol = self.molecules[name]
 
             node_color = rgba2hex(p.network_cm(mol.c_cells[p.plot_cell]), alpha_val)
-            nde = pydot.Node(name, style='filled', color=node_color)
+            nde = pydot.Node(name, style='filled', color=node_color, shape = self.conc_shape)
 
             self.graphicus_maximus.add_node(nde)
 
@@ -3179,13 +3252,13 @@ class MasterOfNetworks(object):
             if mol.ion_channel_gating:
 
                 # add Vmem node to the diagram
-                nde = pydot.Node('Vmem', style='filled', shape=vmem_shape)
+                nde = pydot.Node('Vmem', style='filled', shape=self.vmem_shape)
                 self.graphicus_maximus.add_node(nde)
 
                 # if this substance gates for ion channels:
 
                 # define a node corresponding to the ion channel:
-                gated_node = pydot.Node(mol.gating_channel_name, style = 'filled', shape = channel_shape)
+                gated_node = pydot.Node(mol.gating_channel_name, style = 'filled', shape = self.channel_shape)
                 self.graphicus_maximus.add_node(gated_node)
 
                 # add the edges for substance gating channel (this is a regulatory edge, not a reaction path):
@@ -3194,7 +3267,7 @@ class MasterOfNetworks(object):
 
                     node_color = rgba2hex(p.network_cm(mol.c_env[p.plot_cell]), alpha_val)
 
-                    nde = pydot.Node(name, style='filled', color=node_color)
+                    nde = pydot.Node(name, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                 else:
@@ -3210,7 +3283,7 @@ class MasterOfNetworks(object):
 
                     # define the ion node of the channel
                     ion_node = pydot.Node(ion_name, style = 'filled', color = ion_node_color)
-                    self.graphicus_maximus.add_node(ion_node)
+                    self.graphicus_maximus.add_node(ion_node, shape = self.conc_shape)
 
                     # add the edges for channel effect on ion concentration:
                     self.graphicus_maximus.add_edge(pydot.Edge(gated_node, ion_node,  arrowhead='normal'))
@@ -3233,11 +3306,11 @@ class MasterOfNetworks(object):
 
             # add node for calcium:
             node_color = rgba2hex(p.network_cm(self.cell_concs['Ca'][p.plot_cell]), alpha_val)
-            nde = pydot.Node('Ca', style='filled', color=node_color)
+            nde = pydot.Node('Ca', style='filled', color=node_color, shape = self.conc_shape)
             self.graphicus_maximus.add_node(nde)
 
             # add the CICR channel to the diagram
-            nde = pydot.Node('CICR', style='filled', shape=channel_shape)
+            nde = pydot.Node('CICR', style='filled', shape=self.channel_shape)
             self.graphicus_maximus.add_node(nde)
 
             self.graphicus_maximus.add_edge(pydot.Edge('IP3', 'CICR', arrowhead='normal'))
@@ -3247,20 +3320,20 @@ class MasterOfNetworks(object):
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
-                nde = pydot.Node(name, style='filled', shape = reaction_shape)
+                nde = pydot.Node(name, style='filled', shape = self.reaction_shape)
                 self.graphicus_maximus.add_node(nde)
 
         if len(self.reactions_mit) > 0:
 
             for i, name in enumerate(self.reactions_mit):
-                nde = pydot.Node(name, style='filled', shape=reaction_shape)
+                nde = pydot.Node(name, style='filled', shape=self.reaction_shape)
                 self.graphicus_maximus.add_node(nde)
 
         # if there are any channels, plot their type, ion  and Vmem relationships in the graph: -----------------------
         if len(self.channels) > 0:
 
             # add Vmem node to the diagram
-            nde = pydot.Node('Vmem', style='filled', shape=vmem_shape)
+            nde = pydot.Node('Vmem', style='filled', shape=self.vmem_shape)
             self.graphicus_maximus.add_node(nde)
 
             for i, name in enumerate(self.channels):
@@ -3307,12 +3380,12 @@ class MasterOfNetworks(object):
                     ion_name = ['Na', 'K']
 
                 # add the channel to the diagram
-                nde = pydot.Node(name, style='filled', shape = channel_shape)
+                nde = pydot.Node(name, style='filled', shape = self.channel_shape)
                 self.graphicus_maximus.add_node(nde)
 
                 for ion_n in ion_name:
                     node_color = rgba2hex(p.network_cm(self.cell_concs[ion_n][p.plot_cell]), alpha_val)
-                    nde = pydot.Node(ion_n, style='filled', color=node_color)
+                    nde = pydot.Node(ion_n, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                     self.graphicus_maximus.add_edge(pydot.Edge(name, ion_n, arrowhead='normal'))
@@ -3423,7 +3496,7 @@ class MasterOfNetworks(object):
 
                     node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
                     react_name += '_mit'
-                    nde = pydot.Node(react_name, style='filled', color=node_color)
+                    nde = pydot.Node(react_name, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                     self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
@@ -3432,7 +3505,7 @@ class MasterOfNetworks(object):
 
                     node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
                     prod_name += '_mit'
-                    nde = pydot.Node(prod_name, style='filled', color=node_color)
+                    nde = pydot.Node(prod_name, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                     self.graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
@@ -3442,52 +3515,11 @@ class MasterOfNetworks(object):
                 zone_tags_a = rea.reaction_activators_zone,
                 zone_tags_i = rea.reaction_inhibitors_zone, alpha_val = alpha_val)
 
-
-                # if rea.reaction_activators_list != 'None' and rea.reaction_activators_list is not None:
-                #
-                #     for act_name, zone_a in zip(rea.reaction_activators_list, rea.reaction_activators_zone):
-                #
-                #         if act_name.endswith('!'):  # if activator indicated to be independent
-                #             # make the name in accordance with its actual identifier
-                #             act_name = act_name[:-1]
-                #
-                #         if rea.reaction_zone == 'mit':
-                #             node_color = rgba2hex(p.network_cm(self.mit_concs[act_name][p.plot_cell]), alpha_val)
-                #             act_name += '_mit'
-                #             nde = pydot.Node(act_name, style='filled', color=node_color)
-                #             graphicus_maximus.add_node(nde)
-                #
-                #         if zone_a == 'env':
-                #             node_color = rgba2hex(p.network_cm(self.env_concs[act_name][p.plot_cell]), alpha_val)
-                #             act_name += '_env'
-                #             nde = pydot.Node(act_name, style='filled', color=node_color)
-                #             graphicus_maximus.add_node(nde)
-                #
-                #         graphicus_maximus.add_edge(pydot.Edge(act_name, name, arrowhead='dot', color='blue'))
-                #
-                # if rea.reaction_inhibitors_list != 'None' and rea.reaction_inhibitors_list is not None:
-                #
-                #     for inh_name, zone_i in zip(rea.reaction_inhibitors_list, rea.reaction_inhibitors_zone):
-                #
-                #         if rea.reaction_zone == 'mit':
-                #             node_color = rgba2hex(p.network_cm(self.mit_concs[inh_name][p.plot_cell]), alpha_val)
-                #             inh_name += '_mit'
-                #             nde = pydot.Node(inh_name, style='filled', color=node_color)
-                #             graphicus_maximus.add_node(nde)
-                #
-                #         if zone_i == 'env':
-                #             node_color = rgba2hex(p.network_cm(self.env_concs[inh_name][p.plot_cell]), alpha_val)
-                #             inh_name += '_env'
-                #             nde = pydot.Node(inh_name, style='filled', color=node_color)
-                #             graphicus_maximus.add_node(nde)
-                #
-                #         graphicus_maximus.add_edge(pydot.Edge(inh_name, name, arrowhead='tee', color='red'))
-
         # if there are any transporters, plot them on the graph:
         if len(self.transporters) > 0:
 
             for name in self.transporters:
-                nde = pydot.Node(name, style='filled', shape= transporter_shape)
+                nde = pydot.Node(name, style='filled', shape= self.transporter_shape)
                 self.graphicus_maximus.add_node(nde)
 
             # check and see if any reactants or products are
@@ -3503,7 +3535,7 @@ class MasterOfNetworks(object):
                         # if we're dealing with an ion, add it to the graph:
                         if react_name in p.ions_dict and p.ions_dict[react_name] == 1:
                             node_color = rgba2hex(p.network_cm(self.cell_concs[react_name][p.plot_cell]), alpha_val)
-                            nde = pydot.Node(react_name, style='filled', color=node_color)
+                            nde = pydot.Node(react_name, style='filled', color=node_color, shape = self.conc_shape)
                             self.graphicus_maximus.add_node(nde)
 
 
@@ -3514,14 +3546,14 @@ class MasterOfNetworks(object):
                         if tag == 'env_concs':
                             node_color = rgba2hex(p.network_cm(self.env_concs[react_name][p.plot_cell]), alpha_val)
                             react_name += '_env'
-                            nde = pydot.Node(react_name, style='filled', color=node_color)
+                            nde = pydot.Node(react_name, style='filled', color=node_color, shape = self.conc_shape)
                             self.graphicus_maximus.add_node(nde)
 
 
                         elif tag == 'mit_concs':
                             node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
                             react_name += '_mit'
-                            nde = pydot.Node(react_name, style='filled', color=node_color)
+                            nde = pydot.Node(react_name, style='filled', color=node_color, shape = self.conc_shape)
                             self.graphicus_maximus.add_node(nde)
 
                         self.graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal'))
@@ -3533,7 +3565,7 @@ class MasterOfNetworks(object):
                         # if we're dealing with an ion, add it to the graph:
                         if prod_name in p.ions_dict and p.ions_dict[prod_name] == 1:
                             node_color = rgba2hex(p.network_cm(self.cell_concs[prod_name][p.plot_cell]), alpha_val)
-                            nde = pydot.Node(prod_name, style='filled', color=node_color)
+                            nde = pydot.Node(prod_name, style='filled', color=node_color, shape = self.conc_shape)
                             self.graphicus_maximus.add_node(nde)
 
                         self.graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
@@ -3548,7 +3580,7 @@ class MasterOfNetworks(object):
                             node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
                             prod_name += '_mit'
 
-                        nde = pydot.Node(prod_name, style='filled', color=node_color)
+                        nde = pydot.Node(prod_name, style='filled', color=node_color, shape = self.conc_shape)
                         self.graphicus_maximus.add_node(nde)
 
                         self.graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal'))
@@ -3679,50 +3711,77 @@ class MasterOfNetworks(object):
         graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True, nodesep = 0.1, ranksep = 0.3,
             overlap = 'compress', splines = True)
 
+        # # add Vmem to the graph
+        # nde = pydot.Node('Vmem', style='filled', shape=self.vmem_shape)
+        # graphicus_maximus.add_node(nde)
+
         # add each substance as a node in the graph:
-        for i, name in enumerate(self.molecules):
+        for i, (name, val) in enumerate(self.cell_concs.items()):
 
-            mol = self.molecules[name]
+            if name not in p.ions_dict:
 
-            node_color = rgba2hex(p.network_cm(mol.c_cells[p.plot_cell]), alpha_val)
+                mol = self.molecules[name]
 
-            nde = pydot.Node(name, style='filled', color=node_color)
+                node_color = rgba2hex(p.network_cm(mol.c_cells[p.plot_cell]), alpha_val)
+
+                nde = pydot.Node(name, style='filled', color=node_color, shape = self.conc_shape)
+                graphicus_maximus.add_node(nde)
+
+                if mol.simple_growth:
+
+                    # add node & edge for growth reaction component:
+                    rea_name = name + '_growth'
+                    rea_node = pydot.Node(rea_name, style = 'filled', shape = self.reaction_shape)
+                    graphicus_maximus.add_node(rea_node)
+
+                    # if the substance has autocatalytic growth capacity add the edge in:
+                    graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal', coeff = 1.0))
+
+                    # add node & edge for decay reaction component:
+                    rea_name = name + '_decay'
+                    rea_node = pydot.Node(rea_name, style = 'filled', shape = self.reaction_shape)
+                    graphicus_maximus.add_node(rea_node)
+
+                    # if the substance has autocatalytic growth capacity add the edge in:
+                    graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal', coeff =1.0))
+
+            else:  # add the ion as a node
+
+                node_color = rgba2hex(p.network_cm(self.cell_concs[name][p.plot_cell]), alpha_val)
+
+                nde = pydot.Node(name, style='filled', color=node_color, shape = self.conc_shape)
+                graphicus_maximus.add_node(nde)
+
+
+            # add expression nodes for electrodiffusion/diffusion:
+            react_label = name + '_ed'
+            nde = pydot.Node(react_label, style='filled', shape=self.ed_shape)
             graphicus_maximus.add_node(nde)
 
-            if mol.simple_growth:
+            node_color_e = rgba2hex(p.network_cm(self.env_concs[name][p.plot_cell]), alpha_val)
+            name_env = name + '_env'
+            nde = pydot.Node(name_env, style='filled', color=node_color_e, shape=self.conc_shape)
+            graphicus_maximus.add_node(nde)
 
-                # add node & edge for growth reaction component:
-                rea_name = name + '_growth'
-                rea_node = pydot.Node(rea_name, style = 'filled', shape = 'rect')
-                graphicus_maximus.add_node(rea_node)
-
-                # if the substance has autocatalytic growth capacity add the edge in:
-                graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal', coeff = 1.0))
-
-                # add node & edge for decay reaction component:
-                rea_name = name + '_decay'
-                rea_node = pydot.Node(rea_name, style = 'filled', shape = 'rect')
-                graphicus_maximus.add_node(rea_node)
-
-                # if the substance has autocatalytic growth capacity add the edge in:
-                graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal', coeff =1.0))
+            # in electrodiffusion equation definition, positive flux moves into the cell:
+            graphicus_maximus.add_edge(pydot.Edge(react_label, name, arrowhead='normal', coeff=1.0))
+            graphicus_maximus.add_edge(pydot.Edge(name_env, react_label, arrowhead='normal', coeff=1.0))
 
         # if there are any reactions in the cytosol, add them to the graph
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
-                nde = pydot.Node(name, style='filled', shape='rect')
+                nde = pydot.Node(name, style='filled', shape=self.reaction_shape)
                 graphicus_maximus.add_node(nde)
 
         # if there are any reactions in the mitochondria, add them to the graph
         if len(self.reactions_mit) > 0:
 
             for i, name in enumerate(self.reactions_mit):
-                nde = pydot.Node(name, style='filled', shape='rect')
+                nde = pydot.Node(name, style='filled', shape=self.reaction_shape)
                 graphicus_maximus.add_node(nde)
 
         # if there are any reactions, plot their edges on the graph--------------------------------------------------
-
         if len(self.reactions) > 0:
 
             for i, name in enumerate(self.reactions):
@@ -3752,7 +3811,7 @@ class MasterOfNetworks(object):
 
                     react_name += '_mit'
 
-                    nde = pydot.Node(react_name, style='filled', color=node_color)
+                    nde = pydot.Node(react_name, style='filled', color=node_color, shape = self.conc_shape)
                     graphicus_maximus.add_node(nde)
 
                     rea_coeff = rea.reactants_coeff[i]
@@ -3764,7 +3823,7 @@ class MasterOfNetworks(object):
 
                     prod_name += '_mit'
 
-                    nde = pydot.Node(prod_name, style='filled', color=node_color)
+                    nde = pydot.Node(prod_name, style='filled', color=node_color, shape = self.conc_shape)
                     graphicus_maximus.add_node(nde)
 
                     prod_coeff = rea.products_coeff[j]
@@ -3774,7 +3833,7 @@ class MasterOfNetworks(object):
         if len(self.transporters) > 0:
 
             for name in self.transporters:
-                nde = pydot.Node(name, style='filled', shape='diamond')
+                nde = pydot.Node(name, style='filled', shape=self.transporter_shape)
                 graphicus_maximus.add_node(nde)
 
             for name in self.transporters:
@@ -3792,14 +3851,14 @@ class MasterOfNetworks(object):
                     else:
 
                         if tag == 'env_concs':
-                            node_color = rgba2hex(p.network_cm(self.molecules[react_name].c_env[p.plot_cell]), alpha_val)
+                            node_color = rgba2hex(p.network_cm(self.env_concs[react_name].mean()), alpha_val)
                             react_name += '_env'
 
                         elif tag == 'mit_concs':
-                            node_color = rgba2hex(p.network_cm(self.molecules[react_name].c_mit[p.plot_cell]), alpha_val)
+                            node_color = rgba2hex(p.network_cm(self.mit_concs[react_name][p.plot_cell]), alpha_val)
                             react_name += '_mit'
 
-                        nde = pydot.Node(react_name, style='filled', color=node_color)
+                        nde = pydot.Node(react_name, style='filled', color=node_color, shape = self.conc_shape)
                         graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff=rea_coeff))
@@ -3815,14 +3874,14 @@ class MasterOfNetworks(object):
                     else:
 
                         if tag == 'env_concs':
-                            node_color = rgba2hex(p.network_cm(self.molecules[prod_name].c_env[p.plot_cell]), alpha_val)
+                            node_color = rgba2hex(p.network_cm(self.env_concs[prod_name].mean()), alpha_val)
                             prod_name += '_env'
 
                         elif tag == 'mit_concs':
-                            node_color = rgba2hex(p.network_cm(self.molecules[prod_name].c_mit[p.plot_cell]), alpha_val)
+                            node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
                             prod_name += '_mit'
 
-                        nde = pydot.Node(prod_name, style='filled', color=node_color)
+                        nde = pydot.Node(prod_name, style='filled', color=node_color, shape = self.conc_shape)
                         graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff))
@@ -4243,13 +4302,13 @@ class MasterOfNetworks(object):
                 if reaction_zone == 'mit':
                     node_color = rgba2hex(p.network_cm(self.mit_concs[act_name][p.plot_cell]), alpha_val)
                     act_name += '_mit'
-                    nde = pydot.Node(act_name, style='filled', color=node_color)
+                    nde = pydot.Node(act_name, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                 if zone_a == 'env':
                     node_color = rgba2hex(p.network_cm(self.env_concs[act_name].mean()), alpha_val)
                     act_name = act_name + '_env'
-                    nde = pydot.Node(act_name, style='filled', color=node_color)
+                    nde = pydot.Node(act_name, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                 if independent_action is False:
@@ -4267,13 +4326,13 @@ class MasterOfNetworks(object):
                 if reaction_zone == 'mit':
                     node_color = rgba2hex(p.network_cm(self.mit_concs[inh_name][p.plot_cell]), alpha_val)
                     inh_name += '_mit'
-                    nde = pydot.Node(inh_name, style='filled', color=node_color)
+                    nde = pydot.Node(inh_name, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                 if zone_i == 'env':
                     node_color = rgba2hex(p.network_cm(self.env_concs[inh_name].mean()), alpha_val)
                     inh_name = inh_name + '_env'
-                    nde = pydot.Node(inh_name, style='filled', color=node_color)
+                    nde = pydot.Node(inh_name, style='filled', color=node_color, shape = self.conc_shape)
                     self.graphicus_maximus.add_node(nde)
 
                 self.graphicus_maximus.add_edge(
@@ -4315,7 +4374,7 @@ class MasterOfNetworks(object):
         logs.log_info(mssg)
 
         # set the vmem and Vmit to generalized values common to many cell types:
-        sim.vm[:] = -50e-3
+        sim.vm = p.target_vmem
 
         if self.mit_enabled:
             self.mit.Vmit[:] = -150.0e-3
@@ -4324,7 +4383,6 @@ class MasterOfNetworks(object):
 
         # create the reaction and concentration handlers, which organize different kinds of reactions and
         # concentrations:
-        self.build_indices()
 
         # create a complete graph using pydot and the network plotting method:
         grapha = self.build_reaction_network(p)
@@ -4336,6 +4394,8 @@ class MasterOfNetworks(object):
 
         # convert the graph into a networkx format so it's easy to manipulate:
         network = nx_pydot.from_pydot(grapha)
+
+        self.build_indices(sim, cells, p)
 
         # build a network matrix in order to easily organize reaction relationships needed for the optimization:
         self.network_opt_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
@@ -4351,41 +4411,62 @@ class MasterOfNetworks(object):
             node_type_b = network.node[node_b].get('shape', None)
 
             # if node a is a concentration and b is a reaction, we must be dealing with a reactant:
-            if node_type_a is None and node_type_b == 'rect':
+            if node_type_a is self.conc_shape and node_type_b == self.reaction_shape:
 
                 # find the numerical index of the reactant (node_a) and reaction (node_b) in the handlers:
                 row_i = self.conc_handler_index[node_a]
                 col_j = self.react_handler_index[node_b]
 
                 # add them to the optimization matrix:
-                self.network_opt_M[row_i, col_j] = -1*edge_coeff
+                self.network_opt_M[row_i, col_j] = -1 * edge_coeff
 
             # perform a similar type of reasoning for the opposite relationship (indicating a product):
-            elif node_type_a == 'rect' and node_type_b is None:
+            elif node_type_a == self.reaction_shape and node_type_b is self.conc_shape:
 
                 row_i = self.conc_handler_index[node_b]
                 col_j = self.react_handler_index[node_a]
 
-                self.network_opt_M[row_i, col_j] = 1*edge_coeff
+                self.network_opt_M[row_i, col_j] = 1 * edge_coeff
 
             # the next two blocks to do exactly the same thing as above, except with transporters, which
             # have a diamond shape as they're treated differently:
-            elif node_type_a is None and node_type_b == 'diamond':
+            elif node_type_a is self.conc_shape and node_type_b == self.transporter_shape:
 
                 row_i = self.conc_handler_index[node_a]
                 col_j = self.react_handler_index[node_b]
 
-                self.network_opt_M[row_i, col_j] = -1.0*edge_coeff
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
 
-            elif node_type_a == 'diamond' and node_type_b is None:
+            elif node_type_a == self.transporter_shape and node_type_b is self.conc_shape:
 
                 row_i = self.conc_handler_index[node_b]
                 col_j = self.react_handler_index[node_a]
 
-                self.network_opt_M[row_i, col_j] = 1.0*edge_coeff
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+            elif node_type_a == self.conc_shape and node_type_b is self.ed_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.ed_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+        # row_J = self.conc_handler_index['J']
+        # col_J = self.react_handler_index['JJ']
+        #
+        # self.network_opt_M[row_J, col_J] = 1.0  # add in the current expression
 
         # initialize guess vector for reaction rates (they will be extracted from user vmax settings in file):
         vmax_o = np.ones(len(self.react_handler))
+
+        origin_o = np.ones(len(self.react_handler))
 
         for i, rea_name in enumerate(self.react_handler):
 
@@ -4393,60 +4474,38 @@ class MasterOfNetworks(object):
 
                 name = rea_name[:-7]
 
-                vmax_o[i] = self.molecules[name].r_production
+                origin_o[i] = self.molecules[name].r_production
 
             elif rea_name.endswith('_decay'):
 
                 name = rea_name[:-6]
 
-                vmax_o[i] = self.molecules[name].r_decay
+                origin_o[i] = self.molecules[name].r_decay
+
+            elif rea_name.endswith('_ed'):
+
+                name = rea_name[:-3]
+
+                origin_o[i] = self.Dmem[name]
 
             elif rea_name in self.reactions:
 
-                vmax_o[i] = self.reactions[rea_name].vmax
+                origin_o[i] = self.reactions[rea_name].vmax
 
             elif rea_name in self.transporters:
 
-                if self.transporters[rea_name].reaction_zone == 'cell':
+                origin_o[i] = self.transporters[rea_name].vmax
 
-                    corc = cells.cell_sa.mean()/cells.cell_vol.mean()
-
-                elif self.transporters[rea_name].reaction_zone == 'mit' and self.mit_enabled is True:
-
-                    corc = self.mit.mit_sa.mean()/self.mit.mit_vol.mean()
-
-                else:
-                    corc = cells.cell_sa.mean() / cells.cell_vol.mean()
-                    logs.log_warning("Transporter reaction zone defined as 'mit', yet mitochondria disabled!")
-
-                vmax_o[i] = self.transporters[rea_name].vmax*corc
-
-        logs.log_info("Initiating optimization with reaction rates: ")
-        logs.log_info("-----------------------------------------")
+        print("Initiating optimization with reaction rates: ")
+        print("-----------------------------------------")
 
         # tell the user what initial values they're using:
         for i, nme in enumerate(self.react_handler):
+            msg = "{}: {}".format(nme, origin_o[i])
 
-            msg = "{}: {}".format(nme, vmax_o[i])
+            print(msg)
 
-            logs.log_info(msg)
-
-        logs.log_info("-----------------------------------------")
-
-        # set all pre-existing reaction maxima to 1.0:
-        for mol_name in self.molecules:
-
-            mol = self.molecules[mol_name]
-
-            if mol.simple_growth is True:
-                mol.r_production = 1.0
-                mol.r_decay = 1.0
-
-        for rea_name in self.reactions:
-            self.reactions[rea_name].vmax = 1.0
-
-        for trans_name in self.transporters:
-            self.transporters[trans_name].vmax = 1.0
+        print("-----------------------------------------")
 
         # calculate the reaction rates at the target concentrations:
         r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
@@ -4460,6 +4519,7 @@ class MasterOfNetworks(object):
         c_base[zero_c] = 1.0
         c_fix[zero_c] = 0.0
 
+
         # define the optimization callable function
         def opt_funk(vmax):
             """
@@ -4468,7 +4528,7 @@ class MasterOfNetworks(object):
 
             """
 
-            chi_val = (((np.dot(self.network_opt_M, np.abs(vmax)*r_base))**2)/c_base)*c_fix
+            chi_val = (((np.dot(self.network_opt_M, np.abs(vmax) * r_base)) ** 2) / c_base) * c_fix
 
             chi_square = chi_val.sum()
 
@@ -4546,18 +4606,25 @@ class MasterOfNetworks(object):
         logs.log_info("Optimization-recommended reaction rates: ")
         logs.log_info("-----------------------------------------")
 
-        for reaction, valmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
+        for i, (k, v) in enumerate(self.react_handler.items()):
 
-            if reaction in self.transporters:
-                corc = cells.cell_vol.mean() / cells.cell_sa.mean()
-                valmax = valmax * corc
-                message = reaction + ": " + str(round(valmax, 8))
-
-            else:
-
-                message = reaction + ": " + str(round(valmax,4))
-
+            message = k + ": " + str(self.sol_x[i]*origin_o[i])
             logs.log_info(message)
+
+        # for reaction, valmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
+        #
+        #     # if reaction in self.transporters:
+        #     #     corc = cells.cell_vol.mean() / cells.cell_sa.mean()
+        #     #     valmax = valmax * corc
+        #     #     # message = reaction + ": " + str(round(valmax, 8))
+        #     #     message = reaction + ": " + str(valmax)
+        #     #
+        #     # else:
+        #
+        #         # message = reaction + ": " + str(round(valmax,4))
+        #     message = reaction + ": " + str(valmax)
+        #
+        #     logs.log_info(message)
 
         logs.log_info("-----------------------------------------")
 

@@ -14,6 +14,9 @@
 #  BASIC FEATURES
 #-----------------------------------------------------------------------------------------------------------------------
 optimize network: False    # Prior to simulation, use a basin hopping algorithm to optimize network?
+optimization steps: 200 # number of itteration steps to run with basinhopper
+optimization method: Nelder-Mead  # optimization algorithm to run ('Nelder-Mead', 'COBYLA', 'Powell')
+
 enable mitochondria: False  # Enable mitochondrial regions inside each cell?
 
 #-----------------------------------------------------------------------------------------------------------------------

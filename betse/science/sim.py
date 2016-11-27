@@ -17,7 +17,7 @@ from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
-from betse.science.chemistry.networks import MasterOfNetworks
+from betse.science.chemistry.molecules import MasterOfMolecules
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.organelles.endo_retic import EndoRetic
@@ -299,7 +299,7 @@ class Simulator(object):
 
         self.v_cell = np.zeros(self.cdl)  # initialize intracellular voltage
         # self.vm = -50.0e-3*np.ones(self.mdl)     # initialize vmem
-        self.vm = np.zeros(self.mdl)     # initialize vmem
+        self.vm = np.ones(self.mdl)*p.target_vmem     # initialize vmem
         self.rho_cells = np.zeros(self.cdl)
 
         self.E_gj_x = np.zeros(self.mdl)   # electric field components across gap junctions
@@ -684,57 +684,22 @@ class Simulator(object):
         #(only do these initializations if they haven't been done yet)
         if p.molecules_enabled and self.molecules is None:
 
-            # self.molecules = MasterOfMolecules(self, cells, p.molecules_config,p)
-            self.molecules = MasterOfNetworks(self, cells, p.molecules_config, p,
-                mit_enabled=p.mol_mit_enabled)
+            logs.log_info("Initializing general network...")
 
-            if p.mol_mit_enabled is True:
-                self.molecules.mit_enabled = True
-
-            if p.reactions_enabled:
-
-                self.molecules.read_reactions(p.reactions_config, self, cells, p)
-                self.molecules.write_reactions()
-
-                if self.molecules.mit_enabled is True:
-                    self.molecules.write_reactions_mit()
-                    self.molecules.create_reaction_matrix_mit()
-
-            self.molecules.create_reaction_matrix()
-
-            if p.transporters_enabled:
-
-                self.molecules.read_transporters(p.transporters_config, self, cells, p)
-                self.molecules.write_transporters(self, cells,p)
-
-            if p.channels_enabled:
-
-                self.molecules.read_channels(p.channels_config, self, cells, p)
-
-            if p.modulators_enabled:
-
-                self.molecules.read_modulators(p.modulators_config, self, cells, p)
+            # create an instance of the metabolism simulator
+            self.molecules = MasterOfMolecules(p)
+            # read in the configuration settings for the metabolism simulator:
+            self.molecules.read_mol_config(self, cells, p)
 
 
         elif p.molecules_enabled and self.molecules is not None:
         # don't declare a whole new object, but re-read in parts that user may have changed:
-            self.molecules.tissue_init(self, cells, p.molecules_config,p)
+            logs.log_info("Reinitializing the general regulatory network for simulation...")
 
-            if p.reactions_enabled:
-                self.molecules.read_reactions(p.reactions_config, self, cells, p)
-                self.molecules.write_reactions()
+            # re-read the config file again and reassign everything except for concentrations,
+            #  to capture any user updates:
+            self.molecules.reinitialize(self, cells, p)
 
-            self.molecules.create_reaction_matrix()
-
-            if p.transporters_enabled:
-                self.molecules.read_transporters(p.transporters_config, self, cells, p)
-                self.molecules.write_transporters(self, cells, p)
-
-            if p.channels_enabled:
-                self.molecules.read_channels(p.channels_config, self, cells, p)
-
-            if p.modulators_enabled:
-                self.molecules.read_modulators(p.modulators_config, self, cells, p)
 
         #-----metabolism initialization -----------------------------------
         if p.metabolism_enabled and self.metabo is None:
@@ -1014,22 +979,22 @@ class Simulator(object):
                     self.acid_handler(cells, p)
 
 
-                # update the molecules handler-----------------------------------------------------------------
+                # update the general molecules handler-----------------------------------------------------------------
                 if p.molecules_enabled:
 
-                    if p.transporters_enabled:
+                    if self.molecules.transporters:
 
-                        self.molecules.run_loop_transporters(t, self, self.molecules, cells, p)
+                        self.molecules.core.run_loop_transporters(t, self, self.molecules, cells, p)
 
-                    if p.channels_enabled:
+                    if self.molecules.channels:
 
-                        self.molecules.run_loop_channels(self, self.molecules, cells, p)
+                        self.molecules.core.run_loop_channels(self, self.molecules, cells, p)
 
-                    if p.modulators_enabled:
+                    if self.molecules.modulators:
 
-                        self.molecules.run_loop_modulators(self, self.molecules, cells, p)
+                        self.molecules.core.run_loop_modulators(self, self.molecules, cells, p)
 
-                    self.molecules.run_loop(t, self, cells, p)
+                    self.molecules.core.run_loop(t, self, cells, p)
 
                 # update metabolic handler----------------------------------------------------------------------
 
@@ -1252,7 +1217,7 @@ class Simulator(object):
 
         if p.molecules_enabled:
 
-            self.molecules.clear_cache()
+            self.molecules.core.clear_cache()
 
         if p.metabolism_enabled:
 
@@ -1348,8 +1313,8 @@ class Simulator(object):
 
         if p.molecules_enabled:
 
-            self.molecules.write_data(self, cells, p)
-            self.molecules.report(self, p)
+            self.molecules.core.write_data(self, cells, p)
+            self.molecules.core.report(self, p)
 
         if p.metabolism_enabled:
 
@@ -1455,7 +1420,7 @@ class Simulator(object):
                 'Final environmental pH: %g', np.round(final_pH_env, 2))
 
         if p.molecules_enabled:
-            self.molecules.report(self, p)
+            self.molecules.core.report(self, p)
 
         if p.metabolism_enabled:
             self.metabo.core.report(self, p)
@@ -1492,8 +1457,8 @@ class Simulator(object):
 
         if p.molecules_enabled:
             logs.log_info(
-                'Auxiliary molecules are enabled from '
-                '"biochemistry" section of main config file.')
+                'Auxiliary molecules and properties are enabled from '
+                '"General Networks" section of main config file.')
 
         if p.metabolism_enabled:
             logs.log_info(

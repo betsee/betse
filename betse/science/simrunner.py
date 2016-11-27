@@ -438,12 +438,12 @@ class SimRunner(object):
         if p.molecules_enabled and sim.molecules is not None:
 
             # reinit settings for plots, in case they've changed:
-            sim.molecules.plot_init(p.molecules_config)
+            # sim.molecules.core.plot_init(p.molecules_config)
 
-            sim.molecules.init_saving(cells, p, plot_type = 'init')
-            sim.molecules.export_all_data(sim, cells, p)
-            sim.molecules.plot(sim, cells, p)
-            sim.molecules.anim(sim, cells, p)
+            sim.molecules.core.init_saving(cells, p, plot_type = 'init')
+            sim.molecules.core.export_all_data(sim, cells, p)
+            sim.molecules.core.plot(sim, cells, p)
+            sim.molecules.core.anim(sim, cells, p)
 
         if p.metabolism_enabled and sim.metabo is not None:
 
@@ -503,13 +503,13 @@ class SimRunner(object):
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
 
-            # reinit settings for plots, in case they've changed:
-            sim.molecules.plot_init(p.molecules_config)
+            # # reinit settings for plots, in case they've changed:
+            # sim.molecules.core.plot_init(p.molecules_config)
 
-            sim.molecules.init_saving(cells, p, plot_type = 'sim')
-            sim.molecules.export_all_data(sim, cells, p)
-            sim.molecules.plot(sim, cells, p)
-            sim.molecules.anim(sim, cells, p)
+            sim.molecules.core.init_saving(cells, p, plot_type = 'sim')
+            sim.molecules.core.export_all_data(sim, cells, p)
+            sim.molecules.core.plot(sim, cells, p)
+            sim.molecules.core.anim(sim, cells, p)
 
         #FIXME: Shift into the plotting and animation pipelines.
         if p.metabolism_enabled and sim.metabo is not None:

@@ -184,6 +184,8 @@ world options:
 
 tissue profile definition:
 
+    initial Vmem:  -50e-3    # initial Vmem for system [V]
+
     clipping:     # geometry mask defining shape of global cell cluster
         bitmap:   # bitmap whose coloured pixel area defines this mask
             file: geo/circle/circle_base.png  # bitmap path relative to config file location;
@@ -534,45 +536,51 @@ block VATP pump:
   change rate: 2.0         # rate of change [s]
 
 #-----------------------------------------------------------------------------------------------------------------------
+#  GENERAL NETWORK
+#-----------------------------------------------------------------------------------------------------------------------
+general network:
+
+  implement network: False     # Turn the entire network defined below on (True) or off (False)
+
+  enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
+
+  optimization:
+    optimize network: True   # run an optimization of the network to obtain max rates at steady state concentrations?
+    optimization steps: 100 # number of itteration steps to run with basinhopper
+    optimization method: Nelder-Mead  # optimization algorithm to run ('Nelder-Mead', 'COBYLA', 'Powell')
+
+
+#-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM BIOMOLECULES
 #-----------------------------------------------------------------------------------------------------------------------
 # Mini-simulations of biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
 # in the environment. Also can be produced/consumed in the cytoplasm, act as gating ligand for a specific channel,
 # be actively pumped in or out of cells, changed at the boundary, or plotted/animated at the end of the simulation.
 
-biomolecules enabled: False   # include all following definitions in simulation (True) or turn them all off (False)
-
-biomolecules:  # specify the properties of any number of auxillary chemicals
+  biomolecules:  # specify the properties of any number of auxillary chemicals
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHEMICAL REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
 
-reactions enabled: False   # enable (True) or turn off (False) all of the following reactions
-
-reactions:
+  reactions:
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHANNELS
 #-----------------------------------------------------------------------------------------------------------------------
 
-channels enabled: False   # enable (True) or turn off (False) all of the following reactions
-
-channels:
+  channels:
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
 #-----------------------------------------------------------------------------------------------------------------------
-transporters enabled: False
-
-transporters:
+  transporters:
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM MODULATORS
 #-----------------------------------------------------------------------------------------------------------------------
-modulators enabled: False
 
-modulators:
+  modulators:
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM
