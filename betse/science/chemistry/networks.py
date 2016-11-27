@@ -174,8 +174,9 @@ class MasterOfNetworks(object):
             mol.c_cells = np.ones(sim.cdl) * mol.c_cello
             # mol.c_mems = np.ones(sim.mdl) * mol.c_cello
 
-            #FIXME: Add explicit checks to avoid name conflicts between user-defined substances defined
-            #below and ions defined above. Na, K, Cl, Ca, H, M, P == reserved names for ions!
+            #FIXME: Add explicit checks to avoid name conflicts between
+            #user-defined substances defined below and ions defined above.
+            #Na, K, Cl, Ca, H, M, P == reserved names for ions!
 
             # create dynamic mappings for the cell and mem conc vectors:
             cell_concs_mapping[name] = DynamicValue(

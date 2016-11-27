@@ -14,8 +14,6 @@ from betse.util.type.types import (
 from functools import wraps
 
 # ....................{ DECORATORS                         }....................
-#FIXME: Grep the codebase for usage of the @property decorator and, where
-#applicable, simplify to use this decorator instead.
 def property_cached(property_method: MethodType) -> CallableTypes:
     '''
     Decorate the passed property method to cache the value returned by the first
@@ -151,6 +149,10 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
 #attribute of these objects is greater than or equal to 10 times this
 #expected maximum.
 def get_attrs_size(obj: object) -> SequenceTypes:
+    '''
+    Sequence of 2-tuples of the names and in-memory sizes in bytes of the values
+    of all
+    '''
 
     attrs_size = []
 
@@ -173,15 +175,15 @@ def print_attrs_size(obj: object) -> None:
     for attr_name, attr_size in get_attrs_size(obj):
         print('{}: {:.02f} MB'.format(attr_name, attr_size))
 
-
 # ....................{ ITERATORS                          }....................
+#FIXME: Rename to iter_vars_simple_custom().
 def iter_fields_simple_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each **non-builtin
-    non-property field** (i.e., variable whose name is _not_ both prefixed and
-    suffixed by `__` and whose value _not_ dynamically defined by the
-    `@property` decorator  to be the implicit result of a method call) bound to
-    the passed object, in lexicographically sorted field name order.
+    non-property variable** (i.e., variable whose name is _not_ both prefixed
+    and suffixed by `__` and whose value _not_ dynamically defined by the
+    `@property` decorator to be the implicit result of a method call) bound to
+    the passed object (_in ascending lexicographic order of field name_).
 
     Only fields registered in this object's internal dictionary (e.g.,
     `__dict__` in standard unslotted objects) will be yielded. Fields defined
