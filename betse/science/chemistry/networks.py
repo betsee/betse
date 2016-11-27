@@ -562,7 +562,6 @@ class MasterOfNetworks(object):
                 else:
                     self.conc_handler[mit_name] = self.mit_concs[mol_name]
 
-
         # build a global dictionary of all reactions:---------------------------------------------------------
         self.react_handler = OrderedDict({})
 
@@ -4374,7 +4373,7 @@ class MasterOfNetworks(object):
         logs.log_info(mssg)
 
         # set the vmem and Vmit to generalized values common to many cell types:
-        sim.vm = p.target_vmem
+        sim.vm = self.target_vmem
 
         if self.mit_enabled:
             self.mit.Vmit[:] = -150.0e-3
@@ -4500,7 +4499,12 @@ class MasterOfNetworks(object):
         print("-----------------------------------------")
 
         # tell the user what initial values they're using:
-        for i, nme in enumerate(self.react_handler):
+        for i, (nme, v) in enumerate(self.react_handler.items()):
+
+            if nme.endswith('_ed'):
+
+                nme = 'Dmem_' + nme[:-3]
+
             msg = "{}: {}".format(nme, origin_o[i])
 
             print(msg)
@@ -4608,7 +4612,15 @@ class MasterOfNetworks(object):
 
         for i, (k, v) in enumerate(self.react_handler.items()):
 
-            message = k + ": " + str(self.sol_x[i]*origin_o[i])
+            if k.endswith('_ed'):
+
+                name = k[:-3]
+                Pm = "Dmem_" + name
+                message = Pm + ": " + str(self.sol_x[i] * origin_o[i])
+
+            else:
+                message = k + ": " + str(self.sol_x[i]*origin_o[i])
+
             logs.log_info(message)
 
         # for reaction, valmax in zip(self.react_handler.keys(), self.sol_x.tolist()):

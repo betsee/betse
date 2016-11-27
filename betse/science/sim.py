@@ -299,7 +299,7 @@ class Simulator(object):
 
         self.v_cell = np.zeros(self.cdl)  # initialize intracellular voltage
         # self.vm = -50.0e-3*np.ones(self.mdl)     # initialize vmem
-        self.vm = np.ones(self.mdl)*p.target_vmem     # initialize vmem
+        self.vm = np.zeros(self.mdl)     # initialize vmem
         self.rho_cells = np.zeros(self.cdl)
 
         self.E_gj_x = np.zeros(self.mdl)   # electric field components across gap junctions

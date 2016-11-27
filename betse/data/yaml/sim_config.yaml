@@ -184,8 +184,6 @@ world options:
 
 tissue profile definition:
 
-    initial Vmem:  -50e-3    # initial Vmem for system [V]
-
     clipping:     # geometry mask defining shape of global cell cluster
         bitmap:   # bitmap whose coloured pixel area defines this mask
             file: geo/circle/circle_base.png  # bitmap path relative to config file location;
@@ -548,6 +546,7 @@ general network:
     optimize network: True   # run an optimization of the network to obtain max rates at steady state concentrations?
     optimization steps: 100 # number of itteration steps to run with basinhopper
     optimization method: Nelder-Mead  # optimization algorithm to run ('Nelder-Mead', 'COBYLA', 'Powell')
+    target Vmem: -50e-3               # Vmem to use in optimization
 
 
 #-----------------------------------------------------------------------------------------------------------------------

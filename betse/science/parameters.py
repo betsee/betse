@@ -173,8 +173,6 @@ class Parameters(object):
         # TISSUE PROFILES
         #---------------------------------------------------------------------------------------------------------------
 
-        self.target_vmem = float(self.config['tissue profile definition'].get('initial Vmem', 50e-3))
-
         self._init_tissue_and_cut_profiles()
 
         #---------------------------------------------------------------------------------------------------------------

@@ -94,6 +94,7 @@ class MasterOfGenes(object):
         opti = self.config_dic.get('optimize network', False)
         self.core.opti_N = int(self.config_dic.get('optimization steps', 250))
         self.core.opti_method = self.config_dic.get('optimization method', 'COBYLA')
+        self.core.target_vmem = float(self.config_dic.get('target Vmem', -50e-3))
 
         if opti is True:
             logs.log_info("The Gene Network is being analyzed for optimal rates...")

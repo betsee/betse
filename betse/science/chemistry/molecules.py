@@ -91,6 +91,7 @@ class MasterOfMolecules(object):
         opti = self.config_dic['optimization']['optimize network']
         self.core.opti_N = self.config_dic['optimization']['optimization steps']
         self.core.opti_method = self.config_dic['optimization']['optimization method']
+        self.core.target_vmem = float(self.config_dic['optimization']['target Vmem'])
 
         if opti is True:
             logs.log_info("The General Network is being analyzed for optimal rates...")
