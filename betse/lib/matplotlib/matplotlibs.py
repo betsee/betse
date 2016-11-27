@@ -724,7 +724,7 @@ class MatplotlibConfig(object):
             # * Converting the remaining basenames to backend names.
             # * Sorting these names in ascending lexicographic order for
             #   readability (e.g., in the "info" subcommand).
-            return iterables.sort_lexicographic_ascending([
+            return iterables.sort_ascending([
                 paths.get_pathname_sans_filetype(
                     strs.remove_prefix_if_found(
                         backend_basename, BACKEND_BASENAME_PREFIX))

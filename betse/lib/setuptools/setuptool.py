@@ -360,7 +360,7 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
     '''
 
     # Lexicographically sorted tuple of these strings.
-    requirement_strs_sorted = iterables.sort_lexicographic_ascending(
+    requirement_strs_sorted = iterables.sort_ascending(
         requirement_strs)
 
     # List of all high-level "Requirements" objects corresponding to these

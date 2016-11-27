@@ -137,69 +137,81 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
 
-
-#FIXME: Generalize to internally sort the returned sequence.
-#FIXME: Document us up.
-#FIXME: Call this method during profiling with our three principal objects:
-#"Simulator", "Cells", and "Parameters".
-#FIXME: Call this method as a new functional test detecting erroneously large
-#attributes in these three principal objects. To do so, determine the largest
-#attribute currently produced in these objects for the minified world
-#environment used for all functional tests. Then raise an exception if any
-#attribute of these objects is greater than or equal to 10 times this
-#expected maximum.
-def get_attrs_size(obj: object) -> SequenceTypes:
-    '''
-    Sequence of 2-tuples of the names and in-memory sizes in bytes of the values
-    of all
-    '''
-
-    attrs_size = []
-
-    for attr_name, attr_value in iter_fields_simple_custom(obj):
-        #FIXME: Consider permitting the caller to pass this factor.
-        # Convert from bytes to megabytes.
-        attr_size = sys.getsizeof(attr_value) / 1e6
-
-        #FIXME: Probably don't require this anymore.
-        if attr_size > 0.001:
-            attrs_size.append((attr_name, attr_size))
-
-    #FIXME: Sort this here.
-    return attrs_size
-
 # ....................{ PRINTERS                           }....................
 #FIXME: Document us up.
-def print_attrs_size(obj: object) -> None:
+def print_vars_size_sorted(obj: object) -> None:
 
-    for attr_name, attr_size in get_attrs_size(obj):
+    for attr_name, attr_size in iter_vars_size_sorted(obj):
         print('{}: {:.02f} MB'.format(attr_name, attr_size))
 
 # ....................{ ITERATORS                          }....................
-#FIXME: Rename to iter_vars_simple_custom().
-def iter_fields_simple_custom(obj: object) -> GeneratorType:
+def iter_vars(obj: object) -> SequenceTypes:
     '''
-    Generator yielding a 2-tuple of the name and value of each **non-builtin
-    non-property variable** (i.e., variable whose name is _not_ both prefixed
-    and suffixed by `__` and whose value _not_ dynamically defined by the
-    `@property` decorator to be the implicit result of a method call) bound to
-    the passed object (_in ascending lexicographic order of field name_).
+    Sequence of 2-tuples of the name and value of each variable bound to the
+    passed object (_in ascending lexicographic order of variable name_).
 
-    Only fields registered in this object's internal dictionary (e.g.,
-    `__dict__` in standard unslotted objects) will be yielded. Fields defined
-    by this object's `__getattr__()` method or related runtime magic will _not_
-    be yielded.
+    This includes:
+
+    * All variables statically registered in this object's internal dictionary
+      (e.g., `__dict__` in unslotted objects), including both:
+      * Builtin variables, whose names are both prefixed and suffixed by `__`.
+      * Custom variables, whose names are _not_ prefixed and suffixed by `__`.
+    * All variables dynamically defined by the :func:`property` decorator to be
+      the implicit result of a method call.
+
+    This excludes _only_ variables dynamically defined by this object's
+    `__getattr__()` method or related runtime magic, which cannot (_by
+    definition_) be inspected by this generator.
 
     Parameters
     ----------
     obj : object
-        Object to yield the non-builtin fields of.
+        Object to iterate the variables of.
+
+    Returns
+    ----------
+    SequenceTypes
+        Each element of this sequence is a 2-tuple `(var_name, var_value)` of
+        the name and value of each variable bound to this object (_in ascending
+        lexicographic order of variable name_).
+
+    Raises
+    ----------
+    Exception
+        If any variable of this object is a property whose
+        :func:`property`-decorated method raises an exception. To avoid handling
+        such exceptions, consider instead calling the
+        :func:`iter_vars_simple_custom` generator excluding all properties.
+    '''
+
+    # The buck stops here.
+    return inspect.getmembers(obj)
+
+
+def iter_vars_simple_custom(obj: object) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each **non-builtin
+    non-property variable** (i.e., variable whose name is _not_ both prefixed
+    and suffixed by `__` and whose value _not_ dynamically defined by the
+    `@property` decorator to be the implicit result of a method call) bound to
+    the passed object (_in ascending lexicographic order of variable name_).
+
+    Only variables statically registered in this object's internal dictionary
+    (e.g., `__dict__` in unslotted objects) are yielded. Variables dynamically
+    defined by this object's `__getattr__()` method or related runtime magic
+    are ignored.
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all non-builtin non-property variables of.
 
     Yields
     ----------
-    (field_name, field_value)
-        2-tuple of the name and value of each non-builtin field bound to this
-        object, in lexicographically sorted field name order.
+    (var_name, var_value)
+        2-tuple of the name and value of each non-builtin non-property variable
+        bound to this object (_in ascending lexicographic order of variable
+        name_).
     '''
 
     # Ideally, this function would be internally reimplemented in terms of
@@ -219,20 +231,92 @@ def iter_fields_simple_custom(obj: object) -> GeneratorType:
     # For the same reason, the unsafe vars() builtin cannot be called either.
     # Since that builtin fails for builtin containers (e.g., "dict", "list"),
     # this is not altogether a bad thing.
-    for attr_name in dir(obj):
+    for var_name in dir(obj):
         # If this attribute is *NOT* a builtin...
-        if not (attr_name.startswith('__') and attr_name.endswith('__')):
+        if not (var_name.startswith('__') and var_name.endswith('__')):
             # Value of this attribute guaranteed to be statically rather than
             # dynamically retrieved. The getattr() builtin performs the latter,
             # dynamically calling this attribute's getter if this attribute is
             # a property. Since such call could conceivably raise unwanted
             # exceptions *AND* since this function explicitly ignores
             # properties, static attribute retrievable is strongly preferable.
-            attr_value = inspect.getattr_static(obj, attr_name)
+            var_value = inspect.getattr_static(obj, var_name)
 
             # If this value is neither callable nor a property, this attribute
             # is a field. In this case, yield this field.
-            if not (callable(attr_value) or isinstance(attr_value, property)):
-                yield attr_name, attr_value
+            if not (callable(var_value) or isinstance(var_value, property)):
+                yield var_name, var_value
 
-# ....................{ DECORATORS                         }....................
+
+#FIXME: *UGH*. The sys.getsizeof() function only returns the shallow size of the
+#passed object (i.e., the size of this object excluding the size of other
+#objects referred to by this object). To retrieve the deep size of the passed
+#object, we sadly need to implement a stack-based depth-first search (DFS) of
+#some sort. Yes, we are not kidding.
+#FIXME: Two general-purpose third-party solutions also exist: pympler and guppy.
+#Pympler appears to be the more appropriate for our purposes. Given that,
+#perhaps we could implement a solution resembling:
+#
+#* If pympler is available, defer to that.
+#* Else, fallback to a DFS implemented by hand. Since this is *ONLY* a fallback,
+#  this DFS should be implemented as trivially as possible.
+
+#FIXME: Generalize to internally sort the returned sequence.
+#FIXME: Document us up.
+#FIXME: Call this method during profiling with our three principal objects:
+#"Simulator", "Cells", and "Parameters".
+#FIXME: Call this method as a new functional test detecting erroneously large
+#attributes in these three principal objects. To do so, determine the largest
+#attribute currently produced in these objects for the minified world
+#environment used for all functional tests. Then raise an exception if any
+#attribute of these objects is greater than or equal to 10 times this
+#expected maximum.
+def iter_vars_size_sorted(obj: object) -> SequenceTypes:
+    '''
+    Sequence of 2-tuples of the name and in-memory size in bytes of each
+    variable bound to the passed object (_in descending order of size_).
+
+    Parameters
+    ----------
+    obj : object
+        Object to iterate the variable sizes of.
+
+    Returns
+    ----------
+    SequenceTypes
+        Each element of this sequence is a 2-tuple `(var_name, var_size)` of
+        the name and in-memory size in bytes of each variable bound to this
+        object (_in descending order of size_).
+
+    Raises
+    ----------
+    TypeError
+        If any variable of this object does _not_ define the `__sizeof__()`
+        special method. While all pure-Python and builtin objects define this
+        special method, objects defined by third-party extensions are _not_
+        required to do so.
+    Exception
+        If any variable of this object is a property whose
+        :func:`property`-decorated method raises an exception.
+
+    See Also
+    ----------
+    :func:`iter_vars`
+        Further details.
+    '''
+
+    # List of all 2-tuples to be returned.
+    vars_size = []
+
+    # For each name and value of this object (in arbitrary order)...
+    for var_name, var_value in iter_vars(obj):
+        #FIXME: Consider permitting the caller to pass this factor.
+        # In-memory size of this object, convert from bytes to the desired
+        # denomination.
+        var_size = sys.getsizeof(var_value) / 1e6
+
+        # Append a 2-tuple of this variable's name and size.
+        vars_size.append((var_name, var_size))
+
+    #FIXME: Sort this here.
+    return vars_size

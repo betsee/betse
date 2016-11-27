@@ -648,11 +648,22 @@ def reverse(iterable: IterableTypes) -> IterableTypes:
 
 # ....................{ SORTERS                            }....................
 @type_check
-def sort_lexicographic_ascending(iterable: IterableTypes) -> IterableTypes:
+def sort_ascending(iterable: IterableTypes) -> IterableTypes:
     '''
-    Sort the passed non-string iterable into a new non-string iterable of
-    differing type in **ascending lexicographic order** (i.e., traditional order
-    of dead-tree dictionaries and encyclopedias).
+    Iterable sorted from the passed iterable in **ascending order.**
+
+    Each element of this iterable is compared to each other element of this
+    iterable via the `<` operator, implicitly calling the `__le__()` special
+    method of these elements. If each element is:
+
+    * A string, these strings are sorted in **ascending lexicographic order**
+      (i.e., traditional order of dead-tree dictionaries and encyclopedias).
+    * A number (i.e., either an integer or a float), these numbers are sorted in
+      **ascending numeric order.**
+
+    Each element of this iterable _must_ be comparable to each other element of
+    this iterable via the `<` operator. For simplicity, each element is ideally
+    of the same type.
 
     Parameters
     ----------
@@ -663,20 +674,27 @@ def sort_lexicographic_ascending(iterable: IterableTypes) -> IterableTypes:
     Returns
     ----------
     IterableTypes
-        Iterable sorted from the passed iterable. For efficiency, this iterable
-        is only a shallow rather than deep copy of the passed iterable.
+        Iterable sorted from and of the same type as the passed iterable. For
+        efficiency, this iterable is only a shallow rather than deep copy of the
+        passed iterable. Note lastly that the class of the passed iterable
+        _must_ define an `__init__()` method accepting a list.
     '''
 
-    return sorted(iterable)   # Well, that was easy.
+    # Type of the passed iterable.
+    iterable_type = type(iterable)
+
+    # Return an iterable of the same type, converted from the sorted list
+    # returned by the sorted() builtin.
+    return iterable_type(sorted(iterable))
 
 # ....................{ ZIPPERS                            }....................
 #FIXME: Unit test us up.
 @type_check
 def zip_isometric(*iterables: IterableTypes) -> GeneratorType:
     '''
-    Generator zipping the passed iterables of the same length.
+    Generator zipping all passed iterables required to be of the same length.
 
-    Specifically, this generator iteratively yields an `n`-tuple, where:
+    This generator iteratively yields an `n`-tuple, where:
 
     * `n` is the length of each passed iterable.
     * The `i`-th element of this tuple is in the `i`-th passed iterable.

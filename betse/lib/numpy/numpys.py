@@ -591,8 +591,8 @@ def get_blas_metadata() -> OrderedDict:
 
     # Set of all keys of the dictionary global synopsizing this metadata,
     # sorted in ascending lexicographic order for readability.
-    blas_opt_info_keys = iterables.sort_lexicographic_ascending(
-        numpy_config.blas_opt_info.keys())
+    blas_opt_info_keys = iterables.sort_ascending(
+        tuple(numpy_config.blas_opt_info.keys()))
 
     # For each such key...
     for blas_opt_info_key in blas_opt_info_keys:

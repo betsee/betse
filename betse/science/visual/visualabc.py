@@ -444,7 +444,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             pyplot.close(self._figure)
 
         # For each name and value of a field bound to this object...
-        for field_name, field_value in objects.iter_fields_simple_custom(self):
+        for field_name, field_value in objects.iter_vars_simple_custom(self):
             # If this field itself contains a "figure" attribute, explicitly
             # nullify the latter to break this figure's circular references in a
             # manner ignoring "AttributeError: can't set attribute" exceptions.
