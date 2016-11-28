@@ -138,6 +138,23 @@ variables:
 
 
 cache:
+  # Enable per-branch caching, assigning each repository branch a unique cache.
+  # By default, Gitlab-CI enables per-job and per-branch caching, assigning each
+  # repository branch for each job a unique cache. While a sensible default,
+  # this pipeline does *NOT* isolating each cache to each job. On the contrary,
+  # the build and test jobs defined below expect to share the same cache.
+  #
+  # For a human-readable list of permissible values for this setting, see also:
+  #     https://docs.gitlab.com/ce/ci/yaml/README.html#cache-key.
+  key: "$CI_BUILD_REF_NAME"
+
+  # Cache all subdirectories and files of the build directory *NOT* already
+  # tracked by Git for this repository, in addition to those paths explicitly
+  # cached below. In theory, all paths requiring caching should be explicitly
+  # cached below; in practice, this fallback ensures that paths omitted below
+  # will still be implicitly cached.
+  untracked: true
+
   # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   # WARNING: Due to an outstanding issue, GitLab-CI currently ignores *ALL*
   # cache paths outside the build directory. See also:
@@ -153,97 +170,141 @@ cache:
   # build directory.)
   paths:
     # The directory to which Anaconda persists this configuration's environment.
-    - conda-env
+    - conda-env/
 
     # The directory to which Matplotlib caches metadata (e.g., on fonts).
-    - mpl-cache
+    - mpl-cache/
 
     # The directory to which pip caches artifacts pertaining to previously
     # installed and possibly compiled dependencies.
     # - pip-cache
     # - $HOME/.cache/pip
 
-# ....................{ DEPENDENCIES                       }....................
-# List of all external commands to be run *FIRST* for this CI pipeline.
-before_script:
-  # Update all system packages installed by default with this image for the
-  # duration of this CI pipeline.
-  #
-  # Since this image is frequently updated, this is ignored.
-  #- apt-get update -qy
+# ....................{ STAGES                             }....................
+# List of all stages to be run by this pipeline (in order).
+#
+# In Gitlab-CI parlance, a "stage" is an abstract tag to which a "job" (defined
+# below) is assigned. Each job is *ALWAYS* tagged with exactly one stage,
+# defaulting to the "test" stage. All jobs tagged with the same stage are run in
+# parallel *BEFORE* all jobs tagged with the next stage in this list are run in
+# parallel. If any job fails, the entire stage to which that job belongs fails.
+# If any stage fails, the entire pipeline fails; else, the pipeline succeeds.
+stages:
+  - build
+  - test
 
-  # Install all dependencies available via the system-wide package manager,
-  # which is typically both faster and stabler than doing so via pip3.
-  #
-  # Since this image provides all such dependencies by default, this is ignored.
-  # - apt-get install -y
+# ....................{ JOBS                               }....................
+# In Gitlab-CI parlance, a "job" is any top-level user-defined key *NOT* already
+# reserved for use as a top-level official key by the ".gitlab-ci.yml" file
+# format (e.g., "artifact", "cache", "script"). A job may have any arbitrary
+# non-reserved name and may contain any top-level official key, thus confining
+# the action of that key (e.g., artifact building, caching, script commands) to
+# this job.
+#
+# Yes, the ambiguous nomenclature is unfortunate. In conventional *nix-oriented
+# nomenclature, a "job" is simply a subprocess owned by a parent shell process.
+# In Gitlab-CI nomenclature, a "job" is a container of Gitlab-CI configuration
+# metadata guaranteed to be enabled for the same duration of the pipeline time.
 
-  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  # WARNING: Since this pipeline currently leverages the Anaconda-based "conda"
-  # manager rather than the pure-Python "pip" manager to install dependencies,
-  # the following command is vestigial and is preserved only for posterity.
-  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# ....................{ JOBS ~ build                       }....................
+# Build-specific job, building and installing both this application *AND* all
+# third-party dependencies required by this application.
+betse-build:
+  # Stage to run this job under.
+  stage: build
 
-  # Install all Python-specific dependencies via "pip". Dismantled, this is:
-  #
-  # * "--quiet", reducing output verbosity.
-  # * "--disable-pip-version-check", improving both space and time complexity by
-  #   preventing "pip" from unnecessarily upgrading itself.
-  # * "--cache-dir", redefining the same directory exported as an environment
-  #   variable above. While redundant, doing so increases the likelihood that
-  #   "pip" will actually respect this cache request.
-  # * "--upgrade-strategy", improving both space and time complexity by
-  #   preventing "pip" from unnecessarily upgrading dependencies already
-  #   satisfying application requirements.
-  # * "--requirement", the relative path of the file listing all dependencies to
-  #   be installed.
-  # - pip3 --quiet --disable-pip-version-check --cache-dir "${PIP_CACHE_DIR}" install --upgrade-strategy only-if-needed --requirement requirements.txt
+  # List of all external commands run by this job.
+  script:
+    # Update all system packages installed by default with this image for the
+    # duration of this CI pipeline.
+    #
+    # Since this image is frequently updated, this is ignored.
+    #- apt-get update -qy
 
-  # Configure "conda" to run in headless mode. Dismantled, this is:
-  #
-  # * "always_yes true", automatically pass the "--yes" option to *ALL*
-  #   "conda" commands run below. This is a superficial convenience reducing the
-  #   likelihood of developer oversight and hence saving essential sanity.
-  # * "auto_update_conda false", improving both space and time complexity by
-  #   preventing "conda" from unnecessarily upgrading itself.
-  - conda config --set always_yes true --set auto_update_conda false
+    # Install all dependencies available via the system-wide package manager,
+    # which is typically both faster and stabler than doing so via pip3.
+    #
+    # Since this image provides such dependencies by default, this is ignored.
+    # - apt-get install -y
 
-  # For debuggability, print metadata identifying this Anaconda release.
-  - conda info --all
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # WARNING: Since this pipeline currently leverages the Anaconda-based "conda"
+    # manager rather than the pure-Python "pip" manager to install dependencies,
+    # the following command is vestigial and is preserved only for posterity.
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  # Create an empty Anaconda environment if not already created by a prior job
-  # *OR* silently ignore the resulting error otherwise. To create this
-  # environment in a cachable build-local directory rather than the uncachable
-  # default directory for Anaconda environments, the "--prefix" rather than
-  # "--name" option is passed. Since these two options are mutually exclusive,
-  # only the former is passed.
-  - conda create --quiet --prefix "${_CONDA_ENV_DIRNAME}" || true
+    # Install all Python-specific dependencies via "pip". Dismantled, this is:
+    #
+    # * "--quiet", reducing output verbosity.
+    # * "--disable-pip-version-check", improving both space and time complexity
+    #   by preventing "pip" from unnecessarily upgrading itself.
+    # * "--cache-dir", redefining the same directory exported as an environment
+    #   variable above. While redundant, doing so increases the likelihood that
+    #   "pip" will actually respect this cache request.
+    # * "--upgrade-strategy", improving both space and time complexity by
+    #   preventing "pip" from unnecessarily upgrading dependencies already
+    #   satisfying application requirements.
+    # * "--requirement", the relative path of the file listing all dependencies
+    #   to be installed.
+    # - pip3 --quiet --disable-pip-version-check --cache-dir "${PIP_CACHE_DIR}" install --upgrade-strategy only-if-needed --requirement requirements.txt
 
-  # Activate the previously defined environment, prepending the current ${PATH}
-  # by this environment's top-level directory.
-  - source activate "${_CONDA_ENV_DIRNAME}"
+    # Configure "conda" to run in headless mode. Dismantled, this is:
+    #
+    # * "always_yes true", automatically pass the "--yes" option to *ALL*
+    #   "conda" commands run below. This is a superficial convenience reducing
+    #   the likelihood of developer oversight and hence saving essential sanity.
+    # * "auto_update_conda false", improving both space and time complexity by
+    #   preventing "conda" from unnecessarily upgrading itself.
+    - conda config --set always_yes true --set auto_update_conda false
 
-  # Install all mandatory and optional dependencies of this application into
-  # this environment.
-  #
-  # Note that passing the "--file requirements-conda.txt" option to the above
-  # "conda create" command would suffice to do so for the initial creation of
-  # this environment but fail to account for subsequent changes to these
-  # dependencies; hence, environment creation and dependency installation *MUST*
-  # be separated. The efficiency hit is minimal if any.
-  #
-  # Note that isolating the installation of these dependencies into an
-  # environment is essential. Although this installation is already confined to
-  # a temporary Docker image and hence requires no additional isolation.
-  # Anaconda *ONLY* supports configurable caching via the "${CONDA_PREFIX}"
-  # environment variable specific to Anaconda environments. To persist this
-  # installation across jobs, there exists no sane alternative.
-  - conda install --quiet --file requirements-conda.txt
+    # For debuggability, print metadata identifying this Anaconda release.
+    - conda info --all
 
-# ....................{ COMMANDS                           }....................
-test:
-  # List of all external commands to be run for each CI pipeline *AFTER* those
-  # listed within "before_script" above.
+    #FIXME: This doesn't appear to actually be cached. We have little idea why.
+    #The "cache" section defined above appears to be syntactically correct and
+    #indeed be caching the same directory defined below. The culprit, really, is
+    #the complete (and utterly frustrating) lack of detailed debug output from
+    #Gitlab-CI concerning which exact paths are being cached and when. Until
+    #such output lands, we probably won't be able to reasonably address this.
+
+    # Create an empty Anaconda environment if not already created by a prior job
+    # *OR* silently ignore the resulting error otherwise. To create this
+    # environment in a cachable build-local directory rather than the uncachable
+    # default directory for Anaconda environments, the "--prefix" rather than
+    # "--name" option is passed. Since these two options are mutually exclusive,
+    # only the former is passed.
+    - conda create --quiet --prefix "${_CONDA_ENV_DIRNAME}" || true
+
+    # Activate the previously defined environment, prepending the current
+    # ${PATH} by this environment's top-level directory.
+    - source activate "${_CONDA_ENV_DIRNAME}"
+
+    # Install all mandatory and optional dependencies of this application into
+    # this environment.
+    #
+    # Note that passing the "--file requirements-conda.txt" option to the above
+    # "conda create" command would suffice to do so for the initial creation of
+    # this environment but fail to account for subsequent changes to these
+    # dependencies; hence, environment creation and dependency installation
+    # *MUST* be separated. The efficiency hit is minimal if any.
+    #
+    # Note that isolating the installation of these dependencies into an
+    # environment is essential. Although this installation is already confined
+    # to a temporary Docker image and hence requires no additional isolation.
+    # Anaconda *ONLY* supports configurable caching via the "${CONDA_PREFIX}"
+    # environment variable specific to Anaconda environments. To persist this
+    # installation across jobs, there exists no sane alternative.
+    - conda install --quiet --file requirements-conda.txt
+
+# ....................{ JOBS ~ test                        }....................
+# Test-specific job, exercising the entire test suite for this application.
+betse-test:
+  # Stage to run this job under. Note that "test" is technically the default
+  # stage and hence need *NOT* be explicitly specified here. For disambiguity,
+  # we do so anyway.
+  stage: test
+
+  # List of all external commands run by this job.
   script:
     # Run the entire "py.test"-based test suite under the following options:
     #

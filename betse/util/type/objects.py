@@ -139,9 +139,9 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
 
 # ....................{ PRINTERS                           }....................
 #FIXME: Document us up.
-def print_vars_size_sorted(obj: object) -> None:
+def print_vars_size(obj: object) -> None:
 
-    for attr_name, attr_size in iter_vars_size_sorted(obj):
+    for attr_name, attr_size in iter_vars_size(obj):
         print('{}: {:.02f} MB'.format(attr_name, attr_size))
 
 # ....................{ ITERATORS                          }....................
@@ -188,6 +188,38 @@ def iter_vars(obj: object) -> SequenceTypes:
     return inspect.getmembers(obj)
 
 
+def iter_vars_simple(obj: object) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each **non-builtin
+    variable** (i.e., variable whose name is _not_ both prefixed and suffixed by
+    `__`) bound to the passed object (_in ascending lexicographic order of
+    variable name_).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all non-builtin variables of.
+
+    Yields
+    ----------
+    (var_name, var_value)
+        2-tuple of the name and value of each non-builtin variable bound to this
+        object (_in ascending lexicographic order of variable name_).
+
+    See Also
+    ----------
+    :func:`iter_vars`
+        Further details.
+    '''
+
+    # For the name and value of each variable of this object...
+    for var_name, var_value in iter_vars(obj):
+        # If this variable is *NOT* builtin, yield this name and value.
+        if not (var_name.startswith('__') and var_name.endswith('__')):
+            yield var_name, var_value
+
+
+#FIXME: Reimplement in terms of .
 def iter_vars_simple_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
@@ -199,7 +231,7 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
     Only variables statically registered in this object's internal dictionary
     (e.g., `__dict__` in unslotted objects) are yielded. Variables dynamically
     defined by this object's `__getattr__()` method or related runtime magic
-    are ignored.
+    are simply ignored.
 
     Parameters
     ----------
@@ -243,7 +275,7 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
             var_value = inspect.getattr_static(obj, var_name)
 
             # If this value is neither callable nor a property, this attribute
-            # is a field. In this case, yield this field.
+            # is a non-property variable.
             if not (callable(var_value) or isinstance(var_value, property)):
                 yield var_name, var_value
 
@@ -271,7 +303,7 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
 #environment used for all functional tests. Then raise an exception if any
 #attribute of these objects is greater than or equal to 10 times this
 #expected maximum.
-def iter_vars_size_sorted(obj: object) -> SequenceTypes:
+def iter_vars_size(obj: object) -> SequenceTypes:
     '''
     Sequence of 2-tuples of the name and in-memory size in bytes of each
     variable bound to the passed object (_in descending order of size_).
