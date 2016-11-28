@@ -290,10 +290,7 @@ we pretend to require `setuptools` itself. Although non-ideal, so is life.
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by this application.
-# * Gitlab-CI configuration (e.g., the top-level "requirements-anaconda.txt"
-#   file).
-# * Appveyor configuration (e.g., the "CONDA_PACKAGE_NAMES" key of the
-#   "environment.global" list of the top-level "appveyor.yml" file).
+# * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_MANDATORY = (
     # setuptools is currently required at both install and runtime. At runtime,
@@ -350,10 +347,7 @@ See Also
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by this application.
-# * Gitlab-CI configuration (e.g., the top-level "requirements-anaconda.txt"
-#   file).
-# * Appveyor configuration (e.g., the "CONDA_PACKAGE_NAMES" key of the
-#   "environment.global" list of the top-level "appveyor.yml" file).
+# * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_OPTIONAL = {
     # To simplify subsequent lookup at runtime, project names for optional
@@ -361,10 +355,10 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
     # project names case-insensitively, case is only of internal relevance.
 
     # Dependencies directly required by this application.
+    'Pympler': '>= 0.4.1',
     # 'numba': '>= 0.27.0',
     'pprofile': '>= 1.8',
     'ptpython': '>= 0.29',
-    'pympler': '>= 0.4.1',
 
     # A relatively modern version of NetworkX *EXCLUDING* 1.11, which
     # critically broke backwards compatibility by coercing use of the unofficial

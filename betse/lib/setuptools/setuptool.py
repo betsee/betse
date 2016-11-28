@@ -27,6 +27,7 @@ from pkg_resources import (
 SETUPTOOLS_TO_MODULE_NAME = {
     'Numpy': 'numpy',
     'Pillow': 'PIL',
+    'Pympler': 'pympler',
     'PyYAML': 'yaml',
     'SciPy': 'numpy',
     'dill': 'dill',
