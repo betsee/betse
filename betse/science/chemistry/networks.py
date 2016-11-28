@@ -3281,8 +3281,8 @@ class MasterOfNetworks(object):
                     ion_node_color = rgba2hex(p.network_cm(self.cell_concs[ion_name][p.plot_cell]), alpha_val)
 
                     # define the ion node of the channel
-                    ion_node = pydot.Node(ion_name, style = 'filled', color = ion_node_color)
-                    self.graphicus_maximus.add_node(ion_node, shape = self.conc_shape)
+                    ion_node = pydot.Node(ion_name, style = 'filled', color = ion_node_color, shape = self.conc_shape)
+                    self.graphicus_maximus.add_node(ion_node)
 
                     # add the edges for channel effect on ion concentration:
                     self.graphicus_maximus.add_edge(pydot.Edge(gated_node, ion_node,  arrowhead='normal'))
@@ -3733,7 +3733,7 @@ class MasterOfNetworks(object):
 
                     # if the substance has autocatalytic growth capacity add the edge in:
                     graphicus_maximus.add_edge(pydot.Edge(rea_name, name, arrowhead='normal', coeff = 1.0,
-                                                          J_coeff = None))
+                                                          ))
 
                     # add node & edge for decay reaction component:
                     rea_name = name + '_decay'
@@ -3742,7 +3742,7 @@ class MasterOfNetworks(object):
 
                     # if the substance has autocatalytic growth capacity add the edge in:
                     graphicus_maximus.add_edge(pydot.Edge(name, rea_name, arrowhead='normal', coeff =1.0,
-                                                          J_coeff = None))
+                                                          ))
 
             else:  # add the ion as a node
 
@@ -3759,13 +3759,10 @@ class MasterOfNetworks(object):
             nde = pydot.Node(name_env, shape=self.conc_shape)
             graphicus_maximus.add_node(nde)
 
-            # in electrodiffusion equation definition, positive flux moves out of the cell:
-            zz = self.zmol[name]
-
             graphicus_maximus.add_edge(pydot.Edge(name, react_label, arrowhead='normal', coeff=1.0,
-                                                  J_coeff = zz))
+                                                  ))
             graphicus_maximus.add_edge(pydot.Edge(react_label, name_env, arrowhead='normal', coeff=1.0,
-                                                  J_coeff = zz))
+                                                  ))
 
         # if there are any reactions in the cytosol, add them to the graph
         if len(self.reactions) > 0:
@@ -3792,13 +3789,13 @@ class MasterOfNetworks(object):
 
                     rea_coeff = rea.reactants_coeff[i]
                     graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff = rea_coeff,
-                                                          J_coeff = 0))
+                                                          ))
 
                 for j, prod_name in enumerate(rea.products_list):
 
                     prod_coeff = rea.products_coeff[j]
                     graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff,
-                                                          J_coeff = 0))
+                                                          ))
 
         # if there are any mitochondria zone reactions, plot their edges on the graph (and react/prod nodes):
         if len(self.reactions_mit) > 0:
@@ -3816,7 +3813,7 @@ class MasterOfNetworks(object):
 
                     rea_coeff = rea.reactants_coeff[i]
                     graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff = rea_coeff,
-                                                          J_coeff = 0))
+                                                          ))
 
                 for j, prod_name in enumerate(rea.products_list):
 
@@ -3827,7 +3824,7 @@ class MasterOfNetworks(object):
 
                     prod_coeff = rea.products_coeff[j]
                     graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff,
-                                                          J_coeff = 0))
+                                                          ))
 
         # if there are any transporters, plot them on the graph:
         if len(self.transporters) > 0:
@@ -3842,7 +3839,6 @@ class MasterOfNetworks(object):
 
                 for i, (react_name, tag) in enumerate(zip(trans.reactants_list, trans.react_transport_tag)):
 
-                    zz = self.zmol[react_name]
 
                     rea_coeff = trans.reactants_coeff[i]
 
@@ -3850,7 +3846,7 @@ class MasterOfNetworks(object):
 
 
                         graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff = rea_coeff,
-                                                              J_coeff = zz))
+                                                              ))
 
                     else:
 
@@ -3866,18 +3862,16 @@ class MasterOfNetworks(object):
                         graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(react_name, name, arrowhead='normal',coeff=rea_coeff,
-                                                              J_coeff = zz))
+                                                              ))
 
                 for j, (prod_name, tag) in enumerate(zip(trans.products_list, trans.prod_transport_tag)):
-
-                    zz = self.zmol[prod_name]
 
                     prod_coeff = trans.products_coeff[j]
 
                     if tag == 'cell_concs' or tag == 'mem_concs':
 
                         graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff= prod_coeff,
-                                                              J_coeff = zz))
+                                                              ))
 
                     else:
 
@@ -3886,14 +3880,14 @@ class MasterOfNetworks(object):
                             prod_name += '_env'
 
                         elif tag == 'mit_concs':
-                            node_color = rgba2hex(p.network_cm(self.mit_concs[prod_name][p.plot_cell]), alpha_val)
+
                             prod_name += '_mit'
 
                         nde = pydot.Node(prod_name, shape = self.conc_shape)
                         graphicus_maximus.add_node(nde)
 
                         graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff,
-                                                              J_coeff = zz))
+                                                              ))
 
         return graphicus_maximus
 
@@ -4375,7 +4369,7 @@ class MasterOfNetworks(object):
         libs.die_unless_runtime_optional('networkx', 'pydot')
 
         # Import NetworkX's PyDot interface.
-        import networkx as nx
+        # import networkx as nx
         from networkx import nx_pydot
 
         mssg = "Optimizing with {} in {} iterations".format(
@@ -4470,120 +4464,120 @@ class MasterOfNetworks(object):
                 self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
 
         #---------------------------------------------------------------------------------------------------------------
-        self.J_handler = OrderedDict({})
-        self.Ion_handler = OrderedDict({})
-        Jnet = nx.Graph()
-
-        for k, v in self.zmol.items():
-
-            if v != 0.0:
-                Jco = "*{}*p.F".format(v)
-
-                k_ed = k + "_ed"
-
-                self.J_handler[k_ed] = self.ED_eval_strings[k] + Jco
-
-                Jnet.add_edge(k, k_ed, coeff=1.0)
-
-                self.Ion_handler[k] = 1.0
-
-        # next need to go through the transporters...
-
-        for nodi in network.nodes():
-
-            if network.node[nodi]['shape'] == self.transporter_shape:
-
-                for moli in self.transporters[nodi].transport_in_list:
-
-                    zz = self.zmol[moli]
-
-                    if zz != 0:
-
-                        Jco = "*{}*p.F".format(zz)
-
-                        coeff_o = network.edge[moli].get(nodi, None)
-
-                        if coeff_o is not None:
-                            cc = coeff_o[0]['coeff']
-
-                        else:
-
-                            coeff_o = network.edge[nodi][moli]
-                            cc = coeff_o[0]['coeff']
-
-                        self.J_handler[nodi] = "-" + str(cc) + "*" + self.transporters[
-                            nodi].transporter_eval_string + Jco + "+"
-
-                        Jnet.add_edge(moli, nodi, coeff=cc)
-
-                for moli in self.transporters[nodi].transport_out_list:
-
-                    zz = self.zmol[moli]
-
-                    if zz != 0:
-
-                        Jco = "*{}*p.F".format(zz)
-
-                        coeff_o = network.edge[moli].get(nodi, None)
-
-                        if coeff_o is not None:
-                            cc = coeff_o[0]['coeff']
-
-                        else:
-
-                            coeff_o = network.edge[nodi][moli]
-                            cc = coeff_o[0]['coeff']
-
-                        self.J_handler[nodi] = str(cc) + "*" + self.transporters[
-                            nodi].transporter_eval_string + Jco + "+"
-
-                        Jnet.add_edge(moli, nodi, coeff=cc)
-
-        for nn, ss in self.J_handler.items():
-
-            if ss.endswith("+"):
-                self.J_handler[nn] = ss[:-1]
-
-        self.J_handler_index = {}
-
-        for i, J_name in enumerate(self.J_handler):
-            self.J_handler_index[J_name] = i
-
-        self.Ion_handler_index = {}
-
-        for i, I_name in enumerate(self.Ion_handler):
-            self.Ion_handler_index[I_name] = i
-
-        # Calculate optimization matrix for currents (bioelectricity) component of optimization
-
-        opt_J_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
-
-        for na, nb in Jnet.edges():
-
-            if na in self.conc_handler:
-
-                cc = Jnet.edge[na][nb]['coeff']
-
-                ind_a = self.conc_handler_index[na]
-                ind_b = self.react_handler_index[nb]
-
-                opt_J_M[ind_a, ind_b] = cc
-
-            elif na in self.react_handler:
-
-                cc = Jnet.edge[na][nb]['coeff']
-
-                ind_a = self.react_handler_index[na]
-                ind_b = self.conc_handler_index[nb]
-
-                opt_J_M[ind_b, ind_a] = cc
-
-        J_base = np.zeros(len(self.react_handler))
-
-        for nn, jj in self.J_handler.items():
-
-            ind = self.react_handler_index[nn]
-            J_base[ind] = eval(jj).mean()
+        # self.J_handler = OrderedDict({})
+        # self.Ion_handler = OrderedDict({})
+        # Jnet = nx.Graph()
+        #
+        # for k, v in self.zmol.items():
+        #
+        #     if v != 0.0:
+        #         Jco = "*{}*p.F".format(v)
+        #
+        #         k_ed = k + "_ed"
+        #
+        #         self.J_handler[k_ed] = self.ED_eval_strings[k] + Jco
+        #
+        #         Jnet.add_edge(k, k_ed, coeff=1.0)
+        #
+        #         self.Ion_handler[k] = 1.0
+        #
+        # # next need to go through the transporters...
+        #
+        # for nodi in network.nodes():
+        #
+        #     if network.node[nodi]['shape'] == self.transporter_shape:
+        #
+        #         for moli in self.transporters[nodi].transport_in_list:
+        #
+        #             zz = self.zmol[moli]
+        #
+        #             if zz != 0:
+        #
+        #                 Jco = "*{}*p.F".format(zz)
+        #
+        #                 coeff_o = network.edge[moli].get(nodi, None)
+        #
+        #                 if coeff_o is not None:
+        #                     cc = coeff_o[0]['coeff']
+        #
+        #                 else:
+        #
+        #                     coeff_o = network.edge[nodi][moli]
+        #                     cc = coeff_o[0]['coeff']
+        #
+        #                 self.J_handler[nodi] = "-" + str(cc) + "*" + self.transporters[
+        #                     nodi].transporter_eval_string + Jco + "+"
+        #
+        #                 Jnet.add_edge(moli, nodi, coeff=cc)
+        #
+        #         for moli in self.transporters[nodi].transport_out_list:
+        #
+        #             zz = self.zmol[moli]
+        #
+        #             if zz != 0:
+        #
+        #                 Jco = "*{}*p.F".format(zz)
+        #
+        #                 coeff_o = network.edge[moli].get(nodi, None)
+        #
+        #                 if coeff_o is not None:
+        #                     cc = coeff_o[0]['coeff']
+        #
+        #                 else:
+        #
+        #                     coeff_o = network.edge[nodi][moli]
+        #                     cc = coeff_o[0]['coeff']
+        #
+        #                 self.J_handler[nodi] = str(cc) + "*" + self.transporters[
+        #                     nodi].transporter_eval_string + Jco + "+"
+        #
+        #                 Jnet.add_edge(moli, nodi, coeff=cc)
+        #
+        # for nn, ss in self.J_handler.items():
+        #
+        #     if ss.endswith("+"):
+        #         self.J_handler[nn] = ss[:-1]
+        #
+        # self.J_handler_index = {}
+        #
+        # for i, J_name in enumerate(self.J_handler):
+        #     self.J_handler_index[J_name] = i
+        #
+        # self.Ion_handler_index = {}
+        #
+        # for i, I_name in enumerate(self.Ion_handler):
+        #     self.Ion_handler_index[I_name] = i
+        #
+        # # Calculate optimization matrix for currents (bioelectricity) component of optimization
+        #
+        # opt_J_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
+        #
+        # for na, nb in Jnet.edges():
+        #
+        #     if na in self.conc_handler:
+        #
+        #         cc = Jnet.edge[na][nb]['coeff']
+        #
+        #         ind_a = self.conc_handler_index[na]
+        #         ind_b = self.react_handler_index[nb]
+        #
+        #         opt_J_M[ind_a, ind_b] = cc
+        #
+        #     elif na in self.react_handler:
+        #
+        #         cc = Jnet.edge[na][nb]['coeff']
+        #
+        #         ind_a = self.react_handler_index[na]
+        #         ind_b = self.conc_handler_index[nb]
+        #
+        #         opt_J_M[ind_b, ind_a] = cc
+        #
+        # J_base = np.zeros(len(self.react_handler))
+        #
+        # for nn, jj in self.J_handler.items():
+        #
+        #     ind = self.react_handler_index[nn]
+        #     J_base[ind] = eval(jj).mean()
 
         # FIXME write currents into optimization equation defined below...
 
