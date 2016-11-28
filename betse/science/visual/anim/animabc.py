@@ -478,7 +478,7 @@ class AnimCellsABC(VisualCellsABC):
 
         #FIXME: Shift this logic into the superclass _prep_figure()
         #implementation *AFTER* eliminating these boolean attributes, as
-        #detailed in an __init__() method FIXME comment above.
+        #detailed in an __init__() method comment above.
 
         # If...
         if (
@@ -497,9 +497,12 @@ class AnimCellsABC(VisualCellsABC):
         ):
             # If layering only intracellular current, do so.
             if self._is_current_overlay_only_gj:
+                logs.log_debug('Overlayering intracellular current...')
                 self._append_layer(LayerCellsStreamCurrentIntra())
             # Else, layer both intra- and extracellular current.
             else:
+                logs.log_debug(
+                    'Overlayering intra- and extracellular current...')
                 self._append_layer(LayerCellsStreamCurrentIntraExtra())
 
         # Perform superclass figure preparation.

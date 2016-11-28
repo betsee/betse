@@ -284,6 +284,10 @@ we pretend to require `setuptools` itself. Although non-ideal, so is life.
 '''
 
 # ....................{ METADATA ~ dependencies : runtime  }....................
+#FIXME: Add a new unit test asserting that, for each dependency listed in the
+#various globals defined below, a corresponding key of the
+#"betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary exists.
+
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this list *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").

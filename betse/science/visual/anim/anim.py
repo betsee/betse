@@ -400,7 +400,6 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
         # Initialize the superclass.
         super().__init__(
             time_step_count=len(time_series),
-            is_current_overlayable=True,
             *args, **kwargs
         )
 
@@ -471,12 +470,7 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
         '''
 
         # Initialize the superclass.
-        super().__init__(
-            # Since this class does *NOT* plot a streamplot, request that the
-            # superclass do so for electric current or concentration flux.
-            is_current_overlayable=True,
-            *args, **kwargs
-        )
+        super().__init__(*args, **kwargs)
 
         # Classify parameters required by the _plot_frame_figure() method.
         self._time_series = time_series
@@ -544,9 +538,6 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
         # Initialize the superclass.
         super().__init__(
             time_step_count=len(time_series),
-            # Since this class already plots an overlay, prevent the
-            # superclass from plotting another overlay.
-            is_current_overlayable=True,
             *args, **kwargs
         )
 
@@ -641,9 +632,6 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
         # Initialize the superclass.
         super().__init__(
             time_step_count=len(time_series),
-            # Since this class does *NOT* plot a streamplot, request that the
-            # superclass do so for electric current or concentration flux.
-            is_current_overlayable=True,
             *args, **kwargs
         )
 
@@ -711,9 +699,6 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
         # Initialize the superclass.
         super().__init__(
             time_step_count=len(cell_time_series),
-            # Since this class does *NOT* plot a streamplot, request that the
-            # superclass do so for electric current or concentration flux.
-            is_current_overlayable=True,
             *args, **kwargs
         )
 
