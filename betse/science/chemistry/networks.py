@@ -598,27 +598,6 @@ class MasterOfNetworks(object):
         for trans_name in self.transporters:
             self.react_handler[trans_name] = self.transporters[trans_name].transporter_eval_string + div_string
 
-        # # add in an equation that needs to be minimized to
-        # # expression for current density across membrane:
-        # JJ = "("
-        #
-        # for i, (k, v) in enumerate(self.cell_concs.items()):
-        #
-        #     if k in p.ions_dict:
-        #
-        #         zterm = "*self.zmol['{}']*p.F".format(k)
-        #         JJ += self.ED_eval_strings[k] + zterm
-        #         JJ += "+"
-        #
-        # if JJ.endswith("+"):
-        #     JJ = JJ[:-1]
-        #
-        # JJ = JJ + ")"
-        #
-        # self.react_handler['JJ'] = JJ   # expression for current density across membrane (must be zero at eq'm)
-        #
-        # self.conc_handler['J'] =  eval(JJ).mean()  # initialize current expression
-
         self.react_handler_index = {}
 
         for i, rea_name in enumerate(self.react_handler):
@@ -4365,11 +4344,15 @@ class MasterOfNetworks(object):
         reaction network that has been optimized.
         """
 
+        # FIXME remove environmental concentrations from network, perhaps unless they are part of a transporter equation...
+        # FIXME consider calculating Vmem using Goldman equation and model Pmems, then use as third chi square fit
+        # FIXME Consider constraints on Dmems so that they can never go below 1.0e-18
+
         # If either NetworkX or PyDot are unimportable, raise an exception.
         libs.die_unless_runtime_optional('networkx', 'pydot')
 
-        # Import NetworkX's PyDot interface.
-        # import networkx as nx
+        # Import NetworkX and NetworkX's PyDot interface:
+        import networkx as nx
         from networkx import nx_pydot
 
         mssg = "Optimizing with {} in {} iterations".format(
@@ -4464,129 +4447,122 @@ class MasterOfNetworks(object):
                 self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
 
         #---------------------------------------------------------------------------------------------------------------
-        # self.J_handler = OrderedDict({})
-        # self.Ion_handler = OrderedDict({})
-        # Jnet = nx.Graph()
-        #
-        # for k, v in self.zmol.items():
-        #
-        #     if v != 0.0:
-        #         Jco = "*{}*p.F".format(v)
-        #
-        #         k_ed = k + "_ed"
-        #
-        #         self.J_handler[k_ed] = self.ED_eval_strings[k] + Jco
-        #
-        #         Jnet.add_edge(k, k_ed, coeff=1.0)
-        #
-        #         self.Ion_handler[k] = 1.0
-        #
-        # # next need to go through the transporters...
-        #
-        # for nodi in network.nodes():
-        #
-        #     if network.node[nodi]['shape'] == self.transporter_shape:
-        #
-        #         for moli in self.transporters[nodi].transport_in_list:
-        #
-        #             zz = self.zmol[moli]
-        #
-        #             if zz != 0:
-        #
-        #                 Jco = "*{}*p.F".format(zz)
-        #
-        #                 coeff_o = network.edge[moli].get(nodi, None)
-        #
-        #                 if coeff_o is not None:
-        #                     cc = coeff_o[0]['coeff']
-        #
-        #                 else:
-        #
-        #                     coeff_o = network.edge[nodi][moli]
-        #                     cc = coeff_o[0]['coeff']
-        #
-        #                 self.J_handler[nodi] = "-" + str(cc) + "*" + self.transporters[
-        #                     nodi].transporter_eval_string + Jco + "+"
-        #
-        #                 Jnet.add_edge(moli, nodi, coeff=cc)
-        #
-        #         for moli in self.transporters[nodi].transport_out_list:
-        #
-        #             zz = self.zmol[moli]
-        #
-        #             if zz != 0:
-        #
-        #                 Jco = "*{}*p.F".format(zz)
-        #
-        #                 coeff_o = network.edge[moli].get(nodi, None)
-        #
-        #                 if coeff_o is not None:
-        #                     cc = coeff_o[0]['coeff']
-        #
-        #                 else:
-        #
-        #                     coeff_o = network.edge[nodi][moli]
-        #                     cc = coeff_o[0]['coeff']
-        #
-        #                 self.J_handler[nodi] = str(cc) + "*" + self.transporters[
-        #                     nodi].transporter_eval_string + Jco + "+"
-        #
-        #                 Jnet.add_edge(moli, nodi, coeff=cc)
-        #
-        # for nn, ss in self.J_handler.items():
-        #
-        #     if ss.endswith("+"):
-        #         self.J_handler[nn] = ss[:-1]
-        #
-        # self.J_handler_index = {}
-        #
-        # for i, J_name in enumerate(self.J_handler):
-        #     self.J_handler_index[J_name] = i
-        #
-        # self.Ion_handler_index = {}
-        #
-        # for i, I_name in enumerate(self.Ion_handler):
-        #     self.Ion_handler_index[I_name] = i
-        #
-        # # Calculate optimization matrix for currents (bioelectricity) component of optimization
-        #
-        # opt_J_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
-        #
-        # for na, nb in Jnet.edges():
-        #
-        #     if na in self.conc_handler:
-        #
-        #         cc = Jnet.edge[na][nb]['coeff']
-        #
-        #         ind_a = self.conc_handler_index[na]
-        #         ind_b = self.react_handler_index[nb]
-        #
-        #         opt_J_M[ind_a, ind_b] = cc
-        #
-        #     elif na in self.react_handler:
-        #
-        #         cc = Jnet.edge[na][nb]['coeff']
-        #
-        #         ind_a = self.react_handler_index[na]
-        #         ind_b = self.conc_handler_index[nb]
-        #
-        #         opt_J_M[ind_b, ind_a] = cc
-        #
-        # J_base = np.zeros(len(self.react_handler))
-        #
-        # for nn, jj in self.J_handler.items():
-        #
-        #     ind = self.react_handler_index[nn]
-        #     J_base[ind] = eval(jj).mean()
+        self.J_handler = OrderedDict({})
+        self.Ion_handler = OrderedDict({})
+        Jnet = nx.Graph()
 
-        # FIXME write currents into optimization equation defined below...
+        for k, v in self.zmol.items():
 
+            if v != 0.0:
+                Jco = "*{}*p.F".format(v)
 
+                k_ed = k + "_ed"
 
+                self.J_handler[k_ed] = self.ED_eval_strings[k] + Jco
+
+                Jnet.add_edge(k, k_ed, coeff=1.0)
+
+                self.Ion_handler[k] = 1.0
+
+        # next need to go through the transporters...
+
+        for nodi in network.nodes():
+
+            if network.node[nodi]['shape'] == self.transporter_shape:
+
+                for moli in self.transporters[nodi].transport_in_list:
+
+                    zz = self.zmol[moli]
+
+                    if zz != 0:
+
+                        Jco = "*{}*p.F".format(zz)
+
+                        coeff_o = network.edge[moli].get(nodi, None)
+
+                        if coeff_o is not None:
+                            cc = coeff_o[0]['coeff']
+
+                        else:
+
+                            coeff_o = network.edge[nodi][moli]
+                            cc = coeff_o[0]['coeff']
+
+                        self.J_handler[nodi] = "-" + str(cc) + "*" + self.transporters[
+                            nodi].transporter_eval_string + Jco + "+"
+
+                        Jnet.add_edge(moli, nodi, coeff=cc)
+
+                for moli in self.transporters[nodi].transport_out_list:
+
+                    zz = self.zmol[moli]
+
+                    if zz != 0:
+
+                        Jco = "*{}*p.F".format(zz)
+
+                        coeff_o = network.edge[moli].get(nodi, None)
+
+                        if coeff_o is not None:
+                            cc = coeff_o[0]['coeff']
+
+                        else:
+
+                            coeff_o = network.edge[nodi][moli]
+                            cc = coeff_o[0]['coeff']
+
+                        self.J_handler[nodi] = str(cc) + "*" + self.transporters[
+                            nodi].transporter_eval_string + Jco + "+"
+
+                        Jnet.add_edge(moli, nodi, coeff=cc)
+
+        for nn, ss in self.J_handler.items():
+
+            if ss.endswith("+"):
+                self.J_handler[nn] = ss[:-1]
+
+        self.J_handler_index = {}
+
+        for i, J_name in enumerate(self.J_handler):
+            self.J_handler_index[J_name] = i
+
+        self.Ion_handler_index = {}
+
+        for i, I_name in enumerate(self.Ion_handler):
+            self.Ion_handler_index[I_name] = i
+
+        # Calculate optimization matrix for currents (bioelectricity) component of optimization
+
+        self.opt_J_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
+
+        for na, nb in Jnet.edges():
+
+            if na in self.conc_handler:
+
+                cc = Jnet.edge[na][nb]['coeff']
+
+                ind_a = self.conc_handler_index[na]
+                ind_b = self.react_handler_index[nb]
+
+                self.opt_J_M[ind_a, ind_b] = cc
+
+            elif na in self.react_handler:
+
+                cc = Jnet.edge[na][nb]['coeff']
+
+                ind_a = self.react_handler_index[na]
+                ind_b = self.conc_handler_index[nb]
+
+                self.opt_J_M[ind_b, ind_a] = cc
+
+        self.J_base = np.zeros(len(self.react_handler))
+
+        for nn, jj in self.J_handler.items():
+
+            ind = self.react_handler_index[nn]
+            self.J_base[ind] = eval(jj).mean()
 
         #---------------------------------------------------------------------------------------------------------------
-
-
 
         # initialize guess vector for reaction rates (they will be extracted from user vmax settings in file):
         vmax_o = np.ones(len(self.react_handler))
@@ -4660,7 +4636,11 @@ class MasterOfNetworks(object):
 
             chi_val = (((np.dot(self.network_opt_M, np.abs(vmax) * r_base)) ** 2) / c_base) * c_fix
 
-            chi_square = chi_val.sum()
+            chi_val1 = chi_val.sum()
+            # chi_val1 = np.sum(((np.dot(self.network_opt_M, np.abs(vmax) * r_base)) ** 2))
+            chi_val2 = np.sum((np.dot(self.opt_J_M, self.J_base * np.abs(vmax))) ** 2)
+
+            chi_square = chi_val1 + chi_val2
 
             return chi_square
 
@@ -4677,11 +4657,22 @@ class MasterOfNetworks(object):
             # save alternative solutions with exceptional chi sqr values
                 alt_sols.append(x*origin_o)
 
-        # run the basin hopping algorithm (...and cross fingers; this is "lucky algorithm"!)
+        # run the basin hopping algorithm
         sol = basinhopping(opt_funk, vmax_o, T=1.0, stepsize=0.5, niter=self.opti_N,
             minimizer_kwargs={'method': self.opti_method}, callback=print_fun)
 
         rkeys = list(self.react_handler.keys())
+
+        # Absolute path to  write alt solutions:
+        saveAlts = paths.join(self.resultsPath, 'OptimizationTargetConcsVmem.csv')
+        with open(saveAlts, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                                  quotechar='|', quoting=csv.QUOTE_NONE)
+            for k, v in self.conc_handler.items():
+                eqwriter.writerow([k, v])
+
+            eqwriter.writerow(['Vmem', self.target_vmem])
+
 
         # Absolute path to  write alt solutions:
         saveAlts = paths.join(self.resultsPath, 'AlternativeSolutions.csv')
@@ -4690,8 +4681,16 @@ class MasterOfNetworks(object):
                 quotechar='|', quoting=csv.QUOTE_NONE)
             for soli in alt_sols:
                 for ss, rk in zip(soli, rkeys):
+
+                    if rk.endswith('_ed'):
+                        name = rk[:-3]
+                        rk2 = "Dmem_" + name
+
+                    else:
+                        rk2 = rk
+
                     ss = np.abs(ss)
-                    eqwriter.writerow([rk, ss])
+                    eqwriter.writerow([rk2, ss])
                 eqwriter.writerow(['------------'])
 
         # define the solution vector in a convenient way so we can save and print it:
@@ -4709,25 +4708,14 @@ class MasterOfNetworks(object):
 
             for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
 
-                if rea_name in self.transporters:
+                if rea_name.endswith('_ed'):
+                    name = rea_name[:-3]
+                    rk2 = "Dmem_" + name
 
-                    if self.transporters[rea_name].reaction_zone == 'cell':
+                else:
+                    rk2 = rea_name
 
-                        corc = cells.cell_vol.mean() / cells.cell_sa.mean()
-
-                    elif self.transporters[rea_name].reaction_zone == 'mit' and self.mit_enabled is True:
-
-                        corc = self.mit.mit_vol.mean() / self.mit.mit_sa.mean()
-
-                    else:
-
-                        corc = cells.cell_vol.mean() / cells.cell_sa.mean()
-                        logs.log_warning("Transporter reaction zone defined as 'mit', yet mitochondria disabled.")
-
-                    corc= cells.cell_vol.mean() / cells.cell_sa.mean()
-                    vmax = vmax*corc
-
-                eqwriter.writerow([rea_name, vmax])
+                eqwriter.writerow([rk2, vmax])
 
         # give the user a message about the results of basin hopping optimization:
         finalmess = "Final Chi Square value: {}".format(sol.fun)
