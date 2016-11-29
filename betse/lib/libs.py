@@ -148,6 +148,24 @@ def init() -> None:
     yamls.init()
 
 # ....................{ GETTERS                            }....................
+def get_runtime_optional_tuple() -> tuple:
+    '''
+    Tuple listing the `setuptools`-specific requirement string containing the
+    mandatory name and optional version and extras constraints of each optional
+    runtime dependency for this application.
+
+    This lower-level tuple is dynamically converted from the higher-level
+    :data:`DEPENDENCIES_RUNTIME_OPTIONAL` dictionary.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.lib.setuptools import setuptool
+
+    # Convert this dictionary into a tuple.
+    return setuptool.convert_requirement_dict_to_strs(
+        metadata.DEPENDENCIES_RUNTIME_OPTIONAL)
+
+# ....................{ GETTERS ~ metadata                 }....................
 def get_metadatas() -> tuple:
     '''
     Tuple of 2-tuples `(metedata_name, metadata_value`), describing all

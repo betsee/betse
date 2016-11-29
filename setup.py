@@ -45,6 +45,7 @@ BETSE's `setuptools`-based makefile.
 
 import setuptools
 from betse import metadata
+from betse.lib import libs
 from betse.util.io import stderrs
 from betse.util.path import files
 from betse_setup import build, freeze, symlink, test
@@ -194,7 +195,7 @@ setup_options = {
         # All optional runtime dependencies. Since the
         # "DEPENDENCIES_RUNTIME_OPTIONAL" global is a dictionary rather than a
         # sequence, a function converting this global into a tuple is called.
-        'all': metadata.get_dependencies_runtime_optional_tuple(),
+        'all': libs.get_runtime_optional_tuple(),
     },
 
     # Mandatory testing dependencies.

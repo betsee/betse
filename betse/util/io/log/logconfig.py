@@ -337,7 +337,7 @@ class LogConfig(object):
             encoding='utf-8',
 
             # Filesize at which to rotate this file.
-            maxBytes=32 * ints.KB,
+            maxBytes=32 * ints.KiB,
 
             # Maximum number of rotated logfiles to maintain.
             backupCount=8,

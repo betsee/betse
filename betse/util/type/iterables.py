@@ -26,6 +26,7 @@ from betse.util.type.types import (
     TestableTypes,
 )
 from collections import deque
+from operator import itemgetter
 
 # ....................{ CLASSES                            }....................
 class Sentinel(object):
@@ -646,24 +647,21 @@ def reverse(iterable: IterableTypes) -> IterableTypes:
     # now guaranteed to be reversible as is.
     return reversed(iterable)
 
-# ....................{ SORTERS                            }....................
+# ....................{ SORTERS ~ ascending                }....................
 @type_check
 def sort_ascending(iterable: IterableTypes) -> IterableTypes:
     '''
-    Iterable sorted from the passed iterable in **ascending order.**
+    Iterable sorted from the passed iterable in ascending order.
 
     Each element of this iterable is compared to each other element of this
     iterable via the `<` operator, implicitly calling the `__le__()` special
-    method of these elements. If each element is:
+    method of these elements. Each element is ideally but _not_ necessarily of
+    the same type. If each element is:
 
     * A string, these strings are sorted in **ascending lexicographic order**
       (i.e., traditional order of dead-tree dictionaries and encyclopedias).
     * A number (i.e., either an integer or a float), these numbers are sorted in
       **ascending numeric order.**
-
-    Each element of this iterable _must_ be comparable to each other element of
-    this iterable via the `<` operator. For simplicity, each element is ideally
-    of the same type.
 
     Parameters
     ----------
@@ -686,6 +684,146 @@ def sort_ascending(iterable: IterableTypes) -> IterableTypes:
     # Return an iterable of the same type, converted from the sorted list
     # returned by the sorted() builtin.
     return iterable_type(sorted(iterable))
+
+
+@type_check
+def sort_by_index_ascending(
+    iterable: IterableTypes, subiterable_index: object) -> IterableTypes:
+    '''
+    Iterable of subiterables sorted from the passed iterable of subiterables in
+    ascending order of the value of each element at the passed key or index of
+    each subiterable of this iterable.
+
+    Each element at the passed key or index of each subiterable of this iterable
+    is compared to each other element at each other key or index of each other
+    subiterable of this iterable via the `<` operator, implicitly calling the
+    `__le__()` special method of these elements. Each element is ideally but
+    _not_ necessarily of the same type. If each element is:
+
+    * A string, these strings are sorted in **ascending lexicographic order**
+      (i.e., traditional order of dead-tree dictionaries and encyclopedias).
+    * A number (i.e., either an integer or a float), these numbers are sorted in
+      **ascending numeric order.**
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Unsorted iterable of subiterables to be returned sorted. For generality,
+        neither this iterable nor these subiterables are modified by this
+        function.
+    subiterable_index : object
+        Object with which to index each subiterable of this iterable. The type
+        of this object _must_ be a type accepted by the `__getitem__()` special
+        method of each such subiterable. Specifically, if each such subiterable
+        is a:
+        * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
+        * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object _must_
+          be either:
+          * An integer.
+          * A :func:`slice` object.
+
+    Returns
+    ----------
+    IterableTypes
+        Iterable of subiterables sorted from and of the same type as the passed
+        iterable of subiterables. For efficiency, this iterable is only a
+        shallow rather than deep copy of the passed iterable. Note lastly that
+        the class of the passed iterable _must_ define an `__init__()` method
+        accepting a list.
+    '''
+
+    # Type of the passed iterable.
+    iterable_type = type(iterable)
+
+    # Return an iterable of the same type, converted from the sorted list
+    # returned by the sorted() builtin.
+    #
+    # For efficiency, elements of each subiterable of this iterable are
+    # retrieved via the function internally created and called by calling an
+    # instance of the standard "itemgetter" class. While technically an
+    # instance of this class, this class is intended to be treated as a simple
+    # function passed the desired index returning a function passed a
+    # subiterable returning the element at that index: e.g.,
+    #
+    #     >>> penguins = [('adelie', 0xFEEDFACE), ('gentoo', 0xDEADBEEF)]
+    #     >>> penguin_id = itemgetter(2)
+    #     >>> penguin_id(penguins[0]) == 0xFEEDFACE
+    #     True
+    #
+    # Despite the internal complexity and object overhead imposed by the
+    # "itemgetter" class, this approach has been definitively profiled to be
+    # 126% faster on average than the traditional
+    # "lambda subiterable: subiterable[subiterable_index]" approach --
+    # presumably due to hidden overhead imposed by capturing all local
+    # variables into the closure context encapsulated by the lambda. See also
+    # the following Stackoverflow answer exhibiting this profiling:
+    #
+    #     https://stackoverflow.com/a/17243726/2809027
+    return iterable_type(sorted(iterable, key=itemgetter(subiterable_index)))
+
+# ....................{ SORTERS ~ descending               }....................
+@type_check
+def sort_descending(iterable: IterableTypes) -> IterableTypes:
+    '''
+    Iterable sorted from the passed iterable in descending order.
+
+    Each element of this iterable is compared to each other element of this
+    iterable via the `>` operator, implicitly calling the `__ge__()` special
+    method of these elements. Each element is ideally but _not_ necessarily of
+    the same type. If each element is:
+
+    * A string, these strings are sorted in **descending lexicographic order**
+      (i.e., reverse order of dead-tree dictionaries and encyclopedias).
+    * A number (i.e., either an integer or a float), these numbers are sorted in
+      **descending numeric order.**
+
+    See Also
+    ----------
+    :func:`sort_ascending`
+        Further details.
+    '''
+
+    # Type of the passed iterable.
+    iterable_type = type(iterable)
+
+    # Return an iterable of the same type, converted from the sorted list
+    # returned by the sorted() builtin.
+    return iterable_type(sorted(iterable, reverse=True))
+
+
+@type_check
+def sort_by_index_descending(
+    iterable: IterableTypes, subiterable_index: object) -> IterableTypes:
+    '''
+    Iterable of subiterables sorted from the passed iterable of subiterables in
+    descending order of the value of each element at the passed key or index of
+    each subiterable of this iterable.
+
+    Each element at the passed key or index of each subiterable of this iterable
+    is compared to each other element at each other key or index of each other
+    subiterable of this iterable via the `>` operator, implicitly calling the
+    `__ge__()` special method of these elements. Each element is ideally but
+    _not_ necessarily of the same type. If each element is:
+
+    * A string, these strings are sorted in **descending lexicographic order**
+      (i.e., reverse order of dead-tree dictionaries and encyclopedias).
+    * A number (i.e., either an integer or a float), these numbers are sorted in
+      **descending numeric order.**
+
+    See Also
+    ----------
+    :func:`sort_by_index_ascending`
+        Further details.
+    '''
+
+    # Type of the passed iterable.
+    iterable_type = type(iterable)
+
+    # Return an iterable of the same type, converted from the sorted list
+    # returned by the sorted() builtin. See sort_by_index_descending() for
+    # commentary, particularly on the "key" parameter.
+    return iterable_type(sorted(
+        iterable, key=itemgetter(subiterable_index), reverse=True))
 
 # ....................{ ZIPPERS                            }....................
 #FIXME: Unit test us up.

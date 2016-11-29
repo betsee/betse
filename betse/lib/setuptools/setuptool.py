@@ -13,7 +13,8 @@ import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.py import modules
 from betse.util.type import iterables
-from betse.util.type.types import type_check, MappingType, ModuleType, NoneType
+from betse.util.type.types import (
+    type_check, MappingType, ModuleType, NoneType, SequenceTypes)
 from collections import OrderedDict
 from pkg_resources import (
     Distribution,
@@ -192,13 +193,12 @@ def is_requirement_str(*requirement_strs: str) -> bool:
     # low-level requirements strings.
     requirements = pkg_resources.parse_requirements(requirement_strs)
 
-    # For each such requirement...
+    # If any such requirement is unsatisfied, fail.
     for requirement in requirements:
-        # If this requirement is unsatisfied, return "False".
         if not is_requirement(requirement):
             return False
 
-    # Else, return "True".
+    # Else, succeed.
     return True
 
 
@@ -361,8 +361,7 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
     '''
 
     # Lexicographically sorted tuple of these strings.
-    requirement_strs_sorted = iterables.sort_ascending(
-        requirement_strs)
+    requirement_strs_sorted = iterables.sort_ascending(requirement_strs)
 
     # List of all high-level "Requirements" objects corresponding to these
     # low-level requirements strings.
@@ -389,7 +388,7 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
 @type_check
 def get_requirement_module_name(requirement: Requirement) -> str:
     '''
-    Fully-qualified name of the top-level module or package (e.g., `yaml`)
+    Fully-qualified name of the top-level module or package (e.g., :mod:`yaml`)
     providing the passed `setuptools`-specific requirement.
 
     Parameters
@@ -406,7 +405,7 @@ def get_requirement_module_name(requirement: Requirement) -> str:
     ----------
     BetseLibException
         If this name is unrecognized (i.e., is _not_ a key of the
-        `SETUPTOOLS_TO_MODULE_NAME` dictionary).
+        :data:`SETUPTOOLS_TO_MODULE_NAME` dictionary).
     '''
 
     # Name of this requirement.
@@ -484,7 +483,71 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
     else:
         return 'unknown'
 
-# ....................{ CONVERTERS                         }....................
+# ....................{ CONVERTERS ~ tuple-to-dict         }....................
+@type_check
+def convert_requirements_tuple_to_dict(
+    requirements_tuple: SequenceTypes) -> dict:
+    '''
+    Convert the passed tuple of `setuptools`-specific requirements strings into
+    a dictionary of such strings.
+
+    This tuple is assumed to contain strings of the form
+    `{project_name} {project_specs}`, where:
+
+    * `{project_name}` is the `setuptools`-specific project name of a
+      third-party dependency (e.g., `NetworkX`).
+    * `{project_specs}` is a `setuptools`-specific requirements string
+      constraining this dependency (e.g., `>= 1.11`).
+
+    Each key-value pair of the resulting dictionary maps from each such
+    `{project_name}` to the corresponding `{project_specs}`.
+
+    Parameters
+    ----------
+    requirements_tuple : SequenceTypes
+        Tuple of `setuptools`-specific requirements strings in the format
+        described above.
+
+    Returns
+    ----------
+    dict
+        Dictionary of `setuptools`-specific requirements strings in the format
+        described above.
+    '''
+
+    # List of all high-level "Requirements" objects corresponding to these
+    # low-level requirements strings.
+    requirements = pkg_resources.parse_requirements(requirements_tuple)
+
+    # Dictionary containing these requirements.
+    requirements_dict = {}
+
+    # For each such requirement...
+    for requirement in requirements:
+        # Comma-delimited string of all constraints of this requirement
+        # iteratively reduced from the high-level "specs" sequence of 2-tuples
+        # "(op, version)" of this requirement object into low-level strings.
+        #
+        # Technically, manually parsing each requirement string of the passed
+        # tuple into the project name and specifications required below would
+        # also be feasible. Since manual parsing is significantly more fragile
+        # than deferring to the authoritative parsing already implemented by the
+        # canonical "pkg_resources" module, however, the latter is preferred.
+        requirement_specs_str = ','.join(
+            '{} {}'.format(requirement_spec[0], requirement_spec[1])
+            for requirement_spec in requirement.specs
+        )
+
+        # Add a new key-value pair to this dictionary mapping from the name of
+        # this requirement to the comma-delimited string of all constraints of
+        # this requirement.
+        requirements_dict[requirement.project_name] = requirement_specs_str
+
+    # Return this dictionary.
+    return requirements_dict
+
+# ....................{ CONVERTERS ~ dict-to-tuple         }....................
+#FIXME: Rename to convert_requirements_dict_to_tuple() for disambiguity.
 @type_check
 def convert_requirement_dict_to_strs(requirement_dict: MappingType) -> tuple:
     '''
@@ -515,6 +578,7 @@ def convert_requirement_dict_to_strs(requirement_dict: MappingType) -> tuple:
         requirement_dict, *requirement_dict.keys())
 
 
+#FIXME: Rename to convert_requirements_dict_keys_to_tuple() for disambiguity.
 @type_check
 def convert_requirement_dict_keys_to_strs(
     requirement_dict: MappingType, *requirement_names: str) -> tuple:

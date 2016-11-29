@@ -11,12 +11,13 @@ Low-level string facilities.
 import textwrap
 from betse.exceptions import BetseStrException
 from betse.util.type import types
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, IterableTypes
 from textwrap import TextWrapper
 
 # For convenience, permit callers to import the general-purpose trim() function
 # from this submodule rather than the "types" submodule.
 from betse.util.type.types import trim
+if False: trim  # silence IDE warnings
 
 # ....................{ SINGLETONS                         }....................
 text_wrapper = TextWrapper()
@@ -156,7 +157,7 @@ def join_on_newline(*texts) -> str:
 
 
 @type_check
-def join_on(*texts: SequenceTypes + (str,), delimiter: str) -> str:
+def join_on(*texts: IterableTypes, delimiter: str) -> str:
     '''
     Join the passed strings with the passed separating delimiter.
 
@@ -165,10 +166,10 @@ def join_on(*texts: SequenceTypes + (str,), delimiter: str) -> str:
 
     Parameters
     ----------
-    texts : tuple
-        Tuple of all all strings to be joined, consisting of either:
+    texts : SequenceTypes
+        Tuple of all strings to be joined, consisting of either:
         * One or more strings.
-        * One sequence of strings.
+        * One iterable of strings.
     delimiter : str
         Substring to join each such string on.
 
@@ -178,8 +179,8 @@ def join_on(*texts: SequenceTypes + (str,), delimiter: str) -> str:
         String joined from the passed strings with the passed delimiter.
     '''
 
-    # If only one object was passed and such object is a non-string iterable
-    # (e.g, list, tuple), set the list of passed strings to such object.
+    # If only one object was passed and this object is a non-string iterable
+    # (e.g, list, tuple), default the list of passed strings to this object.
     if len(texts) == 1 and types.is_iterable_nonstr(texts[0]):
         texts = texts[0]
 

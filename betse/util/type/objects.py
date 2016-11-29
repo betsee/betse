@@ -10,8 +10,15 @@ Low-level object facilities.
 # ....................{ IMPORTS                            }....................
 import inspect, sys
 from betse.util.type.types import (
-    type_check, CallableTypes, MethodType, GeneratorType, SequenceTypes,)
+    type_check,
+    CallableTypes,
+    MethodType,
+    NumericTypes,
+    GeneratorType,
+    SequenceTypes,
+)
 from functools import wraps
+if False: wraps  # silence IDE warnings
 
 # ....................{ DECORATORS                         }....................
 def property_cached(property_method: MethodType) -> CallableTypes:
@@ -141,8 +148,11 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
 #FIXME: Document us up.
 def print_vars_size(obj: object) -> None:
 
-    for attr_name, attr_size in iter_vars_size(obj):
-        print('{}: {:.02f} MB'.format(attr_name, attr_size))
+    # Avoid circular import dependencies.
+    from betse.util.type.ints import MiB
+
+    for attr_name, attr_size in iter_vars_size(obj, size_divisor=MiB):
+        print('{}: {:.02f} MiB'.format(attr_name, attr_size))
 
 # ....................{ ITERATORS                          }....................
 def iter_vars(obj: object) -> SequenceTypes:
@@ -293,8 +303,6 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
 #* Else, fallback to a DFS implemented by hand. Since this is *ONLY* a fallback,
 #  this DFS should be implemented as trivially as possible.
 
-#FIXME: Generalize to internally sort the returned sequence.
-#FIXME: Document us up.
 #FIXME: Call this method during profiling with our three principal objects:
 #"Simulator", "Cells", and "Parameters".
 #FIXME: Call this method as a new functional test detecting erroneously large
@@ -303,22 +311,28 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
 #environment used for all functional tests. Then raise an exception if any
 #attribute of these objects is greater than or equal to 10 times this
 #expected maximum.
-def iter_vars_size(obj: object) -> SequenceTypes:
+def iter_vars_size(
+    obj: object, size_divisor: NumericTypes = 1) -> SequenceTypes:
     '''
-    Sequence of 2-tuples of the name and in-memory size in bytes of each
-    variable bound to the passed object (_in descending order of size_).
+    Sequence of 2-tuples of the name and in-memory size of each variable bound
+    to the passed object (_in descending order of size_).
 
     Parameters
     ----------
     obj : object
         Object to iterate the variable sizes of.
+    size_divisor: optional[NumericTypes]
+        Number (i.e., integer, float) by which to divide the size in bytes of
+        each variable of this object, hence converting from sizes in bytes to
+        sizes in a larger denomination (e.g., :data:`betse.util.type.ints.KiB`,
+        yielding sizes in kibibytes). Defaults to 1, yielding sizes in bytes.
 
     Returns
     ----------
     SequenceTypes
         Each element of this sequence is a 2-tuple `(var_name, var_size)` of
-        the name and in-memory size in bytes of each variable bound to this
-        object (_in descending order of size_).
+        the name and in-memory size of each variable bound to this object (_in
+        descending order of size_).
 
     Raises
     ----------
@@ -337,18 +351,25 @@ def iter_vars_size(obj: object) -> SequenceTypes:
         Further details.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.type import iterables
+
     # List of all 2-tuples to be returned.
     vars_size = []
 
     # For each name and value of this object (in arbitrary order)...
     for var_name, var_value in iter_vars(obj):
-        #FIXME: Consider permitting the caller to pass this factor.
-        # In-memory size of this object, convert from bytes to the desired
-        # denomination.
-        var_size = sys.getsizeof(var_value) / 1e6
+        #FIXME: Define a new get_size() function of this submodule internally
+        #deferring to either Pympler's asizeof() or sys.getsizeof() as needed.
+
+        # In-memory size of this object, converted from bytes to another
+        # denomination by the passed divisor.
+        var_size = sys.getsizeof(var_value) / size_divisor
 
         # Append a 2-tuple of this variable's name and size.
         vars_size.append((var_name, var_size))
 
-    #FIXME: Sort this here.
-    return vars_size
+    # Return this list sorted on the second element of each such 2-tuple (i.e.,
+    # each variable's size in bytes) in descending order.
+    return iterables.sort_by_index_descending(
+        iterable=vars_size, subiterable_index=1)

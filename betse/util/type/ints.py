@@ -18,12 +18,31 @@ BITS_PER_BYTE = 8
 Number of bits per byte.
 '''
 
-
+# ....................{ CONSTANTS ~ units                  }....................
 # Size denominations in base 2 rather than base 10, for mild efficiency.
-KB = 1 << 10
-MB = 1 << 20
-GB = 1 << 30
-TB = 1 << 40
+
+KiB = 1 << 10
+'''
+Number of bytes in one kibibyte (i.e., `2**10`).
+'''
+
+
+MiB = 1 << 20
+'''
+Number of bytes in one mebibyte (i.e., `2**20`).
+'''
+
+
+GiB = 1 << 30
+'''
+Number of bytes in one gibibyte (i.e., `2**30`).
+'''
+
+
+TiB = 1 << 40
+'''
+Number of bytes in one tebibyte (i.e., `2**40`).
+'''
 
 # ....................{ CONSTANTS ~ max                    }....................
 BYTE_VALUE_MAX = 255

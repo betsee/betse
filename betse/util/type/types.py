@@ -42,6 +42,9 @@ from types import (
     ModuleType,
 )
 
+# Silence IDE warnings concerning locally unused attributes. Move along, folks.
+if False: (wraps, GeneratorType, ModuleType,)
+
 # ....................{ TYPES                              }....................
 ClassType = type
 '''

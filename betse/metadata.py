@@ -441,20 +441,3 @@ with the `py.test` test harness).
 This private global is subject to change and hence_not_ intended to be accessed.
 (Consider calling the public `betse.util.py.pys.is_testing()` function instead.)
 '''
-
-# ....................{ GETTERS                            }....................
-def get_dependencies_runtime_optional_tuple() -> tuple:
-    '''
-    Tuple listing the `setuptools`-specific requirement string containing the
-    mandatory name and optional version and extras constraints of each optional
-    runtime dependency for this application.
-
-    This lower-level tuple is dynamically converted from the higher-level
-    :data:`DEPENDENCIES_RUNTIME_OPTIONAL` dictionary.
-    '''
-
-    return tuple(
-        '{} {}'.format(dependency_name, dependency_constraints)
-        for dependency_name, dependency_constraints in
-            DEPENDENCIES_RUNTIME_OPTIONAL.items()
-    )
