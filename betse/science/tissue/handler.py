@@ -1238,7 +1238,7 @@ class TissueHandler(object):
         # delete data from molecules objects:
         if p.molecules_enabled:
 
-            sim.molecules.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
+            sim.molecules.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
         if p.metabolism_enabled:
 
