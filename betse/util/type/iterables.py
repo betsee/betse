@@ -617,6 +617,48 @@ def exhaust(iterable: IterableTypes) -> object:
     else:
         return None
 
+# ....................{ OPERATORS                          }....................
+@type_check
+def sum_by_index(iterable: IterableTypes, subiterable_index: object) -> object:
+    '''
+    Summation of each element at the passed key or index of each subiterable of
+    the passed iterable.
+
+    Each element at the passed key or index of each subiterable of this
+    iterable is totalized via the `+` operator, implicitly calling the
+    `__sum__()` special method of these elements. Each element is ideally but
+    _not_ necessarily of the same type. If each element is:
+
+    * A string, these strings are concatenated into a single string.
+    * A number (i.e., integer or float), these numbers are summed to a single
+      number of the widest type of these numbers. Specifically:
+      * If any such number is a float, the returned number is also a float.
+      * Else, the returned number is an integer.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable of subiterables to be summed.
+    subiterable_index : object
+        Object with which to index each subiterable of this iterable. The type
+        of this object _must_ be a type accepted by the `__getitem__()` special
+        method of each subiterable. Specifically, if each subiterable is a:
+        * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
+        * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
+          _must_ be either:
+          * An integer.
+          * A :func:`slice` object.
+
+    Returns
+    ----------
+    object
+        Object produced by summing each element at this key or index of each
+        subiterable of this iterable.
+    '''
+
+    # Efficiency and simplicity combine here to form MegaFastSimple.
+    return sum(subiterable[subiterable_index] for subiterable in iterable)
+
 # ....................{ REVERSERS                          }....................
 @type_check
 def reverse(iterable: IterableTypes) -> IterableTypes:
@@ -660,7 +702,7 @@ def sort_ascending(iterable: IterableTypes) -> IterableTypes:
 
     * A string, these strings are sorted in **ascending lexicographic order**
       (i.e., traditional order of dead-tree dictionaries and encyclopedias).
-    * A number (i.e., either an integer or a float), these numbers are sorted in
+    * A number (i.e., integer or a float), these numbers are sorted in
       **ascending numeric order.**
 
     Parameters
@@ -702,23 +744,22 @@ def sort_by_index_ascending(
 
     * A string, these strings are sorted in **ascending lexicographic order**
       (i.e., traditional order of dead-tree dictionaries and encyclopedias).
-    * A number (i.e., either an integer or a float), these numbers are sorted in
+    * A number (i.e., integer or a float), these numbers are sorted in
       **ascending numeric order.**
 
     Parameters
     ----------
     iterable : IterableTypes
-        Unsorted iterable of subiterables to be returned sorted. For generality,
-        neither this iterable nor these subiterables are modified by this
-        function.
+        Unsorted iterable of subiterables to be returned sorted. For
+        generality, neither this iterable nor these subiterables are modified
+        by this function.
     subiterable_index : object
         Object with which to index each subiterable of this iterable. The type
         of this object _must_ be a type accepted by the `__getitem__()` special
-        method of each such subiterable. Specifically, if each such subiterable
-        is a:
+        method of each subiterable. Specifically, if each subiterable is a:
         * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
-        * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object _must_
-          be either:
+        * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
+          _must_ be either:
           * An integer.
           * A :func:`slice` object.
 
@@ -774,7 +815,7 @@ def sort_descending(iterable: IterableTypes) -> IterableTypes:
 
     * A string, these strings are sorted in **descending lexicographic order**
       (i.e., reverse order of dead-tree dictionaries and encyclopedias).
-    * A number (i.e., either an integer or a float), these numbers are sorted in
+    * A number (i.e., integer or a float), these numbers are sorted in
       **descending numeric order.**
 
     See Also
@@ -799,15 +840,15 @@ def sort_by_index_descending(
     descending order of the value of each element at the passed key or index of
     each subiterable of this iterable.
 
-    Each element at the passed key or index of each subiterable of this iterable
-    is compared to each other element at each other key or index of each other
-    subiterable of this iterable via the `>` operator, implicitly calling the
-    `__ge__()` special method of these elements. Each element is ideally but
-    _not_ necessarily of the same type. If each element is:
+    Each element at the passed key or index of each subiterable of this
+    iterable is compared to each other element at each other key or index of
+    each other subiterable of this iterable via the `>` operator, implicitly
+    calling the `__ge__()` special method of these elements. Each element is
+    ideally but _not_ necessarily of the same type. If each element is:
 
     * A string, these strings are sorted in **descending lexicographic order**
       (i.e., reverse order of dead-tree dictionaries and encyclopedias).
-    * A number (i.e., either an integer or a float), these numbers are sorted in
+    * A number (i.e., integer or a float), these numbers are sorted in
       **descending numeric order.**
 
     See Also

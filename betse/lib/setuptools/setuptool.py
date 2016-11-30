@@ -14,7 +14,7 @@ from betse.exceptions import BetseLibException
 from betse.util.py import modules
 from betse.util.type import iterables
 from betse.util.type.types import (
-    type_check, MappingType, ModuleType, NoneType, SequenceTypes)
+    type_check, GeneratorType, MappingType, ModuleType, NoneType, SequenceTypes)
 from collections import OrderedDict
 from pkg_resources import (
     Distribution,
@@ -38,6 +38,7 @@ SETUPTOOLS_TO_MODULE_NAME = {
     'pprofile': 'pprofile',
     'ptpython': 'ptpython',
     'pydot': 'pydot',
+    'pytest': 'pytest',
     'setuptools': 'setuptools',
     'six': 'six',
     'yamale': 'yamale',
@@ -70,9 +71,8 @@ def die_unless_requirement_str(*requirement_strs: str) -> None:
         If at least one such requirement is unsatisfiable.
     '''
 
-    # List of all high-level "Requirements" objects corresponding to the passed
-    # low-level requirements strings.
-    requirements = pkg_resources.parse_requirements(requirement_strs)
+    # List of all requirement objects parsed from these requirement strings.
+    requirements = get_requirements(*requirement_strs)
 
     # Validate these requirements.
     for requirement in requirements:
@@ -189,9 +189,8 @@ def is_requirement_str(*requirement_strs: str) -> bool:
     requirements.
     '''
 
-    # List of all high-level "Requirements" objects corresponding to these
-    # low-level requirements strings.
-    requirements = pkg_resources.parse_requirements(requirement_strs)
+    # List of all requirement objects parsed from these requirement strings.
+    requirements = get_requirements(*requirement_strs)
 
     # If any such requirement is unsatisfied, fail.
     for requirement in requirements:
@@ -259,6 +258,28 @@ def is_requirement(requirement: Requirement) -> bool:
     return package_version is not None and package_version in requirement
 
 # ....................{ GETTERS                            }....................
+@type_check
+def get_requirements(*requirement_strs: str) -> GeneratorType:
+    '''
+    Generator of all high-level `setuptools`-specific
+    :class:`pkg_resources.Requirement` objects parsed from the passed low-level
+    requirement strings.
+
+    Parameters
+    ----------
+    requirement_strs: Tuple[str]
+        Tuple of all requirement strings to parse into requirement objects.
+
+    Yields
+    ----------
+    Requirement
+        For each passed requirement string, this generator yields a requirement
+        object parsed from this string (_in the same order_)
+    '''
+
+    yield from pkg_resources.parse_requirements(requirement_strs)
+
+
 @type_check
 def get_requirement_distribution_or_none(
     requirement: Requirement) -> (Distribution, NoneType):
@@ -363,9 +384,8 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
     # Lexicographically sorted tuple of these strings.
     requirement_strs_sorted = iterables.sort_ascending(requirement_strs)
 
-    # List of all high-level "Requirements" objects corresponding to these
-    # low-level requirements strings.
-    requirements = pkg_resources.parse_requirements(requirement_strs_sorted)
+    # List of all requirement objects parsed from these requirement strings.
+    requirements = get_requirements(*requirement_strs_sorted)
 
     # Ordered dictionary synopsizing these requirements
     metadata = OrderedDict()
@@ -515,9 +535,8 @@ def convert_requirements_tuple_to_dict(
         described above.
     '''
 
-    # List of all high-level "Requirements" objects corresponding to these
-    # low-level requirements strings.
-    requirements = pkg_resources.parse_requirements(requirements_tuple)
+    # List of all requirement objects parsed from these requirement strings.
+    requirements = get_requirements(*requirements_tuple)
 
     # Dictionary containing these requirements.
     requirements_dict = {}
@@ -547,9 +566,8 @@ def convert_requirements_tuple_to_dict(
     return requirements_dict
 
 # ....................{ CONVERTERS ~ dict-to-tuple         }....................
-#FIXME: Rename to convert_requirements_dict_to_tuple() for disambiguity.
 @type_check
-def convert_requirement_dict_to_strs(requirement_dict: MappingType) -> tuple:
+def convert_requirements_dict_to_tuple(requirements_dict: MappingType) -> tuple:
     '''
     Convert the passed dictionary of `setuptools`-specific requirements strings
     into a tuple of such strings.
@@ -563,7 +581,7 @@ def convert_requirement_dict_to_strs(requirement_dict: MappingType) -> tuple:
 
     Parameters
     ----------
-    requirement_dict : MappingType
+    requirements_dict : MappingType
         Dictionary of `setuptools`-specific requirements strings in the format
         described above.
 
@@ -574,14 +592,13 @@ def convert_requirement_dict_to_strs(requirement_dict: MappingType) -> tuple:
         described above.
     '''
 
-    return convert_requirement_dict_keys_to_strs(
-        requirement_dict, *requirement_dict.keys())
+    return convert_requirements_dict_keys_to_tuple(
+        requirements_dict, *requirements_dict.keys())
 
 
-#FIXME: Rename to convert_requirements_dict_keys_to_tuple() for disambiguity.
 @type_check
-def convert_requirement_dict_keys_to_strs(
-    requirement_dict: MappingType, *requirement_names: str) -> tuple:
+def convert_requirements_dict_keys_to_tuple(
+    requirements_dict: MappingType, *requirement_names: str) -> tuple:
     '''
     Convert all key-value pairs of the passed dictionary of `setuptools`-
     specific requirements strings whose keys are the passed strings into a
@@ -589,7 +606,7 @@ def convert_requirement_dict_keys_to_strs(
 
     Parameters
     ----------
-    requirement_dict : MappingType
+    requirements_dict : MappingType
         Dictionary of requirements strings.
     requirement_names : Tuple[str]
         Tuple of keys identifying the key-value pairs of this dictionary to
@@ -607,19 +624,19 @@ def convert_requirement_dict_keys_to_strs(
 
     See Also
     ----------
-    :func:`convert_requirement_dict_to_strs`
+    :func:`convert_requirements_dict_to_tuple`
         Further details on the format of this dictionary and resulting strings.
     '''
 
     return tuple(
-        convert_requirement_dict_key_to_str(requirement_dict, requirement_name)
+        convert_requirements_dict_key_to_str(requirements_dict, requirement_name)
         for requirement_name in requirement_names
     )
 
 
 @type_check
-def convert_requirement_dict_key_to_str(
-    requirement_dict: MappingType, requirement_name: str) -> str:
+def convert_requirements_dict_key_to_str(
+    requirements_dict: MappingType, requirement_name: str) -> str:
     '''
     Convert the key-value pair of the passed dictionary of `setuptools`-
     specific requirements strings whose key is the passed string into a
@@ -627,7 +644,7 @@ def convert_requirement_dict_key_to_str(
 
     Parameters
     ----------
-    requirement_dict : MappingType
+    requirements_dict : MappingType
         Dictionary of requirements strings.
     requirement_names : str
         Key identifying the key-value pairs of this dictionary to convert.
@@ -644,17 +661,17 @@ def convert_requirement_dict_key_to_str(
 
     See Also
     ----------
-    :func:`convert_requirement_dict_to_strs`
+    :func:`convert_requirements_dict_to_tuple`
         Further details on the format of this dictionary and resulting string.
     '''
 
     # If this name is unrecognized, raise an exception.
-    if requirement_name not in requirement_dict:
+    if requirement_name not in requirements_dict:
         raise BetseLibException(
             'Dependency "{}" unrecognized.'.format(requirement_name))
 
     # Convert this key-value pair into a requirements string.
-    return '{} {}'.format(requirement_name, requirement_dict[requirement_name])
+    return '{} {}'.format(requirement_name, requirements_dict[requirement_name])
 
 # ....................{ IMPORTERS                          }....................
 @type_check

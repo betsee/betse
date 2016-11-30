@@ -8,16 +8,16 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import inspect, sys
+import inspect
 from betse.util.type.types import (
     type_check,
     CallableTypes,
     MethodType,
-    NumericTypes,
     GeneratorType,
     SequenceTypes,
 )
 from functools import wraps
+
 if False: wraps  # silence IDE warnings
 
 # ....................{ DECORATORS                         }....................
@@ -144,17 +144,7 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
 
-# ....................{ PRINTERS                           }....................
-#FIXME: Document us up.
-def print_vars_size(obj: object) -> None:
-
-    # Avoid circular import dependencies.
-    from betse.util.type.ints import MiB
-
-    for attr_name, attr_size in iter_vars_size(obj, size_divisor=MiB):
-        print('{}: {:.02f} MiB'.format(attr_name, attr_size))
-
-# ....................{ ITERATORS                          }....................
+# ....................{ ITERATORS ~ name-value             }....................
 def iter_vars(obj: object) -> SequenceTypes:
     '''
     Sequence of 2-tuples of the name and value of each variable bound to the
@@ -198,7 +188,7 @@ def iter_vars(obj: object) -> SequenceTypes:
     return inspect.getmembers(obj)
 
 
-def iter_vars_simple(obj: object) -> GeneratorType:
+def iter_vars_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
     variable** (i.e., variable whose name is _not_ both prefixed and suffixed by
@@ -256,19 +246,20 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
         name_).
     '''
 
-    # Ideally, this function would be internally reimplemented in terms of
-    # the canonical inspect.getmembers() function. Dynamic inspection is
-    # surprisingly non-trivial in the general case, particularly when virtual
-    # base classes rear their diamond-studded faces. Moreover, doing so would
-    # support edge-case attributes when passed class objects, including:
+    # Ideally, this function would be reimplemented in terms of the iter_vars()
+    # function calling the canonical inspect.getmembers() function. Dynamic
+    # inspection is surprisingly non-trivial in the general case, particularly
+    # when virtual base classes rear their diamond-studded faces. Moreover,
+    # doing so would support edge-case attributes when passed class objects,
+    # including:
     #
     # * Metaclass attributes of the passed class.
     # * Attributes decorated by "@DynamicClassAttribute" of the passed class.
     #
     # Sadly, inspect.getmembers() internally accesses attributes via the
     # dangerous getattr() builtin rather than the safe inspect.getattr_static()
-    # function. Since the codebase explicitly requires the latter, this function
-    # reimplements rather than defers to inspect.getmembers(). (Sadness reigns.)
+    # function. This function explicitly requires the latter and hence *MUST*
+    # reimplement rather than defer to inspect.getmembers(). (Sadness reigns.)
     #
     # For the same reason, the unsafe vars() builtin cannot be called either.
     # Since that builtin fails for builtin containers (e.g., "dict", "list"),
@@ -288,88 +279,3 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
             # is a non-property variable.
             if not (callable(var_value) or isinstance(var_value, property)):
                 yield var_name, var_value
-
-
-#FIXME: *UGH*. The sys.getsizeof() function only returns the shallow size of the
-#passed object (i.e., the size of this object excluding the size of other
-#objects referred to by this object). To retrieve the deep size of the passed
-#object, we sadly need to implement a stack-based depth-first search (DFS) of
-#some sort. Yes, we are not kidding.
-#FIXME: Two general-purpose third-party solutions also exist: pympler and guppy.
-#Pympler appears to be the more appropriate for our purposes. Given that,
-#perhaps we could implement a solution resembling:
-#
-#* If pympler is available, defer to that.
-#* Else, fallback to a DFS implemented by hand. Since this is *ONLY* a fallback,
-#  this DFS should be implemented as trivially as possible.
-
-#FIXME: Call this method during profiling with our three principal objects:
-#"Simulator", "Cells", and "Parameters".
-#FIXME: Call this method as a new functional test detecting erroneously large
-#attributes in these three principal objects. To do so, determine the largest
-#attribute currently produced in these objects for the minified world
-#environment used for all functional tests. Then raise an exception if any
-#attribute of these objects is greater than or equal to 10 times this
-#expected maximum.
-def iter_vars_size(
-    obj: object, size_divisor: NumericTypes = 1) -> SequenceTypes:
-    '''
-    Sequence of 2-tuples of the name and in-memory size of each variable bound
-    to the passed object (_in descending order of size_).
-
-    Parameters
-    ----------
-    obj : object
-        Object to iterate the variable sizes of.
-    size_divisor: optional[NumericTypes]
-        Number (i.e., integer, float) by which to divide the size in bytes of
-        each variable of this object, hence converting from sizes in bytes to
-        sizes in a larger denomination (e.g., :data:`betse.util.type.ints.KiB`,
-        yielding sizes in kibibytes). Defaults to 1, yielding sizes in bytes.
-
-    Returns
-    ----------
-    SequenceTypes
-        Each element of this sequence is a 2-tuple `(var_name, var_size)` of
-        the name and in-memory size of each variable bound to this object (_in
-        descending order of size_).
-
-    Raises
-    ----------
-    TypeError
-        If any variable of this object does _not_ define the `__sizeof__()`
-        special method. While all pure-Python and builtin objects define this
-        special method, objects defined by third-party extensions are _not_
-        required to do so.
-    Exception
-        If any variable of this object is a property whose
-        :func:`property`-decorated method raises an exception.
-
-    See Also
-    ----------
-    :func:`iter_vars`
-        Further details.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.type import iterables
-
-    # List of all 2-tuples to be returned.
-    vars_size = []
-
-    # For each name and value of this object (in arbitrary order)...
-    for var_name, var_value in iter_vars(obj):
-        #FIXME: Define a new get_size() function of this submodule internally
-        #deferring to either Pympler's asizeof() or sys.getsizeof() as needed.
-
-        # In-memory size of this object, converted from bytes to another
-        # denomination by the passed divisor.
-        var_size = sys.getsizeof(var_value) / size_divisor
-
-        # Append a 2-tuple of this variable's name and size.
-        vars_size.append((var_name, var_size))
-
-    # Return this list sorted on the second element of each such 2-tuple (i.e.,
-    # each variable's size in bytes) in descending order.
-    return iterables.sort_by_index_descending(
-        iterable=vars_size, subiterable_index=1)

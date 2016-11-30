@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests for functionality pertaining to object properties.
+Unit tests exercising object properties.
 '''
 
 # ....................{ IMPORTS                            }....................

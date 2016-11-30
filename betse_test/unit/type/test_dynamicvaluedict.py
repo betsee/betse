@@ -4,7 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests for the `DynamicValueType` type.
+Unit tests exercising the :class:`betse.util.type.mappings.DynamicValueType`
+type.
 '''
 
 # ....................{ IMPORTS                            }....................

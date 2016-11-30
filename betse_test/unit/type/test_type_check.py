@@ -4,8 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests for the `@type_check` decorator, implementing a rudimentary subset of
-PEP 484-style type checking based on Python 3.x function annotations.
+Unit tests exercising the `betse.util.type.types.type_check` decorator,
+implementing a rudimentary subset of PEP 484-style type checking based on Python
+3.x function annotations.
 '''
 
 # ....................{ IMPORTS                            }....................

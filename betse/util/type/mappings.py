@@ -398,9 +398,53 @@ def is_keys(mapping: MappingType, *key_names) -> str:
     return set(key_names).issubset(mapping)
 
 # ....................{ FORMATTERS                         }....................
+@type_check
 def format(mapping: MappingType) -> str:
     '''
     Convert the passed dictionary into a human-readable string.
     '''
 
     return pprint.pformat(mapping)
+
+# ....................{ MERGERS                            }....................
+@type_check
+def merge(*dicts: MappingType) -> MappingType:
+    '''
+    Dictionary of all key-value pairs merged together from all passed
+    dictionaries (_in the passed order_).
+
+    Parameters
+    ----------
+    mappings : Tuple[MappingType]
+        Tuple of all dictionaries to be merged.
+
+    Returns
+    ----------
+    MappingType
+        Dictionary merged from and of the same type as the passed dictionaries.
+        For efficiency, this dictionary is only a shallow rather than deep copy
+        of these dictionaries. Note lastly that the class of the passed
+        dictionary _must_ define an `__init__()` method accepting a dictionary
+        comprehension.
+    '''
+
+    # Type of dictionary to be returned.
+    dict_type = type(dicts[0])
+
+    # Dictionary merged from the passed dictionaries via a doubly-nested
+    # dictionary comprehension. While there exist a countably infinite number of
+    # approaches to merging dictionaries in Python, this approach is known to be
+    # the most efficient for general-purpose merging of arbitrarily many
+    # dictionaries under Python >= 3.4. See also Trey Hunter's exhaustive
+    # commentary replete with timings at:
+    #     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python/
+    dict_merged = {
+        key: value
+        for dict_cur in dicts
+        for key, value in dict_cur.items()
+    }
+
+    # Return a dictionary of this type converted from this dictionary. If the
+    # desired type is a "dict", this dictionary is returned as is; else, this
+    # dictionary is converted into an instance of the desired type.
+    return dict_merged if dict_type is dict else dict_type(dict_merged)
