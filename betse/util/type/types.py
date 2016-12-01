@@ -32,12 +32,18 @@ from weakref import CallableProxyType, ProxyType
 # nomenclature of these types is already consistent with that used by types
 # declared below (namely, both camelcase and suffixed by "Type"), these types
 # are used as is rather than aliased to synonymous types below.
+#
+# Note that the "LambdaType" is intentionally *NOT* imported. Why? Because that
+# type is exactly synonymous with "FunctionType", implying lambdas are
+# indistinguishable from functions. To curtail confusion elsewhere and, in
+# particular, to prevent functions from being misidentified as lambdas, all
+# lambdas are currently misidentified as functions. This is the lesser of
+# multiple evils, we're afraid.
 from types import (
     BuiltinFunctionType,
     BuiltinMethodType,
     FunctionType,
     GeneratorType,
-    LambdaType,
     MethodType,
     ModuleType,
 )
@@ -128,6 +134,13 @@ Depressingly, this type must now be manually redefined everywhere.
 '''
 
 
+PropertyType = property
+'''
+Type of all **property methods** (i.e., methods decorated by the builtin
+:class:`property` class decorator).
+'''
+
+
 SetType = Set
 '''
 Abstract interface implemented by all set-like objects.
@@ -151,13 +164,19 @@ CallableTypes = (
     BuiltinFunctionType,
     BuiltinMethodType,
     FunctionType,
-    LambdaType,
     MethodType,
 )
 '''
 Tuple of all **callable classes** (i.e., classes whose instances are callable
 objects, including both built-in and user-defined functions, lambdas, and
 methods).
+'''
+
+
+FunctionTypes = (BuiltinFunctionType, FunctionType,)
+'''
+Tuple of all **function classes** (i.e., classes whose instances are either
+built-in or user-defined functions).
 '''
 
 
@@ -170,6 +189,13 @@ See Also
 ----------
 :class:`SequenceTypes`
     Further details.
+'''
+
+
+MethodTypes = (BuiltinMethodType, MethodType,)
+'''
+Tuple of all **method classes** (i.e., classes whose instances are either
+built-in or user-defined methods).
 '''
 
 

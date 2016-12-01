@@ -41,7 +41,6 @@ LINE : enum
 '''
 
 # ....................{ PROFILERS                          }....................
-#FIXME: Functional test the "--profile-type" and "--profile-file" CLI options.
 @type_check
 def profile_callable(
     call: CallableTypes,

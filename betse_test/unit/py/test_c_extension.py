@@ -20,7 +20,7 @@ def test_is_c_extension_unmonkeypatched() -> None:
     '''
 
     # Imports deferred for safety.
-    from betse.util.py import modules
+    from betse.util.type import modules
     from numpy.core import multiarray
 
     # Ensure that a C extension is correctly detected as such. Testing this
@@ -49,7 +49,7 @@ def test_is_c_extension_monkeypatched(monkeypatch) -> None:
     '''
 
     # Imports deferred for safety.
-    from betse.util.py import modules
+    from betse.util.type import modules
     from numpy.core import multiarray
 
     # Remove the the PEP 302-specific "__loader__" attribute of each such

@@ -5,7 +5,7 @@
 
 '''
 Low-level **decorator** (i.e., callables dynamically wrapping arbitrary other
-callables`) facilities.
+callables) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................

@@ -88,9 +88,10 @@ directories _and_ non-directory files) facilities.
 #formats. Nonetheless, the future exists and it is always coming.
 
 # ....................{ IMPORTS                            }....................
+from io import BufferedIOBase
+
 from betse.exceptions import BetseArchiveException
 from betse.util.type.types import type_check
-from io import BufferedIOBase
 
 # ....................{ CONSTANTS ~ public                 }....................
 # Initialized below by the init() function.
@@ -158,7 +159,7 @@ def die_unless_filetype(pathname: str) -> None:
     if not is_filetype(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import paths
-        from betse.util.py import modules
+        from betse.util.type import modules
         from betse.util.type import strs
 
         # Filetype of this pathname if any or raise an exception otherwise.
@@ -498,7 +499,7 @@ def init() -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.py import modules
+    from betse.util.type import modules
 
     # Globals initialized below.
     global ARCHIVE_FILETYPES

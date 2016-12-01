@@ -9,17 +9,11 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.io.log import logs
-from betse.util.path import dirs, files, paths
-from betse.util.py import modules
 from betse.util.os import libs, oses
-from betse.util.type import iterables, regexes, strs
+from betse.util.path import dirs, files, paths
+from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.types import NoneType
 from collections import OrderedDict
-
-# Note that the optionally installed "numpy.distutils" subpackage, if available,
-# contains the same "__config__" submodule. Since this subpackage is only
-# optional, however, this submodule is imported from the top-level mandatory
-# "numpy" package instead.
 from numpy import __config__ as numpy_config
 
 # ....................{ GLOBALS ~ opt_info                 }....................

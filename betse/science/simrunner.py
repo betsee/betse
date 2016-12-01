@@ -6,11 +6,9 @@
 import os
 import os.path
 import time
-
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
-
 from betse.exceptions import (
     BetseFileException, BetseSimException, BetseSimConfigException)
 from betse.science import filehandling as fh
@@ -24,6 +22,7 @@ from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.plot import plotpipe
 from betse.util.io.log import logs
 from betse.util.path import files, paths
+from betse.util.type.callables import deprecated
 
 
 class SimRunner(object):
@@ -42,31 +41,26 @@ class SimRunner(object):
     _config_basename : str
         Basename of the YAML file configuring this simulation.
     '''
-    def __init__(self, config_filename: str):
+
+    def __init__(self, config_filename: str) -> None:
         super().__init__()
 
-        # Validate and localize such filename.
+        # Validate and localize this filename.
         files.die_unless_file(config_filename)
         self._config_filename = config_filename
         self._config_basename = paths.get_basename(self._config_filename)
 
-    def makeWorld(self):
-        """
-        In order to set up tissue profiles and other geometry-specific features,
-        it is necessary to first create and plot the cells data structure. This
-        will be loaded into the initialization and simulation runs.
-
-        Parameters
-        ----------
-        plotWorld : bool, optional
-            True if a non-blocking plot of the created cellular world is to be
-            displayed immediately after creating such world. Defaults to False,
-            in which case no plot will be displayed.
-        """
+    # ..................{ RUNNERS                            }..................
+    def seed(self) -> None:
+        '''
+        Create and (optionally) plot the :class:`betse.science.cells.Cells`
+        instance describing both the intracellular cluster _and_ extracellular
+        environment required for subsequent initialization and simulation runs.
+        '''
 
         logs.log_info(
-            'Seeding simulation with configuration file "{}".'.format(
-                self._config_basename))
+            'Seeding simulation with configuration file "%s"...',
+            self._config_basename)
 
         p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
         p.I_overlay = False  # force the current overlay to be null
@@ -89,13 +83,11 @@ class SimRunner(object):
         cells.graphLaplacian(p)
 
         if p.td_deform is False:  # if time-dependent deformation is not required
-
             cells.lapGJ = None
             cells.lapGJ_P = None  # null out the non-inverse matrices -- we don't need them
 
         # make accessory matrices depending on user requirements:
         if p.fluid_flow is True or p.deformation is True:
-
             if p.deformation is True:
                 cells.deform_tools(p)
 
@@ -103,20 +95,18 @@ class SimRunner(object):
             cells.eosmo_tools(p)
 
         # finish up:
-
         cells.save_cluster(p)
-
         logs.log_info('Cell cluster creation complete!')
 
-        if p.turn_all_plots_off is False:
-            logs.log_info('Close all plot windows to continue...')
-            self.plotWorld()
-
-            plt.show()
+        #FIXME: Remove this seemingly obsolete logic.
+        # if p.turn_all_plots_off is False:
+        #     logs.log_info('Close all plot windows to continue...')
+        #     self.plot_seed()
+        #     plt.show()
 
         sim.sim_info_report(cells,p)
 
-    def initialize(self):
+    def init(self) -> None:
         '''
         Run an initialization simulation from scratch and save it to the
         initialization cache.
@@ -140,7 +130,7 @@ class SimRunner(object):
             logs.log_info('Cell cluster loaded.')
 
             # check to ensure compatibility between original and present sim files:
-            self.check_congruency(p_old,p)
+            self._die_unless_seed_same(p_old, p)
 
         else:
             logs.log_info("Ooops! No such cell cluster file found to load!")
@@ -148,7 +138,7 @@ class SimRunner(object):
             if p.autoInit is True:
                 logs.log_info(
                     'Automatically seeding cell cluster from config file settings...')
-                self.makeWorld()  # create an instance of world
+                self.seed()  # create an instance of world
                 logs.log_info(
                     'Now using cell cluster to run initialization.')
                 cells,_ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
@@ -166,11 +156,11 @@ class SimRunner(object):
         sim.sim_info_report(cells, p)
         sim.run_sim_core(cells, p)
 
-        logs.log_info('Initialization run complete!')
         logs.log_info(
-            'The initialization took {} seconds to complete.'.format(
-                round(time.time() - start_time, 2)))
+            'Initialization completed in %d seconds.',
+            round(time.time() - start_time, 2))
 
+        #FIXME: Remove this seemingly obsolete logic.
         # As colormaps are deleted from the current Parameters instance "p"
         # prior to saving in sim, create a fresh instance of Parameters.
         # p = Parameters(config_filename = self._config_filename)
@@ -181,7 +171,7 @@ class SimRunner(object):
         #     'scheduled simulation runs.')
         # plot_all(cells, sim, p, plot_type='init')
 
-    def simulate(self):
+    def sim(self) -> None:
         '''
         Run simulation from a previously saved initialization.
         '''
@@ -202,20 +192,21 @@ class SimRunner(object):
             p.sim_ECM = cells.sim_ECM
 
             # check to ensure compatibility between original and present sim files:
-            self.check_congruency(p_old,p)
+            self._die_unless_seed_same(p_old, p)
 
         else:
             logs.log_info("No initialization file found to run this simulation!")
 
             if p.autoInit is True:
                 logs.log_info("Automatically running initialization...")
-                self.initialize()
+                self.init()
                 logs.log_info('Now using initialization to run simulation.')
                 sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
             elif p.autoInit is False:
-                raise BetseSimException("Simulation terminated due to missing initialization. Please run "
-                                               "an initialization and try again.")
+                raise BetseSimException(
+                    'Simulation terminated due to missing initialization. '
+                    'Please run an initialization and try again.')
 
         # Reinitialize save and load directories in case params defines new ones
         # for this sim.
@@ -223,31 +214,31 @@ class SimRunner(object):
 
         # Run and save the simulation to the cache.
         sim.sim_info_report(cells, p)
-
         sim.run_sim_core(cells, p)
 
         logs.log_info(
-            'The simulation took {} seconds to complete.'.format(
-                round(time.time() - start_time, 2)))
+            'Simulation completed in %d seconds.',
+            round(time.time() - start_time, 2))
 
+        #FIXME: Remove this seemingly obsolete logic.
         # As colormaps are deleted from the current Parameters instance "p"
         # prior to saving in sim, create a fresh instance of Parameters.
-        p = Parameters(config_filename=self._config_filename)
+        # p = Parameters(config_filename=self._config_filename)
 
         # # Create all enabled plots and animations.
         # logs.log_info(
         #     'When ready, close all of the figure windows to end the program.')
         # plot_all(cells, sim, p, plot_type='sim')
 
-    def sim_brn(self):
+    def sim_brn(self) -> None:
         '''
-        Test run a bioenergetics reaction network (without bioelectrics) and
+        Test run a bioenergetics reaction network (BRN) _without_ bioelectrics and
         save it to the initialization cache.
         '''
 
         logs.log_info(
-            'Testing bioenergetics reaction network indicated in configuration file "{}".'.format(
-                self._config_basename))
+            'Testing bioenergetics reaction network indicated in configuration file "%s".',
+            self._config_basename)
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -263,7 +254,7 @@ class SimRunner(object):
             logs.log_info('Cell cluster loaded.')
 
             # check to ensure compatibility between original and present sim files:
-            self.check_congruency(p_old, p)
+            self._die_unless_seed_same(p_old, p)
 
         else:
             logs.log_info("Ooops! No such cell cluster file found to load!")
@@ -271,7 +262,7 @@ class SimRunner(object):
             if p.autoInit is True:
                 logs.log_info(
                     'Automatically seeding cell cluster from config file settings...')
-                self.makeWorld()  # create an instance of world
+                self.seed()  # create an instance of world
                 logs.log_info(
                     'Now using cell cluster to run initialization.')
                 cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
@@ -297,40 +288,18 @@ class SimRunner(object):
         MoM.run_core_sim(sim, cells, p)
 
         logs.log_info(
-            'This metabolic network test took {} seconds to complete.'.format(
-                round(time.time() - start_time, 2)))
+            'Metabolic network test completed in %d seconds.',
+            round(time.time() - start_time, 2))
 
-    def plot_brn(self):
-
-        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
-
-        MoM = MasterOfMetabolism(p)
-
-        MoM, cells, _ = fh.loadSim(MoM.savedMoM)
-
-        sim = Simulator(p)  # create an instance of Simulator
-        # Initialize simulation data structures
-        sim.baseInit_all(cells, p)
-        sim.time = MoM.time
-
-        MoM.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='Metabolism')
-        MoM.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
-        MoM.core.plot(sim, cells, p, message = 'for metabolic molecules...')
-        MoM.core.anim(sim, cells, p, message = 'for metabolic molecules...')
-
-        if p.turn_all_plots_off is False:
-            plt.show()
-
-    def sim_grn(self):
-
+    def sim_grn(self) -> None:
         '''
-            Test run a gene regulatory network (without bioelectrics) and save it to the
-            initialization cache.
-            '''
+        Test run a gene regulatory network (GRN) _without_ bioelectrics and save it to the
+        initialization cache.
+        '''
 
         logs.log_info(
-            'Testing gene regulatory network indicated in configuration file "{}".'.format(
-                self._config_basename))
+            'Testing gene regulatory network indicated in configuration file "%s".',
+            self._config_basename)
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -346,7 +315,7 @@ class SimRunner(object):
             logs.log_info('Cell cluster loaded.')
 
             # check to ensure compatibility between original and present sim files:
-            self.check_congruency(p_old, p)
+            self._die_unless_seed_same(p_old, p)
 
         else:
             logs.log_info("Ooops! No such cell cluster file found to load!")
@@ -354,7 +323,7 @@ class SimRunner(object):
             if p.autoInit is True:
                 logs.log_info(
                     'Automatically seeding cell cluster from config file settings...')
-                self.makeWorld()  # create an instance of world
+                self.seed()  # create an instance of world
                 logs.log_info(
                     'Now using cell cluster to run initialization.')
                 cells, _ = fh.loadWorld(cells.savedWorld)  # load the initialization from cache
@@ -380,164 +349,12 @@ class SimRunner(object):
         MoG.run_core_sim(sim, cells, p)
 
         logs.log_info(
-            'This gene regulatory network test took {} seconds to complete.'.format(
-                round(time.time() - start_time, 2)))
+            'Gene regulatory network test completed in %d seconds.',
+            round(time.time() - start_time, 2))
 
-    def plot_grn(self):
-
-        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
-
-        MoG = MasterOfGenes(p)
-
-        MoG, cells, _ = fh.loadSim(MoG.savedMoG)
-
-        sim = Simulator(p)  # create an instance of Simulator
-        # Initialize simulation data structures
-        sim.baseInit_all(cells, p)
-        sim.time = MoG.time
-
-        MoG.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='GRN')
-        MoG.core.export_all_data(sim, cells, p, message = 'for gene products...')
-        MoG.core.plot(sim, cells, p, message = 'for gene products...')
-        MoG.core.anim(sim, cells, p, message = 'for gene products...')
-
-        if p.turn_all_plots_off is False:
-            plt.show()
-
-    def plotInit(self):
-        '''
-        Load and visualize a previously solved initialization.
-        '''
-
-        logs.log_info(
-            'Plotting initialization with configuration "%s".',
-            self._config_basename)
-
-        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
-        #profile type be passed. The current approach leaves critical attributes
-        #undefined in the event that the optional Parameters.set_time_profile()
-        #method is left uncalled, which is pretty unacceptable.
-        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
-        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
-
-        sim = Simulator(p)   # create an instance of Simulator
-
-        if files.is_file(sim.savedInit):
-            sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
-        else:
-            raise BetseSimException(
-                "Ooops! No such initialization file found to plot!")
-
-        # Display and/or save all enabled plots and animations.
-        plotpipe.pipeline_results(sim, cells, p, plot_type='init')
-
-        #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
-        # set up, it's not possible to readily fix it. Grrrrrr.....
-
-        # run the molecules plots:
-        if p.molecules_enabled and sim.molecules is not None:
-
-            # reinit settings for plots, in case they've changed:
-            # sim.molecules.core.plot_init(p.molecules_config)
-
-            sim.molecules.core.init_saving(cells, p, plot_type = 'init')
-            sim.molecules.core.export_all_data(sim, cells, p)
-            sim.molecules.core.plot(sim, cells, p)
-            sim.molecules.core.anim(sim, cells, p)
-
-        if p.metabolism_enabled and sim.metabo is not None:
-
-            sim.metabo.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
-            sim.metabo.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
-            sim.metabo.core.plot(sim, cells, p, message = 'for metabolic molecules...')
-            sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
-
-        if p.grn_enabled and sim.grn is not None:
-
-            sim.grn.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
-            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
-
-
-        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
-
-            sim.endo_retic.init_saving(cells, p, plot_type = 'init', nested_folder_name = 'ER')
-            sim.endo_retic.plot_er(sim, cells, p)
-
-
-        if p.turn_all_plots_off is False:
-            plt.show()
-
-    def plotSim(self):
-        '''
-        Load and visualize a previously solved simulation.
-        '''
-
-        logs.log_info(
-            'Plotting simulation with configuration "%s".',
-            self._config_basename)
-
-        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
-        #profile type be passed. The current approach leaves critical attributes
-        #undefined in the event that the optional Parameters.set_time_profile()
-        #method is left uncalled, which is pretty unacceptable.
-        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
-        p.set_time_profile(p.time_profile_sim)  # force the time profile to be simulation
-        sim = Simulator(p)   # create an instance of Simulator
-
-        # If this simulation has yet to be run, fail.
-        if not files.is_file(sim.savedSim):
-            raise BetseFileException(
-                'Simulation cache file "{}" not found to plot '
-                '(e.g., due to no simulation having been run).'.format(
-                    sim.savedSim))
-
-        # Load the simulation from the cache.
-        sim, cells, _ = fh.loadSim(sim.savedSim)
-
-        # Display and/or save all enabled plots and animations.
-        plotpipe.pipeline_results(sim, cells, p, plot_type='sim')
-
-        #FIXME: Shift into the plotting and animation pipelines.
-        # run the molecules plots:
-        if p.molecules_enabled and sim.molecules is not None:
-
-            # # reinit settings for plots, in case they've changed:
-            # sim.molecules.core.plot_init(p.molecules_config)
-
-            sim.molecules.core.init_saving(cells, p, plot_type = 'sim')
-            sim.molecules.core.export_all_data(sim, cells, p)
-            sim.molecules.core.plot(sim, cells, p)
-            sim.molecules.core.anim(sim, cells, p)
-
-        #FIXME: Shift into the plotting and animation pipelines.
-        if p.metabolism_enabled and sim.metabo is not None:
-
-            sim.metabo.core.init_saving(cells, p, plot_type='sim')
-            sim.metabo.core.export_all_data(sim, cells, p)
-            sim.metabo.core.plot(sim, cells, p)
-            sim.metabo.core.anim(sim, cells, p)
-
-
-        if p.grn_enabled and sim.grn is not None:
-
-            sim.grn.core.init_saving(cells, p, plot_type='sim', nested_folder_name='GRN')
-            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
-
-
-        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
-
-            sim.endo_retic.init_saving(cells, p, plot_type = 'sim', nested_folder_name = 'ER')
-            sim.endo_retic.plot_er(sim, cells, p)
-
-
-        if p.turn_all_plots_off is False:
-            plt.show()
-
-    def plotWorld(self):
+    # ..................{ PLOTTERS                           }..................
+    #FIXME: Refactor into a new "betse.science.visual.seedpipe" submodule.
+    def plot_seed(self) -> None:
         '''
         Load and visualize a previously seeded cell cluster.
         '''
@@ -666,11 +483,184 @@ class SimRunner(object):
                 'defined in configuration file "{}".'.format(
                     self._config_basename))
 
-    def check_congruency(self, p_old, p):
+    def plot_init(self) -> None:
+        '''
+        Load and visualize a previously solved initialization.
+        '''
 
-        if p_old.config['general options'] != p.config['general options'] or \
-           p_old.config['world options'] != p.config['world options']:
+        logs.log_info(
+            'Plotting initialization with configuration "%s".',
+            self._config_basename)
 
+        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
+        #profile type be passed. The current approach leaves critical attributes
+        #undefined in the event that the optional Parameters.set_time_profile()
+        #method is left uncalled, which is pretty unacceptable.
+        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+
+        sim = Simulator(p)   # create an instance of Simulator
+
+        if files.is_file(sim.savedInit):
+            sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+        else:
+            raise BetseSimException(
+                "Ooops! No such initialization file found to plot!")
+
+        # Display and/or save all enabled plots and animations.
+        plotpipe.pipeline_results(sim, cells, p, plot_type='init')
+
+        #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
+        #set up, it's not possible to readily fix it. Grrrrrr.....
+
+        # run the molecules plots:
+        if p.molecules_enabled and sim.molecules is not None:
+            # reinit settings for plots, in case they've changed:
+            # sim.molecules.core.plot_init(p.molecules_config)
+
+            sim.molecules.core.init_saving(cells, p, plot_type = 'init')
+            sim.molecules.core.export_all_data(sim, cells, p)
+            sim.molecules.core.plot(sim, cells, p)
+            sim.molecules.core.anim(sim, cells, p)
+
+        if p.metabolism_enabled and sim.metabo is not None:
+            sim.metabo.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
+            sim.metabo.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
+            sim.metabo.core.plot(sim, cells, p, message = 'for metabolic molecules...')
+            sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
+
+        if p.grn_enabled and sim.grn is not None:
+            sim.grn.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
+            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
+
+        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
+            sim.endo_retic.init_saving(cells, p, plot_type = 'init', nested_folder_name = 'ER')
+            sim.endo_retic.plot_er(sim, cells, p)
+
+        if p.turn_all_plots_off is False:
+            plt.show()
+
+    def plot_sim(self) -> None:
+        '''
+        Load and visualize a previously solved simulation.
+        '''
+
+        logs.log_info(
+            'Plotting simulation with configuration "%s".',
+            self._config_basename)
+
+        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
+        #profile type be passed. The current approach leaves critical attributes
+        #undefined in the event that the optional Parameters.set_time_profile()
+        #method is left uncalled, which is pretty unacceptable.
+        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        p.set_time_profile(p.time_profile_sim)  # force the time profile to be simulation
+        sim = Simulator(p)   # create an instance of Simulator
+
+        # If this simulation has yet to be run, fail.
+        if not files.is_file(sim.savedSim):
+            raise BetseFileException(
+                'Simulation cache file "{}" not found to plot '
+                '(e.g., due to no simulation having been run).'.format(
+                    sim.savedSim))
+
+        # Load the simulation from the cache.
+        sim, cells, _ = fh.loadSim(sim.savedSim)
+
+        # Display and/or save all enabled plots and animations.
+        plotpipe.pipeline_results(sim, cells, p, plot_type='sim')
+
+        #FIXME: Shift all of the following logic into the plotting
+        #and animation pipelines.
+
+        # run the molecules plots:
+        if p.molecules_enabled and sim.molecules is not None:
+            # # reinit settings for plots, in case they've changed:
+            # sim.molecules.core.plot_init(p.molecules_config)
+
+            sim.molecules.core.init_saving(cells, p, plot_type = 'sim')
+            sim.molecules.core.export_all_data(sim, cells, p)
+            sim.molecules.core.plot(sim, cells, p)
+            sim.molecules.core.anim(sim, cells, p)
+
+        if p.metabolism_enabled and sim.metabo is not None:
+            sim.metabo.core.init_saving(cells, p, plot_type='sim')
+            sim.metabo.core.export_all_data(sim, cells, p)
+            sim.metabo.core.plot(sim, cells, p)
+            sim.metabo.core.anim(sim, cells, p)
+
+        if p.grn_enabled and sim.grn is not None:
+            sim.grn.core.init_saving(cells, p, plot_type='sim', nested_folder_name='GRN')
+            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
+
+        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
+            sim.endo_retic.init_saving(cells, p, plot_type = 'sim', nested_folder_name = 'ER')
+            sim.endo_retic.plot_er(sim, cells, p)
+
+        if p.turn_all_plots_off is False:
+            plt.show()
+
+    def plot_brn(self) -> None:
+        '''
+        Plot a previously simulated bioenergetics reaction network (BRN).
+        '''
+
+        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+
+        MoM = MasterOfMetabolism(p)
+        MoM, cells, _ = fh.loadSim(MoM.savedMoM)
+
+        sim = Simulator(p)  # create an instance of Simulator
+        # Initialize simulation data structures
+        sim.baseInit_all(cells, p)
+        sim.time = MoM.time
+
+        MoM.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='Metabolism')
+        MoM.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
+        MoM.core.plot(sim, cells, p, message = 'for metabolic molecules...')
+        MoM.core.anim(sim, cells, p, message = 'for metabolic molecules...')
+
+        if p.turn_all_plots_off is False:
+            plt.show()
+
+    def plot_grn(self) -> None:
+        '''
+        Plot a previously simulated gene regulatory network (GRN).
+        '''
+
+        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+
+        MoG = MasterOfGenes(p)
+        MoG, cells, _ = fh.loadSim(MoG.savedMoG)
+
+        sim = Simulator(p)  # create an instance of Simulator
+        # Initialize simulation data structures
+        sim.baseInit_all(cells, p)
+        sim.time = MoG.time
+
+        MoG.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='GRN')
+        MoG.core.export_all_data(sim, cells, p, message = 'for gene products...')
+        MoG.core.plot(sim, cells, p, message = 'for gene products...')
+        MoG.core.anim(sim, cells, p, message = 'for gene products...')
+
+        if p.turn_all_plots_off is False:
+            plt.show()
+
+    # ..................{ UTILITIES                          }..................
+    def _die_unless_seed_same(self, p_old, p) -> None:
+        '''
+        Raise an exception unless the two passed simulation configurations share
+        the same general and seed (i.e., world) options, implying the current
+        configuration to have been modified since the initial seeding of this
+        configuration's cell cluster.
+        '''
+
+        if (p_old.config['general options'] != p.config['general options'] or
+            p_old.config['world options'  ] != p.config['world options']):
             # logs.log_warning('---------------------------------------------------')
             # logs.log_warning('**WARNING!**')
             # logs.log_warning('Important config file options are out of sync ')
@@ -679,9 +669,38 @@ class SimRunner(object):
             # logs.log_warning(' of this config file.')
             # logs.log_warning('---------------------------------------------------')
 
-                raise BetseSimConfigException(
-                    'Important config file options are out of sync between '
-                    'seed and this init/sim attempt! '
-                    'Run "betse seed" again to match the current settings of '
-                    'this config file.')
+            raise BetseSimConfigException(
+                'Important config file options are out of sync between '
+                'seed and this init/sim attempt! '
+                'Run "betse seed" again to match the current settings of '
+                'this config file.')
 
+    # ..................{ DEPRECATED                         }..................
+    # The following methods have been deprecated for compliance with PEP 8.
+
+    #FIXME: Remove all deprecated methods defined below *AFTER* a sufficient
+    #amount of time -- say, mid to late 2017.
+
+    @deprecated
+    def makeWorld(self) -> None:
+        return self.seed()
+
+    @deprecated
+    def initialize(self) -> None:
+        return self.init()
+
+    @deprecated
+    def simulate(self) -> None:
+        return self.sim()
+
+    @deprecated
+    def plotWorld(self) -> None:
+        return self.plot_seed()
+
+    @deprecated
+    def plotInit(self) -> None:
+        return self.plot_init()
+
+    @deprecated
+    def plotSim(self) -> None:
+       return self.plot_sim()

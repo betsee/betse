@@ -64,7 +64,7 @@ def initialize(source : (SimRunner, str)) -> SimRunner:
     An instance of `SimRunner`
     '''
     if types.is_simrunner(source):
-        source.initialize()
+        source.init()
         return source
     else:
         runner = SimRunner(source)
@@ -91,7 +91,7 @@ def simulate(source : (SimRunner, str)) -> SimRunner:
     An instance of `SimRunner`
     '''
     if types.is_simrunner(source):
-        source.simulate()
+        source.sim()
         return source
     else:
         runner = SimRunner(source)

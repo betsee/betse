@@ -18,9 +18,11 @@ modules (e.g., `betse.cli.clicli`) _before_ attempting to import dependencies.
 # exist at installation time (i.e., stock Python and BETSE packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+from collections import OrderedDict
+
 from betse import metadata
 from betse.util.type.types import type_check
-from collections import OrderedDict
+
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_runtime_mandatory_all() -> None:
@@ -44,7 +46,7 @@ def die_unless_runtime_mandatory_all() -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.py import modules
+    from betse.util.type import modules
 
     # If the "pkg_resources" setuptools dependency is missing, raise an
     # exception *BEFORE* importing this dependency below.

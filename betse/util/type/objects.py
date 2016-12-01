@@ -12,8 +12,8 @@ import inspect
 from betse.util.type.types import (
     type_check,
     CallableTypes,
-    MethodType,
     GeneratorType,
+    PropertyType,
     SequenceTypes,
 )
 from functools import wraps
@@ -21,7 +21,12 @@ from functools import wraps
 if False: wraps  # silence IDE warnings
 
 # ....................{ DECORATORS                         }....................
-def property_cached(property_method: MethodType) -> CallableTypes:
+# Note that, for unknown reasons, the "property_method" parameter cannot be
+# assumed to be a method. Property methods appear to be of type function rather
+# than method, presumably due to being decorated *BEFORE* being bound to a class
+# as a method.
+@type_check
+def property_cached(property_method: CallableTypes) -> PropertyType:
     '''
     Decorate the passed property method to cache the value returned by the first
     implicit call of this method.

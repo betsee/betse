@@ -40,7 +40,7 @@ class Cells(object):
     Methods
     -------
     fileInit()                        Create directories for file saving and loading
-    makeWorld()                       Create a cell cluster for simulation purposes
+    seed()                       Create a cell cluster for simulation purposes
     deformWorld(p, ecm_verts)         Modifies Cells object under a deformation
     makeSeeds()                       Create a 2D random scatter of points which will serve as cell centres
     makeVoronoi()                     Make and clip/close a Voronoi diagram from the seed points

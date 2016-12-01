@@ -272,7 +272,7 @@ class CLICLI(CLIABC):
         Run the `seed` subcommand.
         '''
 
-        self._get_sim_runner().makeWorld()
+        self._get_sim_runner().seed()
 
 
     def _do_init(self) -> None:
@@ -280,7 +280,7 @@ class CLICLI(CLIABC):
         Run the `init` subcommand.
         '''
 
-        self._get_sim_runner().initialize()
+        self._get_sim_runner().init()
 
 
     def _do_sim(self) -> None:
@@ -288,7 +288,7 @@ class CLICLI(CLIABC):
         Run the `sim` subcommand.
         '''
 
-        self._get_sim_runner().simulate()
+        self._get_sim_runner().sim()
 
 
     def _do_sim_brn(self) -> None:
@@ -332,7 +332,7 @@ class CLICLI(CLIABC):
         Run the `plot` subcommand's `seed` subcommand.
         '''
 
-        self._get_sim_runner().plotWorld()
+        self._get_sim_runner().plot_seed()
 
 
     def _do_plot_init(self) -> None:
@@ -340,7 +340,7 @@ class CLICLI(CLIABC):
         Run the `plot` subcommand's `init` subcommand.
         '''
 
-        self._get_sim_runner().plotInit()
+        self._get_sim_runner().plot_init()
 
 
     def _do_plot_sim(self) -> None:
@@ -348,7 +348,7 @@ class CLICLI(CLIABC):
         Run the `plot` subcommand's `sim` subcommand.
         '''
 
-        self._get_sim_runner().plotSim()
+        self._get_sim_runner().plot_sim()
 
 
     def _do_plot_sim_brn(self) -> None:
@@ -385,6 +385,9 @@ class CLICLI(CLIABC):
         repls.start_repl()
 
     # ..................{ GETTERS                            }..................
+    #FIXME: Inefficient, particularly when running _do_try(). Instead, refactor
+    #this method into a property cached by @property_cached, ensuring that one
+    #and only one SimRunner is instantiated for each CLI instance.
     def _get_sim_runner(self):
         '''
         BETSE simulation runner preconfigured with sane defaults.

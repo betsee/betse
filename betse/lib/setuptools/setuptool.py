@@ -11,8 +11,7 @@ dependency simplifying inspection of application dependencies.
 # ....................{ IMPORTS                            }....................
 import pkg_resources
 from betse.exceptions import BetseLibException
-from betse.util.py import modules
-from betse.util.type import iterables
+from betse.util.type import iterables, modules
 from betse.util.type.types import (
     type_check, GeneratorType, MappingType, ModuleType, NoneType, SequenceTypes)
 from collections import OrderedDict
