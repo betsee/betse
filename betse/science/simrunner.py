@@ -43,6 +43,7 @@ class SimRunner(object):
     '''
 
     def __init__(self, config_filename: str) -> None:
+
         super().__init__()
 
         # Validate and localize this filename.
@@ -53,9 +54,14 @@ class SimRunner(object):
     # ..................{ RUNNERS                            }..................
     def seed(self) -> None:
         '''
-        Create and (optionally) plot the :class:`betse.science.cells.Cells`
-        instance describing both the intracellular cluster _and_ extracellular
-        environment required for subsequent initialization and simulation runs.
+        Create the cell cluster and cache this cluster to an output file, as
+        specified by the current configuration file.
+
+        This method _must_ be called prior to the :meth:`init` and
+        :meth:`plot_seed` methods, which consume these results as input.
+
+        Returns
+        ----------
         '''
 
         logs.log_info(
@@ -63,7 +69,16 @@ class SimRunner(object):
             self._config_basename)
 
         p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
-        p.I_overlay = False  # force the current overlay to be null
+
+        #FIXME: Cease coercing this to "False" both here and below. Instead,
+        #improve overlay handling in the "animabc" superclass to detect the
+        #current phase and, if not >= init, to coercively disable this overlay.
+
+        # Disable the current overlay. Plotting this artist requires simulation
+        # data subsequently defined by the "init" phase and hence unavailable at
+        # this early phase.
+        p.I_overlay = False
+
         sim = Simulator(p)   # create an instance of Simulator as it's needed by plotting objects
 
         cells = Cells(p)  # create an instance of the Cells object
@@ -367,7 +382,7 @@ class SimRunner(object):
         p = Parameters(config_filename=self._config_filename)
 
         # Disable the current overlay. Plotting this artist requires simulation
-        # data subsequently defined by the "sim" phase and hence unavailable at
+        # data subsequently defined by the "init" phase and hence unavailable at
         # this early phase.
         p.I_overlay = False
 

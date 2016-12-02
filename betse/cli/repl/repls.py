@@ -11,8 +11,6 @@ REPL packages (e.g., :mod:`code`, :mod:`ptpython`).
 '''
 
 # ....................{ IMPORTS                            }....................
-from enum import Enum
-
 from betse.cli.repl import environment
 from betse.lib import libs
 from betse.pathtree import REPL_HISTORY_FILENAMES
@@ -20,6 +18,7 @@ from betse.util.io.log import logs
 from betse.util.path import files
 from betse.util.path.command import exits
 from betse.util.type.types import type_check
+from enum import Enum
 
 # ....................{ ENUMS                              }....................
 # One-liners are happy liners.

@@ -2,6 +2,7 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# ....................{ IMPORTS                            }....................
 import copy
 import os
 import os.path
@@ -30,8 +31,41 @@ from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
 from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimCellsWhileSolving
+from betse.util.type.enums import EnumOrdered
+from betse.util.type.types import type_check
 
+# ....................{ ENUMS                              }....................
+SimPhase = EnumOrdered('SimPhase', ('SEED', 'INIT', 'SIM',))
+'''
+Ordered enumeration of all possible simulation phases.
 
+Each member of this enumeration is arbitrarily comparable to each other member.
+Each member's value is less than that of another member's value if and only if
+the simulation phase of the former is performed _before_ that of the latter.
+In particular, this enumeration is a total ordering such that:
+
+    >>> SimPhase.SEED < SimPhase.INIT < SimPhase.SIM
+    True
+
+Attributes
+----------
+SEED : enum
+    Seed simulation phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.seed` method. This phase creates
+    the cell cluster and caches this cluster to an output file.
+INIT : enum
+    Initialization simulation phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.init` method. This phase
+    initializes the previously created cell cluster from a cached input file
+    and caches this initialization to an output file.
+SIM : enum
+    Proper simulation phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.sim` method. This phase
+    simulates the previously initialized cell cluster from a cached input file
+    and caches this simulation to an output file.
+'''
+
+# ....................{ CLASSES                            }....................
 # FIXME update plotting
 
 class Simulator(object):
@@ -49,11 +83,6 @@ class Simulator(object):
 
     update_C(ion_i,flux, cells, p)     Updates concentration of ion with index
                                             ion_i in cell and environment for a flux leaving the cell.
-
-    acid_handler(cells,p,t)        Updates H+ concentrations in cell and
-                                            environment, which are further influenced by the bicarbonate buffer action.
-                                            Also, if included, runs the HKATPase pump and if included, runs the
-                                            VATPase pump.
 
     update_gj(cells,p,t,i)                  Calculates the voltage gradient between two cells, the gating character of
                                             gap junctions, and updates concentration for ion 'i' and voltage of each
@@ -86,6 +115,8 @@ class Simulator(object):
         In-place animation of cell voltage as a function of time plotted during
         (rather than after) simulation modelling if both requested and a
         simulation is currently being modelled _or_ `None` otherwise.
+    _phase : SimPhase
+        Current simulation phase.
 
     Attributes (Counts)
     ----------
@@ -182,11 +213,29 @@ class Simulator(object):
         arrays for all time steps.
     '''
 
-    def __init__(self, p):
+    @type_check
+    def __init__(
+        self,
+        p: 'betse.science.parameters.Parameters',
+
+        #FIXME: Refactor to be a mandatory parameter if feasible.
+        phase: SimPhase = None,
+    ) -> None:
+        '''
+        Create this simulation.
+
+        Parameters
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        phase : SimPhase
+            Current simulation phase.
+        '''
 
         #FIXME: Define all other instance attributes as well.
-        # For safety, defined subsequently accessed instance attributes.
+        # Default all instance attributes.
         self._anim_cells_while_solving = None
+        self._phase = None
 
         #FIXME: Defer until later. To quote the "simrunner" module, which
         #explicitly calls this public method:
@@ -1120,12 +1169,11 @@ class Simulator(object):
         # potential interest to the user.
         self.save_and_report(cells, p)
 
-        # If the simulation did not go unstable, inform the user of success.
-        if exception_instability is None:
-            logs.log_info('Simulation completed successfully.')
-        # Else, inform the user of this instability and re-raise the previously
-        # raised exception to preserve the exact cause of this instability.
-        else:
+        # If the simulation went unstable, inform the user and reraise the
+        # previously raised exception to preserve the underlying cause. To
+        # avoid data loss, this exception is raised *AFTER* all pertinent
+        # simulation data has been saved to disk.
+        if exception_instability is not None:
             logs.log_error('Simulation prematurely halted due to instability.')
             raise exception_instability
 
@@ -1536,11 +1584,18 @@ class Simulator(object):
 
         _, _, self.Bz = cells.curl(self.Ax, self.Ay, 0)
 
-    def acid_handler(self,cells,p):
+    def acid_handler(self, cells, p) -> None:
+        '''
+        Update H+ concentrations in both the cell cluster and environment,
+        which are further influenced by the bicarbonate buffer action.
+
+        This method additionally runs the HKATPase and VATPase pumps if enabled
+        by the current simulation configuration.
+        '''
 
         if p.ion_profile != 'customized':
 
-            IdM = np.ones(self.mdl)
+            # IdM = np.ones(self.mdl)
 
             # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
             self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
@@ -2114,6 +2169,18 @@ class Simulator(object):
 
         return tt, tsamples
 
+    # ..................{ PROPERTIES ~ read-only             }..................
+    # Read-only properties, preventing callers from resetting these attributes.
+
+    @property
+    def phase(self) -> SimPhase:
+        '''
+        Current simulation phase.
+        '''
+
+        return self._phase
+
+    # ..................{ PLOTTERS                           }..................
     def _replot_loop(self, p):
         '''
         Update the currently displayed and/or saved animation during solving
@@ -2142,6 +2209,7 @@ class Simulator(object):
         # For safety, close all remaining plots and animations as well.
         plt.close()
 
+#FIXME: Can this be reasonably removed now?
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------

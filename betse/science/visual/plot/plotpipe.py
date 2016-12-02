@@ -66,17 +66,18 @@ from betse.util.type import types
 #* To "True" if a simulation is being performed.
 #
 #This doesn't seem quite ideal, however. Ideally, there would exist one and only
-#one attribute whose value is an instance of a multi-state "PhaseType" class
+#one attribute whose value is an instance of a multi-state "SimPhaseType" class
 #rather than two binary boolean attributes. Possible enum values might include:
 #
-#* "PhaseType.seed" when seeding a new cluster.
-#* "PhaseType.init" when initializing a seeded cluster.
-#* "PhaseType.sim" when simulation an initialized cluster.
+#* "SimPhaseType.seed" when seeding a new cluster.
+#* "SimPhaseType.init" when initializing a seeded cluster.
+#* "SimPhaseType.sim" when simulating an initialized cluster.
 #
 #This attribute would probably exist in the "Simulator" class -- say, as
 #"sim.phase". In light of that, consider the following refactoring:
 #
-#* Define a new "PhaseType" class in the "sim" module with the above attributes.
+#* Define a new "SimPhaseType" class in the "sim" module with the above
+#  attributes.
 #* Define a new "Simulator.phase" attribute initialized to None.
 #* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
 #  "sim.phase" instead. Note that only the:
@@ -95,7 +96,8 @@ from betse.util.type import types
 #
 #Wonder temptress at the speed of light and the sound of love!
 
-#FIXME: Shift this function into a new "betse.science.simpipe" submodule.
+#FIXME: Shift this function into a new "betse.science.visual.visualpipe"
+#submodule.
 
 def pipeline_results(
     sim: 'Simulator',
