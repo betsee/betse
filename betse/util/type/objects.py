@@ -10,12 +10,7 @@ Low-level object facilities.
 # ....................{ IMPORTS                            }....................
 import inspect
 from betse.util.type.types import (
-    type_check,
-    CallableTypes,
-    GeneratorType,
-    PropertyType,
-    SequenceTypes,
-)
+    type_check, CallableTypes, GeneratorType, PropertyType)
 from functools import wraps
 
 if False: wraps  # silence IDE warnings
@@ -150,10 +145,10 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
     return method if method is not None and callable(method) else None
 
 # ....................{ ITERATORS ~ name-value             }....................
-def iter_vars(obj: object) -> SequenceTypes:
+def iter_vars(obj: object) -> GeneratorType:
     '''
-    Sequence of 2-tuples of the name and value of each variable bound to the
-    passed object (_in ascending lexicographic order of variable name_).
+    Generator yielding a 2-tuple of the name and value of each variable bound to
+    the passed object (_in ascending lexicographic order of variable name_).
 
     This includes:
 
@@ -173,12 +168,11 @@ def iter_vars(obj: object) -> SequenceTypes:
     obj : object
         Object to iterate the variables of.
 
-    Returns
+    Yields
     ----------
-    SequenceTypes
-        Each element of this sequence is a 2-tuple `(var_name, var_value)` of
-        the name and value of each variable bound to this object (_in ascending
-        lexicographic order of variable name_).
+    (var_name, var_value)
+        2-tuple of the name and value of each variable bound to this object (_in
+        ascending lexicographic order of variable name_).
 
     Raises
     ----------
@@ -189,8 +183,12 @@ def iter_vars(obj: object) -> SequenceTypes:
         :func:`iter_vars_simple_custom` generator excluding all properties.
     '''
 
-    # The buck stops here.
-    return inspect.getmembers(obj)
+    # For the name and value of each attribute of this object...
+    for var_name, var_value in inspect.getmembers(obj):
+        # If this attribute is *NOT* a method, yield this name and value.
+        if not callable(var_value):
+            yield var_name, var_value
+
 
 
 def iter_vars_custom(obj: object) -> GeneratorType:

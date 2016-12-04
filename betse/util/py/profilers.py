@@ -9,6 +9,7 @@ Python code, including time and space performance) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+from abc import ABCMeta, abstractmethod
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, CallableTypes, MappingType, SequenceTypes,)
@@ -20,7 +21,7 @@ from pstats import Stats
 from timeit import Timer
 
 # ....................{ ENUMS                              }....................
-ProfileType = Enum('ProfileType', ('NONE', 'CALL', 'LINE',))
+ProfileType = Enum('ProfileType', ('NONE', 'CALL', 'LINE', 'SIZE',))
 '''
 Enumeration of all possible types of profiling supported by the
 :func:`profile_callable` function.
@@ -37,8 +38,34 @@ CALL : enum
 LINE : enum
     Line-granularity profiling of callables (e.g., functions, lambdas, methods,
     and `eval` statements). This level of granularity is more fine-grained than
-    that of the `CALL` type.
+    that of the `CALL` type, but requires installation of the optional
+    third-party dependency :mod:`pprofile`.
+SIZE : enum
+    Memory profiling of top-level objects returned by top-level callables,
+    typically instances of the
+    :class:`betse.science.simulate.simphaser.SimPhaser` class returned by public
+    methods of the :class:`betse.science.simrunner.SimRunner` class. This
+    profiling type requires installation of the optional third-party dependency
+    :mod:`pympler`.
 '''
+
+# ....................{ CLASSES                            }....................
+class SizeProfilableABC(object, metaclass=ABCMeta):
+    '''
+    Abstract base class signifying the subclass implementing this class to
+    define a custom **size profile** (i.e., human-readable string synopsizing
+    memory consumption by instances of this class).
+
+    Classes _not_ implementing this class are provided a default size profile
+    courtesy the general-purpose
+    :func:`betse.lib.pympler.pymplers.print_object_vars_custom_size` function.
+    '''
+
+    #FIXME: Document us up.
+    @abstractmethod
+    def get_size_profile(self) -> str:
+
+        pass
 
 # ....................{ PROFILERS                          }....................
 @type_check
@@ -104,7 +131,7 @@ def profile_callable(
         profile_filename=profile_filename,
     )
 
-
+# ....................{ PROFILERS ~ none                   }....................
 def _profile_callable_none(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
@@ -119,7 +146,7 @@ def _profile_callable_none(
 
     return call(*args, **kwargs)
 
-
+# ....................{ PROFILERS ~ call                   }....................
 def _profile_callable_call(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
@@ -196,7 +223,7 @@ def _profile_callable_call(
     # Return the value returned by this call.
     return return_value
 
-
+# ....................{ PROFILERS ~ line                   }....................
 #FIXME: Consider implementing a non-deterministic alternative as well, which
 #"pprofile" also supports via the "pprofile.StatisticalProfile" class.
 def _profile_callable_line(
@@ -297,6 +324,24 @@ def _profile_callable_line(
     # Return the value returned by this call.
     return return_value
 
+# ....................{ PROFILERS ~ size                   }....................
+#FIXME: Improve docustring, please.
+#FIXME: Implement us up, please.
+#FIXME: Unit test us up, please.
+def _profile_callable_size(
+    call, args, kwargs, is_profile_logged, profile_filename) -> object:
+    '''
+    Call the passed callable with the passed positional and keyword arguments
+    _without_ profiling this call, returning the value returned by this call.
+
+    See Also
+    ----------
+    :func:`profile_callable`
+        Further details on function signature.
+    '''
+
+    return call(*args, **kwargs)
+
 # ....................{ GLOBALS ~ private                  }....................
 # Technically, the same effect is also achievable via getattr() on the current
 # module object. Doing so is complicated by artificial constraints Python
@@ -307,6 +352,7 @@ _PROFILE_TYPE_TO_PROFILER = {
     ProfileType.CALL: _profile_callable_call,
     ProfileType.LINE: _profile_callable_line,
     ProfileType.NONE: _profile_callable_none,
+    ProfileType.SIZE: _profile_callable_size,
 }
 '''
 Dictionary mapping from each supported type of profiling to the module function

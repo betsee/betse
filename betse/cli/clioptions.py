@@ -46,8 +46,9 @@ Help string template synopsizing the `--log-file` option.
 OPTION_PROFILE_TYPE = '''
 type of profiling to perform (defaults to "{default}"):
 ;* "none", disabling profiling
-;* "call", profiling callables (e.g., functions, methods)
-;* "line", profiling lines via the "pprofile" dependency
+;* "call", profiling callables (functions, methods)
+;* "line", profiling code lines (requires "pprofile")
+;* "size", profiling object sizes (requires "pympler")
 '''
 '''
 Help string template synopsizing the `--profile-type` option.

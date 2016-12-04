@@ -3,6 +3,7 @@
 # Copyright 2014-2016 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+# ....................{ IMPORTS                            }....................
 import os
 import os.path
 import time
@@ -16,7 +17,8 @@ from betse.science.cells import Cells
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
-from betse.science.sim import Simulator
+from betse.science.sim import Simulator, SimPhase
+from betse.science.simulate.simphaser import SimPhaser
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.plot import plotpipe
@@ -24,10 +26,11 @@ from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.type.callables import deprecated
 
-
+# ....................{ CLASSES                            }....................
 class SimRunner(object):
     '''
-    High-level simulation runner encapsulating a single simulation.
+    High-level simulation class encapsulating the running of _all_ available
+    simulation phases.
 
     This class provides high-level methods for initializing, running, and
     plotting simulations specified by the YAML configuration file with which
@@ -52,23 +55,27 @@ class SimRunner(object):
         self._config_basename = paths.get_basename(self._config_filename)
 
     # ..................{ RUNNERS                            }..................
-    def seed(self) -> None:
+    def seed(self) -> SimPhaser:
         '''
-        Create the cell cluster and cache this cluster to an output file, as
-        specified by the current configuration file.
+        Seed this simulation with a new cell cluster and cache this cluster to
+        an output file, specified by the current configuration file.
 
         This method _must_ be called prior to the :meth:`init` and
-        :meth:`plot_seed` methods, which consume these results as input.
+        :meth:`plot_seed` methods, which consume this output as input.
 
         Returns
         ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
             'Seeding simulation with configuration file "%s"...',
             self._config_basename)
 
-        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
 
         #FIXME: Cease coercing this to "False" both here and below. Instead,
         #improve overlay handling in the "animabc" superclass to detect the
@@ -79,9 +86,10 @@ class SimRunner(object):
         # this early phase.
         p.I_overlay = False
 
-        sim = Simulator(p)   # create an instance of Simulator as it's needed by plotting objects
-
+        # Simulation simulator and cell cluster.
+        sim = Simulator(p=p, phase=SimPhase.SEED)
         cells = Cells(p)  # create an instance of the Cells object
+
         logs.log_info('Cell cluster is being created...')
         cells.makeWorld(p)  # call function to create the world
 
@@ -121,10 +129,24 @@ class SimRunner(object):
 
         sim.sim_info_report(cells,p)
 
-    def init(self) -> None:
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
+
+
+    def init(self) -> SimPhaser:
         '''
-        Run an initialization simulation from scratch and save it to the
-        initialization cache.
+        Initialize this simulation with the cell cluster seeded by a prior call
+        to the :meth:`seed` method and cache this initialization to an output
+        file, specified by the current configuration file.
+
+        This method _must_ be called prior to the :meth:`sim` and
+        :meth:`plot_init` methods, which consume this output as input.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
@@ -133,12 +155,19 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
-        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         p.run_sim = False # let the simulator know we're just running an initialization
 
+        # Simulation cell cluster.
         # cells, _ = fh.loadSim(cells.savedWorld)
         cells = Cells(p)  # create an instance of world
+
+        #FIXME: This if conditional is repeated verbatim twice below. Generalize
+        #into a new _load_cells() method containing this if conditional and
+        #returning the loaded "Cells" instance; then, call this method both here
+        #and everywhere this repeated logic appears below..
 
         if files.is_file(cells.savedWorld):
             cells,p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
@@ -148,9 +177,9 @@ class SimRunner(object):
             self._die_unless_seed_same(p_old, p)
 
         else:
-            logs.log_info("Ooops! No such cell cluster file found to load!")
+            logs.log_warning("Ooops! No such cell cluster file found to load!")
 
-            if p.autoInit is True:
+            if p.autoInit:
                 logs.log_info(
                     'Automatically seeding cell cluster from config file settings...')
                 self.seed()  # create an instance of world
@@ -163,7 +192,8 @@ class SimRunner(object):
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
-        sim = Simulator(p)   # create an instance of Simulator
+        # Simulation simulator.
+        sim = Simulator(p=p, phase=SimPhase.INIT)
         sim.run_sim = False
 
         # Initialize simulation data structures, run, and save simulation phase
@@ -175,20 +205,24 @@ class SimRunner(object):
             'Initialization completed in %d seconds.',
             round(time.time() - start_time, 2))
 
-        #FIXME: Remove this seemingly obsolete logic.
-        # As colormaps are deleted from the current Parameters instance "p"
-        # prior to saving in sim, create a fresh instance of Parameters.
-        # p = Parameters(config_filename = self._config_filename)
-        #
-        # # Create all enabled plots and animations.
-        # logs.log_info(
-        #     'When ready, close all of the figure windows to proceed with '
-        #     'scheduled simulation runs.')
-        # plot_all(cells, sim, p, plot_type='init')
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
 
-    def sim(self) -> None:
+
+    def sim(self) -> SimPhaser:
         '''
-        Run simulation from a previously saved initialization.
+        Simulate this simulation with the cell cluster initialized by a prior
+        call to the :meth:`init` method and cache this simulation to an output
+        file, specified by the current configuration file.
+
+        This method _must_ be called prior to the :meth:`:meth:`plot_sim`
+        method, which consumes this output as input.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
@@ -197,10 +231,13 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
-        p = Parameters(config_filename = self._config_filename)     # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
         p.set_time_profile(p.time_profile_sim)  # force the time profile to be initialize
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
-        sim = Simulator(p)   # create an instance of Simulator
+
+        # Simulation simulator.
+        sim = Simulator(p=p, phase=SimPhase.SIM)
 
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
@@ -210,15 +247,16 @@ class SimRunner(object):
             self._die_unless_seed_same(p_old, p)
 
         else:
-            logs.log_info("No initialization file found to run this simulation!")
+            logs.log_warning(
+                "No initialization file found to run this simulation!")
 
-            if p.autoInit is True:
+            if p.autoInit:
                 logs.log_info("Automatically running initialization...")
                 self.init()
                 logs.log_info('Now using initialization to run simulation.')
                 sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
 
-            elif p.autoInit is False:
+            else:
                 raise BetseSimException(
                     'Simulation terminated due to missing initialization. '
                     'Please run an initialization and try again.')
@@ -235,20 +273,37 @@ class SimRunner(object):
             'Simulation completed in %d seconds.',
             round(time.time() - start_time, 2))
 
-        #FIXME: Remove this seemingly obsolete logic.
-        # As colormaps are deleted from the current Parameters instance "p"
-        # prior to saving in sim, create a fresh instance of Parameters.
-        # p = Parameters(config_filename=self._config_filename)
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
 
-        # # Create all enabled plots and animations.
-        # logs.log_info(
-        #     'When ready, close all of the figure windows to end the program.')
-        # plot_all(cells, sim, p, plot_type='sim')
 
-    def sim_brn(self) -> None:
+    #FIXME: Eliminate duplication. This and the sim_grn() methods are currently
+    #carbon copies of each other, with the single difference that this method
+    #internally instantiates "MasterOfMolecules" whereas the latter method
+    #internally instantiates "MasterOfGenes". Hence, define a new private method
+    #with the following signature, which these two methods should defer to:
+    #
+    #    def _sim_network(self, master_type: ClassType) -> SimPhaser:
+    #
+    #Given that, this method then reduces to the following one-liner:
+    #
+    #    def sim_brn(self) -> SimPhaser:
+    #        return self._sim_network(master_type=MasterOfMolecules)
+    def sim_brn(self) -> SimPhaser:
         '''
-        Test run a bioenergetics reaction network (BRN) _without_ bioelectrics and
-        save it to the initialization cache.
+        Initialize and simulate a pure bioenergetics reaction network (BRN)
+        _without_ bioelectrics with the cell cluster seeded by a prior call
+        to the :meth:`seed` method and cache this initialization and simulation
+        to output files, specified by the current configuration file.
+
+        This method _must_ be called prior to the :meth:`plot_brn` method, which
+        consumes this output as input.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
@@ -257,12 +312,14 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
-        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         p.run_sim = False
 
+        # Simulation cell cluster.
         # cells, _ = fh.loadSim(cells.savedWorld)
-        cells = Cells(p)  # create an instance of world
+        cells = Cells(p)
 
         if files.is_file(cells.savedWorld):
             cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
@@ -272,9 +329,9 @@ class SimRunner(object):
             self._die_unless_seed_same(p_old, p)
 
         else:
-            logs.log_info("Ooops! No such cell cluster file found to load!")
+            logs.log_warning("Ooops! No such cell cluster file found to load!")
 
-            if p.autoInit is True:
+            if p.autoInit:
                 logs.log_info(
                     'Automatically seeding cell cluster from config file settings...')
                 self.seed()  # create an instance of world
@@ -287,7 +344,12 @@ class SimRunner(object):
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
-        sim = Simulator(p)  # create an instance of Simulator
+        #FIXME: Is "INIT" the proper phase here? The string "Now using cell
+        #cluster to run initialization." above and call to sim.baseInit_all()
+        #below suggest this is, indeed, an initialization.
+
+        # Simulation simulator.
+        sim = Simulator(p=p, phase=SimPhase.INIT)
 
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
@@ -306,10 +368,25 @@ class SimRunner(object):
             'Metabolic network test completed in %d seconds.',
             round(time.time() - start_time, 2))
 
-    def sim_grn(self) -> None:
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
+
+
+    def sim_grn(self) -> SimPhaser:
         '''
-        Test run a gene regulatory network (GRN) _without_ bioelectrics and save it to the
-        initialization cache.
+        Initialize and simulate a pure gene regulatory network (GRN) _without_
+        bioelectrics with the cell cluster seeded by a prior call to the
+        :meth:`seed` method and cache this initialization and simulation to
+        output files, specified by the current configuration file.
+
+        This method _must_ be called prior to the :meth:`plot_grn` method, which
+        consumes this output as input.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
@@ -318,12 +395,14 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
-        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
         p.run_sim = False
 
+        # Simulation cell cluster.
         # cells, _ = fh.loadSim(cells.savedWorld)
-        cells = Cells(p)  # create an instance of world
+        cells = Cells(p)
 
         if files.is_file(cells.savedWorld):
             cells, p_old = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
@@ -333,9 +412,9 @@ class SimRunner(object):
             self._die_unless_seed_same(p_old, p)
 
         else:
-            logs.log_info("Ooops! No such cell cluster file found to load!")
+            logs.log_warning("Ooops! No such cell cluster file found to load!")
 
-            if p.autoInit is True:
+            if p.autoInit:
                 logs.log_info(
                     'Automatically seeding cell cluster from config file settings...')
                 self.seed()  # create an instance of world
@@ -348,7 +427,9 @@ class SimRunner(object):
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
-        sim = Simulator(p)  # create an instance of Simulator
+        #FIXME: Is "INIT" the proper phase here? See sim_brn() for discussion.
+        # Simulation simulator.
+        sim = Simulator(p=p, phase=SimPhase.INIT)
 
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
@@ -367,8 +448,14 @@ class SimRunner(object):
             'Gene regulatory network test completed in %d seconds.',
             round(time.time() - start_time, 2))
 
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
+
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Refactor into a new "betse.science.visual.seedpipe" submodule.
+    #FIXME: Return "SimPhaser" instances from all of the following methods.
+    #FIXME: Shift the low-level matplotlib plotting performed by this method
+    #into a new "betse.science.visual.seedpipe" submodule.
+
     def plot_seed(self) -> None:
         '''
         Load and visualize a previously seeded cell cluster.

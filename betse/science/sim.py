@@ -35,7 +35,9 @@ from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check
 
 # ....................{ ENUMS                              }....................
-SimPhase = EnumOrdered('SimPhase', ('SEED', 'INIT', 'SIM',))
+SimPhase = EnumOrdered('SimPhase', (
+    'SEED', 'INIT', 'SIM', 'PLOT_SEED', 'PLOT_INIT', 'PLOT_SIM',
+))
 '''
 Ordered enumeration of all possible simulation phases.
 
@@ -63,16 +65,30 @@ SIM : enum
     :meth:`betse.science.simrunner.SimRunner.sim` method. This phase
     simulates the previously initialized cell cluster from a cached input file
     and caches this simulation to an output file.
+PLOT_SEED : enum
+    Seed visualization phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.plot_seed` method. This phase
+    visualizes the previously created cell cluster from a cached input file and
+    exports the resulting plots and animations to various output files.
+PLOT_INIT : enum
+    Initialization visualization phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.plot_init` method. This phase
+    visualizes the previously initialized cell cluster from a cached input file
+    and exports the resulting plots and animations to various output files.
+PLOT_SIM : enum
+    Simulation visualization phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.plot_sim` method. This phase
+    visualizes the previously simulated cell cluster from a cached input file
+    and exports the resulting plots and animations to various output files.
 '''
 
 # ....................{ CLASSES                            }....................
-# FIXME update plotting
-
 class Simulator(object):
     '''
-    Contains the main routines used in the simulation of networked cell
-    bioelectrical activity. For efficiency, all methods are implemented in
-    terms of Numpy-based linear algebra.
+    High-level tissue simulation.
+
+    This class simulates networked cell bioelectrical activity. For efficiency,
+    _all_ methods are implemented in terms of Numpy-based linear algebra.
 
     Methods
     -------
@@ -232,10 +248,12 @@ class Simulator(object):
             Current simulation phase.
         '''
 
+        # Classify all passed parameters.
+        self._phase = phase
+
         #FIXME: Define all other instance attributes as well.
-        # Default all instance attributes.
+        # Default all remaining attributes.
         self._anim_cells_while_solving = None
-        self._phase = None
 
         #FIXME: Defer until later. To quote the "simrunner" module, which
         #explicitly calls this public method:
@@ -2169,9 +2187,7 @@ class Simulator(object):
 
         return tt, tsamples
 
-    # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties, preventing callers from resetting these attributes.
-
+    # ..................{ PROPERTIES                         }..................
     @property
     def phase(self) -> SimPhase:
         '''
@@ -2179,6 +2195,16 @@ class Simulator(object):
         '''
 
         return self._phase
+
+
+    @phase.setter
+    @type_check
+    def phase(self, phase: SimPhase) -> None:
+        '''
+        Set whether the current simulation phase.
+        '''
+
+        self._phase = phase
 
     # ..................{ PLOTTERS                           }..................
     def _replot_loop(self, p):

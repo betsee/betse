@@ -9,7 +9,7 @@ facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.types import type_check, GeneratorType
+from betse.util.type.types import type_check, GeneratorType, SequenceTypes
 from enum import Enum, EnumMeta
 
 # ....................{ CLASSES                            }....................
@@ -103,9 +103,30 @@ class EnumOrdered(Enum):
             self.value < other.value if self.__class__ is other.__class__ else
             NotImplemented)
 
+# ....................{ GETTERS                            }....................
+@type_check
+def get_names_lowercase(enum_type: EnumMeta) -> SequenceTypes:
+    '''
+    Sequence of the lowercased names of all members of the passed enumeration
+    type in **declaration order** (i.e., the order in which these members were
+    originally declared).
+
+    Parameters
+    ----------
+    enum_type : EnumMeta
+        Enumeration type to be inspected.
+
+    Returns
+    ----------
+    SequenceTypes
+        Sequence of the lowercased names of all members of this enumeration.
+    '''
+
+    return tuple(iter_names_lowercase(enum_type))
+
 # ....................{ ITERATORS                          }....................
 @type_check
-def iter_names_lowercase(enum: EnumMeta) -> GeneratorType:
+def iter_names_lowercase(enum_type: EnumMeta) -> GeneratorType:
     '''
     Generator yielding the lowercased name of each member of the passed
     enumeration type in **declaration order** (i.e., the order in which these
@@ -113,7 +134,7 @@ def iter_names_lowercase(enum: EnumMeta) -> GeneratorType:
 
     Parameters
     ----------
-    enum : EnumMeta
+    enum_type : EnumMeta
         Enumeration type to be inspected.
 
     Returns
@@ -123,4 +144,4 @@ def iter_names_lowercase(enum: EnumMeta) -> GeneratorType:
         enumeration type.
     '''
 
-    return (enum_member.name.lower() for enum_member in enum)
+    return (enum_member.name.lower() for enum_member in enum_type)

@@ -38,7 +38,7 @@ from betse.util.path.command import commands
 from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.profilers import profile_callable, ProfileType
-from betse.util.type import types, strs
+from betse.util.type import enums, types, strs
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ UTILITIES                          }....................
@@ -298,17 +298,9 @@ class CLIABC(metaclass=ABCMeta):
         profile_type_default = ProfileType.NONE.name.lower()
         profile_filename_default = pathtree.PROFILE_DEFAULT_FILENAME
 
-        #FIXME: Generalize the construction of such tuples into a new
-        #betse.util.type.enums.get_names_lowercase() utility function: e.g.,
-        #
-        #    def get_names_lowercase(enum: Enum):
-        #        return tuple(enum_member.name.lower() for enum_member in enum)
-
-        # Permissible values for top-level enumerable options configured below.
-        log_types = tuple(
-            log_type.name.lower() for log_type in LogType)
-        profile_types = tuple(
-            profile_type.name.lower() for profile_type in ProfileType)
+        # Tuples of all permissible values for top-level enumerable options.
+        log_types     = enums.get_names_lowercase(LogType)
+        profile_types = enums.get_names_lowercase(ProfileType)
 
         # Program version specifier.
         program_version = '{} {}'.format(

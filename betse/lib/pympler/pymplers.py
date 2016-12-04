@@ -112,6 +112,56 @@ def print_object_vars_custom_size(obj: object) -> None:
     descending order of size_), calculated with the external :mod:`pympler`
     package if importable _or_ raising an exception otherwise.
 
+    Motivation
+    ----------
+    Although Pympler _does_ define numerous classes and callables for profiling
+    arbitrary objects, the resulting output is non-human-readable in the best
+    case and ambiguous in the worst case. In either case, such output is mostly
+    unusable. For example:
+
+    >>> from betse.lib.pympler import pymplers
+    >>> from pympler.asizeof import asizesof  #, Asizer
+    >>> class ObjectLessons(object):
+    ...     def __init__(self):
+    ...         self.lessons = [
+    ...             'Easter Island', 'St. Matthew Island', 'Greenland Norse',]
+    ...         self.lesson_count = len(self.lessons)
+    >>> object_lessons = ObjectLessons()
+    >>> asizesof(object_lessons, stats=2.0)
+     592 bytes:  <__main__.ObjectLessons object at 0x7fe937595208>
+     592 bytes
+       8 byte aligned
+       8 byte sizeof(void*)
+       1 object given
+      10 objects sized
+      10 objects seen
+       3 recursion depth
+
+       5 profiles:  total (% of grand total), average, and largest flat size:  largest object
+       5 class str objects:  320 (54%), 64, 72:  'St. Matthew Island' leng 19!
+       1 class dict object:  96 (16%), 96, 96:  {'lesson_count': 3, 'lessons': ['Easte..... Matthew Island', 'Greenland Norse']} leng 0
+       1 class list object:  88 (15%), 88, 88:  ['Easter Island', 'St. Matthew Island', 'Greenland Norse'] leng 7!
+       1 class __main__.ObjectLessons object:  56 (9%), 56, 56:  <__main__.ObjectLessons object at 0x7fe937595208>
+       1 class int object:  32 (5%), 32, 32:  3 leng 1!
+
+    Critically, note that:
+
+    * The total size of the `ObjectLessons.lessons` list is actually 288 bytes
+      rather than the significantly smaller 88 bytes reported above.
+      Specifically:
+      * The flat size of this list is 88 bytes, which Pympler erroneously
+        reports to be the total size of this list.
+      * The total flat size of all strings contained in this list is 200 bytes.
+        Ergo, the total size of this list is 288 bytes -- as verified by
+        explictly passing this list to the
+        :func:`pympler.asizeof.asizeof` function, which then returns 288.
+    * The total size of each variable of the passed `ObjectLessons` instance is
+      _not_ reported. Only the total flat size of each type of object
+      recursively visitable from this instance is reported, which is useless.
+
+    Until Pympler addresses both concerns, this function profiles the memory
+    consumption of arbitrary objects in a human-readable manner.
+
     Parameters
     ----------
     obj : object
