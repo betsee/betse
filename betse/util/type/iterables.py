@@ -82,15 +82,15 @@ def is_reversible(iterable: IterableTypes) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import objects
+    from betse.util.type.obj import objs
 
     # Return True only if this iterable either...
     return (
         # Defines the __reversed__() special method.
-        objects.is_method(iterable, '__reversed__') or (
+        objs.is_method(iterable, '__reversed__') or (
             # Defines the __len__() and __getitem__() special methods.
-            objects.is_method(iterable, '__len__') and
-            objects.is_method(iterable, '__getitem__')
+            objs.is_method(iterable, '__len__') and
+            objs.is_method(iterable, '__getitem__')
         )
     )
 

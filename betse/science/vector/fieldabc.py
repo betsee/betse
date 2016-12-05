@@ -7,12 +7,14 @@ Abstract base classes of all vector field subclasses.
 '''
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from abc import ABCMeta, abstractproperty
+
+import numpy as np
 from betse.util.py import references
-from betse.util.type.objects import property_cached
+from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check, NumericTypes
 from numpy import ndarray
+
 
 # ....................{ CLASSES                            }....................
 class VectorFieldABC(object, metaclass=ABCMeta):

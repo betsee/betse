@@ -23,8 +23,9 @@ Layer subclasses spatially overlaying streamlines onto the current cell cluster.
 #Doing so is ultimately trivial but tedious and hence deferred to another day.
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from abc import abstractmethod, abstractproperty
+
+import numpy as np
 from betse.science.vector.fieldelectric import (
     VectorFieldSimulatedABC,
     VectorFieldCurrentIntra,
@@ -32,9 +33,10 @@ from betse.science.vector.fieldelectric import (
 )
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
-from betse.util.type.objects import property_cached
+from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
+
 
 # ....................{ SUPERCLASSES                       }....................
 class LayerCellsStreamABC(LayerCellsABC):

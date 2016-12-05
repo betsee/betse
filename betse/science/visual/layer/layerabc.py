@@ -39,14 +39,16 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from abc import ABCMeta, abstractmethod, abstractproperty
+
+import numpy as np
 from betse.lib.numpy import arrays
 from betse.util.py import references
-from betse.util.type.objects import property_cached
+from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceTypes, SequenceOrNoneTypes,)
 from numpy import ndarray
+
 
 # ....................{ SUPERCLASS                         }....................
 class LayerCellsABC(object, metaclass=ABCMeta):

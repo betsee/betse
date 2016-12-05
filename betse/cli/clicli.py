@@ -267,49 +267,49 @@ class CLICLI(CLIABC):
         confdefault.write(self._args.config_filename)
 
 
-    def _do_seed(self) -> None:
+    def _do_seed(self) -> object:
         '''
-        Run the `seed` subcommand.
-        '''
-
-        self._get_sim_runner().seed()
-
-
-    def _do_init(self) -> None:
-        '''
-        Run the `init` subcommand.
+        Run the `seed` subcommand and return the result of doing so.
         '''
 
-        self._get_sim_runner().init()
+        return self._get_sim_runner().seed()
 
 
-    def _do_sim(self) -> None:
+    def _do_init(self) -> object:
         '''
-        Run the `sim` subcommand.
-        '''
-
-        self._get_sim_runner().sim()
-
-
-    def _do_sim_brn(self) -> None:
-        '''
-        Run the `sim-brn` subcommand.
+        Run the `init` subcommand and return the result of doing so.
         '''
 
-        self._get_sim_runner().sim_brn()
+        return self._get_sim_runner().init()
 
 
-    def _do_sim_grn(self) -> None:
+    def _do_sim(self) -> object:
         '''
-        Run the `sim-grn` subcommand.
+        Run the `sim` subcommand and return the result of doing so.
         '''
 
-        self._get_sim_runner().sim_grn()
+        return self._get_sim_runner().sim()
 
 
-    def _do_plot(self) -> None:
+    def _do_sim_brn(self) -> object:
         '''
-        Run the `plot` subcommand.
+        Run the `sim-brn` subcommand and return the result of doing so.
+        '''
+
+        return self._get_sim_runner().sim_brn()
+
+
+    def _do_sim_grn(self) -> object:
+        '''
+        Run the `sim-grn` subcommand and return the result of doing so.
+        '''
+
+        return self._get_sim_runner().sim_grn()
+
+
+    def _do_plot(self) -> object:
+        '''
+        Run the `plot` subcommand and return the result of doing so.
         '''
 
         # If no subcommand was passed, print help output and return. Note that
@@ -319,52 +319,58 @@ class CLICLI(CLIABC):
             self._arg_parser_plot.print_help()
             return
 
-        # Run this subcommand's passed subcommand. See _run() for details.
+        # Run this subcommand's passed subcommand and return the result
+        # of doing so. See _run() for details.
         subcommand_name_plot = clisubcommands.sanitize_name(
             self._args.subcommand_name_plot)
         subcommand_method_name = '_do_plot_' + subcommand_name_plot
         subcommand_method = getattr(self, subcommand_method_name)
-        subcommand_method()
+        return subcommand_method()
 
 
-    def _do_plot_seed(self) -> None:
+    def _do_plot_seed(self) -> object:
         '''
-        Run the `plot` subcommand's `seed` subcommand.
-        '''
-
-        self._get_sim_runner().plot_seed()
-
-
-    def _do_plot_init(self) -> None:
-        '''
-        Run the `plot` subcommand's `init` subcommand.
+        Run the `plot` subcommand's `seed` subcommand and return the result
+        of doing so.
         '''
 
-        self._get_sim_runner().plot_init()
+        return self._get_sim_runner().plot_seed()
 
 
-    def _do_plot_sim(self) -> None:
+    def _do_plot_init(self) -> object:
         '''
-        Run the `plot` subcommand's `sim` subcommand.
-        '''
-
-        self._get_sim_runner().plot_sim()
-
-
-    def _do_plot_sim_brn(self) -> None:
-        '''
-        Run the `plot` subcommand's `sim-brn` subcommand.
+        Run the `plot` subcommand's `init` subcommand and return the result
+        of doing so.
         '''
 
-        self._get_sim_runner().plot_brn()
+        return self._get_sim_runner().plot_init()
 
 
-    def _do_plot_sim_grn(self) -> None:
+    def _do_plot_sim(self) -> object:
         '''
-        Run the `plot` subcommand's `sim-grn` subcommand.
+        Run the `plot` subcommand's `sim` subcommand and return the result
+        of doing so.
         '''
 
-        self._get_sim_runner().plot_grn()
+        return self._get_sim_runner().plot_sim()
+
+
+    def _do_plot_sim_brn(self) -> object:
+        '''
+        Run the `plot` subcommand's `sim-brn` subcommand and return the result
+        of doing so.
+        '''
+
+        return self._get_sim_runner().plot_brn()
+
+
+    def _do_plot_sim_grn(self) -> object:
+        '''
+        Run the `plot` subcommand's `sim-grn` subcommand and return the result
+        of doing so.
+        '''
+
+        return self._get_sim_runner().plot_grn()
 
 
     def _do_repl(self) -> None:
@@ -386,8 +392,9 @@ class CLICLI(CLIABC):
 
     # ..................{ GETTERS                            }..................
     #FIXME: Inefficient, particularly when running _do_try(). Instead, refactor
-    #this method into a property cached by @property_cached, ensuring that one
-    #and only one SimRunner is instantiated for each CLI instance.
+    #this method into a new "_sim_runner" property cached by @property_cached,
+    #ensuring that one and only one SimRunner is instantiated for each CLI
+    #instance.
     def _get_sim_runner(self):
         '''
         BETSE simulation runner preconfigured with sane defaults.

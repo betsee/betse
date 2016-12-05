@@ -9,7 +9,6 @@ Python code, including time and space performance) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, CallableTypes, MappingType, SequenceTypes,)
@@ -48,24 +47,6 @@ SIZE : enum
     profiling type requires installation of the optional third-party dependency
     :mod:`pympler`.
 '''
-
-# ....................{ CLASSES                            }....................
-class SizeProfilableABC(object, metaclass=ABCMeta):
-    '''
-    Abstract base class signifying the subclass implementing this class to
-    define a custom **size profile** (i.e., human-readable string synopsizing
-    memory consumption by instances of this class).
-
-    Classes _not_ implementing this class are provided a default size profile
-    courtesy the general-purpose
-    :func:`betse.lib.pympler.pymplers.print_object_vars_custom_size` function.
-    '''
-
-    #FIXME: Document us up.
-    @abstractmethod
-    def get_size_profile(self) -> str:
-
-        pass
 
 # ....................{ PROFILERS                          }....................
 @type_check
@@ -173,11 +154,9 @@ def _profile_callable_call(
 
     # If the caller requested this profile be logged...
     if is_profile_logged:
-        # Number of slowest callables to be logged. For sanity, the full list of
-        # all profiled callables is truncated below to a sublist of this size.
-        # For readability, this is currently twice the default number of rows in
-        # the average Linux terminal.
-        CALLABLE_COUNT = 48
+        # Maximum number of slowest callables to log, arbitrarily defined to be
+        # twice the default number of rows in the average Linux terminal.
+        CALLABLES_MAX = 48
 
         # String buffer describing these slowest callables.
         calls_sorted = StringIO()
@@ -195,7 +174,7 @@ def _profile_callable_call(
         calls.sort_stats('cumtime')
 
         # Write the slowest sublist of these callables to this string buffer.
-        calls.print_stats(CALLABLE_COUNT)
+        calls.print_stats(CALLABLES_MAX)
 
         # Sort all profiled callables by "total" time (i.e., total time spent in
         # a callable excluding all time spent in calls to callables called by
@@ -203,13 +182,13 @@ def _profile_callable_call(
         calls.sort_stats('tottime')
 
         # Write the slowest sublist of these callables to this string buffer.
-        calls.print_stats(CALLABLE_COUNT)
+        calls.print_stats(CALLABLES_MAX)
 
         # Log this string buffer.
         logs.log_info(
             'Slowest %d callables profiled by both '
             'cumulative and total time:\n%s',
-            CALLABLE_COUNT, calls_sorted.getvalue())
+            CALLABLES_MAX, calls_sorted.getvalue())
 
     # If the caller requested this profile be serialized to a file...
     if profile_filename is not None:
@@ -240,7 +219,7 @@ def _profile_callable_line(
         Further details on function signature.
     '''
 
-    # Defer BETSE-specific heavyweight imports.
+    # Avoid circular import dependencies.
     from betse.lib import libs
     from betse.util.path import files
 
@@ -326,7 +305,6 @@ def _profile_callable_line(
 
 # ....................{ PROFILERS ~ size                   }....................
 #FIXME: Improve docustring, please.
-#FIXME: Implement us up, please.
 #FIXME: Unit test us up, please.
 def _profile_callable_size(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
@@ -334,13 +312,72 @@ def _profile_callable_size(
     Call the passed callable with the passed positional and keyword arguments
     _without_ profiling this call, returning the value returned by this call.
 
+    Profile the passed callable in a line-oriented deterministic manner with the
+    passed positional and keyword arguments (if any), returning the value
+    returned by this call and optionally logging and serializing the resulting
+    profile to the file with the passed filename.
+
     See Also
     ----------
     :func:`profile_callable`
         Further details on function signature.
     '''
 
-    return call(*args, **kwargs)
+    # Avoid circular import dependencies.
+    from betse.lib import libs
+    from betse.util.type.obj import objsize
+    from betse.util.type.obj.objsize import SizeProfilableABC
+
+    # Maximum number of the largest instance variables of the value returned by
+    # calling this callable to log, arbitrarily defined to be twice the default
+    # number of rows in the average Linux terminal.
+    RETURN_VALUE_VARS_MAX = 48
+
+    # Log this fact.
+    logs.log_debug('Memory profiling enabled.')
+
+    # Raise an exception unless the optional "pympler" dependency is available.
+    libs.die_unless_runtime_optional('Pympler')
+
+    # Value returned by calling this callable with these arguments.
+    return_value = call(*args, **kwargs)
+
+    # Log the profiling to be subsequently performed. Since doing so can recurse
+    # through the full object tree in the worst case, inform the end user of
+    # this potentially slow operation *BEFORE* doing so.
+    logs.log_debug(
+        'Profiling memory for %r() return value of type %r...',
+        call, type(return_value))
+
+    # Human-readable string synopsizing this object's memory consumption.
+    size_profile = None
+
+    # If this value is an instance of a class defining a class-specific synopsis
+    # of memory consumption, defer to this synopsis.
+    if isinstance(return_value, SizeProfilableABC):
+        size_profile = return_value.get_size_profile(
+            vars_max=RETURN_VALUE_VARS_MAX)
+    # Else, fallback to a generic synopsis.
+    else:
+        size_profile = 'Object {}'.format(objsize.get_size_profile(
+            obj=return_value, vars_max=RETURN_VALUE_VARS_MAX))
+
+    # If a synopsis exists to log, do so.
+    if size_profile:
+        logs.log_info(size_profile)
+
+    #FIXME: Implement support for serializing this profile to disk.
+
+    # If the caller requested this profile be serialized to a file...
+    if profile_filename is not None:
+        # Notify the caller that doing so is currently unsupported..
+        logs.log_warning(
+            'Memory profile not saved to "%s", '
+            'as this feature is currently unimplemented.',
+            profile_filename)
+
+    # Return the value returned by this call.
+    return return_value
 
 # ....................{ GLOBALS ~ private                  }....................
 # Technically, the same effect is also achievable via getattr() on the current

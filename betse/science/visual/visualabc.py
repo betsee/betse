@@ -11,8 +11,9 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
+
+import numpy as np
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.lib.numpy import arrays
@@ -21,8 +22,9 @@ from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsMappableABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
 from betse.util.py import references
-from betse.util.type import iterables, objects, types
+from betse.util.type import iterables, types
 from betse.util.type.iterables import SENTINEL
+from betse.util.type.obj import objs
 from betse.util.type.types import (
     type_check,
     IterableOrNoneTypes,
@@ -32,12 +34,13 @@ from betse.util.type.types import (
 )
 from matplotlib import pyplot
 from matplotlib.axes import Axes
+from matplotlib.cm import ScalarMappable
 from matplotlib.collections import PolyCollection
 from matplotlib.colors import Colormap
-from matplotlib.cm import ScalarMappable
 from matplotlib.image import AxesImage
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.streamplot import StreamplotSet
+
 
 # ....................{ BASE                               }....................
 class VisualCellsABC(object, metaclass=ABCMeta):
@@ -444,7 +447,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             pyplot.close(self._figure)
 
         # For each name and value of a field bound to this object...
-        for field_name, field_value in objects.iter_vars_simple_custom(self):
+        for field_name, field_value in objs.iter_vars_simple_custom(self):
             # If this field itself contains a "figure" attribute, explicitly
             # nullify the latter to break this figure's circular references in a
             # manner ignoring "AttributeError: can't set attribute" exceptions.

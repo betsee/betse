@@ -1164,6 +1164,7 @@ def is_int(obj: object) -> bool:
     '''
     `True` only if the passed object is an integer.
     '''
+
     return isinstance(obj, int)
 
 
@@ -1172,6 +1173,7 @@ def is_int_ge(obj: object, ge: int) -> bool:
     `True` only if the passed object is an integer greater than or equal to the
     second passed integer.
     '''
+
     assert is_int(ge), assert_not_int(ge)
     return is_int(obj) and obj >= ge
 
@@ -1181,6 +1183,7 @@ def is_int_gt(obj: object, gt: int) -> bool:
     `True` only if the passed object is an integer strictly greater than the
     second passed integer.
     '''
+
     assert is_int(gt), assert_not_int(gt)
     return is_int(obj) and obj > gt
 
@@ -1190,6 +1193,7 @@ def is_int_positive(obj: object) -> bool:
     `True` only if the passed object is a **positive integer** (i.e., is
     strictly greater than 0).
     '''
+
     return is_int_gt(obj, 0)
 
 
@@ -1198,6 +1202,7 @@ def is_numeric(obj: object) -> bool:
     `True` only if the passed object is **numeric** (i.e., instance of either
     the `int` or `float` types).
     '''
+
     return isinstance(obj, (int, float))
 
 # ....................{ TESTERS ~ str                      }....................
@@ -1513,6 +1518,7 @@ def assert_not_int(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be an integer.
     '''
+
     return '"{}" not an integer.'.format(trim(obj))
 
 
@@ -1521,13 +1527,23 @@ def assert_not_int_ge(obj: object, ge: int) -> str:
     String asserting the passed object to _not_ be an integer greater than or
     equal to the second passed integer.
     '''
+
     return '"{}" not an integer or not >= {}.'.format(trim(obj), ge)
+
+
+def assert_not_int_positive(obj: object) -> str:
+    '''
+    String asserting the passed object to _not_ be a positive integer.
+    '''
+
+    return '"{}" not a positive integer.'.format(trim(obj))
 
 
 def assert_not_numeric(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be numeric.
     '''
+
     return '"{}" not numeric (i.e., neither an integer nor float).'.format(
         trim(obj))
 

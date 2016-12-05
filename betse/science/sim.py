@@ -36,7 +36,7 @@ from betse.util.type.types import type_check
 
 # ....................{ ENUMS                              }....................
 SimPhase = EnumOrdered('SimPhase', (
-    'SEED', 'INIT', 'SIM', 'PLOT_SEED', 'PLOT_INIT', 'PLOT_SIM',
+    'SEED', 'INIT', 'SIM',
 ))
 '''
 Ordered enumeration of all possible simulation phases.
@@ -62,24 +62,9 @@ INIT : enum
     and caches this initialization to an output file.
 SIM : enum
     Proper simulation phase, as implemented by the
-    :meth:`betse.science.simrunner.SimRunner.sim` method. This phase
-    simulates the previously initialized cell cluster from a cached input file
-    and caches this simulation to an output file.
-PLOT_SEED : enum
-    Seed visualization phase, as implemented by the
-    :meth:`betse.science.simrunner.SimRunner.plot_seed` method. This phase
-    visualizes the previously created cell cluster from a cached input file and
-    exports the resulting plots and animations to various output files.
-PLOT_INIT : enum
-    Initialization visualization phase, as implemented by the
-    :meth:`betse.science.simrunner.SimRunner.plot_init` method. This phase
-    visualizes the previously initialized cell cluster from a cached input file
-    and exports the resulting plots and animations to various output files.
-PLOT_SIM : enum
-    Simulation visualization phase, as implemented by the
-    :meth:`betse.science.simrunner.SimRunner.plot_sim` method. This phase
-    visualizes the previously simulated cell cluster from a cached input file
-    and exports the resulting plots and animations to various output files.
+    :meth:`betse.science.simrunner.SimRunner.sim` method. This phase simulates
+    the previously initialized cell cluster from a cached input file and caches
+    this simulation to an output file.
 '''
 
 # ....................{ CLASSES                            }....................

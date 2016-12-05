@@ -17,7 +17,7 @@ def test_property_cached() -> None:
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.objects import property_cached
+    from betse.util.type.obj.objs import property_cached
 
     # Unannotated function to be type checked.
     class Keeper(object):

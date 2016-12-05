@@ -155,6 +155,11 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
+        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
+        #profile type be passed. The current approach leaves critical attributes
+        #undefined in the event that the optional Parameters.set_time_profile()
+        #method is left uncalled, which is pretty unacceptable.
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
@@ -456,16 +461,24 @@ class SimRunner(object):
     #FIXME: Shift the low-level matplotlib plotting performed by this method
     #into a new "betse.science.visual.seedpipe" submodule.
 
-    def plot_seed(self) -> None:
+    def plot_seed(self) -> SimPhaser:
         '''
-        Load and visualize a previously seeded cell cluster.
+        Visualize the cell cluster seed by a prior call to the :meth:`seed`
+        method and export the resulting plots and animations to various output
+        files, specified by the current configuration file.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
             'Plotting cell cluster with configuration file "%s".',
             self._config_basename)
 
-        # Create an instance of Parameters
+        # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
 
         # Disable the current overlay. Plotting this artist requires simulation
@@ -473,21 +486,30 @@ class SimRunner(object):
         # this early phase.
         p.I_overlay = False
 
+        # Simulation simulator and cell cluster.
         sim = Simulator(p)
         cells = Cells(p)
 
+        #FIXME: Bizarre logic. We create a "Cells" instance above only to test
+        #whether a single file exists and, if so, replace that instance with a
+        #pickled "Cells" instance unpickled from that file. Let's cut out the
+        #API middleman, as it were, by obtaining the pathname for this file from
+        #the "Parameters" instance instead and then removing the above
+        #instantiation of "cells = Cells(p)".
+
         if files.is_file(cells.savedWorld):
-            cells,_ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
+            cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
             p.sim_ECM = cells.sim_ECM
             logs.log_info('Cell cluster loaded.')
         else:
-            raise BetseSimException("Ooops! No such cell cluster file found to load!")
+            raise BetseSimException(
+                "Ooops! No such cell cluster file found to load!")
 
         sim.baseInit_all(cells,p)
         dyna = TissueHandler(sim,cells,p)
         dyna.tissueProfiles(sim,cells,p)
 
-        if p.autosave is True:
+        if p.autosave:
             images_path = p.init_results
             image_cache_dir = os.path.expanduser(images_path)
             os.makedirs(image_cache_dir, exist_ok=True)
@@ -548,7 +570,7 @@ class SimRunner(object):
 
         # Plot gap junctions.
         if p.plot_cell_connectivity is True:
-            fig_x = plt.figure()
+            plt.figure()
             ax_x = plt.subplot(111)
 
             if p.showCells is True:
@@ -573,38 +595,55 @@ class SimRunner(object):
                 plt.savefig(savename10,format='png',transparent=True)
 
             if p.turn_all_plots_off is False:
-                plt.show(block = False)
+                plt.show(block=False)
 
         if p.turn_all_plots_off is False:
-            plt.show(block = False)
+            plt.show(block=False)
             plt.show()
 
         else:
             logs.log_info(
                 'Plots exported to init results folder '
-                'defined in configuration file "{}".'.format(
-                    self._config_basename))
+                'defined in configuration file "%s".',
+                self._config_basename)
 
-    def plot_init(self) -> None:
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
+
+
+    def plot_init(self) -> SimPhaser:
         '''
-        Load and visualize a previously solved initialization.
+        Visualize the cell cluster initialized by a prior call to the
+        :meth:`init` method and export the resulting plots and animations to
+        various output files, specified by the current configuration file.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
             'Plotting initialization with configuration "%s".',
             self._config_basename)
 
-        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
-        #profile type be passed. The current approach leaves critical attributes
-        #undefined in the event that the optional Parameters.set_time_profile()
-        #method is left uncalled, which is pretty unacceptable.
-        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
 
-        sim = Simulator(p)   # create an instance of Simulator
+        # Simulation simulator.
+        sim = Simulator(p)
+
+        #FIXME: Bizarre logic. We create a "Simulator" instance above only to
+        #test whether a single file exists and, if so, replace that instance
+        #with a pickled "Simulator" instance unpickled from that file. Let's cut
+        #out the API middleman, as it were, by obtaining the pathname for this
+        #file from the "Parameters" instance instead and then removing the above
+        #instantiation of "sim = Simulator(p)".
 
         if files.is_file(sim.savedInit):
-            sim,cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
+            sim, cells, _ = fh.loadSim(sim.savedInit)  # load the initialization from cache
         else:
             raise BetseSimException(
                 "Ooops! No such initialization file found to plot!")
@@ -644,22 +683,33 @@ class SimRunner(object):
         if p.turn_all_plots_off is False:
             plt.show()
 
-    def plot_sim(self) -> None:
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
+
+
+    def plot_sim(self) -> SimPhaser:
         '''
-        Load and visualize a previously solved simulation.
+        Visualize the cell cluster simulated by a prior call to the :meth:`sim`
+        method and export the resulting plots and animations to various output
+        files, specified by the current configuration file.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
         logs.log_info(
             'Plotting simulation with configuration "%s".',
             self._config_basename)
 
-        #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
-        #profile type be passed. The current approach leaves critical attributes
-        #undefined in the event that the optional Parameters.set_time_profile()
-        #method is left uncalled, which is pretty unacceptable.
-        p = Parameters(config_filename=self._config_filename)     # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
         p.set_time_profile(p.time_profile_sim)  # force the time profile to be simulation
-        sim = Simulator(p)   # create an instance of Simulator
+
+        # Simulation simulator.
+        sim = Simulator(p)
 
         # If this simulation has yet to be run, fail.
         if not files.is_file(sim.savedSim):
@@ -706,51 +756,87 @@ class SimRunner(object):
         if p.turn_all_plots_off is False:
             plt.show()
 
-    def plot_brn(self) -> None:
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
+
+
+    def plot_brn(self) -> SimPhaser:
         '''
-        Plot a previously simulated bioenergetics reaction network (BRN).
+        Visualize the pure bioenergetics reaction network (BRN) initialized and
+        simulated by a prior call to the :meth:`sim_brn` method and export the
+        resulting plots and animations to various output files, specified by the
+        current configuration file.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
-        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
 
         MoM = MasterOfMetabolism(p)
         MoM, cells, _ = fh.loadSim(MoM.savedMoM)
 
-        sim = Simulator(p)  # create an instance of Simulator
+        # Simulation simulator.
+        sim = Simulator(p)
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
         sim.time = MoM.time
 
-        MoM.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='Metabolism')
-        MoM.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
-        MoM.core.plot(sim, cells, p, message = 'for metabolic molecules...')
-        MoM.core.anim(sim, cells, p, message = 'for metabolic molecules...')
+        MoM.core.init_saving(
+            cells, p, plot_type='init', nested_folder_name='Metabolism')
+        MoM.core.export_all_data(
+            sim, cells, p, message='for metabolic molecules...')
+        MoM.core.plot(sim, cells, p, message='for metabolic molecules...')
+        MoM.core.anim(sim, cells, p, message='for metabolic molecules...')
 
         if p.turn_all_plots_off is False:
             plt.show()
 
-    def plot_grn(self) -> None:
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
+
+
+    def plot_grn(self) -> SimPhaser:
         '''
-        Plot a previously simulated gene regulatory network (GRN).
+        Visualize the pure gene regulatory network (GRN) initialized and
+        simulated by a prior call to the :meth:`sim_grn` method and export the
+        resulting plots and animations to various output files, specified by the
+        current configuration file.
+
+        Returns
+        ----------
+        SimPhaser
+            High-level simulation phase instance encapsulating all objects
+            internally created by this method to run this phase.
         '''
 
-        p = Parameters(config_filename=self._config_filename)  # create an instance of Parameters
+        # Simulation configuration.
+        p = Parameters(config_filename=self._config_filename)
 
         MoG = MasterOfGenes(p)
         MoG, cells, _ = fh.loadSim(MoG.savedMoG)
 
-        sim = Simulator(p)  # create an instance of Simulator
+        # Simulation simulator.
+        sim = Simulator(p)
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
         sim.time = MoG.time
 
-        MoG.core.init_saving(cells, p, plot_type = 'init',nested_folder_name='GRN')
-        MoG.core.export_all_data(sim, cells, p, message = 'for gene products...')
-        MoG.core.plot(sim, cells, p, message = 'for gene products...')
-        MoG.core.anim(sim, cells, p, message = 'for gene products...')
+        MoG.core.init_saving(
+            cells, p, plot_type='init', nested_folder_name='GRN')
+        MoG.core.export_all_data(sim, cells, p, message='for gene products...')
+        MoG.core.plot(sim, cells, p, message='for gene products...')
+        MoG.core.anim(sim, cells, p, message='for gene products...')
 
         if p.turn_all_plots_off is False:
             plt.show()
+
+        # Create and return an object encapsulating this phase.
+        return SimPhaser(cells=cells, p=p, sim=sim)
 
     # ..................{ UTILITIES                          }..................
     def _die_unless_seed_same(self, p_old, p) -> None:
