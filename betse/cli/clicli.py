@@ -16,6 +16,7 @@ from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.py import pys
+from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check
 
 # ....................{ CLASS                              }....................
@@ -182,17 +183,25 @@ class CLICLI(CLIABC):
         return arg_subparser
 
     # ..................{ SUPERCLASS ~ cli                   }..................
-    def _do(self) -> None:
+    def _do(self) -> object:
         '''
-        Command-line interface (CLI) for `betse`.
+        Implement the BETSE command-line interface (CLI).
+
+        If a subcommand was passed, this method runs this subcommand and returns
+        the result of doing so; else, this method prints help output and returns
+        the current instance of this object.
         '''
 
-        # If no subcommand was passed, print help output and return. Note that
-        # this does *NOT* constitute a fatal error.
+        # If no subcommand was passed...
         if not self._args.subcommand_name_top:
+            #,Print help output. Note that this common case constitutes neither
+            # a fatal error nor non-fatal warning condition.
             print()
             self._arg_parser.print_help()
-            return
+
+            # Return the current instance of this object. While trivial, this
+            # behaviour simplifies memory profiling of this object.
+            return self
 
         # Else, a subcommand was passed.
         #
@@ -209,8 +218,8 @@ class CLICLI(CLIABC):
         # reliable class implementation guarantees this method to exist.
         subcommand_method = getattr(self, subcommand_method_name)
 
-        # Run this subcommand.
-        subcommand_method()
+        # Run this subcommand and return the result of doing so (if any).
+        return subcommand_method()
 
     # ..................{ SUBCOMMANDS ~ info                 }..................
     def _do_info(self) -> None:
@@ -221,17 +230,16 @@ class CLICLI(CLIABC):
         info.output_info()
 
     # ..................{ SUBCOMMANDS ~ sim                  }..................
-    def _do_try(self) -> None:
+    def _do_try(self) -> object:
         '''
-        Run the `try` subcommand.
+        Run the `try` subcommand and return the result of doing so.
         '''
 
         # Basename of the sample configuration file to be created.
         config_basename = 'sample_sim.yaml'
 
         # Relative path of this file, relative to the current directory.
-        self._args.config_filename = paths.join(
-            'sample_sim', config_basename)
+        self._args.config_filename = paths.join('sample_sim', config_basename)
 
         #FIXME: Insufficient. We only want to reuse this file if this file's
         #version is identical to that of the default YAML configuration file's
@@ -241,8 +249,7 @@ class CLICLI(CLIABC):
         # If this file already exists, reuse this file.
         if files.is_file(self._args.config_filename):
             logs.log_info(
-                'Reusing simulation configuration "{}".'.format(
-                    config_basename))
+                'Reusing simulation configuration "%s".', config_basename)
         # Else, create this file.
         else:
             self._do_config()
@@ -254,7 +261,12 @@ class CLICLI(CLIABC):
         self._do_sim()
         self._do_plot_seed()
         self._do_plot_init()
-        self._do_plot_sim()
+
+        # Return the value returned by the last such phase, permitting this
+        # subcommand to be memory profiled. While any value would technically
+        # suffice, the value returned by the last such phase corresponds to a
+        # complete simulation run and hence is likely to consume maximal memory.
+        return self._do_plot_sim()
 
 
     def _do_config(self) -> None:
@@ -272,7 +284,7 @@ class CLICLI(CLIABC):
         Run the `seed` subcommand and return the result of doing so.
         '''
 
-        return self._get_sim_runner().seed()
+        return self._sim_runner.seed()
 
 
     def _do_init(self) -> object:
@@ -280,7 +292,7 @@ class CLICLI(CLIABC):
         Run the `init` subcommand and return the result of doing so.
         '''
 
-        return self._get_sim_runner().init()
+        return self._sim_runner.init()
 
 
     def _do_sim(self) -> object:
@@ -288,7 +300,7 @@ class CLICLI(CLIABC):
         Run the `sim` subcommand and return the result of doing so.
         '''
 
-        return self._get_sim_runner().sim()
+        return self._sim_runner.sim()
 
 
     def _do_sim_brn(self) -> object:
@@ -296,7 +308,7 @@ class CLICLI(CLIABC):
         Run the `sim-brn` subcommand and return the result of doing so.
         '''
 
-        return self._get_sim_runner().sim_brn()
+        return self._sim_runner.sim_brn()
 
 
     def _do_sim_grn(self) -> object:
@@ -304,7 +316,7 @@ class CLICLI(CLIABC):
         Run the `sim-grn` subcommand and return the result of doing so.
         '''
 
-        return self._get_sim_runner().sim_grn()
+        return self._sim_runner.sim_grn()
 
 
     def _do_plot(self) -> object:
@@ -334,7 +346,7 @@ class CLICLI(CLIABC):
         of doing so.
         '''
 
-        return self._get_sim_runner().plot_seed()
+        return self._sim_runner.plot_seed()
 
 
     def _do_plot_init(self) -> object:
@@ -343,7 +355,7 @@ class CLICLI(CLIABC):
         of doing so.
         '''
 
-        return self._get_sim_runner().plot_init()
+        return self._sim_runner.plot_init()
 
 
     def _do_plot_sim(self) -> object:
@@ -352,7 +364,7 @@ class CLICLI(CLIABC):
         of doing so.
         '''
 
-        return self._get_sim_runner().plot_sim()
+        return self._sim_runner.plot_sim()
 
 
     def _do_plot_sim_brn(self) -> object:
@@ -361,7 +373,7 @@ class CLICLI(CLIABC):
         of doing so.
         '''
 
-        return self._get_sim_runner().plot_brn()
+        return self._sim_runner.plot_brn()
 
 
     def _do_plot_sim_grn(self) -> object:
@@ -370,7 +382,7 @@ class CLICLI(CLIABC):
         of doing so.
         '''
 
-        return self._get_sim_runner().plot_grn()
+        return self._sim_runner.plot_grn()
 
 
     def _do_repl(self) -> None:
@@ -391,11 +403,8 @@ class CLICLI(CLIABC):
         repls.start_repl()
 
     # ..................{ GETTERS                            }..................
-    #FIXME: Inefficient, particularly when running _do_try(). Instead, refactor
-    #this method into a new "_sim_runner" property cached by @property_cached,
-    #ensuring that one and only one SimRunner is instantiated for each CLI
-    #instance.
-    def _get_sim_runner(self):
+    @property_cached
+    def _sim_runner(self):
         '''
         BETSE simulation runner preconfigured with sane defaults.
         '''

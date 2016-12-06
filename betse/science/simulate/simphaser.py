@@ -92,5 +92,5 @@ class SimPhaser(SizeProfilableABC):
             obj=self.sim, vars_max=vars_max)
 
         # Return the concatenation of these synopses.
-        return 'Cells {}\nSimulator {}\nParameters {}'.format(
+        return 'Cells {}\n\nSimulator {}\n\nParameters {}'.format(
             size_profile_cells, size_profile_p, size_profile_sim)

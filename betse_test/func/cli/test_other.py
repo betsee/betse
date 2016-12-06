@@ -81,6 +81,7 @@ def test_cli_config(
 
         # Profile types leveraging third-party packages necessitating checking.
         skip_unless_lib_runtime_optional('pprofile')(('line',)),
+        skip_unless_lib_runtime_optional('pympler')(('size',)),
     ),
 )
 def test_cli_profile(
@@ -103,17 +104,18 @@ def test_cli_profile(
         * `none`, performing no profiling.
         * `call`, performing call-granularity profiling.
         * `line`, performing line-granularity profiling.
+        * `size`, performing memory profiling.
     '''
 
     # CLI option enabling this type of profiling.
     profile_type_option = '--profile-type={}'.format(profile_type)
 
-    # If this is the null profiler...
-    if profile_type == 'none':
+    # If this is a profiler outputing no profile file...
+    if profile_type in ('none', 'size',):
         # Profile the basic "betse" command to only the logfile. While the
         # absolute path of a profile file could also be passed, doing so
-        # requires inefficiently creating a temporary directory. Since the null
-        # profiler outputs no profile file, this directory would remain empty.
+        # requires inefficiently creating a temporary directory. Since these
+        # profilers output no profile file, this directory would remain empty.
         betse_cli.run(profile_type_option)
     else:
         # Absolute path of the profile file isolated to a test-specific

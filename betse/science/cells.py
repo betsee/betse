@@ -2436,10 +2436,7 @@ class Cells(object):
                 self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
                 self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
-
-    #..........{ Plotting facilitators                   }.....................
-
-    # FIXME perform this calculation on the fly rather than caching the matrix. Division makes for 1000x larger structure
+    #..........{ MAPPERS                                 }.....................
     @property_cached
     def membranes_midpoint_to_cells_centre(self) -> ndarray:
         '''
@@ -2579,6 +2576,3 @@ class Cells(object):
     #After doing so, consider replacing the "M_sum_mems" array with its tranpspose,
     #which is a # the more general-purpose and efficient array. Unlike the former, the latter is
     #applicable to both Numpy arrays and matrices.
-
-
-

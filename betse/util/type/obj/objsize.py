@@ -354,7 +354,7 @@ def get_size_profile(obj: object, *args, **kwargs) -> str:
     # For the name and size of each of this object's non-builtin variables...
     for var_name, var_size in vars_custom_size:
         # Append this size to this profile.
-        size_profile += '  {}: {:.04f} MiB'.format(var_name, var_size)
+        size_profile += '\n  {}: {:.04f} MiB'.format(var_name, var_size)
 
     # Return this profile.
     return size_profile

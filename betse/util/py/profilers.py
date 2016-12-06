@@ -304,18 +304,12 @@ def _profile_callable_line(
     return return_value
 
 # ....................{ PROFILERS ~ size                   }....................
-#FIXME: Improve docustring, please.
-#FIXME: Unit test us up, please.
 def _profile_callable_size(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
-    Call the passed callable with the passed positional and keyword arguments
-    _without_ profiling this call, returning the value returned by this call.
-
-    Profile the passed callable in a line-oriented deterministic manner with the
-    passed positional and keyword arguments (if any), returning the value
-    returned by this call and optionally logging and serializing the resulting
-    profile to the file with the passed filename.
+    Profile the space consumed by the value returned by calling the passed
+    callable with the passed positional and keyword arguments (if any) and
+    return this value.
 
     See Also
     ----------
@@ -364,17 +358,19 @@ def _profile_callable_size(
 
     # If a synopsis exists to log, do so.
     if size_profile:
-        logs.log_info(size_profile)
+        logs.log_info(
+            'Largest %d top-level object variables '
+            'profiled by total space consumption:\n\n%s',
+            RETURN_VALUE_VARS_MAX, size_profile)
 
     #FIXME: Implement support for serializing this profile to disk.
-
-    # If the caller requested this profile be serialized to a file...
-    if profile_filename is not None:
-        # Notify the caller that doing so is currently unsupported..
-        logs.log_warning(
-            'Memory profile not saved to "%s", '
-            'as this feature is currently unimplemented.',
-            profile_filename)
+    # # If the caller requested this profile be serialized to a file...
+    # if profile_filename is not None:
+    #     # Notify the caller that doing so is currently unsupported..
+    #     logs.log_warning(
+    #         'Memory profile not saved to "%s", '
+    #         'as this feature is currently unimplemented.',
+    #         profile_filename)
 
     # Return the value returned by this call.
     return return_value
