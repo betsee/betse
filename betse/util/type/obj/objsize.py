@@ -141,11 +141,7 @@ def get_size(obj: object, size_divisor: NumericTypes = 1) -> NumericTypes:
 #expected maximum.
 
 @type_check
-def get_sizes_vars(
-    obj: object,
-    size_divisor: NumericTypes = 1,
-    vars_max: int = None
-) -> tuple:
+def get_sizes_vars(obj: object, size_divisor: NumericTypes = 1) -> tuple:
     '''
     2-tuple `(obj_size, vars_custom_size)` of this object's total recurusive
     size _and_ sequence of 2-tuples of the name and total recursive size of each
@@ -163,11 +159,6 @@ def get_sizes_vars(
         each variable of this object, hence converting from sizes in bytes to
         sizes in a larger denomination (e.g., :data:`betse.util.type.ints.KiB`,
         yielding sizes in kibibytes). Defaults to 1, yielding sizes in bytes.
-    vars_max : optional[int]
-        Maximum number of the largest non-builtin variables bound to this object
-        to synopsize the sizes of. Defaults to `None`, in which case this
-        function unconditionally synopsizes the sizes of _all_ non-builtin
-        variables bound to this object (regardless of size).
 
     Returns
     ----------
@@ -221,20 +212,18 @@ def get_sizes_vars(
     vars_size_sorted = iterables.sort_by_index_descending(
         iterable=vars_size, subiterable_index=1)
 
-    # If a maximum number of the largest such variables is requested...
-    if vars_max is not None:
-        # Validate this number to be a positive integer.
-        assert types.is_int_positive(vars_max), (
-            types.assert_not_int_positive(vars_max))
-
-        # Truncate this list to this maximum number of the first such 2-tuples.
-        vars_size_sorted = vars_size_sorted[:vars_max]
-
     # Return the expected 2-tuple.
     return obj_size, vars_size_sorted
 
 # ....................{ GETTERS ~ profile                  }....................
-def get_size_profile(obj: object, *args, **kwargs) -> str:
+def get_size_profile(
+    obj: object,
+    *args,
+    line_indent: str = '',
+    vars_depth: int = 1,
+    vars_max: int = None,
+    **kwargs
+) -> str:
     '''
     Human-readable synopsis of the size of the passed object with all remaining
     arguments passed as is to the :func:`get_sizes_vars` function, calculated
@@ -303,6 +292,17 @@ def get_size_profile(obj: object, *args, **kwargs) -> str:
     ----------
     obj : object
         Object to synopsize the size of.
+    vars_depth: optional[int]
+        Defaults to 1, ...
+    line_indent: optional[str]
+        String to prefix each line of the returned string by, typically
+        consisting of zero or more space characters. Defaults to the empty
+        string.
+    vars_max : optional[int]
+        Maximum number of the largest non-builtin variables bound to this object
+        to synopsize the sizes of. Defaults to `None`, in which case this
+        function unconditionally synopsizes the sizes of _all_ non-builtin
+        variables bound to this object (regardless of size).
 
     All remaining arguments are passed as is to the :func:`get_sizes_vars`
     function.
@@ -332,6 +332,9 @@ def get_size_profile(obj: object, *args, **kwargs) -> str:
     # Human-readable synopsis of the size of this object to be returned.
     size_profile = ''
 
+    # Human-readable string to be appended to this synopsis on being returned.
+    size_profile_suffix = ''
+
     # If the caller failed to specify a size divisor, default to a divisor
     # denominating sizes in mebibytes for readability.
     kwargs.setdefault('size_divisor', MiB)
@@ -339,22 +342,41 @@ def get_size_profile(obj: object, *args, **kwargs) -> str:
     # Total recursive size of this object *AND* a sequence of 2-tuples of the
     # name and recursive in-memory size of each non-builtin variable of this
     # object (in descending size order).
-    obj_size, vars_custom_size = get_sizes_vars(obj=obj, *args, **kwargs)
+    obj_size, vars_name_size = get_sizes_vars(obj=obj, *args, **kwargs)
 
     #FIXME: Convert the current "kwargs['size_divisor']" into a human-readable
     #denomenation (e.g., "GiB", "KiB", "B"). Since this is both non-trivial and
     #currently *NOT* required, we adopt a superior lazy approach.
 
     # Append this size to this profile.
-    size_profile += 'total: {:.04f} MiB'.format(obj_size)
+    size_profile += '{}total: {:.04f} MiB'.format(line_indent, obj_size)
+
+    # Increment the indentation level of object variables totalized below.
+    line_indent += '  '
+
+    # If a maximum number of the largest such variables is requested, ignore all
+    # variables of smaller size. To ensure the synopsis suffix set below is of
+    # the proper indentation level, this is done *AFTER* increasing this level.
+    if vars_max is not None:
+        # Validate this number to be a positive integer.
+        assert types.is_int_positive(vars_max), (
+            types.assert_not_int_positive(vars_max))
+
+        # Truncate this list to this maximum number of the first such 2-tuples.
+        vars_name_size = vars_name_size[:vars_max]
+
+        # Append an ellipses to this synopsis, notifying users that additional
+        # variables exist but were truncated.
+        size_profile_suffix = '\n{}...'.format(line_indent)
 
     #FIXME: Consider left-aligning the sizes printed by this iteration.
     #FIXME: Consider also printing the truncation of the value of each variable.
 
     # For the name and size of each of this object's non-builtin variables...
-    for var_name, var_size in vars_custom_size:
+    for var_name, var_size in vars_name_size:
         # Append this size to this profile.
-        size_profile += '\n  {}: {:.04f} MiB'.format(var_name, var_size)
+        size_profile += '\n{}{}: {:.04f} MiB'.format(
+            line_indent, var_name, var_size)
 
-    # Return this profile.
-    return size_profile
+    # Return this profile, suffixed by this suffix if any.
+    return size_profile + size_profile_suffix

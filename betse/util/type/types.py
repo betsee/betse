@@ -855,14 +855,18 @@ def is_class(obj: object) -> bool:
     return isinstance(obj, ClassType)
 
 
+#FIXME: Nonsense! Remove. There are only new-style classes in Python 3.x.
+
+# Note that this function is an unavoidable duplicate of the
+# betse.util.type.classes.is_new() function. Why? Because this function is
+# required by the type_check decorator itself required by that function. Minor
+# code duplication is a negligible price to pay for type check validation.
 def is_class_new(obj: object) -> bool:
     '''
-    `True` only if the passed object is a new-style class.
+    `True` only if the passed class is a new- rather than old-style class.
     '''
 
-    # The "__name__" attribute is defined only by new-style classes and hence
-    # serves as a useful means of distinguishing new- from old-style classes.
-    return is_class(obj) and hasattr(obj, '__name__')
+    return is_class(obj)
 
 # ....................{ TESTERS ~ collection               }....................
 def is_mapping(obj: object) -> bool:
