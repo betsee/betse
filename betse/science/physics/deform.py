@@ -45,13 +45,13 @@ def getDeformation(sim, cells, t, p):
 
     if p.sim_ECM is True:
 
-        ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism
-        uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_env_y.ravel()[cells.map_mem2ecm] * p.galvanotropism
+        ux_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism
+        uy_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_env_y.ravel()[cells.map_mem2ecm] * p.galvanotropism
 
     else:
 
-        ux_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_x * p.galvanotropism
-        uy_galvo_mem = (1 / p.lame_mu) * p.media_sigma * sim.J_mem_y * p.galvanotropism
+        ux_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_mem_x * p.galvanotropism
+        uy_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_mem_y * p.galvanotropism
 
     if p.deform_osmo is True:
 

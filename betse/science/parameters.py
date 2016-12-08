@@ -850,7 +850,7 @@ class Parameters(object):
         # self.env_delay_const = float(iu['environmental delay factor'])
         # self.cell_delay_const = float(iu['cytosolic delay factor'])
 
-        self.media_sigma = float(iu['media resistivity'])
+        self.media_rho = float(iu['media resistivity'])
 
         # self.electrolyte_screening = float(iu['electrolyte screening factor'])
 
@@ -954,6 +954,8 @@ class Parameters(object):
         self.kb = 1.3806e-23  # Boltzmann constant [m2 kg/ s2 K1]
         self.q = 1.602e-19    # electron charge [C]
         self.mu = 1.275e-6   # magnetic permeability [H/m or N/A2]
+        self.NAv = 6.022e23     # Avagadro's Number
+        self.er = 80.0          # relative dielectric constant of water
 
         self.deltaGATP = -37000    # free energy released in ATP hydrolysis under standard phys conditions [J/mol]
 

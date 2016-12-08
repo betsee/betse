@@ -1176,11 +1176,11 @@ def exportData(cells,sim,p):
 
     headr = headr + ',' + 'Displacement_um'
 
-    # cluster polarization vector------------------------------
-    polar_x = sim.Pol_tot_x_time
-    headr = headr + ',' + 'Polarization x_C/m'
-    polar_y = sim.Pol_tot_y_time
-    headr = headr + ',' + 'Polarization y_C/m'
+    # # cluster polarization vector------------------------------
+    # polar_x = sim.Pol_tot_x_time
+    # headr = headr + ',' + 'Polarization x_C/m'
+    # polar_y = sim.Pol_tot_y_time
+    # headr = headr + ',' + 'Polarization y_C/m'
 
 
     # FFT of voltage :
@@ -1194,7 +1194,7 @@ def exportData(cells,sim,p):
     fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
 
     dataM = np.column_stack((t,vm,vm_goldman,pump_rate,cc_cell.T, dd_cell.T,
-                             p_hydro,p_osmo,disp, polar_x, polar_y))
+                             p_hydro,p_osmo,disp))
 
     headr2 = 'frequency_Hz'
     headr2 = headr2 + ',' + 'FFT_Vmem'

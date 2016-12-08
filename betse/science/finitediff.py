@@ -991,8 +991,8 @@ def diff(F,delx,axis=0):
         dF_interior = -(F[:-2,:] - F[2:,:])/(2*delx)
 
         # calculate the discrete forward or backward first derivatives on the boundary points:
-        dF_B = (F[1,:] - F[0,:])/delx
-        dF_T = (F[-1,:] - F[-2,:])/delx
+        dF_B = -(F[1,:] - F[0,:])/delx
+        dF_T = -(F[-1,:] - F[-2,:])/delx
 
         dF = np.zeros(F.shape)
 

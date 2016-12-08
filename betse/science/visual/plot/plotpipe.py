@@ -214,12 +214,12 @@ def pipeline_plots(
             simdata = 1.0e3*sim.vm_ave_time[i]
             viz.export2dData(i, simdata, cells, p)
 
-        for i, t in enumerate(sim.time):
-            simdata_x = 1.0e3*sim.pol_x_time[i]
-            viz.export2dData(i, simdata_x, cells, p, foldername = 'Polarization_x', filebit = 'Pol_x')
-
-            simdata_y = 1.0e3 * sim.pol_y_time[i]
-            viz.export2dData(i, simdata_y, cells, p, foldername='Polarization_y', filebit='Pol_y')
+        # for i, t in enumerate(sim.time):
+        #     simdata_x = 1.0e3*sim.pol_x_time[i]
+        #     viz.export2dData(i, simdata_x, cells, p, foldername = 'Polarization_x', filebit = 'Pol_x')
+        #
+        #     simdata_y = 1.0e3 * sim.pol_y_time[i]
+        #     viz.export2dData(i, simdata_y, cells, p, foldername='Polarization_y', filebit='Pol_y')
 
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS

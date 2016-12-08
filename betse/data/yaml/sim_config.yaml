@@ -621,13 +621,14 @@ variable settings:
 
   env boundary concentrations:   # these concentrations are placed at the global boundary durring init and sim
                                  # altering these is an easy way to change extracellular ion concentrations
+                                 # uncomment the fields below to set new env boundaries, otherwise feature ignored!
 
-    Na: 145.0    # Na+ concentration at bound [mM]
-    K: 5.0      # K+ concentration at bound [mM]
-    Cl: 110.0    # Cl- concentration at bound [mM]
-    Ca: 1.0     # Ca2+ concentration at bound [mM]
-    P: 10.0      # Protein- concentration at bound [mM]
-    M: 31.0     # Anion (bicarbonate) concentration at bound [mM]
+#    Na: 145.0    # Na+ concentration at bound [mM]
+#    K: 5.0      # K+ concentration at bound [mM]
+#    Cl: 110.0    # Cl- concentration at bound [mM]
+#    Ca: 1.0     # Ca2+ concentration at bound [mM]
+#    P: 10.0      # Protein- concentration at bound [mM]
+#    M: 31.0     # Anion (bicarbonate) concentration at bound [mM]
 
   temperature: 310            # system temperature [K]
 
@@ -1093,7 +1094,7 @@ internal parameters:
 
   env modulation factor: 0.0   #  (0.0 to 50.0) factor enhancing env voltage (accounts for smaller TJ width in reality)
 
-  media resistivity: 0.021  # electrical resistivity of bulk electrolyte (Ohms.m)
+  media resistivity: 0.21  # electrical resistivity of bulk electrolyte (Ohms.m)
 
   time acceleration: 1.0 # factor accelerating time for slow processes (GJ diffusion)
 

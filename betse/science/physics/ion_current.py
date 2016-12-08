@@ -20,9 +20,6 @@ def get_current(sim, cells, p):
     # calculate current density across cell membranes via gap junctions:
     Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
 
-    # # calculate the change in polarization from the displacement current:
-    # sim.Pol_mem = sim.Pol_mem + p.dt*sim.dvm*p.cm*p.cell_polarizability
-
     # add the free current sources together into a single transmembrane current:
     sim.Jn = Jn + Jgj
 
@@ -37,24 +34,13 @@ def get_current(sim, cells, p):
     sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
 
-    Jgj_cell_x = np.dot(cells.M_sum_mems, Jgj*nx) / cells.num_mems
-    Jgj_cell_y = np.dot(cells.M_sum_mems, Jgj*ny) / cells.num_mems
-
-    Jm_cell_x = np.dot(cells.M_sum_mems, Jn*nx) / cells.num_mems
-    Jm_cell_y = np.dot(cells.M_sum_mems, Jn*ny) / cells.num_mems
-
-
-
 
     # Current in the environment --------------------------------------------------------------------------------------
     if p.sim_ECM is True:
 
-        # non divergence free current densities in the environment:
-        # J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
-        # J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
-
-        J_env_x_o = np.zeros(sim.edl)
-        J_env_y_o = np.zeros(sim.edl)
+        # current densities in the environment:
+        J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
+        J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
 
         # # base current in environment is equivalent to transmembrane current of cells:
         # J_env_x_o[cells.map_cell2ecm] = J_env_x_o[cells.map_cell2ecm] + sim.J_cell_x*(
@@ -63,91 +49,71 @@ def get_current(sim, cells, p):
         # J_env_y_o[cells.map_cell2ecm] = J_env_y_o[cells.map_cell2ecm] + sim.J_cell_y*(
         #     cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
 
-        # J_env_x_o[cells.map_mem2ecm] = J_env_x_o[cells.map_mem2ecm] + Jnx*(cells.memSa_per_envSquare[cells.map_mem2ecm]/cells.delta**2)
-        # J_env_y_o[cells.map_mem2ecm] = J_env_y_o[cells.map_mem2ecm] + Jny*(cells.memSa_per_envSquare[cells.map_mem2ecm]/cells.delta**2)
-
-        J_env_x_o[cells.map_cell2ecm] = J_env_x_o[cells.map_cell2ecm] - Jgj_cell_x*(
-            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2) + Jm_cell_x*(
-            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
-
-        J_env_y_o[cells.map_cell2ecm] = J_env_y_o[cells.map_cell2ecm] - Jgj_cell_y*(
-            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)  +  Jm_cell_y*(
-            cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
+        # reshape the matrix:
+        J_env_x_o = J_env_x_o.reshape(cells.X.shape)
+        J_env_y_o = J_env_y_o.reshape(cells.X.shape)
 
 
 
+        #---METHOD 1: Calculate potential to make currents divergence-free ---------------------
+
+        # smooth the currents:
         # if p.smooth_level > 0.0:
-        #     J_env_x_o = gaussian_filter(J_env_x_o.reshape(cells.X.shape), p.smooth_level).ravel()
-        #     J_env_y_o = gaussian_filter(J_env_y_o.reshape(cells.X.shape), p.smooth_level).ravel()
+        #     J_env_x_o = gaussian_filter(J_env_x_o, p.smooth_level)
+        #     J_env_y_o = gaussian_filter(J_env_y_o, p.smooth_level)
 
-        AA, Fx, Fy, BB, _, _ = stb.HH_Decomp(J_env_x_o.reshape(cells.X.shape), J_env_y_o.reshape(cells.X.shape), cells)
+        # conductivity in the media is modified by the environmental diffusion weight matrix:
+        sigma = (1/p.media_rho)*sim.D_env_weight   # general conductivity
 
+        div_Jo = fd.divergence((J_env_x_o / sigma), (J_env_y_o / sigma), cells.delta, cells.delta)
 
-        # sim.v_env = -BB.ravel()/p.media_sigma
+        # add-in any boundary conditions pertaining to an applied (i.e. external) voltage:
+        div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)
+        div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
+        div_Jo[0,:] = sim.bound_V['B']*(1/cells.delta**2)
+        div_Jo[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
 
-        sim.J_env_x = Fx.reshape(cells.X.shape)
-        sim.J_env_y = Fy.reshape(cells.X.shape)
+        # calculate the voltage balancing the divergence of the currents:
+        Phi = np.dot(cells.lapENVinv, div_Jo.ravel())
 
-        sim.E_env_x = sim.J_env_x*p.media_sigma
-        sim.E_env_y = sim.J_env_y*p.media_sigma
+        # the global environmental voltage is equal to Phi:
+        sim.v_env = Phi
 
+        # calculate the gradient of Phi:
+        gPhix, gPhiy = fd.gradient(Phi.reshape(cells.X.shape), cells.delta)
 
+        sim.E_env_x = -gPhix
+        sim.E_env_y = -gPhiy
 
-
-
-        # # determine corrected current densities assuming
-        # # bulk electrolyte neutrality of entire system:
+        # correct the currents using Phi:
+        sim.J_env_x = J_env_x_o + sim.E_env_x*sigma
+        sim.J_env_y = J_env_y_o + sim.E_env_y*sigma
         #
-        # # Next, calculate the divergence of the environmental current density:
-        # div_J_env_o = fd.divergence(J_env_x_o.reshape(cells.X.shape), J_env_y_o.reshape(cells.X.shape),
-        #     cells.delta, cells.delta)
-        #
-        #
-        # # Next, calculate the divergence of the environmental current density divided by media conductivity:
-        # # weight_factor = p.media_sigma*sim.D_env_weight
-        # #
-        # # div_J_env_o = fd.divergence((1/weight_factor)*J_env_x_o.reshape(cells.X.shape),
-        # #                             (1/weight_factor)*J_env_y_o.reshape(cells.X.shape),
-        # #                             cells.delta, cells.delta)
-        #
-        # # Find the value of the environmental electric potential:
-        # Phi = np.dot(cells.lapENV_P_inv, -div_J_env_o.ravel())
-        # Phi = Phi.reshape(cells.X.shape)
-        #
-        # sim.Phi_env = Phi
-        #
-        # sim.v_env = np.copy(sim.Phi_env.ravel())
-        # # sim.v_env[cells.inds_env] = 0.0
-        # # sim.v_env[cells.ecm_bound_k] = 0.0
-        #
-        # # Take the grid gradient of the scaled internal potential:
-        # gPhix, gPhiy = fd.gradient(Phi, cells.delta)
-        #
-        # # subtract the potential term from the solution to yield the actual current density in the environment:
-        # # sim.J_env_x = (J_env_x_o.reshape(cells.X.shape) + (weight_factor)*gPhix)
-        # # sim.J_env_y = (J_env_y_o.reshape(cells.X.shape) + (weight_factor)*gPhiy)
-        #
-        # sim.J_env_x = (J_env_x_o.reshape(cells.X.shape) + gPhix)
-        # sim.J_env_y = (J_env_y_o.reshape(cells.X.shape) + gPhiy)
+        # # smooth the currents:
+        # if p.smooth_level > 0.0:
+        #     sim.J_env_x = gaussian_filter(sim.J_env_x, p.smooth_level)
+        #     sim.J_env_y = gaussian_filter(sim.J_env_y, p.smooth_level)
 
 
-        # Calculate a divergence-free net current, which assumes charge compensation of the bulk electrolyte:
-        # This method uses the Helmholtz-Hodge decomposition for a 2D vector field:
 
-        # Jxr = -J_env_y_o.reshape(cells.X.shape)
-        # Jyr = J_env_x_o.reshape(cells.X.shape)
+        #--METHOD 2: reconstruct field from currents using Helmholtz-Hodge decomposition-----
+        # bounds = {'L': -sim.bound_V['L'], 'R': -sim.bound_V['R'], 'T': -sim.bound_V['T'], 'B': -sim.bound_V['B'] }
+        # AA, Ax, Ay, BB, Bx, By = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells, bounds = bounds)
         #
-        # divJr = fd.divergence(Jxr, Jyr, cells.delta, cells.delta)
+        # # the environmental voltage is the negative of the curl-free field:
+        # sim.v_env = -(1/p.media_rho)*BB.ravel()
+        # sim.E_env_x = Bx
+        # sim.E_env_y = By      #
+        # # sim.Bz = AA           # magnetic (H) field
         #
-        # AA = np.dot(cells.lapENVinv, -divJr.ravel())
-        #
-        # gAx, gAy = fd.gradient(AA.reshape(cells.X.shape), cells.delta)
-        #
-        # sim.J_env_x = -gAy
-        # sim.J_env_y = gAx
+        # # fluxes are already individually divergence-corrected; save final currents:
+        # sim.J_env_x = J_env_x_o
+        # sim.J_env_y = J_env_y_o
 
-        # sim.E_env_x = p.media_sigma*sim.J_env_x
-        # sim.E_env_y = p.media_sigma*sim.J_env_y
+
+
+
+
 
 
 

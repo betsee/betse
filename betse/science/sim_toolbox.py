@@ -1079,12 +1079,8 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     # update cell and environmental concentrations
     cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
 
-    if p.sim_ECM is True:
-        # cX_env_1_temp = gaussian_filter(cX_env_1.reshape(cells.X.shape), p.smooth_level)
-        # cX_env_1 = cX_env_1_temp.ravel()
-        pass
 
-    else:
+    if p.sim_ECM is False:
         cX_env_1_temp = cX_env_1.mean()
         cX_env_1[:] = cX_env_1_temp
 
@@ -1203,11 +1199,8 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     # cX_cell_1 = no_negs(cX_cell_1)
     # cX_env_1 = no_negs(cX_env_1)
 
-    if p.sim_ECM is True:
 
-        pass
-
-    else:
+    if p.sim_ECM is False:
         cX_env_1_temp = cX_env_1.mean()
         cX_env_1[:] = cX_env_1_temp
 
@@ -1348,13 +1341,13 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         if smoothECM is True and p.smooth_level > 0.0:
             cenv = gaussian_filter(cenv, p.smooth_level)
 
-        v_env = sim.v_env.reshape(cells.X.shape)
-
-        # enforce voltage at boundary:
-        v_env[:, 0] = sim.bound_V['L']
-        v_env[:, -1] = sim.bound_V['R']
-        v_env[0, :] = sim.bound_V['B']
-        v_env[-1, :] = sim.bound_V['T']
+        # v_env = sim.v_env.reshape(cells.X.shape)
+        #
+        # # enforce voltage at boundary:
+        # v_env[:, 0] = sim.bound_V['L']
+        # v_env[:, -1] = sim.bound_V['R']
+        # v_env[0, :] = sim.bound_V['B']
+        # v_env[-1, :] = sim.bound_V['T']
 
         cenv[:, 0] = c_bound
         cenv[:, -1] = c_bound
@@ -1366,7 +1359,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        gvx, gvy = fd.gradient(v_env, cells.delta)
+        # gvx, gvy = fd.gradient(v_env, cells.delta)
 
         # self.E_env_x = self.E_env_x -gvx
         # self.E_env_y = self.E_env_y -gvy
@@ -1376,7 +1369,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         # E_env_x = 0.0
         # E_env_y = 0.0
 
-        fx, fy = nernst_planck_flux(cenv, gcx, gcy, gvx, gvy, 0, 0,
+        fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, 0, 0,
                                         denv, z, sim.T, p)
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
@@ -1389,6 +1382,8 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cenv = cenv + div_fa * p.dt
 
         cX_env_o = cenv.ravel()
+
+
 
         # if p.closed_bound is True:
         #     btag = 'closed'
@@ -1575,7 +1570,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     # take the divergence of the flux for each enclosed cell:
     delta_cells = np.dot(cells.M_sum_mems, flux * cells.mem_sa) / cells.cell_vol
 
-    # if p.cluster_open is False:
+    # if p.cluster_open is False: FIXME what is this?
     #
     #     delta_cells[cells.bflags_cells] = 0.0
 
@@ -1610,8 +1605,12 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
 
             delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
 
+        # if p.smooth_level > 0.0:
+        #     delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
+
         # update the environmental concentrations:
         cX_env = cX_env + delta_env * p.dt
+
 
     else:
 
@@ -1624,8 +1623,53 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
 
     return cX_cell, cX_env
 
+def div_env(flux, sim, cells, p):
 
-def HH_Decomp(JJx, JJy, cells):
+    flux_env = np.zeros(sim.edl)
+    flux_env[cells.map_mem2ecm] = -flux
+
+    # save values at the cluster boundary:
+    bound_vals = flux_env[cells.ecm_bound_k]
+
+    # set the values of the global environment to zero:
+    flux_env[cells.inds_env] = 0
+
+    # finally, ensure that the boundary values are restored:
+    flux_env[cells.ecm_bound_k] = bound_vals
+
+    # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the
+    # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
+    # to get the mol/s change in concentration (divergence):
+
+    if sim.ignore_ecm is False:
+
+        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+
+    else:
+
+        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+
+    # if p.smooth_level > 0.0:
+    #     delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
+
+    return delta_env
+
+
+def HH_Decomp(JJx, JJy, cells, bounds = None):
+
+    if bounds is not None:
+
+        Lb = bounds['L']
+        Rb = bounds['R']
+        Tb = bounds['T']
+        Bb = bounds['B']
+
+    else:
+        Lb = 0.0
+        Rb = 0.0
+        Tb = 0.0
+        Bb = 0.0
+
     # ----divergence-free component--------------------------------------
 
     Jxr = -JJx.reshape(cells.X.shape)
@@ -1645,6 +1689,15 @@ def HH_Decomp(JJx, JJy, cells):
     # ----curl free component------------------------------------------
 
     divJd = fd.divergence(JJx.reshape(cells.X.shape), JJy.reshape(cells.X.shape), cells.delta, cells.delta)
+
+    # set boundary conditions for normal component
+    # enforce applied voltage condition at the boundary:
+    divJd[:, 0] = Lb * (1 / cells.delta ** 2)
+    divJd[:, -1] = Rb * (1 / cells.delta ** 2)
+    divJd[0, :] = Bb * (1 / cells.delta ** 2)
+    divJd[-1, :] = Tb * (1 / cells.delta ** 2)
+
+
     BB = np.dot(cells.lapENVinv, divJd.ravel())
 
     Gx, Gy = fd.gradient(BB.reshape(cells.X.shape), cells.delta)
@@ -1653,8 +1706,33 @@ def HH_Decomp(JJx, JJy, cells):
 
     return AA, Fx, Fy, BB, Gx, Gy
 
-    # return AA, Fx, Fy, F, BB, Gx, Gy, G
-    # return AA, BB
+
+def div_free(Fxo, Fyo, cells):
+
+    """
+
+    Uses a "hidden potential" method to
+    calculate a divergence-free field
+
+    :param Fxo:  x-component of input field
+    :param Fyo:  y-component of input field
+    :param cells:  cells instance
+    :return: Fx, Fy divergence-free field components (finite divergence at bounds)
+
+    """
+    # calculate divergence of vector field:
+    divF = fd.divergence(Fxo.reshape(cells.X.shape), Fyo.reshape(cells.X.shape), cells.delta, cells.delta)
+
+    # value of the correcting potenial:
+    Phi = np.dot(cells.lapENVinv, divF.ravel())
+
+    gPhix, gPhiy = fd.gradient(Phi.reshape(cells.X.shape), cells.delta)
+
+    Fx = Fxo.reshape(cells.X.shape) - gPhix
+    Fy = Fyo.reshape(cells.X.shape) - gPhiy
+
+    return Fx, Fy, Phi
+
 
 #----------------------------------------------------------------------------------------------------------------
 # WASTELANDS
