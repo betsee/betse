@@ -81,7 +81,7 @@ def test_cli_config(
 
         # Profile types leveraging third-party packages necessitating checking.
         skip_unless_lib_runtime_optional('pprofile')(('line',)),
-        skip_unless_lib_runtime_optional('pympler')(('size',)),
+        skip_unless_lib_runtime_optional('Pympler')(('size',)),
     ),
 )
 def test_cli_profile(

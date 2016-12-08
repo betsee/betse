@@ -8,7 +8,7 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import inspect
+import inspect, platform
 from betse.util.type.types import (
     type_check, CallableTypes, GeneratorType, PropertyType)
 from functools import wraps
@@ -117,6 +117,139 @@ def is_method(obj: object, method_name: str) -> bool:
 
     # Return whether this attribute is a method.
     return callable(method)
+
+# ....................{ TESTERS ~ pure                     }....................
+# Tester distinguishing pure-Python from C-based class instances. Doing so is
+# surprisingly non-trivial and, indeed, technically feasible with 100% accuracy
+# *ONLY* under the official CPython interpreter. Why? Because the most accurate
+# means of portably implementing this test in a cross-interpreter manner is to
+# test whether the passed class instance defines the reserved "__dict__" or
+# "__slots__" attributes. Whereas all pure-Python class instances are guaranteed
+# to declare one or the other, most C-based class instances define neither. Of
+# course, "most" is hardly "all." A C-based class may optionally request a
+# "__dict__" attribute via "tp_dictoffset", resulting in false negatives in
+# uncommon edge cases.
+#
+# If *NOT* running under the official CPython interpreter, this is the strongest
+# possible implementation of this test; if running under the official CPython
+# interpreter, however, this implementation may be strengthened by detecting
+# whether or not the class of the passed class instance is a "heap type" (as
+# defined by the "_Py_TPFLAGS_HEAPTYPE" docstring below). Only pure-Python
+# classes are heap types, preserving a one-to-one correspondence between tester
+# results and underlying interpreter reality.
+#
+# If the active Python interpreter is the official CPython implementation,
+# prefer a more reliable CPython-specific solution guaranteed to succeed. Note
+# that, to avoid circular import dependencies, this conditional unavoidably
+# duplicates the existing betse.util.py.interpreters.is_cpython() tester.
+if platform.python_implementation() == 'CPython':
+    _Py_TPFLAGS_HEAPTYPE = (1<<9)
+    '''
+    Magic number defined by the `Include/object.h` C header in the official
+    CPython codebase.
+
+    CPython ORs the `__flags__` bit field of the class object for each **heap
+    type** (i.e., pure-Python class whose type structure is dynamically
+    allocated at interpreter runtime rather than a C-based class whose type
+    structure is statically preallocated at either interpreter or C extension
+    compile time).
+    '''
+
+    # To reduce duplication, this tester's docstring is dynamically set below.
+    @type_check
+    def is_pure_python(obj: object) -> bool:
+
+        # If the passed object is *NOT* a class, this object *MUST* be a class
+        # instance. (By Python 3.x design, all objects -- including primitive
+        # builtins such as "int" and "bool" -- are one or the other). In this
+        # case, obtain the class this instance is an instance of.
+        cls = obj if isinstance(obj, type) else type(obj)
+
+        # Return True only if this class is a heap type, as indicated by its
+        # heap type bit flag being non-zero.
+        return bool(cls.__flags__ & _Py_TPFLAGS_HEAPTYPE)
+# Else, fallback to a CPython-agnostic solution typically but *NOT* necessarily
+# succeeding. For all real-world objects of interest, this is effectively
+# successful. Edge cases exist but are suitably rare. See the commentary above.
+else:
+    # To reduce duplication, this tester's docstring is dynamically set below.
+    @type_check
+    def is_pure_python(obj: object) -> bool:
+
+        # If the passed object is a class, return True only if this class
+        # defines either the "__dict__" or "__slots__" attributes.
+        # Unfortunately, the trivial test "hasattr(cls, '__dict__')" does *NOT*
+        # suffice to decide whether this class defines the "__dict__" attribute.
+        # Why? Because this attribute unconditionally exists for *ALL* classes,
+        # pure-Python and C-based alike. Hence:
+        #
+        #     >>> hasattr(int, '__dict__')
+        #     True
+        #
+        # For unknown and presumably banal reasons, the dir() builtin strips the
+        # "__dict__" attribute name from its returned list only for C-based
+        # classes. Hence, detecting whether a class is pure-Python or C-based in
+        # a cross-interpreter manner reduces to iteratively searching the list
+        # returned by dir() for this name.
+        #
+        # This constraint does *NOT* extend to the "__slots__" attribute, which
+        # exists if and only if this class explicitly defines this attribute.
+        # Are we having fun yet?
+        if isinstance(obj, type):
+            return '__dict__' in dir(obj) or hasattr(obj, '__slots__')
+        # Else, this object *MUST* be a class instance. In this case, return
+        # True only if similar conditions hold. Since a class instance defines
+        # the "__dict__" attribute only if this instance is a pure-Python
+        # instance whose class does *NOT* define the "__slots__" attribute, this
+        # conditional may efficiently lookup the "__dict__" attribute directly
+        # rather than inefficiently defer to the dir() builtin. It is fun!
+        else:
+            return hasattr(obj, '__dict__') or hasattr(obj, '__slots__')
+
+# Docstring dynamically set for the tester defined above.
+is_pure_python.__doc__ = '''
+`True` if the passed object is either a pure-Python class or instance of such a
+class _or_ `False` otherwise (i.e., if this object is either a C-based class or
+instance of such a class, either builtin or defined by a C extension,).
+
+Parameters
+----------
+obj : object
+    Object to be tested.
+
+Returns
+----------
+bool
+    `True` only if this object is a pure-Python class _or_ instance of such a
+    class.
+
+See Also
+----------
+https://stackoverflow.com/a/41012823/2809027
+    Stackoverflow answer strongly inspiring this implementation.
+'''
+
+
+def is_c_based(obj: object) -> bool:
+   '''
+    `True` if the passed object is either a C-based class or instance of such a
+    class (either builtin or defined by a C extension) _or_ `False` otherwise
+    (i.e., if this object is either a pure-Python class or instance of such a
+    class).
+
+    Parameters
+    ----------
+    obj : object
+        Object to be tested.
+
+    Returns
+    ----------
+    bool
+        `True` only if this object is a C-based class _or_ instance of such a
+        class.
+   '''
+
+   return not is_pure_python(obj)
 
 # ....................{ GETTERS                            }....................
 @type_check

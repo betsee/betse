@@ -216,6 +216,7 @@ def get_sizes_vars(obj: object, size_divisor: NumericTypes = 1) -> tuple:
     return obj_size, vars_size_sorted
 
 # ....................{ GETTERS ~ profile                  }....................
+#FIXME: Document the "vars_depth" parameter.
 def get_size_profile(
     obj: object,
     *args,
@@ -327,22 +328,47 @@ def get_size_profile(
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.type.obj import objs
     from betse.util.type.ints import MiB
 
+    # If the caller failed to specify a size divisor, default to a divisor
+    # denominating sizes in mebibytes for readability.
+    kwargs.setdefault('size_divisor', MiB)
+
+    # If either this is the bottom-most recursive call in the current subtree of
+    # recursive calls *OR* this object is C-based (i.e., is either builtin or
+    # defined by a C extension), halt the recursion by returning a single-line
+    # profile rather than recursively introspecting this object.
+    #
+    # If this object is C-based, recursively introspecting this object would be
+    # trivially feasible. Python code makes no distinction between pure-Python
+    # and C-based objects. Indeed, differentiating between the two with Python
+    # code is non-trivial! That said, recursively introspecting C-based objects
+    # would be largely pointless; size profiles are principally intended to
+    # profile the space consumed by variables bound to application-specific
+    # pure-Python objects rather than those bound to external C-based objects.
+    if vars_depth == 0 or objs.is_c_based(obj):
+        # Total recursive size of only this object.
+        obj_size = get_size(obj, *args, **kwargs)
+
+        #FIXME: Generalize the format specifier "{:.04f} MiB" into a new local
+        #constant declared above. DRY in all things.
+
+        # Return a single-line profile.
+        return '{:.04f} MiB'.format(obj_size)
+
+    # Else, recursively introspect this object.
+    #
     # Human-readable synopsis of the size of this object to be returned.
     size_profile = ''
 
     # Human-readable string to be appended to this synopsis on being returned.
     size_profile_suffix = ''
 
-    # If the caller failed to specify a size divisor, default to a divisor
-    # denominating sizes in mebibytes for readability.
-    kwargs.setdefault('size_divisor', MiB)
-
     # Total recursive size of this object *AND* a sequence of 2-tuples of the
     # name and recursive in-memory size of each non-builtin variable of this
     # object (in descending size order).
-    obj_size, vars_name_size = get_sizes_vars(obj=obj, *args, **kwargs)
+    obj_size, vars_name_size = get_sizes_vars(obj, *args, **kwargs)
 
     #FIXME: Convert the current "kwargs['size_divisor']" into a human-readable
     #denomenation (e.g., "GiB", "KiB", "B"). Since this is both non-trivial and
@@ -354,10 +380,11 @@ def get_size_profile(
     # Increment the indentation level of object variables totalized below.
     line_indent += '  '
 
-    # If a maximum number of the largest such variables is requested, ignore all
+    # If a maximum number of the largest variables is requested *AND* the number
+    # of variables bound to this object exceeds this maximum, ignore all
     # variables of smaller size. To ensure the synopsis suffix set below is of
     # the proper indentation level, this is done *AFTER* increasing this level.
-    if vars_max is not None:
+    if vars_max is not None and len(vars_name_size) > vars_max:
         # Validate this number to be a positive integer.
         assert types.is_int_positive(vars_max), (
             types.assert_not_int_positive(vars_max))
