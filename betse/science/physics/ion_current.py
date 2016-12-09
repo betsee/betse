@@ -85,9 +85,18 @@ def get_current(sim, cells, p):
         sim.E_env_x = -gPhix
         sim.E_env_y = -gPhiy
 
-        # correct the currents using Phi:
-        sim.J_env_x = J_env_x_o + sim.E_env_x*sigma
-        sim.J_env_y = J_env_y_o + sim.E_env_y*sigma
+        # # correct the currents using Phi:
+        # sim.J_env_x = J_env_x_o + sim.E_env_x*sigma
+        # sim.J_env_y = J_env_y_o + sim.E_env_y*sigma
+
+        #Helmholtz-Hodge decomposition to obtain divergence-free projection of currents (zero at boundary):
+        _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o,
+                                                             J_env_y_o, cells)
+
+        # sim.J_env_x = sim.E_env_x*(1/p.media_rho)
+        # sim.J_env_y = sim.E_env_y*(1/p.media_rho)
+
+
         #
         # # smooth the currents:
         # if p.smooth_level > 0.0:

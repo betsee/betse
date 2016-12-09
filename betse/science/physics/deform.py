@@ -41,84 +41,17 @@ def getDeformation(sim, cells, t, p):
     # Determine action forces
     #---------------------------------------------------------------------------------
 
-    # deformation by galvanotropism:
+    # deformation by electrostrictive forces:
+    Fx = (1 / p.lame_mu) * p.media_rho * sim.J_cell_x * sim.rho_cells * p.galvanotropism
+    Fy = (1 / p.lame_mu) * p.media_rho * sim.J_cell_y * sim.rho_cells* p.galvanotropism
 
-    if p.sim_ECM is True:
+    # Calculate flow under body forces using time-independent linear elasticity equation:
+    dxo = np.dot(cells.lapGJinv, -Fx)
+    dyo = np.dot(cells.lapGJinv, -Fy)
 
-        ux_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_env_x.ravel()[cells.map_mem2ecm] * p.galvanotropism
-        uy_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_env_y.ravel()[cells.map_mem2ecm] * p.galvanotropism
-
-    else:
-
-        ux_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_mem_x * p.galvanotropism
-        uy_galvo_mem = (1 / p.lame_mu) * p.media_rho * sim.J_mem_y * p.galvanotropism
-
-    if p.deform_osmo is True:
-
-        # u_osmo is negative as it's defined + into the cell in pressures.py
-        u_osmo = -sim.u_net
-
-    else:
-        u_osmo = np.zeros(sim.mdl)
-
-
-    # --calculate displacement field for incompressible medium------------------------------------------------
-
-    # calculate the initial displacement field (not divergence free!) for the forces using the linear elasticity
-    # equation:
-
-    # if p.fixed_cluster_bound is True:
-    #
-    #     u_x_o = np.dot(cells.lapGJinv, -(1 / p.lame_mu) * (F_cell_x))  # FIXME solve with lapGJ_P and lsmr
-    #     u_y_o = np.dot(cells.lapGJinv, -(1 / p.lame_mu) * (F_cell_y))  # FIXME solve with lapGJ_P and lsmr
-    #
-    #     # enforce boundary conditions on u:
-    #     if p.fixed_cluster_bound is True:
-    #         u_x_o[cells.bflags_cells] = 0
-    #         u_y_o[cells.bflags_cells] = 0
-    #         u_x_o[cells.nn_bound] = 0
-    #         u_y_o[cells.nn_bound] = 0
-    #
-    # else:
-    #
-    #     u_x_o = np.dot(cells.lapGJ_P_inv, -(1 / p.lame_mu) * (F_cell_x))
-    #     u_y_o = np.dot(cells.lapGJ_P_inv, -(1 / p.lame_mu) * (F_cell_y))
-
-
-    # get the normal component of the deformation at the membranes:
-    u_n = ux_galvo_mem * cells.mem_vects_flat[:, 2] + uy_galvo_mem * cells.mem_vects_flat[:, 3]
-
-    # calculate divergence as the sum of this vector times each surface area, divided by cell volume:
-    div_u = (np.dot(cells.M_sum_mems, u_n * cells.mem_sa) / cells.cell_vol) - sim.div_u_osmo
-
-    # calculate the reaction pressure required to counter-balance the deform field field:
-    if p.fixed_cluster_bound is True:
-
-        P_react = np.dot(cells.lapGJ_P_inv, div_u)
-        # P_react = lsmr(cells.lapGJ_P, div_u)[0]
-
-    else:
-
-        P_react = np.dot(cells.lapGJinv, div_u)
-        # P_react = lsmr(cells.lapGJ, div_u)[0]
-
-    # calculate its gradient:
-    gradP_react = (P_react[cells.cell_nn_i[:, 1]] - P_react[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-
-    # correct the deformation:
-    u_net = u_n - gradP_react
-
-    ux = u_net*cells.mem_vects_flat[:,2]
-    uy = u_net*cells.mem_vects_flat[:,3]
-
-    # calculate the net displacement of cell centres under the applied force under incompressible conditions:
-    sim.d_cells_x = np.dot(cells.M_sum_mems, ux) / cells.num_mems
-    sim.d_cells_y = np.dot(cells.M_sum_mems, uy) / cells.num_mems
-
-    # enforce boundary conditions:
-    if p.fixed_cluster_bound is True:
-        sim.d_cells_x[cells.bflags_cells] = 0
-        sim.d_cells_y[cells.bflags_cells] = 0
+    # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
+    _, sim.d_cells_x, sim.d_cells_y, _, _, _ = cells.HH_cells(dxo, dyo, rot_only=True,
+                                                              bounds_closed = p.fixed_cluster_bound)
 
 def timeDeform(sim, cells, t, p):
     """

@@ -1985,14 +1985,14 @@ class Simulator(object):
         if p.smooth_level > 0.0:
             cenv = gaussian_filter(cenv, p.smooth_level)
 
-        # v_env = self.v_env.reshape(cells.X.shape)
-        v_env = np.zeros(cells.X.shape)
-
-        # enforce voltage at boundary:
-        v_env[:,0] = self.bound_V['L']
-        v_env[:,-1] = self.bound_V['R']
-        v_env[0,:] = self.bound_V['B']
-        v_env[-1,:] = self.bound_V['T']
+        # # v_env = self.v_env.reshape(cells.X.shape)
+        # v_env = np.zeros(cells.X.shape)
+        #
+        # # enforce voltage at boundary:
+        # v_env[:,0] = self.bound_V['L']
+        # v_env[:,-1] = self.bound_V['R']
+        # v_env[0,:] = self.bound_V['B']
+        # v_env[-1,:] = self.bound_V['T']
 
         cenv[:,0] =  self.c_env_bound[i]
         cenv[:,-1] =  self.c_env_bound[i]
@@ -2001,7 +2001,17 @@ class Simulator(object):
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        gvx, gvy = fd.gradient(v_env, cells.delta)
+        # gvx, gvy = fd.gradient(v_env, cells.delta)
+
+        # if p.fluid_flow is True:
+        #
+        #     ux = self.u_env_x.reshape(cells.X.shape)
+        #     uy = self.u_env_y.reshape(cells.X.shape)
+        #
+        # else:
+        #
+        #     ux = 0.0
+        #     uy = 0.0
 
         # option to proceed with non-corrected fluxes--------------------------
 

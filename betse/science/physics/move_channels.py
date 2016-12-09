@@ -37,8 +37,8 @@ def eosmosis(sim, cells, p):
 
     else:
 
-        Ex = p.media_rho*sim.J_cell_x[cells.mem_to_cells]
-        Ey = p.media_rho*sim.J_cell_y[cells.mem_to_cells]
+        Ex = p.media_rho*sim.J_cell_x[cells.mem_to_cells]*p.media_rho
+        Ey = p.media_rho*sim.J_cell_y[cells.mem_to_cells]*p.media_rho
 
 
         E_tang = (Ex * tx + Ey * ty)
@@ -64,7 +64,6 @@ def eosmosis(sim, cells, p):
 
     divF_pump = ddfx_p + ddfy_p
 
-
     gfx_ch = np.dot(-flux_chan * tx, cells.matrixMap2Verts)
     gfy_ch = np.dot(-flux_chan * ty, cells.matrixMap2Verts)
 
@@ -72,6 +71,8 @@ def eosmosis(sim, cells, p):
     ddfy_ch = np.dot(cells.gradMem, gfy_ch) * ty
 
     divF_chan = ddfx_ch + ddfy_ch
+
+
 
     sim.rho_pump = sim.rho_pump - divF_pump * p.dt
     sim.rho_channel = sim.rho_channel - divF_chan * p.dt

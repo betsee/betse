@@ -1643,7 +1643,7 @@ class Cells(object):
 
         for cell_i, cell_inds in enumerate(self.cell_nn):
 
-            # vol = self.cell_vol[cell_i]
+            vol = self.cell_vol[cell_i]
 
             for cell_j in cell_inds:
 
@@ -1655,19 +1655,21 @@ class Cells(object):
                 # find the shared membrane index for the pair:
                 mem_ij = cell_nn_pairs.index([cell_i, cell_j])
 
+                mem_sa = self.mem_sa[mem_ij]
+
                 # correction constant as membrane normals and segments connecting centers aren't quite parallel:
-                norm_cor = self.nn_tx[mem_ij] * self.mem_vects_flat[mem_ij, 2] + self.nn_ty[mem_ij] * \
-                                                                                   self.mem_vects_flat[mem_ij, 3]
-                # norm_cor = 1.0
+                # norm_cor = self.nn_tx[mem_ij] * self.mem_vects_flat[mem_ij, 2] + self.nn_ty[mem_ij] * \
+                #                                                                  self.mem_vects_flat[mem_ij, 3]
 
-                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij))*norm_cor
+                norm_cor = 0.5
 
-                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij))*norm_cor
-                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij))*norm_cor
+                lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+
+                lapGJ_P[cell_i, cell_i] = lapGJ_P[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
+                lapGJ_P[cell_i, cell_j] = lapGJ_P[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
 
                 if cell_j not in self.bflags_cells:
-
-                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij))*norm_cor
+                    lapGJ[cell_i, cell_j] = lapGJ[cell_i, cell_j] + (1 / (len_ij)) * (mem_sa / vol) * norm_cor
 
             # deal with boundary values:
             if cell_i in self.bflags_cells:
@@ -2163,6 +2165,28 @@ class Cells(object):
             self.M_int_mems[inds_o, inds_p1] = (1/12)
             self.M_int_mems[inds_o, inds_n1] = (1/12)
 
+    def interp_to_mem(self,f, interp_method = 'linear'):
+        """
+        Interpolates a parameter defined on cell centres to the membrane
+        midpoints.
+
+        Parameters
+        -----------
+        f                A parameter defined on cell centres
+        interp_method    Interpolation to use with scipy gridddata ('nearest', 'linear', 'cubic')
+        Returns
+        -----------
+        f_mem
+        Interpolation from cell centres to membrane midpoints
+        """
+        # interpolate f to mems:
+        f_mem = interp.griddata((self.cell_centres[:,0],self.cell_centres[:,1]),f,
+                                (self.mem_mids_flat[:,0],self.mem_mids_flat[:,1]),
+                                fill_value = 0, method=interp_method)
+
+        return f_mem
+
+
     def integrator(self, f, fmem) -> tuple:
         """
         Finite volume integrator for the irregular Voronoi cell grid.
@@ -2294,100 +2318,77 @@ class Cells(object):
 
         return Fn, F_cell_x, F_cell_y
 
-    def HelmholtzHodge(self, Fx, Fy):
+    def HH_cells(self, Fx, Fy, bounds_closed = True, rot_only = False):
         """
-        Computes a 2D Helmholtz-Hodge decompositon of a
-        vector field F into solenoidal (divF = 0) and
-        irrotational (curlF = 0) vector field components,
-        which sum to reproduce the original field.
+        This awesomely magic algorithm calculates a
+        Helmholtz-Hodge decomposition to return the
+        divergence-free component of a vector field.
 
-        The solenoidal field is described by the curl of
-        a vector potential A, while the irrotational field
-        is described by the gradient of a scalar potential Phi:
-
-        F = grad Phi + curl A
-
-        However, for 2D, this can be simplified:
-        F = grad Phi + U grad A
-
-        Where U is a rotation matrix for pi/2 counter clockwise
-        rotation.
-
-        Reference: Bhatia et al (2013). The Helmholtz-Hodge
-        Decomposition: a Survey.
-
-        This function is specific to vector fields with
-        components defined wrt cell membrane midpoints.
+        Thank you Bhatia et al (2013): "The Helmholtz-Hodge
+        Decompotion: a Survey"  !
 
         Parameters
         ------------
-        Fx, Fy         x and y components of a vector field defined
-                       on membrane midpoints of each cell
+        Fx:                # x-coordinate of field on cell centers
+        Fy:                # y-coordinate of field on cell centers
+        bounds_closed:       # cluster boundary moves flux out, or is sealed
+        rot_only          # return only the divergence-free field components
+                          # (i.e. rotation only)
+
 
         Returns
-        -----------
-        gPhix, gPhiy   x and y components of irrotational field
-        gAx, gAy       x and y components of solenoidal field
+        ------------
+         AA, Ax, Ay     The vector potential AA, as well as divergence-free
+                        field components Ax and Ay
+
+         BB, Bx, By     The scalar potential BB, as well as the curl-free
+                        field components Bx and By
+
         """
 
-        # membrane normal vectors short form:
         nx = self.mem_vects_flat[:, 2]
         ny = self.mem_vects_flat[:, 3]
 
-        # obtain the normal component of the field to membranes
-        Fn = Fx * nx + Fy * ny
+        _, _, curlF = self.curl(Fx, Fy, 0)
 
-        # calculate the scalar potential Phi:-------------------------------------------
+        if bounds_closed is True:
 
-        # obtain the divergence of the field across membranes of each cell:
-        div_F = np.dot(self.M_sum_mems, Fn * self.mem_sa) / self.cell_vol
+            AA = np.dot(self.lapGJinv, -curlF)
 
-        # boundary values:
-        div_Fb = np.zeros(len(self.cell_i))
-        div_Fb[self.bflags_cells] = div_F[self.bflags_cells]
+        else:
 
-        # calculate the scalar potential:
-        # Phi = np.dot(self.lapGJinv, (div_F - div_Fb) / (self.geom_weight))
-        Phi = np.dot(self.lapGJ_P_inv, (div_F - div_Fb) / (self.geom_weight))  # FIXME not sure which bc to use?
+            AA = np.dot(self.lapGJ_P_inv, -curlF)
 
-        # calculate the gradient of the scalar potential between cell centres:
-        gPhi = (Phi[self.mem_to_cells][self.nn_i] - Phi[self.mem_to_cells][self.mem_i]) / self.nn_len
+        Ax, Ay, _ = self.curl(0, 0, AA)
 
-        # The boundary values for the scalar gradient are equal to those of the normal component of the
-        # original field:
-        gPhi[self.bflags_mems] = Fn[self.bflags_mems]
+        # -----------------
 
-        # components of irrotational field Phi:
-        gPhix = gPhi * nx
-        gPhiy = gPhi * ny
+        if rot_only is False:
 
-        # calculate the solenoidal field A:-------------------------------------------------------------
+            Fxm = self.interp_to_mem(Fx)
+            Fym = self.interp_to_mem(Fy)
 
-        # transform the original field by rotating each vector by pi/2:
-        Fxr = - Fy
-        Fyr = Fx
+            Fn = Fxm * nx + Fym * ny
 
-        # recalculate rotated current vectors membrane normal component
-        Fr = Fxr * nx + Fyr * ny
+            divF = np.dot(self.M_sum_mems, Fn * self.mem_sa) / self.cell_vol
 
-        # calculate the divergence:
-        div_Fr = np.dot(self.M_sum_mems, Fr * self.mem_sa) / self.cell_vol
+            BB = np.dot(self.lapGJ_P_inv, divF)
 
-        # calculate the vector potential z-component:
-        A_cell = np.dot(self.lapGJinv, -div_Fr / (self.geom_weight))
+            gBB = (BB[self.cell_nn_i[:, 1]] - BB[self.cell_nn_i[:, 0]]) / (self.nn_len)
 
-        # calcualte the gradient of the vector potential wrt cell centers (zero at outer boundary):
-        gA = (A_cell[self.mem_to_cells][self.nn_i] - A_cell[self.mem_to_cells][self.mem_i]) / self.nn_len
+            Bxm = gBB * nx
+            Bym = gBB * ny
 
-        # calculate comonents of the field:
-        gAxo = gA * nx
-        gAyo = gA * ny
+            Bx = np.dot(self.M_sum_mems, Bxm) / self.num_mems
+            By = np.dot(self.M_sum_mems, Bym) / self.num_mems
 
-        # calculate rotation of the field by Pi/2:
-        gAx = -gAyo
-        gAy = gAxo
+        else:
+            BB = 0
+            Bx = 0
+            By = 0
 
-        return gPhix, gPhiy, gAx, gAy
+        return AA, Ax, Ay, BB, Bx, By
+
 
     def deform_tools(self,p):
 
@@ -2422,19 +2423,18 @@ class Cells(object):
 
         self.gradMem = np.zeros((len(self.mem_i),len(self.mem_i)))
 
-        if __name__ == '__main__':
-            for i, inds in enumerate(self.cell_to_mems):
+        for i, inds in enumerate(self.cell_to_mems):
 
-                inds = np.asarray(inds)
+            inds = np.asarray(inds)
 
-                inds_p1 = np.roll(inds,1)
-                inds_o = np.roll(inds,0)
+            inds_p1 = np.roll(inds,1)
+            inds_o = np.roll(inds,0)
 
-                dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
-                len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
+            dist = self.mem_mids_flat[inds_p1] - self.mem_mids_flat[inds_o]
+            len_mem = np.sqrt(dist[:,0]**2 + dist[:,1]**2)
 
-                self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
-                self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
+            self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
+            self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
     #..........{ MAPPERS                                 }.....................
     @property_cached

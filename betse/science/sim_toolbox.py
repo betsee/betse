@@ -1361,15 +1361,18 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         # gvx, gvy = fd.gradient(v_env, cells.delta)
 
-        # self.E_env_x = self.E_env_x -gvx
-        # self.E_env_y = self.E_env_y -gvy
-        # self.E_env_x = -gvx
-        # self.E_env_y = -gvy
+        if p.fluid_flow is True:
 
-        # E_env_x = 0.0
-        # E_env_y = 0.0
+            ux = sim.u_env_x.reshape(cells.X.shape)
+            uy = sim.u_env_y.reshape(cells.X.shape)
 
-        fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, 0, 0,
+        else:
+
+            ux = 0.0
+            uy = 0.0
+
+
+        fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
                                         denv, z, sim.T, p)
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
@@ -1672,10 +1675,15 @@ def HH_Decomp(JJx, JJy, cells, bounds = None):
 
     # ----divergence-free component--------------------------------------
 
-    Jxr = -JJx.reshape(cells.X.shape)
-    Jyr = JJy.reshape(cells.X.shape)
+    Jxr = -JJy.reshape(cells.X.shape)
+    Jyr = JJx.reshape(cells.X.shape)
 
     divJr = fd.divergence(Jxr, Jyr, cells.delta, cells.delta)
+
+    divJr[:, 0] = 0.0
+    divJr[:, -1] = 0.0
+    divJr[0, :] = 0.0
+    divJr[-1, :] = 0.0
 
     AA = np.dot(cells.lapENVinv, -divJr.ravel())
 

@@ -804,44 +804,44 @@ def pipeline_plots(
 
     # FIXME I don't know why these aren't working!
 
-    # if (p.plot_Vel is True and p.fluid_flow is True and sim.run_sim is True):
-    #     viz.plotStreamField(
-    #         (1e9)*sim.u_cells_x,
-    #         (1e9)*sim.u_cells_y,
-    #         cells, p,
-    #         plot_ecm=False,
-    #         title='Final Fluid Velocity in Cell Collective',
-    #         cb_title='Velocity [nm/s]',
-    #         colorAutoscale=p.autoscale_Vel,
-    #         minColor=p.Vel_min_clr,
-    #         maxColor=p.Vel_max_clr,
-    #     )
-    #
-    #     if p.autosave is True:
-    #         savename13 = savedImg + 'final_vel_2D_gj' + '.png'
-    #         plt.savefig(savename13,format='png',transparent=True)
-    #
-    #     if p.turn_all_plots_off is False:
-    #         plt.show(block=False)
-    #
-    #     if p.sim_ECM is True:
-    #         viz.plotStreamField(
-    #             (1e9)*sim.u_env_x,
-    #             (1e9)*sim.u_env_y,
-    #             cells, p, plot_ecm=True,
-    #             title='Final Fluid Velocity in Cell Collective',
-    #             cb_title='Velocity [nm/s]',
-    #             colorAutoscale=p.autoscale_Vel,
-    #             minColor=p.Vel_min_clr,
-    #             maxColor=p.Vel_max_clr,
-    #         )
-    #
-    #         if p.autosave is True:
-    #             savename13 = savedImg + 'final_vel_2D_env' + '.png'
-    #             plt.savefig(savename13,format='png',transparent=True)
-    #
-    #         if p.turn_all_plots_off is False:
-    #             plt.show(block=False)
+    if (p.plot_Vel is True and p.fluid_flow is True):
+        viz.plotStreamField(
+            (1e9)*sim.u_cells_x,
+            (1e9)*sim.u_cells_y,
+            cells, p,
+            plot_ecm=False,
+            title='Final Fluid Velocity in Cell Collective',
+            cb_title='Velocity [nm/s]',
+            colorAutoscale=p.autoscale_Vel,
+            minColor=p.Vel_min_clr,
+            maxColor=p.Vel_max_clr,
+        )
+
+        if p.autosave is True:
+            savename13 = savedImg + 'final_vel_2D_gj' + '.png'
+            plt.savefig(savename13,format='png',transparent=True)
+
+        if p.turn_all_plots_off is False:
+            plt.show(block=False)
+
+        if p.sim_ECM is True:
+            viz.plotStreamField(
+                (1e6)*sim.u_env_x,
+                (1e6)*sim.u_env_y,
+                cells, p, plot_ecm=True,
+                title='Final Fluid Velocity in Cell Collective',
+                cb_title='Velocity [um/s]',
+                colorAutoscale=p.autoscale_Vel,
+                minColor=p.Vel_min_clr,
+                maxColor=p.Vel_max_clr,
+            )
+
+            if p.autosave is True:
+                savename13 = savedImg + 'final_vel_2D_env' + '.png'
+                plt.savefig(savename13,format='png',transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
 
     # if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
     # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
