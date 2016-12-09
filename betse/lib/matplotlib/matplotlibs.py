@@ -88,9 +88,6 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from collections import OrderedDict
-from contextlib import contextmanager
-
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.os import kernels
@@ -99,6 +96,8 @@ from betse.util.py import freezers, pys
 from betse.util.type import iterables, strs, modules
 from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check
+from collections import OrderedDict
+from contextlib import contextmanager
 from matplotlib.colors import Colormap
 
 # ....................{ CONSTANTS                          }....................

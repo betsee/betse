@@ -231,7 +231,7 @@ https://stackoverflow.com/a/41012823/2809027
 
 
 def is_c_based(obj: object) -> bool:
-   '''
+    '''
     `True` if the passed object is either a C-based class or instance of such a
     class (either builtin or defined by a C extension) _or_ `False` otherwise
     (i.e., if this object is either a pure-Python class or instance of such a
@@ -247,9 +247,9 @@ def is_c_based(obj: object) -> bool:
     bool
         `True` only if this object is a C-based class _or_ instance of such a
         class.
-   '''
+    '''
 
-   return not is_pure_python(obj)
+    return not is_pure_python(obj)
 
 # ....................{ GETTERS                            }....................
 @type_check

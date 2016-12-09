@@ -320,12 +320,6 @@ def _profile_callable_size(
     # Avoid circular import dependencies.
     from betse.lib import libs
     from betse.util.type.obj import objsize
-    from betse.util.type.obj.objsize import SizeProfilableABC
-
-    # Maximum number of the largest instance variables of the value returned by
-    # calling this callable to log, arbitrarily defined to be twice the default
-    # number of rows in the average Linux terminal.
-    RETURN_VALUE_VARS_MAX = 48
 
     # Log this fact.
     logs.log_debug('Memory profiling enabled.')
@@ -343,25 +337,28 @@ def _profile_callable_size(
         'Profiling memory for %r() return value of type %r...',
         call, type(return_value))
 
+    #FIXME: Excise the "SizeProfilableABC" class entirely.
+
     # Human-readable string synopsizing this object's memory consumption.
-    size_profile = None
+    size_profile = objsize.get_size_profile(
+        obj=return_value,
 
-    # If this value is an instance of a class defining a class-specific synopsis
-    # of memory consumption, defer to this synopsis.
-    if isinstance(return_value, SizeProfilableABC):
-        size_profile = return_value.get_size_profile(
-            vars_max=RETURN_VALUE_VARS_MAX)
-    # Else, fallback to a generic synopsis.
-    else:
-        size_profile = 'Object {}'.format(objsize.get_size_profile(
-            obj=return_value, vars_max=RETURN_VALUE_VARS_MAX))
+        # Maximum depth of the recursion tree induced by calling this function.
+        # To avoid combinatorial explosion, this maximum is necessarily capped
+        # to a small positive integer.
+        vars_depth=2,
 
-    # If a synopsis exists to log, do so.
-    if size_profile:
-        logs.log_info(
-            'Largest %d top-level object variables '
-            'profiled by total space consumption:\n\n%s',
-            RETURN_VALUE_VARS_MAX, size_profile)
+        # Maximum number of the largest instance variables of the value returned
+        # by calling this callable to log, arbitrarily defined to be twice the
+        # default number of rows in the average Linux terminal.
+        vars_max=48,
+    )
+
+    # Log this synopsis.
+    logs.log_info(
+        'Largest top-level object variables '
+        'profiled by total space consumption:\n\n'
+        'Top-level object %s', size_profile)
 
     #FIXME: Implement support for serializing this profile to disk.
     # # If the caller requested this profile be serialized to a file...

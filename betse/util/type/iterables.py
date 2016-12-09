@@ -617,48 +617,6 @@ def exhaust(iterable: IterableTypes) -> object:
     else:
         return None
 
-# ....................{ OPERATORS                          }....................
-@type_check
-def sum_by_index(iterable: IterableTypes, subiterable_index: object) -> object:
-    '''
-    Summation of each element at the passed key or index of each subiterable of
-    the passed iterable.
-
-    Each element at the passed key or index of each subiterable of this
-    iterable is totalized via the `+` operator, implicitly calling the
-    `__sum__()` special method of these elements. Each element is ideally but
-    _not_ necessarily of the same type. If each element is:
-
-    * A string, these strings are concatenated into a single string.
-    * A number (i.e., integer or float), these numbers are summed to a single
-      number of the widest type of these numbers. Specifically:
-      * If any such number is a float, the returned number is also a float.
-      * Else, the returned number is an integer.
-
-    Parameters
-    ----------
-    iterable : IterableTypes
-        Iterable of subiterables to be summed.
-    subiterable_index : object
-        Object with which to index each subiterable of this iterable. The type
-        of this object _must_ be a type accepted by the `__getitem__()` special
-        method of each subiterable. Specifically, if each subiterable is a:
-        * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
-        * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
-          _must_ be either:
-          * An integer.
-          * A :func:`slice` object.
-
-    Returns
-    ----------
-    object
-        Object produced by summing each element at this key or index of each
-        subiterable of this iterable.
-    '''
-
-    # Efficiency and simplicity combine here to form MegaFastSimple.
-    return sum(subiterable[subiterable_index] for subiterable in iterable)
-
 # ....................{ REVERSERS                          }....................
 @type_check
 def reverse(iterable: IterableTypes) -> IterableTypes:
@@ -890,7 +848,7 @@ def zip_isometric(*iterables: IterableTypes) -> GeneratorType:
 
     Raises
     ----------
-    :exc:`BetseIterableException`
+    BetseIterableException
         If any passed iterable differs in length from any other passed iterable.
 
     See Also

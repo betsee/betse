@@ -58,7 +58,7 @@ def expand_help(text: str, **kwargs) -> str:
         (e.g., `BETSE`).
     '''
 
-    return strs.remove_presuffix_whitespace(text.format(
+    return strs.remove_whitespace_presuffix(text.format(
         program_name=metadata.NAME,
         script_basename=commands.get_current_basename(),
         **kwargs

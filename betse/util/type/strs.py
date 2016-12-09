@@ -136,7 +136,7 @@ def add_suffix_unless_found(text: str, suffix: str) -> str:
 # ....................{ JOINERS ~ on                       }....................
 def join(*texts) -> str:
     '''
-    Concatenate the passed strings with no separating delimiter.
+    Concatenation of the passed strings with no separating delimiter.
 
     This is a convenience function wrapping the standard `"".join((...))`
     method, whose syntax is arguably overly verbose.
@@ -145,6 +145,37 @@ def join(*texts) -> str:
     return join_on(*texts, delimiter='')
 
 
+@type_check
+def join_by_index(iterable: IterableTypes, subiterable_index: object) -> str:
+    '''
+    Concatenation of each string at the passed key or index of each subiterable
+    of the passed iterable, with no separating delimiter.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable of subiterables to be summed.
+    subiterable_index : object
+        Object with which to index each subiterable of this iterable. The type
+        of this object _must_ be a type accepted by the `__getitem__()` special
+        method of each subiterable. Specifically, if each subiterable is a:
+        * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
+        * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
+          _must_ be either:
+          * An integer.
+          * A :func:`slice` object.
+
+    Returns
+    ----------
+    str
+        Concatenation of each string at this key or index of each subiterable of
+        this iterable, with no separating delimiter.
+    '''
+
+    # Efficiency and simplicity combine here to form SuperHappyFunFunction.
+    return ''.join(subiterable[subiterable_index] for subiterable in iterable)
+
+# ....................{ JOINERS ~ on                       }....................
 def join_on_newline(*texts) -> str:
     '''
     Join the passed strings with newline as the separating delimiter.
@@ -366,7 +397,7 @@ def double_quote(text: str) -> str:
     '''
 
     # Remove all prefixing and suffixing whitespace from this string.
-    text = remove_presuffix_whitespace(text)
+    text = remove_whitespace_presuffix(text)
 
     # If this string is already either double- or single-quoted, strip these
     # delimiting quotes for simplicity.
@@ -379,12 +410,21 @@ def double_quote(text: str) -> str:
 
 # ....................{ REMOVERS                           }....................
 @type_check
-def remove_presuffix_whitespace(text: str) -> str:
+def remove_whitespace_presuffix(text: str) -> str:
     '''
-    Return the passed string without prefixing and suffixing whitespace if any.
+    Passed string with all prefixing and suffixing whitespace removed.
     '''
 
     return text.strip()
+
+
+@type_check
+def remove_whitespace_suffix(text: str) -> str:
+    '''
+    Passed string with all suffixing (but _not_ prefixing) whitespace removed.
+    '''
+
+    return text.rstrip()
 
 # ....................{ REMOVERS ~ prefix                  }....................
 @type_check
