@@ -1096,6 +1096,8 @@ internal parameters:
 
   media resistivity: 0.21  # electrical resistivity of bulk electrolyte (Ohms.m)
 
+  tissue resistivity: 1.0e1  # electrical resistivity of bulk tissue (Ohms.m)
+
   time acceleration: 1.0 # factor accelerating time for slow processes (GJ diffusion)
 
 

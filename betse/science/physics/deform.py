@@ -13,7 +13,7 @@ from scipy.interpolate import SmoothBivariateSpline
 from scipy.sparse.linalg import lsmr
 
 
-# FIXME!!! change over to HH decomposition!
+# FIXME!!! change time dependence over to HH decomposition!
 
 
 def getDeformation(sim, cells, t, p):
@@ -41,7 +41,7 @@ def getDeformation(sim, cells, t, p):
     # Determine action forces
     #---------------------------------------------------------------------------------
 
-    # deformation by electrostrictive forces:
+    # deformation by "galvanotropic" mechanism (electrostrictive forces influenced by biology, e.g. cytoskeletal):
     Fx = (1 / p.lame_mu) * p.media_rho * sim.J_cell_x * sim.rho_cells * p.galvanotropism
     Fy = (1 / p.lame_mu) * p.media_rho * sim.J_cell_y * sim.rho_cells* p.galvanotropism
 
@@ -52,6 +52,8 @@ def getDeformation(sim, cells, t, p):
     # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
     _, sim.d_cells_x, sim.d_cells_y, _, _, _ = cells.HH_cells(dxo, dyo, rot_only=True,
                                                               bounds_closed = p.fixed_cluster_bound)
+
+    # FIXME calculate pressure as BB field from HH_cells; save it as an internal pressure!
 
 def timeDeform(sim, cells, t, p):
     """

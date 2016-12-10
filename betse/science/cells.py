@@ -1658,10 +1658,9 @@ class Cells(object):
                 mem_sa = self.mem_sa[mem_ij]
 
                 # correction constant as membrane normals and segments connecting centers aren't quite parallel:
-                # norm_cor = self.nn_tx[mem_ij] * self.mem_vects_flat[mem_ij, 2] + self.nn_ty[mem_ij] * \
-                #                                                                  self.mem_vects_flat[mem_ij, 3]
-
-                norm_cor = 0.5
+                norm_cor = 0.5*(self.nn_tx[mem_ij]*self.mem_vects_flat[mem_ij, 2] +
+                                self.nn_ty[mem_ij]*self.mem_vects_flat[mem_ij, 3])
+                # norm_cor = 0.5
 
                 lapGJ[cell_i, cell_i] = lapGJ[cell_i, cell_i] - (1 / (len_ij)) * (mem_sa / vol) * norm_cor
 
@@ -2186,7 +2185,6 @@ class Cells(object):
 
         return f_mem
 
-
     def integrator(self, f, fmem) -> tuple:
         """
         Finite volume integrator for the irregular Voronoi cell grid.
@@ -2388,7 +2386,6 @@ class Cells(object):
             By = 0
 
         return AA, Ax, Ay, BB, Bx, By
-
 
     def deform_tools(self,p):
 

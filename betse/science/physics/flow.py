@@ -38,6 +38,8 @@ def getFlow(sim, cells, p):
         sim.u_env_x = Ux
         sim.u_env_y = Uy
 
+    # FIXME calculate pressure as BB field from HH_Decomp; save it as an internal pressure!
+
 
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 
@@ -51,6 +53,8 @@ def getFlow(sim, cells, p):
 
     # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
     _, sim.u_cells_x, sim.u_cells_y, _, _, _ = cells.HH_cells(u_gj_xo, u_gj_yo, rot_only=True)
+
+    # FIXME calculate pressure as BB field from HH_cells; save it as an internal pressure!
 
 
 #--------WASTELANDS-----------------------------------------------------------------------------------------------

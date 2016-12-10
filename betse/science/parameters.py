@@ -851,6 +851,7 @@ class Parameters(object):
         # self.cell_delay_const = float(iu['cytosolic delay factor'])
 
         self.media_rho = float(iu['media resistivity'])
+        self.tissue_rho = float(iu.get('tissue resistivity', 10.0))
 
         # self.electrolyte_screening = float(iu['electrolyte screening factor'])
 

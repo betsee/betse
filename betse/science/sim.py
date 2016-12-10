@@ -329,12 +329,14 @@ class Simulator(object):
         self.T = p.T  # set the base temperature for the simulation
 
         self.Jn = np.zeros(self.mdl)  # net normal current density at membranes
-        self.J_weight = np.ones(self.mdl)  # moments of current passing through membranes
-        self.rho_mems = np.zeros(self.mdl)  # membrane charge
+        self.Jmem = np.zeros(self.mdl)   # total normal current across membrane from intra- to extra-cellular space
+        self.Jgj = np.zeros(self.mdl)     # total normal current across GJ coupled membranes from intra- to intra- space
+        # self.J_weight = np.ones(self.mdl)  # moments of current passing through membranes
+        # self.rho_mems = np.zeros(self.mdl)  # membrane charge
         self.dvm = np.zeros(self.mdl)   # rate of change of Vmem
         self.drho = np.zeros(self.cdl)  # rate of change of charge in cell
-        self.Phi_env = np.zeros(cells.X.shape)
-        self.Pol_mem = np.zeros(self.mdl)  # polarization density at the membrane
+        # self.Phi_env = np.zeros(cells.X.shape)
+        # self.Pol_mem = np.zeros(self.mdl)  # polarization density at the membrane
 
         # Current averaged to cell centres:
         self.J_cell_x = np.zeros(self.cdl)
@@ -1539,76 +1541,35 @@ class Simulator(object):
 
             self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
 
-        #----Method #1 current based:---------------
 
-        # dv = - (1/p.cm)*self.Jn*p.dt
-        # self.vm = self.vm + dv
+        if p.cell_polarizability != 0.0:  # this is boolean is needed for back-compatability with published sims!
+            #----Method #1 current based:---------------
 
-        ## self.vm = self.vm + dv - self.v_env[cells.map_mem2ecm]
+            # We do not need to consider conductivity of the membrane in a resistive term, because it is already
+            # incorporated into self.Jmem via the passive electrodiffusion fluxes across the membrane.
 
-        #----Method #2 capacitor based:-------------
+            dv = - (1/p.cm)*self.Jmem*p.dt
+            self.vm = self.vm + dv
 
-        # surface charge density in cells interior membrane:
-        sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
+            # add in electric potential contribution from GJ currents:
+            self.vm = self.vm + self.v_cell[cells.mem_to_cells]
 
-        self.vm = (1 / p.cm)*sig_cell[cells.mem_to_cells]
-        # self.vm = (1 / p.cm)*sig_cell[cells.mem_to_cells] - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
+            if p.sim_ECM is True:
 
-        if p.sim_ECM is True:
+                self.vm = self.vm - self.v_env[cells.map_mem2ecm]
 
-            self.vm = self.vm - self.v_env[cells.map_mem2ecm]*p.env_modulator
 
-        # ----Method #3 capacitor based for rho_cells, Gouy-Chapman based for sim_ECM
+        elif p.cell_polarizability == 0.0:
 
-        # if p.sim_ECM is False:
-        #
-        #     # get the charge density in the cells:
-        #     self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
-        #
-        #     # get the currents and in-cell and environmental voltages:
-        #     get_current(self, cells, p)
-        #
-        #     # surface charge density in cells interior membrane:
-        #     sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
-        #
-        #     self.vm = (1 / p.cm)*sig_cell[cells.mem_to_cells] - (1/p.cm)*self.Jn*p.dt*p.cell_polarizability
-        #
-        # elif p.sim_ECM is True:  # handle polarization induced by external electric field:
-        #
-        #     # get the currents and in-cell and environmental voltages:
-        #     get_current(self, cells, p)
-        #
-        #     # get volume charge density in cells and extracellular spaces:
-        #     self.rho_cells = np.dot(self.zs * p.F, self.cc_cells) + self.extra_rho_cells
-        #     self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
-        #
-        #     # calculate surface charges:
-        #     if self.ignore_ecm is False:
-        #         sig_env = (self.rho_env * cells.true_ecm_vol) / cells.ecm_sa
-        #
-        #     else:
-        #         sig_env = (self.rho_env * cells.ecm_vol) / cells.ecm_sa
-        #
-        #     sig_cells = ((self.rho_cells * cells.cell_vol) / cells.cell_sa)
-        #
-        #     # compute double layers:
-        #     scz_cells = np.dot(self.zs**2, self.cc_cells)
-        #     self.dl_cells = np.sqrt((p.er * p.eo * p.kb * self.T) / (p.NAv * scz_cells.mean() * p.q ** 2))
-        #
-        #     scz_env = np.dot(self.zs**2, self.cc_env)
-        #
-        #     self.dl_env = np.sqrt((p.er * p.eo * p.kb * self.T) / (p.NAv * scz_env.mean() * p.q ** 2))
-        #
-        #     # compute the "mean field" scaling factor from the double layer characteristics and cell geometry:
-        #     self.mean_field = self.dl_env*(1 - np.exp(-p.cell_space /self.dl_env))/p.cell_space
-        #
-        #     # calculate surface voltages from surface charges using Guoy-Chapman theory:
-        #     Phi_env = (self.dl_env * sig_env) / (p.eo * p.er)
-        #
-        #     Phi_cell = (self.dl_cells * sig_cells) / (p.eo * p.er)
-        #
-        #     self.vm = Phi_cell[cells.mem_to_cells] - Phi_env[cells.map_mem2ecm]
+            #----Method #2 capacitor based:-------------
+            # surface charge density in cells interior membrane:
+            sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
 
+            self.vm = (1 / p.cm)*sig_cell[cells.mem_to_cells]
+
+            if p.sim_ECM is True:
+
+                self.vm = self.vm - self.v_env[cells.map_mem2ecm]*p.env_modulator
 
 
         # calculate the derivative of Vmem:
@@ -1944,8 +1905,8 @@ class Simulator(object):
 
         # electroosmotic fluid velocity at gap junctions:
         if p.fluid_flow is True:
-            ux = self.u_gj_x
-            uy = self.u_gj_y
+            ux = self.u_cells_x[cells.mem_to_cells]
+            uy = self.u_cells_y[cells.mem_to_cells]
 
         else:
 
@@ -1954,7 +1915,7 @@ class Simulator(object):
 
 
         fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
-                                          -self.E_gj_y, ux, uy,
+                                          -self.E_gj_y, 0, 0,
                                               p.gj_surface*self.gjopen*self.D_gj[i],
                                               self.zs[i],
                                               self.T, p)
@@ -1972,8 +1933,12 @@ class Simulator(object):
         # Calculate the final concentration change:
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
 
-        # self.fluxes_mem[i] = self.fluxes_mem[i] - fgj_X  # store gap junction flux for this ion
-        self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X  # store gap junction flux for this ion
+        # calculate contribution of fluid flow to fluxes:
+        # first obtain normal component to membranes:
+        # uxf = ux*cells.mem_vects_flat[:,2] + uy*cells.mem_vects_flat[:,3]
+        # self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X + uxf*c  # store gap junction flux for this ion
+
+        self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X   # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
 
@@ -1982,18 +1947,6 @@ class Simulator(object):
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
-        if p.smooth_level > 0.0:
-            cenv = gaussian_filter(cenv, p.smooth_level)
-
-        # # v_env = self.v_env.reshape(cells.X.shape)
-        # v_env = np.zeros(cells.X.shape)
-        #
-        # # enforce voltage at boundary:
-        # v_env[:,0] = self.bound_V['L']
-        # v_env[:,-1] = self.bound_V['R']
-        # v_env[0,:] = self.bound_V['B']
-        # v_env[-1,:] = self.bound_V['T']
-
         cenv[:,0] =  self.c_env_bound[i]
         cenv[:,-1] =  self.c_env_bound[i]
         cenv[0,:] =  self.c_env_bound[i]
@@ -2001,17 +1954,15 @@ class Simulator(object):
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        # gvx, gvy = fd.gradient(v_env, cells.delta)
+        if p.fluid_flow is True:
 
-        # if p.fluid_flow is True:
-        #
-        #     ux = self.u_env_x.reshape(cells.X.shape)
-        #     uy = self.u_env_y.reshape(cells.X.shape)
-        #
-        # else:
-        #
-        #     ux = 0.0
-        #     uy = 0.0
+            ux = self.u_env_x.ravel()
+            uy = self.u_env_y.ravel()
+
+        else:
+
+            ux = 0.0
+            uy = 0.0
 
         # option to proceed with non-corrected fluxes--------------------------
 
@@ -2023,59 +1974,19 @@ class Simulator(object):
         fy = fyo
 
 
-        # ---option to correct individual fluxes -------------------------------
-
-        # zz = self.zs[i]
-        #
-        # dd = self.D_env[i].reshape(cells.X.shape)
-        #
-        # # calculate the Einstein coefficient:
-        # sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
-        #
-        #
-        # fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, 0, 0, 0, 0,
-        #                                 self.D_env[i].reshape(cells.X.shape), self.zs[i],
-        #                                 self.T, p)
-        #
-        #
-        # # Calculate the divergence of the uncorrected flux:
-        # div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
-        #
-        # # enforce applied voltage condition at the boundary:
-        # div_fo[:,0] = self.bound_V['L']*(1/cells.delta**2)
-        # div_fo[:,-1] = self.bound_V['R']*(1/cells.delta**2)
-        # div_fo[0,:] = self.bound_V['B']*(1/cells.delta**2)
-        # div_fo[-1,:] = self.bound_V['T']*(1/cells.delta**2)
-        #
-        # # solve for the hidden potential energy, Phi:
-        # Phi = np.dot(cells.lapENVinv, div_fo.ravel())
-        #
-        # Phi = Phi.reshape(cells.X.shape)
-        #
-        # gPhix, gPhiy = fd.gradient(Phi, cells.delta)
-        #
-        # # correct the flux with its component of Phi:
-        # fx = fxo - gPhix*sigma
-        # fy = fyo - gPhiy*sigma
-
-        # #smooth the fluxes:
-        # if p.smooth_level > 0.0:
-        #     fx = gaussian_filter(fx, p.smooth_level)
-        #     fy = gaussian_filter(fy, p.smooth_level)
-
-        # # add this component of the extracellular voltage:
-        # self.Phi_vect[i] = Phi.ravel()
-        # -----------------------------------------------------------------------
-
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
+
+        # # add fluid flow to fluxes (it contributes to fields, but not to concentration changes)
+        # self.fluxes_env_x[i] = fx.ravel()  + ux*cenv.ravel() # store ecm junction flux for this ion
+        # self.fluxes_env_y[i] = fy.ravel()  + uy*cenv.ravel() # store ecm junction flux for this ion
+
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = fy.ravel()   # store ecm junction flux for this ion
 
         cenv = cenv + div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
-
 
 
     def get_ion(self,label):
@@ -2583,3 +2494,49 @@ class Simulator(object):
 #
 # self.fluxes_env_x[i] = self.fluxes_env_x[i] + fenvx.ravel()  # store ecm junction flux for this ion
 # self.fluxes_env_y[i] = self.fluxes_env_y[i] + fenvy.ravel()  # store ecm junction flux for this ion
+
+
+#--------------------------------------------------------
+        # ---option to correct individual fluxes -------------------------------
+
+        # zz = self.zs[i]
+        #
+        # dd = self.D_env[i].reshape(cells.X.shape)
+        #
+        # # calculate the Einstein coefficient:
+        # sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
+        #
+        #
+        # fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, 0, 0, 0, 0,
+        #                                 self.D_env[i].reshape(cells.X.shape), self.zs[i],
+        #                                 self.T, p)
+        #
+        #
+        # # Calculate the divergence of the uncorrected flux:
+        # div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
+        #
+        # # enforce applied voltage condition at the boundary:
+        # div_fo[:,0] = self.bound_V['L']*(1/cells.delta**2)
+        # div_fo[:,-1] = self.bound_V['R']*(1/cells.delta**2)
+        # div_fo[0,:] = self.bound_V['B']*(1/cells.delta**2)
+        # div_fo[-1,:] = self.bound_V['T']*(1/cells.delta**2)
+        #
+        # # solve for the hidden potential energy, Phi:
+        # Phi = np.dot(cells.lapENVinv, div_fo.ravel())
+        #
+        # Phi = Phi.reshape(cells.X.shape)
+        #
+        # gPhix, gPhiy = fd.gradient(Phi, cells.delta)
+        #
+        # # correct the flux with its component of Phi:
+        # fx = fxo - gPhix*sigma
+        # fy = fyo - gPhiy*sigma
+
+        # #smooth the fluxes:
+        # if p.smooth_level > 0.0:
+        #     fx = gaussian_filter(fx, p.smooth_level)
+        #     fy = gaussian_filter(fy, p.smooth_level)
+
+        # # add this component of the extracellular voltage:
+        # self.Phi_vect[i] = Phi.ravel()
+        # -----------------------------------------------------------------------

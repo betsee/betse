@@ -11,56 +11,82 @@ def get_current(sim, cells, p):
 
 
     # membrane normal vectors short form:
-    nx = cells.mem_vects_flat[:, 2]
-    ny = cells.mem_vects_flat[:, 3]
+    # nx = cells.mem_vects_flat[:, 2]
+    # ny = cells.mem_vects_flat[:, 3]
 
     # calculate membrane current density (- as fluxes were defined into cell)
-    Jn = -np.dot(sim.zs * p.F, sim.fluxes_mem)
+    sim.Jmem = -np.dot(sim.zs * p.F, sim.fluxes_mem)
 
     # calculate current density across cell membranes via gap junctions:
-    Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
+    sim.Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
 
     # add the free current sources together into a single transmembrane current:
-    sim.Jn = Jn + Jgj
+    sim.Jn = sim.Jn + sim.Jgj
 
     # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa
 
-    # components of current:
-    Jnx = sim.Jn * nx
-    Jny = sim.Jn * ny
+    # components of GJ current:
+    Jnx = sim.Jgj * cells.nn_tx
+    Jny = sim.Jgj * cells.nn_ty
 
-    # average to cell centres:
+    #-----------------------------------------------------------------------------
+
+    # Method using Helmholtz-Hodge decomposition to calculate v_cell:
+
+    # Jxo = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
+    # Jyo = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
+    #
+    # _, _, _, sim.v_cell, _, _ = cells.HH_cells(Jxo * p.tissue_rho, Jyo * p.tissue_rho)
+    #
+
+    #----------------------------------------------------
+
+    # need to solve GJ current continuity equation to find electric potential, v_cell from GJ currents:
+
+    # calculate the divergence of Jgj:
+    divGJ = np.dot(cells.M_sum_mems, p.tissue_rho*sim.Jgj*cells.mem_sa) / cells.cell_vol
+
+    # calculate electric potential to balance divGJ:
+    sim.v_cell = np.dot(cells.lapGJ_P_inv, divGJ)
+
+    # correct the internal GJ current:
+    # obtain gradient of internal voltage
+    gVcell = (sim.v_cell[cells.cell_nn_i[:, 1]] - sim.v_cell[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+
+    gVx = gVcell*cells.nn_tx
+    gVy = gVcell*cells.nn_ty
+
+    Jnx = Jnx - gVx*(1/p.tissue_rho)
+    Jny = Jny - gVy*(1/p.tissue_rho)
+
+    #----------------------------------------------------
+
+    # average intracellular current to cell centres:
+    # sim.J_cell_x = np.dot(cells.M_sum_mems, sim.Jn*cells.nn_tx) / cells.num_mems
+    # sim.J_cell_y = np.dot(cells.M_sum_mems, sim.Jn*cells.nn_ty) / cells.num_mems
     sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
 
 
+
     # Current in the environment --------------------------------------------------------------------------------------
-    if p.sim_ECM is True:
+    if p.sim_ECM is True:  # FIXME should we just get v_env from HH decomp??
 
         # current densities in the environment:
         J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
         J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
 
-        # # base current in environment is equivalent to transmembrane current of cells:
-        # J_env_x_o[cells.map_cell2ecm] = J_env_x_o[cells.map_cell2ecm] + sim.J_cell_x*(
-        #     cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
-        #
-        # J_env_y_o[cells.map_cell2ecm] = J_env_y_o[cells.map_cell2ecm] + sim.J_cell_y*(
-        #     cells.memSa_per_envSquare[cells.map_cell2ecm]/cells.delta**2)
-
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)
 
-
-
         #---METHOD 1: Calculate potential to make currents divergence-free ---------------------
 
         # smooth the currents:
-        # if p.smooth_level > 0.0:
-        #     J_env_x_o = gaussian_filter(J_env_x_o, p.smooth_level)
-        #     J_env_y_o = gaussian_filter(J_env_y_o, p.smooth_level)
+        if p.smooth_level > 0.0:
+            J_env_x_o = gaussian_filter(J_env_x_o, p.smooth_level)
+            J_env_y_o = gaussian_filter(J_env_y_o, p.smooth_level)
 
         # conductivity in the media is modified by the environmental diffusion weight matrix:
         sigma = (1/p.media_rho)*sim.D_env_weight   # general conductivity
@@ -93,6 +119,7 @@ def get_current(sim, cells, p):
         _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o,
                                                              J_env_y_o, cells)
 
+        # currents in terms of electric field:
         # sim.J_env_x = sim.E_env_x*(1/p.media_rho)
         # sim.J_env_y = sim.E_env_y*(1/p.media_rho)
 

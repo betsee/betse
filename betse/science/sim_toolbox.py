@@ -1674,6 +1674,7 @@ def HH_Decomp(JJx, JJy, cells, bounds = None):
         Bb = 0.0
 
     # ----divergence-free component--------------------------------------
+    # FIXME specify boundary condishs better!
 
     Jxr = -JJy.reshape(cells.X.shape)
     Jyr = JJx.reshape(cells.X.shape)
