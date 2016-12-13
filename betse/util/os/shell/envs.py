@@ -21,11 +21,35 @@ the the active Python interpreter) facilities.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.types import type_check
 import os
+from betse.util.type.types import type_check, MappingType
+
+# ....................{ TESTERS                            }....................
+@type_check
+def is_var(*names: str) -> bool:
+    '''
+    `True` only if all environment variables with the passed names are defined.
+
+    Parameters
+    ----------
+    names : tuple[str]
+        Tuple of the names of all environment variables to test for.
+
+    Returns
+    ----------
+    bool
+        `True` only if all such environment variables are defined.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type import mappings
+
+    # Return True only if the names of these environment variables are all keys
+    # of the corresponding dictionary global.
+    return mappings.is_keys(os.environ, *names)
 
 # ....................{ GETTERS                            }....................
-def get_env() -> dict:
+def get_env() -> MappingType:
     '''
     Dictionary mapping the name of each environment variable to the string value
     of this variable.

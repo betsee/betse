@@ -382,7 +382,7 @@ class ReversibleDict(dict):
 
 # ....................{ TESTERS                            }....................
 @type_check
-def is_keys(mapping: MappingType, *key_names) -> str:
+def is_keys(mapping: MappingType, *keys: HashableType) -> bool:
     '''
     `True` only if the passed dictionary contains _all_ passed keys.
 
@@ -390,8 +390,13 @@ def is_keys(mapping: MappingType, *key_names) -> str:
     ----------
     mapping : MappingType
         Dictionary to be tested.
-    key_names : tuple
+    keys : tuple[HashableType]
         Tuple of all keys to be tested for.
+
+    Returns
+    ----------
+    bool
+        `True` only if this dictionary contains _all_ passed keys.
     '''
 
     # Yes, this is ridiculously awesome.

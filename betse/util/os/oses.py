@@ -8,14 +8,14 @@ High-level operating system (OS) facilities.
 
 Caveats
 ----------
-Operating system-specific logic is poor form. Do so _only_ where necessary.
+**Operating system-specific logic is poor form.** Do so _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
 import os, platform, sys
 from collections import OrderedDict
 
-# ....................{ TESTERS ~ os                       }....................
+# ....................{ TESTERS ~ posix                    }....................
 def is_posix() -> bool:
     '''
     `True` only if the current operating system complies with POSIX standards
@@ -46,7 +46,7 @@ def is_os_x() -> bool:
 
     return platform.system() == 'Darwin'
 
-# ....................{ TESTERS ~ os : windows             }....................
+# ....................{ TESTERS ~ windows                  }....................
 def is_windows() -> bool:
     '''
     `True` only if the current operating system is Microsoft Windows.

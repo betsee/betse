@@ -104,7 +104,7 @@ def is_path(pathname: str) -> bool:
     # common usage patterns and should *NOT* be discriminated against here.
     return path.lexists(pathname)
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS ~ absolute                 }....................
 @type_check
 def is_absolute(pathname: str) -> bool:
     '''
@@ -134,6 +134,16 @@ def is_relative(pathname: str) -> bool:
 
 # ....................{ TESTERS ~ pathname                 }....................
 @type_check
+def is_basename(pathname: str) -> bool:
+    '''
+    `True` only if the passed pathname is a **pure basename** (i.e., contains no
+    directory separators and hence no directory components).
+    '''
+
+    return path.sep not in pathname
+
+
+@type_check
 def is_pathname(pathname: str) -> bool:
     '''
     `True` only if the passed string is a valid pathname (either absolute or
@@ -155,7 +165,8 @@ def is_pathname(pathname: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.os import windows
+    from betse.util.os.brand import windows
+    from betse.util.os.brand.windows import WindowsErrorType
 
     # If this is the empty string, it cannot by definition be a valid pathname.
     if not pathname:
@@ -233,13 +244,14 @@ def is_pathname(pathname: str) -> bool:
             #   * Under most POSIX-compatible OSes, "ENAMETOOLONG".
             #   * Under some edge-case OSes (e.g., SunOS, *BSD), "ERANGE".
             except OSError as exc:
-                if (
-                    hasattr(exc, 'winerror') and
-                    exc.winerror == windows.ERROR_INVALID_NAME
-                ) or (
-                    not hasattr(exc, 'winerror') and
-                    exc.errno in {errno.ENAMETOOLONG, errno.ERANGE}
-                ):
+                # True only if this pathname is invalid (as detailed above).
+                is_pathname_invalid = (
+                    windows.is_exception_pathname_invalid(exc)
+                    if isinstance(exc, WindowsErrorType)
+                    else exc.errno in {errno.ENAMETOOLONG, errno.ERANGE})
+
+                # If this pathname is invalid, log a warning and return False.
+                if is_pathname_invalid:
                     logs.log_warning(
                         'Pathname "{}" invalid: {}'.format(
                             pathname, exc.strerror))
@@ -256,16 +268,6 @@ def is_pathname(pathname: str) -> bool:
         return True
     # If any other exception was raised, this is an unrelated fatal issue
     # (e.g., a bug). Permit this exception to unwind the call stack.
-
-
-@type_check
-def is_basename(pathname: str) -> bool:
-    '''
-    `True` only if the passed pathname is a **pure basename** (i.e., contains no
-    directory separators and hence no directory components).
-    '''
-
-    return path.sep not in pathname
 
 # ....................{ TESTERS ~ filetype                 }....................
 @type_check
