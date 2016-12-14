@@ -7,7 +7,11 @@
 High-level operating system (OS)-specific display facilities.
 '''
 
+#FIXME: Submit a Stackoverflow answer encapsulating this logic. The
+#osx.is_aqua() function in particular would be useful to a wide audience.
+
 # ....................{ IMPORTS                            }....................
+from collections import OrderedDict
 
 # ....................{ TESTERS                            }....................
 def is_headfull() -> bool:
@@ -67,3 +71,14 @@ def is_headless() -> bool:
     '''
 
     return not is_headfull()    # Makes sense.
+
+# ....................{ GETTERS ~ metadata                 }....................
+def get_metadata() -> OrderedDict:
+    '''
+    Ordered dictionary synopsizing the current display.
+    '''
+
+    # Return this metadata.
+    return OrderedDict((
+        ('headless', is_headless()),
+    ))

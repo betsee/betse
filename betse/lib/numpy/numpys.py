@@ -9,7 +9,7 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.io.log import logs
-from betse.util.os import libs, oses
+from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, paths
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.types import NoneType
@@ -481,11 +481,11 @@ def _is_blas_optimized_posix_symlink() -> (bool, NoneType):
         return None
 
     #FIXME: Generalize to OS X as well once the
-    #libs.iter_linked_lib_filenames() function supports OS X.
+    #libs.iter_linked_filenames() function supports OS X.
 
     # If the current platform is *NOT* Linux, continue to the next heuristic.
     #
-    # The libs.iter_linked_lib_filenames() function called below currently only
+    # The libs.iter_linked_filenames() function called below currently only
     # supports Linux.
     if not oses.is_linux():
         return None
@@ -518,7 +518,7 @@ def _is_blas_optimized_posix_symlink() -> (bool, NoneType):
     # For the basename and absolute path of each shared library linked to
     # by this Numpy shared library...
     for (numpy_linked_lib_basename, numpy_linked_lib_filename) in (
-        libs.iter_linked_lib_filenames(numpy_lib_filename)):
+        dlls.iter_linked_filenames(numpy_lib_filename)):
         # Basename excluding all suffixing filetypes of this library.
         numpy_linked_lib_rootname = paths.get_pathname_sans_filetypes(
             numpy_linked_lib_basename)

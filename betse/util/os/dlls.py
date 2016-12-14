@@ -17,19 +17,31 @@ from betse.exceptions import BetseLibException, BetseOSException
 from betse.util.type.types import type_check, GeneratorType
 
 # ....................{ CONSTANTS                          }....................
-KERNEL_NAME_TO_LIB_FILETYPES = {
+KERNEL_NAME_TO_DLL_FILETYPES = {
     # *ALL* Linux distributions.
     'Linux':   {'so',},
 
-    # OS X and iOS. This currently only includes Mach-O shared libraries.
+    # OS X and iOS. This currently only includes Mach-O shared libraries,
+    # required by Apple mandate to have the filetype defined by the "MH_DYLIB"
+    # string constant (i.e., "dylib").
+    #
     # Macho-O bundles (i.e., loadable modules) are interchangeable with Macho-O
     # shared libraries for some but *NOT* all operations and hence omitted.
+    # Unlike Macho-O shared libraries, Macho-O bundles are *NOT* constrained to
+    # have a specific filetype. Common Macho-O bundle filetypes include:
+    #
+    # * "bundle", the filetype promoted by Apple themselves.
+    # * "so", the filetype adopted by most cross-platform applications. Unlike
+    #   ELF-compatible shared libraries on Linux, however, Macho-O bundles
+    #   cannot be dynamically linked against. Instead, the relationship is
+    #   reversed; Macho-O bundles dynamically link against plugin-style APIs
+    #   exported by applications.
     'Darwin':  {'dylib',},
 
     # Windows. Technically, other Windows-specific shared library formats exist
     # (e.g., "ocx" for libraries containing ActiveX controls and "drv" for
-    # legacy system drivers). Since it's unclear whether anyone still cares
-    # about these formats, they are currently omitted.
+    # legacy system drivers). As it remains unclear whether anyone still cares
+    # about these formats, however, all are currently omitted.
     'Windows': {'dll',},
 }
 '''
@@ -39,24 +51,24 @@ filetypes signifying shared libraries supported by this platform.
 '''
 
 # ....................{ EXCEPTIONS                         }....................
-def die_unless_lib(pathname: str) -> None:
+def die_unless_dll(pathname: str) -> None:
     '''
     Raise an exception unless the passed path is that of an existing shared
     library supported by the current platform.
 
     Parameters
     ----------
-    lib_filename : str
+    pathname : str
         Absolute or relative path of the shared library to inspect.
     '''
 
-    if not is_lib(pathname):
+    if not is_dll(pathname):
         raise BetseLibException(
             '"{}" not a shared library.'.format(pathname))
 
 # ....................{ TESTERS                            }....................
 @type_check
-def is_lib(pathname: str) -> bool:
+def is_dll(pathname: str) -> bool:
     '''
     `True` only if the passed path is that of an existing shared library
     specific to the current platform (e.g., suffixed by `.so` on Linux).
@@ -94,7 +106,7 @@ def is_lib(pathname: str) -> bool:
         # This pathname has a filetype.
         filetype is not None and
         # This filetype is that of a shared library for this platform.
-        filetype in KERNEL_NAME_TO_LIB_FILETYPES[kernel_name] and
+        filetype in KERNEL_NAME_TO_DLL_FILETYPES[kernel_name] and
         # This path is that of an existing file. Since testing this requires a
         # filesystem lookup, this is the slowest test and thus deferred.
         files.is_file(pathname)
@@ -111,7 +123,7 @@ def is_lib(pathname: str) -> bool:
 #       /opt/local/lib/libmpi.0.dylib (compatibility version 1.0.0, current version 1.0.0)
 #       /usr/lib/libSystem.B.dylib (compatibility version 1.0.0, current version 111.1.3)
 
-def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
+def iter_linked_filenames(filename: str) -> GeneratorType:
     '''
     Generator iteratively yielding the 2-tuple of the basename and absolute path
     of each shared library dynamically linked to (and hence required at runtime
@@ -119,7 +131,7 @@ def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
 
     Parameters
     ----------
-    lib_filename : str
+    filename : str
         Absolute or relative path of the shared library to inspect.
 
     Returns
@@ -138,12 +150,12 @@ def iter_linked_lib_filenames(lib_filename: str) -> GeneratorType:
     from betse.util.type import regexes, strs
 
     # If this library does *NOT* exist, raise an exception.
-    die_unless_lib(lib_filename)
+    die_unless_dll(filename)
 
     # If the current platform is Linux...
     if oses.is_linux():
         # Tuple of all shell words comprising the "ldd" command to be run.
-        ldd_command_words = ('ldd', strs.shell_quote(lib_filename))
+        ldd_command_words = ('ldd', strs.shell_quote(filename))
 
         # String listing all libraries linked to by this library captured from
         # stdout printed by this command. For example, when passed the absolute

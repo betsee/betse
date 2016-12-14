@@ -4,12 +4,12 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level operating system kernel facilities.
+Low-level **kernel** (i.e., central core software of the current operating
+system) facilities.
 
 Caveats
 ----------
-Operating system-specific logic is poor form and should be leveraged only where
-necessary.
+**Operating system-specific logic is poor form.** Do so _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -20,7 +20,7 @@ from collections import OrderedDict
 # ....................{ GETTERS                            }....................
 def get_name() -> str:
     '''
-    Machine-readable name of the current operating system kernel.
+    Machine-readable name of the current kernel.
 
     While preserving human-readability is helpful, machine-readability is the
     principal use case for this function's return value (e.g., for use in
@@ -40,8 +40,7 @@ def get_name() -> str:
 
 def get_version() -> str:
     '''
-    Human-readable `.`-delimited version specifier string of the current
-    operating system kernel.
+    Human-readable `.`-delimited version specifier of the current kernel.
 
     This function returns:
 
@@ -75,7 +74,7 @@ def get_version() -> str:
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedDict:
     '''
-    Get an ordered dictionary synopsizing the current operating system kernel.
+    Ordered dictionary synopsizing the current kernel.
     '''
 
     return OrderedDict((

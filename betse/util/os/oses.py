@@ -191,6 +191,7 @@ def get_metadata() -> OrderedDict:
     Ordered dictionary synopsizing the current operating system.
     '''
 
+    # Return this metadata.
     return OrderedDict((
         ('name', get_name()),
         ('version', get_version()),

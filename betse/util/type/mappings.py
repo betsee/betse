@@ -400,7 +400,7 @@ def is_keys(mapping: MappingType, *keys: HashableType) -> bool:
     '''
 
     # Yes, this is ridiculously awesome.
-    return set(key_names).issubset(mapping)
+    return set(keys).issubset(mapping)
 
 # ....................{ FORMATTERS                         }....................
 @type_check

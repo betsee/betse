@@ -24,7 +24,6 @@ from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.py import interpreters, pys
-from io import StringIO
 
 # ..................{ LOGGERS                                }..................
 def log_header() -> None:
@@ -61,7 +60,7 @@ def output_info() -> None:
     from betse import pathtree
     from betse.lib import libs
     from betse.util.path.command import commands
-    from betse.util.os import kernels
+    from betse.util.os import displays, kernels
 
     #FIXME: Shift into a more appropriate general-purpose submodule.
 
@@ -93,6 +92,7 @@ def output_info() -> None:
         # Operating system (OS) metadata.
         ('os', oses.get_metadata()),
         ('os kernel', kernels.get_metadata()),
+        ('os display', displays.get_metadata()),
     )
 
     # Dictionary of human-readable labels to dictionaries of all
@@ -104,28 +104,18 @@ def output_info() -> None:
         SYSTEM_METADATAS
     )
 
-    # String buffer formatting this information.
-    info_buffer = StringIO()
-
-    # True if this is the first label to be output.
-    is_info_type_first = True
+    # String formatting this information.
+    info_buffer = 'Harvested system information:\n'
 
     # Format each such dictionary under its categorizing label.
     for info_type, info_dict in info_type_to_dict.items():
-        # If this is *NOT* the first label, delimit this label from the
-        # prior label.
-        if is_info_type_first:
-            is_info_type_first = False
-        else:
-            info_buffer.write('\n')
+        # Format this label.
+        info_buffer += '\n{}:'.format(info_type)
 
-        # Format such label.
-        info_buffer.write('{}:\n'.format(info_type))
-
-        # Format such dictionary.
+        # Format this label's dictionary.
         for info_key, info_value in info_dict.items():
-            info_buffer.write('  {}: {}\n'.format(info_key, info_value))
+            info_buffer += '\n  {}: {}'.format(info_key, info_value)
 
-    # Log rather than merely output such string, as logging simplifies
+    # Log rather than merely output this string, as logging simplifies
     # cliest-side bug reporting.
-    logs.log_info(info_buffer.getvalue())
+    logs.log_info(info_buffer)

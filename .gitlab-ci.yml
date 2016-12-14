@@ -42,7 +42,7 @@
 # This gitlab.com-hosted project has been configured to enable Linux-based
 # Shared Runners. Exercising tests on either OS X or Windows requires doing so
 # on an external third-party free-as-in-beer CI service specific to that
-# platform and then integrating such service with GitLab.
+# platform and then integrating this service with GitLab.
 
 #FIXME: Replace use of the default pip cache with "pip-accel", which appears to
 #be substantially faster. For now, pip cache is better than no cache.
