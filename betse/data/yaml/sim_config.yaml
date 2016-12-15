@@ -417,7 +417,7 @@ voltage gated Na+:
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
                                   # 'NavRat1', 'NaVRat2'
-    max value: 5.0e-5             # maximum channel conductivity when channel fully open [S/m2]
+    max value: 5.0e-6             # maximum channel conductivity when channel fully open [S/m2]
 
 persistent vg Na+:
     turn on: False                 # voltage gated sodium channel with persistant current

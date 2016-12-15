@@ -1964,33 +1964,76 @@ class Simulator(object):
 
         if p.fluid_flow is True:
 
-            ux = self.u_env_x
-            uy = self.u_env_y
+            ux = self.u_env_x.ravel()
+            uy = self.u_env_y.ravel()
 
         else:
 
             ux = 0.0
             uy = 0.0
 
-        # option to proceed with non-corrected fluxes--------------------------
+        # # METHOD 1: option to proceed with non-corrected fluxes (E_env field corrects the flux) -----------------------
+        #
+        # # this equation assumes environmental transport is electrodiffusive:
+        # fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
+        #                                   self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
+        #
+        # fx = fxo
+        # fy = fyo
+        # #
+        #---METHOD 2: option to correct individual fluxes -------------------------------
 
-        # this equation assumes environmental transport is electrodiffusive:
+        zz = self.zs[i]
+
+        dd = self.D_env[i].reshape(cells.X.shape)
+
+        # calculate the Einstein coefficient:
+        sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
+
+
         fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
-                                          self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
+                                        self.D_env[i].reshape(cells.X.shape), self.zs[i],
+                                        self.T, p)
 
-        fx = fxo
-        fy = fyo
+
+        # Calculate the divergence of the uncorrected flux, divided through by the Einstein coefficient:
+        div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
+
+        #enforce applied voltage condition at the boundary:
+        div_fo[:,0] = 0.0
+        div_fo[:,-1] = 0.0
+        div_fo[0,:] = 0.0
+        div_fo[-1,:] = 0.0
+
+        # solve for the hidden potential energy, Phi:
+        Phi = np.dot(cells.lapENVinv, div_fo.ravel())
+
+        Phi = Phi.reshape(cells.X.shape)
+
+        gPhix, gPhiy = fd.gradient(Phi, cells.delta)
+
+        # correct the flux with its component of Phi:
+        fx = fxo - gPhix*sigma
+        fy = fyo - gPhiy*sigma
+
+        # #smooth the fluxes:
+        # if p.smooth_level > 0.0:
+        #     fx = gaussian_filter(fx, p.smooth_level)
+        #     fy = gaussian_filter(fy, p.smooth_level)
+
+        # add this component of the extracellular voltage storage vector:
+        self.Phi_vect[i] = Phi.ravel()
 
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
 
-        # # add fluid flow to fluxes (it contributes to fields, but not to concentration changes)
+        # add fluid flow to fluxes (it contributes to fields, but not to concentration changes)
         # self.fluxes_env_x[i] = fx.ravel()  + ux*cenv.ravel() # store ecm junction flux for this ion
         # self.fluxes_env_y[i] = fy.ravel()  + uy*cenv.ravel() # store ecm junction flux for this ion
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
-        self.fluxes_env_y[i] = fy.ravel()   # store ecm junction flux for this ion
+        self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
 
         cenv = cenv + div_fa * p.dt
 
