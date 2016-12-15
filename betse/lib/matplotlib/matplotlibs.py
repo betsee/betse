@@ -374,9 +374,9 @@ class MatplotlibConfig(object):
 
         Specifically:
 
-        * If this method is called by `py.test`-driven testing and hence
-          possibly by headless remote continuous integration (CI) with no access
-          to a window manager, the non-interactive `Agg` backend is used.
+        * If this method is called by `py.test`-based testing and hence
+          possibly by headless continuous integration (CI) with no access to a
+          window manager, the non-interactive `Agg` backend is used.
         * Else, if the current platform is:
           * Either Linux or Windows, the `TkAgg` backend is used. This is the
             only backend currently known to survive freezing into executables.
@@ -386,16 +386,15 @@ class MatplotlibConfig(object):
           * OS X, the `MacOSX` backend is used. This is the only backend
             currently known to survive freezing into executables. Alternatives
             include:
-            * `CocoaAgg`, a non-native backend leveraging the cross-platform C++
-              library AGG (Anti-grain Geometry). That's good. Unfortunately,
-              this backend is officially deprecated and fundametally broken.
-              That's bad.
+            * `CocoaAgg`, a non-native backend leveraging the cross-platform
+              C++ library AGG (Anti-grain Geometry). Yes! This backend is
+              officially deprecated and fundametally broken, however. No!
         '''
 
         #FIXME: Add transparent support for headless environments here, for
         #which we'll want to default to a headless backend as we currently do
-        #when testing (e.g., "Agg"). To do so, add OS-specific logic testing for
-        #the presence of a windowing manager as follows:
+        #when testing (e.g., "Agg"). To do so, add OS-specific logic testing
+        #for the presence of a windowing manager as follows:
         #
         #* Under Linux, test for (in order):
         #  * X11 connectivity.
@@ -404,17 +403,27 @@ class MatplotlibConfig(object):
         #* Under OS X and Windows, don't bother testing anything. Windows
         #  explicitly fails to support headless operation. OS X technically
         #  supports headless operation via an obscure (albeit well-documented)
-        #  hack where one enters ">console" as the login username, but basically
-        #  fails to support headless operation for most intents and purposes.
+        #  hack where one enters ">console" as the login username, but
+        #  basically fails to support headless operation for most intents and
+        #  purposes.
         #
         #This is critical under Linux, as it would render BETSE amenable to
         #scripted, remote, and (hopefully) parallelized usage.
         #FIXME: Actually, is the above comment relevant anymore in light of the
-        #inclusion of the headless "Agg" backend listed below? Specifically, are
-        #non-headless backends (e.g., "TkAgg") actually importable under
+        #inclusion of the headless "Agg" backend listed below? Specifically,
+        #are non-headless backends (e.g., "TkAgg") actually importable under
         #headless environments? Hopefully, this is *NOT* the case. If this is
         #indeed not the case, then no further work needs be done; the logic
         #below already implicitly handles headless environments.
+        #FIXME: Sadly, non-headless backends do indeed appear to be importable
+        #under headless environments -- which doesn't quite seem right and
+        #should thus be examined further. Our backend usability inspection
+        #logic is probably irrepairably broken.
+        #
+        #In any case, we've implemented a new
+        #betse.util.os.displays.is_headless() function. Once this function has
+        #been manually validated to operate as expected under all supported
+        #platforms (notably, OS X), call this function below, please.
 
         # Name of the non-GUI-based matplotlib backend to fallback to in the
         # event that *NO* GUI-based matplotlib backend is usable on this system.
@@ -422,25 +431,17 @@ class MatplotlibConfig(object):
         # platforms and systems regardless of matplotlib version.
         _BACKEND_NAME_FALLBACK = 'Agg'
 
-        # Dictionary mapping from the name of each supported platform to a tuple
-        # of the names of all matplotlib backends to iteratively fallback to on
-        # that platform (in descending order of preference) in the event the the
-        # end user fails to explicitly specify such a name (e.g., via the
-        # `--matplotlib-backend` option). In this case, this method subsequently
-        # falls back to the first matplotlib backend usable on the current
-        # system whose name is in this tuple.
+        # Dictionary mapping from the name of each supported platform to a
+        # tuple of the names of all matplotlib backends to iteratively fallback
+        # to on that platform (in descending order of preference) in the event
+        # the the end user fails to explicitly specify such a name (e.g., via
+        # the `--matplotlib-backend` option). In this case, this method
+        # subsequently falls back to the first matplotlib backend usable on the
+        # current system whose name is in this tuple.
         _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED = {
-            #FIXME: Inject the "Qt5Agg" backend somewhere into this list after
-            #shown to be working. Sadly, this backend appears to be overly
-            #fragile and hence unusable. Attempting to use this backend on
-            #Gentoo Linux with matplotlib 1.5.1 yields the following fatal
-            #exception on attempting to plot or animate:
-            #
-            #    QObject::connect: Cannot connect NavigationToolbar2QT::message(QString) to (null)::_show_message()
-            #    TypeError: connect() failed between NavigationToolbar2QT.message[str] and _show_message()
             #FIXME: Inject the "WxAgg" backend somewhere into this list after
-            #shown to be working under Python 3.x. Sadly, since a stable version
-            #of WxPython Phoenix has yet to be released, this may take
+            #shown to be working under Python 3.x. Sadly, since a stable
+            #version of WxPython Phoenix has yet to be released, this may take
             #considerably longer than first assumed. The vapourware: it burns!
 
             # Under Linux, the following backends are preferred:
@@ -448,23 +449,18 @@ class MatplotlibConfig(object):
             # * "TkAgg", a GUI backend with adequate (albeit not particularly
             #   impressive) aesthetics and superior performance by compare to
             #   less preferable backends. Tcl/Tk: who would have ever thought?
+            # * "Qt5Agg", a GUI backend with (arguably) superior aesthetics but
+            #   (inarguably) significant performance *AND* reliability concerns
+            #   by compare to more preferable backends. It could be worse.
             # * "Qt4Agg", a GUI backend with (arguably) inferior aesthetics and
-            #   (inarguably) significant performance concerns by compare to more
-            #   preferable backends. Something is better than nothing.
-            'Linux': ('TkAgg', 'Qt4Agg',),
-            # 'Linux': (),
+            #   (inarguably) significant performance concerns by compare to
+            #   more preferable backends. Something is better than nothing.
+            'Linux': ('TkAgg', 'Qt5Agg', 'Qt4Agg',),
 
-            # Under OS X and iOS, the preferred backends are defined below in
-            # terms of the preferred Linux-specific backends defined above.
+            # Preferred backends for the following platforms reuse the the
+            # preferred backends for Linux defined above.
             'Darwin': None,
-
-            # Under Windows, the following backends are preferred:
-            #
-            # * "Qt4Agg". While typically less preferable than "TkAgg", this
-            #   backend's implementation is somewhat stabler under many Windows
-            #   systems than that of "TkAgg". Hence, stability wins.
-            # * "TkAgg". (See the prior item.)
-            'Windows': ('Qt4Agg', 'TkAgg',),
+            'Windows': None,
         }
 
         # Under OS X and iOS, prefer the only genuinely usable Darwin-specific
@@ -473,6 +469,12 @@ class MatplotlibConfig(object):
         # (e.g., "Qt5Agg") tend to behave similarly under both platforms.
         _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Darwin'] = (
             ('MacOSX',) + _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Linux'])
+
+        # Under Windows, prefer the exact same backends as preferred under
+        # Linux. While POSIX-incompatible and hence irregular, Windows still
+        # supports the same backends preferred under Linux in the same order.
+        _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Windows'] = (
+            _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Linux'])
 
         #FIXME: Refactor the test suite to:
         #
@@ -872,11 +874,12 @@ class MatplotlibConfig(object):
         `True` if the backend with the passed name is **usable** (i.e., safely
         switchable to without raising exceptions) on the current system.
 
-        If this backend is usable, this method also switches the current backend
+        If this backend is usable, this method switches the current backend
         to this backend _without_ restoring the previously set backend. This is
-        as the unavoidable result of performing this test in a reliable manner.
-        Caller requiring the previously set backend to be restored must do so
-        manually _after_ calling this method.
+        the unavoidable price of robust, reproducible test results. Callers
+        requiring the previously set backend to be restored must do so manually
+        (e.g., by setting the :func:`property` attribute to the name of that
+        backend) _after_ calling this method.
         '''
 
         # Delay importation of the "matplotlib.__init__" module.
@@ -894,11 +897,32 @@ class MatplotlibConfig(object):
         if backend_name == 'gtk3agg':
             return False
 
-        # If this backend is successfully enabled and hence usable, return True.
+        # Return True if and only if...
         try:
+            # Switching to this backend succeeds.
             pyplot.switch_backend(backend_name)
+
+            # Creating and destroying a hidden, empty figure succeeds. Note
+            # that, technically, doing so could incur unintended side effects
+            # on uncooperative platforms (e.g., Windows) in edge cases.
+            #
+            # Unfortunately, doing so is also essential. The success of
+            # switching to this backend is a necessary but *NOT* sufficient
+            # condition of this backend's usability. While the success of
+            # switching to some backends (e.g., "TkAgg") does reliably imply
+            # those backends to be usable, the success of switching to other
+            # backends (e.g., "Qt5Agg") only implies that the corresponding
+            # packages (e.g., "PyQt5") are successfully importable; this does
+            # *NOT* imply these packages and hence these backends to actually
+            # be usable in real-world use cases. Notably, the "PyQt" family of
+            # backends are infamous for raising non-human-readable exceptions
+            # on attempting to create the first figure. (Why, "PyQt"? WHY!?!?)
+            pyplot.figure()
+            pyplot.close()
+
+            # We're good to go, boys.
             return True
-        # Else, return False.
+        # Else, this backend is unusable. return False.
         except:
             return False
 
