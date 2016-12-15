@@ -4612,6 +4612,8 @@ class MasterOfNetworks(object):
             return chi_sqr
 
 
+
+
         # # define the optimization callable function
         # def opt_funk(vmax):
         #     """

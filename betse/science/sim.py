@@ -331,12 +331,8 @@ class Simulator(object):
         self.Jn = np.zeros(self.mdl)  # net normal current density at membranes
         self.Jmem = np.zeros(self.mdl)   # total normal current across membrane from intra- to extra-cellular space
         self.Jgj = np.zeros(self.mdl)     # total normal current across GJ coupled membranes from intra- to intra- space
-        # self.J_weight = np.ones(self.mdl)  # moments of current passing through membranes
-        # self.rho_mems = np.zeros(self.mdl)  # membrane charge
         self.dvm = np.zeros(self.mdl)   # rate of change of Vmem
         self.drho = np.zeros(self.cdl)  # rate of change of charge in cell
-        # self.Phi_env = np.zeros(cells.X.shape)
-        # self.Pol_mem = np.zeros(self.mdl)  # polarization density at the membrane
 
         # Current averaged to cell centres:
         self.J_cell_x = np.zeros(self.cdl)
@@ -354,8 +350,11 @@ class Simulator(object):
         self.vm = np.zeros(self.mdl)     # initialize vmem
         self.rho_cells = np.zeros(self.cdl)
 
-        self.E_gj_x = np.zeros(self.mdl)   # electric field components across gap junctions
+        self.E_gj_x = np.zeros(self.mdl)   # electric field components across gap junctions (micro-field)
         self.E_gj_y = np.zeros(self.mdl)
+
+        self.E_cell_x = np.zeros(self.mdl)   # intracellular electric field components (macro-field)
+        self.E_cell_y = np.zeros(self.mdl)
 
 
         if p.sim_ECM is True:  # special items specific to simulation of extracellular spaces only:
@@ -1542,34 +1541,39 @@ class Simulator(object):
             self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
 
 
-        if p.cell_polarizability != 0.0:  # this is boolean is needed for back-compatability with published sims!
-            #----Method #1 current based:---------------
+        # #----Method #1 current based:---------------
+        # # I suspect this method is no good because the Vmem at each membrane are not adjustable. In
+        # reality, the charge relaxation constant of an electrolyte is less than 3.6e-6 s. Therefore,
+        # any polarization would be difficult to maintain for longer than a few microseconds in the
+        # absence of a current. I am therefore using Method #2, which accounts for polarization by uneven
+        # currents introduced across a membrane in a single time-step, but for which Vmem in a cell
+        # collective would revert to homogeneous without a continous asymmetric current across individual
+        # membranes.
+        #
+        # # We do not need to consider conductivity of the membrane in a resistive term, because it is already
+        # # incorporated into self.Jmem via the passive electrodiffusion fluxes across the membrane.
+        #
+        # dv = - (1/p.cm)*self.Jn*p.dt
+        # self.vm = self.vm + dv
+        #
+        # # add in electric potential contribution from GJ currents:
+        # self.vm = self.vm + self.v_cell[cells.mem_to_cells]
+        #
+        # if p.sim_ECM is True:
+        #
+        #     self.vm = self.vm - self.v_env[cells.map_mem2ecm]
 
-            # We do not need to consider conductivity of the membrane in a resistive term, because it is already
-            # incorporated into self.Jmem via the passive electrodiffusion fluxes across the membrane.
 
-            dv = - (1/p.cm)*self.Jmem*p.dt
-            self.vm = self.vm + dv
+        #----Method #2 capacitor based:-------------
+        # surface charge density in cells interior membrane:
+        sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
 
-            # add in electric potential contribution from GJ currents:
-            self.vm = self.vm + self.v_cell[cells.mem_to_cells]
+        self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells] - self.Jn*p.dt*p.cell_polarizability) + \
+                  self.v_cell[cells.mem_to_cells]
 
-            if p.sim_ECM is True:
+        if p.sim_ECM is True:
 
-                self.vm = self.vm - self.v_env[cells.map_mem2ecm]
-
-
-        elif p.cell_polarizability == 0.0:
-
-            #----Method #2 capacitor based:-------------
-            # surface charge density in cells interior membrane:
-            sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
-
-            self.vm = (1 / p.cm)*sig_cell[cells.mem_to_cells]
-
-            if p.sim_ECM is True:
-
-                self.vm = self.vm - self.v_env[cells.map_mem2ecm]*p.env_modulator
+            self.vm = self.vm - self.v_env[cells.map_mem2ecm]*p.env_modulator
 
 
         # calculate the derivative of Vmem:
@@ -1870,9 +1874,6 @@ class Simulator(object):
 
     def update_gj(self,cells,p,t,i):
 
-        # FIXME I think these fluxes need to be treated like the environmental fluxes: each one made divergence-free using
-        # the hidden chemical potential method
-
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
         self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
@@ -1893,7 +1894,11 @@ class Simulator(object):
             self.gjopen = self.gj_block*np.ones(len(cells.mem_i))
 
         # concentration gradient for ion i:
+        # # FIXME is this adjustment necessary?
+        # conc_mem = self.cc_cells[i][cells.mem_to_cells]*np.exp(-(self.vm*p.q*self.zs[i])/(2*p.kb*self.T))
+        # FIXME is this adjustment necessary?
         conc_mem = self.cc_cells[i][cells.mem_to_cells]
+
 
         grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
 
@@ -1915,7 +1920,7 @@ class Simulator(object):
 
 
         fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
-                                          -self.E_gj_y, 0, 0,
+                                          -self.E_gj_y, ux, uy,
                                               p.gj_surface*self.gjopen*self.D_gj[i],
                                               self.zs[i],
                                               self.T, p)
@@ -1947,6 +1952,9 @@ class Simulator(object):
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
+        if p.smooth_level > 0.0:
+            cenv = gaussian_filter(cenv, p.smooth_level)
+
         cenv[:,0] =  self.c_env_bound[i]
         cenv[:,-1] =  self.c_env_bound[i]
         cenv[0,:] =  self.c_env_bound[i]
@@ -1956,8 +1964,8 @@ class Simulator(object):
 
         if p.fluid_flow is True:
 
-            ux = self.u_env_x.ravel()
-            uy = self.u_env_y.ravel()
+            ux = self.u_env_x
+            uy = self.u_env_y
 
         else:
 

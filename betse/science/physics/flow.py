@@ -19,10 +19,11 @@ def getFlow(sim, cells, p):
 
         # estimate the inverse viscosity for extracellular flow based on the diffusion constant weighting
         # for the world:
+        corr = (cells.true_ecm_vol.min()/cells.ecm_vol)
 
         # electrostatic body forces in environment:
-        FFx = sim.rho_env.reshape(cells.X.shape) * sim.E_env_x
-        FFy = sim.rho_env.reshape(cells.X.shape) * sim.E_env_y
+        FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x*corr
+        FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y*corr
 
         # non-divergence free currents using Stokes flow equation:
         muFx = ((1/p.mu_water)*sim.D_env_weight)*FFx

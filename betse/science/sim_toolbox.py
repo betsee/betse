@@ -1280,14 +1280,10 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         # electroosmotic fluid velocity:
         if p.fluid_flow is True:
-            ux = sim.u_gj_x
-            uy = sim.u_gj_y
-
-            # get component of fluid tangent to gap junctions
-            # ugj = ux * cells.mem_vects_flat[:, 2] + uy * cells.mem_vects_flat[:, 3]
+            ux = sim.u_cells_x[cells.mem_to_cells]
+            uy = sim.u_cells_y[cells.mem_to_cells]
 
         else:
-            # ugj = 0
             ux = 0
             uy = 0
 

@@ -21,14 +21,14 @@ def get_current(sim, cells, p):
     sim.Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
 
     # add the free current sources together into a single transmembrane current:
-    sim.Jn = sim.Jn + sim.Jgj
+    sim.Jn = sim.Jmem + sim.Jgj
 
     # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa
 
     # components of GJ current:
-    Jnx = sim.Jgj * cells.nn_tx
-    Jny = sim.Jgj * cells.nn_ty
+    Jnx = sim.Jn * cells.nn_tx
+    Jny = sim.Jn * cells.nn_ty
 
     #-----------------------------------------------------------------------------
 
@@ -42,10 +42,10 @@ def get_current(sim, cells, p):
 
     #----------------------------------------------------
 
-    # need to solve GJ current continuity equation to find electric potential, v_cell from GJ currents:
+    # need to solve current continuity equation to find electric potential, v_cell from internal currents:
 
-    # calculate the divergence of Jgj:
-    divGJ = np.dot(cells.M_sum_mems, p.tissue_rho*sim.Jgj*cells.mem_sa) / cells.cell_vol
+    # calculate the divergence of Jn:
+    divGJ = np.dot(cells.M_sum_mems, p.tissue_rho*sim.Jn*cells.mem_sa) / cells.cell_vol
 
     # calculate electric potential to balance divGJ:
     sim.v_cell = np.dot(cells.lapGJ_P_inv, divGJ)
@@ -59,6 +59,9 @@ def get_current(sim, cells, p):
 
     Jnx = Jnx - gVx*(1/p.tissue_rho)
     Jny = Jny - gVy*(1/p.tissue_rho)
+
+    sim.E_cell_x = -gVx
+    sim.E_cell_y = -gVy
 
     #----------------------------------------------------
 
@@ -83,10 +86,10 @@ def get_current(sim, cells, p):
 
         #---METHOD 1: Calculate potential to make currents divergence-free ---------------------
 
-        # smooth the currents:
-        if p.smooth_level > 0.0:
-            J_env_x_o = gaussian_filter(J_env_x_o, p.smooth_level)
-            J_env_y_o = gaussian_filter(J_env_y_o, p.smooth_level)
+        # # smooth the currents:
+        # if p.smooth_level > 0.0:
+        #     J_env_x_o = gaussian_filter(J_env_x_o, p.smooth_level)
+        #     J_env_y_o = gaussian_filter(J_env_y_o, p.smooth_level)
 
         # conductivity in the media is modified by the environmental diffusion weight matrix:
         sigma = (1/p.media_rho)*sim.D_env_weight   # general conductivity

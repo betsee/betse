@@ -1036,6 +1036,8 @@ class Cells(object):
 
         #---post processing and calculating peripheral structures-----------------------------------------------------
 
+        self.mem_mids = np.asarray(mem_mids)
+
         self.mem_mids_flat, indmap_mem, _ = tb.flatten(mem_mids)
         self.mem_mids_flat = np.asarray(self.mem_mids_flat)  # convert the data structure to an array
 
