@@ -1541,39 +1541,18 @@ class Simulator(object):
             self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
 
 
-        # #----Method #1 current based:---------------
-        # # I suspect this method is no good because the Vmem at each membrane are not adjustable. In
-        # reality, the charge relaxation constant of an electrolyte is less than 3.6e-6 s. Therefore,
-        # any polarization would be difficult to maintain for longer than a few microseconds in the
-        # absence of a current. I am therefore using Method #2, which accounts for polarization by uneven
-        # currents introduced across a membrane in a single time-step, but for which Vmem in a cell
-        # collective would revert to homogeneous without a continous asymmetric current across individual
-        # membranes.
-        #
-        # # We do not need to consider conductivity of the membrane in a resistive term, because it is already
-        # # incorporated into self.Jmem via the passive electrodiffusion fluxes across the membrane.
-        #
-        # dv = - (1/p.cm)*self.Jn*p.dt
-        # self.vm = self.vm + dv
-        #
-        # # add in electric potential contribution from GJ currents:
-        # self.vm = self.vm + self.v_cell[cells.mem_to_cells]
-        #
-        # if p.sim_ECM is True:
-        #
-        #     self.vm = self.vm - self.v_env[cells.map_mem2ecm]
-
-
-        #----Method #2 capacitor based:-------------
+        #----Capacitor based Vmem:-------------
         # surface charge density in cells interior membrane:
         sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
 
-        self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells] - self.Jn*p.dt*p.cell_polarizability) + \
-                  self.v_cell[cells.mem_to_cells]
+        # self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells] - self.Jn*p.dt*p.cell_polarizability) + \
+        #           self.v_cell[cells.mem_to_cells]
+
+        self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells])
 
         if p.sim_ECM is True:
 
-            self.vm = self.vm - self.v_env[cells.map_mem2ecm]*p.env_modulator
+            self.vm = self.vm - self.v_env[cells.map_mem2ecm]
 
 
         # calculate the derivative of Vmem:
@@ -1896,7 +1875,7 @@ class Simulator(object):
         # concentration gradient for ion i:
         # # FIXME is this adjustment necessary?
         # conc_mem = self.cc_cells[i][cells.mem_to_cells]*np.exp(-(self.vm*p.q*self.zs[i])/(2*p.kb*self.T))
-        # FIXME is this adjustment necessary?
+
         conc_mem = self.cc_cells[i][cells.mem_to_cells]
 
 
@@ -1930,18 +1909,11 @@ class Simulator(object):
         # enforce zero flux at outer boundary:
         fgj_X[cells.bflags_mems] = 0.0
 
-        # fgj_X, _, _ = cells.zero_div_cell(fgj_X, rho=0.0, bc=0.0, open_bounds=True)
-
         # divergence calculation for individual cells (finite volume expression)
         delta_cco = np.dot(cells.M_sum_mems, -fgj_X*cells.mem_sa) / cells.cell_vol
 
         # Calculate the final concentration change:
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
-
-        # calculate contribution of fluid flow to fluxes:
-        # first obtain normal component to membranes:
-        # uxf = ux*cells.mem_vects_flat[:,2] + uy*cells.mem_vects_flat[:,3]
-        # self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X + uxf*c  # store gap junction flux for this ion
 
         self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X   # store gap junction flux for this ion
 
@@ -1972,57 +1944,60 @@ class Simulator(object):
             ux = 0.0
             uy = 0.0
 
-        # # METHOD 1: option to proceed with non-corrected fluxes (E_env field corrects the flux) -----------------------
-        #
-        # # this equation assumes environmental transport is electrodiffusive:
-        # fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
-        #                                   self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
-        #
-        # fx = fxo
-        # fy = fyo
-        # #
+
+        if p.cell_polarizability == 0.0:
+
+        # METHOD 1: option to proceed with non-corrected fluxes (E_env field corrects the flux) -----------------------
+
+            # this equation assumes environmental transport is electrodiffusive:
+            fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
+                                              self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
+
+            fx = fxo
+            fy = fyo
+
+        else:
+
         #---METHOD 2: option to correct individual fluxes -------------------------------
 
-        zz = self.zs[i]
+            zz = self.zs[i]
 
-        dd = self.D_env[i].reshape(cells.X.shape)
+            dd = self.D_env[i].reshape(cells.X.shape)
 
-        # calculate the Einstein coefficient:
-        sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
+            # calculate the Einstein coefficient:
+            sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
 
-
-        fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
-                                        self.D_env[i].reshape(cells.X.shape), self.zs[i],
-                                        self.T, p)
+            # corr = p.cell_space/cells.delta
+            corr = p.cell_polarizability
 
 
-        # Calculate the divergence of the uncorrected flux, divided through by the Einstein coefficient:
-        div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
+            fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x*corr, -self.E_env_y*corr, 0, 0,
+                                            self.D_env[i].reshape(cells.X.shape), self.zs[i],
+                                            self.T, p)
 
-        #enforce applied voltage condition at the boundary:
-        div_fo[:,0] = 0.0
-        div_fo[:,-1] = 0.0
-        div_fo[0,:] = 0.0
-        div_fo[-1,:] = 0.0
 
-        # solve for the hidden potential energy, Phi:
-        Phi = np.dot(cells.lapENVinv, div_fo.ravel())
+            # Calculate the divergence of the uncorrected flux, divided through by the Einstein coefficient:
+            div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
 
-        Phi = Phi.reshape(cells.X.shape)
+            #enforce applied voltage condition at the boundary:
+            div_fo[:,0] = 0.0
+            div_fo[:,-1] = 0.0
+            div_fo[0,:] = 0.0
+            div_fo[-1,:] = 0.0
 
-        gPhix, gPhiy = fd.gradient(Phi, cells.delta)
+            # solve for the hidden potential energy, Phi:
+            Phi = np.dot(cells.lapENVinv, div_fo.ravel())
 
-        # correct the flux with its component of Phi:
-        fx = fxo - gPhix*sigma
-        fy = fyo - gPhiy*sigma
+            Phi = Phi.reshape(cells.X.shape)
 
-        # #smooth the fluxes:
-        # if p.smooth_level > 0.0:
-        #     fx = gaussian_filter(fx, p.smooth_level)
-        #     fy = gaussian_filter(fy, p.smooth_level)
+            gPhix, gPhiy = fd.gradient(Phi, cells.delta)
 
-        # add this component of the extracellular voltage storage vector:
-        self.Phi_vect[i] = Phi.ravel()
+            # correct the flux with its component of Phi:
+            fx = fxo - gPhix*sigma
+            fy = fyo - gPhiy*sigma
+
+            # add this component of the extracellular voltage storage vector:
+            self.Phi_vect[i] = Phi.ravel()
 
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
@@ -2296,6 +2271,29 @@ class Simulator(object):
 #-----------------------------------------------------------------------------------------------------------------------
 # WASTELANDS
 #-----------------------------------------------------------------------------------------------------------------------
+
+        # #----Method #1 current based:---------------
+        # # I suspect this method is no good because the Vmem at each membrane are not adjustable. In
+        # # reality, the charge relaxation constant of an electrolyte is less than 3.6e-6 s. Therefore,
+        # # any polarization would be difficult to maintain for longer than a few microseconds in the
+        # # absence of a current. I am therefore using Method #2, which accounts for polarization by uneven
+        # # currents introduced across a membrane in a single time-step, but for which Vmem in a cell
+        # # collective would revert to homogeneous without a continous asymmetric current across individual
+        # # membranes.
+        #
+        # # We do not need to consider conductivity of the membrane in a resistive term, because it is already
+        # # incorporated into self.Jmem via the passive electrodiffusion fluxes across the membrane.
+        #
+        # dv = - (1/p.cm)*self.Jn*p.dt
+        # self.vm = self.vm + dv
+        #
+        # # # add in electric potential contribution from GJ currents:
+        # # self.vm = self.vm + self.v_cell[cells.mem_to_cells]
+        #
+        # if p.sim_ECM is True:
+        #
+        #     self.vm = self.vm - self.v_env[cells.map_mem2ecm]
+
 # def update_C(self,ion_i,flux,cells,p):
 #
 #     c_cells = self.cc_cells[ion_i][:]

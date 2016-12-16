@@ -2293,6 +2293,9 @@ class Cells(object):
         # calculate divergence as the sum of this vector x each surface area, divided by cell volume:
         div_F = (np.dot(self.M_sum_mems, Fn * self.mem_sa) / self.cell_vol)
 
+        fxo = Fn*self.nn_tx
+        fyo = Fn*self.nn_ty
+
         if open_bounds is True:
             Phi = np.dot(self.lapGJinv, div_F + rho)
 
@@ -2302,14 +2305,20 @@ class Cells(object):
 
         gPhi = (Phi[self.cell_nn_i[:, 1]] - Phi[self.cell_nn_i[:, 0]]) / (self.nn_len)
 
+        gPx = gPhi*self.nn_tx
+        gPy = gPhi*self.nn_ty
+
         # make the field divergence-free:
-        Fn = Fn - gPhi*0.99
+        Fx = fxo - gPx
+        Fy = fyo - gPy
+
+        Fn = Fx*self.mem_mids_flat[:,0] + Fy*self.mem_mids_flat[:,1]
 
         # # assign the boundary condition:
         # Fn[self.bflags_mems] = bc
 
-        Fx = Fn * self.mem_vects_flat[:, 2]
-        Fy = Fn * self.mem_vects_flat[:, 3]
+        # Fx = Fn * self.mem_vects_flat[:, 2]
+        # Fy = Fn * self.mem_vects_flat[:, 3]
 
 
         # calculate the net displacement of cell centres under the applied force under incompressible conditions:

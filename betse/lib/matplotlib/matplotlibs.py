@@ -93,7 +93,7 @@ from betse.util.io.log import logconfig, logs
 from betse.util.os import kernels
 from betse.util.path import dirs, paths
 from betse.util.py import freezers, pys
-from betse.util.type import iterables, strs, modules
+from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check
 from collections import OrderedDict
@@ -888,14 +888,39 @@ class MatplotlibConfig(object):
         # Lowercase this name, ensuring case-insensitive backend names.
         backend_name = backend_name.lower()
 
-        # If this backend is "Gtk3Agg", immediately report this backend to be
-        # unusable without testing such report. Attempting to use this backend
-        # currently emits the following warning, which only serves to confound
-        # the issue for end users:
+        # Unconditionally report the following backends to be unusable without
+        # actually testing these backends:
         #
-        #     UserWarning: The Gtk3Agg backend is not known to work on Python 3.x.
-        if backend_name == 'gtk3agg':
+        # * "Gtk3Agg", emitting the following non-fatal warning when enabled:
+        #
+        #     UserWarning: The Gtk3Agg backend is not known to work on Python
+        #     3.x.
+        # * All GTK+ 2.x-specific backends (e.g., "Gtk", "Gtkagg"), conflicting
+        #   with GTK+ 3.x-specific backends (e.g., "Gtk3", "Gtk3agg").
+        #   Specifically, attempting to switch to the latter after having
+        #   already switched to the former typically induces the following
+        #   fatal segmentation fault immediately halting the current process:
+        #
+        #     (betse:5000): Gtk-ERROR **: GTK+ 2.x symbols detected. Using GTK+
+        #     2.x and GTK+ 3 in the same process is not supported
+        #     zsh: trace trap (core dumped)  betse info
+        #
+        #   This is *NOT* a high-level Python exception exception and hence
+        #   cannot be caught from within Python. This is a low-level process
+        #   signal. The only winning move is not to play at all.
+        # * "Gtk3cairo", which, despite claiming to be a GTK+ 3.x-specific
+        #   backend, appears to attempt to dynamically load GTK+ 2.x-specific
+        #   shared libraries -- inducing the fatal segmentation fault above.
+        #FIXME: For efficiency, compile this regex for reuse during iteration.
+        if regexes.is_match(
+            text=backend_name, regex=r'^gtk(?:3(?:agg|cairo)|[^3]|$)'):
+            # print("bad gtk backend: " + backend_name)
             return False
+        # if backend_name.startswith('gtk') and (
+        #     backend_name == 'gtk3agg' or
+        #     not backend_name.startswith('gtk3')
+        # ):
+        # if backend_name.startswith('gtk'):
 
         # Return True if and only if...
         try:
