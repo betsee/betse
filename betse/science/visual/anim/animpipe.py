@@ -169,19 +169,21 @@ def pipeline_anims(
                 color_max=p.Efield_ani_max_clr,
             )
 
-    if p.deform_osmo is True:
+    if np.mean(sim.P_cells_time) != 0.0:
 
         if p.ani_Pcell is True:
             AnimFlatCellsTimeSeries(
                 sim=sim, cells=cells, p=p,
                 time_series=sim.P_cells_time,
                 label='Pcell',
-                figure_title='Hydrostatic Pressure in Cells',
+                figure_title='Pressure in Cells',
                 colorbar_title='Pressure [Pa]',
                 is_color_autoscaled=p.autoscale_Pcell_ani,
                 color_min=p.Pcell_ani_min_clr,
                 color_max=p.Pcell_ani_max_clr,
             )
+
+    if p.deform_osmo is True:
 
         if p.ani_osmoP is True:
             AnimFlatCellsTimeSeries(

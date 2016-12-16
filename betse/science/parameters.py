@@ -396,6 +396,8 @@ class Parameters(object):
         opFun = self.config['funny current']
         opCa = self.config['voltage gated Ca2+']
         opcK = self.config['gated ion channel options']['calcium gated K']
+
+        # FIXME the options for stretch gated channel coming from wrong place...
         opStretch = self.config['gated ion channel options']['stretch gated Na']
 
         self.flux_threshold = self.config['gated ion channel options']['flux threshold']

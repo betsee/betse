@@ -1341,10 +1341,10 @@ class Simulator(object):
         self.rho_cells_time.append(self.rho_cells[:])
 
         self.rate_NaKATP_time.append(self.rate_NaKATP[:])
-        self.P_cells_time.append(self.P_cells[cells.mem_to_cells])
+        self.P_cells_time.append(self.P_cells)
 
         if p.deform_osmo is True:
-            self.osmo_P_delta_time.append(self.osmo_P_delta[cells.mem_to_cells])
+            self.osmo_P_delta_time.append(self.osmo_P_delta)
 
         if p.deformation is True:
 

@@ -847,7 +847,7 @@ class TissueHandler(object):
 
             cagPotassium(self,sim,cells,p)
 
-        if p.vg_options['Na_stretch'] != 0 and p.deformation is True:
+        if p.vg_options['Na_stretch'] != 0:
 
             self.stretchChannel(sim,cells,p,t)
 
@@ -857,11 +857,11 @@ class TissueHandler(object):
 
     def stretchChannel(self,sim,cells,p,t):
 
-        dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
+        # dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
+        #
+        # eta = (dd/cells.R)
 
-        eta = (dd/cells.R)
-
-        self.active_NaStretch[self.targets_NaStretch] = tb.hill(eta[self.targets_NaStretch],
+        self.active_NaStretch[self.targets_NaStretch] = tb.hill(sim.P_cells[cells.mem_to_cells][self.targets_NaStretch],
                 self.NaStretch_halfmax,self.NaStretch_n)
 
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch

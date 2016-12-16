@@ -369,7 +369,7 @@ def pipeline_plots(
 
         # hydrostatic pressure in cells:
 
-        if p.deform_osmo is True:
+        if np.mean(sim.P_cells_time) != 0.0:
             p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]
             figOP = plt.figure()
             axOP = plt.subplot(111)
@@ -722,7 +722,7 @@ def pipeline_plots(
             plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True and p.deform_osmo is True:
+    if p.plot_P is True and np.mean(sim.P_cells_time) != 0.0:
 
         figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
         clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
