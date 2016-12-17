@@ -23,6 +23,7 @@ from betse.science.visual.anim.anim import (
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
     AnimFlatCellsTimeSeries,
+    AnimEnvTimeSeries
 )
 from betse.science.visual import visuals
 from betse.util.io.log import logs
@@ -183,81 +184,25 @@ def pipeline_anims(
                 color_max=p.Pcell_ani_max_clr,
             )
 
-    if p.deform_osmo is True:
 
-        if p.ani_osmoP is True:
-            AnimFlatCellsTimeSeries(
-                sim=sim, cells=cells, p=p,
-                time_series=sim.osmo_P_delta_time,
-                label='OsmoP',
-                figure_title='Osmotic Pressure in Cells',
-                colorbar_title='Pressure [Pa]',
-                is_color_autoscaled=p.autoscale_Pcell_ani,
-                color_min=p.Pcell_ani_min_clr,
-                color_max=p.Pcell_ani_max_clr,
-            )
-
-        #FIXME: This animation is fundamentally broken. The "sim.F_hydro_x_time"
-        #and "sim.F_hydro_y_time" arrays are *ALWAYS* defined to be the empty
-        #list now. Since hydrostatics have taken a distinct back seat,
-        #correcting this is presumably low priority. Jettison the Jetsons!
-        if p.ani_force is True:
-            AnimFieldIntracellular(
-                sim=sim, cells=cells, p=p,
-                x_time_series=[(1/p.um)*arr for arr in sim.F_hydro_x_time],
-                y_time_series=[(1/p.um)*arr for arr in sim.F_hydro_y_time],
-                label='HydroFfield',
-                figure_title='Hydrostatic Body Force',
-                colorbar_title='Force [N/cm3]',
-                is_color_autoscaled=p.autoscale_force_ani,
-                color_min=p.force_ani_min_clr,
-                color_max=p.force_ani_max_clr,
-            )
-
-    # # Animate environment voltage if requested.
-    # if p.ani_venv is True and p.sim_ECM is True:
-    #     # List of environment voltages, indexed by time step.
-    #     venv_time_series = [
-    #         venv.reshape(cells.X.shape)*1000 for venv in sim.venv_time]
-    #     AnimEnvTimeSeries(
-    #         sim=sim, cells=cells, p=p,
-    #         time_series=venv_time_series,
-    #         label='Venv',
-    #         figure_title='Environmental Voltage',
-    #         colorbar_title='Voltage [V]',
-    #         is_color_autoscaled=p.autoscale_venv_ani,
-    #         color_min=p.venv_min_clr,
-    #         color_max=p.venv_max_clr,
-    #     )
+    # Animate environment voltage if requested.
+    if p.ani_venv is True and p.sim_ECM is True:
+        # List of environment voltages, indexed by time step.
+        venv_time_series = [
+            venv.reshape(cells.X.shape)*1000 for venv in sim.venv_time]
+        AnimEnvTimeSeries(
+            sim=sim, cells=cells, p=p,
+            time_series=venv_time_series,
+            label='Venv',
+            figure_title='Environmental Voltage',
+            colorbar_title='Voltage [V]',
+            is_color_autoscaled=p.autoscale_venv_ani,
+            color_min=p.venv_ani_min_clr,
+            color_max=p.venv_ani_max_clr,
+        )
 
     # Display and/or save animations specific to the "sim" simulation phase.
-    anim_sim(sim, cells, p)
-
-
-def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
-    '''
-    Serially (i.e., in series) display and/or save all enabled animations if
-    the current simulation phase is `sim` _or_ noop otherwise.
-
-    Parameters
-    ----------------------------
-    sim : Simulator
-        Current simulation.
-    cells : Cells
-        Current cell cluster.
-    p : Parameters
-        Current simulation configuration.
-    '''
-    assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_cells(cells), types.assert_not_parameters(cells)
-    assert types.is_parameters(p), types.assert_not_parameters(p)
-
-    # If the current simulation phase is *NOT* "sim", noop.
-    if not sim.run_sim:
-       return
-
-    if (p.ani_Velocity is True and p.fluid_flow is True and
-        p.deform_electro is True):
+    if (p.ani_Velocity is True and p.fluid_flow is True):
         # Always animate the gap junction fluid velocity.
         AnimVelocityIntracellular(
             sim=sim, cells=cells, p=p,
@@ -275,7 +220,7 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
                 sim=sim, cells=cells, p=p,
                 label='Velocity_ecm',
                 figure_title='Extracellular Fluid Velocity',
-                colorbar_title='Fluid Velocity [nm/s]',
+                colorbar_title='Fluid Velocity [um/s]',
                 is_color_autoscaled=p.autoscale_Velocity_ani,
                 color_min=p.Velocity_ani_min_clr,
                 color_max=p.Velocity_ani_max_clr,
@@ -289,34 +234,6 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             save=p.anim.is_after_sim_save,
         )
 
-        # if p.ani_Deformation_type == 'Displacement':
-        #     displacement_time_series = [
-        #         np.sqrt(cell_dx_series**2 + cell_dy_series**2) * self.p.um
-        #         for cell_dx_series, cell_dy_series in zip(
-        #            self.sim.dx_cell_time, self.sim.dy_cell_time)]
-        #     AnimDeformTimeSeries(
-        #         sim=sim, cells=cells, p=p,
-        #         cell_time_series=displacement_time_series,
-        #         label='Deform_dxdy',
-        #         figure_title='Displacement Field and Deformation',
-        #         colorbar_title='Displacement [um]',
-        #         is_color_autoscaled=p.autoscale_Deformation_ani,
-        #         color_min=p.Deformation_ani_min_clr,
-        #         color_max=p.Deformation_ani_max_clr,
-        #         colormap=p.background_cm,
-        #     )
-        # elif p.ani_Deformation_type == 'Vmem':
-        #     AnimDeformTimeSeries(
-        #         sim=sim, cells=cells, p=p,
-        #         cell_time_series=_get_vmem_time_series(sim, p),
-        #         label='Deform_Vmem',
-        #         figure_title='Cell Vmem and Deformation',
-        #         colorbar_title='Voltage [mV]',
-        #         is_color_autoscaled=p.autoscale_Deformation_ani,
-        #         color_min=p.Deformation_ani_min_clr,
-        #         color_max=p.Deformation_ani_max_clr,
-        #         colormap=p.default_cm,
-        #     )
 
     # Animate the cell membrane pump density factor as a function of time.
     if p.ani_mem is True and p.sim_eosmosis is True:
@@ -330,6 +247,107 @@ def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
             color_min=p.mem_ani_min_clr,
             color_max=p.mem_ani_max_clr,
         )
+
+
+    #
+    # anim_sim(sim, cells, p)
+
+# FIXME: these are no longer sim-specific, content moved above, this can be deleted
+# def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
+#     '''
+#     Serially (i.e., in series) display and/or save all enabled animations if
+#     the current simulation phase is `sim` _or_ noop otherwise.
+#
+#     Parameters
+#     ----------------------------
+#     sim : Simulator
+#         Current simulation.
+#     cells : Cells
+#         Current cell cluster.
+#     p : Parameters
+#         Current simulation configuration.
+#     '''
+#     assert types.is_simulator(sim), types.assert_not_simulator(sim)
+#     assert types.is_cells(cells), types.assert_not_parameters(cells)
+#     assert types.is_parameters(p), types.assert_not_parameters(p)
+#
+#     # If the current simulation phase is *NOT* "sim", noop.
+#     if not sim.run_sim:
+#        return
+#
+#     if (p.ani_Velocity is True and p.fluid_flow is True):
+#         # Always animate the gap junction fluid velocity.
+#         AnimVelocityIntracellular(
+#             sim=sim, cells=cells, p=p,
+#             label='Velocity_gj',
+#             figure_title='Intracellular Fluid Velocity',
+#             colorbar_title='Fluid Velocity [nm/s]',
+#             is_color_autoscaled=p.autoscale_Velocity_ani,
+#             color_min=p.Velocity_ani_min_clr,
+#             color_max=p.Velocity_ani_max_clr,
+#         )
+#
+#         # Also animate the extracellular spaces fluid velocity if desired.
+#         if p.sim_ECM is True:
+#             AnimVelocityExtracellular(
+#                 sim=sim, cells=cells, p=p,
+#                 label='Velocity_ecm',
+#                 figure_title='Extracellular Fluid Velocity',
+#                 colorbar_title='Fluid Velocity [nm/s]',
+#                 is_color_autoscaled=p.autoscale_Velocity_ani,
+#                 color_min=p.Velocity_ani_min_clr,
+#                 color_max=p.Velocity_ani_max_clr,
+#             )
+#
+#     # Animate if desired.
+#     if p.ani_Deformation is True and p.deformation is True:
+#         AnimateDeformation(
+#             sim, cells, p,
+#             ani_repeat=True,
+#             save=p.anim.is_after_sim_save,
+#         )
+#
+#         # if p.ani_Deformation_type == 'Displacement':
+#         #     displacement_time_series = [
+#         #         np.sqrt(cell_dx_series**2 + cell_dy_series**2) * self.p.um
+#         #         for cell_dx_series, cell_dy_series in zip(
+#         #            self.sim.dx_cell_time, self.sim.dy_cell_time)]
+#         #     AnimDeformTimeSeries(
+#         #         sim=sim, cells=cells, p=p,
+#         #         cell_time_series=displacement_time_series,
+#         #         label='Deform_dxdy',
+#         #         figure_title='Displacement Field and Deformation',
+#         #         colorbar_title='Displacement [um]',
+#         #         is_color_autoscaled=p.autoscale_Deformation_ani,
+#         #         color_min=p.Deformation_ani_min_clr,
+#         #         color_max=p.Deformation_ani_max_clr,
+#         #         colormap=p.background_cm,
+#         #     )
+#         # elif p.ani_Deformation_type == 'Vmem':
+#         #     AnimDeformTimeSeries(
+#         #         sim=sim, cells=cells, p=p,
+#         #         cell_time_series=_get_vmem_time_series(sim, p),
+#         #         label='Deform_Vmem',
+#         #         figure_title='Cell Vmem and Deformation',
+#         #         colorbar_title='Voltage [mV]',
+#         #         is_color_autoscaled=p.autoscale_Deformation_ani,
+#         #         color_min=p.Deformation_ani_min_clr,
+#         #         color_max=p.Deformation_ani_max_clr,
+#         #         colormap=p.default_cm,
+#         #     )
+#
+#     # Animate the cell membrane pump density factor as a function of time.
+#     if p.ani_mem is True and p.sim_eosmosis is True:
+#         AnimMembraneTimeSeries(
+#             sim=sim, cells=cells, p=p,
+#             time_series=sim.rho_pump_time,
+#             label='rhoPump',
+#             figure_title='Pump Density Factor',
+#             colorbar_title='mol fraction/m2',
+#             is_color_autoscaled=p.autoscale_mem_ani,
+#             color_min=p.mem_ani_min_clr,
+#             color_max=p.mem_ani_max_clr,
+#         )
 
 # ....................{ PRIVATE ~ getters                  }....................
 #FIXME: Use everywhere above. Since recomputing this is heavy, we probably want

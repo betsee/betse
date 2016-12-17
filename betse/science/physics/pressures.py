@@ -6,19 +6,6 @@
 import numpy as np
 from scipy.ndimage.filters import gaussian_filter
 
-# FIXME!!! change over to HH decomposition!!
-
-
-def electro_F(sim, cells, p):
-    """
-    Calculates electrostatic body force between gap junctions
-     of a networked cell collective.
-
-    """
-
-    # calculate force at each membrane across gap junctions:
-    sim.F_gj_x = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_x
-    sim.F_gj_y = sim.rho_cells[cells.mem_to_cells] * sim.E_gj_y
 
 def osmotic_P(sim, cells, p):
     # initialize osmotic pressures in cells and env
@@ -120,24 +107,6 @@ def osmotic_P(sim, cells, p):
     #
     # if p.scheduled_options['IP3'] != 0 or p.Ca_dyn is True:
     #     sim.cIP3 = sim.cIP3 * (vo / v1)
-
-def getHydroF(sim, cells, p):
-    """
-    Calculate body forces due to hydrostatic pressure gradients between cells
-
-    """
-
-    # determine body force due to hydrostatic pressure gradient between cells:
-    gPcells = -(sim.P_cells[cells.cell_nn_i[:, 1]] - sim.P_cells[cells.cell_nn_i[:, 0]]) / cells.nn_len
-
-    sim.F_hydro_x_gj = gPcells * cells.mem_vects_flat[:,2]
-    sim.F_hydro_y_gj = gPcells * cells.mem_vects_flat[:,3]
-
-    # calculate a shear electrostatic body force at the cell centre:
-    sim.F_hydro_x = np.dot(cells.M_sum_mems, sim.F_hydro_x_gj) / cells.num_mems
-    sim.F_hydro_y = np.dot(cells.M_sum_mems, sim.F_hydro_y_gj) / cells.num_mems
-
-    sim.F_hydro = np.sqrt(sim.F_hydro_x ** 2 + sim.F_hydro_y ** 2)
 
 def get_mass_flux(sim, cells, p):
     """

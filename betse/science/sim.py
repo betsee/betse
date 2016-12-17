@@ -27,7 +27,7 @@ from betse.science.physics.flow import getFlow
 from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.move_channels import eosmosis
-from betse.science.physics.pressures import electro_F, getHydroF, osmotic_P
+from betse.science.physics.pressures import osmotic_P
 from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimCellsWhileSolving
@@ -711,19 +711,9 @@ class Simulator(object):
         else:
             self.NaKATP_block = 1
 
-        if p.HKATPase_dyn is True and p.global_options['HKATP_block'] != 0:
-            self.HKATP_block = np.ones(self.mdl)  # initialize HKATP blocking vector
-        else:
-            self.HKATP_block = 1
-
-        if p.VATPase_dyn is True and p.global_options['VATP_block'] != 0:
-            self.VATP_block = np.ones(self.mdl)  # initialize HKATP blocking vector
-        else:
-            self.VATP_block = 1
-
         # initialize additional pump blocks:
         self.CaATP_block = np.ones(self.mdl)  # initialize CaATP blocking vector
-        self.NaCaExch_block = np.ones(self.mdl)  # initialize CaATP blocking vector
+
 
         # initialize calcium dynamics if desired:
         if p.ions_dict['Ca'] == 1 and p.Ca_dyn is True:
@@ -1018,12 +1008,7 @@ class Simulator(object):
 
 
 
-                # ----transport and handling of special ions---------------------------------------------------------------
-
-                if p.ions_dict['Cl'] == 1:
-
-                    self.cl_handler(cells, p)
-
+                # ----transport and handling of special ions------------------------------------------------------------
 
                 if p.ions_dict['Ca'] == 1:
 
@@ -1102,16 +1087,10 @@ class Simulator(object):
 
                 #-----forces, fields, and flow-----------------------------------------------------------------------------
 
-                # get forces from any hydrostatic (self.P_Cells) pressure:
-                getHydroF(self,cells, p)
-
                 # calculate specific forces and pressures:
 
                 if p.deform_osmo is True:
                     osmotic_P(self,cells, p)
-
-                if p.deform_electro is True:
-                    electro_F(self,cells, p)
 
                 if p.fluid_flow is True:
 
@@ -1506,7 +1485,7 @@ class Simulator(object):
         logs.log_info('Ion pump and channel electodiffusion in membrane: ' + str(p.sim_eosmosis))
         logs.log_info('Force-induced cell deformation: ' + str(p.deformation))
         logs.log_info('Osmotic pressure: ' + str(p.deform_osmo))
-        logs.log_info('Electrostatic pressure: ' + str(p.deform_electro))
+        # logs.log_info('Electrostatic pressure: ' + str(p.deform_electro))
 
         if p.molecules_enabled:
             logs.log_info(
@@ -1539,21 +1518,18 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
+            self.rho_env[cells.inds_env] = 0.0
 
 
         #----Capacitor based Vmem:-------------
         # surface charge density in cells interior membrane:
         sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
 
-        # self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells] - self.Jn*p.dt*p.cell_polarizability) + \
-        #           self.v_cell[cells.mem_to_cells]
-
         self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells])
 
         if p.sim_ECM is True:
 
             self.vm = self.vm - self.v_env[cells.map_mem2ecm]
-
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
@@ -1601,179 +1577,6 @@ class Simulator(object):
             self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
             self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
 
-            if p.HKATPase_dyn == 1: # if there's an H,K ATPase pump
-
-                if p.sim_ECM is True:
-
-                    f_H2, f_K2 = stb.pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                        self.cc_env[self.iH][cells.map_mem2ecm],
-                        self.cc_cells[self.iK][cells.mem_to_cells], self.cc_env[self.iK][cells.map_mem2ecm],
-                        self.vm, self.T, p, self.HKATP_block, met = self.met_concs)
-
-                    # modify fluxes by any uneven redistribution of pump location:
-                    f_H2 = self.rho_pump * f_H2
-                    f_K2 = self.rho_pump * f_K2
-
-                    if p.cluster_open is False:
-                        f_H2[cells.bflags_mems] = 0
-                        f_K2[cells.bflags_mems] = 0
-
-                    self.HKATPase_rate = f_H2[:]
-
-                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
-                    self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
-
-                else:
-
-                    f_H2, f_K2 = stb.pumpHKATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                                               self.cc_env[self.iH],self.cc_cells[self.iK][cells.mem_to_cells],
-                                               self.cc_env[self.iK],self.vm,self.T,p,
-                                               self.HKATP_block, met = self.met_concs)
-
-                    # modulate by asymmetric pump factor if lateral membrane movements are being considered:
-                    f_H2 = self.rho_pump*f_H2
-                    f_K2 = self.rho_pump*f_K2
-
-                    if p.cluster_open is False:
-                        f_H2[cells.bflags_mems] = 0
-                        f_K2[cells.bflags_mems] = 0
-
-                    # capture rate:
-                    self.HKATPase_rate = f_H2[:]
-
-                    # store fluxes for this pump:
-                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H2
-                    self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + f_K2
-
-
-                if p.metabolism_enabled:
-                    # update ATP concentrations after pump action:
-                    self.metabo.update_ATP(f_H2, self, cells, p)
-
-
-                # update the concentration in cells (assume environment steady and constant supply of ions)
-                # update bicarbonate instead of H+, assuming buffer action holds:
-
-                # calculate the update to K+ in the cell and environment:
-
-                self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                    self.cc_env[self.iK][:], f_K2, cells, p, ignoreECM = self.ignore_ecm)
-
-                # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
-                self.cc_cells[self.iM][:], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM][:],
-                    self.cc_env[self.iM][:], -f_H2, cells, p, ignoreECM = self.ignore_ecm)
-
-
-                # Calculate the new pH and H+ concentrations:
-                # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-                self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_mems,self.cc_cells[self.iM])
-
-                self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env,self.cc_env[self.iM])
-
-
-            if p.VATPase_dyn == 1:  # if there's a V-ATPase pump
-
-                if p.sim_ECM is True:
-
-                    # if HKATPase pump is desired, run the H-K-ATPase pump:
-                    f_H3 = stb.pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                                        self.cc_env[self.iH][cells.map_mem2ecm],
-                        self.vm, self.T, p, self.VATP_block, met = self.met_concs)
-
-                    # modify flux by any uneven redistribution of pump location:
-                    f_H3 = self.rho_pump * f_H3
-
-                    if p.cluster_open is False:
-
-                        f_H3[cells.bflags_mems] = 0
-
-                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + f_H3
-
-                else:
-
-                    # if HKATPase pump is desired, run the H-K-ATPase pump:
-                    f_H3 = stb.pumpVATP(self.cc_cells[self.iH][cells.mem_to_cells],
-                                        self.cc_env[self.iH],self.vm,self.T,p,self.VATP_block,
-                                        met = self.met_concs)
-
-                    if p.cluster_open is False:
-                        f_H3[cells.bflags_mems] = 0
-
-                    self.fluxes_mem[self.iH] = self.fluxes_mem[self.iH] + self.rho_pump * f_H3
-
-                # Update the anion (bicarbonate) concentration instead of H+, assuming bicarb buffer holds:
-                self.cc_cells[self.iM], self.cc_env[self.iM][:] = stb.update_Co(self, self.cc_cells[self.iM],
-                    self.cc_env[self.iM], -f_H3, cells, p, ignoreECM= self.ignore_ecm)
-
-                if p.metabolism_enabled:
-                    # update ATP concentrations after pump action:
-                    self.metabo.update_ATP(f_H3, self, cells, p)
-
-                # Calculate the new pH and H+ concentration:
-                 # run the bicarbonate buffer to ensure realistic concentrations and pH in cell and environment:
-
-                self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
-
-                self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
-
-    def cl_handler(self, cells, p):
-
-        if p.NaKCl_exch_dyn is True:
-
-            cNai = self.cc_cells[self.iNa][cells.mem_to_cells]
-            cKi = self.cc_cells[self.iK][cells.mem_to_cells]
-            cCli = self.cc_cells[self.iCl][cells.mem_to_cells]
-
-            if p.sim_ECM is True:
-                cNao = self.cc_env[self.iNa][cells.map_mem2ecm]
-                cKo = self.cc_env[self.iK][cells.map_mem2ecm]
-                cClo = self.cc_env[self.iCl][cells.map_mem2ecm]
-
-            else:
-
-                cNao = self.cc_env[self.iNa]
-                cKo = self.cc_env[self.iK]
-                cClo = self.cc_env[self.iCl]
-
-            f_Na, f_K, f_Cl = stb.exch_NaKCl(cNai,cNao,cKi,cKo,cCli,cClo,self.vm,self.T,p)
-
-            # FIXME where does this add to fluxes_mems?
-
-            # update concentrations of Na, K and Cl in cells and environment:
-
-            self.cc_cells[self.iNa][:], self.cc_env[self.iNa][:] = stb.update_Co(self, self.cc_cells[self.iNa][:],
-                self.cc_env[self.iNa][:], f_Na, cells, p, ignoreECM=self.ignore_ecm)
-
-            self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=self.ignore_ecm)
-
-            self.cc_cells[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_cells[self.iCl][:],
-                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=self.ignore_ecm)
-
-
-        if p.ClK_symp_dyn is True:
-
-            cKi = self.cc_cells[self.iK][cells.mem_to_cells]
-            cCli = self.cc_cells[self.iCl][cells.mem_to_cells]
-
-            if p.sim_ECM is True:
-                cKo = self.cc_env[self.iK][cells.map_mem2ecm]
-                cClo = self.cc_env[self.iCl][cells.map_mem2ecm]
-
-            else:
-                cKo = self.cc_env[self.iK]
-                cClo = self.cc_env[self.iCl]
-
-            f_K, f_Cl = stb.symp_ClK(cKi, cKo, cCli, cClo, self.vm, self.T, p)
-
-            # FIXME add to flux_mems
-
-            # update concentrations of K and Cl in cells and environment:
-            self.cc_cells[self.iK][:], self.cc_env[self.iK][:] = stb.update_Co(self, self.cc_cells[self.iK][:],
-                self.cc_env[self.iK][:], f_K, cells, p, ignoreECM=self.ignore_ecm)
-
-            self.cc_cells[self.iCl][:], self.cc_env[self.iCl][:] = stb.update_Co(self, self.cc_cells[self.iCl][:],
-                self.cc_env[self.iCl][:], f_Cl, cells, p, ignoreECM=self.ignore_ecm)
 
     def ca_handler(self,cells,p):
 
@@ -1787,18 +1590,6 @@ class Simulator(object):
 
             f_CaATP = self.rho_pump * f_CaATP
 
-            if p.NaCa_exch_dyn is True:
-                # run Na Ca exchanger
-                f_NaEx, f_CaEx = stb.exch_NaCa(self.cc_cells[self.iNa][cells.mem_to_cells],
-                        self.cc_env[self.iNa][cells.map_mem2ecm],
-                        self.cc_cells[self.iCa][cells.mem_to_cells],
-                        self.cc_env[self.iCa][cells.map_mem2ecm],
-                        self.vm, self.T, p, self.NaCaExch_block)
-
-            else:
-                f_NaEx = np.zeros(self.mdl)
-                f_CaEx = np.zeros(self.mdl)
-
         else:
 
             # run Ca-ATPase
@@ -1807,28 +1598,14 @@ class Simulator(object):
                                     self.cc_env[self.iCa], self.vm, self.T, p,
                                     self.CaATP_block, met = self.met_concs)
 
-            if p.NaCa_exch_dyn is True:
-                # run Na Ca exchanger
-                f_NaEx, f_CaEx = stb.exch_NaCa(self.cc_cells[self.iNa][cells.mem_to_cells],
-                        self.cc_env[self.iNa],
-                        self.cc_cells[self.iCa][cells.mem_to_cells],
-                        self.cc_env[self.iCa],
-                        self.vm, self.T, p)
-
-            else:
-                f_NaEx = np.zeros(self.mdl)
-                f_CaEx = np.zeros(self.mdl)
 
         self.rate_CaATP = f_CaATP
 
         if p.cluster_open is False:
             f_CaATP[cells.bflags_mems] = 0
-            f_NaEx[cells.bflags_mems] = 0
-            f_CaEx[cells.bflags_mems] = 0
 
         # store the transmembrane flux for this ion
-        self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa]  + self.rho_pump*(f_CaATP + f_CaEx)
-        self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa] + self.rho_pump*(f_NaEx)
+        self.fluxes_mem[self.iCa] = self.fluxes_mem[self.iCa]  + self.rho_pump*(f_CaATP)
 
 
         if p.metabolism_enabled:
@@ -1838,13 +1615,7 @@ class Simulator(object):
         # update calcium concentrations in cell and ecm:
 
         self.cc_cells[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self, self.cc_cells[self.iCa],
-            self.cc_env[self.iCa], f_CaATP + f_CaEx, cells, p, ignoreECM = True)
-
-        if p.NaCa_exch_dyn:
-
-
-            self.cc_cells[self.iNa], self.cc_env[self.iNa] = stb.update_Co(self, self.cc_cells[self.iNa],
-                self.cc_env[self.iNa], f_NaEx, cells, p, ignoreECM = True)
+            self.cc_env[self.iCa], f_CaATP, cells, p, ignoreECM = True)
 
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling
@@ -1856,8 +1627,6 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
         self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
-
-        # self.vgj = self.vm_ave[cells.mem_to_cells][cells.nn_i] - self.vm_ave[cells.mem_to_cells][cells.mem_i]
 
         self.Egj = -self.vgj/cells.gj_len
 
@@ -1887,19 +1656,19 @@ class Simulator(object):
         # midpoint concentration:
         c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
 
-        # electroosmotic fluid velocity at gap junctions:
-        if p.fluid_flow is True:
-            ux = self.u_cells_x[cells.mem_to_cells]
-            uy = self.u_cells_y[cells.mem_to_cells]
-
-        else:
-
-            ux = 0
-            uy = 0
+        # # electroosmotic fluid velocity at gap junctions:
+        # if p.fluid_flow is True:
+        #     ux = self.u_cells_x[cells.mem_to_cells]
+        #     uy = self.u_cells_y[cells.mem_to_cells]
+        #
+        # else:
+        #
+        #     ux = 0
+        #     uy = 0
 
 
         fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
-                                          -self.E_gj_y, ux, uy,
+                                          -self.E_gj_y, 0, 0,
                                               p.gj_surface*self.gjopen*self.D_gj[i],
                                               self.zs[i],
                                               self.T, p)
@@ -1919,8 +1688,6 @@ class Simulator(object):
 
     def update_ecm(self,cells,p,t,i):
 
-        # FIXME consider switching back to MACs formalism
-
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
@@ -1934,78 +1701,30 @@ class Simulator(object):
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        if p.fluid_flow is True:
+        # if p.fluid_flow is True:
+        #
+        #     ux = self.u_env_x
+        #     uy = self.u_env_y
+        #
+        # else:
+        #
+        #     ux = np.zeros(cells.X.shape)
+        #     uy = np.zeros(cells.X.shape)
 
-            ux = self.u_env_x.ravel()
-            uy = self.u_env_y.ravel()
+        # this equation assumes environmental transport is electrodiffusive:
+        fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
+                                          self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
 
-        else:
-
-            ux = 0.0
-            uy = 0.0
-
-
-        if p.cell_polarizability == 0.0:
-
-        # METHOD 1: option to proceed with non-corrected fluxes (E_env field corrects the flux) -----------------------
-
-            # this equation assumes environmental transport is electrodiffusive:
-            fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
-                                              self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
-
-            fx = fxo
-            fy = fyo
-
-        else:
-
-        #---METHOD 2: option to correct individual fluxes -------------------------------
-
-            zz = self.zs[i]
-
-            dd = self.D_env[i].reshape(cells.X.shape)
-
-            # calculate the Einstein coefficient:
-            sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
-
-            # corr = p.cell_space/cells.delta
-            corr = p.cell_polarizability
-
-
-            fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x*corr, -self.E_env_y*corr, 0, 0,
-                                            self.D_env[i].reshape(cells.X.shape), self.zs[i],
-                                            self.T, p)
-
-
-            # Calculate the divergence of the uncorrected flux, divided through by the Einstein coefficient:
-            div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
-
-            #enforce applied voltage condition at the boundary:
-            div_fo[:,0] = 0.0
-            div_fo[:,-1] = 0.0
-            div_fo[0,:] = 0.0
-            div_fo[-1,:] = 0.0
-
-            # solve for the hidden potential energy, Phi:
-            Phi = np.dot(cells.lapENVinv, div_fo.ravel())
-
-            Phi = Phi.reshape(cells.X.shape)
-
-            gPhix, gPhiy = fd.gradient(Phi, cells.delta)
-
-            # correct the flux with its component of Phi:
-            fx = fxo - gPhix*sigma
-            fy = fyo - gPhiy*sigma
-
-            # add this component of the extracellular voltage storage vector:
-            self.Phi_vect[i] = Phi.ravel()
+        fx = fxo
+        fy = fyo
 
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
 
         # add fluid flow to fluxes (it contributes to fields, but not to concentration changes)
-        # self.fluxes_env_x[i] = fx.ravel()  + ux*cenv.ravel() # store ecm junction flux for this ion
-        # self.fluxes_env_y[i] = fy.ravel()  + uy*cenv.ravel() # store ecm junction flux for this ion
+        # self.fluxes_env_x[i] = fx.ravel()  + ux.ravel()*cenv.ravel() # store ecm junction flux for this ion
+        # self.fluxes_env_y[i] = fy.ravel()  + uy.ravel()*cenv.ravel() # store ecm junction flux for this ion
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
@@ -2589,3 +2308,45 @@ class Simulator(object):
         # # add this component of the extracellular voltage:
         # self.Phi_vect[i] = Phi.ravel()
         # -----------------------------------------------------------------------
+
+    # #---METHOD 2: option to correct individual fluxes -------------------------------
+    #
+    #     zz = self.zs[i]
+    #
+    #     dd = self.D_env[i].reshape(cells.X.shape)
+    #
+    #     # calculate the Einstein coefficient:
+    #     sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
+    #
+    #     # corr = p.cell_space/cells.delta
+    #     corr = p.cell_polarizability
+    #
+    #
+    #     fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x*corr, -self.E_env_y*corr, 0, 0,
+    #                                     self.D_env[i].reshape(cells.X.shape), self.zs[i],
+    #                                     self.T, p)
+    #
+    #
+    #     # Calculate the divergence of the uncorrected flux, divided through by the Einstein coefficient:
+    #     div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
+    #
+    #     #enforce applied voltage condition at the boundary:
+    #     div_fo[:,0] = 0.0
+    #     div_fo[:,-1] = 0.0
+    #     div_fo[0,:] = 0.0
+    #     div_fo[-1,:] = 0.0
+    #
+    #     # solve for the hidden potential energy, Phi:
+    #     Phi = np.dot(cells.lapENVinv, div_fo.ravel())
+    #
+    #     Phi = Phi.reshape(cells.X.shape)
+    #
+    #     gPhix, gPhiy = fd.gradient(Phi, cells.delta)
+    #
+    #     # correct the flux with its component of Phi:
+    #     fx = fxo - gPhix*sigma
+    #     fy = fyo - gPhiy*sigma
+    #
+    #     # add this component of the extracellular voltage storage vector:
+    #     self.Phi_vect[i] = Phi.ravel()
+

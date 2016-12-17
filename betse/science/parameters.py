@@ -295,8 +295,6 @@ class Parameters(object):
         bool_gjblock = bool(self.config['block gap junctions']['event happens'])
         bool_temp =  bool(self.config['change temperature']['event happens'])
         bool_NaKblock = bool(self.config['block NaKATP pump']['event happens'])
-        bool_HKblock = bool(self.config['block HKATP pump']['event happens'])
-        bool_Vblock = bool(self.config['block VATP pump']['event happens'])
 
         if bool_Kenv is False:
             self.global_options['K_env'] = 0
@@ -356,24 +354,6 @@ class Parameters(object):
             rate_nak = float(self.config['block NaKATP pump']['change rate'])
             nak = [on_nak,off_nak,rate_nak]
             self.global_options['NaKATP_block'] = nak
-
-        if bool_HKblock is False:
-            self.global_options['HKATP_block'] = 0
-        elif bool_HKblock is True:
-            on_hk = float(self.config['block HKATP pump']['change start'])
-            off_hk = float(self.config['block HKATP pump']['change finish'])
-            rate_hk = float(self.config['block HKATP pump']['change rate'])
-            hk = [on_hk,off_hk,rate_hk]
-            self.global_options['HKATP_block'] = hk
-
-        if bool_Vblock is False:
-            self.global_options['VATP_block'] = 0
-        elif bool_Vblock is True:
-            on_v = float(self.config['block VATP pump']['change start'])
-            off_v = float(self.config['block VATP pump']['change finish'])
-            rate_v = float(self.config['block VATP pump']['change rate'])
-            vk = [on_v,off_v,rate_v]
-            self.global_options['VATP_block'] = vk
 
 
         #--------------------------------------------------------------------------------------------------------------
@@ -442,7 +422,10 @@ class Parameters(object):
 
         # calcium gated K
 
-        cagK = [float(opcK['max Dmem K']),float(opcK['hill K_half']),float(opcK['hill n'])]
+        max_NaSt = float(self.config['stretch gated Na+']['max value'])*1.0e-9
+        max_cagK = float(self.config['calcium gated K+']['max value'])*1.0e-9
+
+        cagK = [max_cagK,float(opcK['hill K_half']),float(opcK['hill n'])]
 
         apply_cagK = self.config['calcium gated K+']['apply to']
 
@@ -450,7 +433,7 @@ class Parameters(object):
 
         # stretch gated Na
 
-        stNa = [float(opStretch['max Dmem Na']),float(opStretch['hill K_half']),float(opStretch['hill n'])]
+        stNa = [max_NaSt,float(opStretch['hill K_half']),float(opStretch['hill n'])]
 
         apply_stNa = self.config['stretch gated Na+']['apply to']
 
@@ -547,7 +530,6 @@ class Parameters(object):
 
         # osmotic and electrostatic pressures --------------------------------
         self.deform_osmo = self.config['variable settings']['pressures']['include osmotic pressure']
-        self.deform_electro = self.config['variable settings']['pressures']['include electrostatic pressure']
         self.aquaporins = float(self.config['variable settings']['pressures']['membrane water conductivity'])
 
         # calculate lame's parameters from young mod and the poisson ratio:
@@ -570,8 +552,8 @@ class Parameters(object):
 
         # Environmental features and tight junctions ---------------------------------------------------
         self.env_type = True # for now, can't handle air boundaries
-        self.cluster_open = bool(self.config['variable settings']['cluster open'])
-        self.closed_bound = bool(self.config['variable settings']['environmental boundary']['closed boundary'])
+        self.cluster_open = True
+        self.closed_bound = False
         self.D_tj = float(self.config['variable settings']['tight junction scaling'])
         self.D_adh = float(self.config['variable settings']['adherens junction scaling'])
         # tight junction relative ion movement properties:
@@ -596,21 +578,6 @@ class Parameters(object):
 
         # environmental (global) boundary concentrations:
         self.cbnd = self.config['variable settings']['env boundary concentrations']
-
-        # include HK-ATPase in the simulation? Yes =1, No = 0
-        self.HKATPase_dyn = self.config['variable settings']['optional pumps']['HKATPase pump']
-
-        # include V-ATPase in the simulation? Yes =1, No = 0
-        self.VATPase_dyn = self.config['variable settings']['optional pumps']['VATPase pump']
-
-        # include a Na-Ca exchanger in the simulation?
-        self.NaCa_exch_dyn = self.config['variable settings']['optional pumps']['Na/Ca exchanger']
-
-        # include a Na-K-Cl cotransporter?
-        self.NaKCl_exch_dyn = self.config['variable settings']['optional pumps']['Na/K/Cl cotrans']
-
-        # include a Cl-K symporter?
-        self.ClK_symp_dyn = self.config['variable settings']['optional pumps']['Cl/K symporter']
 
         # include noise in the simulation?
         self.channel_noise_level = float(self.config['variable settings']['noise']['static noise level'])
@@ -674,7 +641,7 @@ class Parameters(object):
 
         #FIXME: Replace all instances of "p.autosave" in the codebase
         #by "not p.plot.is_after_sim_save" and remove this attribute entirely.
-        self.autosave =               self.plot.is_after_sim_save  # autosave all still images to a results directory
+        self.autosave = self.plot.is_after_sim_save  # autosave all still images to a results directory
 
         self.plot_cutlines = ro['plot cutlines']
 
@@ -727,11 +694,6 @@ class Parameters(object):
         self.pH_min_clr = float(ro['pH 2D']['min val'])
         self.pH_max_clr = float(ro['pH 2D']['max val'])
 
-        self.plot_force2d = ro['Electrostatic 2D']['plot Electrostatic']
-        self.autoscale_force = ro['Electrostatic 2D']['autoscale colorbar']
-        self.force_min_clr = float(ro['Electrostatic 2D']['min val'])
-        self.force_max_clr = float(ro['Electrostatic 2D']['max val'])
-
         self.plot_I2d = ro['Currents 2D']['plot Currents']
         self.autoscale_I2d = ro['Currents 2D']['autoscale colorbar']
         self.I_min_clr = float(ro['Currents 2D']['min val'])
@@ -746,11 +708,6 @@ class Parameters(object):
         self.autoscale_P = ro['Pressure 2D']['autoscale colorbar']
         self.P_min_clr = float(ro['Pressure 2D']['min val'])
         self.P_max_clr = float(ro['Pressure 2D']['max val'])
-
-        self.plot_osmoP = ro['Osmotic Pressure 2D']['plot Osmotic Pressure']
-        self.autoscale_osmoP = ro['Osmotic Pressure 2D']['autoscale colorbar']
-        self.osmoP_min_clr = float(ro['Osmotic Pressure 2D']['min val'])
-        self.osmoP_max_clr = float(ro['Osmotic Pressure 2D']['max val'])
 
         self.plot_Vel = ro['Velocity 2D']['plot Velocity']
         self.autoscale_Vel = ro['Velocity 2D']['autoscale colorbar']
@@ -774,6 +731,15 @@ class Parameters(object):
         self.Vmem_ani_min_clr = float(ro['Vmem Ani']['min val'])
         self.Vmem_ani_max_clr = float(ro['Vmem Ani']['max val'])
 
+
+        default_dic = {'animate Venv': False, 'autoscale colorbar': True, 'min val': 0.0, 'max val': 1.0}
+        Venv_dic = ro.get('Venv Ani', default_dic)
+
+        self.ani_venv = Venv_dic['animate Venv']                # 2d animation of venv with time?
+        self.autoscale_venv_ani = Venv_dic['autoscale colorbar']
+        self.venv_ani_min_clr = float(Venv_dic['min val'])
+        self.venv_ani_max_clr = float(Venv_dic['max val'])
+
         self.ani_ca2d = ro['Ca Ani']['animate Ca2+']                # 2d animation of cell calcium with time ?
         self.autoscale_Ca_ani = ro['Ca Ani']['autoscale colorbar']
         self.Ca_ani_min_clr = float(ro['Ca Ani']['min val'])
@@ -793,16 +759,6 @@ class Parameters(object):
         self.autoscale_Pcell_ani = ro['P cell Ani']['autoscale colorbar']
         self.Pcell_ani_min_clr = float(ro['P cell Ani']['min val'])
         self.Pcell_ani_max_clr = float(ro['P cell Ani']['max val'])
-
-        self.ani_osmoP = ro['Osmotic P Ani']['animate Osmotic P']
-        self.autoscale_osmoP_ani = ro['Osmotic P Ani']['autoscale colorbar']
-        self.osmoP_ani_min_clr = float(ro['Osmotic P Ani']['min val'])
-        self.osmoP_ani_max_clr = float(ro['Osmotic P Ani']['max val'])
-
-        self.ani_force = ro['Force Ani']['animate force']
-        self.autoscale_force_ani = ro['Force Ani']['autoscale colorbar']
-        self.force_ani_min_clr = float(ro['Force Ani']['min val'])
-        self.force_ani_max_clr = float(ro['Force Ani']['max val'])
 
         self.ani_I = ro['Current Ani']['animate current']
         self.autoscale_I_ani = ro['Current Ani']['autoscale colorbar']
@@ -843,24 +799,14 @@ class Parameters(object):
 
         iu = self.config['internal parameters']
 
-        self.interp_type = iu['interpolation method']
+        self.interp_type = 'nearest'
 
         self.smooth_level = float(iu['gaussian smoothing'])
 
         self.smooth_concs = iu['smooth concentrations']
 
-        # self.env_delay_const = float(iu['environmental delay factor'])
-        # self.cell_delay_const = float(iu['cytosolic delay factor'])
-
         self.media_rho = float(iu['media resistivity'])
         self.tissue_rho = float(iu.get('tissue resistivity', 10.0))
-
-        # self.electrolyte_screening = float(iu['electrolyte screening factor'])
-
-        self.cell_polarizability = float(iu['cell polarizability factor'])
-
-        # self.mem_resistivity = float(iu['membrane resistivity factor'])
-        # self.env_modulator = float(iu['env modulation factor'])
 
         self.substances_affect_charge = iu['substances affect Vmem']
 
@@ -895,37 +841,6 @@ class Parameters(object):
         # FIXME add these as options to the config:
         self.KmCa_Ca = 3.0e-3   # CaATPase enzyme Ca half-max sat value (1.7 - 2.8 for vascular, 0.25 for platlets)
         self.KmCa_ATP = 0.5    # CaATPase enzyme ATP half-max sat value
-
-        self.alpha_HK = float(iu['alpha_HK'])  # pump rate for the H-K-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
-
-        # FIXME add this to config:
-        self.KmHK_K = 0.6      # HKATPase enzyme K half-max sat value
-        self.KmHK_ATP = 0.15   # HKATPase enzyme ATP half-max sat value
-        self.KmHK_H = 0.5e-6   # HKATPase enzyme H half-max sat value
-        self.KmHK_M = 1.0       # HKATPase enzyme M half-max sat value
-
-        self.alpha_V = float(iu['alpha_V'])  # pump rate for the V-ATPase per unit surface area [1/mol*s] range 5.oe-4 to 2.5e-3
-
-        # FIXME add this to config:
-        self.KmV_ATP = 0.15    # V-ATPase half-max sat value for ATP (0.13 to 0.5 )
-        self.KmV_H = 1.0e-5    # V-ATPase half-max sat value for H
-
-        # FIXME add this to config (Na-Ca exchanger parameters)
-        self.alpha_NaCaExch = float(iu['alpha_NaCa'])
-        self.KmNC_Na = 5.0
-        self.KmNC_Ca = 1.0e-3
-
-        # FIXME add to config (Na-K-Cl cotransporter parameters)
-        self.alpha_NaKCl = float(iu['alpha_NaKCl'])
-        self.KmNaKCl_Na = 1.0
-        self.KmNaKCl_K = 0.2
-        self.KmNaKCl_Cl = 1.0
-
-        # FIXME add to config (Cl-K symporter parameters)
-
-        self.alpha_ClK = float(iu['alpha_ClK'])
-        self.KmClK_K = 1.0
-        self.KmClK_Cl = 1.0
 
         # partial pressure dissolved CO2
         self.CO2 = 40.0   # [mmHg]

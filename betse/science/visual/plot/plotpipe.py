@@ -533,10 +533,6 @@ def pipeline_plots(
                          clrAutoscale=p.autoscale_Ca, clrMin=p.Ca_min_clr, clrMax=p.Ca_max_clr,
                          clrmap=p.default_cm)
 
-        #
-        # figCa, axCa, cbCa = viz.plotPrettyPolyData(sim.cc_time[-1][sim.iCa][cells.mem_to_cells]*1e6, sim,cells,p,
-        #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_Ca,
-        #     clrMin = p.Ca_min_clr, clrMax = p.Ca_max_clr, clrmap = p.default_cm)
 
         axCa.set_title('Final cytosolic Ca2+')
         axCa.set_xlabel('Spatial distance [um]')
@@ -588,23 +584,6 @@ def pipeline_plots(
 
         if p.autosave is True:
             savename8 = savedImg + 'final_pH_2D' + '.png'
-            plt.savefig(savename8,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
-
-
-    if p.ions_dict['H'] == 1 and p.HKATPase_dyn == 1:
-
-        viz.plotMemData(cells,p,zdata=-sim.HKATPase_rate,clrmap=p.default_cm)
-
-        plt.xlabel('Spatial Dimension [um]')
-        plt.ylabel('Spatial Dimension [um]')
-        plt.title('HKATPase_RATE')
-
-        if p.autosave is True:
-            savename8 = savedImg + 'final_HKPumpRate_2D' + '.png'
             plt.savefig(savename8,format='png',transparent=True)
 
         if p.turn_all_plots_off is False:
@@ -727,7 +706,7 @@ def pipeline_plots(
         figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
         clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
-        axP.set_title('Final Hydrostatic Pressure in Cell Network')
+        axP.set_title('Final Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
         axP.set_ylabel('Spatial distance [um]')
         cbP.set_label('Pressure [Pa]')
@@ -740,45 +719,6 @@ def pipeline_plots(
             plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_osmoP is True and p.deform_osmo is True:
-
-        osmo_P = sim.osmo_P_delta
-
-        figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=osmo_P,number_cells=p.enumerate_cells,
-        clrAutoscale = p.autoscale_osmoP, clrMin = p.osmoP_min_clr, clrMax = p.osmoP_max_clr,
-            clrmap = p.default_cm)
-
-        axP.set_title('Final Osmotic Pressure in Cell Network')
-        axP.set_xlabel('Spatial distance [um]')
-        axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure Difference Cell Interior vs Exterior [Pa]')
-
-        if p.autosave is True:
-            savename13 = savedImg + 'final_osmoP_2D' + '.png'
-            plt.savefig(savename13,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
-
-    if p.deform_osmo is True:
-        viz.plotVectField(
-            (1/p.um)*sim.F_hydro_x,
-            (1/p.um)*sim.F_hydro_y,
-            cells, p,
-            plot_ecm = False,
-            title='Final Hydrostatic Pressure Induced Body Force',
-            cb_title='Body Force [N/cm3]',
-            colorAutoscale=p.autoscale_force,
-            minColor=p.force_min_clr,
-            maxColor=p.force_max_clr,
-        )
-
-        if p.autosave is True:
-            savename13 = savedImg + 'final_hydroF_2D' + '.png'
-            plt.savefig(savename13,format='png',transparent=True)
-
-        if p.turn_all_plots_off is False:
-            plt.show(block=False)
 
     if p.deformation is True and sim.run_sim is True:
         viz.plotStreamField(
@@ -801,8 +741,6 @@ def pipeline_plots(
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-
-    # FIXME I don't know why these aren't working!
 
     if (p.plot_Vel is True and p.fluid_flow is True):
         viz.plotStreamField(

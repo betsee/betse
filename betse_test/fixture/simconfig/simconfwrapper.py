@@ -291,16 +291,13 @@ class SimConfigTestWrapper(SimConfigWrapper):
         results['Efield 2D']['plot Efield'] = True
         results['Currents 2D']['plot Currents'] = True
         results['Pressure 2D']['plot Pressure'] = True
-        results['Osmotic Pressure 2D']['plot Osmotic Pressure'] = True
         results['Velocity 2D']['plot Velocity'] = True
-        results['Electrostatic 2D']['plot Electrostatic'] = True
 
         # Enable all animations.
         results['Vmem Ani']['animate Vmem'] = True
         results['Ca Ani']['animate Ca2+'] = True
         results['pH Ani']['animate pH'] = True
         results['Vmem GJ Ani']['animate Vmem with gj'] = True
-        results['Osmotic P Ani']['animate Osmotic P'] = True
         results['Current Ani']['animate current'] = True
         results['Membrane Ani']['animate membrane'] = True
         results['Efield Ani']['animate Efield'] = True
@@ -311,7 +308,6 @@ class SimConfigTestWrapper(SimConfigWrapper):
         self.is_ecm = True
         self.ion_profile = 'animal'
         variable['channel electroosmosis']['turn on'] = True
-        variable['deformation']['turn on'] = True      # FIXME reimplement after Helmholtz fix up!
-        variable['fluid flow']['include fluid flow'] = True  # FIXME reimplement after Helmholtz fix up!
-        # variable['pressures']['include electrostatic pressure'] = True  # FIXME check this!
+        variable['deformation']['turn on'] = True
+        variable['fluid flow']['include fluid flow'] = True
         # variable['pressures']['include osmotic pressure'] = True # FIXME check this!

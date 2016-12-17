@@ -138,15 +138,6 @@ class TissueHandler(object):
             self.toffNK = p.global_options['NaKATP_block'][1]
             self.trampNK = p.global_options['NaKATP_block'][2]
 
-        if p.global_options['HKATP_block'] != 0:
-            self.tonHK = p.global_options['HKATP_block'][0]
-            self.toffHK = p.global_options['HKATP_block'][1]
-            self.trampHK = p.global_options['HKATP_block'][2]
-
-        if p.global_options['VATP_block'] != 0:
-            self.tonV = p.global_options['VATP_block'][0]
-            self.toffV = p.global_options['VATP_block'][1]
-            self.trampV = p.global_options['VATP_block'][2]
 
     def _init_events_tissue(self, sim, cells, p):
         '''
@@ -632,11 +623,6 @@ class TissueHandler(object):
         if p.global_options['NaKATP_block'] != 0:
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
 
-        if p.global_options['HKATP_block'] != 0:
-            sim.HKATP_block = (1.0 - tb.pulse(t,self.tonHK,self.toffHK,self.trampHK))
-
-        if p.global_options['VATP_block'] != 0:
-            sim.VATP_block = (1.0 - tb.pulse(t,self.tonV,self.toffV,self.trampV))
 
     def _sim_events_tissue(self, sim, cells, p, t):
         '''
@@ -857,11 +843,15 @@ class TissueHandler(object):
 
     def stretchChannel(self,sim,cells,p,t):
 
-        # dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
-        #
-        # eta = (dd/cells.R)
+        dd = np.sqrt(sim.d_cells_x**2 + sim.d_cells_y**2)
 
-        self.active_NaStretch[self.targets_NaStretch] = tb.hill(sim.P_cells[cells.mem_to_cells][self.targets_NaStretch],
+        # calculate strain from displacement
+        eta = (dd/cells.R)
+
+        # self.active_NaStretch[self.targets_NaStretch] = tb.hill(sim.P_cells[cells.mem_to_cells][self.targets_NaStretch],
+        #         self.NaStretch_halfmax,self.NaStretch_n)
+
+        self.active_NaStretch[self.targets_NaStretch] = tb.hill(eta[cells.mem_to_cells][self.targets_NaStretch],
                 self.NaStretch_halfmax,self.NaStretch_n)
 
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch

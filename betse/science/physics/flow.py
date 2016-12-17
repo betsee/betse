@@ -33,20 +33,20 @@ def getFlow(sim, cells, p):
         Uyo = np.dot(cells.lapENVinv, -muFy.ravel())
 
         # Helmholtz-Hodge decomposition to obtain divergence-free projection of flow (zero at boundary):
-        UU, Ux, Uy, _, _, _ = stb.HH_Decomp(Uxo.reshape(cells.X.shape),
+        _, Ux, Uy, _, _, _ = stb.HH_Decomp(Uxo.reshape(cells.X.shape),
                                             Uyo.reshape(cells.X.shape), cells)
 
         sim.u_env_x = Ux
         sim.u_env_y = Uy
 
-    # FIXME calculate pressure as BB field from HH_Decomp; save it as an internal pressure!
-
 
     # -------Next do flow through gap junction connected cells-------------------------------------------------------
 
+    sigma = np.dot((((sim.zs ** 2) * p.q * p.F * sim.D_free) / (p.kb * p.T)), sim.cc_cells)
+
     # net force is the electrostatic body force on net volume charge in cells:
-    Fxc = sim.J_cell_x*p.media_rho*sim.rho_cells*(1/p.mu_water)
-    Fyc = sim.J_cell_y*p.media_rho*sim.rho_cells*(1/p.mu_water)
+    Fxc = sim.J_cell_x*sim.rho_cells*(1/p.mu_water)*sigma
+    Fyc = sim.J_cell_y*sim.rho_cells*(1/p.mu_water)*sigma
 
     # Calculate flow under body forces using Stokes flow:
     u_gj_xo = np.dot(cells.lapGJinv, -Fxc)
@@ -54,8 +54,6 @@ def getFlow(sim, cells, p):
 
     # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
     _, sim.u_cells_x, sim.u_cells_y, _, _, _ = cells.HH_cells(u_gj_xo, u_gj_yo, rot_only=True)
-
-    # FIXME calculate pressure as BB field from HH_cells; save it as an internal pressure!
 
 
 #--------WASTELANDS-----------------------------------------------------------------------------------------------

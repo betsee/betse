@@ -67,7 +67,7 @@ results file saving:          # Initialization and simulation exports to save.
 
 init time settings:
 
-  time step: 1.0e-3           # time step-size [s] (recommended at least 1.0e-3 or smaller)
+  time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-3 or smaller)
   total time: 1.0             # end time [s] (recommend 5 seconds or more)
   sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
 
@@ -80,7 +80,7 @@ automatically run initialization: True     # If init file is not found, do you w
 
 sim time settings:
 
-  time step: 1.0e-3       # time step-size [s] (recommended 1.0e-3 or smaller)
+  time step: 1.0e-2       # time step-size [s] (recommended 1.0e-3 or smaller)
   total time: 1.0         # time to end sim run [s]
   sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
 
@@ -521,18 +521,6 @@ block NaKATP pump:
   change finish: 25         # time to end change and return to original [s]
   change rate: 1.0          # rate of change [s]
 
-block HKATP pump:
-  event happens: False     # turn the event on (True) or off (False)
-  change start: -1          # time to start change [s]
-  change finish: 2         # time to end change and return to original [s]
-  change rate: 1.0         # rate of change [s]
-
-block VATP pump:
-  event happens: False     # turn the event on (True) or off (False)
-  change start: -1          # time to start change [s]
-  change finish: 1         # time to end change and return to original [s]
-  change rate: 2.0         # rate of change [s]
-
 #-----------------------------------------------------------------------------------------------------------------------
 #  GENERAL NETWORK
 #-----------------------------------------------------------------------------------------------------------------------
@@ -633,24 +621,6 @@ variable settings:
   temperature: 310            # system temperature [K]
 
 
-  optional pumps:
-
-
-    HKATPase pump: False     # include the HK-ATPase pump in the simulation?
-                             # only works for an ion profile with H+ ions (animal)
-                             # options True or False (case sensitive)
-
-    VATPase pump: False    # include the plasma membrane V-ATPase pump?
-                              # only works for an ion profile with H+ ions (animal)
-                              # options True or False (case sensitive)
-
-    Na/Ca exchanger: False  # include a sodium/calcium exchanger?
-                            # only works for an ion profile with Ca2+ ions (animal or basic_Ca)
-
-    Na/K/Cl cotrans: False   # include a sodium/potassium/chloride co-transporter?
-
-    Cl/K symporter: False    # include a chloride/potassium symporter?
-
   channel electroosmosis:  # membrane pump/channel movement via electrophoresis/osmosis
 
     turn on: False        # turn on electroosmosis of pumps and channels
@@ -677,7 +647,6 @@ variable settings:
 
   pressures:
 
-    include electrostatic pressure: True   # include electrostatic pressure in flow and deformation?
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
     membrane water conductivity: 1e-12   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
 
@@ -708,12 +677,6 @@ variable settings:
     gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
 
 
-  environmental boundary: # set conditions for the global (environmental) boundary
-
-    closed boundary: False  # Are global environmental boundaries closed (True)
-                            # or open (False)?
-
-
   tight junction scaling: 1.0   # factor by which tight junctions scale
                                    # free-diffusion (1.0 = free diffusion, 1.0e-9 = similar to membrane permeability)
 
@@ -729,8 +692,6 @@ variable settings:
 
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
-
-  cluster open: True  # Is the cell cluster boundary open?
 
   use Goldman calculator: False   # calculate alternative Vmem using GHK
                                   # equation for model params and plot results?
@@ -872,6 +833,19 @@ results options:
     autoscale colorbar: True    # autoscale colorbar to min max of data set?
     max val: 10.0                # maximum colorbar value in mV
     min val: -70.0               # minimum colorbar value in mV
+
+  Currents 2D:
+    plot Currents: True               # 2d plot of net current flow in the collective?
+    autoscale colorbar: True          # autoscale colorbar to min max of data set?
+    max val: 150                    # maximum colorbar value [pA]
+    min val: 0                        # minimum colorbar value [A]
+    colormap: coolwarm                    # colorbar for the currents
+
+  Efield 2D:
+    plot Efield: True              # 2d plot of electric field
+    autoscale colorbar: True        # autoscale colorbar to min max of data set?
+    max val: 900                   # maximum colorbar value in V/m
+    min val: 0                      # maximum colorbar value in V/m
   
   Ca 2D:
     plot Ca: True                # 2d plot of final cell calcium (if Ca2+ present in ion profile)?
@@ -885,27 +859,8 @@ results options:
     max val: 8                 # maximum colorbar value in pH units
     min val: 6                    # minimum colorbar value pH units
   
-  Efield 2D:
-    plot Efield: True              # 2d plot of electric field
-    autoscale colorbar: True        # autoscale colorbar to min max of data set?
-    max val: 900                   # maximum colorbar value in V/m
-    min val: 0                      # maximum colorbar value in V/m
-  
-  Currents 2D:
-    plot Currents: True               # 2d plot of net current flow in the collective?
-    autoscale colorbar: True          # autoscale colorbar to min max of data set?
-    max val: 150                    # maximum colorbar value [pA]
-    min val: 0                        # minimum colorbar value [A]
-    colormap: coolwarm                    # colorbar for the currents
-  
   Pressure 2D:                      # 2D plot of pressure in the cluster
     plot Pressure: True
-    autoscale colorbar: True
-    max val: 15
-    min val: -15
-  
-  Osmotic Pressure 2D:                      # 2D plot of osmotic pressure differential in the cluster
-    plot Osmotic Pressure: True
     autoscale colorbar: True
     max val: 15
     min val: -15
@@ -918,12 +873,7 @@ results options:
     autoscale colorbar: True
     max val: 15
     min val: -15
-  
-  Electrostatic 2D:                      # 2D plot of electrostatic force in the cluster
-    plot Electrostatic: True
-    autoscale colorbar: True
-    max val: 15
-    min val: -15
+
 
   # World-related plotting options------------------------------------------------------------------------------------
 
@@ -941,6 +891,30 @@ results options:
       max val: 10.0                # maximum colorbar value in mV
       min val: -70.0               # maximum colorbar value in mV
 
+  Vmem GJ Ani:
+      animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 50.0                # maximum colorbar value in mV
+      min val: -70.0               # minimum colorbar value in mV
+
+  Venv Ani:
+      animate Venv: True           # 2d animation of environmental voltage with time?
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 10.0                # maximum colorbar value in mV
+      min val: -70.0               # maximum colorbar value in mV
+
+  Current Ani:
+      animate current: True        # Plot a 2D animation of current in cells?
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 150                # maximum colorbar value [pA]
+      min val: 0                  # minimum colorbar value [pA]
+
+  Efield Ani:
+      animate Efield: True        # 2d animation of electric field in extracellullar matrix
+      autoscale colorbar: True    # autoscale colorbar to min max of data set?
+      max val: 1500               # max colorbar value [V/m]
+      min val: 0                  # min colorbar value [V/m]
+
   Ca Ani:
       animate Ca2+: True           # Plot a 2D animation of calcium in cells?
                                    # Ignored unless the current ion profile
@@ -957,13 +931,6 @@ results options:
       max val: 8               # maximum colorbar value in nmol/L
       min val: 6                   # minimum colorbar vlue in nmol/L
 
-  Vmem GJ Ani:
-      animate Vmem with gj: True   # 2d animation of vmem with superimposed gj network showing current direction
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 50.0                # maximum colorbar value in mV
-      min val: -70.0               # minimum colorbar value in mV
-
-
   P cell Ani:
       animate P cell: True         # Plot a 2D animation of electroosmotic
                                    # pressure in cells? Ignored unless
@@ -971,28 +938,6 @@ results options:
       autoscale colorbar: True     # autoscale colorbar to min max of data set?
       max val: 10                  # maximum colorbar value in mV
       min val: -70                 # minimum colorbar value in mV
-
-  Osmotic P Ani:
-      animate Osmotic P: True      # Plot a 2D animation of osmotic pressure
-                                   # difference in cells? Ignored unless
-                                   # "include osmotic pressure" enabled.
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 10                  # maximum colorbar value in mV
-      min val: -70                 # minimum colorbar value in mV
-
-  Force Ani:
-      animate force: True          # Plot a 2D animation of hydrostatic body
-                                   # forces in cells? Ignored unless
-                                   # "include osmotic pressure" enabled.
-      autoscale colorbar: True     # autoscale colorbar to min max of data set?
-      max val: 100                  # maximum colorbar value in N/m3
-      min val: 0                 # minimum colorbar value in N/m3
-
-  Current Ani:
-      animate current: True        # Plot a 2D animation of current in cells?
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 150                # maximum colorbar value [pA]
-      min val: 0                  # minimum colorbar value [pA]
 
   Membrane Ani:
       animate Membrane: True      # Plot a 2D animation of membrane pump
@@ -1002,11 +947,6 @@ results options:
       max val: 1                # maximum colorbar value [pA]
       min val: 0                  # minimum colorbar value [pA]
 
-  Efield Ani:
-      animate Efield: True        # 2d animation of electric field in extracellullar matrix
-      autoscale colorbar: True    # autoscale colorbar to min max of data set?
-      max val: 1500               # max colorbar value [V/m]
-      min val: 0                  # min colorbar value [V/m]
 
   Velocity Ani:
       animate Velocity: True      # Plot a 2D animation of the velocity of
@@ -1039,13 +979,11 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     calcium gated K:
 
-        max Dmem K: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
         hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
         hill n: 3                   # Hill function coefficient
 
     stretch gated Na:
 
-        max Dmem Na: 1.0e-15         # maximum K+ membrane diffusion coefficient open channel [m2/s]
         hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as strain)
         hill n: 3                   # Hill function coefficient
 
@@ -1068,18 +1006,6 @@ internal parameters:
 
   alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  alpha_HK:  1.0e-8    # pump rate for the H-K-ATPase per unit surface area [m/mol*s]
-
-  alpha_V:  1.0e-8     # pump rate for the plasma membrane V-ATPase per unit surface area [m/mol*s]
-
-  alpha_NaCa: 1.0e-6    # rate of Na/Ca exchanger [m/mol*s]
-
-  alpha_NaKCl: 1.0e-6   # rate of Na/K/Cl cotransporter [m/mol*s]
-
-  alpha_ClK: 1.0e-6     # rate of Cl/K symporter [m/mol*s]
-
-  interpolation method: nearest  # interpolation method, choices are 'linear' or 'nearest'
-
   gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
   smooth concentrations: True   # apply gaussian smoothing to substance concentration?
@@ -1090,11 +1016,9 @@ internal parameters:
 
   membrane capacitance: 0.05 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
-  cell polarizability factor: 0.0  # (0.0 to 1.0) polarizability of the membrane (dynamic behaviour of vm wrt Jmem)
+  media resistivity: 0.5  # electrical resistivity of bulk electrolyte (Ohms.m)
 
-  media resistivity: 0.21  # electrical resistivity of bulk electrolyte (Ohms.m)
-
-  tissue resistivity: 1.0e1  # electrical resistivity of bulk tissue (Ohms.m)
+  tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m)
 
   time acceleration: 1.0 # factor accelerating time for slow processes (GJ diffusion)
 
