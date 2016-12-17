@@ -83,8 +83,10 @@ class CLICLI(CLIABC):
             #  should, arguably, be performed by _add_subcommand().
 
             # Add an argument subparser parsing this subcommand.
-            subcommand_name_to_subparser[subcommand.name] = self._add_subcommand(
-                subcommand=subcommand, arg_subparsers=self._arg_subparsers_top)
+            subcommand_name_to_subparser[subcommand.name] = (
+                self._add_subcommand(
+                    subcommand=subcommand,
+                    arg_subparsers=self._arg_subparsers_top))
 
         # Configure arg parsing for subcommands of the "plot" subcommand.
         self._arg_parser_plot = subcommand_name_to_subparser['plot']
@@ -123,16 +125,16 @@ class CLICLI(CLIABC):
         self,
         subcommand: CLISubcommand,
         arg_subparsers: _SubParsersAction,
-        *args, **kwargs
+        **kwargs
     ) -> ArgumentParser:
         '''
-        Create a new **argument subparser** (i.e., an `argparse`-specific object
-        parsing command-line arguments) for the passed subcommand, add this
+        Create a new **argument subparser** (i.e., :mod:`argparse`-specific
+        object parsing command-line arguments) parsing this subcommand, add this
         subparser to the passed collection of **argument subparsers** (i.e.,
-        another `argparse`-specific object cotaining multiple subparsers), and
-        return this subparser.
+        another :mod:`argparse`-specific object cotaining multiple subparsers),
+        and return this subparser.
 
-        This subparser will be configured to:
+        This subparser is configured to:
 
         * If this subcommand accepts a configuration filename, require such an
           argument be passed.
@@ -151,8 +153,8 @@ class CLICLI(CLIABC):
             * No subcommand, in which case the subcommand created by this method
               is a top-level subcommand.
 
-        All remaining positional and keyword arguments are passed as is to this
-        subparser's `__init__()` method.
+        All remaining keyword arguments are passed as is to this subparser's
+        `__init__()` method.
 
         Returns
         ----------
@@ -160,27 +162,11 @@ class CLICLI(CLIABC):
             Subcommand argument parser created by this method.
         '''
 
-        # Extend the passed dictionary of keyword arguments with (in any order):
-        #
-        # * The dictionary of globally applicable keyword arguments.
-        # * The dictionary of subcommand-specific keyword arguments.
+        # Initialize this parser with globally applicable keyword arguments.
         kwargs.update(self._arg_parser_kwargs)
-        kwargs.update(subcommand.get_arg_parser_kwargs())
 
-        # Subcommand argument subparser added to this collection.
-        arg_subparser = arg_subparsers.add_parser(*args, **kwargs)
-
-        # If this subcommand requires a configuration file, configure this
-        # subparser accordingly.
-        if subcommand.is_passed_yaml:
-            arg_subparser.add_argument(
-                'config_filename',
-                metavar='CONFIG_FILE',
-                help='simulation configuration file',
-            )
-
-        # Return this subparser.
-        return arg_subparser
+        # Create and return this parser, added to this container of subparsers.
+        return subcommand.add(arg_subparsers=arg_subparsers, **kwargs)
 
     # ..................{ SUPERCLASS ~ cli                   }..................
     def _do(self) -> object:

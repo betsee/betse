@@ -9,7 +9,7 @@ Metadata describing subcommands accepted by BETSE's command line interface
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.cli.cliabc import expand_help
+from argparse import ArgumentParser, _SubParsersAction
 from betse.util.type.types import type_check
 
 # ....................{ FUNCTIONS                          }....................
@@ -29,7 +29,7 @@ def sanitize_name(subcommand_name: str) -> str:
 # ....................{ SUPERCLASSES                       }....................
 class CLISubcommand(object):
     '''
-    Metadata encapsulating a **CLI subcommand** (i.e., a name passed to the
+    Metadata encapsulating a **CLI subcommand** (i.e., name passed to the
     external `betse` command identifying an action to be performed).
 
     This metadata encapsulates all human-readable help strings for this
@@ -39,92 +39,105 @@ class CLISubcommand(object):
     Attributes
     ----------
     name : str
-        Machine-readable name of this subcommand (e.g., `plot`).
+        Machine-readable name of this CLI subcommand (e.g., `plot`), typically
+        only a single word.
     synopsis : str
-        Human-readable synopsis of this subcommand.
+        Human-readable synopsis of this CLI subcommand, typically only one to
+        three lines of lowercase, unpunctuated text. All `{`- and `}`- delimited
+        format substrings (e.g., `{program_name}`) supported by the
+        :meth:`cliutil.expand_help` method will be globally replaced.
     description : str
-        Human-readable description of this subcommand.
-    is_passed_yaml : bool
-        `True` if this subcommand only accepts a configuration filename _or_
-        `False` if this subcommand accepts no passed arguments.
+        Human-readable description of this CLI subcommand, typically one to
+        several paragraphs of grammatical sentences. All `{`- and `}`- delimited
+        format substrings (e.g., `{program_name}`) supported by the
+        :meth:`cliutil.expand_help` method will be globally replaced.
     '''
 
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
-        # For readability, force all following parameters to be passed as
-        # keywords rather than positionally.
         name: str,
         synopsis: str,
         description: str,
-        is_passed_yaml: bool
     ) -> None:
         '''
-        Describe this CLI subcommand.
+        Define this CLI subcommand.
 
         Parameters
         ----------
-        name : str
-            Machine-readable name of this CLI subcommand (e.g., `plot`),
-            typically only a single word.
-        synopsis : str
-            Human-readable synopsis of this CLI subcommand, typically only one
-            to three lines of lowercase, unpunctuated text. All `{`- and `}`-
-            delimited format substrings (e.g., `{program_name}`) supported by
-            the `_format_help()` method will be globally replaced.
-        description : str
-            Human-readable description of this CLI subcommand, typically one
-            to several paragraphs of grammatical sentences. All `{`- and `}`-
-            delimited format substrings (e.g., `{program_name}`) supported by
-            the `_format_help()` method will be globally replaced.
-        is_passed_yaml : bool
-            `True` if this subcommand only accepts a configuration filename _or_
-            `False` if this subcommand accepts no passed arguments.
+        See the class docstring for parameter documentation. All parameters
+        accepted by this method are instance variables of the same name.
         '''
+
+        #FIXME: To avoid circularity issues, shift expand_help() into a new
+        #"cliutil" submodule of this subpackage.
+
+        # Avoid circular import dependencies.
+        from betse.cli.cliabc import expand_help
 
         # Classify these parameters, expanding all default keywords in the
         # human-readable parameters.
         self.name = name
         self.synopsis = expand_help(synopsis)
         self.description = expand_help(description)
-        self.is_passed_yaml = is_passed_yaml
 
-
-    def get_arg_parser_kwargs(self) -> dict:
+    # ..................{ ADDERS                             }..................
+    @type_check
+    def add(self, arg_subparsers: _SubParsersAction, **kwargs) -> (
+        ArgumentParser):
         '''
-        Keyword arguments suitable for initializing the argument subparser
-        parsing this subcommand.
+        Create a new **argument subparser** (i.e., :mod:`argparse`-specific
+        object parsing command-line arguments) parsing this subcommand, add this
+        subparser to the passed collection of **argument subparsers** (i.e.,
+        another :mod:`argparse`-specific object cotaining multiple subparsers),
+        and return this subparser.
+
+        This subparser is configured to:
+
+        * If this subcommand accepts a configuration filename, require such an
+          argument be passed.
+        * Else, require no arguments be passed.
+
+        Parameters
+        ----------
+        arg_subparsers : _SubParsersAction
+            Collection of sibling subcommand argument parsers to which the
+            subcommand argument parser created by this method is added. This
+            collection is owned either by:
+            * A top-level subcommand (e.g., `plot`), in which case the
+              subcommand created by this method is a child of that subcommand.
+            * No subcommand, in which case the subcommand created by this method
+              is a top-level subcommand.
+
+        All remaining keyword arguments are passed as is to this subparser's
+        `__init__()` method.
+
+        Returns
+        ----------
+        ArgumentParser
+            Subcommand argument parser created by this method.
         '''
 
-        return {
-            'name': self.name,
-            'help': self.synopsis,
+        # Initialize this parser with subcommand-specific keyword arguments.
+        kwargs.update({
+            'name':        self.name,
+            'help':        self.synopsis,
             'description': self.description,
-        }
+        })
+
+        # Create and return this parser, added to this container of subparsers.
+        return arg_subparsers.add_parser(**kwargs)
 
 # ....................{ SUBCLASSES                         }....................
 class CLISubcommandNoArg(CLISubcommand):
     '''
     Metadata encapsulating a CLI subcommand accepting _no_ passed arguments.
 
-    This `CLISubcommand` subclass is purely a convenience coercing the
-    `is_passed_yaml` instance attribute to `False` on instantiation.
+    This subclass is a convenience placeholder to improve readability.
     '''
 
-    def __init__(self, **kwargs) -> None:
-        '''
-        Describe this CLI subcommand.
-
-        This method coerces the passed `is_passed_yaml` parameter if any to
-        `False` _and_ passes all other parameters as is to the superclass
-        `CLISubcommand.__init__()` constructor.
-        '''
-
-        # Coercively disable the passed "is_passed_yaml" parameter if any.
-        kwargs['is_passed_yaml'] = False
-
-        # Pass all other parameters as is to the superclass constructor.
-        super().__init__(**kwargs)
+    pass
 
 
 class CLISubcommandParent(CLISubcommand):
@@ -133,49 +146,33 @@ class CLISubcommandParent(CLISubcommand):
     more CLI subcommands and hence accepts _only_ the name of a child subcommand
     as a passed argument.
 
-    This `CLISubcommand` subclass is purely a convenience coercing the
-    `is_passed_yaml` instance attribute to `False` on instantiation.
+    This subclass is a convenience placeholder to improve readability.
     '''
 
-    def __init__(self, **kwargs) -> None:
-        '''
-        Describe this CLI subcommand.
-
-        This method coerces the passed `is_passed_yaml` parameter if any to
-        `False` _and_ passes all other parameters as is to the superclass
-        `CLISubcommand.__init__()` constructor.
-        '''
-
-        # Coercively disable the passed "is_passed_yaml" parameter if any.
-        kwargs['is_passed_yaml'] = False
-
-        # Pass all other parameters as is to the superclass constructor.
-        super().__init__(**kwargs)
+    pass
 
 
 class CLISubcommandYAMLOnly(CLISubcommand):
     '''
     Metadata encapsulating a CLI subcommand accepting _only_ a configuration
     filename as a passed argument.
-
-    This `CLISubcommand` subclass is purely a convenience coercing the
-    `is_passed_yaml` instance attribute to `True` on instantiation.
     '''
 
-    def __init__(self, **kwargs) -> None:
-        '''
-        Describe this CLI subcommand.
 
-        This method coerces the passed `is_passed_yaml` parameter if any to
-        `True` _and_ passes all other parameters as is to the superclass
-        `CLISubcommand.__init__()` constructor.
-        '''
+    def add(self, *args, **kwargs) -> ArgumentParser:
 
-        # Coercively enable the passed "is_passed_yaml" parameter if any.
-        kwargs['is_passed_yaml'] = True
+        # Subcommand argument subparser added by the superclass.
+        arg_subparser = super().add(*args, **kwargs)
 
-        # Pass all other parameters as is to the superclass constructor.
-        super().__init__(**kwargs)
+        # Configure this subparser to require a configuration file argument.
+        arg_subparser.add_argument(
+            'config_filename',
+            metavar='CONFIG_FILE',
+            help='simulation configuration file',
+        )
+
+        # Return this subparser.
+        return arg_subparser
 
 # ....................{ TEMPLATES ~ subcommands            }....................
 SUBCOMMANDS_PREFIX = '''
