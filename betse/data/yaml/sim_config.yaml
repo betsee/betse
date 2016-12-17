@@ -643,12 +643,11 @@ variable settings:
     viscous damping: 0.01        # viscous damping of elastic waves in tissue (0.0 to 1.0; larger = higher damping)
     fixed cluster boundary: True   # Exterior cells of the cluster are fixed (True) or free to move (False)
     young modulus: 1.0e3         # Young's modulus (elastic modulus) of individual cell [Pa] (1 kPa to 10 e6 Pa)
-    time dependent deformation: False  # deformation is time-dependent (True) or assumed to be fast change (False)
 
   pressures:
 
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
-    membrane water conductivity: 1e-12   # mem conductivity for osmotic water inflow (aquaporin fraction) (~ 1e-12)
+    membrane water conductivity: 1e-3   # mem conductivity for osmotic inflow (aquaporin per unit surface) (~ 1e-3)
 
 
   noise:

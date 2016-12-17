@@ -1711,13 +1711,8 @@ class Cells(object):
 
         """
 
-        # # matrix for summing property on membranes for each cell and a count of number of mems per cell:---------------
-        # self.M_sum_mems = np.zeros((len(self.cell_i), len(self.mem_i)))
-
         # matrix for computing divergence of a property defined on a membrane of each cell patch:
         divCell = np.zeros((len(self.cell_i), len(self.mem_i)))
-
-        # self.num_mems = []
 
         for i, inds in enumerate(self.cell_to_mems):
 

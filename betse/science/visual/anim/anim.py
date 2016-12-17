@@ -1348,7 +1348,7 @@ AnimDeformStyle = Enum('AnimDeformStyle', ('STREAMLINE', 'VECTOR'))
 #    * "AnimDeformPhysical", animating physical deformations.
 #    * "AnimDeformVmem", animating voltage-driven deformations.
 
-class AnimDeformTimeSeries(AnimCellsAfterSolving):
+class AnimDeformTimeSeries(AnimCellsAfterSolving):  # FIXME this doesn't actually deform the tissue...
     '''
     Animation of physical cell deformation overlayed an arbitrary cell-centric
     time series (e.g., cell voltage as a function of time) on the cell cluster.
@@ -1485,6 +1485,8 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):
 
 
 #FIXME: Obsoleted. Replace with the existing "AnimDeformTimeSeries" subclass.
+# FIXME: the AnimDeformTimeSeries does not actually deform the mesh while plotting! Therefore, this one is not
+# obsolete until the other one actually works :)
 class AnimateDeformation(object):
 
     def __init__(
@@ -1560,7 +1562,6 @@ class AnimateDeformation(object):
             data_verts, self.ax, cells, p, self.specific_cmap, cmin=self.cmin,
             cmax=self.cmax, use_other_verts=xyverts)
 
-        #FIXME: "vplot" is unused.
         if p.ani_Deformation_style == 'vector':
             vplot, self.ax = cell_quiver(dx,dy,self.ax,cells,p)
         elif p.ani_Deformation_style == 'streamline':
