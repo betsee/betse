@@ -4484,6 +4484,8 @@ class MasterOfNetworks(object):
 
         for i, (k, v) in enumerate(self.conc_handler.items()):
 
+            # Don't include environmental concentrations in the optimization (assume they're constant)
+
             if k.endswith("_env"):
 
                 pass
@@ -4517,6 +4519,32 @@ class MasterOfNetworks(object):
         MM.append(Jrow)
 
         MM = np.array(MM)
+
+        self.network_opt_M = MM
+
+        # system determinism:
+        ri, ci = self.network_opt_M.shape
+
+        #-----report on system constraints:-------------------------------
+
+        system_determination = ri - ci + 1
+
+        logs.log_info("---------------------------------------------------")
+        if system_determination < 0:
+
+            logs.log_warning("WARNING!: equation system is under-determined: ")
+
+        elif system_determination == 0:
+
+            logs.log_info("System is exactly determined: ")
+
+        elif system_determination > 0:
+
+            logs.log_info("System is overdetermined: ")
+
+        logs.log_info("degrees of freedom: " + str(system_determination))
+        logs.log_info("Optimizing "+ str(ci) + " variables with " + str(ri +1) + " constraints.")
+        logs.log_info("---------------------------------------------------")
 
 
         # initialize guess vector for reaction rates (they will be extracted from user vmax settings in file):
@@ -4552,24 +4580,35 @@ class MasterOfNetworks(object):
 
                 origin_o[i] = self.transporters[rea_name].vmax
 
-        print("Initiating optimization with reaction rates: ")
-        print("-----------------------------------------")
+        logs.log_info("Initiating optimization with reaction rates: ")
+        logs.log_info("-----------------------------------------")
 
-        # tell the user what initial values they're using:
+
+        self.constraints = []
+        # tell the user what initial values they're using and build constraints vector:
         for i, (nme, v) in enumerate(self.react_handler.items()):
 
             if nme.endswith('_ed'):
 
                 nme = 'Dmem_' + nme[:-3]
+                self.constraints.append((0.1, 1000.0))
+
+            else:
+                self.constraints.append((0.0, 1000.0))
 
             msg = "{}: {}".format(nme, origin_o[i])
 
-            print(msg)
+            logs.log_info(msg)
 
-        print("-----------------------------------------")
+        logs.log_info("Target Vmem: " + str(1.0e3*self.target_vmem) + ' mV')
+
+        logs.log_info("-----------------------------------------")
+
+        self.origin_o = origin_o
+
 
         # calculate the reaction rates at the target concentrations:
-        r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
+        # r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
 
         # create a vector of target concentrations:
         c_base = np.asarray([self.conc_handler[cname] for cname in self.conc_handler])
@@ -4612,27 +4651,22 @@ class MasterOfNetworks(object):
             return chi_sqr
 
 
+        # Calculate a "Jacobian" estimate for the minimization function:
+        def opt_jac(v_base_o):
 
+            deltag = 0.05
+            vv = v_base_o * 1
 
-        # # define the optimization callable function
-        # def opt_funk(vmax):
-        #     """
-        #     Expression for the callable function used to optimize max rate expressions for the
-        #     reaction network
-        #
-        #     """
-        #
-        #     chi_val = (((np.dot(self.network_opt_M, np.abs(vmax) * r_base)) ** 2) / c_base) * c_fix
-        #
-        #     chi_val1 = chi_val.sum()
-        #     # chi_val1 = np.sum(((np.dot(self.network_opt_M, np.abs(vmax) * r_base)) ** 2))
-        #     # chi_val2 = np.sum((np.dot(self.opt_J_M, self.J_base * np.abs(vmax))) ** 2)
-        #
-        #     chi_square = chi_val1
-        #
-        #     return chi_square
+            jac_base = opt_funk(v_base_o)
+            jj = []
 
+            for i, vi in enumerate(v_base_o):
+                vv[i] = v_base_o[i] + deltag
+                jj.append(opt_funk(vv))
 
+            jaco = np.asarray((jj - jac_base) / deltag)
+
+            return jaco
 
 
         # initialize a list that will hold alternative solutions:
@@ -4648,9 +4682,17 @@ class MasterOfNetworks(object):
             # save alternative solutions with exceptional chi sqr values
                 alt_sols.append(x*origin_o)
 
+
+        minimizer_opts = {'method': self.opti_method}
+
+        if self.opti_method != 'COBYLA' and self.opti_method != 'Nelder-Mead':
+
+            minimizer_opts['jac'] = opt_jac
+
+
         # run the basin hopping algorithm
-        sol = basinhopping(opt_funk, vmax_o, T=1.0, stepsize=0.5, niter=self.opti_N,
-            minimizer_kwargs={'method': self.opti_method}, callback=print_fun)
+        sol = basinhopping(opt_funk, vmax_o, T=self.opti_T, stepsize=self.opti_step, niter=self.opti_N,
+            minimizer_kwargs=minimizer_opts, callback=print_fun)
 
         rkeys = list(self.react_handler.keys())
 
@@ -4695,7 +4737,7 @@ class MasterOfNetworks(object):
             eqwriter = csv.writer(csvfile, delimiter='\t',
                 quotechar='|', quoting=csv.QUOTE_NONE)
 
-            eqwriter.writerow(['Chi square value', sol.fun])
+            eqwriter.writerow(['Sum of squares value', sol.fun])
 
             for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
 
@@ -4709,7 +4751,7 @@ class MasterOfNetworks(object):
                 eqwriter.writerow([rk2, vmax])
 
         # give the user a message about the results of basin hopping optimization:
-        finalmess = "Final Chi Square value: {}".format(sol.fun)
+        finalmess = "Final Sum of Squares value: {}".format(sol.fun)
         logs.log_info(finalmess)
 
         logs.log_info("Optimization-recommended reaction rates: ")

@@ -113,10 +113,12 @@ class MasterOfMetabolism(object):
                                            "metabolism configuration file and try again.")
 
         # after primary initialization, check and see if optimization required:
-        opti = self.config_dic.get('optimize network', False)
-        self.core.opti_N = int(self.config_dic.get('optimization steps', 250))
-        self.core.opti_method = self.config_dic.get('optimization method', 'Nelder-Mead')
-        self.core.target_vmem = float(self.config_dic.get('target Vmem', -50e-3))
+        opti = self.config_dic['optimization']['optimize network']
+        self.core.opti_N = self.config_dic['optimization']['optimization steps']
+        self.core.opti_method = self.config_dic['optimization']['optimization method']
+        self.core.target_vmem = float(self.config_dic['optimization']['target Vmem'])
+        self.core.opti_T = float(self.config_dic['optimization']['optimization T'])
+        self.core.opti_step = float(self.config_dic['optimization']['optimization step'])
 
         if opti is True:
             logs.log_info("The Metabolic Network is being analyzed for optimal rates...")

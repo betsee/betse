@@ -13,10 +13,19 @@
 # https://en.wikipedia.org/wiki/YAML.
 
 #-----------------------------------------------------------------------------------------------------------------------
-#  BASIC METABOLIC FEATURES
+#  GENERAL NETWORK FEATURES
 #-----------------------------------------------------------------------------------------------------------------------
 
-enable mitochondria: False
+enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
+
+optimization:
+  optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
+  optimization steps: 50 # number of itteration steps to run with basinhopper
+  optimization method: L-BFGS-B  # optimization algorithm to run ('COBYLA', 'L-BFGS-B', 'CG')
+                                                    # (Nelder-Mead, Powell, BFGS, 'TNC', 'SLSQP')
+  optimization T: 1.0
+  optimization step: 0.5
+  target Vmem: -50e-3     # Vmem to use in optimization
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  MOLECULES of METABOLISM

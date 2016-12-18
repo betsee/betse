@@ -11,13 +11,19 @@
 # https://en.wikipedia.org/wiki/YAML.
 
 #-----------------------------------------------------------------------------------------------------------------------
-#  BASIC FEATURES
+#  GENERAL NETWORK FEATURES
 #-----------------------------------------------------------------------------------------------------------------------
-optimize network: False    # Prior to simulation, use a basin hopping algorithm to optimize network?
-optimization steps: 200 # number of itteration steps to run with basinhopper
-optimization method: Nelder-Mead  # optimization algorithm to run ('Nelder-Mead', 'COBYLA', 'Powell')
 
-enable mitochondria: False  # Enable mitochondrial regions inside each cell?
+enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
+
+optimization:
+  optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
+  optimization steps: 50 # number of itteration steps to run with basinhopper
+  optimization method: L-BFGS-B  # optimization algorithm to run ('COBYLA', 'L-BFGS-B', 'CG')
+                                                    # (Nelder-Mead, Powell, BFGS, 'TNC', 'SLSQP')
+  optimization T: 1.0
+  optimization step: 0.5
+  target Vmem: -50e-3     # Vmem to use in optimization
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM BIOMOLECULES

@@ -530,6 +530,8 @@ general network:
 
   enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
 
+  time acceleration: 1.0 # factor accelerating time for slow processes in network entities (GJ diffusion)
+
   optimization:
     optimize network: True   # run an optimization of the network to obtain max rates at steady state concentrations?
     optimization steps: 100 # number of itteration steps to run with basinhopper
@@ -824,6 +826,7 @@ results options:
 
   vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
                                  # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
+
 
   #-------2D plots---------------------------------------------------------------------------------------------------
   
