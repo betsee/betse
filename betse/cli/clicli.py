@@ -11,11 +11,11 @@ BETSE's command line interface (CLI).
 from argparse import ArgumentParser, _SubParsersAction
 from betse.cli import clisubcommands, info
 from betse.cli.cliabc import expand_help, CLIABC
-from betse.cli.clisubcommands import CLISubcommand
+from betse.cli.clisubcommands import CLISubcommandABC
 from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
-from betse.util.py import pys
+from betse.util.py import identifiers, pys
 from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check
 
@@ -123,7 +123,7 @@ class CLICLI(CLIABC):
     @type_check
     def _add_subcommand(
         self,
-        subcommand: CLISubcommand,
+        subcommand: CLISubcommandABC,
         arg_subparsers: _SubParsersAction,
         **kwargs
     ) -> ArgumentParser:
@@ -142,7 +142,7 @@ class CLICLI(CLIABC):
 
         Parameters
         ----------
-        subcommand: CLISubcommand
+        subcommand: CLISubcommandABC
             Subcommand to be added.
         arg_subparsers : _SubParsersAction
             Collection of sibling subcommand argument parsers to which the
@@ -192,7 +192,7 @@ class CLICLI(CLIABC):
         # Else, a subcommand was passed.
         #
         # Sanitized name of this subcommand.
-        subcommand_name_top = clisubcommands.sanitize_name(
+        subcommand_name_top = identifiers.sanitize(
             self._args.subcommand_name_top)
 
         # Name of the method running this subcommand.
@@ -319,7 +319,7 @@ class CLICLI(CLIABC):
 
         # Run this subcommand's passed subcommand and return the result
         # of doing so. See _run() for details.
-        subcommand_name_plot = clisubcommands.sanitize_name(
+        subcommand_name_plot = identifiers.sanitize(
             self._args.subcommand_name_plot)
         subcommand_method_name = '_do_plot_' + subcommand_name_plot
         subcommand_method = getattr(self, subcommand_method_name)

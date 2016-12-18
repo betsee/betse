@@ -9,32 +9,22 @@ Metadata describing subcommands accepted by BETSE's command line interface
 '''
 
 # ....................{ IMPORTS                            }....................
+from abc import ABCMeta
 from argparse import ArgumentParser, _SubParsersAction
 from betse.util.type.types import type_check
 
-# ....................{ FUNCTIONS                          }....................
-@type_check
-def sanitize_name(subcommand_name: str) -> str:
-    '''
-    Sanitize the passed subcommand name (e.g., from `sim-gnr` to `sim_gnr`).
-
-    Specifically, this utility function:
-
-    * Replaces all hyphens in this name with underscores, as method names
-        are generated from subcommand names but cannot contain hyphens.
-    '''
-
-    return subcommand_name.replace('-', '_')
-
 # ....................{ SUPERCLASSES                       }....................
-class CLISubcommand(object):
+class CLISubcommandABC(object, metaclass=ABCMeta):
     '''
-    Metadata encapsulating a **CLI subcommand** (i.e., name passed to the
-    external `betse` command identifying an action to be performed).
+    Abstract base class of all **CLI subcommand** (i.e., shell word passed to
+    the external `betse` command signifying a high-level action to be
+    performed) subclasses.
 
-    This metadata encapsulates all human-readable help strings for this
-    subcommand as well as additional options and arguments accepted by this
-    subcommand.
+    This class encapsulates all metadata pertaining to this subcommand,
+    including:
+
+    * Human-readable help strings describing this subcommand.
+    * All options and arguments accepted by this subcommand.
 
     Attributes
     ----------
@@ -130,38 +120,34 @@ class CLISubcommand(object):
         return arg_subparsers.add_parser(**kwargs)
 
 # ....................{ SUBCLASSES                         }....................
-class CLISubcommandNoArg(CLISubcommand):
+class CLISubcommandNoArg(CLISubcommandABC):
     '''
-    Metadata encapsulating a CLI subcommand accepting _no_ passed arguments.
-
-    This subclass is a convenience placeholder to improve readability.
+    CLI subcommand accepting _no_ passed arguments.
     '''
 
     pass
 
 
-class CLISubcommandParent(CLISubcommand):
+class CLISubcommandParent(CLISubcommandABC):
     '''
-    Metadata encapsulating a CLI subcommand that is itself the parent of one or
-    more CLI subcommands and hence accepts _only_ the name of a child subcommand
-    as a passed argument.
-
-    This subclass is a convenience placeholder to improve readability.
+    CLI subcommand that is itself the parent of one or more CLI subcommands,
+    accepting _only_ the name of a child subcommand as a passed argument.
     '''
 
+    # We almost don't believe it either.
     pass
 
 
-class CLISubcommandYAMLOnly(CLISubcommand):
+class CLISubcommandYAMLOnly(CLISubcommandABC):
     '''
-    Metadata encapsulating a CLI subcommand accepting _only_ a configuration
-    filename as a passed argument.
+    CLI subcommand accepting _only_ a configuration filename as a passed
+    argument.
     '''
 
-
+    # ..................{ ADDERS                             }..................
     def add(self, *args, **kwargs) -> ArgumentParser:
 
-        # Subcommand argument subparser added by the superclass.
+        # Subcommand argument subparser added by our superclass.
         arg_subparser = super().add(*args, **kwargs)
 
         # Configure this subparser to require a configuration file argument.
@@ -339,7 +325,7 @@ Equivalently, this subcommand is shorthand for the following:
 ''',),
 )
 '''
-Tuple of `CLISubcommand` instances describing top-level subcommands.
+Tuple of :class:`CLISubcommandABC` instances describing top-level subcommands.
 
 **Order is significant.** The order in which these instances are listed defines
 the order in which the `betse --help` command synopsizes these subcommands.
@@ -404,8 +390,8 @@ from input files defined by this configuration.
 ''',),
 )
 '''
-Tuple of `CLISubcommand` instances describing subcommands of the `plot`
-subcommand.
+Tuple of :class:`CLISubcommandABC` instances describing subcommands of the
+`plot` subcommand.
 
 See Also
 ----------

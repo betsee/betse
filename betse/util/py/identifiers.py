@@ -4,11 +4,12 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **regex** (i.e., Python-compatible regular expression) facilities.
+Low-level **Python identifier** (i.e., class, function, module, or variable
+name) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type import regexes
+from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
 PYTHON_IDENTIFIER_CHAR_CLASS = r'a-zA-Z0-9_'
@@ -58,19 +59,43 @@ module name).
 '''
 
 # ....................{ CONVERTERS ~ camel                 }....................
-def convert_camelcase_to_snakecase(text: str) -> str:
+def convert_camelcase_to_snakecase(identifier: str) -> str:
     '''
     Convert the passed CamelCase-formatted Python identifier to snake_case
     (e.g., from `ThePMRC` to `the_pmrc`).
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type import regexes
+
+    # Munge this identifier.
     return regexes.substitute_substrings(
-        text, PYTHON_IDENTIFIER_CAMEL_CASE_CHAR_REGEX_RAW, r'_\1').lower()
+        identifier, PYTHON_IDENTIFIER_CAMEL_CASE_CHAR_REGEX_RAW, r'_\1').lower()
 
 
-def convert_camelcase_to_whitespaced_lowercase(text: str) -> str:
+def convert_camelcase_to_whitespaced_lowercase(identifier: str) -> str:
     '''
     Convert the passed CamelCase-formatted Python identifier to whitespaced
     lowercase (e.g., from `CleanseIII` to `cleanse iii`).
     '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type import regexes
+
+    # Munge this identifier.
     return regexes.substitute_substrings(
-        text, PYTHON_IDENTIFIER_CAMEL_CASE_CHAR_REGEX_RAW, r' \1').lower()
+        identifier, PYTHON_IDENTIFIER_CAMEL_CASE_CHAR_REGEX_RAW, r' \1').lower()
+
+# ....................{ SANITIZERS                         }....................
+@type_check
+def sanitize(text: str) -> str:
+    '''
+    Sanitize the passed arbitrary string into the equivalent Python identifier
+    (e.g., from `sim-gnr` to `sim_gnr`).
+
+    Specifically, this function:
+
+    * Replaces each hyphen in this string with an underscore.
+    '''
+
+    return text.replace('-', '_')

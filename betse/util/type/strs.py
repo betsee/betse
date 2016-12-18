@@ -430,7 +430,7 @@ def remove_whitespace_suffix(text: str) -> str:
 @type_check
 def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
     '''
-    Return the passed string without the passed prefix if present _or_ raise an
+    Passed string with the passed prefix removed if present _or_ raise an
     exception with the passed message (defaulting to a message synthesized from
     the passed arguments) otherwise.
 
@@ -461,8 +461,8 @@ def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
 @type_check
 def remove_prefix_if_found(text: str, prefix: str) -> str:
     '''
-    Return the passed string without the passed prefix if present _or_ the
-    passed string as is otherwise.
+    Passed string with the passed prefix removed if present _or_ the passed
+    string as is otherwise.
 
     Parameters
     ----------
@@ -484,8 +484,8 @@ def remove_prefix_if_found(text: str, prefix: str) -> str:
 @type_check
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
-    Return the passed string without the passed suffix if present _or_ the
-    passed string as is otherwise.
+    Passed string with the passed suffix removed if present _or_ the passed
+    string as is otherwise.
 
     Parameters
     ----------

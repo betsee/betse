@@ -65,7 +65,7 @@ def expand_help(text: str, **kwargs) -> str:
     ))
 
 # ....................{ CLASSES                            }....................
-class CLIABC(metaclass=ABCMeta):
+class CLIABC(object, metaclass=ABCMeta):
     '''
     Abstract command line interface (CLI) suitable for use by both CLI and GUI
     front-ends for BETSE.

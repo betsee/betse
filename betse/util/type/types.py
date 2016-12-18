@@ -69,8 +69,8 @@ Abstract interface implemented by all **containers** (i.e., objects
 implementing the standard `__contains__()` method internally called by the
 `in` operator).
 
-This class is a synonym of the `collections.abc.Container` class, provided
-merely as a convenience to callers preferring to avoid importing that class.
+This class is a synonym of the :class:`collections.abc.Container` class,
+permitting callers to avoid importing that class.
 '''
 
 
@@ -157,6 +157,28 @@ Abstract interface implemented by all containers defining the special
 
 This class is a synonym of the `collections.abc.Sized` class, provided merely
 as a convenience to callers preferring to avoid importing that class.
+'''
+
+# ....................{ TYPES ~ enum                       }....................
+# Enumeration types are sufficiently obscure to warrant formalization here.
+
+EnumType = EnumMeta
+'''
+Abstract base class of all **enumerations** (i.e., classes containing all
+enumeration members comprising those enumerations).
+
+This class is a synonym of the :class:`enum.EnumMeta` class, permitting callers
+to avoid importing that class.
+'''
+
+
+EnumMemberType = EnumMeta
+'''
+Abstract base class implemented by all **enumeration members** (i.e.,
+alternative choices comprising their parent enumerations).
+
+This class is a synonym of the :class:`enum.Enum` class, permitting callers
+to avoid importing that class.
 '''
 
 # ....................{ TUPLES                             }....................
@@ -314,16 +336,24 @@ Tuple of both the integer type _and_ the type of the singleton `None` object.
 IterableOrNoneTypes = IterableTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
-subclassing) the canonical `collections.abc.Iterable` API as well as the type
-of the singleton `None` object.
+subclassing) the canonical :class:`collections.abc.Iterable` API as well as the
+type of the singleton `None` object.
+'''
+
+
+MappingOrNoneTypes = (MappingType,) + NoneTypes
+'''
+Tuple of all container base classes conforming to (but _not_ necessarily
+subclassing) the canonical :class:`collections.abc.Mapping` API as well as the
+type of the singleton `None` object.
 '''
 
 
 SequenceOrNoneTypes = SequenceTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
-subclassing) the canonical `collections.abc.Sequence` API as well as the type
-of the singleton `None` object.
+subclassing) the canonical :class:`collections.abc.Sequence` API as well as the
+type of the singleton `None` object.
 '''
 
 
@@ -994,17 +1024,6 @@ def is_exception(obj: object) -> bool:
 
     return isinstance(obj, Exception)
 
-# ....................{ TESTERS ~ betse : cli              }....................
-def is_cli_subcommand(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an instance of the BETSE-specific
-    `CLISubcommand` class.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.cli.subcommand import CLISubcommand
-    return isinstance(obj, CLISubcommand)
-
 # ....................{ TESTERS ~ betse : science          }....................
 def is_cells(obj: object) -> bool:
     '''
@@ -1405,14 +1424,6 @@ def assert_not_exception(obj: object) -> str:
     String asserting the passed object to _not_ be an exception.
     '''
     return '"{}" not an exception.'.format(trim(obj))
-
-# ....................{ ASSERTERS ~ betse : cli            }....................
-def assert_not_cli_subcommand(obj: object) -> bool:
-    '''
-    String asserting the passed object is an instance of the BETSE-specific
-    `CLISubcommand` class.
-    '''
-    return '"{}" not a CLI subcommand.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ betse : science        }....................
 def assert_not_cells(obj: object) -> str:
