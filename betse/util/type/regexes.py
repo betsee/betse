@@ -11,7 +11,7 @@ Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 import re
 from betse.exceptions import BetseRegexException
 from betse.util.type.types import (
-    type_check, CallableTypes, GeneratorType, MappingType, RegexTypes)
+    type_check, CallableTypes, GeneratorType, IterableTypes, MappingType, RegexTypes)
 
 # ....................{ FLAGS                              }....................
 FLAG_MULTILINE = re.MULTILINE
@@ -353,7 +353,7 @@ def get_match_line_if_any(text: str, regex: RegexTypes, **kwargs):
 
 # ....................{ ITERATORS                          }....................
 @type_check
-def iter_matches(text: str, regex: RegexTypes, **kwargs):
+def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
     Generator iteratively yielding each non-overlapping match at any position of
     the passed string against the passed regular expression as a match object.
@@ -383,7 +383,7 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs):
 
     Returns
     ----------
-    GeneratorType
+    IterableTypes
         Generator yielding match objects (i.e., instances of `re.SRE_Match`).
 
     See Also
@@ -400,7 +400,7 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs):
 
 
 @type_check
-def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> GeneratorType:
+def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
     Generator iteratively yielding each non-overlapping match at any position of
     the passed string against the passed regular expression in a line-oriented
@@ -440,7 +440,7 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> GeneratorType:
 
     Returns
     ----------
-    GeneratorType
+    IterableTypes
         Generator yielding match objects (i.e., instances of `re.SRE_Match`).
     '''
 

@@ -15,6 +15,7 @@ and plot.
 """
 
 from betse.lib import libs
+from betse.util.io.log import logs
 
 
 def set_net_opts(self, net_plot_opts, p):
@@ -88,7 +89,6 @@ def set_net_opts(self, net_plot_opts, p):
         self.vmem_shape = 'oval'
 
         self.subnets_dicts = None
-
 
 def plot_master_network(self, p):
 
@@ -226,7 +226,9 @@ def plot_master_network(self, p):
 
         if mol.simple_growth is True:
 
-            graph_influencers(self, base_graph, name, mol.growth_activators_list,
+            gname = name + '_growth'
+
+            graph_influencers(self, base_graph, gname, mol.growth_activators_list,
                 mol.growth_inhibitors_list, p, reaction_zone = 'cell',
                 zone_tags_a = mol.growth_activators_zone,
                 zone_tags_i = mol.growth_inhibitors_zone)
@@ -246,6 +248,8 @@ def plot_master_network(self, p):
     base_graph.add_edge(pydot.Edge('Pmem_Na', '+Vmem', arrowhead='dot', color='blue', penwidth = self.edge_width))
 
     base_graph.add_edge(pydot.Edge('Pmem_K', '+Vmem', arrowhead='tee', color='red', penwidth = self.edge_width))
+
+    base_graph.add_edge(pydot.Edge('K_env', '+Vmem', arrowhead='dot', color='blue', penwidth = self.edge_width))
 
     #-------------------------------------------------------------------------------------------------------------------
 
@@ -465,7 +469,92 @@ def plot_master_network(self, p):
                                    zone_tags_a=chan.channel_activators_zone,
                                    zone_tags_i=chan.channel_inhibitors_zone)
 
+    # if sub-graphs are defined, re-jigger the network to have clusters/sub-networks:
+    if self.subnets_dicts is not None and self.subnets_dicts != 'None':
+
+        if len(self.subnets_dicts) > 0:
+
+            base_graph = make_subgraphs(self, base_graph, p)
+
     return base_graph
+
+
+def make_subgraphs(self, base_graph, p):
+
+    # If PyDot or Networkx are unimportable, raise an exception.
+    libs.die_unless_runtime_optional('pydot', 'networkx')
+    # reserve import of pydot and networkx in case the user doesn't have it and needs to turn this functionality off:
+    import pydot
+    import networkx as nx
+
+    # convert the pydot-version base_graph into a networkx function so we can re-jigger nodes and make subgraphs...
+    net_all = nx.from_pydot(base_graph)
+
+    subnetworks = {}
+
+    master_graph = pydot.Dot(graph_type='digraph', concentrate=False, nodesep=0.1, ranksep=0.3,
+                                splines=True, strict = True, rankdir = self.net_layout)
+
+    # Begin by writing all nodes and edges from the main network to the new pydot network
+    master_graph = write_nodes(net_all, master_graph)
+    master_graph = write_edges(net_all, master_graph)
+
+
+    for subnet_opts in self.subnets_dicts:
+
+        subnet_name = subnet_opts['name']
+        subnet_nodes = subnet_opts['nodes']
+
+        # expand subnetwork nodes list with nearest neighbours from main graph:
+        extended_node_list = []
+
+        for nde in subnet_nodes:
+
+            if nde in net_all.nodes():
+                extended_node_list.append(nde)
+                nn = net_all.neighbors(nde)
+
+                for n in nn:
+                    extended_node_list.append(n)
+
+        # reassign subgraph nodes to the extended list:
+        subnet_nodes = extended_node_list
+
+        tit_font = subnet_opts['title font color']
+        box_color = subnet_opts['box shading color']
+
+        subnet = nx.subgraph(net_all, subnet_nodes)
+        subnetworks[subnet_name] = {'name': subnet_name, 'nx subnet': subnet, 'tit_font': tit_font,
+                                    'box_color': box_color,  'nodes': subnet_nodes}
+
+
+
+    for i, sn_dic in enumerate(subnetworks):
+
+        cname = 'cluster_' + str(i)
+
+        # declare subgraphs in pydot format:
+        py_sub = pydot.Subgraph(cname, label=subnetworks[sn_dic]['name'], style='filled',
+                                fontcolor = subnetworks[sn_dic]['tit_font'],
+                            fontname=self.net_font_name, fontsize=self.tit_font_size,
+                                color=subnetworks[sn_dic]['box_color'])
+
+        subnetworks[sn_dic]['py subnet'] = py_sub
+
+    # now each subnetwork has a networkx and empty pydot subgraph definition.
+    # write each networkx subnet to the pydot subgraph:
+    for i, sn_dic in enumerate(subnetworks):
+
+        sn_py = write_nodes(subnetworks[sn_dic]['nx subnet'], subnetworks[sn_dic]['py subnet'])
+
+        subnetworks[sn_dic]['py subnet'] = sn_py
+
+        master_graph.add_subgraph(sn_py)
+
+        master_graph = write_edges(subnetworks[sn_dic]['nx subnet'], master_graph)
+
+
+    return master_graph
 
 
 
@@ -548,45 +637,63 @@ def graph_influencers(self, base_graph, name, a_list, i_list, p, reaction_zone =
 
 def write_nodes(nx_graph, py_graph):
 
-    # If PyDot is unimportable, raise an exception.
+    # If PyDot or Networkx are unimportable, raise an exception.
     libs.die_unless_runtime_optional('pydot')
-    # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
+    # reserve import of pydot and networkx in case the user doesn't have it and needs to turn this functionality off:
     import pydot
 
     for nx_node_name in nx_graph.node:
+
         nx_dic = nx_graph.node[nx_node_name]
 
-        clr = nx_dic.get('color', 'white')
-        fntclr = nx_dic.get('fontcolor', 'black')
+        clr = nx_dic.get('color', None)
+        fntclr = nx_dic.get('fontcolor', None)
         fntnm = nx_dic.get('fontname', None)
-        fntsz = nx_dic.get('fontsize', 16.0)
-        shp = nx_dic.get('shape', 'ellipse')
-        stl = nx_dic.get('style', 'filled')
+        fntsz = nx_dic.get('fontsize', None)
+        shp = nx_dic.get('shape', None)
+        stl = nx_dic.get('style', None)
+
+        # if (clr is not None and fntclr is not None and fntnm is not None and shp is not None and
+        #             shp is not None and stl is not None):
 
         nde = pydot.Node(nx_node_name, color=clr, fontcolor=fntclr, fontname=fntnm, fontsize=fntsz,
                          shape=shp, style=stl)
 
         py_graph.add_node(nde)
 
-    return py_graph
+        # else:
+        #
+        #     logs.log_warning("WARNING! You have requested a sub-graph node that does not exist!\n"
+        #                      " Ignoring request!")
 
+    return py_graph
 
 def write_edges(nx_graph, py_graph):
 
-    # If PyDot is unimportable, raise an exception.
-    libs.die_unless_runtime_optional('pydot')
-    # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
+    # If PyDot or Networkx are unimportable, raise an exception.
+    libs.die_unless_runtime_optional('pydot', 'networkx')
+    # reserve import of pydot and networkx in case the user doesn't have it and needs to turn this functionality off:
     import pydot
+    import networkx
+
 
     for na, nb in nx_graph.edges():
+
         edge_dic = nx_graph.edge[na][nb]
 
-        arrow = edge_dic.get('arrowhead', 'normal')
-        linew = edge_dic.get('penwidth', 2.0)
+        arrow = edge_dic.get('arrowhead', None)
+        linew = edge_dic.get('penwidth', None)
         clr = edge_dic.get('color', 'black')
+
+        # if arrow is not None and linew is not None and clr is not None:
 
         eg = pydot.Edge(na, nb, arrowhead=arrow, penwidth=linew, color=clr)
         py_graph.add_edge(eg)
+
+        # else:
+        #
+        #     logs.log_warning("WARNING! You have requested a sub-graph edge that does not exist!\n"
+        #                      " Ignoring request!")
 
     return py_graph
 
