@@ -14,6 +14,7 @@ from betse.exceptions import (
     BetseFileException, BetseSimException, BetseSimConfigException)
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
+from betse.science.config import confio
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
@@ -654,23 +655,40 @@ class SimRunner(object):
         #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
         #set up, it's not possible to readily fix it. Grrrrrr.....
 
+        # FIXME: Why not just stop each block from happening if image saving is off? Easy peasy!
+
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
             # reinit settings for plots, in case they've changed:
             # sim.molecules.core.plot_init(p.molecules_config)
-
             sim.molecules.core.init_saving(cells, p, plot_type = 'init')
             sim.molecules.core.export_all_data(sim, cells, p)
             sim.molecules.core.plot(sim, cells, p)
             sim.molecules.core.anim(sim, cells, p)
 
         if p.metabolism_enabled and sim.metabo is not None:
+
+            configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
+
+            # read the config file into a dictionary:
+            config_dic = confio.read_metabo(configPath)
+            # reinitialize the plot settings:
+            sim.metabo.core.plot_init(config_dic, p)
+
             sim.metabo.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
             sim.metabo.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
             sim.metabo.core.plot(sim, cells, p, message = 'for metabolic molecules...')
             sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
 
         if p.grn_enabled and sim.grn is not None:
+
+            configPath = os.path.join(p.config_dirname, p.grn_config_filename)
+
+            # read the config file into a dictionary:
+            config_dic = confio.read_metabo(configPath)
+            # reinitialize the plot settings:
+            sim.grn.core.plot_init(config_dic, p)
+
             sim.grn.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
             sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
             sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
@@ -724,12 +742,9 @@ class SimRunner(object):
         # Display and/or save all enabled plots and animations.
         plotpipe.pipeline_results(sim, cells, p, plot_type='sim')
 
-        #FIXME: Shift all of the following logic into the plotting
-        #and animation pipelines.
-
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
-            # # reinit settings for plots, in case they've changed:
+            # reinit settings for plots, in case they've changed:
             # sim.molecules.core.plot_init(p.molecules_config)
 
             sim.molecules.core.init_saving(cells, p, plot_type = 'sim')
@@ -738,12 +753,28 @@ class SimRunner(object):
             sim.molecules.core.anim(sim, cells, p)
 
         if p.metabolism_enabled and sim.metabo is not None:
+
+            configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
+
+            # read the config file into a dictionary:
+            config_dic = confio.read_metabo(configPath)
+            # reinitialize the plot settings:
+            sim.metabo.core.plot_init(config_dic, p)
+
             sim.metabo.core.init_saving(cells, p, plot_type='sim')
             sim.metabo.core.export_all_data(sim, cells, p)
             sim.metabo.core.plot(sim, cells, p)
             sim.metabo.core.anim(sim, cells, p)
 
         if p.grn_enabled and sim.grn is not None:
+
+            configPath = os.path.join(p.config_dirname, p.grn_config_filename)
+
+            # read the config file into a dictionary:
+            config_dic = confio.read_metabo(configPath)
+            # reinitialize the plot settings:
+            sim.grn.core.plot_init(config_dic, p)
+
             sim.grn.core.init_saving(cells, p, plot_type='sim', nested_folder_name='GRN')
             sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
             sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')

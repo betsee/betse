@@ -22,7 +22,7 @@ from betse.util.io.log import logs
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
 from betse.exceptions import BetseSimConfigException
-from betse.science import sim_toolbox as stb
+from betse.science.chemistry.netplot import set_net_opts
 
 
 class MasterOfMetabolism(object):
@@ -41,8 +41,6 @@ class MasterOfMetabolism(object):
         # create the path to read the metabolism config file:
 
         self.configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
-
-        # print("!!!!!!!! Config Path: {}".format(self.configPath))
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)
@@ -112,7 +110,13 @@ class MasterOfMetabolism(object):
                                            "Please define 'ATP', 'ADP' and 'Pi' biomolecules in your "
                                            "metabolism configuration file and try again.")
 
-        # after primary initialization, check and see if optimization required:
+        # read in network plotting options:
+        self.core.net_plot_opts = self.config_dic.get('network plotting', None)
+
+        # set plotting options for the network:
+        set_net_opts(self.core, self.core.net_plot_opts, p)
+
+            # after primary initialization, check and see if optimization required:
         opti = self.config_dic['optimization']['optimize network']
         self.core.opti_N = self.config_dic['optimization']['optimization steps']
         self.core.opti_method = self.config_dic['optimization']['optimization method']

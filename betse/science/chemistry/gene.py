@@ -18,6 +18,7 @@ from betse.science import filehandling as fh
 from betse.util.io.log import logs
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
+from betse.science.chemistry.netplot import set_net_opts
 
 
 class MasterOfGenes(object):
@@ -89,6 +90,12 @@ class MasterOfGenes(object):
 
         else:
             self.modulators = False
+
+        # read in network plotting options:
+        self.core.net_plot_opts = self.config_dic.get('network plotting', None)
+
+        # set plotting options for the network:
+        set_net_opts(self.core, self.core.net_plot_opts, p)
 
         # after primary initialization, check and see if optimization required:
             # after primary initialization, check and see if optimization required:

@@ -195,6 +195,89 @@ modulators:
 
 
 #-----------------------------------------------------------------------------------------------------------------------
+# NETWORK PLOTTING
+#-----------------------------------------------------------------------------------------------------------------------
+network plotting:
+
+  plot network: True     # Network plotting requires installation of optional dependancies networkx and pyplot
+  font name: 'Lato Black'  # Font for use throughout network 'Lato Black', 'Lato Heavy', 'DejaVu Sans',
+                                        # 'Latin Modern Roman Demi', 'Garuda'
+  node font size: 24            # Font size for all nodes
+  sub-net font size: 36     # Font size for sub-graph group titles
+  edge linewidth: 3.0       # linewidth of graph edges
+  layout: TB                # create graph left-to-right (LR) for a wide graph or top-to-bottom (TB) for a long one?
+
+  substances:
+    font color: Black
+    node color: PaleTurquoise
+    node shape: ellipse
+
+  reactions:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: rect
+
+  transporters:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: diamond
+
+  channels:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: pentagon
+
+  electrodiffusion:
+    font color: White
+    node color: DarkSlateGrey
+    node shape: hexagon
+
+  Vmem:
+    font color: White
+    node color: Maroon
+    node shape: ellipse
+
+  sub-nets:
+
+    - name: Glycolysis Pathway
+
+      nodes: ['ATP', 'ADP', 'Pi']
+      title font color: 'Black'
+      box shading color: 'White'
+
+    - name: Serotonin Signalling
+
+      nodes: ['ATP', 'ADP', 'Pi']
+      title font color: 'Black'
+      box shading color: 'White'
+
+    - name: Bioelectric Basis
+
+      nodes: ['Vmem', 'NaK-ATPase', 'Ca-ATPase', 'Na', 'K', 'Cl', 'Ca', 'M', 'P', 'H', 'Na_ed', 'K_ed',
+            'Cl_ed', 'Ca_ed', 'M_ed', 'H_ed']
+      title font color: 'Black'
+      box shading color: 'White'
+
+  # Node shapes: 'ellipse', 'oval', 'rect', 'hexagon', 'pentagon'
+  # Colors (html legal color names, see http://www.w3schools.com/colors/colors_names.asp):
+  # AliceBlue
+  # Aquamarine
+  # DarkSlateGrey
+  # CadetBlue
+  # Salmon
+  # Tangerine
+  # LightSalmon
+  # LightGrey
+  # LightCyan
+  # PaleTurquoise
+  # Maroon
+  # LightSeaGreen
+  # DarkSeaGreen
+  # Black
+  # White
+
+
+#-----------------------------------------------------------------------------------------------------------------------
 # Micellaneaous PUMP Parameters
 #-----------------------------------------------------------------------------------------------------------------------
 
