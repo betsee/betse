@@ -7,30 +7,13 @@
 Abstract command line interface (CLI).
 '''
 
-#FIXME: Support the following additional "--profile-type=" options:
-#
-#* "line", profiling in a line- rather than call-based manner. Sadly, Python
-#  does *NOT* provide an out-of-the-box solution for line-based profiling. To
-#  do so, either (...both?) of the following third-party packages will need to
-#  be dynamically detected, imported, and leveraged:
-#  * "pprofile", a third-party pure-Python module profiling each line (rather
-#    than function as "profile" does). Basically, "profile" on metric steroids.
-#  * "lineprof", a third-party C extension profiling each line (rather than
-#    function as cProfile does). Obsoleted by "pprofile", however.
-#  * "statprof", a third-party C extension operating rather differently than
-#    either "lineprof" or cProfile. Rather than deterministically instrumenting
-#    each line or function call (respectively), "statprof" non-deterministically
-#    wakes up at predefined intervals, records a stack trace, and then goes back
-#    to sleep. On application completion, "statprof" then tallies up each stack
-#    trace and outputs a command-line table of the most expensive lines. Pretty
-#    sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
-
 # ....................{ IMPORTS                            }....................
 import sys
 from abc import ABCMeta, abstractmethod
 from argparse import ArgumentParser
 from betse import ignition, metadata, pathtree
 from betse.cli import info, clioptions
+from betse.cli.cliutil import expand_help
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
@@ -38,31 +21,8 @@ from betse.util.path.command import commands
 from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.profilers import profile_callable, ProfileType
-from betse.util.type import enums, types, strs
-from betse.util.type.types import type_check, SequenceTypes
-
-# ....................{ UTILITIES                          }....................
-@type_check
-def expand_help(text: str, **kwargs) -> str:
-    '''
-    Interpolate the passed keyword arguments into the passed help string
-    template, stripping all prefixing and suffixing whitespace from this
-    template.
-
-    For convenience, the following default keyword arguments are unconditionally
-    interpolated into this template:
-
-    * `{script_basename}`, expanding to the basename of the current script
-        (e.g., `betse`).
-    * `{program_name}`, expanding to this script's human-readable name
-        (e.g., `BETSE`).
-    '''
-
-    return strs.remove_whitespace_presuffix(text.format(
-        program_name=metadata.NAME,
-        script_basename=commands.get_current_basename(),
-        **kwargs
-    ))
+from betse.util.type import enums, types
+from betse.util.type.types import SequenceTypes
 
 # ....................{ CLASSES                            }....................
 class CLIABC(object, metaclass=ABCMeta):

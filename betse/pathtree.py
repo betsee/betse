@@ -181,7 +181,6 @@ def _init_pathnames_top() -> None:
     from betse.lib.setuptools import resources
     from betse.util.os import oses
     from betse.util.path import paths
-    from betse.util.py import pys
 
     # Declare these constants to be globals, permitting modification below.
     global HOME_DIRNAME, DOT_DIRNAME, DATA_DIRNAME

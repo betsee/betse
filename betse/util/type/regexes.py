@@ -11,8 +11,7 @@ Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 import re
 from betse.exceptions import BetseRegexException
 from betse.util.type.types import (
-    type_check, CallableTypes, MappingType)
-from sre_parse import Pattern
+    type_check, CallableTypes, GeneratorType, MappingType, RegexTypes)
 
 # ....................{ FLAGS                              }....................
 FLAG_MULTILINE = re.MULTILINE
@@ -32,7 +31,7 @@ By default:
 '''
 
 # ....................{ TESTERS                            }....................
-def is_match(text: str, regex: (str, Pattern), **kwargs) -> bool:
+def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
     `True` only if zero or more characters anchored to the beginning of the
     passed string match the passed regular expression.
@@ -41,7 +40,7 @@ def is_match(text: str, regex: (str, Pattern), **kwargs) -> bool:
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -58,7 +57,7 @@ def is_match(text: str, regex: (str, Pattern), **kwargs) -> bool:
     return get_match_if_any(text, regex, **kwargs) is not None
 
 
-def is_match_line(text: str, regex: (str, Pattern), **kwargs) -> bool:
+def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
     `True` only if at least one line of the passed string match the passed
     regular expression.
@@ -71,7 +70,7 @@ def is_match_line(text: str, regex: (str, Pattern), **kwargs) -> bool:
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -88,7 +87,7 @@ def is_match_line(text: str, regex: (str, Pattern), **kwargs) -> bool:
     return get_match_line_if_any(text, regex, **kwargs) is not None
 
 # ....................{ MATCHERS ~ group : named           }....................
-def get_match_groups_named(text: str, regex: (str, Pattern), **kwargs) -> list:
+def get_match_groups_named(text: str, regex: RegexTypes, **kwargs) -> list:
     '''
     Dictionary mapping explicitly named groups to substrings matched anchored to
     the beginning of the passed string against the passed regular expression if
@@ -103,7 +102,7 @@ def get_match_groups_named(text: str, regex: (str, Pattern), **kwargs) -> list:
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -130,8 +129,7 @@ def get_match_groups_named(text: str, regex: (str, Pattern), **kwargs) -> list:
     return get_match(text, regex, **kwargs).groupdict()
 
 # ....................{ MATCHERS ~ group : numbered        }....................
-def get_match_groups_numbered(
-    text: str, regex: (str, Pattern), **kwargs) -> list:
+def get_match_groups_numbered(text: str, regex: RegexTypes, **kwargs) -> list:
     '''
     List of all groups matched anchored to the beginning of the passed string
     against the passed regular expression (ordered by the left-to-right lexical
@@ -144,7 +142,7 @@ def get_match_groups_numbered(
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -172,7 +170,7 @@ def get_match_groups_numbered(
 
 
 def get_match_groups_numbered_if_any(
-    text: str, regex: (str, Pattern), **kwargs) -> list:
+    text: str, regex: RegexTypes, **kwargs) -> list:
     '''
     List of all groups matched anchored to the beginning of the passed string
     against the passed regular expression (ordered by the left-to-right lexical
@@ -184,7 +182,7 @@ def get_match_groups_numbered_if_any(
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -207,7 +205,7 @@ def get_match_groups_numbered_if_any(
     return match.groups() if match is not None else None
 
 # ....................{ MATCHERS ~ object                  }....................
-def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
+def get_match(text: str, regex: RegexTypes, **kwargs) -> 'SRE_Match':
     '''
     Match object obtained by matching zero or more characters anchored to the
     beginning of the passed string against the passed regular expression if any
@@ -217,7 +215,7 @@ def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -256,7 +254,7 @@ def get_match(text: str, regex: (str, Pattern), **kwargs) -> 'SRE_Match':
 
 
 @type_check
-def get_match_if_any(text: str, regex: (str, Pattern), **kwargs):
+def get_match_if_any(text: str, regex: RegexTypes, **kwargs):
     '''
     Match object obtained by matching zero or more characters anchored to the
     beginning of the passed string against the passed regular expression if any
@@ -266,7 +264,7 @@ def get_match_if_any(text: str, regex: (str, Pattern), **kwargs):
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -301,7 +299,7 @@ def get_match_if_any(text: str, regex: (str, Pattern), **kwargs):
 
 # ....................{ MATCHERS ~ object : line           }....................
 @type_check
-def get_match_line_if_any(text: str, regex: (str, Pattern), **kwargs):
+def get_match_line_if_any(text: str, regex: RegexTypes, **kwargs):
     '''
     Match object obtained by matching the passed string against the passed
     regular expression in a line-oriented manner if any such match exists _or_
@@ -316,7 +314,7 @@ def get_match_line_if_any(text: str, regex: (str, Pattern), **kwargs):
     ----------
     text : str
         String to match.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -355,7 +353,7 @@ def get_match_line_if_any(text: str, regex: (str, Pattern), **kwargs):
 
 # ....................{ ITERATORS                          }....................
 @type_check
-def iter_matches(text: str, regex: (str, Pattern), **kwargs):
+def iter_matches(text: str, regex: RegexTypes, **kwargs):
     '''
     Generator iteratively yielding each non-overlapping match at any position of
     the passed string against the passed regular expression as a match object.
@@ -367,7 +365,7 @@ def iter_matches(text: str, regex: (str, Pattern), **kwargs):
     ----------
     text : str
         Subject string to match on.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -402,8 +400,7 @@ def iter_matches(text: str, regex: (str, Pattern), **kwargs):
 
 
 @type_check
-def iter_matches_line(
-    text: str, regex: (str, Pattern), **kwargs):
+def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> GeneratorType:
     '''
     Generator iteratively yielding each non-overlapping match at any position of
     the passed string against the passed regular expression in a line-oriented
@@ -421,7 +418,7 @@ def iter_matches_line(
     ----------
     text : str
         Subject string to match on.
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -454,14 +451,14 @@ def iter_matches_line(
     return re.finditer(regex, text, **kwargs)
 
 # ....................{ REPLACERS                          }....................
-def remove_substrings(text: str, regex: (str, Pattern), **kwargs) -> str:
+def remove_substrings(text: str, regex: RegexTypes, **kwargs) -> str:
     '''
     Remove all substrings in the passed string matching the passed regular
     expression.
 
     Parameters
     ----------
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
@@ -486,7 +483,7 @@ def remove_substrings(text: str, regex: (str, Pattern), **kwargs) -> str:
 @type_check
 def substitute_substrings(
     text: str,
-    regex: (str, Pattern),
+    regex: RegexTypes,
     substitution: (str,) + CallableTypes,
     **kwargs
 ) -> str:
@@ -496,7 +493,7 @@ def substitute_substrings(
 
     Parameters
     ----------
-    regex : str, Pattern
+    regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.

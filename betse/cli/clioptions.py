@@ -10,8 +10,12 @@ Metadata describing options accepted by BETSE's command line interface (CLI).
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 from argparse import ArgumentParser
+from betse import pathtree
+from betse.cli import cliutil
 from betse.exceptions import BetseCLIArgException
+from betse.util.io.log.logconfig import LogType
 from betse.util.py import identifiers
+from betse.util.py.profilers import ProfileType
 from betse.util.type import strs
 from betse.util.type.types import (
     type_check, EnumType, EnumMemberType, MappingOrNoneTypes, StrOrNoneTypes)
@@ -39,47 +43,52 @@ class CLIOptionABC(object, metaclass=ABCMeta):
         Dictionary of all keyword arguments to be passed to the
         :meth:`ArgumentParser.add_argument` method, converting this option from
         a command-line string into a Python object.
-    _identifier : str
+    _var_name : str
         Machine-readable string suitable for use as a **Python identifier**
         (i.e., class, function, module, or variable name), derived from this
         option's long and short variants.
-    _name : StrOrNoneTypes
-        Long variant of this CLI option if any _or_ `None` otherwise.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
-        char: StrOrNoneTypes,
-        name: StrOrNoneTypes,
         synopsis: str,
-        synopsis_kwargs: MappingOrNoneTypes,
-        add_argument_kwargs: MappingOrNoneTypes,
+        short_name: StrOrNoneTypes = None,
+        long_name: StrOrNoneTypes = None,
+        var_name: StrOrNoneTypes = None,
+        synopsis_kwargs: MappingOrNoneTypes = None,
+        add_argument_kwargs: MappingOrNoneTypes = None,
     ) -> None:
         '''
         Define this CLI option.
 
         Parameters
         ----------
-        char : optional[str]
+        short_name : optional[str]
             `-`-prefixed machine-readable name of the short variant of this CLI
             option (e.g., `-v`) if defined _or_ `None` otherwise. If non-`None`,
             this is typically only a single character. Defaults to `None`.
-        name : optional[str]
+        long_name : optional[str]
             `--`-prefixed and `-`-delimited machine-readable name of the long
             variant of this CLI option (e.g., `--matplotlib-backend`) if defined
             _or_ `None` otherwise. If non-`None`, this is typically either one
             word _or_ two words delimited by `-`. Defaults to `None`.
+        var_name : optional[str]
+            Name of the instance variable to which the converted value of this
+            option's optional argument is to be persisted. Defaults to `None`,
+            in which case this name defaults to a Python identifier derived from
+            this option's long and short variants.
         synopsis : str
             Human-readable synopsis of this CLI option, typically only one to
             three lines of lowercase, unpunctuated text. All `{`- and `}`-
             delimited format substrings (e.g., `{program_name}`) supported by
-            the :meth:`cliutil.expand_help` method will be globally replaced.
+            the :meth:`cliutil.expand_help` function will be globally replaced.
         synopsis_kwargs : optional[MappingType]
             Dictionary of all keyword arguments to be interpolated into this
-            synopsis by the :meth:`betse.cli.cliabc.expand_Help` function if any
-            _or_ `None` otherwise. Defaults to `None`.
+            synopsis by the :meth:`cliutil.expand_help` function if any
+            _or_ `None` otherwise. Defaults to `None`, in which case this
+            dictionary is empty.
         add_argument_kwargs : optional[MappingType]
             Dictionary of all keyword arguments to be passed to the
             :meth:`ArgumentParser.add_argument` method if any _or_ `None`
@@ -88,14 +97,8 @@ class CLIOptionABC(object, metaclass=ABCMeta):
             object. Defaults to `None`.
         '''
 
-        #FIXME: To avoid circularity issues, shift expand_help() into a new
-        #"cliutil" submodule of this subpackage.
-
-        # Avoid circular import dependencies.
-        from betse.cli.cliabc import expand_help
-
         # If neither a short nor long variant of this option is passed, fail.
-        if name is None and char is None:
+        if short_name is None and long_name is None:
             raise BetseCLIArgException(
                 'Short and long option variants both undefined.')
 
@@ -111,55 +114,61 @@ class CLIOptionABC(object, metaclass=ABCMeta):
 
         # Synopsize this option, interpolating these keyword arguments if any
         # into this synopsis.
-        self._add_argument_kwargs['help'] = expand_help(
+        self._add_argument_kwargs['help'] = cliutil.expand_help(
             synopsis, **synopsis_kwargs)
 
         # Python identifier derived from this option's long and short variants.
-        self._identifier = None
+        var_name_default = None
 
         # If a short variant is passed, validate this variant. To preferentially
         # assign this option's identifier to the long variant validated below,
         # do so *BEFORE* validating the long variant below.
-        if char is not None:
+        if short_name is not None:
             # Remove the "-" prefixing this variant if present.
-            char = strs.remove_prefix_if_found(text=name, prefix='-')
+            short_name = strs.remove_prefix_if_found(
+                text=short_name, prefix='-')
 
             # If the remainder is *NOT* a single character, fail.
-            if len(char) != 1:
+            if len(short_name) != 1:
                 raise BetseCLIArgException(
-                    'Short option variant "{}" not a character.'.format(char))
+                    'Short option variant "{}" not a character.'.format(
+                        short_name))
 
             # Default this option's identifier to this short variant. Since this
             # variant is guaranteed to be only a single character, no string
             # munging is needed.
-            self._identifier = char
+            var_name_default = short_name
 
             # (Re)prefix this variant by "-".
-            char = '-' + char
+            short_name = '-' + short_name
 
             # Add this variant to these positional arguments.
-            self._add_argument_args(char)
+            self._add_argument_args.append(short_name)
 
         # If a long variant is passed...
-        if name is not None:
+        if long_name is not None:
             # Remove the "--" prefixing this variant if present.
-            name = strs.remove_prefix_if_found(text=name, prefix='--')
+            long_name = strs.remove_prefix_if_found(text=long_name, prefix='--')
 
             # If the remainder is less than two characters long, fail.
-            if len(name) < 2:
+            if len(long_name) < 2:
                 raise BetseCLIArgException(
                     'Long option variant "{}" empty or '
-                    'only one character.'.format(name))
+                    'only one character.'.format(long_name))
 
             # Replace this option's identifier by this long variant, sanitizing.
             # all hyphens with underscores to generate a conformant identifier.
-            self._identifier = identifiers.sanitize(name)
+            var_name_default = identifiers.sanitize(long_name)
 
             # (Re)prefix this variant by "--".
-            name = '--' + name
+            long_name = '--' + long_name
 
             # Add this variant to these positional arguments.
-            self._add_argument_args(name)
+            self._add_argument_args.append(long_name)
+
+        # Name of the variable to which this option is persisted, set to the
+        # passed name if any or defaulting to the name set above otherwise.
+        self._var_name = var_name if var_name is not None else var_name_default
 
     # ..................{ ADDERS                             }..................
     @type_check
@@ -177,10 +186,12 @@ class CLIOptionABC(object, metaclass=ABCMeta):
         arg_parser.add_argument(
             *self._add_argument_args, **self._add_argument_kwargs)
 
-# ....................{ SUBCLASSES                         }....................
-class CLIOptionVersion(CLIOptionABC):
+
+class CLIOptionArgABC(CLIOptionABC):
     '''
-    CLI option reporting the version of this application.
+    Abstract base class of all CLI option subclasses accepting an optional
+    argument.persisted to an instance variable whose name derives from this
+    option's long and short variants.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -188,9 +199,84 @@ class CLIOptionVersion(CLIOptionABC):
     def __init__(
         self,
         *args,
-        version: str,
+        default_value: object,
+        synopsis_kwargs: MappingOrNoneTypes = None,
         **kwargs
     ) -> None:
+        '''
+        Define this CLI option.
+
+        Parameters
+        ----------
+        default_value : object
+            Object to default this option's optional argument to if unpassed.
+        synopsis_kwargs : optional[MappingType]
+            Dictionary of all keyword arguments to be interpolated into this
+            synopsis by the :meth:`betse.cli.cliabc.expand_Help` function if any
+            _or_ `None` otherwise. Defaults to `None`, in which case this
+            dictionary is empty. This method adds the following keys to this
+            dictionary:
+            * `default`, whose value is the passed `default_value` parameter.
+              Each substring `{default}` in the passed `synopsis` parameter is
+              globally replaced with this value.
+
+        All remaining parameters are passed as is to the superclass method.
+        '''
+
+        # Default all unpassed parameters *BEFORE* classifying these parameters.
+        if synopsis_kwargs is None:
+            synopsis_kwargs = {}
+
+        # Interpolate this name into this option's synopsis.
+        synopsis_kwargs['default'] = default_value
+
+        # Initialize our superclass with the passed arguments.
+        super().__init__(*args, synopsis_kwargs=synopsis_kwargs, **kwargs)
+
+        # Validate and convert this option's string argument.
+        self._add_argument_kwargs.update({
+            # Persist this option's argument to a variable with this name.
+            'action': 'store',
+            'dest': self._var_name,
+
+            # Lowercased name of the default member of this enumeration.
+            'default': default_value,
+        })
+
+# ....................{ SUBCLASSES ~ argless               }....................
+class CLIOptionBoolTrue(CLIOptionABC):
+    '''
+    CLI option accepting _no_ arguments setting an instance variable to `True`
+    when passed and `False` when unpassed.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass with the passed arguments.
+        super().__init__(*args, **kwargs)
+
+        # Validate and convert this option's string argument.
+        self._add_argument_kwargs.update({
+            # Persist this option's string argument to a boolean variable.
+            'action': 'store_true',
+
+            # Prefix this variable by "is_", conforming to codebase nomenclature
+            # (e.g., from "verbose" to "is_verbose").
+            'dest': 'is_' + self._var_name,
+        })
+
+
+class CLIOptionVersion(CLIOptionABC):
+    '''
+    CLI option accepting _no_ arguments printing a version specifier and halting
+    the current process when passed.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, *args, version: str, **kwargs) -> None:
         '''
         Define this CLI option.
 
@@ -211,34 +297,10 @@ class CLIOptionVersion(CLIOptionABC):
             'version': version,
         })
 
-
-class CLIOptionBool(CLIOptionABC):
+# ....................{ SUBCLASSES ~ arg                   }....................
+class CLIOptionArgEnum(CLIOptionArgABC):
     '''
-    CLI option persisting a mandatory string argument in boolean format (i.e.,
-    either `true` or `false`) into an instance variable of type `bool`.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(self, *args, **kwargs) -> None:
-
-        # Initialize our superclass with the passed arguments.
-        super().__init__(*args, **kwargs)
-
-        # Validate and convert this option's string argument.
-        self._add_argument_kwargs.update({
-            # Persist this option's string argument to a boolean variable.
-            'action': 'store_true',
-
-            # Prefix this variable by "is_", conforming to codebase nomenclature
-            # (e.g., from "verbose" to "is_verbose").
-            'dest': 'is_' + self._identifier,
-        })
-
-
-class CLIOptionEnum(CLIOptionABC):
-    '''
-    CLI option persisting a mandatory string argument matching one of several
+    CLI option persisting an optional string argument matching one of several
     alternatives into an instance variable whose value is the name of the
     corresponding member of an enumeration type.
 
@@ -266,8 +328,7 @@ class CLIOptionEnum(CLIOptionABC):
         self,
         *args,
         enum_type: EnumType,
-        default: EnumMemberType,
-        synopsis_kwargs: MappingOrNoneTypes,
+        enum_default: EnumMemberType,
         **kwargs
     ) -> None:
         '''
@@ -277,7 +338,7 @@ class CLIOptionEnum(CLIOptionABC):
         ----------
         enum_type : EnumType
             Enumeration constraining this option's string argument.
-        default : EnumMemberType
+        enum_default : EnumMemberType
             Member of this enumeration to default to if this option is unpassed.
 
         All remaining parameters are passed as is to the superclass method.
@@ -286,31 +347,98 @@ class CLIOptionEnum(CLIOptionABC):
         # Avoid circular import dependencies.
         from betse.util.type import enums
 
-        # Default all unpassed parameters *BEFORE* classifying these parameters.
-        if synopsis_kwargs is None:
-            synopsis_kwargs = {}
-
-        # Lowercased name of the default member of this enumeration.
-        default_name = default.name.lower()
-
-        # Interpolate this name into this option's synopsis.
-        synopsis_kwargs['default'] = default_name
+        # If this default is *NOT* a member of this enumeration, fail.
+        enums.die_unless_enum_member(enum_type, enum_default)
 
         # Initialize our superclass with the passed arguments.
-        super().__init__(*args, synopsis_kwargs=synopsis_kwargs, **kwargs)
+        super().__init__(
+            *args,
+            # Default this option's argument if unpassed to the lowercased name
+            # of this default member of this enumeration.
+            default_value=enum_default.name.lower(),
+            **kwargs)
 
         # Validate and convert this option's string argument.
         self._add_argument_kwargs.update({
-            # Persist this option's argument to a variable with this name.
-            'action': 'store',
-            'dest': self._identifier,
-
             # Set of the lowercased names of all members of this enumeration.
             'choices': enums.get_names_lowercase(enum_type),
-
-            # Lowercased name of the default member of this enumeration.
-            'default': default_name,
         })
+
+
+class CLIOptionArgStr(CLIOptionArgABC):
+    '''
+    CLI option persisting an optional string argument of arbitrary format into
+    an instance variable of type `str`.
+    '''
+
+    # The best things in life are free.
+    pass
+
+# ....................{ SUBCOMMANDS                        }....................
+OPTIONS_TOP = (
+    CLIOptionBoolTrue(
+        short_name='-v',
+        long_name='--verbose',
+        synopsis='print low-level debugging messages',
+    ),
+
+    CLIOptionVersion(
+        short_name='-V',
+        long_name='--version',
+        synopsis='print program version and exit',
+        version=cliutil.get_version(),
+    ),
+
+    CLIOptionArgEnum(
+        long_name='--log-type',
+        synopsis='''
+type of logging to perform (defaults to "{default}"):
+;* "none", logging to stdout and stderr only
+;* "file", logging to stdout, stderr, and "--log-file"
+''',
+        enum_type=LogType,
+        enum_default=LogType.FILE,
+    ),
+
+    CLIOptionArgStr(
+        long_name='--log-file',
+        synopsis=(
+            'file to log to when "--log-type=file" (defaults to "{default}")'),
+        var_name='log_filename',
+        default_value=pathtree.LOG_DEFAULT_FILENAME,
+    ),
+
+    CLIOptionArgEnum(
+        long_name='--profile-type',
+        synopsis='''
+type of profiling to perform (defaults to "{default}"):
+;* "none", disabling profiling
+;* "call", profiling callables (functions, methods)
+;* "line", profiling code lines (requires "pprofile")
+;* "size", profiling object sizes (requires "pympler")
+''',
+        enum_type=ProfileType,
+        enum_default=ProfileType.NONE,
+    ),
+
+    CLIOptionArgStr(
+        long_name='--profile-file',
+        synopsis=(
+            'file to profile to unless "--profile-type=none" '
+            '(defaults to "{default}")'
+        ),
+        var_name='profile_filename',
+        default_value=pathtree.PROFILE_DEFAULT_FILENAME,
+    ),
+)
+'''
+Tuple of :class:`CLIOptionABC` instances describing top-level options.
+
+**Order is significant.** The order in which these instances are listed defines
+the order in which the `betse --help` command synopsizes these options.
+Moreover, top-level options _not_ listed here will _not_ be parsed by argument
+subparsers and hence will be effectively ignored.
+'''
 
 # ....................{ OPTIONS                            }....................
 #FIXME: Refactor these string globals into a single dictionary mapping from

@@ -25,6 +25,7 @@ from collections.abc import (
 from enum import Enum, EnumMeta
 from functools import wraps
 from inspect import Parameter, Signature
+from sre_parse import Pattern
 from weakref import CallableProxyType, ProxyType
 
 # Import the following types as is into the namespace of this submodule,
@@ -172,7 +173,7 @@ to avoid importing that class.
 '''
 
 
-EnumMemberType = EnumMeta
+EnumMemberType = Enum
 '''
 Abstract base class implemented by all **enumeration members** (i.e.,
 alternative choices comprising their parent enumerations).
@@ -254,6 +255,14 @@ For generality, this tuple contains classes matching both pure-Python sequences
 _and_ non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
 subclass `collections.abc.Sequence` despite implementing the entirety of that
 that API.
+'''
+
+
+RegexTypes = (str, Pattern)
+'''
+Tuple of all **regex-like types** (i.e., types either defining regular
+expressions or losslessly convertible to such types, typically accepted by
+functions in the :mod:`betse.util.type.regexes` submodule).
 '''
 
 

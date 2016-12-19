@@ -11,6 +11,7 @@ Metadata describing subcommands accepted by BETSE's command line interface
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
 from argparse import ArgumentParser, _SubParsersAction
+from betse.cli import cliutil
 from betse.util.type.types import type_check
 
 # ....................{ SUPERCLASSES                       }....................
@@ -35,12 +36,12 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
         Human-readable synopsis of this CLI subcommand, typically only one to
         three lines of lowercase, unpunctuated text. All `{`- and `}`- delimited
         format substrings (e.g., `{program_name}`) supported by the
-        :meth:`cliutil.expand_help` method will be globally replaced.
+        :meth:`cliutil.expand_help` function will be globally replaced.
     description : str
         Human-readable description of this CLI subcommand, typically one to
         several paragraphs of grammatical sentences. All `{`- and `}`- delimited
         format substrings (e.g., `{program_name}`) supported by the
-        :meth:`cliutil.expand_help` method will be globally replaced.
+        :meth:`cliutil.expand_help` function will be globally replaced.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -60,17 +61,11 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
         accepted by this method are instance variables of the same name.
         '''
 
-        #FIXME: To avoid circularity issues, shift expand_help() into a new
-        #"cliutil" submodule of this subpackage.
-
-        # Avoid circular import dependencies.
-        from betse.cli.cliabc import expand_help
-
         # Classify these parameters, expanding all default keywords in the
         # human-readable parameters.
         self.name = name
-        self.synopsis = expand_help(synopsis)
-        self.description = expand_help(description)
+        self.synopsis = cliutil.expand_help(synopsis)
+        self.description = cliutil.expand_help(description)
 
     # ..................{ ADDERS                             }..................
     @type_check
@@ -183,8 +178,8 @@ Help string template for the **program epilog** (i.e., string printed after
 *all* other text in top-level help output).
 '''
 
-# ....................{ SUBCOMMANDS                        }....................
-SUBCOMMANDS = (
+# ....................{ SUBCOMMANDS_TOP                        }....................
+SUBCOMMANDS_TOP = (
     CLISubcommandYAMLOnly(
         name='config',
         synopsis='create a default config file for {program_name} simulations',
@@ -333,7 +328,7 @@ Moreover, top-level subcommands _not_ listed here will _not_ be parsed by
 argument subparsers and hence will be effectively ignored.
 '''
 
-# ....................{ SUBCOMMANDS                        }....................
+# ....................{ SUBCOMMANDS_TOP                        }....................
 SUBCOMMANDS_PLOT = (
     CLISubcommandYAMLOnly(
         name='seed',
@@ -395,6 +390,6 @@ Tuple of :class:`CLISubcommandABC` instances describing subcommands of the
 
 See Also
 ----------
-SUBCOMMANDS
+SUBCOMMANDS_TOP
     Further details on tuple structure and significance.
 '''

@@ -112,6 +112,25 @@ class EnumOrdered(Enum):
             NotImplemented)
 
 # ....................{ EXCEPTIONS                         }....................
+def die_unless_enum_member(
+    enum_type: EnumType, enum_member: EnumMemberType) -> None:
+    '''
+    Raise an exception unless the passed enumeration contains the passed member.
+
+    Parameters
+    ----------
+    enum_type : EnumType
+        Enumeration type to be inspected.
+    enum_member: str
+        Member to test for.
+    '''
+
+    if not is_enum_member(enum_type, enum_member):
+        raise BetseEnumException(
+            'Enumeration {} member "{}" not found.'.format(
+                enum_type.__name__, enum_member.name))
+
+
 def die_unless_enum_member_name(
     enum_type: EnumType, enum_member_name: str) -> None:
     '''
@@ -123,7 +142,7 @@ def die_unless_enum_member_name(
     enum_type : EnumType
         Enumeration type to be inspected.
     enum_member_name: str
-        Name of the member to search for.
+        Name of the member to test for.
     '''
 
     if not is_enum_member_name(enum_type, enum_member_name):
@@ -132,6 +151,28 @@ def die_unless_enum_member_name(
                 enum_type.__name__, enum_member_name))
 
 # ....................{ TESTERS                            }....................
+@type_check
+def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
+    '''
+    `True` only if the passed enumeration contains the passed member.
+
+    Parameters
+    ----------
+    enum_type : EnumType
+        Enumeration type to be inspected.
+    enum_member_name: str
+        Name of the member to test for.
+
+    Returns
+    ----------
+    bool
+        `True` only if this enumeration contains this member.
+    '''
+
+    # No, thank *YOU*, Enum.__contains__().
+    return enum_member in enum_type
+
+
 @type_check
 def is_enum_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     '''
@@ -143,7 +184,7 @@ def is_enum_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     enum_type : EnumType
         Enumeration type to be inspected.
     enum_member_name: str
-        Name of the member to search for.
+        Name of the member to test for.
 
     Returns
     ----------
