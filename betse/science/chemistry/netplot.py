@@ -98,8 +98,8 @@ def plot_master_network(self, p):
     import pydot
 
     # create a graph object
-    base_graph = pydot.Dot(graph_type='digraph', concentrate=True, nodesep=0.1, ranksep=0.2,
-                                  overlap='compress', splines=True, strict = True, rankdir = self.net_layout)
+    base_graph = pydot.Dot(graph_type='digraph', concentrate=False, nodesep=0.1, ranksep=0.3,
+                                splines=True, strict = True, rankdir = self.net_layout)
 
     # add Vmem to the graph
     nde = pydot.Node('+Vmem', style='filled', shape=self.vmem_shape, color = self.vmem_node_color,
@@ -544,6 +544,52 @@ def graph_influencers(self, base_graph, name, a_list, i_list, p, reaction_zone =
 
             base_graph.add_edge(
                 pydot.Edge(inh_name, name, arrowhead='tee', color='red', penwidth = self.edge_width))
+
+
+def write_nodes(nx_graph, py_graph):
+
+    # If PyDot is unimportable, raise an exception.
+    libs.die_unless_runtime_optional('pydot')
+    # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
+    import pydot
+
+    for nx_node_name in nx_graph.node:
+        nx_dic = nx_graph.node[nx_node_name]
+
+        clr = nx_dic.get('color', 'white')
+        fntclr = nx_dic.get('fontcolor', 'black')
+        fntnm = nx_dic.get('fontname', None)
+        fntsz = nx_dic.get('fontsize', 16.0)
+        shp = nx_dic.get('shape', 'ellipse')
+        stl = nx_dic.get('style', 'filled')
+
+        nde = pydot.Node(nx_node_name, color=clr, fontcolor=fntclr, fontname=fntnm, fontsize=fntsz,
+                         shape=shp, style=stl)
+
+        py_graph.add_node(nde)
+
+    return py_graph
+
+
+def write_edges(nx_graph, py_graph):
+
+    # If PyDot is unimportable, raise an exception.
+    libs.die_unless_runtime_optional('pydot')
+    # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
+    import pydot
+
+    for na, nb in nx_graph.edges():
+        edge_dic = nx_graph.edge[na][nb]
+
+        arrow = edge_dic.get('arrowhead', 'normal')
+        linew = edge_dic.get('penwidth', 2.0)
+        clr = edge_dic.get('color', 'black')
+
+        eg = pydot.Edge(na, nb, arrowhead=arrow, penwidth=linew, color=clr)
+        py_graph.add_edge(eg)
+
+    return py_graph
+
 
 
 
