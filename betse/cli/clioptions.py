@@ -9,7 +9,6 @@ Metadata describing options accepted by BETSE's command line interface (CLI).
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta
-from argparse import ArgumentParser
 from betse import pathtree
 from betse.cli import cliutil
 from betse.exceptions import BetseCLIArgException
@@ -18,7 +17,13 @@ from betse.util.py import identifiers
 from betse.util.py.profilers import ProfileType
 from betse.util.type import strs
 from betse.util.type.types import (
-    type_check, EnumType, EnumMemberType, MappingOrNoneTypes, StrOrNoneTypes)
+    type_check,
+    ArgParserType,
+    EnumType,
+    EnumMemberType,
+    MappingOrNoneTypes,
+    StrOrNoneTypes,
+)
 
 # ....................{ SUPERCLASSES                       }....................
 class CLIOptionABC(object, metaclass=ABCMeta):
@@ -37,11 +42,11 @@ class CLIOptionABC(object, metaclass=ABCMeta):
     ----------
     _add_argument_args : list
         List of all positional arguments to be passed to the
-        :meth:`ArgumentParser.add_argument` method, specifying the short and/or
+        :meth:`ArgParserType.add_argument` method, specifying the short and/or
         long variants of this option.
     _add_argument_kwargs : dict
         Dictionary of all keyword arguments to be passed to the
-        :meth:`ArgumentParser.add_argument` method, converting this option from
+        :meth:`ArgParserType.add_argument` method, converting this option from
         a command-line string into a Python object.
     _var_name : str
         Machine-readable string suitable for use as a **Python identifier**
@@ -91,7 +96,7 @@ class CLIOptionABC(object, metaclass=ABCMeta):
             dictionary is empty.
         add_argument_kwargs : optional[MappingType]
             Dictionary of all keyword arguments to be passed to the
-            :meth:`ArgumentParser.add_argument` method if any _or_ `None`
+            :meth:`ArgParserType.add_argument` method if any _or_ `None`
             otherwise. If non-`None`, these arguments typically define the
             onversion of this option from a command-line string into a Python
             object. Defaults to `None`.
@@ -172,15 +177,16 @@ class CLIOptionABC(object, metaclass=ABCMeta):
 
     # ..................{ ADDERS                             }..................
     @type_check
-    def add(self, arg_parser: ArgumentParser) -> None:
+    def add(self, arg_parser: ArgParserType) -> None:
         '''
-        Add a new argument parsing this option to the passed argument parser.
+        Add an argument parsing this option to the passed argument parser.
 
         Parameters
         ----------
-        arg_parser : _SubParsersAction
-            Argument parsers to add an argument parsing this option to.
+        arg_parser : ArgParserType
+            Argument parser to add this argument to.
         '''
+        # print('\nAdding option... args: {}; kwargs: {}'.format(self._add_argument_args, self._add_argument_kwargs))
 
         # Add an argument parsing this option to this parser.
         arg_parser.add_argument(
@@ -306,14 +312,14 @@ class CLIOptionArgEnum(CLIOptionArgABC):
 
     Caveats
     ----------
-    Unfortunately, the :class:`ArgumentParser` API significantly complicates
+    Unfortunately, the :class:`ArgParserType` API significantly complicates
     what should otherwise be a simplistic conversion from string arguments to
     enumeration members. Ideally, this class would instead persist into an
     instance variable of high-level type :class:`Enum` rather than of low-level
     type :class:`str`. This is currently infeasible.
 
     Why? Entirely because of the overly simplistic `choices` parameter accepted
-    by the :meth:`ArgumentParser.add_argument` method, which validates this
+    by the :meth:`ArgParserType.add_argument` method, which validates this
     option's argument _after_ converting that argument from a string into the
     desired with the type or callable supplied by the `type` parameter. Whereas
     the names of enumeration members are uppercase throughout this codebase
@@ -374,71 +380,84 @@ class CLIOptionArgStr(CLIOptionArgABC):
     # The best things in life are free.
     pass
 
-# ....................{ SUBCOMMANDS                        }....................
-OPTIONS_TOP = (
-    CLIOptionBoolTrue(
-        short_name='-v',
-        long_name='--verbose',
-        synopsis='print low-level debugging messages',
-    ),
+# ....................{ ADDERS                             }....................
+@type_check
+def add_top(arg_parser: ArgParserType) -> None:
+    '''
+    Add an argument parsing each top-level option to the passed argument parser.
 
-    CLIOptionVersion(
-        short_name='-V',
-        long_name='--version',
-        synopsis='print program version and exit',
-        version=cliutil.get_version(),
-    ),
+    Parameters
+    ----------
+    arg_parser : ArgParserType
+        Argument parser to add these arguments to.
+    '''
 
-    CLIOptionArgEnum(
-        long_name='--log-type',
-        synopsis='''
-type of logging to perform (defaults to "{default}"):
-;* "none", logging to stdout and stderr only
-;* "file", logging to stdout, stderr, and "--log-file"
-''',
-        enum_type=LogType,
-        enum_default=LogType.FILE,
-    ),
-
-    CLIOptionArgStr(
-        long_name='--log-file',
-        synopsis=(
-            'file to log to when "--log-type=file" (defaults to "{default}")'),
-        var_name='log_filename',
-        default_value=pathtree.LOG_DEFAULT_FILENAME,
-    ),
-
-    CLIOptionArgEnum(
-        long_name='--profile-type',
-        synopsis='''
-type of profiling to perform (defaults to "{default}"):
-;* "none", disabling profiling
-;* "call", profiling callables (functions, methods)
-;* "line", profiling code lines (requires "pprofile")
-;* "size", profiling object sizes (requires "pympler")
-''',
-        enum_type=ProfileType,
-        enum_default=ProfileType.NONE,
-    ),
-
-    CLIOptionArgStr(
-        long_name='--profile-file',
-        synopsis=(
-            'file to profile to unless "--profile-type=none" '
-            '(defaults to "{default}")'
+    # Tuple of "CLIOptionABC" instances describing top-level options.
+    #
+    # Order is significant, defining the order that the "betse --help" command
+    # synopsizes these options in. Options *NOT* listed here are *NOT* parsed by
+    # argument subparsers and hence effectively ignored.
+    OPTIONS_TOP = (
+        CLIOptionBoolTrue(
+            short_name='-v',
+            long_name='--verbose',
+            synopsis='print low-level debugging messages',
         ),
-        var_name='profile_filename',
-        default_value=pathtree.PROFILE_DEFAULT_FILENAME,
-    ),
-)
-'''
-Tuple of :class:`CLIOptionABC` instances describing top-level options.
 
-**Order is significant.** The order in which these instances are listed defines
-the order in which the `betse --help` command synopsizes these options.
-Moreover, top-level options _not_ listed here will _not_ be parsed by argument
-subparsers and hence will be effectively ignored.
-'''
+        CLIOptionVersion(
+            short_name='-V',
+            long_name='--version',
+            synopsis='print program version and exit',
+            version=cliutil.get_version(),
+        ),
+
+        CLIOptionArgEnum(
+            long_name='--log-type',
+            synopsis='''
+    type of logging to perform (defaults to "{default}"):
+    ;* "none", logging to stdout and stderr only
+    ;* "file", logging to stdout, stderr, and "--log-file"
+    ''',
+            enum_type=LogType,
+            enum_default=LogType.FILE,
+        ),
+
+        CLIOptionArgStr(
+            long_name='--log-file',
+            synopsis=(
+                'file to log to when "--log-type=file" (defaults to "{default}")'),
+            var_name='log_filename',
+            default_value=pathtree.LOG_DEFAULT_FILENAME,
+        ),
+
+        CLIOptionArgEnum(
+            long_name='--profile-type',
+            synopsis='''
+    type of profiling to perform (defaults to "{default}"):
+    ;* "none", disabling profiling
+    ;* "call", profiling callables (functions, methods)
+    ;* "line", profiling code lines (requires "pprofile")
+    ;* "size", profiling object sizes (requires "pympler")
+    ''',
+            enum_type=ProfileType,
+            enum_default=ProfileType.NONE,
+        ),
+
+        CLIOptionArgStr(
+            long_name='--profile-file',
+            synopsis=(
+                'file to profile to unless "--profile-type=none" '
+                '(defaults to "{default}")'
+            ),
+            var_name='profile_filename',
+            default_value=pathtree.PROFILE_DEFAULT_FILENAME,
+        ),
+    )
+
+    # For each top-level option, add an argument parsing this option to this
+    # argument subparser.
+    for option in OPTIONS_TOP:
+        option.add(arg_parser=arg_parser)
 
 # ....................{ OPTIONS                            }....................
 #FIXME: Refactor these string globals into a single dictionary mapping from

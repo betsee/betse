@@ -8,12 +8,17 @@ Abstract command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on application startup, the
+# top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
+# raise exceptions on importation. In particular, the following submodules often
+# raise exceptions on importation and hence must *NOT* be imported here.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 import sys
 from abc import ABCMeta, abstractmethod
-from argparse import ArgumentParser
-from betse import ignition, metadata, pathtree
+from betse import ignition, metadata
 from betse.cli import info, clioptions
-from betse.cli.cliutil import expand_help
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logconfig import LogType
@@ -21,8 +26,8 @@ from betse.util.path.command import commands
 from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.profilers import profile_callable, ProfileType
-from betse.util.type import enums, types
-from betse.util.type.types import SequenceTypes
+from betse.util.type import types
+from betse.util.type.types import ArgParserType, SequenceTypes
 
 # ....................{ CLASSES                            }....................
 class CLIABC(object, metaclass=ABCMeta):
@@ -34,12 +39,12 @@ class CLIABC(object, metaclass=ABCMeta):
     ----------
     _arg_list : list
         List of all passed command-line arguments as unparsed raw strings.
-    _arg_parser : ArgumentParser
+    _arg_parser : ArgParserType
         `argparse`-specific parser of command-line arguments.
     _arg_parser_kwargs : dict
         Dictionary of keyword arguments which which to create argument parsers,
-        suitable for passing to both the `ArgumentParser.__init__()` and
-        `ArgumentParser.add_parser()` methods. Since the `argparse` API provides
+        suitable for passing to both the `ArgParserType.__init__()` and
+        `ArgParserType.add_parser()` methods. Since the `argparse` API provides
         multiple methods rather than a single method for creating argument
         parsers, this versatile dictionary is preferred over a monolithic
         factory-based approach (e.g., a `_make_arg_parser()` method).
@@ -206,9 +211,6 @@ class CLIABC(object, metaclass=ABCMeta):
         # Create and classify the top-level argument parser.
         self._init_arg_parser_top()
 
-        # Configure top-level options globally applicable to *ALL* subcommands.
-        self._config_options_top()
-
         # Configure subclass-specific argument parsing.
         self._config_arg_parsing()
 
@@ -241,80 +243,12 @@ class CLIABC(object, metaclass=ABCMeta):
         arg_parser_top_kwargs.update(self._get_arg_parser_top_kwargs())
 
         # Core argument parser.
-        self._arg_parser = ArgumentParser(**arg_parser_top_kwargs)
+        self._arg_parser = ArgParserType(**arg_parser_top_kwargs)
+
+        # Configure top-level options parsed by this parser.
+        clioptions.add_top(arg_parser=self._arg_parser)
 
     # ..................{ ARGS ~ options                     }..................
-    def _config_options_top(self) -> None:
-        '''
-        Configure argument parsing for top-level options globally applicable to
-        _all_ CLI subcommands.
-        '''
-
-        # Default values for top-level options configured below, deferred until
-        # *AFTER* the ignition.init() function setting these defaults has been
-        # called above.
-        log_type_default = LogType.FILE.name.lower()
-        log_filename_default = pathtree.LOG_DEFAULT_FILENAME
-        profile_type_default = ProfileType.NONE.name.lower()
-        profile_filename_default = pathtree.PROFILE_DEFAULT_FILENAME
-
-        # Tuples of all permissible values for top-level enumerable options.
-        log_types     = enums.get_names_lowercase(LogType)
-        profile_types = enums.get_names_lowercase(ProfileType)
-
-        # Program version specifier.
-        program_version = '{} {}'.format(
-            commands.get_current_basename(), metadata.__version__)
-
-        # Configure top-level options globally applicable to *ALL* subcommands.
-        self._arg_parser.add_argument(
-            '-v', '--verbose',
-            dest='is_verbose',
-            action='store_true',
-            help=expand_help(clioptions.OPTION_VERBOSE),
-        )
-        self._arg_parser.add_argument(
-            '-V', '--version',
-            action='version',
-            version=program_version,
-            help=expand_help(clioptions.OPTION_VERSION),
-        )
-        self._arg_parser.add_argument(
-            '--log-type',
-            dest='log_type',
-            action='store',
-            choices=log_types,
-            default=log_type_default,
-            help=expand_help(
-                clioptions.OPTION_LOG_TYPE, default=log_type_default),
-        )
-        self._arg_parser.add_argument(
-            '--log-file',
-            dest='log_filename',
-            action='store',
-            default=log_filename_default,
-            help=expand_help(
-                clioptions.OPTION_LOG_FILE, default=log_filename_default),
-        )
-        self._arg_parser.add_argument(
-            '--profile-type',
-            dest='profile_type',
-            action='store',
-            choices=profile_types,
-            default=profile_type_default,
-            help=expand_help(
-                clioptions.OPTION_PROFILE_TYPE, default=profile_type_default),
-        )
-        self._arg_parser.add_argument(
-            '--profile-file',
-            dest='profile_filename',
-            action='store',
-            default=profile_filename_default,
-            help=expand_help(
-                clioptions.OPTION_PROFILE_FILE, default=profile_filename_default),
-        )
-
-
     def _parse_options_top(self) -> None:
         '''
         Parse top-level options globally applicable to all subcommands.

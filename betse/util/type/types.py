@@ -9,15 +9,16 @@ objects).
 '''
 
 # ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies
 # *AND* avoid non-halting recursive imports when imported at the top-level
 # of other modules in the `betse.util` package, this module may import *ONLY*
 # from stock Python packages. (By definition, this excludes both BETSE and
 # third-party packages.)
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import inspect, re
+from argparse import ArgumentParser, _SubParsersAction
 from collections.abc import (
     Container, Hashable, Iterable, Iterator, Mapping, MutableMapping, Sequence,
     Set, Sized,
@@ -158,6 +159,26 @@ Abstract interface implemented by all containers defining the special
 
 This class is a synonym of the `collections.abc.Sized` class, provided merely
 as a convenience to callers preferring to avoid importing that class.
+'''
+
+# ....................{ TYPES ~ arg                        }....................
+ArgParserType = ArgumentParser
+'''
+Argument parser parsing all command-line arguments for either the top-level
+command _or_ subcommand of that command.
+
+This class is a synonym of the :class:`argparse.ArgumentParser` class,
+permitting callers to avoid importing that class.
+'''
+
+
+ArgSubparsersType = _SubParsersAction
+'''
+Container of all argument subparsers parsing subcommands for a parent argument
+parser parsing either the top-level command _or_ subcommand of that command.
+
+This class is a synonym of the :class:`argparse._SubParsersAction` class,
+permitting callers to avoid importing that private class.
 '''
 
 # ....................{ TYPES ~ enum                       }....................

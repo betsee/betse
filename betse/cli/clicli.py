@@ -8,22 +8,21 @@ BETSE's command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
-from argparse import ArgumentParser, _SubParsersAction
-from betse.cli import cliutil, info
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on application startup, the
+# top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
+# raise exceptions on importation. In particular, the following submodules often
+# raise exceptions on importation and hence must *NOT* be imported here.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+from betse.cli import clisubcommands, cliutil, info
 from betse.cli.cliabc import CLIABC
-from betse.cli.clisubcommands import (
-    CLISubcommandABC,
-    SUBCOMMANDS_PREFIX,
-    SUBCOMMANDS_SUFFIX,
-    SUBCOMMANDS_TOP,
-    SUBCOMMANDS_PLOT,
-)
+from betse.cli.clisubcommands import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
 from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.py import identifiers, pys
 from betse.util.type.obj.objs import property_cached
-from betse.util.type.types import type_check
 
 # ....................{ CLASS                              }....................
 class CLICLI(CLIABC):
@@ -32,11 +31,11 @@ class CLICLI(CLIABC):
 
     Attributes
     ----------
-    _arg_parser_plot : ArgumentParser
+    _arg_parser_plot : ArgParserType
         Subparser parsing arguments passed to the `plot` subcommand.
-    _arg_subparsers_top : ArgumentParser
+    _arg_subparsers_top : ArgParserType
         Subparsers parsing top-level subcommands (e.g., `plot`).
-    _arg_subparsers_plot : ArgumentParser
+    _arg_subparsers_plot : ArgParserType
         Subparsers parsing `plot` subcommands (e.g., `plot seed`).
     '''
 
@@ -70,29 +69,23 @@ class CLICLI(CLIABC):
             description=cliutil.expand_help(SUBCOMMANDS_PREFIX),
         )
 
-        # Dictionary mapping from top-level subcommand name to the argument
-        # subparser parsing this subcommand.
-        subcommand_name_to_subparser = {}
+        #FIXME: Refactor this logic as follows:
+        #
+        #* The local "subcommand_name_to_subparser" dicitonary should be
+        #  replaced by performing the following in the body of this loop:
+        #  * If a global "help.SUBCOMMANDS_{subcommand.name}" dictionary
+        #    exists, non-recursively loop over that dictionary in the same
+        #    manner as well. Hence, this generalizes support of subcommand
+        #    subcommands. Nice!
+        #* Likewise, if a "self._arg_parser_{subcommand.name}" instance
+        #  variable exists, set that variable to this parser. Such logic
+        #  should, arguably, be performed by _add_subcommand().
 
-        # For each top-level subcommand...
-        for subcommand in SUBCOMMANDS_TOP:
-            #FIXME: Refactor this logic as follows:
-            #
-            #* The local "subcommand_name_to_subparser" dicitonary should be
-            #  replaced by performing the following in the body of this loop:
-            #  * If a global "help.SUBCOMMANDS_{subcommand.name}" dictionary
-            #    exists, non-recursively loop over that dictionary in the same
-            #    manner as well. Hence, this generalizes support of subcommand
-            #    subcommands. Nice!
-            #* Likewise, if a "self._arg_parser_{subcommand.name}" instance
-            #  variable exists, set that variable to this parser. Such logic
-            #  should, arguably, be performed by _add_subcommand().
-
-            # Add an argument subparser parsing this subcommand.
-            subcommand_name_to_subparser[subcommand.name] = (
-                self._add_subcommand(
-                    subcommand=subcommand,
-                    arg_subparsers=self._arg_subparsers_top))
+        # Dictionary mapping from the name of each top-level subcommand to the
+        # argument subparser parsing that subcommand.
+        subcommand_name_to_subparser = clisubcommands.add_top(
+            arg_subparsers=self._arg_subparsers_top,
+            arg_subparser_kwargs=self._arg_parser_kwargs)
 
         # Configure arg parsing for subcommands of the "plot" subcommand.
         self._arg_parser_plot = subcommand_name_to_subparser['plot']
@@ -103,9 +96,6 @@ class CLICLI(CLIABC):
         '''
         Configure argument parsing for subcommands of the `plot` subcommand.
         '''
-
-        #FIXME: Refactor into iteration resembling that performed by the
-        #_config_arg_parsing() method.
 
         # Collection of all subcommands of the "plot" subcommand.
         self._arg_subparsers_plot = self._arg_parser_plot.add_subparsers(
@@ -119,60 +109,11 @@ class CLICLI(CLIABC):
             description=cliutil.expand_help(SUBCOMMANDS_PREFIX),
         )
 
-        # For each subcommand of the "plot" subcommand...
-        for subcommand in SUBCOMMANDS_PLOT:
-            # Add an argument subparser parsing this subcommand.
-            self._add_subcommand(
-                subcommand=subcommand, arg_subparsers=self._arg_subparsers_plot)
-
-    # ..................{ SUBCOMMANDS_TOP                        }..................
-    @type_check
-    def _add_subcommand(
-        self,
-        subcommand: CLISubcommandABC,
-        arg_subparsers: _SubParsersAction,
-        **kwargs
-    ) -> ArgumentParser:
-        '''
-        Create a new **argument subparser** (i.e., :mod:`argparse`-specific
-        object parsing command-line arguments) parsing this subcommand, add this
-        subparser to the passed collection of **argument subparsers** (i.e.,
-        another :mod:`argparse`-specific object cotaining multiple subparsers),
-        and return this subparser.
-
-        This subparser is configured to:
-
-        * If this subcommand accepts a configuration filename, require such an
-          argument be passed.
-        * Else, require no arguments be passed.
-
-        Parameters
-        ----------
-        subcommand: CLISubcommandABC
-            Subcommand to be added.
-        arg_subparsers : _SubParsersAction
-            Collection of sibling subcommand argument parsers to which the
-            subcommand argument parser created by this method is added. This
-            collection is owned either by:
-            * A top-level subcommand (e.g., `plot`), in which case the
-              subcommand created by this method is a child of that subcommand.
-            * No subcommand, in which case the subcommand created by this method
-              is a top-level subcommand.
-
-        All remaining keyword arguments are passed as is to this subparser's
-        `__init__()` method.
-
-        Returns
-        ----------
-        ArgumentParser
-            Subcommand argument parser created by this method.
-        '''
-
-        # Initialize this parser with globally applicable keyword arguments.
-        kwargs.update(self._arg_parser_kwargs)
-
-        # Create and return this parser, added to this container of subparsers.
-        return subcommand.add(arg_subparsers=arg_subparsers, **kwargs)
+        # Dictionary mapping from the name of each "plot" subcommand to the
+        # argument subparser parsing that subcommand.
+        clisubcommands.add_plot(
+            arg_subparsers=self._arg_subparsers_plot,
+            arg_subparser_kwargs=self._arg_parser_kwargs)
 
     # ..................{ SUPERCLASS ~ cli                   }..................
     def _do(self) -> object:
