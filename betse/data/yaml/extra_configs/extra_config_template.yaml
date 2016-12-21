@@ -243,20 +243,19 @@ network plotting:
 
       nodes: ['ATP', 'ADP', 'Pi']
       title font color: 'Black'
-      box shading color: 'White'
+      box shading color: 'MistyRose'
 
     - name: Serotonin Signalling
 
       nodes: ['ATP', 'ADP', 'Pi']
       title font color: 'Black'
-      box shading color: 'White'
+      box shading color: 'AliceBlue'
 
     - name: Bioelectric Basis
 
-      nodes: ['Vmem', 'NaK-ATPase', 'Ca-ATPase', 'Na', 'K', 'Cl', 'Ca', 'M', 'P', 'H', 'Na_ed', 'K_ed',
-            'Cl_ed', 'Ca_ed', 'M_ed', 'H_ed']
+      nodes: ['+Vmem']
       title font color: 'Black'
-      box shading color: 'White'
+      box shading color: 'Cornsilk'
 
   # Node shapes: 'ellipse', 'oval', 'rect', 'hexagon', 'pentagon'
   # Colors (html legal color names, see http://www.w3schools.com/colors/colors_names.asp):
@@ -275,6 +274,9 @@ network plotting:
   # DarkSeaGreen
   # Black
   # White
+  # HoneyDew
+  # Cornsilk
+  # MistyRose
 
 
 #-----------------------------------------------------------------------------------------------------------------------

@@ -60,13 +60,18 @@ def get_current(sim, cells, p):
         div_Jo = fd.divergence(-(J_env_x_o / sigma), -(J_env_y_o / sigma), cells.delta, cells.delta)
 
         # add-in any boundary conditions pertaining to an applied (i.e. external) voltage:
-        div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)
-        div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
-        div_Jo[0,:] = sim.bound_V['B']*(1/cells.delta**2)
-        div_Jo[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
+        div_Jo[:,0] = -sim.bound_V['L']*(1/cells.delta**2)*0.075
+        div_Jo[:,-1] = -sim.bound_V['R']*(1/cells.delta**2)*0.075
+        div_Jo[0,:] = -sim.bound_V['B']*(1/cells.delta**2)*0.075
+        div_Jo[-1,:] = -sim.bound_V['T']*(1/cells.delta**2)*0.075
+
+        # div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)
+        # div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
+        # div_Jo[0,:] = sim.bound_V['B']*(1/cells.delta**2)
+        # div_Jo[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
 
         # calculate the voltage balancing the divergence of the currents:
-        Phi = np.dot(cells.lapENVinv, div_Jo.ravel())
+        Phi = np.dot(cells.lapENV_P_inv, div_Jo.ravel())
 
         # the global environmental voltage is equal to Phi:
         sim.v_env = Phi

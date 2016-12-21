@@ -1577,7 +1577,6 @@ class Simulator(object):
             self.cc_cells[self.iH], self.pH_cell = stb.bicarbonate_buffer(self.cHM_cells, self.cc_cells[self.iM])
             self.cc_env[self.iH], self.pH_env = stb.bicarbonate_buffer(self.cHM_env, self.cc_env[self.iM])
 
-
     def ca_handler(self,cells,p):
 
         if p.sim_ECM is True:
@@ -1711,6 +1710,8 @@ class Simulator(object):
         #     ux = np.zeros(cells.X.shape)
         #     uy = np.zeros(cells.X.shape)
 
+        # corr = (cells.true_ecm_vol.min() / cells.ecm_vol)
+
         # this equation assumes environmental transport is electrodiffusive:
         fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
                                           self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
@@ -1732,7 +1733,6 @@ class Simulator(object):
         cenv = cenv + div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
-
 
     def get_ion(self,label):
         """

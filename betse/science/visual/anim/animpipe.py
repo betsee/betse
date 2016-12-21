@@ -196,7 +196,7 @@ def pipeline_anims(
             time_series=venv_time_series,
             label='Venv',
             figure_title='Environmental Voltage',
-            colorbar_title='Voltage [V]',
+            colorbar_title='Voltage [mV]',
             is_color_autoscaled=p.autoscale_venv_ani,
             color_min=p.venv_ani_min_clr,
             color_max=p.venv_ani_max_clr,

@@ -105,11 +105,20 @@ class MasterOfGenes(object):
         self.core.target_vmem = float(self.config_dic['optimization']['target Vmem'])
         self.core.opti_T = float(self.config_dic['optimization']['optimization T'])
         self.core.opti_step = float(self.config_dic['optimization']['optimization step'])
+        # self.core.opti_run = self.config_dic['optimization']['run from optimization']
 
         if opti is True:
             logs.log_info("The Gene Network is being analyzed for optimal rates...")
             self.core.optimizer(sim, cells, p)
             self.reinitialize(sim, cells, p)
+
+        # if self.core.opti_run is True:
+        #
+        #     self.run_from_init(self, sim, cells, p)
+
+    # def run_from_init(self, sim, cells, p):
+    #
+    #     pass
 
     def reinitialize(self, sim, cells, p):
 
