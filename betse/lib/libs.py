@@ -18,11 +18,21 @@ modules (e.g., `betse.cli.clicli`) _before_ attempting to import dependencies.
 # exist at installation time (i.e., stock Python and BETSE packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+from betse import metadata
+from betse.util.type.types import type_check, StrOrNoneTypes
 from collections import OrderedDict
 
-from betse import metadata
-from betse.util.type.types import type_check
+# ....................{ GLOBALS                            }....................
+_IS_INITTED = False
+'''
+`True` only if the :func:`init` function has already been called.
 
+That function uses this private boolean to guard against repeated invocations of
+that function from multiple modules in the same Python process (e.g.,
+:mod:`betse.science.__init__`, :mod:`betse.cli.cliabc`). While that function
+does technically support repeated calls, each additional call after the first
+inefficiently performs no meaningful work and is thus safely ignorable.
+'''
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_runtime_mandatory_all() -> None:
@@ -129,7 +139,33 @@ def is_runtime_optional(*requirement_names: str) -> bool:
             metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names))
 
 # ....................{ INITIALIZERS                       }....................
-def init() -> None:
+def reinit(*args, **kwargs) -> None:
+    '''
+    (Re-)initialize all mandatory runtime dependencies of this application with
+    the passed parameters.
+
+    Specifically:
+
+    * If these dependencies have _not_ already been initialized under the active
+      Python process, these dependencies will be initilialized.
+    * Else, these dependencies have already been initialized under the active
+      Python process. In this case, these dependencies will be re-initilialized.
+
+    Parameters
+    ----------
+    All passed parameters are passed to the :func:`init` function as is.
+    '''
+
+    # Force the init() function to reinitialize this application.
+    global _IS_INITTED
+    _IS_INITTED = False
+
+    # Reinitialize these dependencies with these parameters.
+    init(*args, **kwargs)
+
+
+@type_check
+def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     '''
     Initialize all mandatory runtime dependencies of this application.
 
@@ -137,7 +173,20 @@ def init() -> None:
 
     * Reconfigures matplotlib with sane defaults specific to the current
       platform.
+
+    Parameters
+    ----------
+    matplotlib_backend_name: optional[str]
+        Name of the matplotlib backend to explicitly enable. Defaults to `None`,
+        in which case this method implicitly enables the first importable
+        backend known to be both usable and supported by application
+        requirements (_in descending order of preference_).
     '''
+
+    # If this function has already been called, noop.
+    global _IS_INITTED
+    if     _IS_INITTED:
+        return
 
     # Defer heavyweight imports.
     from betse.lib.matplotlib.matplotlibs import mpl_config
@@ -145,9 +194,12 @@ def init() -> None:
     from betse.lib.yaml import yamls
 
     # Initialize these dependencies.
-    mpl_config.init()
+    mpl_config.init(backend_name=matplotlib_backend_name)
     numpys.init()
     yamls.init()
+
+    # Record this function as having been called *AFTER* successfully doing so.
+    _IS_INITTED = True
 
 # ....................{ GETTERS                            }....................
 def get_runtime_mandatory_dict() -> tuple:

@@ -282,13 +282,22 @@ class test(Command):
         # user having passed CLI options incompatible with this plugin).
         is_xdist = util.is_module('xdist')
 
+        #FIXME: Disabled for the moment. "xdist" appears to be inexplicably
+        #failing with non-human-readable exceptions. The lack of official
+        #support for test parallelization in py.test is becoming clear.
+        #
+        #When "xdist" is (eventually) stabilized, excise this reassignment here
+        #*AND* reenable the conditional below.
+        is_xdist = False
+
+        #FIXME: Reenable this conditional.
         # If this plugin is unimportable, print a non-fatal warning. Due to the
         # cost of running tests, parallelization is highly recommended.
-        if not is_xdist:
-            util.output_warning(
-                'Optional py.test plugin "pytest-xdist" not found.')
-            util.output_warning(
-                'Tests will *NOT* be parallelized across multiple processors.')
+        # if not is_xdist:
+        #     util.output_warning(
+        #         'Optional py.test plugin "pytest-xdist" not found.')
+        #     util.output_warning(
+        #         'Tests will *NOT* be parallelized across multiple processors.')
 
         # Pass options passed to this subcommand to this py.test command,
         # converting long option names specific to this subcommand (e.g.,
@@ -332,13 +341,9 @@ class test(Command):
             print('Optional py.test plugin "pytest-xdist" found.')
             print('Tests will be parallelized across all available processors.')
 
-            #FIXME: Disabled for the moment. "xdist" appears to be inexplicably
-            #failing with non-human-readable exceptions. The lack of official
-            #support for test parallelization in py.test is becoming clear.
-
             # Instruct "pytest-xdist" to autodetect and parallelize tests to all
             # available processors.
-            # pytest_args.extend(['-n', 'auto'])
+            pytest_args.extend(['-n', 'auto'])
 
         # Run py.test, propagating its exit status as our own up to the caller.
         print('Running py.test with arguments: {}'.format(pytest_args))

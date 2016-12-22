@@ -52,14 +52,35 @@ High-level application initialization common to both the CLI and GUI.
 # ....................{ GLOBALS                            }....................
 _IS_IGNITED = False
 '''
-`True` only if the `init()` function has already been called.
+`True` only if the :func:`init` function has already been called.
 
 That function uses this private boolean to guard against repeated invocations of
-that function from multiple modules  in the same Python process (e.g.,
-`betse.science.__init__`, `betse.cli.cliabc`). While that function does
-technically support repeated invocations, each additional invocation after the
-first inefficiently performs no meaningful work -- and is thus safely ignorable.
+that function from multiple modules in the same Python process (e.g.,
+:mod:`betse.science.__init__`, :mod:`betse.cli.cliabc`). While that function
+does technically support repeated calls, each additional call after the first
+inefficiently performs no meaningful work and is thus safely ignorable.
 '''
+
+# ....................{ IGNITERS                           }....................
+def ignite() -> None:
+    '''
+    Initialize both the current application _and_ all mandatory third-party
+    dependencies of this application with sane defaults.
+
+    This high-level convenience function intentionally provides _no_ means of
+    initializing either this application or these dependencies with alternative
+    parameters. To do so, callers should call all lower-level initialization
+    functions directly (e.g., :func:`init`, :func:`betse.lib.libs.init`).
+    '''
+
+    # Defer heavyweight and possibly circular imports.
+    from betse.lib import libs
+
+    # Initialize this application.
+    init()
+
+    # Initialize these dependencies *AFTER* initializing this application.
+    libs.init()
 
 # ....................{ INITIALIZERS                       }....................
 def reinit() -> None:
@@ -129,6 +150,5 @@ def init() -> None:
     # Validate core directories and files required at program startup.
     pathtree.init()
 
-    # Record this function as already called *AFTER* successfully calling all
-    # prior initialization.
+    # Record this function as having been called *AFTER* successfully doing so.
     _IS_IGNITED = True

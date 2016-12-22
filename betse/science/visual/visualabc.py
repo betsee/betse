@@ -6,15 +6,17 @@
 Abstract base classes of all Matplotlib-based plot and animation subclasses.
 '''
 
-#FIXME: Refactor all procedural cell cluster-specific "betse.plot.plot"
-#functions into subclasses of the "LayerCellsABC" base class defined elsewhere.
+#FIXME: Refactor all procedural cell cluster-specific
+#"betse.science.visual.plot.plotutil" functions into subclasses of the
+#"LayerCellsABC" base class defined elsewhere.
+#
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
-from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
+from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import (
@@ -40,7 +42,6 @@ from matplotlib.colors import Colormap
 from matplotlib.image import AxesImage
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.streamplot import StreamplotSet
-
 
 # ....................{ BASE                               }....................
 class VisualCellsABC(object, metaclass=ABCMeta):

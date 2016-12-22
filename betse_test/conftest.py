@@ -18,6 +18,7 @@ from betse_test.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
 # ....................{ IMPORTS ~ fixture                  }....................
+from betse_test.fixture.igniter import betse_init
 from betse_test.fixture.tempdirer import betse_temp_dir
 from betse_test.fixture.simconfig.simconfer import betse_sim_config
 

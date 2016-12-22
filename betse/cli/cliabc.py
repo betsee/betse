@@ -147,12 +147,13 @@ class CLIABC(object, metaclass=ABCMeta):
             # logging of exceptions raised by this parsing.
             self._parse_args()
 
-            # Initialize all mandatory runtime dependencies *AFTER* parsing all
-            # logging-specific CLI options and hence finalizing the logging
+            # (Re-)initialize all mandatory runtime dependencies *AFTER* parsing
+            # all logging-specific CLI options and hence finalizing the logging
             # configuration for the active Python process. This initialization
-            # integrates the custom logging and debugging schemes implemented
-            # by these dependencies with that implemented by BETSE.
-            libs.init()
+            # integrates the custom logging and debugging schemes implemented by
+            # these dependencies with that implemented by BETSE.
+            libs.reinit(
+                matplotlib_backend_name=self._args.matplotlib_backend_name)
 
             # Run the command-line interface (CLI) defined by the subclass,
             # profiled by the type specified by the "--profile-type" option.

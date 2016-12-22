@@ -27,7 +27,7 @@ class CLISimTester(object):
 
     Attributes
     ----------
-    cli_tester : betse_test.func.cli.fixture.clier.CLITester
+    cli_tester : CLITester
         BETSE CLI test runner, testing a single subcommand of the official
         BETSE CLI (i.e., `betse`) in the active Python interpreter.
     sim_state: SimTestState
@@ -59,11 +59,7 @@ class CLISimTester(object):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(
-        self,
-        cli_tester: CLITester,
-        sim_state: SimTestState,
-    ) -> None:
+    def __init__(self, cli_tester: CLITester, sim_state: SimTestState) -> None:
         '''
         Initialize this test runner.
 

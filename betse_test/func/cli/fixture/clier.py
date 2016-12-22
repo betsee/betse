@@ -69,7 +69,11 @@ from betse.util.type.types import type_check
 from pytest import fixture
 
 # ....................{ CONSTANTS                          }....................
-_CLI_OPTIONS_MANDATORY = ('--verbose', '--log-type=none',)
+_CLI_OPTIONS_MANDATORY = (
+    '--verbose',
+    '--log-type=none',
+    '--matplotlib-backend=agg',
+)
 '''
 Tuple of all failure-friendly command-line options unconditionally passed to all
 invocations of the BETSE CLI by functional tests.
@@ -85,6 +89,10 @@ passed by :class:`CLITester` instances created by the :func:`betse_cli` fixture:
   captures both stdout and stderr by default. As there is no benefit in
   recapturing logfile messages already logged to either stdout or stderr, tests
   avoid doing so entirely.
+* `--matplotlib-backend=agg`, enabling the default non-interactive matplotlib
+  backend _guaranteed_ to be usable on all platforms. By default, matplotlib
+  enables an interactive backend (e.g., `Qt5Agg`) inhibiting sane test
+  automation.
 '''
 
 # ....................{ CLASSES                            }....................

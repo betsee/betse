@@ -411,13 +411,23 @@ def add_top(arg_parser: ArgParserType) -> None:
             version=cliutil.get_version(),
         ),
 
+        CLIOptionArgStr(
+            long_name='--matplotlib-backend',
+            synopsis=(
+                'name of matplotlib backend to use '
+                '(see: "betse info")'
+            ),
+            var_name='matplotlib_backend_name',
+            default_value=None,
+        ),
+
         CLIOptionArgEnum(
             long_name='--log-type',
             synopsis='''
-    type of logging to perform (defaults to "{default}"):
-    ;* "none", logging to stdout and stderr only
-    ;* "file", logging to stdout, stderr, and "--log-file"
-    ''',
+type of logging to perform (defaults to "{default}"):
+;* "none", logging to stdout and stderr only
+;* "file", logging to stdout, stderr, and "--log-file"
+''',
             enum_type=LogType,
             enum_default=LogType.FILE,
         ),
@@ -425,7 +435,9 @@ def add_top(arg_parser: ArgParserType) -> None:
         CLIOptionArgStr(
             long_name='--log-file',
             synopsis=(
-                'file to log to when "--log-type=file" (defaults to "{default}")'),
+                'file to log to when "--log-type=file" '
+                '(defaults to "{default}")'
+            ),
             var_name='log_filename',
             default_value=pathtree.LOG_DEFAULT_FILENAME,
         ),
@@ -433,12 +445,12 @@ def add_top(arg_parser: ArgParserType) -> None:
         CLIOptionArgEnum(
             long_name='--profile-type',
             synopsis='''
-    type of profiling to perform (defaults to "{default}"):
-    ;* "none", disabling profiling
-    ;* "call", profiling callables (functions, methods)
-    ;* "line", profiling code lines (requires "pprofile")
-    ;* "size", profiling object sizes (requires "pympler")
-    ''',
+type of profiling to perform (defaults to "{default}"):
+;* "none", disabling profiling
+;* "call", profiling callables (functions, methods)
+;* "line", profiling code lines (requires "pprofile")
+;* "size", profiling object sizes (requires "pympler")
+''',
             enum_type=ProfileType,
             enum_default=ProfileType.NONE,
         ),
@@ -458,55 +470,3 @@ def add_top(arg_parser: ArgParserType) -> None:
     # argument subparser.
     for option in OPTIONS_TOP:
         option.add(arg_parser=arg_parser)
-
-# ....................{ OPTIONS                            }....................
-#FIXME: Refactor these string globals into a single dictionary mapping from
-#option name to help string. The current approach is *MUCH* too heavyweight.
-
-OPTION_VERSION = '''
-print program version and exit
-'''
-'''
-Help string template synopsizing the `--version` option.
-'''
-
-OPTION_VERBOSE = '''
-print low-level debugging messages
-'''
-'''
-Help string template synopsizing the `--verbose` option.
-'''
-
-OPTION_LOG_TYPE = '''
-type of logging to perform (defaults to "{default}"):
-;* "none", logging to stdout and stderr only
-;* "file", logging to stdout, stderr, and "--log-file"
-'''
-'''
-Help string template synopsizing the `--log-type` option.
-'''
-
-OPTION_LOG_FILE = '''
-file to log to if "--log-type" is "file" (defaults to "{default}")
-'''
-'''
-Help string template synopsizing the `--log-file` option.
-'''
-
-OPTION_PROFILE_TYPE = '''
-type of profiling to perform (defaults to "{default}"):
-;* "none", disabling profiling
-;* "call", profiling callables (functions, methods)
-;* "line", profiling code lines (requires "pprofile")
-;* "size", profiling object sizes (requires "pympler")
-'''
-'''
-Help string template synopsizing the `--profile-type` option.
-'''
-
-OPTION_PROFILE_FILE = '''
-file to profile to if "--profile-type" is not "none" (defaults to "{default}")
-'''
-'''
-Help string template synopsizing the `--profile-file` option.
-'''
