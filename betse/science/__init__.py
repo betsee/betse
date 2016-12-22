@@ -32,6 +32,11 @@ def _ignite() -> None:
     # Initialize both this application and all dependencies thereof.
     ignition.ignite()
 
+#FIXME: Overly cumbersome. Just inline the two statements above here; then,
+#excise this function.
+# Initialize both this application and all dependencies thereof.
+_ignite()
+
 # ....................{ CLEANUP                            }....................
 # Delete *ALL* attributes (including callables) defined above, preventing the
 # package namespace from being polluted with these attributes.
