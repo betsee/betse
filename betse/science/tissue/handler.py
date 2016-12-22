@@ -1013,12 +1013,12 @@ class TissueHandler(object):
                 # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
                 sim.metabo.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP/(p.cell_height*cells.delta**2)
 
-            elif sim.molecules is not None and 'ATP' in sim.molecules.molecules:
+            elif sim.molecules is not None and 'ATP' in sim.molecules.core.molecules:
 
                 # get concentration of ATP in cells to be removed:
-                cell_ATP = sim.molecules.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
+                cell_ATP = sim.molecules.core.cell_concs['ATP'][target_inds_cell] * cells.cell_vol[target_inds_cell]
                 # move this entire concentration to the extracellular spaces (assumed upon cell bursting)
-                sim.molecules.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
+                sim.molecules.core.env_concs['ATP'][ecm_targs_cell] = cell_ATP / (p.cell_height * cells.delta ** 2)
 
             elif sim.grn is not None and 'ATP' in sim.grn.core.molecules:
 

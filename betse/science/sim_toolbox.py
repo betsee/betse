@@ -1576,6 +1576,8 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     # update cell concentration of substance:
     cX_cell = cX_cell + delta_cells * p.dt
 
+
+
     if p.sim_ECM is True:
 
 
@@ -1603,6 +1605,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
         else:
 
             delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+
 
         # if p.smooth_level > 0.0:
         #     delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()

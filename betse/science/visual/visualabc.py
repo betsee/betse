@@ -11,9 +11,8 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 #Ultimate power fights the dark deceit!
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
-
 import numpy as np
+from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.matplotlibs import ZORDER_STREAM
 from betse.lib.numpy import arrays
@@ -21,6 +20,7 @@ from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsMappableABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
+from betse.util.io.log import logs
 from betse.util.py import references
 from betse.util.type import iterables, types
 from betse.util.type.iterables import SENTINEL
@@ -620,6 +620,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Set the current minimum and maximum color values.
         self._color_min = np.ma.min(time_series_flat)
         self._color_max = np.ma.max(time_series_flat)
+
+        # Log these values.
+        logs.log_debug('Autoscaling animation colors to [%d, %d].', self._color_min, self._color_max)
 
 
     @type_check

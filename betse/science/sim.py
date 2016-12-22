@@ -1527,6 +1527,9 @@ class Simulator(object):
 
         self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells])
 
+        # # Current-based method
+        # self.vm = self.vm - (1/p.cm)*self.Jn*p.dt
+
         if p.sim_ECM is True:
 
             self.vm = self.vm - self.v_env[cells.map_mem2ecm]
@@ -1710,22 +1713,34 @@ class Simulator(object):
         #     ux = np.zeros(cells.X.shape)
         #     uy = np.zeros(cells.X.shape)
 
-        # corr = (cells.true_ecm_vol.min() / cells.ecm_vol)
-
-        # this equation assumes environmental transport is electrodiffusive:
+        # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
         fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
                                           self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
 
         fx = fxo
         fy = fyo
 
+        # option to correct fluxes for divergence:----------------------------------------------------------------------
+
+        # div_fo = fd.divergence(fxo, fyo, cells.delta, cells.delta)
+        #
+        # # div_fo[:,0] = self.bound_V['L']*(1/cells.delta**2)
+        # # div_fo[:,-1] = self.bound_V['R']*(1/cells.delta**2)
+        # # div_fo[0,:] = self.bound_V['B']*(1/cells.delta**2)
+        # # div_fo[-1,:] = self.bound_V['T']*(1/cells.delta**2)
+        #
+        # # calculate the voltage resulting from currents:
+        # Phi = np.dot(cells.lapENVinv, div_fo.ravel())
+        #
+        # gPhix, gPhiy = fd.gradient(Phi.reshape(cells.X.shape), cells.delta)
+        #
+        # fx = fxo - gPhix
+        # fy = fyo - gPhiy
+
+        #--------------------------------------------------------------------------------------------------------------
+
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
-
-
-        # add fluid flow to fluxes (it contributes to fields, but not to concentration changes)
-        # self.fluxes_env_x[i] = fx.ravel()  + ux.ravel()*cenv.ravel() # store ecm junction flux for this ion
-        # self.fluxes_env_y[i] = fy.ravel()  + uy.ravel()*cenv.ravel() # store ecm junction flux for this ion
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion

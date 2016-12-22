@@ -534,8 +534,10 @@ general network:
 
   optimization:
     optimize network: True   # run an optimization of the network to obtain max rates at steady state concentrations?
-    optimization steps: 100 # number of itteration steps to run with basinhopper
-    optimization method: Nelder-Mead  # optimization algorithm to run ('Nelder-Mead', 'COBYLA', 'Powell')
+    optimization steps: 50 # number of itteration steps to run with basinhopper
+    optimization method: L-BFGS-B  # optimization algorithm to run ('L-BFGS' 'COBYLA')
+    optimization T: 1.0             # "temperature" for the basinhopping routine
+    optimization step: 0.5          # step-size of the basin hopping routine
     target Vmem: -50e-3               # Vmem to use in optimization
 
 

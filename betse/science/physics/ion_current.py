@@ -33,7 +33,7 @@ def get_current(sim, cells, p):
     # # calculate field in the cells resulting from intracellular current:
     # sigma = np.dot((((sim.zs**2)*p.q*p.F*sim.D_free)/(p.kb*p.T)), sim.cc_cells)*p.tissue_rho
     #
-    # divJc = np.dot(cells.M_sum_mems, (sim.Jn/sigma[cells.mem_to_cells])*cells.mem_sa)/cells.cell_vol
+    # divJc = np.dot(cells.M_sum_mems, (sim.Jgj/sigma[cells.mem_to_cells])*cells.mem_sa)/cells.cell_vol
     #
     # sim.v_cell = np.dot(cells.lapGJ_P_inv, -divJc)
 
@@ -55,23 +55,36 @@ def get_current(sim, cells, p):
 
         # conductivity in the media is modified by the environmental diffusion weight matrix:
         # sigma = (1/p.media_rho)*sim.D_env_weight  # general conductivity
-        sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env * sim.D_env).reshape(cells.X.shape)
+        sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
 
-        div_Jo = fd.divergence(-(J_env_x_o / sigma), -(J_env_y_o / sigma), cells.delta, cells.delta)
+        div_Jo = fd.divergence((J_env_x_o/sigma), (J_env_y_o/sigma), cells.delta, cells.delta)
+
+        # divergence in environment resulting from transmembrane fluxes:--------------------------------------------
+
+        # sigma = sigma.mean()
+        #
+        # div_from_cells = stb.div_env(sim.Jmem, sim, cells, p)
+        #
+        # # divergence:
+        # div_Jo = div_from_cells.reshape(cells.X.shape)
+
+        #--------------------------------------------------------------------------------------------------------------
+
 
         # add-in any boundary conditions pertaining to an applied (i.e. external) voltage:
-        div_Jo[:,0] = -sim.bound_V['L']*(1/cells.delta**2)*0.075
-        div_Jo[:,-1] = -sim.bound_V['R']*(1/cells.delta**2)*0.075
-        div_Jo[0,:] = -sim.bound_V['B']*(1/cells.delta**2)*0.075
-        div_Jo[-1,:] = -sim.bound_V['T']*(1/cells.delta**2)*0.075
+        # div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)*0.075
+        # div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)*0.075
+        # div_Jo[0,:] = sim.bound_V['B']*(1/cells.delta**2)*0.075
+        # div_Jo[-1,:] = sim.bound_V['T']*(1/cells.delta**2)*0.075
 
-        # div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)
-        # div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
-        # div_Jo[0,:] = sim.bound_V['B']*(1/cells.delta**2)
-        # div_Jo[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
+        div_Jo[:,0] = -sim.bound_V['L']*(1/cells.delta**2)
+        div_Jo[:,-1] = -sim.bound_V['R']*(1/cells.delta**2)
+        div_Jo[0,:] = -sim.bound_V['B']*(1/cells.delta**2)
+        div_Jo[-1,:] = -sim.bound_V['T']*(1/cells.delta**2)
 
-        # calculate the voltage balancing the divergence of the currents:
-        Phi = np.dot(cells.lapENV_P_inv, div_Jo.ravel())
+        # calculate the voltage resulting from currents:
+        # Phi = np.dot(cells.lapENVinv, -(div_Jo/(sigma*sim.D_env_weight)).ravel())
+        Phi = np.dot(cells.lapENVinv, -div_Jo.ravel())
 
         # the global environmental voltage is equal to Phi:
         sim.v_env = Phi

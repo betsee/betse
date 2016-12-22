@@ -947,14 +947,15 @@ class AnimFieldExtracellular(AnimField):
         self.msh, self._axes = env_mesh(
             efield_mag, self._axes, self._cells, self._p, self._colormap,
             ignore_showCells=True)
+
         self.streamE, self._axes = env_quiver(
             self._x_time_series[-1],
             self._y_time_series[-1], self._axes, self._cells, self._p)
 
         # Autoscale the colorbar range if desired.
-        if self._is_color_autoscaled is True:
-            self._color_min = np.min(efield_mag)
-            self._color_max = np.max(efield_mag)
+        # if self._is_color_autoscaled is True:
+        #     self._color_min = np.min(efield_mag)
+        #     self._color_max = np.max(efield_mag)
 
         self._animate(color_mappables=self.msh)
 
@@ -973,15 +974,15 @@ class AnimFieldExtracellular(AnimField):
 
         self.streamE.set_UVC(E_x, E_y)
 
-        # Rescale the colorbar range if desired.
-        if self._is_color_autoscaled is True:
-            self._color_min = np.min(efield_mag)
-            self._color_max = np.max(efield_mag)
-
-            #FIXME: Make this go away. A coven of unicycles droven to the edge!
-
-            # Set the colorbar range.
-            self.msh.set_clim(self._color_min, self._color_max)
+        # # Rescale the colorbar range if desired.
+        # if self._is_color_autoscaled is True:
+        #     self._color_min = np.min(efield_mag)
+        #     self._color_max = np.max(efield_mag)
+        #
+        #     #FIXME: Make this go away. A coven of unicycles droven to the edge!
+        #
+        #     # Set the colorbar range.
+        #     self.msh.set_clim(self._color_min, self._color_max)
 
 # ....................{ SUBCLASSES ~ velocity              }....................
 class AnimVelocityIntracellular(AnimVelocity):

@@ -4170,7 +4170,7 @@ class MasterOfNetworks(object):
 
             cc2 = ((sim.vm - self.target_vmem) * 1e3) ** 2
 
-            chi_sqr = np.sum(delta_c) + np.sum(cc2)
+            chi_sqr = (1/ci)*np.sum(delta_c) + np.sum(cc2)
 
             return chi_sqr
 

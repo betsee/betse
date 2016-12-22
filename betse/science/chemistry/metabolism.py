@@ -125,10 +125,10 @@ class MasterOfMetabolism(object):
         self.core.opti_step = float(self.config_dic['optimization']['optimization step'])
     #     self.core.opti_run = self.config_dic['optimization']['run from optimization']
     #
-    #     if opti is True:
-    #         logs.log_info("The Metabolic Network is being analyzed for optimal rates...")
-    #         self.core.optimizer(sim, cells, p)
-    #         self.reinitialize(sim, cells, p)
+        if opti is True:
+            logs.log_info("The Metabolic Network is being analyzed for optimal rates...")
+            self.core.optimizer(sim, cells, p)
+            self.reinitialize(sim, cells, p)
     #
     #     if self.core.opti_run is True:
     #         self.run_from_init(self, sim, cells, p)
