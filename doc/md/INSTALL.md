@@ -166,20 +166,20 @@ For simplicity, the following instructions assume use of Homebrew:
 1. If an older version of the XCode Command Line Tools (CLT) has already been
    installed, **[manually
    uninstall](https://stackoverflow.com/questions/27438457/xcode-6-1-how-to-uninstall-command-line-tools)
-   the CLT.**. While XCode itself is safely upgradable merely by installing a
-   new version, the CLT generally is _not_. <sup>_You can thank Apple for that._</sup>
+   the CLT.** While XCode itself is safely upgradable merely by installing a
+   new version, the CLT generally is _not_. <sup>_You can thank Apple for
+   that._</sup>
 1. **Download and install the most recent version of
    [XCode](https://developer.apple.com/downloads)** available for your version
    of macOS. While free, this download requires an Apple Developer login.
 1. **_(Optional)_** After installing Xcode, perform the following _before_
    running Xcode:
-   1. **Instruct Gatekeeper,** the macOS application security manager, **to
-      implicitly trust Xcode.** By default, Gatekeeper attempts to explicitly
-      verify the installed Xcode application. Verification uselessly consumes
-      non-trivial time (in upwards of ten minutes, on some systems) _and_ is
-      safely skippable for the specific case of Xcode. Note that verification is
-      _not_ safely skippable for arbitrary applications downloaded from third-
-      party sources.
+   1. **Instruct Gatekeeper to implicitly trust Xcode.** Gatekeeper is the macOS
+      application security manager. By default, Gatekeeper uselessly verifies
+      Xcode via a labouriously time-consuming and safely skippable bureaucratic
+      process requiring in upwards of twenty minutes on lower-end laptops. Note
+      that verification is _not_ safely skippable for "dubious" applications
+      downloaded from third-party sources.
 
             $ sudo xattr -d com.apple.quarantine /Applications/Xcode.app
 
@@ -191,15 +191,15 @@ For simplicity, the following instructions assume use of Homebrew:
    both.
 1. **Agree to the Xcode license.** This _must_ be done before attempting to run
    any Xcode-bundled commands from the terminal (e.g., `clang`, `gcc`, `git`).
-1. **_(Optional)_** Close Xcode.
+1. **_(Optional)_ Close Xcode.**
 1. **Download and install the exact same version of the [XCode Command Line
    Tools](https://developer.apple.com/downloads) (CLT)** as the installed
    version of XCode. Attempting to install an older or newer version of the CLT
    may superficially succeed but _will_ result in obscure and difficult-to-debug
    issues on attempting to install dependencies with Homebrew or MacPorts.
-   Naturally, there are numerous approaches to installing the correct version of
-   the CLT – some safer than others. Either:
-   1. **_(Recommended)_.** Manually download and install the CLT:
+   There are various approaches to installing the correct version of the CLT –
+   some inherently safer than others. Either:
+   1. **_(Recommended)_ Manually download and install the CLT:**
       1. Browse to the [Apple Developer
          Downloads](https://developer.apple.com/downloads) site.
       1. Enter `xcode` into the search bar.
@@ -210,14 +210,14 @@ For simplicity, the following instructions assume use of Homebrew:
 	     CLT _preceding_ this date (e.g., April 11, 2013 for the CLT
          corresponding to XCode 4.6.3).
       1. Download and install this version.
-   1. **_(Not recommended)_** Automatically download and install the CLT. While
+   1. **_(Not recommended)_ Automatically download and install the CLT.** While
       error-prone and hence discouraged, automatically downloading and
-      installing the CLT with Apple-based automation is technically feasible in
-      common edge cases. Specifically, if your system has been upgraded to both
-      the most recently released minor version of the currently installed major
-      version of macOS _and_ the most recently released version of XCode for
-      that version of macOS, the following command _should_ suffice. If in
-      doubt, prefer the manual approach listed above instead.
+      installing the CLT with Apple-based automation _is_ technically feasible
+      in common edge cases. If your system has been upgraded to both the most
+      recently released minor version of the currently installed major version
+      of macOS _and_ the most recently released version of XCode for that
+      version of macOS, the following command _should_ suffice. If in doubt,
+      prefer the manual approach listed above instead.
 
             $ xcode-select –install
 
