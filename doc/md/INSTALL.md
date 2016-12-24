@@ -123,17 +123,17 @@ instead. OpenBLAS is installable in a system-wide manner as follows:
 
 Note that OpenBLAS and ATLAS _cannot_ be installed at the same time.
 
-#### Apple OS X
+#### Apple macOS
 
-Under Apple OS X, these dependencies are installable in a system-wide manner
+Under Apple macOS, these dependencies are installable in a system-wide manner
 via either:
 
-* **(Recommended)** [Homebrew](http://brew.sh), an unofficial OS X package
+* **_(Recommended)_ [Homebrew](http://brew.sh),** an unofficial macOS package
   manager. Homebrew provides robust support for features commonly required by
   BETSE developers, including the capacity to install older rather than
   merely the newest versions of packages.
-* **(Not recommended)** [MacPorts](https://www.macports.org), an alternative
-  unofficial OS X package manager. MacPorts lacks robust support for features
+* **_(Not recommended)_ [MacPorts](https://www.macports.org),** an alternative
+  unofficial macOS package manager. MacPorts lacks robust support for features
   commonly required by BETSE developers, as described above. Since
   Homebrew and MacPorts install packages into different system directories
   (i.e., `/usr/local` for Homebrew and `/opt` for MacPorts), the two _can_
@@ -143,54 +143,63 @@ via either:
 
 For simplicity, the following instructions assume use of Homebrew:
 
-1. Upgrade your system to the most recently released minor version for your
-   currently installed major version of OS X. For example, if your system is
-   OS X **10.8.3** (Mountain Lion), upgrade to **10.8.5** (Mountain Lion).
+1. **Register as an [Apple Developer](https://developer.apple.com).** While
+   free, registration requires an existing Apple ID and hence ownership of an
+   existing Apple product. <sup>_We don't make the awful rules. We only complain
+   about them._</sup>
+1. **Upgrade your system** to the most recently released minor version for your
+   currently installed major version of macOS. For example, if your system is
+   macOS **10.8.3** (_Mountain Lion_), upgrade to **10.8.5** (_Mountain Lion_).
    Homebrew requires recent command-line tools (e.g., `clang`, `gcc`),
    requiring requires recent XCode Command Line Tools (CLT), requiring a recent
-   version of XCode, requiring a recent version of OS X. Provided your system
+   version of XCode, requiring a recent version of macOS. Provided your system
    meets the minimum requirements noted above, it should _not_ be necessary to
-   upgrade your system to a newer major version of OS X (e.g., from 10.8.5 to
+   upgrade your system to a newer major version of macOS (e.g., from 10.8.5 to
    10.9.5).
-1. Register as an [Apple Developer](https://developer.apple.com). While free,
-   registration requires an existing Apple ID and hence ownership of an existing
-   Apple product. <sup>_We don't make the awful rules. We only complain about
-   them._</sup>
+1. **Open a terminal window** (e.g., by running the pre-bundled
+   `Applications/Utilities/Terminal.app` application). All commands prefixed by
+   `$` below _must_ be run from within a terminal window. Note that, by Unix
+   convention, the `$` prefix only denotes the default Bash shell prompt and
+   should _not_ actually be typed (e.g., type `xcode-select –install` rather
+   than `$ xcode-select –install` when asked to do so below). Likewise, the
+   `<return>` key should be typed after each such command.
 1. If an older version of the XCode Command Line Tools (CLT) has already been
-   installed, manually uninstall it _before_ proceeding. While XCode itself is
-   safely upgradable merely by installing a new version, the CLT is generally
-   _not_. (You can thank Apple for that.)
-1. Download and install the most recent version of
-   [XCode](https://developer.apple.com/downloads) available for your version of
-   OS X. While free, this download requires an [Apple Developer] login. After
-   installing Xcode, we recommend performing the following instructions _before_
-   attempting to open the installed Xcode application.
-1. Open a terminal window (e.g., by running the pre-bundled
-   `Applications/Utilities/Terminal.app` application).
-1. **(Optional)** Instruct Gatekeeper, the OS X application security manager,
-   to implicitly trust without attempting to explicitly verify the installed
-   Xcode application. Verification uselessly consumes non-trivial time (in
-   upwards of ten minutes, on some systems) _and_ is safely skippable for the
-   specific case of Xcode. Note that verification is _not_ safely skippable for
-   arbitrary applications downloaded from non-Apple sites.
+   installed, **[manually
+   uninstall](https://stackoverflow.com/questions/27438457/xcode-6-1-how-to-uninstall-command-line-tools)
+   the CLT.**. While XCode itself is safely upgradable merely by installing a
+   new version, the CLT generally is _not_. <sup>_You can thank Apple for that._</sup>
+1. **Download and install the most recent version of
+   [XCode](https://developer.apple.com/downloads)** available for your version
+   of macOS. While free, this download requires an Apple Developer login.
+1. **_(Optional)_** After installing Xcode, perform the following _before_
+   running Xcode:
+   1. **Instruct Gatekeeper,** the macOS application security manager, **to
+      implicitly trust Xcode.** By default, Gatekeeper attempts to explicitly
+      verify the installed Xcode application. Verification uselessly consumes
+      non-trivial time (in upwards of ten minutes, on some systems) _and_ is
+      safely skippable for the specific case of Xcode. Note that verification is
+      _not_ safely skippable for arbitrary applications downloaded from third-
+      party sources.
 
-        $ sudo xattr -d com.apple.quarantine /Applications/Xcode.app
+            $ sudo xattr -d com.apple.quarantine /Applications/Xcode.app
 
-1. Open the installed Xcode application (e.g., by double-clicking
-   `Applications/Xcode` from the Finder). If you did _not_ instruct Gatekeeper
-   to implicitly trust this application as described above, we recommend a bag
-   of greasy popcorn and the "Blade Runner" director's cut. You'll need both.
-1. Agree to the Xcode license. This _must_ be done before attempting to run any
-   Xcode-provided commands from the terminal (e.g., `clang`, `gcc`, `git`).
-1. **(Optional)** Close Xcode.
-1. Download and install the **exact same version** of the [XCode Command Line
-   Tools](https://developer.apple.com/downloads) (CLT) as the installed version
-   of XCode. Attempting to install an older or newer version of the CLT will
-   typically superficially succeed but result in obscure and difficult-to-debug
-   issues on attempting to install dependencies with Homebrew. Naturally, there
-   are numerous approaches to installing the correct version of the CLT:
-   1. **(Recommended)** We strongly recommend manually downloading and
-      installing the CLT rather than relying on Apple-based automation to do so:
+1. **Run Xcode** (e.g., by double-clicking `Applications/Xcode` from the
+   Finder). If you did _not_ instruct Gatekeeper to implicitly trust this
+   application as described above, grab a bag of greasy popcorn and [_Blade
+   Runner (The Final
+   Cut)_](https://en.wikipedia.org/wiki/Versions_of_Blade_Runner). You'll need
+   both.
+1. **Agree to the Xcode license.** This _must_ be done before attempting to run
+   any Xcode-bundled commands from the terminal (e.g., `clang`, `gcc`, `git`).
+1. **_(Optional)_** Close Xcode.
+1. **Download and install the exact same version of the [XCode Command Line
+   Tools](https://developer.apple.com/downloads) (CLT)** as the installed
+   version of XCode. Attempting to install an older or newer version of the CLT
+   may superficially succeed but _will_ result in obscure and difficult-to-debug
+   issues on attempting to install dependencies with Homebrew or MacPorts.
+   Naturally, there are numerous approaches to installing the correct version of
+   the CLT – some safer than others. Either:
+   1. **_(Recommended)_.** Manually download and install the CLT:
       1. Browse to the [Apple Developer
          Downloads](https://developer.apple.com/downloads) site.
       1. Enter `xcode` into the search bar.
@@ -198,48 +207,49 @@ For simplicity, the following instructions assume use of Homebrew:
       1. Note the official date of this version's release (e.g., June 12, 2013
          for XCode 4.6.3).
       1. Manually search the resulting hits for the most recent version of the
-	 CLT _preceding_ this date (e.g., April 11, 2013 for the CLT
+	     CLT _preceding_ this date (e.g., April 11, 2013 for the CLT
          corresponding to XCode 4.6.3).
       1. Download and install this version.
-   1. **(Not recommended)** The CLT is also automatically downloadable and
-      installable via Apple-based automation. If your system has been upgraded
-      to both the most recently released minor version of your currently
-      installed major version of OS X _and_ to the most recently released
-      version of XCode for that version of OS X, the following command _should_
-      suffice. When in doubt, prefer the manual approach above instead.
+   1. **_(Not recommended)_** Automatically download and install the CLT. While
+      error-prone and hence discouraged, automatically downloading and
+      installing the CLT with Apple-based automation is technically feasible in
+      common edge cases. Specifically, if your system has been upgraded to both
+      the most recently released minor version of the currently installed major
+      version of macOS _and_ the most recently released version of XCode for
+      that version of macOS, the following command _should_ suffice. If in
+      doubt, prefer the manual approach listed above instead.
 
             $ xcode-select –install
 
-1. Download and install [Homebrew](http://brew.sh). While these dependencies are
-   also technically installable via [MacPorts](https://www.macports.org),
+1. **Download and install [Homebrew](http://brew.sh).** While these dependencies
+   are also technically installable via [MacPorts](https://www.macports.org),
    Homebrew provides significantly more robust support for features of interest
    to BETSE users. Critically, this includes the capacity to install
    alternative versions of dependencies rather than merely the newest.
 
         $ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 
-1. Manually prepend the current `${PATH}` by the absoute paths of all
+1. **Manually prepend the current `${PATH}`** by the absoute paths of all
    directories to which Homebrew installs packages. To do so permanently, append
    the following line to the appropriate startup dotfile in your home directory
    for your preferred shell (e.g., `.bashrc` for Bash, the default OS X shell).
 
         export PATH="/usr/local/bin:/usr/local/sbin:${PATH}"
 
-1. Activate this `${PATH}` change. Specifically, either:
-   * **(Recommended)** Close the current terminal window and open a new terminal
+1. **Activate this `${PATH}` change.** Either:
+   * **_(Recommended)_** Close the current terminal window and open a new terminal
      window.
-   * **(Not recommended)** Manually source the modified dotfile: e.g.,
+   * **_(Not recommended)_** Manually source the modified dotfile: e.g.,
 
             $ source ~/.bashrc
 
-1. **(Optional)** Inspect your Homebrew installation for potential issues.
+1. **_(Optional)_** Inspect your Homebrew installation for potential issues.
    The following command should report that `"Your system is ready to brew."`
    If it does _not_, consider resolving all reported issues before continuing.
 
         $ brew doctor
 
-1. Install Python 3, update Python package managers, and install all remaining
-   dependencies.
+1. **Install Python 3 and all remaining dependencies.**
 
         $ brew tap homebrew/python &&
           brew install python3 &&
