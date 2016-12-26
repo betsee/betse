@@ -27,7 +27,7 @@ from abc import abstractmethod, abstractproperty
 
 import numpy as np
 from betse.science.vector.fieldelectric import (
-    VectorFieldSimulatedABC,
+    VectorFieldSimmedABC,
     VectorFieldCurrentIntra,
     VectorFieldCurrentIntraExtra,
 )
@@ -224,7 +224,7 @@ class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
 
     # ..................{ SUBCLASS                           }..................
     @abstractproperty
-    def _time_currents(self) -> VectorFieldSimulatedABC:
+    def _time_currents(self) -> VectorFieldSimmedABC:
         '''
         Vector field of the current densities of all intracellular and/or
         extracellular spaces spatially situated at grid space centres for all
@@ -242,7 +242,7 @@ class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrentABC):
 
     # ..................{ SUPERCLASS                         }..................
     @property_cached
-    def _time_currents(self) -> VectorFieldSimulatedABC:
+    def _time_currents(self) -> VectorFieldSimmedABC:
         return VectorFieldCurrentIntraExtra(
             sim=self._visual._sim,
             cells=self._visual._cells,
@@ -258,7 +258,7 @@ class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrentABC):
 
     # ..................{ SUPERCLASS                         }..................
     @property_cached
-    def _time_currents(self) -> VectorFieldSimulatedABC:
+    def _time_currents(self) -> VectorFieldSimmedABC:
         return VectorFieldCurrentIntra(
             sim=self._visual._sim,
             cells=self._visual._cells,

@@ -7,16 +7,15 @@ Abstract base classes of all vector field subclasses.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractproperty
-
 import numpy as np
+from abc import ABCMeta, abstractproperty
+from betse.exceptions import BetseSimConfigException
 from betse.util.py import references
 from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check, NumericTypes
 from numpy import ndarray
 
-
-# ....................{ CLASSES                            }....................
+# ....................{ SUPERCLASSES                       }....................
 class VectorFieldABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all vector field subclasses.
@@ -29,7 +28,7 @@ class VectorFieldABC(object, metaclass=ABCMeta):
     ----------
     _magnitude_factor : NumericTypes
         Factor by which to multiply each magnitude of each vector in this vector
-        field, typically to scale magnitude to the desired units.
+        field, typically to scale vector magnitude to the desired units.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -40,7 +39,7 @@ class VectorFieldABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        magnitude_factor : NumericTypes
+        magnitude_factor : optional[NumericTypes]
             Factor by which to multiply each magnitude of each vector in this
             vector field, typically to scale magnitude to the desired units.
             Defaults to 1, implying no scaling.
@@ -75,7 +74,7 @@ class VectorFieldABC(object, metaclass=ABCMeta):
 
         pass
 
-    # ..................{ PROPERTIES ~ concrete              }..................
+    # ..................{ PROPERTIES                         }..................
     @property_cached
     def magnitudes(self) -> ndarray:
         '''
@@ -83,7 +82,10 @@ class VectorFieldABC(object, metaclass=ABCMeta):
 
         * First dimension indexes one or more time steps of this simulation.
         * Second dimension indexes each magnitude of each vector in this vector
-          field for this time step.
+          field for this time step. For safety, this magnitude is guaranteed to
+          be non-zero, avoiding division-by-zero errors elsewhere in the
+          codebase when these magnitudes are subsequently divided by (e.g., to
+          normalize the X or Y vector components).
 
         For space and time efficiency, the definition of this array is lazily
         deferred to the first read of this property.
@@ -101,9 +103,9 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         return (
             1e-15 + self._magnitude_factor*np.sqrt(self.x**2 + self.y**2))
 
-
+    # ..................{ PROPERTIES ~ unit                  }..................
     @property_cached
-    def x_unit(self) -> ndarray:
+    def unit_x(self) -> ndarray:
         '''
         Two-dimensional Numpy array whose:
 
@@ -120,7 +122,7 @@ class VectorFieldABC(object, metaclass=ABCMeta):
 
 
     @property_cached
-    def y_unit(self) -> ndarray:
+    def unit_y(self) -> ndarray:
         '''
         Two-dimensional Numpy array whose:
 
@@ -135,12 +137,12 @@ class VectorFieldABC(object, metaclass=ABCMeta):
 
         return self.y / self._magnitudes
 
-
-class VectorFieldSimulatedABC(VectorFieldABC):
+# ....................{ SUPERCLASSES ~ simulated           }....................
+class VectorFieldSimmedABC(VectorFieldABC):
     '''
     Abstract base class of all **simulated vector field subclasses** (i.e.,
-    vector fields simulated by the current simulation and hence attributes of
-    the current :class:`Simulator` instance).
+    vector fields simulated by the current simulation, typically as attributes
+    of the current :class:`Simulator` singleton).
 
     Attributes
     ----------
@@ -156,9 +158,16 @@ class VectorFieldSimulatedABC(VectorFieldABC):
     @type_check
     def __init__(
         self,
+
+        # Mandatory parameters.
         sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
         p:     'betse.science.parameters.Parameters',
+
+        # Optional parameters.
+        is_ecm_needed: bool = False,
+
+        # Superclass parameters.
         *args, **kwargs
     ) -> None:
         '''
@@ -172,12 +181,27 @@ class VectorFieldSimulatedABC(VectorFieldABC):
             Current cell cluster.
         p : Parameters
             Current simulation configuration.
+        is_ecm_needed : optional[bool]
+            `True` only if this vector field requires extracellular spaces. If
+            `True` and the passed configuration disables simulation of such
+            spaces, an exception is raised. Defaults to `False`.
 
         All remaining parameters are passed as is to the superclass.
+
+        Raises
+        ----------
+        BetseSimConfigException
+            If `is_ecm_needed` is `True` _and_ this configuration disables
+            simulation of extracellular spaces.
         '''
 
         # Initialize our superclass with all remaining parameters.
         super().__init__(*args, **kwargs)
+
+        # If the subclass requires extracellular spaces but simulation of such
+        # spaces is currently disabled, raise an exception.
+        if is_ecm_needed and not p.sim_ECM:
+            raise BetseSimConfigException('Extracellular spaces disabled.')
 
         # Classify core parameters with weak rather than strong (the default)
         # references, thus avoiding circular references and the resulting

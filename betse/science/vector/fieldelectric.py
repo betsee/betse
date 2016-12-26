@@ -8,9 +8,8 @@ intracellular and extracellular simulated fields and current density fields.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseSimConfigException
 from betse.lib.numpy import arrays
-from betse.science.vector.fieldabc import VectorFieldSimulatedABC
+from betse.science.vector.fieldabc import VectorFieldSimmedABC
 from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from numpy import ndarray
@@ -20,13 +19,13 @@ from scipy import interpolate
 _MAGNITUDE_FACTOR_CURRENT = 100
 '''
 Factor by which to multiply each magnitude of each vector in each current
-density vector field, , yielding magnitude in units of uA/cm^2.
+density vector field, yielding magnitude in units of uA/cm^2.
 '''
 
 # ....................{ ELECTRIC FIELD                     }....................
 
-# ....................{ CURRENT DENSITY                    }....................
-class VectorFieldCurrentIntraExtra(VectorFieldSimulatedABC):
+# ....................{ CURRENT DENSITY ~ intra-extra      }....................
+class VectorFieldCurrentIntraExtra(VectorFieldSimmedABC):
     '''
     Vector field of the current densities of all intracellular and extracellular
     spaces spatially situated at grid space centres for all time steps of the
@@ -37,15 +36,16 @@ class VectorFieldCurrentIntraExtra(VectorFieldSimulatedABC):
     @type_check
     def __init__(self, *args, **kwargs) -> None:
 
-        # Initialize our superclass to upscale magnitudes and with all passed
-        # parameters.
+        # Initialize our superclass to...
         super().__init__(
-            magnitude_factor=_MAGNITUDE_FACTOR_CURRENT,
-            *args, **kwargs)
+            # Require simulation of extracellular spaces.
+            is_ecm_needed=True,
 
-        # If extracellular spaces are disabled, raise an exception.
-        if not self._p.sim_ECM:
-            raise BetseSimConfigException('Extracellular spaces disabled.')
+            # Upscale vector magnitudes by this multiplicative factor.
+            magnitude_factor=_MAGNITUDE_FACTOR_CURRENT,
+
+            # Pass all remaining parameters as is.
+            *args, **kwargs)
 
     # ..................{ SUBCLASS                           }..................
     # Reuse the X and Y components already computed for this simulation,
@@ -82,8 +82,8 @@ class VectorFieldCurrentIntraExtra(VectorFieldSimulatedABC):
 
         return arrays.from_sequence(self._sim.I_tot_y_time)
 
-
-class VectorFieldCurrentIntra(VectorFieldSimulatedABC):
+# ....................{ CURRENT DENSITY ~ intra            }....................
+class VectorFieldCurrentIntra(VectorFieldSimmedABC):
     '''
     Vector field of the current densities of all intracellular spaces (e.g., gap
     junctions) spatially situated at grid space centres for all time steps of

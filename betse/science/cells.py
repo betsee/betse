@@ -92,9 +92,8 @@ class Cells(object):
     cell_to_mems : ndarray
         Two-dimensional Numpy array of the indices of all membranes for each
         cell, whose:
-        . First dimension indexes cells, whose length is the number of cells.
-        . Second dimension indexes the indices of all membranes of the current
-          cell, whose length is the number of membranes of this cell.
+        . First dimension indexes each cell.
+        . Second dimension indexes each membrane of the current cell.
         For example:
         * `cell_to_mems[0][0]` is the index of the first membrane contained by
           the first cell -- which is _always_ `0`.

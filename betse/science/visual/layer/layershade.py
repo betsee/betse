@@ -38,7 +38,7 @@ class LayerCellsShadeContinuous(LayerCellsMappableArrayABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        # Default instance attributes.
+        # Default all instance attributes.
         self._cluster_tri_mesh = None
 
     # ..................{ SUPERCLASS                         }..................
@@ -117,7 +117,7 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        # Default instance attributes.
+        # Default all instance attributes.
         self._cell_tri_meshes = None
 
     # ..................{ SUPERCLASS                         }..................
@@ -196,3 +196,29 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
 
             # Gouraud-shade this triangulation mesh with these color values.
             cell_tri_mesh.set_array(cell_membranes_vertex_data)
+
+# ....................{ FACTORIES                          }....................
+@type_check
+def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
+    LayerCellsMappableArrayABC):
+    '''
+    Layer plotting the cell cluster as a Gouraud-shaded surface in either a
+    contiguous or discontiguous manner according to the passed configuration.
+
+    Parameters
+    ----------
+    p : Parameters
+        Current simulation configuration.
+
+    All remaining parameters are passed to either the
+    :class:`LayerCellsShadeDiscrete` or :class:`LayerCellsShadeContinuous`
+    constructor as is.
+    '''
+
+    # Type of layer to be created.
+    layer_type = (
+        LayerCellsShadeDiscrete if p.showCells else
+        LayerCellsShadeContinuous)
+
+    # Create and return an instance of this type, passed the passed parameters.
+    return layer_type(*args, **kwargs)

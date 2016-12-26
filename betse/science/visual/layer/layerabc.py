@@ -39,16 +39,14 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod, abstractproperty
-
 import numpy as np
+from abc import ABCMeta, abstractmethod, abstractproperty
 from betse.lib.numpy import arrays
 from betse.util.py import references
 from betse.util.type.obj.objs import property_cached
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceTypes, SequenceOrNoneTypes,)
 from numpy import ndarray
-
 
 # ....................{ SUPERCLASS                         }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
@@ -284,7 +282,7 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
     '''
     Abstract base class of all classes spatially plotting a single cell-specific
     modelled variable (e.g., cell membrane voltage) of the cell cluster whose
-    values are mappable as colors onto the colorbar for a parent plot or
+    values are mappable as colors onto the colorbar of a parent plot or
     animation from a two-dimensional Numpy array of these values for all time
     steps to be animated.
 
@@ -306,13 +304,12 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
         times_membranes_midpoint_data : Sequence
             Two-dimensional sequence of all cell membrane data for a single
             cell membrane-specific modelled variable (e.g., cell membrane
-            voltage) for all time steps to be animated, whose:
-            . First dimension indexes time steps, whose length is the number of
-              simulation time steps.
-            . Second dimension indexes cell membranes, whose length is the
-              number of cell membranes in the current cluster. Each element of
-              this dimension is arbitrary cell membrane data spatially situated
-              at that membrane's midpoint.
+            voltage) for all simulation time steps, whose:
+            . First dimension indexes each simulation time step.
+            . Second dimension indexes each cell membrane in the simulated cell
+              cluster, such that each element is arbitrary cell membrane data
+              spatially situated at the midpoint of this membrane for this time
+              step.
         '''
 
         # Initialize our superclass.
@@ -325,17 +322,19 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from setting these attributes.
 
+    #FIXME: Refactor the following methods to internally defer to the
+    #corresponding Cells.map_*() methods.
+
     @property_cached
     def times_cells_centre_data(self) -> ndarray:
         '''
-        Two-dimensional Numpy array of all arbitrary cell membrane data for all
-        time steps to be animated, whose:
+        Two-dimensional Numpy array of all arbitrary cell data for all
+        simulation time steps, whose:
 
-        . First dimension indexes time steps, whose length is the number of
-          simulation time steps.
-        . Second dimension indexes cells, whose length is the number of cell
-          membranes in this cluster and elements are arbitrary data spatially
-          situated at cell centres for this time step.
+        . First dimension indexes each simulation time step.
+        . Second dimension indexes each cell in the simulated cell cluster, such
+          that each element is arbitrary cell data spatially situated at the
+          the centre of this cell for this time step.
         '''
 
         return self._visual._cells.map_membranes_midpoint_to_cells_centre_data(
@@ -345,14 +344,14 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
     @property
     def times_membranes_midpoint_data(self) -> ndarray:
         '''
-        Two-dimensional Numpy array of all arbitrary cell membrane data for all
-        time steps to be animated, whose:
+        Two-dimensional sequence of all arbitrary cell membrane data for all
+        simulation time steps, whose:
 
-        . First dimension indexes time steps, whose length is the number of
-          simulation time steps.
-        . Second dimension indexes cell membranes, whose length is the number of
-          cell membranes in this cluster and elements are arbitrary data
-          spatially situated at membrane midpoints for this time step.
+        . First dimension indexes each simulation time step.
+        . Second dimension indexes each cell membrane in the simulated cell
+          cluster, such that each element is arbitrary cell membrane data
+          spatially situated at the midpoint of this membrane for this time
+          step.
         '''
 
         return self._times_membranes_midpoint_data
@@ -362,14 +361,12 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
     def times_membranes_vertex_data(self) -> ndarray:
         '''
         Two-dimensional Numpy array of all arbitrary cell membrane vertex data
-        for all time steps to be animated, whose:
+        for all simulation time steps, whose:
 
-        . First dimension indexes time steps, whose length is the number of
-          simulation time steps.
-        . Second dimension indexes cell membrane vertices, whose length is the
-          number of cell membrane vertices in this cluster and elements are
-          arbitrary data spatially situated at cell membrane vertices for this
-          time step.
+        . First dimension indexes each simulation time step.
+        . Second dimension indexes each cell membrane vertex in the simulated
+          cell cluster, such that each element is arbitrary data spatially
+          situated at this cell membrane vertex for this time step.
         '''
 
         #FIXME: Consider generalizing this logic into a new public "Cells"
@@ -385,13 +382,13 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
     def times_regions_centre_data(self) -> ndarray:
         '''
         Two-dimensional Numpy array of all arbitrary Voronoi region centre data
-        for all time steps to be animated, whose:
+        for all simulation time steps, whose:
 
-        . First dimension indexes time steps, whose length is the number of
-          simulation time steps.
-        . Second dimension indexes polygonal regions in the Voronoi diagram,
-          whose length is the number of such regions and elements are arbitrary
-          data spatially situated at region centres for this time step.
+        . First dimension indexes each simulation time step.
+        . Second dimension indexes each polygonal regions in the Voronoi
+          diagram for the simulated cell cluster, such that each element is
+          arbitrary data spatially situated at the centre of this region for
+          this time step.
         '''
 
         #FIXME: Consider generalizing this logic into a new public "Cells"

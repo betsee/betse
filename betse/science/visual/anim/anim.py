@@ -35,10 +35,9 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
 from betse.science.visual import visuals
-from betse.science.visual.layer.layershade import (
-    LayerCellsShadeContinuous, LayerCellsShadeDiscrete)
 from betse.science.visual.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
+from betse.science.visual.layer import layershade
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
@@ -340,22 +339,16 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
               this dimension is arbitrary cell membrane data spatially situated
               at that membrane's midpoint.
 
-        See the superclass `__init__()` method for all remaining parameters.
+        See the superclass :meth:`AnimCellsABC.__init__` method for all
+        remaining parameters.
         '''
 
-        # Type of layer plotted by this animation. If animating each cell,
-        # this layer Gouraud-shades each cell discretely; else, this layer
-        # Gouraud-shades the cell cluster continuously.
-        layer_type = (
-            LayerCellsShadeDiscrete if p.showCells else
-            LayerCellsShadeContinuous)
-
-        # 1-tuple of the single principal layer plotted by this animation.
-        layers = (layer_type(
-            times_membranes_midpoint_data=times_membranes_midpoint_data),)
+        # Layer plotting the cell cluster as a Gouraud-shaded surface.
+        layer = layershade.make(
+            p=p, times_membranes_midpoint_data=times_membranes_midpoint_data,)
 
         # Initialize the superclass.
-        super().__init__(p=p, layers=layers, *args, **kwargs)
+        super().__init__(p=p, layers=(layer,), *args, **kwargs)
 
         # Display and/or save this animation.
         self._animate()
@@ -780,7 +773,7 @@ class AnimFieldIntracellular(AnimField):
             #
             #In either case, we want the "x_time_series" parameter accepted by
             #the superclass __init__() method to be renamed to
-            #"times_membranes_midpoint_data" and likewise with the
+            #"times_membranes_midpoint_data_x" and likewise with the
             #"y_time_series" parameter. Depending on what
             #"sim.F_hydro_x_time[0]" is, we might want additional parameters.
             #FIXME: Each "sim.efield_gj_x_time[time_step]" array is indeed
