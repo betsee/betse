@@ -371,6 +371,9 @@ class Simulator(object):
             self.E_env_x = np.zeros(self.edl).reshape(cells.X.shape)
             self.E_env_y = np.zeros(self.edl).reshape(cells.X.shape)
 
+            self.Phi_edl = np.zeros(self.mdl) # Voltage difference across the outer electrical double layer
+
+
 
         else:  # items specific to simulation *without* extracellular spaces:
             # Initialize environmental volume:

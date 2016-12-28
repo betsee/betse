@@ -504,7 +504,7 @@ def pipeline_plots(
 
             plt.figure()
             plt.imshow(
-                sim.v_env.reshape(cells.X.shape),
+                1e3*sim.v_env.reshape(cells.X.shape),
                 origin='lower',
                 extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
                 cmap=p.default_cm,
