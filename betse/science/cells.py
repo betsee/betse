@@ -1617,6 +1617,9 @@ class Cells(object):
 
         self.envInds_inClust = np.asarray(self.envInds_inClust)
 
+        # correction coefficient for converting from cell to env divergences:
+        self.cell2env_corrF = (self.cell_vol / self.true_ecm_vol[self.map_cell2ecm]) * (self.ecm_sa / self.cell_sa)
+
     def graphLaplacian(self,p):
         '''
         Defines an abstract inverse Laplacian that is used to solve Poisson's equation on the

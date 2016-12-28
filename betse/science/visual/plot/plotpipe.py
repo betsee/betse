@@ -499,6 +499,26 @@ def pipeline_plots(
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
+
+        if p.sim_ECM is True:
+
+            plt.figure()
+            plt.imshow(
+                sim.v_env.reshape(cells.X.shape),
+                origin='lower',
+                extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
+                cmap=p.default_cm,
+            )
+            plt.colorbar()
+            plt.title('Environmental Voltage [mV]')
+
+            if p.autosave is True:
+                savename10 = savedImg + 'Final_environmental_V' + '.png'
+                plt.savefig(savename10, format='png', transparent=True)
+
+            if p.turn_all_plots_off is False:
+                plt.show(block=False)
+
     if p.GHK_calc is True:
         figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(
             sim, cells, p,
@@ -606,8 +626,6 @@ def pipeline_plots(
 
     if p.turn_all_plots_off is False:
         plt.show(block=False)
-
-
 
     #------------------------------------------------------------------------------------------------------------------
 
