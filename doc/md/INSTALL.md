@@ -249,7 +249,7 @@ For simplicity, the following instructions assume use of Homebrew:
 
         $ brew doctor
 
-1. **Install Python 3 and all remaining dependencies.**
+1. **Install all dependencies.**
 
         $ brew tap homebrew/python &&
           brew install python3 &&
@@ -257,7 +257,6 @@ For simplicity, the following instructions assume use of Homebrew:
           brew install matplotlib --with-python3 --without-python &&
           brew install numpy --with-python3 --without-python &&
           brew install pillow --with-python3 --without-python &&
-          brew install pyside --with-python3 --without-python &&
           brew install scipy --with-python3 --without-python &&
           brew install libyaml &&
           pip3 install dill pyyaml
@@ -265,6 +264,12 @@ For simplicity, the following instructions assume use of Homebrew:
 Note that Homebrew is a source-based package manager and hence relatively slow.
 Expect the installation process to require anywhere from several hours to
 several days, depending on hardware performance. We wish we were kidding.
+
+Note also that these instructions link `numpy` against the most optimized
+implementation of the BLAS and LAPACK APIs available under macOS as of this
+writing: Apple's [Accelerate
+Framework](https://developer.apple.com/reference/accelerate/1668466-blas). No
+further configuration is requireed for efficient multicore computation.
 
 #### Microsoft Windows
 
