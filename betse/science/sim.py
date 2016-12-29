@@ -1541,9 +1541,21 @@ class Simulator(object):
         self.dvm = (self.vm - vmo)/p.dt
         self.drho = (self.rho_cells - rhoo)/p.dt
 
-
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
+
+        Jcellx = np.dot(cells.M_sum_mems, self.Jn * cells.mem_vects_flat[:, 2] * cells.mem_sa) / cells.cell_sa
+        Jcelly = np.dot(cells.M_sum_mems, self.Jn * cells.mem_vects_flat[:, 3] * cells.mem_sa) / cells.cell_sa
+
+        Ecx = Jcellx*p.media_rho
+        Ecy = Jcelly*p.media_rho
+
+        Pcx = Ecx * p.eo * p.cell_polarizability
+        Pcy = Ecy * p.eo * p.cell_polarizability
+
+        sig_mem = Pcx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + Pcy[cells.mem_to_cells]*cells.mem_vects_flat[
+                                                                                                   :, 3]
+        self.vm = self.vm + (1 / p.cm)*sig_mem
 
         # # polarization vectors at the membranes:
         # pol_mem_x = self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,2]
@@ -1646,9 +1658,6 @@ class Simulator(object):
         else:
             self.gjopen = self.gj_block*np.ones(len(cells.mem_i))
 
-        # concentration gradient for ion i:
-        # # FIXME is this adjustment necessary?
-        # conc_mem = self.cc_cells[i][cells.mem_to_cells]*np.exp(-(self.vm*p.q*self.zs[i])/(2*p.kb*self.T))
 
         conc_mem = self.cc_cells[i][cells.mem_to_cells]
 

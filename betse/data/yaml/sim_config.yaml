@@ -93,10 +93,10 @@ sim time settings:
 
 general options:
 
-  comp grid size: 20         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
+  comp grid size: 40         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
   plot grid size: 50        # grid used for interpolated data plotting (recommend 50 to 250)
 
-  simulate extracellular spaces: False    # include extracellular spaces and true environment simulation?
+  simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
 
   ion profile: basic   # ion profile options:
                        # 'basic' (Na+, K+, M-, and proteins-)
@@ -140,7 +140,7 @@ general options:
 
 world options:
 
-  world size: 100e-6      # dimension of the square world space [m]
+  world size: 250e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1000e-6 m
 
@@ -365,7 +365,7 @@ cutting event:
     event happens: True      # enable (True) or disable (False) this event?
     apply to: ['surgery']    # names of cut profiles selecting cells to be cut
     wound channel:
-      use channel: True      # use a channel associated with wounding (mechanosensitive Na channel)
+      use channel: False      # use a channel associated with wounding (mechanosensitive Na channel)
       max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open
       closure delay: 5.0       # how fast does the channel close after activation? (larger = faster decay)
 
@@ -680,7 +680,7 @@ variable settings:
     gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
 
 
-  tight junction scaling: 1.0   # factor by which tight junctions scale
+  tight junction scaling: 1.0e-2   # factor by which tight junctions scale
                                    # free-diffusion (1.0 = free diffusion, 1.0e-9 = similar to membrane permeability)
 
   tight junction relative diffusion:  # relative values for tight junction ion 
@@ -696,7 +696,7 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
-  use Goldman calculator: False   # calculate alternative Vmem using GHK
+  use Goldman calculator: True   # calculate alternative Vmem using GHK
                                   # equation for model params and plot results?
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -1010,9 +1010,9 @@ internal parameters:
 
   alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  gaussian smoothing: 0.5    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
+  gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
-  smooth concentrations: True   # apply gaussian smoothing to substance concentration?
+  smooth concentrations: False   # apply gaussian smoothing to substance concentration?
 
   substances affect Vmem: False  # do ionic biochemicals, metabolites and gene products affect charge state?
 
@@ -1021,6 +1021,8 @@ internal parameters:
   membrane capacitance: 0.05 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
   media resistivity: 0.5  # electrical resistivity of bulk electrolyte (Ohms.m)
+
+  cell polarizability: 0.0  # constant affecting cell polarizability in electric fields (100 to 1.0e9)
 
   tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m)
 

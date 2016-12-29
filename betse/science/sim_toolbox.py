@@ -1304,7 +1304,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
-                                          -sim.E_gj_y, ux, uy,
+                                          -sim.E_gj_y, 0.0, 0.0,
                                            Do*p.gj_surface, z, sim.T, p)
 
         fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
@@ -1335,7 +1335,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cenv = cenv.reshape(cells.X.shape)
 
         if smoothECM is True and p.smooth_level > 0.0:
-            cenv = gaussian_filter(cenv, p.smooth_level)
+            cenv = gaussian_filter(cenv, p.smooth_level, mode='constant', cval = c_bound)
 
         # v_env = sim.v_env.reshape(cells.X.shape)
         #
@@ -1368,7 +1368,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
             uy = 0.0
 
 
-        fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, ux, uy,
+        fx, fy = nernst_planck_flux(cenv, gcx, gcy, -sim.E_env_x, -sim.E_env_y, 0.0, 0.0,
                                         denv, z, sim.T, p)
 
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
@@ -1656,7 +1656,6 @@ def div_env(flux, sim, cells, p):
 
     return delta_env
 
-
 def HH_Decomp(JJx, JJy, cells, bounds = None):
 
     if bounds is not None:
@@ -1713,7 +1712,6 @@ def HH_Decomp(JJx, JJy, cells, bounds = None):
     # G = np.sqrt(Gx ** 2 + Gy ** 2)
 
     return AA, Fx, Fy, BB, Gx, Gy
-
 
 def div_free(Fxo, Fyo, cells):
 
