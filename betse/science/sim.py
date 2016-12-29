@@ -1547,8 +1547,8 @@ class Simulator(object):
         Jcellx = np.dot(cells.M_sum_mems, self.Jn * cells.mem_vects_flat[:, 2] * cells.mem_sa) / cells.cell_sa
         Jcelly = np.dot(cells.M_sum_mems, self.Jn * cells.mem_vects_flat[:, 3] * cells.mem_sa) / cells.cell_sa
 
-        Ecx = Jcellx*p.media_rho
-        Ecy = Jcelly*p.media_rho
+        Ecx = Jcellx*p.tissue_rho
+        Ecy = Jcelly*p.tissue_rho
 
         Pcx = Ecx * p.eo * p.cell_polarizability
         Pcy = Ecy * p.eo * p.cell_polarizability

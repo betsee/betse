@@ -806,7 +806,7 @@ class Parameters(object):
         self.smooth_concs = iu['smooth concentrations']
 
         self.media_rho = float(iu['media resistivity'])
-        # self.tissue_rho = float(iu.get('tissue resistivity', 10.0))
+        self.tissue_rho = float(iu.get('tissue resistivity', 10.0))
         self.cell_polarizability = float(iu.get('cell polarizability', 100.0))
 
         self.substances_affect_charge = iu['substances affect Vmem']

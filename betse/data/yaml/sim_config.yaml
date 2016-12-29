@@ -1022,9 +1022,10 @@ internal parameters:
 
   media resistivity: 0.5  # electrical resistivity of bulk electrolyte (Ohms.m)
 
-  cell polarizability: 0.0  # constant affecting cell polarizability in electric fields (100 to 1.0e9)
+  cell polarizability: 0.0  # constant affecting cell polarizability in electric fields (100 to 1.0e8)
+                            # low f dielectric constant see: http://niremf.ifac.cnr.it/tissprop/htmlclie/htmlclie.php
 
-  tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m)
+  tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m) 50.0 not uncommon see link above
 
   time acceleration: 1.0 # factor accelerating time for slow processes (GJ diffusion)
 
