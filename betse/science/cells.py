@@ -2309,7 +2309,7 @@ class Cells(object):
         Fx = fxo - gPx
         Fy = fyo - gPy
 
-        Fn = Fx*self.mem_mids_flat[:,0] + Fy*self.mem_mids_flat[:,1]
+        Fn = Fx*self.cell_vects_flat[:,2] + Fy*self.cell_vects_flat[:,3]
 
         # # assign the boundary condition:
         # Fn[self.bflags_mems] = bc

@@ -1010,7 +1010,7 @@ internal parameters:
 
   alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  gaussian smoothing: 1.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
+  gaussian smoothing: 0.5    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
   smooth concentrations: True   # apply gaussian smoothing to substance concentration?
 

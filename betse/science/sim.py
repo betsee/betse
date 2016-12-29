@@ -1696,8 +1696,8 @@ class Simulator(object):
         cenv = self.cc_env[i]
         cenv = cenv.reshape(cells.X.shape)
 
-        if p.smooth_level > 0.0:
-            cenv = gaussian_filter(cenv, p.smooth_level)
+        if p.smooth_level > 0.0 and p.smooth_concs is True:
+            cenv = gaussian_filter(cenv, p.smooth_level, mode = 'constant', cval= self.c_env_bound[i])
 
         cenv[:,0] =  self.c_env_bound[i]
         cenv[:,-1] =  self.c_env_bound[i]
