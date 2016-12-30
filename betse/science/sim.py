@@ -371,7 +371,7 @@ class Simulator(object):
             self.E_env_x = np.zeros(self.edl).reshape(cells.X.shape)
             self.E_env_y = np.zeros(self.edl).reshape(cells.X.shape)
 
-            self.Phi_edl = np.zeros(self.mdl) # Voltage difference across the outer electrical double layer
+            self.Phi_env = np.zeros(self.edl) # Voltage difference across the outer electrical double layer
 
 
 
@@ -381,23 +381,7 @@ class Simulator(object):
             self.envV[:] = p.vol_env
 
 
-        if p.fluid_flow is True:
-            # Electroosmosis Initialization:
 
-            # initialize vectors for electroosmosis in the cell collection wrt each gap junction (note data type!):
-            self.u_cells_x = np.zeros(self.cdl)
-            self.u_cells_y = np.zeros(self.cdl)
-
-            if p.sim_ECM is True:
-                # initialize vectors for env flow (note enhanced data type!):
-                self.u_env_x = np.zeros(cells.X.shape)
-                self.u_env_y = np.zeros(cells.X.shape)
-
-
-        if p.deformation is True:
-            # initialize vectors for potential deformation:
-            self.d_cells_x = np.zeros(self.cdl)
-            self.d_cells_y = np.zeros(self.cdl)
 
 
         ion_names = list(p.ions_dict.keys())
@@ -820,15 +804,19 @@ class Simulator(object):
 
         if p.deformation is True:  # if user desires deformation:
 
-                cells.deform_tools(p)
-                # create a copy of cells world, to apply deformations to for visualization purposes only:
-                self.cellso = copy.deepcopy(cells)
+            # initialize vectors for potential deformation:
+            self.d_cells_x = np.zeros(self.cdl)
+            self.d_cells_y = np.zeros(self.cdl)
 
-                if p.td_deform is True and cells.lapGJ is None or cells.lapGJ_P is None:
+            cells.deform_tools(p)
+            # create a copy of cells world, to apply deformations to for visualization purposes only:
+            self.cellso = copy.deepcopy(cells)
 
-                    # make a laplacian and solver for discrete transfers on closed, irregular cell network
-                    logs.log_info('Creating cell network Poisson solver...')
-                    cells.graphLaplacian(p)
+            if p.td_deform is True and cells.lapGJ is None or cells.lapGJ_P is None:
+
+                # make a laplacian and solver for discrete transfers on closed, irregular cell network
+                logs.log_info('Creating cell network Poisson solver...')
+                cells.graphLaplacian(p)
 
         else:
 
@@ -1529,9 +1517,6 @@ class Simulator(object):
         sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
 
         self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells])
-
-        # # Current-based method
-        # self.vm = self.vm - (1/p.cm)*self.Jn*p.dt
 
         if p.sim_ECM is True:
 

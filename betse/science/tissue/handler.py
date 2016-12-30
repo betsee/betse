@@ -10,7 +10,7 @@ import copy
 import numpy as np
 from scipy import interpolate as interp
 from scipy import spatial as sps
-
+from scipy.interpolate import SmoothBivariateSpline
 from betse.science import toolbox as tb
 from betse.science.event import modulators as mod
 from betse.science.tissue.channels import vg_na as vgna
@@ -50,7 +50,6 @@ class TissueHandler(object):
             self.data_length = len(cells.mem_i)
 
         self.wound_channel_used = False
-
 
     def runAllInit(
         self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
@@ -137,7 +136,6 @@ class TissueHandler(object):
             self.tonNK = p.global_options['NaKATP_block'][0]
             self.toffNK = p.global_options['NaKATP_block'][1]
             self.trampNK = p.global_options['NaKATP_block'][2]
-
 
     def _init_events_tissue(self, sim, cells, p):
         '''
@@ -623,7 +621,6 @@ class TissueHandler(object):
         if p.global_options['NaKATP_block'] != 0:
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
 
-
     def _sim_events_tissue(self, sim, cells, p, t):
         '''
         Apply all **targeted scheduled interventions** (i.e., events only
@@ -848,6 +845,22 @@ class TissueHandler(object):
         # calculate strain from displacement
         eta = (dd/cells.R)
 
+        # # create a smooth bivariate spline to interpolate deformation data from cells:
+        # cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=1,
+        #                                      ky=1)
+        # cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=1,
+        #                                      ky=1)
+        #
+        # # calculate deformations wrt the ecm using the smooth bivariate spline:
+        # dmem_x = cellinterp_x.ev(cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1])
+        # dmem_y = cellinterp_y.ev(cells.mem_mids_flat[:, 0], cells.mem_mids_flat[:, 1])
+        #
+        # # obtain normal component to membrane
+        # dd = dmem_x*cells.mem_vects_flat[:,2] + dmem_y*cells.mem_vects_flat[:,3]
+        #
+        # # strain is the divergence of the displacement:
+        # eta = np.dot(cells.M_sum_mems, dd*cells.mem_sa)/cells.cell_vol
+
         # self.active_NaStretch[self.targets_NaStretch] = tb.hill(sim.P_cells[cells.mem_to_cells][self.targets_NaStretch],
         #         self.NaStretch_halfmax,self.NaStretch_n)
 
@@ -855,6 +868,8 @@ class TissueHandler(object):
                 self.NaStretch_halfmax,self.NaStretch_n)
 
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
+        sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
+
 
     def tissueProfiles(self, sim, cells, p):
         '''

@@ -680,7 +680,7 @@ variable settings:
     gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
 
 
-  tight junction scaling: 1.0e-2   # factor by which tight junctions scale
+  tight junction scaling: 1.0   # factor by which tight junctions scale
                                    # free-diffusion (1.0 = free diffusion, 1.0e-9 = similar to membrane permeability)
 
   tight junction relative diffusion:  # relative values for tight junction ion 

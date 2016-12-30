@@ -4,13 +4,11 @@
 # See "LICENSE" for further details.
 
 import numpy as np
-from scipy import interpolate as interp
-from scipy.ndimage.filters import gaussian_filter
 from betse.exceptions import BetseSimException
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
 from scipy.interpolate import SmoothBivariateSpline
-from scipy.sparse.linalg import lsmr
+
 
 
 def getDeformation(sim, cells, t, p):

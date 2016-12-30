@@ -41,38 +41,15 @@ def get_current(sim, cells, p):
     # Current in the environment --------------------------------------------------------------------------------------
     if p.sim_ECM is True:
 
-        # current densities in the environment:
+        # diffusive component of current densities in the environment:
         J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
         J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
 
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)
-        #
-        # # ---METHOD 1: Calculate potential from divergence-free environmental currents ---------------------
 
-        # # conductivity in the media is modified by the environmental diffusion weight matrix:
-        # sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
-        #
-        # div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
-
-
-        #---METHOD 2: calculate voltage from single-cell divergence to environment only:-------------------------------
-        # sigma = np.dot((((sim.zs ** 2) * p.q * p.F * sim.D_free) / (p.kb * p.T)), sim.cc_env).reshape(cells.X.shape)
-        # sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
-        # div_Jo = np.zeros(cells.X.shape)
-        # div_from_cells = -(np.dot(cells.M_sum_mems,
-        #                           (sim.Jmem / (sigma.ravel()[cells.map_mem2ecm])
-        #                            ) * cells.mem_sa) / cells.cell_vol) * cells.cell2env_corrF
-        #
-        # div_from_cells_map = np.zeros(sim.edl)
-        # div_from_cells_map[cells.map_cell2ecm] = div_from_cells
-        # # div_from_cells_map = gaussian_filter(div_from_cells_map.reshape(cells.X.shape), 1)
-        # div_from_cells_map = div_from_cells_map.reshape(cells.X.shape)
-        #
-        # div_Jo = div_Jo + div_from_cells_map
-
-        #---METHOD 3: Calculate how much Vmem is "seen" by external environment via charge screening status-------------
+        #--- Calculate how much Vmem is "seen" by external environment via charge screening status----------------------
 
         # conductivity in the media is modified by the environmental diffusion weight matrix:
         sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
@@ -86,9 +63,12 @@ def get_current(sim, cells, p):
         # capacitance of the double layer
         Cedl = (p.eo * p.er) / dl
 
-        # print(dl.mean(), Cedl.mean())
+        #---Calculate divergences for concentration & transmembrane fluxes ---------------------------------------------
+
 
         div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
+
+        # div_Jo = fd.divergence(sim.E_env_x*sigma, sim.E_env_y*sigma, cells.delta, cells.delta)
 
         # determine finite divergence from cellular transmembrane fluxes to the environmental space:
         div_from_cells = -(np.dot(cells.M_sum_mems,
@@ -101,45 +81,38 @@ def get_current(sim, cells, p):
         div_from_cells_map = div_from_cells_map.reshape(cells.X.shape)
         div_Jo = div_Jo + div_from_cells_map
 
-
-        div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)
-        div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
-        div_Jo[0,:] = sim.bound_V['B']*(1/cells.delta**2)
-        div_Jo[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
-
+        div_Jo[:,0] = 0.0
+        div_Jo[:,-1] = 0.0
+        div_Jo[0,:] = 0.0
+        div_Jo[-1,:] = 0.0
 
         # Calculate a voltage that resists the divergence:
         Phi = np.dot(cells.lapENVinv, (div_Jo).ravel())
 
-        # Phi = Phi.reshape(cells.X.shape)
+        # Calculate an environmental voltage contributed from boundary conditions:
+        div_Jb = np.zeros(cells.X.shape)
+        # div_Jb = div_from_cells_map
 
-        # # calculate the gradient of Phi:
-        # gPhix, gPhiy = fd.gradient(Phi, cells.delta)
+        div_Jb[:,0] = sim.bound_V['L']*(1/cells.delta**2)
+        div_Jb[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
+        div_Jb[0,:] = sim.bound_V['B']*(1/cells.delta**2)
+        div_Jb[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
 
-        sim.v_env = sim.v_env + Phi*p.dt*Cedl
+        Phi_b = np.dot(cells.lapENVinv, div_Jb.ravel())
+
+        sim.Phi_env = sim.Phi_env + Phi*p.dt*(sigma.mean()/Cedl.mean())
+
+        sim.v_env = Phi_b.reshape(cells.X.shape) + sim.Phi_env.reshape(cells.X.shape)
+
+        # sim.v_env = Phi_b.reshape(cells.X.shape)
 
         if p.smooth_level > 0.0:
 
-            sim.v_env = gaussian_filter(sim.v_env.reshape(cells.X.shape),
-                                        p.smooth_level, mode='constant').ravel()  # sigma = 0.305
+            sim.v_env = gaussian_filter(sim.v_env, p.smooth_level, mode='constant')  # sigma = 0.305
 
+        sim.v_env = sim.v_env.ravel()
 
         #--------------------------------------------------------------------------------------------------------------
-
-        # div_Jo[:,0] = -sim.bound_V['L']*(1/cells.delta**2)
-        # div_Jo[:,-1] = -sim.bound_V['R']*(1/cells.delta**2)
-        # div_Jo[0,:] = -sim.bound_V['B']*(1/cells.delta**2)
-        # div_Jo[-1,:] = -sim.bound_V['T']*(1/cells.delta**2)
-        #
-        # # calculate the voltage (scaled by sigma) resulting from currents:
-        # Phi_o = np.dot(cells.lapENVinv, -div_Jo.ravel())
-        #
-        # # calculate the unscaled voltage:
-        # # Phi = Phi_o / sigma.ravel()
-        # Phi = Phi_o
-        #
-        # # the global environmental voltage is equal to Phi:
-        # sim.v_env = Phi
 
         # calculate the gradient of v_env:
         gPhix, gPhiy = fd.gradient(sim.v_env.reshape(cells.X.shape), cells.delta)
@@ -153,9 +126,6 @@ def get_current(sim, cells, p):
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o,
                                                              J_env_y_o, cells)
-
-        # _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(sim.E_env_x*sigma,
-        #                                                      sim.E_env_y*sigma, cells)
 
 
 
