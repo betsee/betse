@@ -253,7 +253,7 @@ For simplicity, the following instructions assume use of Homebrew:
 
         $ brew tap homebrew/python &&
           brew install python3 &&
-          pip3 install --upgrade pip setuptools &&
+          pip3 install --upgrade pip setuptools wheel &&
           brew install matplotlib --with-python3 --without-python &&
           brew install numpy --with-python3 --without-python &&
           brew install pillow --with-python3 --without-python &&
@@ -266,10 +266,10 @@ Expect the installation process to require anywhere from several hours to
 several days, depending on hardware performance. We wish we were kidding.
 
 Note also that these instructions link `numpy` against the most optimized
-implementation of the BLAS and LAPACK APIs available under macOS as of this
-writing: Apple's [Accelerate
-Framework](https://developer.apple.com/reference/accelerate/1668466-blas). No
-further configuration is requireed for efficient multicore computation.
+multicore implementation of the BLAS and LAPACK APIs available under macOS as of
+this writing: Apple's **[Accelerate
+Framework](https://developer.apple.com/reference/accelerate/1668466-blas).** No
+further BLAS or LAPACK configuration is required or recommended.
 
 #### Microsoft Windows
 
