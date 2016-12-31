@@ -90,7 +90,7 @@ Footnote descriptions are as follows:
 import sys
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
-from betse.util.os import kernels
+from betse.util.os import kernels, oses
 from betse.util.path import dirs, paths
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
@@ -482,12 +482,26 @@ class MatplotlibConfig(object):
                 raise BetseMatplotlibException(
                     'Usable matplotlib backend not found.')
 
-    # ..................{ PROPERTIES ~ rc                    }..................
+    # ..................{ PROPERTIES ~ path                  }..................
+    @property
+    def cache_dirname(self) -> str:
+        '''
+        Absolute path of the platform- (and typically user-) specific directory
+        to which matplotlib caches metadata (e.g., on fonts).
+        '''
+
+        # Delay importation of the "matplotlib.__init__" module.
+        import matplotlib
+
+        # Return this path.
+        return matplotlib.get_cachedir()
+
+
     @property
     def rc_filename(self) -> str:
         '''
-        Absolute path of the current `matplotlibrc` file establishing default
-        matplotlib options.
+        Absolute path of the currently selected `matplotlibrc` file
+        establishing default matplotlib options.
         '''
 
         # Delay importation of the "matplotlib.__init__" module.
@@ -852,6 +866,7 @@ class MatplotlibConfig(object):
         # This dictionary.
         metadata = OrderedDict((
             ('rc file', self.rc_filename),
+            ('cache dir', self.cache_dirname),
             ('current backend', self.backend_name),
             # ('[backend] current', self.backend_name),
         ))
@@ -978,9 +993,60 @@ class MatplotlibConfig(object):
         # the known-to-be-stable use() function.
         if not self.is_backend():
             matplotlib.use(backend_name)
-        # Else, we have no recourse but to call the known-to-be-unstable
+        # Else, a backend has already been enabled. In this unfortunate case,
+        # we have no recourse but to call the known-to-be-unstable
         # switch_backend() function.
         else:
+            # Unfortunately, if the current platform is macOS *AND* the new
+            # backend to be enabled is "TkAgg", enabling this backend is *NOT*
+            # safe and must absolutely be prohibited by raising an exception.
+            # Attempting to enable this backend under this edge case commonly
+            # results in a segmentation fault, terminating the active Python
+            # process in a non-human-readable manner resembling:
+            #
+            #     [betse] Testing matplotlib backend "tkagg"...
+            #     backend TkAgg version 8.5
+            #     2016-12-31 01:53:08.886 Python[19521:163945] -[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60
+            #     2016-12-31 01:53:08.890 Python[19521:163945] An uncaught exception was raised
+            #     2016-12-31 01:53:08.890 Python[19521:163945] -[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60
+            #     2016-12-31 01:53:08.891 Python[19521:163945] (
+            #              0   CoreFoundation                      0x00007fff936ea452 __exceptionPreprocess + 178
+            #              ...
+            #              97  ???                                 0x0000000000000004 0x0 + 4
+            #     )
+            #     2016-12-31 01:53:08.892 Python[19521:163945] *** Terminating app due to uncaught exception 'NSInvalidArgumentException', reason: '-[NSApplication _setup:]: unrecognized selector sent to instance 0x7fc278fbec60'
+            #     *** First throw call stack:
+            #     (
+            #             0   CoreFoundation 0x00007fff936ea452 __exceptionPreprocess + 178
+            #             ...
+            #             97  ???  0x0000000000000004 0x0 + 4
+            #     )
+            #     libc++abi.dylib: terminating with uncaught exception of type NSException
+            #     Abort trap: 6
+            #
+            # This is a common issue afflicting numerous matplotlib users under
+            # all versions of macOS. The core issue appears to be that the
+            # Xcode-bundled installation of Tcl/Tk is *NOT* usable by Python.
+            # There exist two solutions (in no particular order):
+            #
+            # 1. Reinstall Python to use a Homebrew- or MacPorts-compiled
+            #    installation of Tcl/Tk instead. While this does constitute a
+            #    valid solution for end users, BETSE itself has no means of
+            #    enforcing this dictate and *MUST* thus assume the current
+            #    installation of Tcl/Tk to be the Xcode-bundled version.
+            # 2. Call "matplotlib.pyplot.use('TkAgg')" *BEFORE* the first
+            #    import of the "matplotlib.pyplot" submodule. While BETSE
+            #    itself could technically attempt to enforce this by
+            #    preferentially detecting the "TkAgg" backend *BEFORE* all
+            #    other backends, the "MacOS" backend is always preferable under
+            #    macOS and should thus always be detected first.
+            #
+            # In short, no sane solution exists. The only sane solution is to
+            # refuse to play the game at all.
+            if backend_name == 'tkagg' and oses.is_os_x():
+                raise BetseMatplotlibException(
+                    'Matplotlib backend "TkAgg" unsafe on macOS.')
+
             # Delay importation of this submodule until *ABSOLUTELY*
             # necessary. Importing this submodule implicitly enables the
             # default matplotlib backend (defined by the "backend" RC

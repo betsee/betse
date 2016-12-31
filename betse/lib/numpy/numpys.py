@@ -12,7 +12,7 @@ from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, paths
 from betse.util.type import iterables, regexes, strs, modules
-from betse.util.type.types import NoneType
+from betse.util.type.types import BoolOrNoneTypes
 from collections import OrderedDict
 from numpy import __config__ as numpy_config
 
@@ -74,7 +74,7 @@ See Also
 '''
 
 
-_OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X = {
+_OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_MACOS = {
     # Accelerate. Although Accelerate is only conditionally multithreaded,
     # multithreading is enabled by default and hence a safe assumption.
     '-Wl,Accelerate',
@@ -85,10 +85,10 @@ _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X = {
 '''
 Set of all strings in the `extra_link_args` list of the global
 :data:`numpy.__config__.blas_opt_info` dictionary heuristically corresponding to
-OS X-specific optimized BLAS shared libraries.
+macOS-specific optimized BLAS shared libraries.
 
 Unlike all other such libraries, Numpy does _not_ declare unique dictionary
-globals describing OS X-specific BLAS shared libraries when linked against.
+globals describing macOS-specific BLAS shared libraries when linked against.
 Hence, this lower-level solution.
 '''
 
@@ -139,9 +139,9 @@ def init() -> None:
     # If Numpy linked against an unoptimized BLAS, log a non-fatal warning.
     if not is_blas_optimized():
         logs.log_warning(
-            'Numpy unoptimized, substantially reducing runtime efficiency. '
-            'Consider installing an optimized CBLAS implementation '
-            '(e.g., OpenBLAS, ATLAS, ACML, MKL) and '
+            'Numpy unoptimized; scaling down to single-core operation. '
+            'Consider installing an optimized multithreaded '
+            'CBLAS implementation (e.g., OpenBLAS, ATLAS, ACML, MKL) and '
             'reinstalling Numpy to use this implementation.'
         )
 
@@ -219,7 +219,7 @@ def _init_globals() -> None:
     # substring matching an optimized BLAS substring may either begin or end.
     dirname_boundary_regex = r'[{}_.-]'.format(dirs.SEPARATOR_REGEX)
 
-    #FIXME: What about OS X? Are shared libraries prefixed by "lib" under that
+    #FIXME: What about macOS? Are shared libraries prefixed by "lib" under that
     #platform as well?
 
     # Redefine this global.
@@ -264,18 +264,26 @@ def is_blas_optimized() -> bool:
     for tester_heuristic in (
         _is_blas_optimized_opt_info_libraries,
         _is_blas_optimized_opt_info_library_dirs,
-        #FIXME: Uncomment this heuristic after testing properly.
-        # _is_blas_optimized_opt_info_os_x,
+        _is_blas_optimized_opt_info_macos,
         _is_blas_optimized_posix_symlink,
     ):
         # Attempt to...
         try:
+            # Log the current heuristic being attempted.
+            logs.log_debug(
+                'Detecting BLAS by heuristic %s()...',
+                tester_heuristic.__name__)
+
             # Call this tester, capturing the result for subsequent handling.
             tester_result = tester_heuristic()
 
             # If this tester definitively identified Numpy as either
-            # optimized or non-optimized, return this result.
+            # optimized or non-optimized...
             if tester_result is not None:
+                # Log this result.
+                logs.log_debug('BLAS optimization detected: %r', tester_result)
+
+                # Return this result.
                 return tester_result
             # Else, continue to the next tester.
         # If an error occurs, log that error *WITHOUT* raising an exception.
@@ -289,7 +297,7 @@ def is_blas_optimized() -> bool:
     return False
 
 # ....................{ TESTERS ~ private : opt_info       }....................
-def _is_blas_optimized_opt_info_libraries() -> (bool, NoneType):
+def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
     '''
     `True` only if the first element of the `libraries` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary heuristically
@@ -323,19 +331,19 @@ def _is_blas_optimized_opt_info_libraries() -> (bool, NoneType):
         return False
 
     # List of the uniquely identifying substrings of all BLAS library basenames
-    # this version of Numpy is linked against if any or "None" otherwise.
+    # this version of Numpy is linked against in a high-level manner if any or
+    # "None" otherwise.
+    #
+    # Note that this list is *NOT* guaranteed to exist. When this version of
+    # Numpy is linked against a BLAS library in a low-level manner (e.g., via
+    # "'extra_link_args': ['-Wl,-framework', '-Wl,Accelerate']" on macOS), this
+    # list should *NOT* exist. In most other cases, this list should exist. To
+    # avoid edge cases, this list is ignored if absent.
     blas_basename_substrs = blas_opt_info.get('libraries', None)
 
-    # If this list is either undefined or empty, log a non-fatal warning and
-    # return False. While unfortunate, this is *NOT* worth raising a fatal
-    # exception over. (Unlike the optional "extra_link_args" dictionary key
-    # tested for below, the "libraries" dictionary key is mandatory.)
+    # If this list is either undefined or empty, silently noop.
     if not blas_basename_substrs:
-        logs.log_warning(
-            'Numpy installation misconfigured: '
-            "\"numpy.__config__.blas_opt_info['libraries']\" "
-            'dictionary key not found or empty.')
-        return False
+        return None
     # Else, this list is non-empty.
 
     # First element of this list. For simplicity, this function assumes the
@@ -357,7 +365,7 @@ def _is_blas_optimized_opt_info_libraries() -> (bool, NoneType):
     return None
 
 
-def _is_blas_optimized_opt_info_library_dirs() -> (bool, NoneType):
+def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
     '''
     `True` only if the first element of the `library_dirs` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary heuristically
@@ -370,22 +378,21 @@ def _is_blas_optimized_opt_info_library_dirs() -> (bool, NoneType):
     '''
 
     # List of the dirnames of all BLAS libraries this version of Numpy is linked
-    # against if any or "None" otherwise.
+    # against in a high-level manner if any or "None" otherwise.
     #
     # Note that the "blas_opt_info" dictionary global is guaranteed to exist due
     # to the previously called _is_blas_optimized_opt_info_basename() function.
+    #
+    # Note that this list is *NOT* guaranteed to exist. When this version of
+    # Numpy is linked against a BLAS library in a low-level manner (e.g., via
+    # "'extra_link_args': ['-Wl,-framework', '-Wl,Accelerate']" on macOS), this
+    # list should *NOT* exist. In most other cases, this list should exist. To
+    # avoid edge cases, this list is ignored if absent.
     blas_dirnames = numpy_config.blas_opt_info.get('library_dirs', None)
 
-    # If this list is either undefined or empty, log a non-fatal warning and
-    # return False. While unfortunate, this is *NOT* worth raising a fatal
-    # exception over. (Unlike the optional "extra_link_args" dictionary key
-    # tested for below, the "library_dirs" dictionary key is mandatory.)
+    # If this list is either undefined or empty, silently noop.
     if not blas_dirnames:
-        logs.log_warning(
-            'Numpy installation misconfigured: '
-            "\"numpy.__config__.blas_opt_info['library_dirs']\" "
-            'dictionary key not found or empty.')
-        return False
+        return None
     # Else, this list is non-empty.
 
     # First element of this list. For simplicity, this function assumes the
@@ -407,22 +414,22 @@ def _is_blas_optimized_opt_info_library_dirs() -> (bool, NoneType):
     return None
 
 
-def _is_blas_optimized_opt_info_os_x() -> (bool, NoneType):
+def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     '''
-    `True` only if the current platform is OS X _and_ the `extra_link_args` list
-    of the global :data:`numpy.__config__.blas_opt_info` dictionary both exists
-    _and_ heuristically corresponds to that of an optimized BLAS implementation
-    specific to OS X (e.g., Accelerate, vecLib), `False` if a non-fatal error
-    condition arises (e.g., due this list or dictionary being undefined), _or_
-    `None` otherwise.
+    `True` only if the current platform is macOS _and_ the `extra_link_args`
+    list of the global :data:`numpy.__config__.blas_opt_info` dictionary both
+    exists _and_ heuristically corresponds to that of an optimized BLAS
+    implementation specific to macOS (e.g., Accelerate, vecLib), `False` if a
+    non-fatal error condition arises (e.g., due this list or dictionary being
+    undefined), _or_ `None` otherwise.
 
     This function returns `None` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
 
-    Unlike all other BLAS implementations, OS X-specific BLAS implementations
+    Unlike all other BLAS implementations, macOS-specific BLAS implementations
     are linked against with explicit linker flags rather than pathnames. For
-    further confirmation that the `numpy.__config__.blas_opt_info` dictionary
-    defines these flags when linked against these implementations, see:
+    further confirmation that the :attr:`numpy.__config__.blas_opt_info`
+    dictionary defines these flags when linked to these implementations, see:
 
     * https://trac.macports.org/ticket/22200
     * https://github.com/BVLC/caffe/issues/2677
@@ -430,10 +437,10 @@ def _is_blas_optimized_opt_info_os_x() -> (bool, NoneType):
     When life buys you cat food, you eat cat food.
     '''
 
-    # If the current platform is *NOT* OS X, continue to the next heuristic.
+    # If the current platform is *NOT* macOS, continue to the next heuristic.
     if not oses.is_os_x():
         return None
-    # Else, the current platform is OS X.
+    # Else, the current platform is macOS.
 
     # List of all implementation-specific link arguments with which Numpy linked
     # against the current BLAS implementation if any or "None".
@@ -450,10 +457,11 @@ def _is_blas_optimized_opt_info_os_x() -> (bool, NoneType):
 
     # Set of these arguments, converted from this list for efficiency.
     blas_link_args = set(blas_link_args_list)
+    # logs.log_info('blas_link_args: {}'.format(blas_link_args))
 
     # Subset of this set specific to multithreaded BLAS implementations.
     blas_link_args_multithreaded = (
-        blas_link_args & _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_OS_X)
+        blas_link_args & _OPTIMIZED_BLAS_OPT_INFO_EXTRA_LINK_ARGS_MACOS)
 
     # If this subset is nonempty, return True.
     if len(blas_link_args_multithreaded) > 0:
@@ -463,7 +471,7 @@ def _is_blas_optimized_opt_info_os_x() -> (bool, NoneType):
     return None
 
 # ....................{ TESTERS ~ private : linkage        }....................
-def _is_blas_optimized_posix_symlink() -> (bool, NoneType):
+def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     '''
     `True` only if the current platform is POSIX-compliant and hence supports
     symbolic links _and_ the first element of the `libraries` list of the global
@@ -480,8 +488,8 @@ def _is_blas_optimized_posix_symlink() -> (bool, NoneType):
     if not oses.is_posix():
         return None
 
-    #FIXME: Generalize to OS X as well once the
-    #libs.iter_linked_filenames() function supports OS X.
+    #FIXME: Generalize to macOS as well once the
+    #libs.iter_linked_filenames() function supports macOS.
 
     # If the current platform is *NOT* Linux, continue to the next heuristic.
     #

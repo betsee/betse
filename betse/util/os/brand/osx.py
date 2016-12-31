@@ -88,15 +88,23 @@ def is_aqua() -> bool:
     '''
 
     # Avoid circular import dependencies.
+    from betse.util.path import files
     from betse.util.path.command.exits import SUCCESS
 
     # Raise an exception unless the current platform is OS X.
     die_unless_os_x()
 
+    # Attempt all of the following in a safe manner catching, logging, and
+    # converting exceptions into a false return value. This tester is *NOT*
+    # mission-critical and hence should *NOT* halt the application on
+    # library-specific failures.
     try:
-        # System-wide Macho-O shared library providing the OS X-specific
-        # security context for the current process, dynamically loaded into the
-        # address space of this process.
+        # If the system-wide Macho-O shared library providing the OS X
+        # security context for the current process does *NOT* exist, raise
+        # an exception.
+        files.die_unless_file(_SECURITY_FRAMEWORK_DYLIB_FILENAME)
+
+        # Dynamically load this library into the address space of this process.
         security_framework = CDLL(_SECURITY_FRAMEWORK_DYLIB_FILENAME)
 
         # Possibly non-unique identifier of the security session to request the
