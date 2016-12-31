@@ -375,13 +375,11 @@ class Parameters(object):
         opKir = self.config['additional voltage gated K+']
         opFun = self.config['funny current']
         opCa = self.config['voltage gated Ca2+']
-        opcK = self.config['gated ion channel options']['calcium gated K']
+        opcK = self.config['calcium gated K+']
 
-        # FIXME the options for stretch gated channel coming from wrong place...
         opStretch = self.config['gated ion channel options']['stretch gated Na']
 
         self.flux_threshold = self.config['gated ion channel options']['flux threshold']
-
 
         # voltage gated sodium:
         self.vgNa_bool = opNa['turn on']
@@ -425,7 +423,7 @@ class Parameters(object):
         max_NaSt = float(self.config['stretch gated Na+']['max value'])*1.0e-9
         max_cagK = float(self.config['calcium gated K+']['max value'])*1.0e-9
 
-        cagK = [max_cagK,float(opcK['hill K_half']),float(opcK['hill n'])]
+        cagK = [max_cagK, 1.0e-3, 3.0]
 
         apply_cagK = self.config['calcium gated K+']['apply to']
 

@@ -915,7 +915,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             linewidth=(3.0*magnitude/magnitude_max) + 0.5,
             color=self._p.vcolor,
             cmap=self._colormap,
-            arrowsize=1.5,
+            arrowsize=3.0,
 
             # Draw this streamplot over all patch and line artists, by default.
             # See the "ZORDER_STREAM" docstring for further commentary.

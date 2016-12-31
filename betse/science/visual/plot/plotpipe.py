@@ -457,7 +457,7 @@ def pipeline_plots(
             clrMax=p.Vmem_max_clr,
             number_cells=p.enumerate_cells,
             clrmap=p.default_cm,
-            current_overlay=p.I_overlay,
+            current_overlay=False,
             plotIecm=p.IecmPlot,
         )
 
@@ -481,7 +481,7 @@ def pipeline_plots(
             clrMax=p.Vmem_max_clr,
             number_cells=p.enumerate_cells,
             clrmap=p.default_cm,
-            current_overlay=p.I_overlay,
+            current_overlay=False,
             plotIecm=p.IecmPlot,
         )
 
@@ -528,7 +528,7 @@ def pipeline_plots(
             clrMax=p.Vmem_max_clr,
             number_cells=p.enumerate_cells,
             clrmap=p.default_cm,
-            current_overlay=p.I_overlay,
+            current_overlay = False,
             plotIecm=p.IecmPlot,
         )
 

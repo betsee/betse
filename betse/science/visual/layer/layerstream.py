@@ -150,8 +150,10 @@ class LayerCellsStreamABC(LayerCellsABC):
             # Line widths of all streamlines.
             linewidth=streamlines_width,
 
+            # FIXME: for stillframes an arrow size of about 5.0 is best; for rendered video these
+            # blow up and a size of 3.0 is better. Not that this is important enough to ever get to it :)
             # Factor by which to upscale the size of all streamline arrowheads.
-            arrowsize=1.5,
+            arrowsize=3.0,
         )
 
 

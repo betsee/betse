@@ -102,10 +102,8 @@ general options:
                        # 'basic' (Na+, K+, M-, and proteins-)
                        # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
                        # 'animal' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) typical mammal
-                       # 'scratch' (Na+, K+, Cl-, M- and proteins) intra extra values close
-                       # 'xenopus' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) freshwater environment
                        # 'customized' (user-specified settings, see below)
-                       # profiles contain an unidentified charge-balance anion, M-
+                       # (all profiles contain an unidentified charge-balance anion, M-)
 
 
   customized ion profile:      # set user-defined initial values of ion concentrations
@@ -145,15 +143,15 @@ world options:
                           # recommended range 80e-6 to 1000e-6 m
 
   cell radius: 5e-6       # radius of single cell [m]
-                          # recommended range 3.5e-6 to 20e-6 m
+                          # recommended ~ 5.0e-6
 
   cell height: 10.0e-6     # the height of a cell in the z-direction [m]
                           # used in cell volume and surface area calculations
-                          # recommended range 1.0e-6 to 10e-6 m
+                          # recommended 10.0e-6
 
   cell spacing: 26.0e-9       # the spacing between cells [m]
                               # recommended 26.0e-9 m for animal cells
-                              # 1.0e-6 for plant cells and animal cells with heavy extracellular matrix
+
 
   lattice type: hex           # form of the base lattice (before adding lattice disorder)
                               # options: 'hex' for hegagonal or 'rect' for rectilinear
@@ -376,7 +374,11 @@ cutting event:
       Km inhibitors: None      # list of half-maximum values for inhibitors
       n inhibitors: None        # list of Hill exponent of inhibitors
 
-
+#-----------------------------------------------------------------------------------------------------------------------
+# MODULATOR FUNCTION PROPERTIES
+#-----------------------------------------------------------------------------------------------------------------------
+# These are spatial or temporal functions, modifiable at any phase, that let you set a spatial gradient of production
+# rate or other effect, or define a time periodic signal for production or other effect. Alter their parameters here.
 
 modulator function properties:   # set properties of modulating functions which may be used in above:
 
@@ -417,31 +419,31 @@ voltage gated Na+:
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
                                   # 'NavRat1', 'NaVRat2'
-    max value: 5.0e-6             # maximum channel conductivity when channel fully open [S/m2]
+    max value: 5.0e-6             # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 5.0e-5)
 
 persistent vg Na+:
     turn on: False                 # voltage gated sodium channel with persistant current
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p6']         # available types: 'Nav1p6' (persistent brain)
-    max value: 1.0e-5             # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-7             # maximum channel conductivity when channel fully open [S/m2] (1.0e-8 to 1.0e-6)
 
-stretch gated Na+:         # stretch activated depolarization (Na+) channel
+stretch gated Na+:         # mechano-sensitive Na+/K+ cation channel channel
     turn on: False
     apply to: ['all']          # tissue profile(s) to apply to
-    max value: 1.0e-5         # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-8         # maximum channel conductivity when channel fully open [S/m2] (1.0e-8 to 1.0e-6)
 
 voltage gated K+:             # voltage gated potassium channel, delayed rectifyer
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
-    channel type: ['K_Slow','K_Fast']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
+    channel type: ['K_Slow','Kv1p3']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
                                            # 'K_Slow', 'K_Fast', 'Kv2p1'
-    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (5.0e-6 to 1.0e-7)
 
 additional voltage gated K+:    # Other types of K+ currents including inward-rectifying
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)
-    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (5.0e-6 to 1.0e-7)
 
 calcium gated K+:              # calcium gated potassium channel
     turn on: False
@@ -452,13 +454,13 @@ funny current:                 # "funny current" K+/Na+ channel
     turn on: False
     apply to: ['all']
     channel type: ['HCN4']         # available types: 'HCN1', 'HCN2' or 'HCN4'
-    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 1.0e-7)
 
 voltage gated Ca2+:            # voltage gated calcium channel
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
     channel type: ['Ca_L']        # available types: 'Ca_L', 'Ca_T', 'Ca_PQ'
-    max value: 5.0e-7        # maximum channel conductivity when channel fully open [S/m2]
+    max value: 5.0e-7        # maximum channel conductivity when channel fully open [S/m2] (1.0e-7 to 1.0e-4)
 
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell
@@ -651,7 +653,7 @@ variable settings:
   pressures:
 
     include osmotic pressure: False    # include osmotic pressure in flow & deformation?
-    membrane water conductivity: 1e-3   # mem conductivity for osmotic inflow (aquaporin per unit surface) (~ 1e-3)
+    membrane water conductivity: 1e-2   # mem conductivity for osmotic inflow (aquaporin per unit surface) (~ 1e-3)
 
 
   noise:
@@ -696,8 +698,8 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
-  use Goldman calculator: True   # calculate alternative Vmem using GHK
-                                  # equation for model params and plot results?
+  use Goldman calculator: True   # calculate alternative Vmem using the Goldman
+                                  # equation for comparison purposes?
 
 # ----------------------------------------------------------------------------------------------------------------------
 # RESULTS
@@ -981,15 +983,15 @@ gated ion channel options:   # changing these will alter network dynamics -- but
 
     flux threshold: 1.0e-4     # flux cut off maximum
 
-    calcium gated K:
+#    calcium gated K:
+#
+#        hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
+#        hill n: 3                   # Hill function coefficient
 
-        hill K_half: 7.5e-4         # half-maxium activity coefficient for Hill function [mmol/L]
-        hill n: 3                   # Hill function coefficient
+    stretch gated Na:          # parameters for the mechano-sensitive ion channel
 
-    stretch gated Na:
-
-        hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as strain)
-        hill n: 3                   # Hill function coefficient
+        hill K_half: 0.2         # half-maxium activity coefficient for Hill function (as level of cell strain)
+        hill n: 3                 # Hill function coefficient
 
 
 internal parameters:
@@ -1010,9 +1012,9 @@ internal parameters:
 
   alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
+  gaussian smoothing: 0.5    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
-  smooth concentrations: False   # apply gaussian smoothing to substance concentration?
+  smooth concentrations: False   # apply gaussian smoothing to concentrations?
 
   substances affect Vmem: False  # do ionic biochemicals, metabolites and gene products affect charge state?
 
@@ -1020,14 +1022,14 @@ internal parameters:
 
   membrane capacitance: 0.05 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
-  media resistivity: 0.5  # electrical resistivity of bulk electrolyte (Ohms.m)
+  media resistivity: 1.0  # electrical resistivity of bulk electrolyte (Ohms.m)
 
-  cell polarizability: 0.0  # constant affecting cell polarizability in electric fields (100 to 1.0e8)
+  cell polarizability: 0.0  # constant defining cell polarizability in electric fields (100 to 1.0e8)
                             # low f dielectric constant see: http://niremf.ifac.cnr.it/tissprop/htmlclie/htmlclie.php
 
   tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m) 50.0 not uncommon see link above
 
-  time acceleration: 1.0 # factor accelerating time for slow processes (GJ diffusion)
+  time acceleration: 1.0 # factor accelerating time for slow process of GJ diffusion
 
 
 # Configuration file version that this file conforms to. For reliable

@@ -383,11 +383,11 @@ class Cells(object):
             # self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
             # self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-            logs.log_info('Creating environmental Poisson solver for currents...')
-            bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-            self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+            # logs.log_info('Creating environmental Poisson solver for currents...')
+            # bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
+            # self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
-            logs.log_info('Creating environmental Poisson solver for voltages...')
+            logs.log_info('Creating environmental Poisson solver...')
             self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
 
             self.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...

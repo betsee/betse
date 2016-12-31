@@ -790,17 +790,17 @@ class Simulator(object):
             self.u_gj_x = np.zeros(self.mdl)
             self.u_gj_y = np.zeros(self.mdl)
 
-            if p.sim_ECM is True and cells.lapENV_P_inv is None:
+            if p.sim_ECM is True:
 
                 # initialize flow vectors:
                 self.u_env_x = np.zeros(cells.X.shape)
                 self.u_env_y = np.zeros(cells.X.shape)
 
-                logs.log_info('Creating environmental Poisson solver for fluids...')
-                bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
-                cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
-
-                cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
+                # logs.log_info('Creating environmental Poisson solver for fluids...')
+                # bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
+                # cells.lapENV_P, cells.lapENV_P_inv = cells.grid_obj.makeLaplacian(bound=bdic)
+                #
+                # cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
         if p.deformation is True:  # if user desires deformation:
 
@@ -1542,27 +1542,6 @@ class Simulator(object):
                                                                                                    :, 3]
         self.vm = self.vm + (1 / p.cm)*sig_mem
 
-        # # polarization vectors at the membranes:
-        # pol_mem_x = self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,2]
-        # pol_mem_y = self.vm*p.cm*p.tm*cells.mem_sa*cells.mem_vects_flat[:,3]
-        #
-        # # calculate polarization vectors for individual cells:
-        # self.pol_cell_x = np.dot(cells.M_sum_mems, pol_mem_x)/cells.num_mems
-        # self.pol_cell_y = np.dot(cells.M_sum_mems, pol_mem_y)/cells.num_mems
-        #
-        # # polarization density for whole cluster:
-        # self.Pol_x = np.sum(pol_mem_x)*(self.mdl/np.sum(cells.cell_vol))
-        #
-        # self.Pol_y = np.sum(pol_mem_y)*(self.mdl/np.sum(cells.cell_vol))
-        #
-        # self.Pol_tot = np.sqrt(self.Pol_x**2 + self.Pol_y**2)
-        #
-        # # calculate a vector potential based on current density:
-        # self.Ax = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_x/cells.geom_weight)
-        # self.Ay = -1.23e-6*np.dot(cells.lapGJ_P_inv, self.J_cell_y/cells.geom_weight)
-        #
-        # _, _, self.Bz = cells.curl(self.Ax, self.Ay, 0)
-
     def acid_handler(self, cells, p) -> None:
         '''
         Update H+ concentrations in both the cell cluster and environment,
@@ -1655,19 +1634,19 @@ class Simulator(object):
         # midpoint concentration:
         c = (conc_mem[cells.nn_i] + conc_mem[cells.mem_i])/2
 
-        # # electroosmotic fluid velocity at gap junctions:
-        # if p.fluid_flow is True:
-        #     ux = self.u_cells_x[cells.mem_to_cells]
-        #     uy = self.u_cells_y[cells.mem_to_cells]
-        #
-        # else:
-        #
-        #     ux = 0
-        #     uy = 0
+        # electroosmotic fluid velocity at gap junctions:
+        if p.fluid_flow is True:
+            ux = self.u_cells_x[cells.mem_to_cells]
+            uy = self.u_cells_y[cells.mem_to_cells]
+
+        else:
+
+            ux = 0
+            uy = 0
 
 
         fgj_x, fgj_y = stb.nernst_planck_flux(c, gcx, gcy, -self.E_gj_x,
-                                          -self.E_gj_y, 0, 0,
+                                          -self.E_gj_y, ux, uy,
                                               p.gj_surface*self.gjopen*self.D_gj[i],
                                               self.zs[i],
                                               self.T, p)
@@ -1700,18 +1679,18 @@ class Simulator(object):
 
         gcx, gcy = fd.gradient(cenv, cells.delta)
 
-        # if p.fluid_flow is True:
-        #
-        #     ux = self.u_env_x
-        #     uy = self.u_env_y
-        #
-        # else:
-        #
-        #     ux = np.zeros(cells.X.shape)
-        #     uy = np.zeros(cells.X.shape)
+        if p.fluid_flow is True:
+
+            ux = self.u_env_x
+            uy = self.u_env_y
+
+        else:
+
+            ux = np.zeros(cells.X.shape)
+            uy = np.zeros(cells.X.shape)
 
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
-        fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, 0, 0,
+        fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
                                           self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
 
         fx = fxo

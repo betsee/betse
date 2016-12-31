@@ -32,11 +32,11 @@ class EndoRetic(object):
         self.er_vol = 0.1*cells.cell_vol     # er volume
         self.er_sa = 1.0*cells.cell_sa      # er surface areas
         self.Ver = np.zeros(sim.cdl)   # initial trans-membrane voltage for er
-        self.Q = np.zeros(sim.cdl)     # total charge in mit
-        self.cm_er = self.er_sa*p.cm    # mit membrane capacitance
+        self.Q = np.zeros(sim.cdl)     # total charge in ER
+        self.cm_er = p.cm    # ER membrane capacitance
 
         sim.cc_er = copy.deepcopy(sim.cc_cells)    # ion concentrations
-        sim.cc_er[sim.iCa][:] = 0.1                # initial concentration in the ER
+        sim.cc_er[sim.iCa][:] = 0.2                # initial concentration in the ER
         self.Dm_er = copy.deepcopy(sim.cc_cells)    # membrane permeability
 
         for arr in self.Dm_er:
@@ -53,8 +53,9 @@ class EndoRetic(object):
 
     def get_v(self, sim, p):
 
-        self.Q = stb.get_charge(sim.cc_er, self.zer, self.er_vol, p)
-        self.Ver = (1/self.cm_er)*self.Q
+        self.Q = np.sum(self.zer*p.F*sim.cc_er, axis = 0)
+
+        self.Ver = (1/self.cm_er)*self.Q*(self.er_vol/self.er_sa)
 
     def update(self, sim, cells, p):
 
