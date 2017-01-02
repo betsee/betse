@@ -10,7 +10,7 @@ intracellular and extracellular simulated fields and current density fields.
 # ....................{ IMPORTS                            }....................
 from betse.lib.numpy import arrays
 from betse.science.vector.fieldabc import VectorFieldSimmedABC
-from betse.util.type.obj.objs import property_cached
+from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from numpy import ndarray
 from scipy import interpolate

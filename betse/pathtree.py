@@ -191,7 +191,7 @@ def _init_pathnames_top() -> None:
     # Initialize the absolute path of betse's dot directory.
     #
     # If the current system is OS X, set this directory accordingly.
-    if oses.is_os_x():
+    if oses.is_macos():
         DOT_DIRNAME = paths.join(
             HOME_DIRNAME,
             'Library', 'Application Support',

@@ -21,7 +21,7 @@ from os import path
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
     '''
-    Raise an exception unless the passed non-directory file exists _after_
+    Raise an exception unless the passed path is a non-directory file _after_
     following symbolic links.
 
     See Also
@@ -37,8 +37,8 @@ def die_unless_file(pathname: str) -> None:
 # ....................{ EXCEPTIONS ~ if                    }....................
 def die_if_file(pathname: str) -> None:
     '''
-    Raise an exception if the passed non-directory file exists _after_ following
-    symbolic links.
+    Raise an exception if the passed path is a non-directory file _after_
+    following symbolic links.
 
     See Also
     ----------
@@ -52,7 +52,7 @@ def die_if_file(pathname: str) -> None:
 
 def die_if_special(pathname: str) -> None:
     '''
-    Raise an exception if the passed path is an existing special path.
+    Raise an exception if the passed path is a special file.
 
     See Also
     ----------
@@ -71,22 +71,22 @@ def die_if_special(pathname: str) -> None:
 # ....................{ TESTERS                            }....................
 def is_file(pathname: str) -> bool:
     '''
-    `True` only if the passed path is an existing non-directory file exists
-    _after_ following symbolic links.
+    `True` only if the passed path is a non-directory file _after_ following
+    symbolic links.
 
     This function does _not_ raise an exception if this path does not exist.
 
     Versus `path.isfile()`
     ----------
-    This function intrinsically differs from the standard `path.isfile()`
+    This function intrinsically differs from the standard :func:`path.isfile`
     function. While the latter returns `True` only for non-special files and
     hence `False` for all non-directory special files (e.g., device nodes,
     sockets), this function returns `True` for _all_ non-directory files
-    regardless of whether such files are special or not.
+    regardless of whether these files are special or not.
 
     **Why?** Because this function complies with POSIX semantics, whereas
-    `path.isfile()` does _not_. The specialness of non-directory files is
-    usually irrelevant; in general, it only matters whether such files are
+    :func:`path.isfile` does _not_. The specialness of non-directory files is
+    usually irrelevant; in general, it only matters whether these files are
     directories or not. For example, the external command `rm` removes only
     non-directory files (regardless of specialness) while the external command
     `rmdir` removes only empty directories.
@@ -101,9 +101,8 @@ def is_file(pathname: str) -> bool:
 
 def is_file_executable(pathname: str) -> bool:
     '''
-    `True` only if the passed path is an **executable file** (i.e., existing
-    non-directory file with the executable bit enabled _after_ following
-    symbolic links).
+    `True` only if the passed path is an **executable non-directory file**
+    (i.e., file with the execute bit enabled) _after_ following symbolic links.
 
     This function does _not_ raise an exception if this path does not exist.
     '''
@@ -113,6 +112,8 @@ def is_file_executable(pathname: str) -> bool:
     return is_file(pathname) and os.access(pathname, os.X_OK)
 
 
+#FIXME: Given that this function resides in the "files" submodule, shouldn't
+#this function return False rather than True when passed a directory pathname?
 def is_special(pathname: str) -> bool:
     '''
     `True` only if the passed path is an existing **special file** (e.g.,
@@ -124,11 +125,11 @@ def is_special(pathname: str) -> bool:
     # Avoid circular import dependencies.
     from betse.util.path import paths
 
-    # True if such path exists and...
+    # True if this path exists and...
     return paths.is_path(pathname) and (
         # ...is either a symbolic link *OR* neither a regular file nor symbolic
         # link to such a file. In the latter case, predicate logic guarantees
-        # such file to *NOT* be a symbolic link, thus reducing this test to:
+        # this file to *NOT* be a symbolic link, thus reducing this test to:
         # "...is either a symbolic link *OR* not a regular file."
         is_symlink(pathname) or not path.isfile(pathname))
 
@@ -136,7 +137,8 @@ def is_special(pathname: str) -> bool:
 @type_check
 def is_symlink(pathname: str) -> bool:
     '''
-    `True` only if the passed path is an existing symbolic link.
+    `True` only if the passed path is an existing symbolic link _before_
+    following symbolic links.
 
     This function does _not_ raise an exception if this path does not exist.
     '''
@@ -148,7 +150,8 @@ def is_symlink(pathname: str) -> bool:
 def is_symlink_valid(pathname: str) -> bool:
     '''
     `True` only if the passed path is an existing **non-dangling symbolic link**
-    (i.e., symbolic link whose target also exists).
+    (i.e., symbolic link whose target also exists) _before_ following symbolic
+    links.
 
     This function does _not_ raise an exception if this path does not exist.
     '''

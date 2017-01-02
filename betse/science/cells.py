@@ -17,7 +17,7 @@ from betse.science import finitediff as fd
 from betse.science import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
-from betse.util.type.obj.objs import property_cached
+from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check
 from numpy import ndarray
 from scipy import interpolate as interp

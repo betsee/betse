@@ -140,7 +140,7 @@ def get_command_line_prefix() -> list:
 
     # If this is OS X, this interpreter is only unambiguously runnable via the
     # OS X-specific "arch" command.
-    if oses.is_os_x():
+    if oses.is_macos():
         # Run the "arch" command.
         command_line = ['arch']
 

@@ -77,35 +77,44 @@ class BetseCLIArgParserException(SystemExit):
     pass
 
 # ....................{ EXCEPTIONS ~ callable              }....................
-class BetseDecoratorException(BetseException):
+class BetseCallableException(BetseException):
+    '''
+    General-purpose exception applicable to all **callables** (e.g., functions,
+    lambdas, methods, properties).
+    '''
+    pass
+
+
+class BetseDecoratorException(BetseCallableException):
     '''
     Decorator-specific exception.
     '''
     pass
 
 
-class BetseFunctionException(BetseException):
+class BetseFunctionException(BetseCallableException):
     '''
     Function-specific exception.
     '''
     pass
 
 
-class BetseLambdaException(BetseException):
+class BetseLambdaException(BetseCallableException):
     '''
     Lambda-specific exception.
     '''
     pass
 
 
-class BetseMethodException(BetseException):
+class BetseMethodException(BetseCallableException):
     '''
     Method-specific exception.
     '''
     pass
 
 
-class BetseMethodUnimplementedException(BetseException, NotImplementedError):
+class BetseMethodUnimplementedException(
+    BetseCallableException, NotImplementedError):
     '''
     Unimplemented method-specific exception.
 
@@ -129,12 +138,12 @@ class BetseMethodUnimplementedException(BetseException, NotImplementedError):
 # ....................{ EXCEPTIONS ~ lib                   }....................
 class BetseLibException(BetseException):
     '''
-    General-purpose exception pertaining to third-party dependencies.
+    General-purpose exception applicable to third-party dependencies.
     '''
     pass
 
 
-class BetseMatplotlibException(BetseException):
+class BetseMatplotlibException(BetseLibException):
     '''
     Matplotlib-specific exception.
     '''

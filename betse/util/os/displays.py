@@ -11,9 +11,12 @@ High-level operating system (OS)-specific display facilities.
 #osx.is_aqua() function in particular would be useful to a wide audience.
 
 # ....................{ IMPORTS                            }....................
+from betse.util.type.callables import callable_cached
 from collections import OrderedDict
 
 # ....................{ TESTERS                            }....................
+# For efficiency, cache the returned boolean for the duration of this process.
+@callable_cached
 def is_headfull() -> bool:
     '''
     `True` only if the active Python interpreter is running **headfull** (i.e.,
@@ -23,7 +26,7 @@ def is_headfull() -> bool:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
-    from betse.util.os.brand import osx
+    from betse.util.os.brand import macos
     from betse.util.os.shell import envs
 
     # The current process is headfull if and only if...
@@ -56,7 +59,7 @@ def is_headfull() -> bool:
         (oses.is_linux() and envs.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY',)) or
 
         # If this is OS X, the only remaining display server is Aqua.
-        (oses.is_os_x() and osx.is_aqua())
+        (oses.is_macos() and macos.is_aqua())
 
         # Else, this platform is unrecognized. For safety, this platform is
         # assumed to be headless.

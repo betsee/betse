@@ -404,24 +404,24 @@ _PARAMETER_KIND_IGNORED = {
     Parameter.POSITIONAL_ONLY, Parameter.VAR_KEYWORD,
 }
 '''
-Set of all `inspect.Parameter.kind` constants to be ignored during annotation-
-based type checking in the `@type_check` decorator.
+Set of all :attr:`inspect.Parameter.kind` constants to be ignored during
+annotation-based type checking in the :func:`type_check` decorator.
 
 This includes:
 
 * Constants specific to variadic parameters (e.g., `*args`, `**kwargs`).
   Variadic parameters cannot be annotated and hence cannot be type checked.
 * Constants specific to positional-only parameters, which apply to non-pure-
-  Python callables (e.g., defined by C extensions). The `@type_check` decorator
-  applies _only_ to pure-Python callables, which provide no syntactic means for
-  specifying positional-only parameters.
+  Python callables (e.g., defined by C extensions). The :func:`type_check`
+  decorator applies _only_ to pure-Python callables, which provide no syntactic
+  means for specifying positional-only parameters.
 '''
 
 
 _RETURN_ANNOTATION_IGNORED = {Signature.empty, None}
 '''
 Set of all annotations for return values to be ignored during annotation-
-based type checking in the `@type_check` decorator.
+based type checking in the :func:`type_check` decorator.
 
 This includes:
 

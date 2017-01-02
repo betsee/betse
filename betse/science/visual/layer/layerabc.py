@@ -43,7 +43,7 @@ import numpy as np
 from abc import ABCMeta, abstractmethod, abstractproperty
 from betse.lib.numpy import arrays
 from betse.util.py import references
-from betse.util.type.obj.objs import property_cached
+from betse.util.type.callables import property_cached
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceTypes, SequenceOrNoneTypes,)
 from numpy import ndarray

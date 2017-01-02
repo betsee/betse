@@ -11,7 +11,7 @@ import numpy as np
 from abc import ABCMeta, abstractproperty
 from betse.exceptions import BetseSimConfigException
 from betse.util.py import references
-from betse.util.type.obj.objs import property_cached
+from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, NumericTypes
 from numpy import ndarray
 

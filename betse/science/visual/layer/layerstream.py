@@ -33,7 +33,7 @@ from betse.science.vector.fieldelectric import (
 )
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
-from betse.util.type.obj.objs import property_cached
+from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
 

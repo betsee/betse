@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Apple OS X-specific facilities.
+Apple macOS-specific facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -17,7 +17,7 @@ _SECURITY_FRAMEWORK_DYLIB_FILENAME = (
     '/System/Library/Frameworks/Security.framework/Security')
 '''
 Absolute path of the system-wide `Security.framework` Macho-O shared library
-providing the OS X-specific security context for the current process.
+providing the macOS-specific security context for the current process.
 
 This library is dynamically loadable into the address space of the current
 process with the :class:`ctypes.CDLL` class. Since all Macho-O shared libraries
@@ -27,7 +27,7 @@ necessarily have the filetype `dylib`, this filetype is safely omitted here.
 
 _SECURITY_SESSION_ID_CURRENT = -1
 '''
-Magic integer defined as `callerSecuritySession` by the OS X-specific
+Magic integer defined as `callerSecuritySession` by the macOS-specific
 `/System/Library/Frameworks/Security.Framework/Headers/AuthSession.h` C header
 suitable for passing to C functions accepting parameters of C type
 `SecuritySessionId` (e.g., `SessionGetInfo()`).
@@ -44,7 +44,7 @@ https://opensource.apple.com/source/libsecurity_authorization/libsecurity_author
 
 _SECURITY_SESSION_HAS_GRAPHIC_ACCESS = 0x0010
 '''
-Bit flag defined as `sessionHasGraphicAccess` by the OS X-specific
+Bit flag defined as `sessionHasGraphicAccess` by the macOS-specific
 `/System/Library/Frameworks/Security.Framework/Headers/AuthSession.h` C header
 masking the attributes bit field returned by the `SessionGetInfo()` C function
 also declared by that header.
@@ -59,49 +59,50 @@ https://opensource.apple.com/source/libsecurity_authorization/libsecurity_author
 '''
 
 # ....................{ EXCEPTIONS                         }....................
-def die_unless_os_x() -> None:
+def die_unless_macos() -> None:
     '''
-    Raise an exception unless the current platform is Apple OS X.
+    Raise an exception unless the current platform is Apple macOS.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
 
-    # If the current platform is *NOT* OS X, raise an exception.
-    if not oses.is_os_x():
+    # If the current platform is *NOT* macOS, raise an exception.
+    if not oses.is_macos():
         raise BetseOSException(
-            'Current platform {} not OS X.'.format(oses.get_name()))
+            'Current platform {} not macOS.'.format(oses.get_name()))
 
 # ....................{ TESTERS                            }....................
 def is_aqua() -> bool:
     '''
     `True` only if the current process has access to the Aqua display server
-    specific to OS X, implying this process to be headfull rather than headless.
+    specific to macOS, implying this process to be headfull and hence support
+    both CLIs and GUIs.
 
     See Also
     ----------
     https://developer.apple.com/library/content/technotes/tn2083/_index.html#//apple_ref/doc/uid/DTS10003794-CH1-SUBSECTION19
         "Security Context" subsection of "Technical Note TN2083: Daemons and
         Agents," a psuedo-human-readable discussion of the
-        `sessionHasGraphicAccess` bit flag returned by the `SessionGetInfo()` C
-        function.
+        `sessionHasGraphicAccess` bit flag returned by the low-level
+        `SessionGetInfo()` C function.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.path import files
     from betse.util.path.command.exits import SUCCESS
 
-    # Raise an exception unless the current platform is OS X.
-    die_unless_os_x()
+    # Raise an exception unless the current platform is macOS.
+    die_unless_macos()
 
     # Attempt all of the following in a safe manner catching, logging, and
     # converting exceptions into a false return value. This tester is *NOT*
     # mission-critical and hence should *NOT* halt the application on
     # library-specific failures.
     try:
-        # If the system-wide Macho-O shared library providing the OS X
-        # security context for the current process does *NOT* exist, raise
-        # an exception.
+        # If the system-wide Macho-O shared library providing the macOS
+        # security context for the current process does *NOT* exist (after
+        # following symbolic links), raise an exception.
         files.die_unless_file(_SECURITY_FRAMEWORK_DYLIB_FILENAME)
 
         # Dynamically load this library into the address space of this process.
@@ -138,11 +139,11 @@ def is_aqua() -> bool:
             session_attributes.value & _SECURITY_SESSION_HAS_GRAPHIC_ACCESS
         )
 
-    # If the above logic fails with a low-level exception...
-    except OSError as exc:
+    # If the above logic fails with any exception...
+    except Exception as exc:
         # Log a non-fatal warning informing users of this failure.
         logs.log_warning(
-            'OS X-specific SessionGetInfo() C function failed: {}'.format(
+            'macOS-specific SessionGetInfo() C function failed: {}'.format(
                 exc.strerror))
 
         # Assume this process to *NOT* have access to the Aqua display server.

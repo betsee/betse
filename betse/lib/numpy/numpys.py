@@ -438,7 +438,7 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     '''
 
     # If the current platform is *NOT* macOS, continue to the next heuristic.
-    if not oses.is_os_x():
+    if not oses.is_macos():
         return None
     # Else, the current platform is macOS.
 

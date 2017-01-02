@@ -14,10 +14,11 @@ Caveats
 
 # ....................{ IMPORTS                            }....................
 import platform
-from betse.util.os import oses
+from betse.util.type.callables import callable_cached
 from collections import OrderedDict
 
 # ....................{ GETTERS                            }....................
+@callable_cached
 def get_name() -> str:
     '''
     Machine-readable name of the current kernel.
@@ -27,7 +28,7 @@ def get_name() -> str:
     dictionaries keyed on kernel type). This function returns:
 
     * Under Linux, `Linux`.
-    * Under OS X, `Darwin`.
+    * Under macOS, `Darwin`.
     * Under Windows (both Cygwin and vanilla), `Windows`.
     * Under all other platforms, the string returned by the `platform.system()`
       function.
@@ -38,6 +39,7 @@ def get_name() -> str:
     return platform.system()
 
 
+@callable_cached
 def get_version() -> str:
     '''
     Human-readable `.`-delimited version specifier of the current kernel.
@@ -45,16 +47,19 @@ def get_version() -> str:
     This function returns:
 
     * Under Linux, the current Linux kernel version (e.g., `4.1.15-gentoo-r1`),
-    * Under OS X, the current XNU kernel version (e.g., `13.0.0`).
+    * Under macOS, the current XNU kernel version (e.g., `13.0.0`).
     * Under Windows, the current Windows API version (e.g., `6.2.9200`).
     * Under all other platforms, the string returned by both the
       `get_version()` and `platform.release()` functions.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.os import oses
+
     # Version specifier to be returned, defaulting to that returned by
     # platform.release(). While this typically corresponds to the low-level
     # version of the current kernel (e.g., "4.1.15" under Linux, "13.0.0" under
-    # OS X), this is *NOT* necessarily the case (e.g., "8" rather than
+    # macOS), this is *NOT* necessarily the case (e.g., "8" rather than
     # "6.2.9200" under Windows). Hence, this is only a fallback.
     kernel_version = platform.release()
 
@@ -65,7 +70,7 @@ def get_version() -> str:
     # is ignored when feasible.
     if oses.is_windows() and hasattr(platform, 'win32_ver'):
         kernel_version = platform.win32_ver()[1]
-    # If Linux, OS X, or other platforms, accept the default version specifier
+    # If Linux, macOS, or other platforms, accept the default version specifier
     # returned by platform.release() (e.g., "4.1.15", "13.0.0").
 
     # Return this version.

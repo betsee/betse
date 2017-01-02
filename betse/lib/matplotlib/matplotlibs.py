@@ -90,11 +90,11 @@ Footnote descriptions are as follows:
 import sys
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
-from betse.util.os import kernels, oses
+from betse.util.os import displays, kernels, oses
 from betse.util.path import dirs, paths
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
-from betse.util.type.obj.objs import property_cached
+from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, StrOrNoneTypes
 from collections import OrderedDict
 from contextlib import contextmanager
@@ -120,7 +120,7 @@ defined by that file.
 '''
 
 # ....................{ CONSTANTS ~ private                }....................
-_BACKEND_NAME_FALLBACK = 'Agg'
+_BACKEND_NAME_HEADLESS = 'Agg'
 '''
 Name of the non-GUI-based matplotlib backend to fallback to in the event that
 *NO* GUI-based matplotlib backend is usable on this system. For portability,
@@ -401,48 +401,26 @@ class MatplotlibConfig(object):
             application requirements (_in descending order of preference_).
         '''
 
-        # If an explicit backend is requested, enable this backend.
+        # If a specific backend is requested, enable this backend and return.
         if backend_name is not None:
             self.backend_name = backend_name
             return
+        # Else, no specific backend is requested.
 
-        #FIXME: Add transparent support for headless environments here, for
-        #which we'll want to default to a headless backend as we currently do
-        #when testing (e.g., "Agg"). To do so, add OS-specific logic testing
-        #for the presence of a windowing manager as follows:
-        #
-        #* Under Linux, test for (in order):
-        #  * X11 connectivity.
-        #  * Wayland connectivity.
-        #  * Mir connectivity.
-        #* Under OS X and Windows, don't bother testing anything. Windows
-        #  explicitly fails to support headless operation. OS X technically
-        #  supports headless operation via an obscure (albeit well-documented)
-        #  hack where one enters ">console" as the login username, but
-        #  basically fails to support headless operation for most intents and
-        #  purposes.
-        #
-        #This is critical under Linux, as it would render BETSE amenable to
-        #scripted, remote, and (hopefully) parallelized usage.
-        #FIXME: Actually, is the above comment relevant anymore in light of the
-        #inclusion of the headless "Agg" backend listed below? Specifically,
-        #are non-headless backends (e.g., "TkAgg") actually importable under
-        #headless environments? Hopefully, this is *NOT* the case. If this is
-        #indeed not the case, then no further work needs be done; the logic
-        #below already implicitly handles headless environments.
-        #FIXME: Sadly, non-headless backends do indeed appear to be importable
-        #under headless environments -- which doesn't quite seem right and
-        #should thus be examined further. Our backend usability inspection
-        #logic is probably irrepairably broken.
-        #
-        #In any case, we've implemented a new
-        #betse.util.os.displays.is_headless() function. Once this function has
-        #been manually validated to operate as expected under all supported
-        #platforms (notably, OS X), call this function below, please.
+        # If this process is headless and hence supports only CLIs...
+        if displays.is_headless():
+            # Log this observation.
+            logs.log_info(
+                'Headless display environment detected. '
+                'Defaulting to non-GUI backend "%s". ',
+                _BACKEND_NAME_HEADLESS)
 
-        # Else, tests are *NOT* being run. Default to the first backend usable
-        # under the current system.
-        #
+            # Default to a headless backend and return.
+            self.backend_name = _BACKEND_NAME_HEADLESS
+            return
+        # Else, this process is headfull and hence supports GUIs. Default to
+        # the first backend usable under the current system.
+
         # Name of the current platform (e.g., "Linux", "Darwin", "Windows").
         kernel_name = kernels.get_name()
 
@@ -467,12 +445,12 @@ class MatplotlibConfig(object):
         else:
             # If the fallback non-GUI-based backend is usable, log a non-fatal
             # warning and default to this backend.
-            if self.is_backend_usable(_BACKEND_NAME_FALLBACK):
+            if self.is_backend_usable(_BACKEND_NAME_HEADLESS):
                 logs.log_warning(
                     'Usable matplotlib GUI backend not found. '
                     'Defaulting to non-GUI backend "%s". '
                     'Consider installing support for GUI backends %s.',
-                    _BACKEND_NAME_FALLBACK,
+                    _BACKEND_NAME_HEADLESS,
                     strs.join_as_disconjunction_double_quoted(*backend_names),
                 )
             # Else, no backends appear to be usable on the current system. For
@@ -1043,7 +1021,7 @@ class MatplotlibConfig(object):
             #
             # In short, no sane solution exists. The only sane solution is to
             # refuse to play the game at all.
-            if backend_name == 'tkagg' and oses.is_os_x():
+            if backend_name == 'tkagg' and oses.is_macos():
                 raise BetseMatplotlibException(
                     'Matplotlib backend "TkAgg" unsafe on macOS.')
 
