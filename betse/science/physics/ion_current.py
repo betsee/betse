@@ -54,61 +54,58 @@ def get_current(sim, cells, p):
         # conductivity in the media is modified by the environmental diffusion weight matrix:
         sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
 
-        # double layer thickness:
-        dlnumero = (p.er * p.eo * p.kb * p.T)
-        dldenomo = np.dot(p.NAv*(p.q*sim.zs)**2, sim.cc_env)
-
-        dl = (np.sqrt(dlnumero/dldenomo))
-
-        # capacitance of the double layer
-        Cedl = (p.eo * p.er) / dl
+        # # double layer thickness:
+        # dlnumero = (p.er * p.eo * p.kb * p.T)
+        # dldenomo = np.dot(p.NAv*(p.q*sim.zs)**2, sim.cc_env)
+        #
+        # dl = (np.sqrt(dlnumero/dldenomo))
+        #
+        # # capacitance of the double layer
+        # Cedl = (p.eo * p.er) / dl
 
         #---Calculate divergences for concentration & transmembrane fluxes ---------------------------------------------
+        # div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
 
+        div_Jo = -fd.divergence(sim.conc_J_x.reshape(cells.X.shape)/sigma,
+                                sim.conc_J_y.reshape(cells.X.shape)/sigma, cells.delta, cells.delta)
 
-        div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
-
-        # div_Jo = fd.divergence(sim.E_env_x*sigma, sim.E_env_y*sigma, cells.delta, cells.delta)
-
-        # determine finite divergence from cellular transmembrane fluxes to the environmental space:
-        div_from_cells = -(np.dot(cells.M_sum_mems,
+        # determine finite divergence from cellular trans-membrane fluxes to the environmental space:
+        div_from_cells = (np.dot(cells.M_sum_mems,
                          (sim.Jmem/(sigma.ravel()[cells.map_mem2ecm])*cells.mem_sa))
                           /cells.cell_vol)*cells.cell2env_corrF
 
         div_from_cells_map = np.zeros(sim.edl)
         div_from_cells_map[cells.map_cell2ecm] = div_from_cells
-        #     div_from_cells_map = gaussian_filter(div_from_cells_map.reshape(cells.X.shape), 1.0, mode = 'constant')
+        # div_from_cells_map = gaussian_filter(div_from_cells_map.reshape(cells.X.shape), p.smooth_level, mode = 'constant')
         div_from_cells_map = div_from_cells_map.reshape(cells.X.shape)
         div_Jo = div_Jo + div_from_cells_map
 
-        div_Jo[:,0] = 0.0
-        div_Jo[:,-1] = 0.0
-        div_Jo[0,:] = 0.0
-        div_Jo[-1,:] = 0.0
+        div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)
+        div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
+        div_Jo[0,:] = sim.bound_V['B']*(1/cells.delta**2)
+        div_Jo[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
 
         # Calculate a voltage that resists the divergence:
         Phi = np.dot(cells.lapENVinv, (div_Jo).ravel())
 
-        # Calculate an environmental voltage contributed from boundary conditions:
-        div_Jb = np.zeros(cells.X.shape)
-        # div_Jb = div_from_cells_map
+        # f_env = -sim.rho_env.reshape(cells.X.shape)/(p.eo*p.er)
+        #
+        # f_env[:,0] = sim.bound_V['L']*(1/cells.delta**2)
+        # f_env[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
+        # f_env[0,:] = sim.bound_V['B']*(1/cells.delta**2)
+        # f_env[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
+        #
+        # Phi = np.dot(cells.lapENVScreen_inv, f_env.ravel())
 
-        div_Jb[:,0] = sim.bound_V['L']*(1/cells.delta**2)
-        div_Jb[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
-        div_Jb[0,:] = sim.bound_V['B']*(1/cells.delta**2)
-        div_Jb[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
+        #Helmholtz-Hodge decomposition to obtain divergence-free projection of currents (zero n_hat at boundary):
+        _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o,
+                                                             J_env_y_o, cells)
 
-        Phi_b = np.dot(cells.lapENVinv, div_Jb.ravel())
-
-        sim.Phi_env = sim.Phi_env + Phi*p.dt*(sigma.mean()/Cedl.mean())
-
-        sim.v_env = Phi_b.reshape(cells.X.shape) + sim.Phi_env.reshape(cells.X.shape)
-
-        # sim.v_env = Phi_b.reshape(cells.X.shape)
+        sim.v_env = Phi.reshape(cells.X.shape)
 
         if p.smooth_level > 0.0:
 
-            sim.v_env = gaussian_filter(sim.v_env, p.smooth_level, mode='constant')  # sigma = 0.305
+            sim.v_env = gaussian_filter(sim.v_env, p.smooth_level, mode = 'constant')
 
         sim.v_env = sim.v_env.ravel()
 
@@ -123,9 +120,10 @@ def get_current(sim, cells, p):
         # sim.J_env_x = sim.E_env_x*sigma
         # sim.J_env_y = sim.E_env_y*sigma
 
-        #Helmholtz-Hodge decomposition to obtain divergence-free projection of currents (zero n_hat at boundary):
-        _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o,
-                                                             J_env_y_o, cells)
+        # sim.J_env_x = J_env_x_o - sim.conc_J_x.reshape(cells.X.shape)
+        # sim.J_env_y = J_env_y_o - sim.conc_J_y.reshape(cells.X.shape)
+
+
 
 
 

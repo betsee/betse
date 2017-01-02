@@ -641,6 +641,9 @@ class Simulator(object):
             self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
             self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
 
+            self.conc_J_x = np.zeros(self.edl)
+            self.conc_J_y = np.zeros(self.edl)
+
             self.Phi_vect = np.zeros((len(self.zs), self.edl))
 
             # self.J_TJ = np.zeros(self.mdl)  # tight junction current density
@@ -886,8 +889,11 @@ class Simulator(object):
                     self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
                     self.Phi_vect = np.zeros((len(self.zs), self.edl))
 
+                    self.conc_J_x = np.zeros(self.edl)
+                    self.conc_J_y = np.zeros(self.edl)
+
                 # Calculate the values of scheduled and dynamic quantities (e.g.
-                # ion channel multipliers).
+                # ion channel multipliers):
                 if p.run_sim is True:
                     self.dyna.runAllDynamics(self, cells, p, t)
 
@@ -1509,8 +1515,7 @@ class Simulator(object):
         if p.sim_ECM is True:
 
             self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
-            self.rho_env[cells.inds_env] = 0.0
-
+            # self.rho_env[cells.inds_env] = 0.0
 
         #----Capacitor based Vmem:-------------
         # surface charge density in cells interior membrane:
@@ -1690,37 +1695,23 @@ class Simulator(object):
             uy = np.zeros(cells.X.shape)
 
         # this equation assumes environmental transport is electrodiffusive--------------------------------------------:
-        fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
+        fx, fy = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x, -self.E_env_y, ux, uy,
                                           self.D_env[i].reshape(cells.X.shape), self.zs[i], self.T, p)
-
-        fx = fxo
-        fy = fyo
-
-        # option to correct fluxes for divergence:----------------------------------------------------------------------
-
-        # div_fo = fd.divergence(fxo, fyo, cells.delta, cells.delta)
-        #
-        # # div_fo[:,0] = self.bound_V['L']*(1/cells.delta**2)
-        # # div_fo[:,-1] = self.bound_V['R']*(1/cells.delta**2)
-        # # div_fo[0,:] = self.bound_V['B']*(1/cells.delta**2)
-        # # div_fo[-1,:] = self.bound_V['T']*(1/cells.delta**2)
-        #
-        # # calculate the voltage resulting from currents:
-        # Phi = np.dot(cells.lapENVinv, div_fo.ravel())
-        #
-        # gPhix, gPhiy = fd.gradient(Phi.reshape(cells.X.shape), cells.delta)
-        #
-        # fx = fxo - gPhix
-        # fy = fyo - gPhiy
-
-        #--------------------------------------------------------------------------------------------------------------
-
-
-        div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
 
+        # diffusive component of current:
+        jxc = -self.D_env[i]*gcx.ravel()*p.F*self.zs[i]
+        jyc = -self.D_env[i]*gcy.ravel()*p.F*self.zs[i]
+
+        self.conc_J_x += jxc
+        self.conc_J_y += jyc
+
+        # divergence of total flux:
+        div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
+
+        # update concentration in the environment:
         cenv = cenv + div_fa * p.dt
 
         self.cc_env[i] = cenv.ravel()
