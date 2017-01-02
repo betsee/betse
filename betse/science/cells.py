@@ -376,8 +376,6 @@ class Cells(object):
             # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
-            # FIXME check for the voltage one -- don't need it by default
-
             # logs.log_info('Creating environmental Poisson solver for voltage...')
             # bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
             # self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
@@ -387,8 +385,15 @@ class Cells(object):
             # bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
             # self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
 
-            logs.log_info('Creating environmental Poisson solver...')
+            logs.log_info('Creating environmental Poisson Equation solver...')
             self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian()
+
+            self.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
+            self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+
+
+            logs.log_info('Creating environmental Screened Poisson Equation solver...')
+            self.lapENVScreen, self.lapENVScreen_inv = self.grid_obj.makeScreenedLaplacian()
 
             self.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
             self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
