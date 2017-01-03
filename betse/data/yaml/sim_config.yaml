@@ -526,16 +526,21 @@ block NaKATP pump:
 #-----------------------------------------------------------------------------------------------------------------------
 #  GENERAL NETWORK
 #-----------------------------------------------------------------------------------------------------------------------
+# The "General Network" allows you to define a bioelectricity integrated gene and reaction network with custom
+# biomolecules, chemical reactions, channels, and transporters. Use this section to define general network main
+# properties. See "extra_config_template.yaml" in the "extra_configs" directory for examples.
+# NOTE: The "optimization" is *not* required to run a general network; this is a tool that supplies you
+# with a list of membrane diffusion constants and reaction/transporter maximum rate constants that are a "best fit"
+# match to the target Vmem and initial concentrations listed for the "custom biomolecules" section of the network.
+
 general network:
 
   implement network: False     # Turn the entire network defined below on (True) or off (False)
 
   enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
 
-  time acceleration: 1.0 # factor accelerating time for slow processes in network entities (GJ diffusion)
-
-  optimization:
-    optimize network: True   # run an optimization of the network to obtain max rates at steady state concentrations?
+  optimization:              # Not required by default. A tool to "best fit" your network to target data.
+    optimize network: False   # run an optimization of the network to obtain max rates at steady state concentrations?
     optimization steps: 50 # number of itteration steps to run with basinhopper
     optimization method: L-BFGS-B  # optimization algorithm to run ('L-BFGS' 'COBYLA')
     optimization T: 1.0             # "temperature" for the basinhopping routine
@@ -546,38 +551,54 @@ general network:
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM BIOMOLECULES
 #-----------------------------------------------------------------------------------------------------------------------
-# Mini-simulations of biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
+# Additional biochemical substances that can electrodiffuse across cell membranes, between cells via GJ, or
 # in the environment. Also can be produced/consumed in the cytoplasm, act as gating ligand for a specific channel,
 # be actively pumped in or out of cells, changed at the boundary, or plotted/animated at the end of the simulation.
+#  See "extra_config_template.yaml" in the "extra_configs" directory for examples.
 
   biomolecules:  # specify the properties of any number of auxillary chemicals
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHEMICAL REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
+# Define chemical reactions between any substances defined in "custom biomolecules" and BETSE default ions.
+# See "extra_config_template.yaml" in the "extra_configs" directory for examples.
 
   reactions:
 
 #-----------------------------------------------------------------------------------------------------------------------
+# CUSTOM TRANSPORTERS
+#-----------------------------------------------------------------------------------------------------------------------
+# Define transmembrane transporters and associated cytosolic chemical reactions between any substances defined in
+# "custom biomolecules" and/or BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
+# directory for examples.
+
+  transporters:
+
+#-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHANNELS
 #-----------------------------------------------------------------------------------------------------------------------
+# Incorporate dynamic channel types and have their behaviour be activated/inhibited by the concentration of any
+# user-defined biomolecules and/or BETSE default ions. See "extra_config_template.yaml" in the "extra_configs"
+# directory for examples.
 
   channels:
 
 #-----------------------------------------------------------------------------------------------------------------------
-# CUSTOM TRANSPORTERS
-#-----------------------------------------------------------------------------------------------------------------------
-  transporters:
-
-#-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM MODULATORS
 #-----------------------------------------------------------------------------------------------------------------------
+# Allow user-defined biomolecules and/or BETSE default ions to activate/inhibit core BETSE structures such as gap
+# junctions and the default Na/K-ATPase pump. See "extra_config_template.yaml" in the "extra_configs"
+# directory for examples.
 
   modulators:
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  METABOLISM
 #-----------------------------------------------------------------------------------------------------------------------
+# Define an auxillary network in an external config file and read it in and run from that extra file. This
+# auxillary network has ATP, ADP and Pi, which will be used to power all ATP-dependent pumps in BETSE.
+
 metabolism settings:
 
   metabolism simulated: False  # is metabolism simulated at all, or is cATP assumed constant?
@@ -587,6 +608,8 @@ metabolism settings:
 #-----------------------------------------------------------------------------------------------------------------------
 # GENE REGULATORY NETWORK
 #-----------------------------------------------------------------------------------------------------------------------
+# Define an auxillary network in an external config file and read it in and run from that extra file.
+
 gene regulatory network settings:
 
   gene regulatory network simulated: False
@@ -682,8 +705,7 @@ variable settings:
     gj minimum: 0.10      # for voltage sensitive gj, the fraction of maxium permeability when channel 'closed'
 
 
-  tight junction scaling: 1.0   # factor by which tight junctions scale
-                                   # free-diffusion (1.0 = free diffusion, 1.0e-9 = similar to membrane permeability)
+  tight junction scaling: 1.0   # factor by which tight junctions scale free-diffusion (range 1.0 to 5.0e-2)
 
   tight junction relative diffusion:  # relative values for tight junction ion 
                                       # permeability
@@ -1012,7 +1034,7 @@ internal parameters:
 
   alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
-  gaussian smoothing: 0.5    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
+  gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
   smooth concentrations: False   # apply gaussian smoothing to concentrations?
 
