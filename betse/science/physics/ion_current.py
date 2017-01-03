@@ -49,19 +49,8 @@ def get_current(sim, cells, p):
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)
 
-        #--- Calculate how much Vmem is "seen" by external environment via charge screening status----------------------
-
         # conductivity in the media is modified by the environmental diffusion weight matrix:
         sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
-
-        # # double layer thickness:
-        # dlnumero = (p.er * p.eo * p.kb * p.T)
-        # dldenomo = np.dot(p.NAv*(p.q*sim.zs)**2, sim.cc_env)
-        #
-        # dl = (np.sqrt(dlnumero/dldenomo))
-        #
-        # # capacitance of the double layer
-        # Cedl = (p.eo * p.er) / dl
 
         #---Calculate divergences for concentration & transmembrane fluxes ---------------------------------------------
         # div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
@@ -87,15 +76,6 @@ def get_current(sim, cells, p):
 
         # Calculate a voltage that resists the divergence:
         Phi = np.dot(cells.lapENVinv, (div_Jo).ravel())
-
-        # f_env = -sim.rho_env.reshape(cells.X.shape)/(p.eo*p.er)
-        #
-        # f_env[:,0] = sim.bound_V['L']*(1/cells.delta**2)
-        # f_env[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
-        # f_env[0,:] = sim.bound_V['B']*(1/cells.delta**2)
-        # f_env[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
-        #
-        # Phi = np.dot(cells.lapENVScreen_inv, f_env.ravel())
 
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o,

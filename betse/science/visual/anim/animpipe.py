@@ -171,19 +171,32 @@ def pipeline_anims(
                 color_max=p.Efield_ani_max_clr,
             )
 
-    if np.mean(sim.P_cells_time) != 0.0:
+    # if np.mean(sim.P_cells_time) != 0.0:
 
-        if p.ani_Pcell is True:
-            AnimFlatCellsTimeSeries(
-                sim=sim, cells=cells, p=p,
-                time_series=sim.P_cells_time,
-                label='Pcell',
-                figure_title='Pressure in Cells',
-                colorbar_title='Pressure [Pa]',
-                is_color_autoscaled=p.autoscale_Pcell_ani,
-                color_min=p.Pcell_ani_min_clr,
-                color_max=p.Pcell_ani_max_clr,
-            )
+    if p.ani_Pcell is True and np.mean(sim.P_cells_time) != 0.0:
+        AnimFlatCellsTimeSeries(
+            sim=sim, cells=cells, p=p,
+            time_series=sim.P_cells_time,
+            label='Pcell',
+            figure_title='Pressure in Cells',
+            colorbar_title='Pressure [Pa]',
+            is_color_autoscaled=p.autoscale_Pcell_ani,
+            color_min=p.Pcell_ani_min_clr,
+            color_max=p.Pcell_ani_max_clr,
+        )
+
+
+    if p.ani_Pcell is True and p.deform_osmo is True:
+        AnimFlatCellsTimeSeries(
+            sim=sim, cells=cells, p=p,
+            time_series=sim.osmo_P_delta_time,
+            label='Osmotic Pcell',
+            figure_title='Osmotic Pressure in Cells',
+            colorbar_title='Pressure [Pa]',
+            is_color_autoscaled=p.autoscale_Pcell_ani,
+            color_min=p.Pcell_ani_min_clr,
+            color_max=p.Pcell_ani_max_clr,
+        )
 
 
     # Animate environment voltage if requested.

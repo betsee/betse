@@ -3875,26 +3875,6 @@ class MasterOfNetworks(object):
         reaction network that has been optimized.
         """
 
-        # FIXME use basinhopping T and stepsize from config in optimization
-        # FIXME number optimization steps...
-        # FIXME normalize concentrations??
-
-        # FIXME use bounds on basinhopping parameters? example from stack overflow:
-
-        ## the starting point
-        # x0 = [10., 10.]
-        #
-        # # the bounds
-        # xmin = [1., 1.]
-        # xmax = [11., 11.]
-        #
-        # # rewrite the bounds in the way required by L-BFGS-B
-        # bounds = [(low, high) for low, high in zip(xmin, xmax)]
-        #
-        # # use method L-BFGS-B because the problem is smooth and bounded
-        # minimizer_kwargs = dict(method="L-BFGS-B", bounds=bounds)
-        # res = basinhopping(f, x0, minimizer_kwargs=minimizer_kwargs)
-
         # FIXME option to set all reaction rates and D_mems automatically after a network optimization
 
         #-----------------------------------------------------

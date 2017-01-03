@@ -448,13 +448,13 @@ additional voltage gated K+:    # Other types of K+ currents including inward-re
 calcium gated K+:              # calcium gated potassium channel
     turn on: False
     apply to: ['all']         # name(s) of the tissue profile(s) to apply it to
-    max value: 1.0e-6        # maximum channel conductivity when channel fully open [S/m2]
+    max value: 1.0e-7        # maximum channel conductivity when channel fully open [S/m2]
 
 funny current:                 # "funny current" K+/Na+ channel
     turn on: False
     apply to: ['all']
     channel type: ['HCN4']         # available types: 'HCN1', 'HCN2' or 'HCN4'
-    max value: 1.0e-6         # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 1.0e-7)
+    max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (1.0e-6 to 1.0e-7)
 
 voltage gated Ca2+:            # voltage gated calcium channel
     turn on: False
@@ -465,7 +465,7 @@ voltage gated Ca2+:            # voltage gated calcium channel
 Ca dynamics:                   # include full calcium dynamics in the situation?
     turn on: False               # this creates an endoplasmic reticulum (ER) in each cell
     serca pump max: 1.0e-8        # maximum value of the serca pump
-    max er: 1.0e-6                # maximum conductivity of ER membrane Ca++ channel
+    max er: 1.0e-15                # maximum conductivity of ER membrane Ca++ channel
     act Km Ca: 0.6e-3             # concentration at which calcium activates ER opening
     act n Ca: 3.0                 # exponent for Ca activation
     inh Km Ca: 1.5e-3            # concentration at which calcium inhibits ER opening
