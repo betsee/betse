@@ -53,21 +53,21 @@ def get_current(sim, cells, p):
         sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
 
         #---Calculate divergences for concentration & transmembrane fluxes ---------------------------------------------
-        # div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
+        # div_Jo = -fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
 
         div_Jo = -fd.divergence(sim.conc_J_x.reshape(cells.X.shape)/sigma,
                                 sim.conc_J_y.reshape(cells.X.shape)/sigma, cells.delta, cells.delta)
 
-        # determine finite divergence from cellular trans-membrane fluxes to the environmental space:
-        div_from_cells = (np.dot(cells.M_sum_mems,
-                         (sim.Jmem/(sigma.ravel()[cells.map_mem2ecm])*cells.mem_sa))
-                          /cells.cell_vol)*cells.cell2env_corrF
-
-        div_from_cells_map = np.zeros(sim.edl)
-        div_from_cells_map[cells.map_cell2ecm] = div_from_cells
-        # div_from_cells_map = gaussian_filter(div_from_cells_map.reshape(cells.X.shape), p.smooth_level, mode = 'constant')
-        div_from_cells_map = div_from_cells_map.reshape(cells.X.shape)
-        div_Jo = div_Jo + div_from_cells_map
+        # # determine finite divergence from cellular trans-membrane fluxes to the environmental space:
+        # div_from_cells = (np.dot(cells.M_sum_mems,
+        #                  (sim.Jmem/(sigma.ravel()[cells.map_mem2ecm])*cells.mem_sa))
+        #                   /cells.cell_vol)*cells.cell2env_corrF
+        #
+        # div_from_cells_map = np.zeros(sim.edl)
+        # div_from_cells_map[cells.map_cell2ecm] = div_from_cells
+        # # div_from_cells_map = gaussian_filter(div_from_cells_map.reshape(cells.X.shape), p.smooth_level, mode = 'constant')
+        # div_from_cells_map = div_from_cells_map.reshape(cells.X.shape)
+        # div_Jo = div_Jo + div_from_cells_map
 
         div_Jo[:,0] = sim.bound_V['L']*(1/cells.delta**2)
         div_Jo[:,-1] = sim.bound_V['R']*(1/cells.delta**2)

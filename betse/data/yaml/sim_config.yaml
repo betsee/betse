@@ -415,7 +415,7 @@ modulator function properties:   # set properties of modulating functions which 
 # No file synch issues: Dynamic ion channel settings can be altered between seed, init and sim.
 
 voltage gated Na+:
-    turn on: False                 # voltage gated sodium channel
+    turn on: False                 # voltage gated sodium channel (NOTE: use time-step <= 1.0e-4)
     apply to: ['all']              # name(s) of the tissue profile(s) to apply it to
     channel type: ['Nav1p2']         # available types: 'Nav1p2' (adult brain), 'Nav1p3' (embryo)
                                   # 'NavRat1', 'NaVRat2'
@@ -432,14 +432,14 @@ stretch gated Na+:         # mechano-sensitive Na+/K+ cation channel channel
     apply to: ['all']          # tissue profile(s) to apply to
     max value: 1.0e-8         # maximum channel conductivity when channel fully open [S/m2] (1.0e-8 to 1.0e-6)
 
-voltage gated K+:             # voltage gated potassium channel, delayed rectifyer
+voltage gated K+:             # voltage gated potassium channel, delayed rectifyer (NOTE: use time-step <= 1.0e-3)
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['K_Slow','Kv1p3']      # available types: 'Kv1p1', 'Kv1p2', 'Kv1p3', 'Kv1p5',
                                            # 'K_Slow', 'K_Fast', 'Kv2p1'
     max value: 1.0e-7         # maximum channel conductivity when channel fully open [S/m2] (5.0e-6 to 1.0e-7)
 
-additional voltage gated K+:    # Other types of K+ currents including inward-rectifying
+additional voltage gated K+:    # Other types of K+ currents including inward-rectifying (NOTE: use time-step <= 1.0e-3)
     turn on: False
     apply to: ['all']          # name(s) of the tissue profile(s) to apply it to
     channel type: ['Kir2p1']      # available types: 'Kir2p1', 'Kv3p4' and 'Kv3p3' (A-currents)

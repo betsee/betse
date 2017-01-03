@@ -296,9 +296,10 @@ class Simulator(object):
         else:
             self.edl = self.mdl
 
-        # initialize two extra arrays that allow additional substances (defined outside of sim) to affect Vmem:
+        # initialize extra arrays that allow additional substances (defined outside of sim) to affect Vmem:
         self.extra_rho_cells = np.zeros(self.cdl)
         self.extra_rho_env = np.zeros(self.edl)
+        self.extra_J_mem = np.zeros(self.mdl)
 
         self.extra_rho_cells_o = np.zeros(self.cdl)
 
@@ -374,14 +375,10 @@ class Simulator(object):
             self.Phi_env = np.zeros(self.edl) # Voltage difference across the outer electrical double layer
 
 
-
         else:  # items specific to simulation *without* extracellular spaces:
             # Initialize environmental volume:
             self.envV = np.zeros(self.mdl)
             self.envV[:] = p.vol_env
-
-
-
 
 
         ion_names = list(p.ions_dict.keys())
@@ -643,6 +640,9 @@ class Simulator(object):
 
             self.conc_J_x = np.zeros(self.edl)
             self.conc_J_y = np.zeros(self.edl)
+
+            self.extra_conc_J_x = np.zeros(self.edl)
+            self.extra_conc_J_y = np.zeros(self.edl)
 
             self.Phi_vect = np.zeros((len(self.zs), self.edl))
 
@@ -936,9 +936,6 @@ class Simulator(object):
                     fNa_NaK[cells.bflags_mems] = 0
                     fK_NaK[cells.bflags_mems] = 0
 
-                # fNa_NaK, _, _ = cells.zero_div_cell(fNa_NaK, rho=0.0, bc=0.0, open_bounds=p.cluster_open)
-                # fK_NaK, _, _ = cells.zero_div_cell(fK_NaK, rho=0.0, bc=0.0, open_bounds=p.cluster_open)
-
                 # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
                 self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
                 self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
@@ -955,9 +952,6 @@ class Simulator(object):
                 self.cc_cells[self.iK], self.cc_env[self.iK] = stb.update_Co(self, self.cc_cells[self.iK],
                     self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = self.ignore_ecm)
 
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                # self.update_V(cells, p)
 
                 # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
 
@@ -984,8 +978,6 @@ class Simulator(object):
                     if p.cluster_open is False:
                         f_ED[cells.bflags_mems] = 0
 
-                    # f_ED, _, _ = cells.zero_div_cell(f_ED, rho=0.0, bc=0.0, open_bounds=p.cluster_open)
-
                     # add membrane flux to storage
                     self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
@@ -1002,8 +994,6 @@ class Simulator(object):
 
                     # ensure no negative concentrations:
                     stb.no_negs(self.cc_cells[i])
-
-
 
                 # ----transport and handling of special ions------------------------------------------------------------
 

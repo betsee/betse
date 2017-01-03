@@ -2301,6 +2301,9 @@ class MasterOfNetworks(object):
         self.extra_rho_cells = np.zeros(sim.cdl)
         self.extra_rho_env = np.zeros(sim.edl)
         self.extra_rho_mit = np.zeros(sim.cdl)
+        self.extra_J_mem = np.zeros(sim.mdl)
+        self.extra_conc_J_x = np.zeros(sim.edl)
+        self.extra_conc_J_y = np.zeros(sim.edl)
 
         for mol in self.molecules:
 
@@ -2414,11 +2417,11 @@ class MasterOfNetworks(object):
             targ_cell = self.transporters[name].transporter_targets_cell
             targ_env = self.transporters[name].transporter_targets_env
 
-            # print(self.transporters[name].transporter_eval_string)
-
             # calculate the flux
             self.transporters[name].flux = sim.rho_pump*eval(self.transporters[name].transporter_eval_string,
                 self.globals, self.locals)
+
+            # print(name, self.transporters[name].flux.mean())
 
             # finally, update the concentrations using the final eval statements:
             for i, (delc, coeff) in enumerate(zip(self.transporters[name].delta_react_eval_strings,
@@ -2429,6 +2432,8 @@ class MasterOfNetworks(object):
 
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].react_transport_tag[i] == 'mem_concs':
+
+                    # print("--> ", self.transporters[name].reactants_list[i], delta_react.mean())
 
                     self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] = \
                         self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] + \
@@ -2480,6 +2485,8 @@ class MasterOfNetworks(object):
                         self.cell_concs[self.transporters[name].products_list[i]][targ_cell] + \
                         delta_prod[targ_cell]*p.dt
 
+                    # print("--> ", self.transporters[name].products_list[i], delta_prod.mean())
+
                 elif self.transporters[name].prod_transport_tag[i] == 'env_concs':
 
                     if p.sim_ECM is True:
@@ -2512,6 +2519,8 @@ class MasterOfNetworks(object):
                 else:
 
                     raise BetseSimConfigException("Internal error: transporter zone not specified correctly!")
+
+            # print("---------------------------------")
 
     def run_loop_channels(self, sim, sim_metabo, cells, p):
 
@@ -4348,7 +4357,7 @@ class Molecule(object):
         """
 
 
-        self.c_env, self.c_cells, _, _, _, _ = stb.molecule_mover(sim,
+        self.c_env, self.c_cells, f_X_ED, fgj_X, fenvx, fenvy = stb.molecule_mover(sim,
                                                                 self.c_env,
                                                                 self.c_cells,
                                                                 cells, p,
@@ -4361,6 +4370,7 @@ class Molecule(object):
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ,
                                                                 rho = sim.rho_channel)
+
 
     def updateC(self, flux, sim, cells, p):
         """

@@ -99,6 +99,13 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
 
         z_ion = sim.zs[sim.iK] * IdM
 
+        # make sure probablility is binned between zero and 1:
+        # inds_PL = (P < 0.0).nonzero()
+        # inds_PH = (P > 1.0).nonzero()
+        #
+        # P[inds_PL] = 0.0
+        # P[inds_PH] = 1.0
+
         # membrane diffusion constant of the channel:
         Dchan = dyna.maxDmKir*P*1.0e-9
 
@@ -163,7 +170,7 @@ class Kir2p1(VgKirABC):
         self._mpower = 1
         self._hpower = 2
 
-        self.rectification = -1
+        # self.rectification = -1
 
 
     def _calculate_state(self, V, dyna, sim, p):
