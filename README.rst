@@ -46,34 +46,101 @@ planned, BETSE currently *only* provides a low-level command line interface
 Installation
 ============
 
-BETSE is installable under **Linux**, **OS X**, and **Windows** as
-follows:
+BETSE currently supports **Linux**, **macOS**, and **Windows** out-of-the-box.
 
-#. Install Git_.
-#. Install the **Python 3.x** (e.g., 3.5) variant of Anaconda_. :sup:`Do not
-   install the Python 2.7 variant of Anaconda. BETSE requires Python 3.x.`
-#. Run the following commands from within a command-line terminal:
+Simple
+--------
 
-   #. Download the live version of BETSE.
+For new users, BETSE is trivially installable as follows:
 
-      .. code:: bash
-   
-         git clone https://gitlab.com/betse/betse.git
-
+#. Install the **Python 3.x** (e.g., 3.5) variant of Anaconda_.[#simple]_
+#. Run the following commands from a command-line terminal:
    #. Install BETSE.
 
       .. code:: bash
-   
-         cd betse && sudo python3 setup.py install
+
+         pip3 install betse
 
    #. (\ *Optional*\ ) Test BETSE by running a sample simulation.
 
       .. code:: bash
-   
-         cd /tmp && betse try
 
-For a comprehensive list of system requirements and software dependencies by
-platform, see our `complete installation instructions <doc/md/INSTALL.md>`__.
+         mkdir my_sims && cd my_sims && betse try
+
+.. [#simple]
+   Do not install the Python 2.7 variant of Anaconda_. BETSE requires Python
+   3.x.  If you would prefer *not* to install Anaconda_, see our `advanced
+   installation instructions <Advanced_>`__ for installing BETSE dependencies
+   via your platform-specific package manager (e.g., Homebrew_ under macOS, APT_
+   under Ubuntu). Doing so is non-trivial and frequently produces a
+   performance-crippled single-core installation of BETSE – which is bad.
+   Anaconda_ is strongly recommended for all non-developers.
+
+Advanced
+--------
+
+For developers and advanced users, any version of BETSE (including both the most
+recent stable release and the live repository) is manually installable as
+follows:
+
+#. Install **Python 3.x** and all `dependencies <installation_>`__ required by
+   BETSE. Under:[#advanced]_
+   - **Linux,** install Python 3.x and all `dependencies <installation_>`__
+     required by BETSE via your distribution-specific package manager (e.g.,
+     APT_ on Debian-based distributions). Do *not* use `pip`.
+   - **macOS,** either:
+     - (\ *Recommended*\ ) Install the Python 3.x variant of Anaconda_.
+     - Install a third-party package manager (e.g., Homebrew_, MacPorts_) and
+       install Python 3.x and all `dependencies <installation_>`__ required by
+       BETSE via that package manager. Do *not* use `pip`.
+   - **Windows,** install the Python 3.x variant of Anaconda_.
+#. Open a command-line terminal.
+#. Download either:
+   - The **live repository** of BETSE.
+     - Install Git_.
+     - Clone the `master` branch of the remote BETSE repository.
+
+       .. code:: bash
+
+          git clone https://gitlab.com/betse/betse.git
+
+   - Any **stable release** of BETSE from our `source tarball archive
+     <tarballs_>`__, including the most recent stable release.
+     - Click the download icon to the right of the `desired tarball
+       <tarballs_>`__ and select *Download tar.gz*.
+     - Extract the contents of this tarball into the current directory.
+
+       .. code:: bash
+
+          tar -xvzf betse-*.tar.gz
+
+#. Install BETSE either:
+   - (\ *Recommended*\ ) **Editably,** installing a cross-platform symbolic link
+     to the current BETSE codebase. Modifications to this codebase are applied
+     immediately *without* requiring reinstallation.
+
+     .. code:: bash
+
+        cd betse && sudo python3 setup.py develop
+
+   - **Non-editably,** installing a physical copy of the current BETSE codebase.
+     Modifications to this codebase are ignored and thus require reinstallation.
+
+     .. code:: bash
+
+        cd betse && sudo python3 setup.py install
+
+#. (\ *Optional*\ ) Test BETSE by running a sample simulation.
+
+   .. code:: bash
+
+      mkdir my_sims && cd my_sims && betse try
+
+.. [#advanced]
+   Do not install scientific dependencies (e.g., NumPy_, SciPy_) via `pip` or
+   `easy_install`. Doing so typically produces a performance-crippled
+   single-core installation of BETSE. *Always* install scientific dependencies
+   via your platform-specific package manager (e.g., Homebrew_, APT_).
 
 Introduction
 ============
@@ -279,12 +346,16 @@ For prospective contributors:
 .. # ------------------( LINKS ~ codebase                   )------------------
 .. _authors:
    AUTHORS.md
-.. _contributors:
-   https://gitlab.com/betse/betse/graphs/master
-.. _testing:
-   https://gitlab.com/betse/betse/pipelines
 .. _codebase:
    https://gitlab.com/betse/betse/tree/master
+.. _contributors:
+   https://gitlab.com/betse/betse/graphs/master
+.. _installation:
+   doc/md/INSTALL.md
+.. _testing:
+   https://gitlab.com/betse/betse/pipelines
+.. _tarballs:
+   https://gitlab.com/betse/betse/tags
 
 .. # ------------------( LINKS ~ science                    )------------------
 .. _bioelectricity:
@@ -411,6 +482,8 @@ For prospective contributors:
    https://www.continuum.io/downloads
 .. _Appveyor:
    https://ci.appveyor.com/project/betse/betse/branch/master
+.. _APT:
+   https://en.wikipedia.org/wiki/Advanced_Packaging_Tool
 .. _BSD 2-clause license:
    https://opensource.org/licenses/BSD-2-Clause
 .. _FFmpeg:
@@ -421,15 +494,23 @@ For prospective contributors:
    https://about.gitlab.com/gitlab-ci
 .. _Graphviz:
    http://www.graphviz.org
+.. _Homebrew:
+   http://brew.sh
 .. _Libav:
    https://libav.org
+.. _MacPorts:
+   https://www.macports.org
 .. _Matplotlib:
    http://matplotlib.org
+.. _NumPy:
+   http://www.numpy.org
 .. _MEncoder:
    https://en.wikipedia.org/wiki/MEncoder
 .. _Python 3:
    https://www.python.org
 .. _py.test:
    http://pytest.org
+.. _SciPy:
+   http://www.scipy.org
 .. _YAML:
    http://yaml.org
