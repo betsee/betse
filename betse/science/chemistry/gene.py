@@ -182,10 +182,12 @@ class MasterOfGenes(object):
 
         sim.time = []
 
-
         # initialize key fields of simulator required to interface (dummy init)
         sim.rho_pump = 1.0
         sim.rho_channel = 1.0
+
+        sim.conc_J_x = np.zeros(sim.edl)
+        sim.conc_J_y = np.zeros(sim.edl)
 
         # set molecules to not affect charge for sim-grn test-drives:
         p.substances_affect_charge = False

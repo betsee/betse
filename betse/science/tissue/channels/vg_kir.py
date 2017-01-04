@@ -85,6 +85,8 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_Kir ** self._mpower) * (dyna.h_Kir ** self._hpower)
 
+        # print(P.min(), P.max(), P.mean())
+
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
         c_mem = sim.cc_cells[sim.iK][cells.mem_to_cells]

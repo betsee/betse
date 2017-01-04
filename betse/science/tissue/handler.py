@@ -870,7 +870,6 @@ class TissueHandler(object):
         sim.Dm_stretch[sim.iNa] = self.maxDmNaStretch*self.active_NaStretch
         sim.Dm_stretch[sim.iK] = self.maxDmNaStretch*self.active_NaStretch
 
-
     def tissueProfiles(self, sim, cells, p):
         '''
         Create cell-specific (and if simulating extracellular spaces, membrane-
@@ -1272,6 +1271,9 @@ class TissueHandler(object):
             # re-assign the boundary flags to the new configuration:
             cells.bflags_cells = new_bcells
             cells.bflags_mems = new_bmems
+
+            sim.conc_J_x = np.zeros(len(cells.xypts))
+            sim.conc_J_y = np.zeros(len(cells.xypts))
 
         if p.fluid_flow is True or p.deformation is True:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:

@@ -231,6 +231,9 @@ class MasterOfMetabolism(object):
         # initialize Vmem to an initial value common to many cell types:
         sim.vm = -50e-3*np.ones(sim.mdl)
 
+        sim.conc_J_x = np.zeros(sim.edl)
+        sim.conc_J_y = np.zeros(sim.edl)
+
         # initialize key fields of simulator required to interface (dummy init)
         sim.rho_pump = 1.0
         sim.rho_channel = 1.0

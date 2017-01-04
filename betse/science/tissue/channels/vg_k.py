@@ -81,6 +81,8 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_K ** self._mpower) * (dyna.h_K ** self._hpower)
 
+        # print(P.min(), P.max(), P.mean())
+
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the original Hodgkin Huxley equation.
 
@@ -230,7 +232,6 @@ class Kv1p3(VgKABC):
         self._mTau = (-0.2840 * V) + 19.1600
         self._hInf = 1.0000 / (1 + np.exp((V - -33.0000) / 3.7000))
         self._hTau = (-13.7600 * V) + 1162.4000
-
 
 class Kv1p1(VgKABC):
     '''

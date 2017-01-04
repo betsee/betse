@@ -58,6 +58,8 @@ def get_current(sim, cells, p):
         div_Jo = -fd.divergence(sim.conc_J_x.reshape(cells.X.shape)/sigma,
                                 sim.conc_J_y.reshape(cells.X.shape)/sigma, cells.delta, cells.delta)
 
+        # div_Jo = np.zeros(cells.X.shape)
+        #
         # # determine finite divergence from cellular trans-membrane fluxes to the environmental space:
         # div_from_cells = (np.dot(cells.M_sum_mems,
         #                  (sim.Jmem/(sigma.ravel()[cells.map_mem2ecm])*cells.mem_sa))
@@ -80,6 +82,9 @@ def get_current(sim, cells, p):
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o,
                                                              J_env_y_o, cells)
+
+        # sim.J_env_x = J_env_x_o
+        # sim.J_env_y = J_env_y_o
 
         sim.v_env = Phi.reshape(cells.X.shape)
 

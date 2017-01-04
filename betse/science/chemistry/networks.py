@@ -30,6 +30,7 @@ from scipy.ndimage.filters import gaussian_filter
 from betse.science.tissue.channels import vg_na as vgna
 from betse.science.tissue.channels import vg_nap as vgnap
 from betse.science.tissue.channels import vg_k as vgk
+from betse.science.tissue.channels import vg_cl as vgcl
 from betse.science.tissue.channels import vg_kir as vgkir
 from betse.science.tissue.channels import vg_funny as vgfun
 from betse.science.tissue.channels import vg_ca as vgca
@@ -4585,10 +4586,11 @@ class Molecule(object):
             effector_MorphEnv = tb.pulse(t,self.change_bounds_start,self.change_bounds_end,self.change_bounds_rate)
 
             if p.sim_ECM is False:
-                self.c_env[:] = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
+                self.c_env[:] = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 
-            elif p.sim_ECM is True: # simulate addition of counter salt to maintain charge neutrality:
-                self.c_bound = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
+            elif p.sim_ECM is True:
+                self.c_bound = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
+                # self.c_bound = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 
     def export_data(self, sim, cells, p, savePath):
 
@@ -5008,6 +5010,12 @@ class Channel(object):
             self.dummy_dyna.maxDmK = max_val
             self.dummy_dyna.targets_vgK = self.channel_targets_mem
             class_string = vgk
+
+        elif ion_string == 'Cl':
+
+            self.dummy_dyna.maxDmCl = max_val
+            self.dummy_dyna.targets_vgCl = self.channel_targets_mem
+            class_string = vgcl
 
         elif ion_string == 'Kir':
 
