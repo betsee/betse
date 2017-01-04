@@ -160,12 +160,29 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 '''
 Human-readable current version of this application as a `.`-delimited string.
 
-For PEP 8 compliance, this specifier is exposed as the canonical variable
-`__variable__` rather than a typical constant (e.g., `VERSION_STR`).
+For PEP 8 compliance, this specifier has the canonical name `__version__` rather
+than that of a typical constant (e.g., `VERSION_STR`).
+'''
+
+
+#FIXME: Print on BETSE startup.
+CODENAME = 'Gladder Galvani'
+'''
+Human-readable code name associated with the current version of this
+application.
+
+This code name consists of an arbitrary adjective followed by the last name of
+an arbitrary academic associated with field of bioelectricity whose first letter
+is the same as the first letter of that adjective.
+
+See Also
+----------
+:download:`/doc/dev/RELEASE.md`
+    Further details on this incredible code name schema.
 '''
 
 
@@ -173,8 +190,8 @@ __version_info__ = _get_version_parts_from_str(__version__)
 '''
 Machine-readable current version of this application as a tuple of integers.
 
-For PEP 8 compliance, this specifier is exposed as the canonical variable
-`__variable_info__` rather than a typical constant (e.g., `VERSION_PARTS`).
+For PEP 8 compliance, this specifier has the canonical name `__version_info__`
+rather than that of a typical constant (e.g., `VERSION_PARTS`).
 '''
 
 # ....................{ METADATA ~ synopsis                }....................

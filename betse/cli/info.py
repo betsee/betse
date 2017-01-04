@@ -70,6 +70,7 @@ def output_info() -> None:
         (metadata.NAME.lower(), OrderedDict((
             ('basename', commands.get_current_basename()),
             ('version', metadata.__version__),
+            ('codename', metadata.CODENAME),
             ('authors', metadata.AUTHORS),
             ('home directory', pathtree.HOME_DIRNAME),
             ('dot directory',  pathtree.DOT_DIRNAME),

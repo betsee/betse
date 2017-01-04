@@ -1,2 +1,0 @@
-#!/usr/bin/env sh
-pyside-uic betse_test_1.ui -o betse_test_1.py
