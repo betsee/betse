@@ -1351,6 +1351,10 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         fenvx = fx
         fenvy = fy
 
+        # component of current:
+        sim.conc_J_x += -denv.ravel()*gcx.ravel()*z*p.F
+        sim.conc_J_y += -denv.ravel()*gcy.ravel()*z*p.F
+
         cenv = cenv + div_fa * p.dt
 
         cX_env_o = cenv.ravel()

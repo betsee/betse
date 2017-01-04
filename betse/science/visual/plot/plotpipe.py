@@ -50,6 +50,7 @@ from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.anim.animpipe import pipeline_anims
 from betse.util.io.log import logs
 from betse.util.type import types
+from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ PIPELINES                          }....................
 #FIXME: Refactor the "plot_type" parameter to be somewhat less crazy. This
@@ -568,9 +569,19 @@ def pipeline_plots(
 
         if p.sim_ECM is True:
 
+
+            if p.smooth_level == 0.0:
+
+                cc_Ca = gaussian_filter(sim.cc_env[sim.iCa].reshape(cells.X.shape), 1.0)
+
+            else:
+
+                cc_Ca = sim.cc_env[sim.iCa].reshape(cells.X.shape)
+
+
             plt.figure()
             plt.imshow(
-                sim.cc_env[sim.iCa].reshape(cells.X.shape),
+                cc_Ca,
                 origin='lower',
                 extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
                 cmap=p.default_cm,

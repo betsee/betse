@@ -25,6 +25,7 @@ from collections import OrderedDict
 from matplotlib import colors
 from matplotlib import cm
 from scipy.optimize import basinhopping
+from scipy.ndimage.filters import gaussian_filter
 
 from betse.science.tissue.channels import vg_na as vgna
 from betse.science.tissue.channels import vg_nap as vgnap
@@ -2731,7 +2732,7 @@ class MasterOfNetworks(object):
 
         self.chi_time = []
 
-    def write_data(self, cells, sim, p):
+    def write_data(self, sim, cells, p):
         """
         Writes concentration data from a time-step to time-storage vectors.
 
@@ -2744,7 +2745,15 @@ class MasterOfNetworks(object):
 
             # obj.c_mems_time.append(obj.c_mems)
             obj.c_cells_time.append(obj.c_cells)
-            obj.c_env_time.append(obj.c_env)
+
+            # smooth env data if necessary:
+            if p.smooth_concs is False and p.sim_ECM is True:
+                cc_env = gaussian_filter(obj.c_env.reshape(cells.X.shape), 1.0).ravel()
+
+            else:
+                cc_env = np.copy(obj.c_env)
+
+            obj.c_env_time.append(cc_env)
 
             if self.mit_enabled:
                 obj.c_mit_time.append(obj.c_mit)
@@ -4728,7 +4737,13 @@ class Molecule(object):
         fig = plt.figure()
         ax = plt.subplot(111)
 
-        dyeEnv = (self.c_env).reshape(cells.X.shape)
+        if p.smooth_level == 0.0:
+
+            dyeEnv = gaussian_filter(self.c_env.reshape(cells.X.shape), 1.0)
+
+        else:
+
+            dyeEnv = (self.c_env).reshape(cells.X.shape)
 
         xmin = cells.xmin*p.um
         xmax = cells.xmax*p.um
