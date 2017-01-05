@@ -2430,7 +2430,8 @@ class MasterOfNetworks(object):
                 self.transporters[name].reactants_coeff)):
 
                 # obtain the change for the reactant
-                delta_react = coeff*sim.rho_pump*eval(delc,self.globals, self.locals)
+
+                delta_react = coeff*eval(delc,self.globals, self.locals)
 
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].react_transport_tag[i] == 'mem_concs':
