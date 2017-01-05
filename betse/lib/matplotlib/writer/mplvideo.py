@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -133,7 +133,7 @@ def init() -> None:
 
             # WebM.
             'webm': (
-                #FIXME: As of this writing (i.e., mid-2016), VP-9 is poorly
+                #FIXME: As of this writing (i.e., mid-2017), VP-9 is poorly
                 #supported in media players (e.g., mpv, vlc) and hence disabled.
                 #Reevaluate and consider enabling this otherwise sensible
                 #default at some future date.

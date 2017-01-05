@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -53,9 +53,9 @@ from betse_setup import build, freeze, symlink, test
 # ....................{ METADATA                           }....................
 # PyPI-specific metadata declared here rather than in "betse.metadata" to reduce
 # both space and time complexity for BETSE startup. This metadata is effectively
-# setuptools-specific and hence irrelevant in the main codebase.
+# setuptools-specific and hence irrelevant to the main codebase.
 
-_PYTHON_VERSION_MINOR_MAX = 6
+_PYTHON_VERSION_MINOR_MAX = 7
 '''
 Maximum minor stable version of this major version of Python currently released
 (e.g., `5` if Python 3.5 is the most recent stable version of Python 3.x).
@@ -73,7 +73,7 @@ this description is used verbatim as this package's front matter.
 '''
 
 
-_KEYWORDS = ['biology', 'multiphysics', 'science', 'simulation',]
+_KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
 '''
 List of all lowercase alphabetic keywords synopsising this application.
 
@@ -81,6 +81,7 @@ These keywords may be arbitrarily selected so as to pretend to improve search
 engine optimization (SEO). In actuality, they do absolutely nothing.
 '''
 
+# ....................{ METADATA ~ trove                   }....................
 # To minimize desynchronization woes, all
 # "Programming Language :: Python :: "-prefixed strings are dynamically appended
 # to this list by the init() function below.
@@ -106,15 +107,16 @@ _CLASSIFIERS = [
     'Topic :: Scientific/Engineering :: Bio-Informatics',
 ]
 '''
-List of all PyPI-specific classifier strings synopsizing this application.
+List of all PyPI-specific trove classifier strings synopsizing this application.
 
 Each such string _must_ be contain either two or three ` :: ` substrings
-delimiting human-readable capitalized English words formally recognized by PyPI.
+delimiting human-readable capitalized English words formally recognized by the
+`distutils`-specific `register` command.
 
 See Also
 ----------
 https://pypi.python.org/pypi?%3Aaction=list_classifiers
-    Plaintext list of all classifier strings recognized by PyPI.
+    Plaintext list of all trove classifier strings recognized by PyPI.
 '''
 
 # ....................{ INITIALIZERS                       }....................
@@ -169,6 +171,8 @@ setup_options = {
     'version':          metadata.__version__,
     'author':           metadata.AUTHORS,
     'author_email':     metadata.AUTHOR_EMAIL,
+    'maintainer':       metadata.AUTHORS,
+    'maintainer_email': metadata.AUTHOR_EMAIL,
     'description':      metadata.SYNOPSIS,
     'long_description': _DESCRIPTION,
     'url':              metadata.URL_HOMEPAGE,
@@ -176,8 +180,9 @@ setup_options = {
 
     # ..................{ PYPI                               }..................
     # PyPi-specific metadata.
-    'keywords':    _KEYWORDS,
     'classifiers': _CLASSIFIERS,
+    'keywords': _KEYWORDS,
+    'license': metadata.LICENSE,
 
     # ..................{ DEPENDENCIES                       }..................
     # Mandatory nuntime dependencies.
@@ -210,15 +215,16 @@ setup_options = {
     #   test-specific functionality *NOT* intended to be installed with BETSE.
     # * "betse_setup" and all subpackages of this package, providing
     #   setuptools-specific functionality required only for BETSE installation.
+    # * "build", caching both setuptools-specific metadata and a complete copy
+    #   of this package, required only by a prior BETSE installation.
     # * "freeze", providing PyInstaller-specific functionality required only for
     #   BETSE freezing (i.e., conversion into an executable binary).
-    # * "old", providing obsolete code to be shortly put to pasture.
     'packages': setuptools.find_packages(
         exclude = [
             'betse_test', 'betse_test.*',
             'betse_setup', 'betse_setup.*',
+            'build',
             'freeze',
-            'old',
         ],
     ),
 
@@ -259,8 +265,8 @@ setup_options = {
     # terrible, of course. (Did you expect otherwise?)
     #
     # Data files are *NOT* Python modules and hence should *NOT* be embedded in
-    # the Python package tree. Sadly, the 'data_files' key supported by
-    # setuptools for this purpose is *NOT* cross-platform-portable and hence
+    # the Python package tree. Sadly, the "data_files" key supported by
+    # setuptools for this purpose is *NOT* cross-platform-portable and is thus
     # inherently broken. Why? Because this key either requires usage of absolute
     # paths *OR* relative paths relative to absolute paths defined by
     # "setup.cfg"; in either case, these paths are absolute. While the current

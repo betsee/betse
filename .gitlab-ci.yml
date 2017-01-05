@@ -1,5 +1,5 @@
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                           )--------------------
@@ -84,7 +84,7 @@
 # minification, Alpine Linux is ideal for Docker-based CI. While Alpine Linux
 # comes bundled with a package manager ("apk") providing a variety of scientific
 # Python packages (e.g., "py-numpy"), these packages are all specific to the
-# Python 2.7 ecosystem as of mid-2016. If and when Alpine Linux provides new
+# Python 2.7 ecosystem as of mid-2017. If and when Alpine Linux provides new
 # Python 3.x-compatible scientific Python packages, the current choice of Docker
 # image below should be revisited.
 #

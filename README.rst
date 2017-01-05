@@ -508,7 +508,7 @@ For prospective contributors:
 .. |Na+/K+-ATPase| replace:: Na\ :sup:`+`/K\ :sup:`+`-ATPase
 .. _Na+/K+-ATPase: https://en.wikipedia.org/wiki/Na%2B/K%2B-ATPase
 
-.. # ------------------( LINKS ~ software                   )------------------
+.. # ------------------( LINKS ~ science : computer         )------------------
 .. _Big Data:
    https://en.wikipedia.org/wiki/Big_data
 .. _comma-separated values:
@@ -520,7 +520,7 @@ For prospective contributors:
 .. _knowledge-based systems:
    https://en.wikipedia.org/wiki/Knowledge-based_systems
 
-.. # ------------------( LINKS ~ software ~ type            )------------------
+.. # ------------------( LINKS ~ software                   )------------------
 .. _Anaconda:
    https://www.continuum.io/downloads
 .. _Appveyor:

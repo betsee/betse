@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 '''
@@ -39,8 +39,6 @@ This application currently requires **Python 3.4**, as Python < 3.4:
 import sys
 
 # ....................{ METADATA                           }....................
-# General-purpose metadata.
-
 NAME = 'BETSE'
 '''
 Human-readable program name.
@@ -169,7 +167,7 @@ than that of a typical constant (e.g., `VERSION_STR`).
 '''
 
 
-#FIXME: Print on BETSE startup.
+#FIXME: Log on BETSE startup.
 CODENAME = 'Gladder Galvani'
 '''
 Human-readable code name associated with the current version of this
@@ -263,10 +261,18 @@ have yet to be stabilized and hence tagged. Hence, this URL is typically valid
 _only_ for previously released (rather than live) versions of this application.
 '''
 
-# ....................{ METADATA ~ packages                }....................
+# ....................{ METADATA ~ other                   }....................
+LICENSE = '2-clause BSD'
+'''
+Human-readable name of the open-source license that this application is licensed
+under.
+'''
+
+
 PACKAGE_NAME = NAME.lower()
 '''
-Fully-qualified name of the top-level Python package implementing this program.
+Fully-qualified name of the top-level Python package implementing this
+application.
 '''
 
 # ....................{ METADATA ~ scripts                 }....................

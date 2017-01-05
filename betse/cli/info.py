@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # --------------------( LICENSE                            )--------------------
-# Copyright 2014-2016 by Alexis Pietak & Cecil Curry
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
 '''
@@ -72,6 +72,7 @@ def output_info() -> None:
             ('version', metadata.__version__),
             ('codename', metadata.CODENAME),
             ('authors', metadata.AUTHORS),
+            ('license', metadata.LICENSE),
             ('home directory', pathtree.HOME_DIRNAME),
             ('dot directory',  pathtree.DOT_DIRNAME),
             ('data directory', pathtree.DATA_DIRNAME),

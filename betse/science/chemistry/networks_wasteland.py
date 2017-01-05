@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2014-2016 by Alexis Pietak & Cecil Curry.
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
 # FIXME this is the old version of what's currently networks.py. This is kept around for reference, just in case!
