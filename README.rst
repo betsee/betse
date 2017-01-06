@@ -78,12 +78,12 @@ For new users, BETSE is readily installable as follows:
 
 .. [#anaconda_not]
    If you prefer *not* to install Anaconda_, BETSE dependencies are `also
-   installable <Advanced_>`__ via your preferred platform-specific package
-   manager (e.g., Homebrew_ under macOS, APT_ under Ubuntu). Doing so is
-   non-trivial and, if done incorrectly, could produce a performance-crippled
-   single-core installation of BETSE – which would be bad. Anaconda_ suffers no
-   such issues and is guaranteed to produce a performance-optimized multicore
-   installation of BETSE on *all* supported platforms – which is good.
+   installable <Advanced_>`__ via your platform-specific package manager (e.g.,
+   Homebrew_ under macOS, APT_ under Ubuntu). Doing so is non-trivial and, if
+   done incorrectly, could produce a performance-crippled single-core
+   installation of BETSE – which would be bad. Anaconda_ suffers no such issues
+   and is guaranteed to produce a performance-optimized multicore installation
+   of BETSE on *all* supported platforms – which is good.
 
 Advanced
 --------
@@ -91,10 +91,10 @@ Advanced
 For developers and advanced users, *any* version of BETSE – including the live
 repository and prior stable releases – is manually installable as follows:
 
-#. Install **Python 3.x** and `all dependencies <installation_>`__ required by
+#. Install **Python 3.x** and `all dependencies <dependencies_>`__ required by
    BETSE. Under:
 
-   - **Linux,** install `these dependencies <installation_>`__ via your
+   - **Linux,** install `these dependencies <dependencies_>`__ via your
      distribution-specific package manager (e.g., APT_ under Debian-based
      distributions). Do *not* use `pip`.\ [#pip_not]_
    - **macOS,** either:
@@ -104,7 +104,7 @@ repository and prior stable releases – is manually installable as follows:
 
        #. Install a third-party package manager (e.g., Homebrew_, MacPorts_).
           Apple does *not* provide a package manager out-of-the-box.
-       #. Install `these dependencies <installation_>`__ via that package
+       #. Install `these dependencies <dependencies_>`__ via that package
           manager. Do *not* use `pip`.\ [#pip_not]_
 
    - **Windows,** install the **Python 3.x** variant of Anaconda_.\ [#windows]_
@@ -172,13 +172,13 @@ repository and prior stable releases – is manually installable as follows:
 
    .. code:: bash
 
-      cd .. && mkdir my_sims && cd my_sims && betse try
+      cd /tmp && betse try
 
 .. [#pip_not]
    Do *not* install scientific dependencies (e.g., NumPy_, SciPy_) via `pip` or
    `easy_install`; doing so typically degrades BETSE to single-core operation.
    To optimize BETSE across multiple cores, *always* install these dependencies
-   via your preferred platform-specific package manager (e.g., Homebrew_, APT_).
+   via your platform-specific package manager (e.g., Homebrew_, APT_).
 .. [#windows]
    Unlike Linux and macOS, Anaconda_ is (\ *effectively*\ ) required under
    Windows. Due to this platform's lack of support for POSIX-conformant
@@ -275,8 +275,8 @@ Extracellular Space
 
 Cells form interconnected intracellular networks via voltage-sensitive `gap
 junction connections <gap junction_>`__ embedded within an `extracellular
-space`_, maintained by `tight junctions`_ at the cell cluster periphery.
-Simulation of the extracellular environment enables exploration of `local field
+environment`_, maintained by `tight junctions`_ at the cell cluster periphery.
+Simulation of this environment enables exploration of `local field
 potentials`_, `transepithelial potential`_, and `ephaptic coupling`_ between
 cells.
 
@@ -292,8 +292,8 @@ valid targets for exhaustive study with BETSE.
 
 To integrate these potent control systems with bioelectrical signaling, the
 `activity <enzyme activity_>`__-modulated interaction between `gene products`_
-and similar biochemicals is fully integrated with `ion channels`_, `ion pumps`_,
-and `gap junctions`_.
+and similar biochemicals is fully integrated with `ion channels <ion
+channel_>`__, `ion pumps`_, and `gap junctions`_.
 
 Validation
 ==========
@@ -330,9 +330,9 @@ paper`_:
 Authors
 =======
 
-BETSE comes courtesy a dedicated community of authors_ and contributors_ –
-without whom this project would be computationally impoverished, intellectually
-neglected, and unmentionably unusable.
+BETSE comes courtesy a dedicated community of `authors <author list_>`__ and
+contributors_ – without whom this project would be computationally impoverished,
+biologically misaligned, and simply unusable.
 
 **Thanks, all.**
 
@@ -341,7 +341,7 @@ See Also
 
 For prospective users:
 
--  `Installation <doc/md/INSTALL.md>`__, detailing BETSE's installation with
+-  `Installation <dependencies_>`__, detailing BETSE's installation with
    exhaustive platform-specific instructions.
 -  `Usage <doc/md/USAGE.md>`__, detailing BETSE's command-line interface (CLI)
    with human-readable explanation and examples.
@@ -387,13 +387,13 @@ For prospective contributors:
    http://journal.frontiersin.org/journal/bioengineering-and-biotechnology
 
 .. # ------------------( LINKS ~ codebase                   )------------------
-.. _authors:
+.. _author list:
    AUTHORS.md
 .. _codebase:
    https://gitlab.com/betse/betse/tree/master
 .. _contributors:
    https://gitlab.com/betse/betse/graphs/master
-.. _installation:
+.. _dependencies:
    doc/md/INSTALL.md
 .. _testing:
    https://gitlab.com/betse/betse/pipelines
@@ -415,7 +415,7 @@ For prospective contributors:
    https://en.wikipedia.org/wiki/Ephaptic_coupling
 .. _epigenetics:
    https://en.wikipedia.org/wiki/Epigenetics
-.. _extracellular space:
+.. _extracellular environment:
    https://en.wikipedia.org/wiki/Extracellular
 .. _finite volume:
    https://en.wikipedia.org/wiki/Finite_volume_method
@@ -458,7 +458,6 @@ For prospective contributors:
 
 .. # ------------------( LINKS ~ science : channels         )------------------
 .. _ion channel:
-.. _ion channels:
    https://en.wikipedia.org/wiki/Ion_channel
 .. _leak channels:
    https://en.wikipedia.org/wiki/Leak_channel

@@ -55,7 +55,7 @@ from betse_setup import build, freeze, symlink, test
 # both space and time complexity for BETSE startup. This metadata is effectively
 # setuptools-specific and hence irrelevant to the main codebase.
 
-_PYTHON_VERSION_MINOR_MAX = 7
+_PYTHON_VERSION_MINOR_MAX = 6
 '''
 Maximum minor stable version of this major version of Python currently released
 (e.g., `5` if Python 3.5 is the most recent stable version of Python 3.x).

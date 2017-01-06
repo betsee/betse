@@ -158,7 +158,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-__version__ = '0.4.1'
+__version__ = '0.4.2'
 '''
 Human-readable current version of this application as a `.`-delimited string.
 
@@ -168,7 +168,7 @@ than that of a typical constant (e.g., `VERSION_STR`).
 
 
 #FIXME: Log on BETSE startup.
-CODENAME = 'Gladder Galvani'
+CODENAME = 'Gladdest Galvani'
 '''
 Human-readable code name associated with the current version of this
 application.
@@ -197,7 +197,7 @@ rather than that of a typical constant (e.g., `VERSION_PARTS`).
 # "setup.py" script. This description is inefficiently culled from the contents
 # of the top-level "README.rst" file and hence omitted here. (Doing so here
 # would significantly increase program startup costs with little to no benefit.)
-SYNOPSIS = 'BeTSE: the [B]io[e]lectric [T]issue [S]imulation [E]ngine'
+SYNOPSIS = 'BETSE, the Bioelectric Tissue Simulation Engine.'
 '''
 Human-readable single-line ASCII synopsis of this application.
 
@@ -206,11 +206,11 @@ By PyPI design, this string must _not_ span multiple lines or paragraphs.
 
 
 DESCRIPTION = (
-    'BeTSE ([B]io[e]lectric [T]issue [S]imulation [E]ngine) is a '
+    'The Bioelectric Tissue Simulation Engine (BETSE) is a '
     'finite volume simulator for 2D computational multiphysics problems in '
     'the life sciences -- including electrodiffusion, electro-osmosis, '
     'galvanotaxis, voltage-gated ion channels, gene regulatory networks, '
-    'and biochemical reaction networks (e.g., metabolism).'
+    'and biochemical reaction networks.'
 )
 '''
 Human-readable multiline ASCII description of this application.

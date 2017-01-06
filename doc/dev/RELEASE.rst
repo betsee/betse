@@ -37,6 +37,20 @@ Procedure
 
 BETSE is releasable to all supported platforms as follows:
 
+#. **Install** wheel_, a third-party pure-Python package permitting this release
+   to be packaged into a cross-platform pre-compiled binary distribution
+   supported by both PyPI_ and `pip`. This mandatory dependency augments
+   setuptools with the ``bdist_wheel`` subcommand invoked below.
+
+   .. code:: bash
+
+      $ sudo pip3 install wheel
+
+#. (\ *Optional*\ ) **Install** twine_, a third-party pure-Python package
+   simplifying remote communication with both `PyPI itself <PyPI_>`__ and
+   `Test PyPI`_. While optional, securely registering and uploading PyPI
+   distributions *without* twine_ is typically non-trivial, banal, and tedious.
+   :sup:`Your mileage may vary.`
 #. (\ *Optional*\ ) **List all existing tags.** For reference, listing all
    previously created tags *before* creating new tags is often advisable.
 
@@ -90,23 +104,181 @@ BETSE is releasable to all supported platforms as follows:
 
    .. code:: bash
 
-      $ git push --tags
+      $ git push && git push --tags
 
-#. (\ *Optional*\ ) **Install** twine_, a third-party pure-Python package
-   simplifying remote communication with both `PyPI itself <PyPI_>`__ and
-   `Test PyPI`_. While optional, securely registering and uploading PyPI
-   distributions *without* twine_ is typically non-trivial, banal, and tedious.
-   :sup:`Your mileage may vary.`
-#. (\ *Optional*\ ) **Test this release on** `Test PyPI`_. If installation of
-   this release differs significantly from that of prior releases, `testing this
-   release <Test PyPI instructions_>`__ on the official `PyPI test server <Test
-   PyPI_>`__ *before* publishing this release to `PyPI itself <PyPI_>`__ is
-   advisable.
-#. **Create a binary wheel.**
-#. **Create a source tarball.**
-#. **Upload this tarball to PyPI_.**
-#. **Bump the application version.** In preparation for subsequent development
-   of the next version of this application:
+#. (\ *Optional*\ ) **Test the installation of this release.** If installation
+   of this release differs from that of prior releases, testing *before*
+   publishing this release to PyPI_ and elsewhere is advisable.
+
+   #. **Package both a source tarball and binary wheel.**
+
+      .. code:: bash
+
+         $ python3 setup.py sdist bdist_wheel
+
+   #. **List the contents of this source tarball,** where ``${version}`` is
+      the purely numeric version of this release (e.g., ``0.4.1``). Verify by
+      inspection that no unwanted paths were packaged.
+
+      .. code:: bash
+
+         $ tar -tvzf dist/betse-${version}.tar.gz | less
+
+   #. **Test this source tarball locally.**
+
+      #. **Create a new empty (venv)** (i.e., virtual environment).
+
+         .. code:: bash
+
+            $ python3 -m venv --clear /tmp/betse-sdist
+
+      #. **Install this source tarball into this venv.**\ [#venv]_
+
+         .. code:: bash
+
+            $ /tmp/betse-sdist/bin/pip3 install dist/betse-${version}.tar.gz
+
+      #. **Test this release from this venv.**
+
+         .. code:: bash
+
+            $ cd /tmp && /tmp/betse-sdist/bin/betse try
+
+      #. **Remove this venv and return to the prior directory.**
+
+         .. code:: bash
+
+            $ rm -rf /tmp/betse-sdist && cd -
+
+   #. **Test this binary wheel locally.**
+
+      #. **Create a new empty venv.**
+
+         .. code:: bash
+
+            $ python3 -m venv --clear /tmp/betse-wheel
+
+      #. **Install this binary wheel into this venv.**\ [#venv]_
+
+         .. code:: bash
+
+            $ /tmp/betse-wheel/bin/pip3 install \
+              dist/betse-${version}-py3-none-any.whl
+
+      #. **Test this release from this venv.**
+
+         .. code:: bash
+
+            $ cd /tmp && /tmp/betse-wheel/bin/betse try
+
+      #. **Remove this venv and sample simulation and return to the prior
+         directory.**
+
+         .. code:: bash
+
+            $ rm -rf /tmp/betse-wheel /tmp/sample_sim && cd -
+
+   #. **Test this release on** `Test PyPI`_. Note that, as this server is a
+      moving target, the `official instructions <Test PyPI instructions_>`__
+      *always* supersede those listed for convenience below.
+
+      #. **Create a** `Test PyPI user`_.
+      #. **Create a** ``~/.pypirc`` **dotfile,** ideally by following the
+         `official instructions <Test PyPI instructions_>`__ for doing so.
+      #. **Register this project with** `Test PyPI`_.
+
+         .. code:: bash
+
+            $ python3 setup.py register -r testpypi
+
+      #. **Browse to this project on** `Test PyPI`_. Verify by inspection all
+         identifying metadata at the following URL:
+
+         https://testpypi.python.org/pypi/betse
+
+      #. **Upload this source tarball and binary wheel to**  `Test PyPI`_.
+
+         .. code:: bash
+
+            $ twine upload -r testpypi dist/betse-${version}*
+
+      #. **Create a new empty venv.**
+
+         .. code:: bash
+
+            $ python3 -m venv --clear /tmp/betse-pypi
+
+      #. **Install this release into this venv.**\ [#venv]_
+
+         .. code:: bash
+
+            $ /tmp/betse-pypi/bin/pip3 install \
+              install -i https://testpypi.python.org/pypi betse
+
+      #. **Test this release from this venv.**
+
+         .. code:: bash
+
+            $ cd /tmp && /tmp/betse-pypi/bin/betse try
+
+      #. **Remove this venv and sample simulation and return to the prior
+         directory.**
+
+         .. code:: bash
+
+            $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
+
+#. **Publish this release to** `PyPI`_.
+
+   #. **Create a** `PyPI user`_.
+   #. **Create a** ``~/.pypirc`` **dotfile,** ideally by following the
+      `official instructions <Test PyPI instructions_>`__ for doing so.
+   #. **Register this project with** `PyPI`_. Breath deeply for you tread in
+      hallow waters.
+
+      .. code:: bash
+
+         $ python3 setup.py register
+
+   #. **Browse to this project on** `PyPI`_. Verify by inspection all
+      identifying metadata at the following URL:
+
+      https://pypi.python.org/pypi/betse
+
+   #. **Upload this source tarball and binary wheel to** `PyPI`_.
+
+      .. code:: bash
+
+         $ twine upload dist/betse-${version}*
+
+   #. (\ *Optional*\ ) **Test the installation of this release from** `PyPI`_.
+
+      #. **Create a new empty venv.**
+
+         .. code:: bash
+
+            $ python3 -m venv --clear /tmp/betse-pypi
+
+      #. **Install this release into this venv.**\ [#venv]_
+
+         .. code:: bash
+
+            $ /tmp/betse-pypi/bin/pip3 install betse
+
+      #. **Test this release from this venv.**
+
+         .. code:: bash
+
+            $ cd /tmp && /tmp/betse-pypi/bin/betse try
+
+      #. **Remove this venv and sample simulation and return to the prior
+         directory.**
+
+         .. code:: bash
+
+            $ rm -rf /tmp/betse-pypi /tmp/sample_sim && cd -
+
+#. **Bump release metadata.** In preparation for developing the next release:
 
    #. The ``betse.metadata.__version__`` global should be incremented according
       to the `best practices <Versioning_>`__ provided below.
@@ -123,9 +295,7 @@ BETSE is releasable to all supported platforms as follows:
        global.
 
    Since no changelog for this release yet exists, a single-line message
-   suffices for this commit..
-
-   For example::
+   suffices for this commit. For example::
 
        BETSE 0.4.1 (Gladder Galvani) started.
 
@@ -134,6 +304,11 @@ BETSE is releasable to all supported platforms as follows:
    author identity, descriptive message). *Always* create an annotated tag
    containing this metadata by explicitly passing the ``-a`` option to the
    ``git tag`` subcommand.
+.. [#venv]
+   Installing this release into a venv requires installing *all* mandatory
+   dependencies of this release into this venv from either binary wheels or
+   source tarballs. In either case, expect installation to consume non-trivial
+   space and time. The cheese shop was not instantiated in a day.
 
 Versioning
 ============
@@ -191,11 +366,17 @@ names is a fruitless and hence worthless goal.
    https://testpypi.python.org/pypi
 .. _Test PyPI instructions:
    https://wiki.python.org/moin/TestPyPI
+.. _Test PyPI user:
+   https://testpypi.python.org/pypi?%3Aaction=register_form
 .. _PyPI:
    https://pypi.python.org/pypi
+.. _PyPI user:
+   https://pypi.python.org/pypi?%3Aaction=register_form
 .. _Semantic Versioning:
    http://semver.org
 .. _Ubuntu code name schema:
    https://wiki.ubuntu.com/DevelopmentCodeNames
 .. _twine:
    https://pypi.python.org/pypi/twine
+.. _wheel:
+   https://wheel.readthedocs.io
