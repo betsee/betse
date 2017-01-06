@@ -352,10 +352,10 @@ class Cells(object):
 
         logs.log_info('Creating computational matrices for cell-cell transfers... ')
         self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
-        self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
+        # self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
 
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
-        self.cellDivM(p)    # create matrix to invert divergence
+        # self.cellDivM(p)    # create matrix to invert divergence
 
         logs.log_info('Creating gap junctions... ')
         self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
@@ -1221,12 +1221,12 @@ class Cells(object):
 
         # create a matrix that will map and interpolate data on mem mids to the mem verts -----------------------------
         # it will work as data on verts = dot( data on mids, matrixMap2Verts ):
-        self.matrixMap2Verts = np.zeros(
-            (len(self.mem_mids_flat), len(self.mem_verts)))
-
-        for i, indices in enumerate(self.index_to_mem_verts):
-            self.matrixMap2Verts[i, indices[0]] = 1/2
-            self.matrixMap2Verts[i, indices[1]] = 1/2
+        # self.matrixMap2Verts = np.zeros(
+        #     (len(self.mem_mids_flat), len(self.mem_verts)))
+        #
+        # for i, indices in enumerate(self.index_to_mem_verts):
+        #     self.matrixMap2Verts[i, indices[0]] = 1/2
+        #     self.matrixMap2Verts[i, indices[1]] = 1/2
 
         # matrix for summing property on membranes for each cell and a count of number of mems per cell:---------------
         self.M_sum_mems = np.zeros((len(self.cell_i),len(self.mem_i)))
@@ -2446,7 +2446,26 @@ class Cells(object):
             self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
     #..........{ MAPPERS                                 }.....................
+    #FIXME: Document us up, please, by copying the class docstring commentary
+    #into a docstring for this property.
     @property_cached
+    def matrixMap2Verts(self) -> ndarray:
+
+        matrixMap2Verts = np.zeros(
+            (len(self.mem_mids_flat), len(self.mem_verts)))
+
+        for i, indices in enumerate(self.index_to_mem_verts):
+            matrixMap2Verts[i, indices[0]] = 1/2
+            matrixMap2Verts[i, indices[1]] = 1/2
+
+        return matrixMap2Verts
+
+
+    #FIXME: Eventually we want to switch this up. This data structure should
+    #replace "self.M_sum_mems" everywhere; after doing so, "self.M_sum_mems"
+    #should be removed.
+
+    @property
     def membranes_midpoint_to_cells_centre(self) -> ndarray:
         '''
         Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
