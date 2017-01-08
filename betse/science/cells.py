@@ -420,6 +420,7 @@ class Cells(object):
 
         self.cell_i = np.asarray(self.cell_i) # we need this to be an array for advanced indexing & assignments
 
+
     def deformWorld(self,p, ecm_verts):
         """
         Runs necessary methods to recalculate essential world
@@ -1623,6 +1624,17 @@ class Cells(object):
 
         # correction coefficient for converting from cell to env divergences:
         self.cell2env_corrF = (self.cell_vol / self.true_ecm_vol[self.map_cell2ecm]) * (self.ecm_sa / self.cell_sa)
+
+        # calculate indices to tag TJ at boundary
+        neigh_to_bcells, _, _ = tb.flatten(self.cell_nn[self.bflags_cells])
+        all_bound_mem_inds_o = self.cell_to_mems[self.bflags_cells]
+        interior_bound_mem_inds_o = self.cell_to_mems[neigh_to_bcells]
+        interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
+        all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
+
+        self.all_bound_mem_inds = self.map_mem2ecm[all_bound_mem_inds_o]
+        self.interior_bound_mem_inds = self.map_mem2ecm[interior_bound_mem_inds_o]
+        self.inds_outmem = self.map_mem2ecm[self.bflags_mems]
 
     def graphLaplacian(self,p):
         '''

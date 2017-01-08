@@ -94,7 +94,7 @@ class Profile(object, metaclass = ABCMeta):
                     key: float(value) for key, value in (
                         profile_config['diffusion constants'].items()) }
 
-            # Else if this is a tissue profile...
+            # Else if this is a "cutting" profile...
             elif profile_type == 'cut':
                 profile = ProfileCut(
                     name=profile_config['name'],

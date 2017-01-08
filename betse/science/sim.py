@@ -592,6 +592,8 @@ class Simulator(object):
         # GJ fluxes storage vector:
         self.fluxes_gj = np.copy(self.fluxes_mem)
 
+        self.gj_funk = None  # initialize this to None; set in init_tissue
+
     def init_tissue(self, cells, p):
         '''
         Prepares data structures pertaining to tissue profiles, dynamic
@@ -1753,40 +1755,46 @@ class Simulator(object):
 
         for i, dmat in enumerate(self.D_env):
 
-            if p.env_type is False: # if air surrounds, first set everything to zero and add in cluster data...
-                self.D_env[i][:] = 0
-            # for all cells and mems in the cluster, set the internal diffusion constant for adherens junctions:
-            dummyMems = np.ones(len(cells.mem_i))*self.D_free[i]*p.D_adh
+            # neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+            # all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
+            # interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
+            # interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
+            # all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
+            #
+            # all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
+            # interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
+            # inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
 
-            # get a list of all membranes for boundary cells:
-            neigh_to_bcells,_,_ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+            Denv_o = np.ones(self.edl) * self.D_free[i]
 
-            all_bound_mem_inds = cells.cell_to_mems[cells.bflags_cells]
-            interior_bound_mem_inds = cells.cell_to_mems[neigh_to_bcells]
-            interior_bound_mem_inds,_,_ = tb.flatten(interior_bound_mem_inds)
-            all_bound_mem_inds, _ ,_ = tb.flatten(all_bound_mem_inds)
+
+            # if p.env_type is True:
+            Denv_o[cells.all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            Denv_o[cells.interior_bound_mem_inds] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+            Denv_o[cells.inds_outmem] = self.D_free[i]
 
             # set external membrane of boundary cells to the diffusion constant of tight junctions:
-            dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            # dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            # dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+            # dummyMems[cells.bflags_mems] = self.D_free[i]
+
             # dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            dummyMems[cells.bflags_mems] = self.D_free[i]
 
             # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
-            if p.env_type is True:
-                Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.X,cells.Y),method='nearest',fill_value=self.D_free[i])
+            # if p.env_type is True:
+                # Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                #     (cells.X,cells.Y),method='nearest',fill_value=self.D_free[i])
 
-            else:
-                Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                    (cells.X,cells.Y),method='nearest',fill_value=0)
+            # else:
+                # Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
+                #     (cells.X,cells.Y),method='nearest',fill_value=0)
 
-            Denv_o = Denv_o.ravel()
-            Denv_o[cells.inds_env] = self.D_free[i]
-            Denv_o[cells.map_cell2ecm][cells.bflags_cells] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+            # Denv_o = Denv_o.ravel()
+            # Denv_o[cells.inds_env] = self.D_free[i]
+            # Denv_o[cells.map_cell2ecm][cells.bflags_cells] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
 
             # create an ecm diffusion grid filled with the environmental values
-            self.D_env[i] = Denv_o[:]*1
+            self.D_env[i] = Denv_o*1.0
 
             # self.D_env[i][cells.ecm_bound_k] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
 

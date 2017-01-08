@@ -1300,6 +1300,16 @@ class Parameters(object):
         self.clipping_bitmap_matcher = TissuePickerBitmap(
             tpd['clipping']['bitmap']['file'], self.config_dirname)
 
+        model_hole = tpd.get('internal pore file', None)
+
+        if model_hole is not None:
+
+            self.clipping_bitmap_hole = TissuePickerBitmap(tpd['internal pore file'], self.config_dirname)
+
+        else:
+
+            self.clipping_bitmap_hole = None
+
         # If tissue profiles are currently enabled, parse all profiles.
         self.profiles = OrderedDict()
         if tpd['profiles enabled']:

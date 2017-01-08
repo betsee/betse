@@ -93,14 +93,20 @@ class SimRunner(object):
 
         logs.log_info('Cell cluster is being created...')
         cells.makeWorld(p)  # call function to create the world
+        dyna = TissueHandler(sim, cells, p)
 
         # define the tissue and boundary profiles for plotting:
         logs.log_info('Defining tissue and boundary profiles...')
         sim.baseInit_all(cells, p)
-        dyna = TissueHandler(sim, cells, p)
         dyna.tissueProfiles(sim, cells, p)
-
         cells.redo_gj(dyna, p)  # redo gap junctions to isolate different tissue types
+
+        # if the user desires a non-TJ connected hole to be cut in the model, we need to remake everything:
+        # if the user wants a hole without TJ, we must unfortunately re-make everything
+        if p.clipping_bitmap_hole is not None:
+            dyna.removeCells(p.clipping_bitmap_hole, sim, cells, p, hole_tag=True)
+
+
 
         # make a laplacian and solver for discrete transfers on closed, irregular cell network
         logs.log_info('Creating cell network Poisson solver...')
@@ -121,12 +127,6 @@ class SimRunner(object):
         # finish up:
         cells.save_cluster(p)
         logs.log_info('Cell cluster creation complete!')
-
-        #FIXME: Remove this seemingly obsolete logic.
-        # if p.turn_all_plots_off is False:
-        #     logs.log_info('Close all plot windows to continue...')
-        #     self.plot_seed()
-        #     plt.show()
 
         sim.sim_info_report(cells,p)
 

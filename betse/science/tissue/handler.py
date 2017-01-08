@@ -974,7 +974,7 @@ class TissueHandler(object):
         sim.P_cells = sim.P_mod + sim.P_base
 
     #FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
-    def removeCells(self,tissue_picker, sim, cells, p) -> None:
+    def removeCells(self,tissue_picker, sim, cells, p, hole_tag = False) -> None:
         '''
         Permanently remove all cells selected by the passed tissue picker.
 
@@ -1236,19 +1236,19 @@ class TissueHandler(object):
         cells.graphLaplacian(p)
 
         # if running voltage gated gap junctions, reinnitialize them:
-        if p.v_sensitive_gj:
+        if p.v_sensitive_gj and sim.gj_funk is not None:
             sim.gj_funk.init(sim, cells, p)
 
         # delete data from molecules objects:
-        if p.molecules_enabled:
+        if p.molecules_enabled and sim.molecules is not None:
 
             sim.molecules.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
-        if p.metabolism_enabled:
+        if p.metabolism_enabled and sim.metabo is not None:
 
             sim.metabo.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p, met_tag = True)
 
-        if p.grn_enabled:
+        if p.grn_enabled and sim.grn is not None:
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
@@ -1265,6 +1265,20 @@ class TissueHandler(object):
             searchTree_m = sps.KDTree(cells.mem_mids_flat)
             original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
             cells.bflags_mems = original_pt_inds_m
+
+            # calculate indices to tag TJ at boundary in terms of original boundary flags
+            neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+            all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
+            interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
+            interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
+            all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
+
+            cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
+            cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
+            cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
+
+
+            # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
 
             sim.initDenv(cells,p)
 
@@ -1311,4 +1325,8 @@ class TissueHandler(object):
             self.wound_channel_used = True
             self.wound_channel = w.TRP()
             self.wound_channel.init(self, sim, cells, p)
+
+        # need to also re-do tissue profiles and GJ
+        self.tissueProfiles(sim, cells, p)
+        cells.redo_gj(self, p)  # redo gap junctions to isolate different tissue types
 
