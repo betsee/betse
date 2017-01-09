@@ -782,6 +782,21 @@ class AnimFieldIntracellular(AnimField):
             #is *ALWAYS* guaranteed to be True. As with the
             #"AnimCellsMembranesData" class, this class thus always operates on
             #membrane midpoint-centric data. Excellent!
+            #FIXME: Actually, let's refactor the superclass __init__() method
+            #to accept only a single 2-dimensional
+            #"times_membranes_midpoint_data" sequence, much like the
+            #"AnimCellsMembranesData" class. To do so without breaking
+            #anything, it would probably be simplest to:
+            #
+            #* Mark our superclass as @deprecated.
+            #* Refactor this class to subclass "AnimCellsWhileSolvingABC"
+            #  rather than our current superclass.
+            #* Refactor the __init__() method of this class to accept a single
+            #  2-dimensional "times_membranes_midpoint_data" sequence rather
+            #  than two separate X and Y data arrays. Or perhaps even a single
+            #  "VectorFieldABC" instance providing the desired object directly?
+            #  In any case, do something.
+
             #FIXME: In light of the above, this entire class can be refactored
             #in terms of two layers:
             #

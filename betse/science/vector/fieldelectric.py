@@ -23,6 +23,48 @@ density vector field, yielding magnitude in units of uA/cm^2.
 '''
 
 # ....................{ ELECTRIC FIELD                     }....................
+class VectorFieldElectricIntra(VectorFieldSimmedABC):
+    '''
+    Intracellular (i.e., jap junction) electric vector field spatially situated
+    at cell centres for all time steps of the current simulation.
+    '''
+
+    # ..................{ SUBCLASS                           }..................
+    # Reuse the X and Y components already computed for this simulation,
+    # converted from lists to Numpy arrays.
+
+    @property_cached
+    def x(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array whose:
+
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes each cell such that each element is the X
+          component of the intracellular electric vector field spatially
+          situated at the center of that cell for this time step.
+        '''
+
+        # Map the "Simulator"-specific X component data situated at cell
+        # membrane midpoints onto cell centres.
+        return self._cells.map_membranes_midpoint_to_cells_centre(
+            self._sim.efield_gj_x_time)
+
+
+    @property_cached
+    def y(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array whose:
+
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes each cell such that each element is the Y
+          component of the intracellular electric vector field spatially
+          situated at the center of that cell for this time step.
+        '''
+
+        # Map the "Simulator"-specific X component data situated at cell
+        # membrane midpoints onto cell centres.
+        return self._cells.map_membranes_midpoint_to_cells_centre(
+            self._sim.efield_gj_y_time)
 
 # ....................{ CURRENT DENSITY ~ intra-extra      }....................
 class VectorFieldCurrentIntraExtra(VectorFieldSimmedABC):
@@ -57,11 +99,11 @@ class VectorFieldCurrentIntraExtra(VectorFieldSimmedABC):
         Two-dimensional Numpy array whose:
 
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the X
-          component of the **total current density vector** (i.e., vector of
-          both intra- _and_ extracellular current densities) spatially situated
-          at the center of each grid space for this time step.
+        * Second dimension indexes each square grid space (in either dimension)
+          such that each element is the X component of the **total current
+          density vector** (i.e., vector of both intra- _and_ extracellular
+          current densities) spatially situated at the center of that grid space
+          for this time step.
         '''
 
         return arrays.from_sequence(self._sim.I_tot_x_time)
@@ -73,11 +115,11 @@ class VectorFieldCurrentIntraExtra(VectorFieldSimmedABC):
         Two-dimensional Numpy array whose:
 
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the Y
-          component of the **total current density vector** (i.e., vector of
-          both intra- _and_ extracellular current densities) spatially situated
-          at the center of each grid space for this time step.
+        * Second dimension indexes each square grid space (in either dimension)
+          such that each element is the Y component of the **total current
+          density vector** (i.e., vector of both intra- _and_ extracellular
+          current densities) spatially situated at the center of that grid space
+          for this time step.
         '''
 
         return arrays.from_sequence(self._sim.I_tot_y_time)
@@ -107,10 +149,10 @@ class VectorFieldCurrentIntra(VectorFieldSimmedABC):
         Two-dimensional Numpy array whose:
 
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the X
-          component of the intracellular current density vector spatially
-          situated at the center of each grid space for this time step.
+        * Second dimension indexes each square grid space (in either dimension)
+          such that each element is the X component of the intracellular current
+          density vector spatially situated at the center of that grid space for
+          this time step.
         '''
 
         return self._get_component(self._sim.I_cell_x_time)
@@ -122,10 +164,10 @@ class VectorFieldCurrentIntra(VectorFieldSimmedABC):
         Two-dimensional Numpy array whose:
 
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the Y
-          component of the intracellular current density vector spatially
-          situated at the center of each grid space for this time step.
+        * Second dimension indexes each square grid space (in either dimension)
+          such that each element is the X component of the intracellular current
+          density vector spatially situated at the center of that grid space for
+          this time step.
         '''
 
         return self._get_component(self._sim.I_cell_y_time)

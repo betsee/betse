@@ -16,7 +16,7 @@ from betse.exceptions import BetseSimInstabilityException
 from betse.util.io.log import logs
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
-from betse.science import toolbox as tb
+# from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.science.chemistry.molecules import MasterOfMolecules
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
@@ -43,8 +43,8 @@ Ordered enumeration of all possible simulation phases.
 
 Each member of this enumeration is arbitrarily comparable to each other member.
 Each member's value is less than that of another member's value if and only if
-the simulation phase of the former is performed _before_ that of the latter.
-In particular, this enumeration is a total ordering such that:
+the former simulation phase is performed _before_ the latter. Specifically,
+this enumeration is a total ordering such that:
 
     >>> SimPhase.SEED < SimPhase.INIT < SimPhase.SIM
     True
@@ -135,17 +135,16 @@ class Simulator(object):
         Voltage at the outer membrane surface of each cell as a function of
         time.
     vm : ndarray
-        One-dimensional Numpy array of length the number of cell membranes such
-        that each element is the transmembrane voltage spatially situated
-        across the cell membrane indexed by that element for the current time
-        step.
+        One-dimensional Numpy array indexing each cell membranes such that each
+        element is the transmembrane voltage spatially situated across the cell
+        membrane indexed by that element for the current time step.
     vm_time : ndarray
         Two-dimensional Numpy array of the transmembrane voltage across all
         cell membranes, whose:
         . First dimension indexes each simulation time step.
-        . Second dimension indexes each cell membrane in this cluster such that
-          each element is the transmembrane voltage spatially situated across
-          the cell membrane indexed by that element for the current time step.
+        . Second dimension indexes each cell membrane such that each element is
+          the transmembrane voltage spatially situated across the cell membrane
+          indexed by that element for this time step.
         Equivalently, this array is the concatenation of all :attr:`vm` arrays
         over all time steps.
 
@@ -154,38 +153,36 @@ class Simulator(object):
     I_cell_x_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes cells, whose length is the number of cells
-          and each element is the X component of the intracellular current
-          density vector spatially situated at the center of each cell for this
-          time step.
+        * Second dimension indexes each cell such that each element is the X
+          component of the intracellular current density vector spatially
+          situated at the center of each cell for this time step.
     I_cell_y_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes cells, whose length is the number of cells
-          and each element is the Y component of the intracellular current
-          density vector spatially situated at the center of each cell for this
-          time step.
+        * Second dimension indexes each cell such that each element is the Y
+          component of the intracellular current density vector spatially
+          situated at the center of each cell for this time step.
     I_tot_x_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the X
-          component of the **total current density vector** (i.e., vector of
-          both intra- _and_ extracellular current densities) spatially situated
-          at the center of each grid space for this time step.
+        * Second dimension indexes each square grid spaces (in either
+          dimension) such that each element is the X component of the **total
+          current density vector** (i.e., vector of both intra- _and_
+          extracellular current densities) spatially situated at the center of
+          that grid space for this time step.
     I_tot_y_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes square grid spaces, whose length is the
-          number of grid spaces in either dimension and each element is the Y
-          component of the **total current density vector** (i.e., vector of
-          both intra- _and_ extracellular current densities) spatially situated
-          at the center of each grid space for this time step.
+        * Second dimension indexes each square grid spaces (in either
+          dimension) such that each element is the Y component of the **total
+          current density vector** (i.e., vector of both intra- _and_
+          extracellular current densities) spatially situated at the center of
+          that grid space for this time step.
 
     Attributes (Electric Field)
     ----------
     E_gj_x : ndarray
-        One-dimensional Numpy array indexing each simulated cell membrane, such
+        One-dimensional Numpy array indexing each simulated cell membrane such
         that each element is the X component of the intracellular electric
         field vector spatially situated across the gap junction to which the
         current membrane connects: specifically, the difference of the X
@@ -193,13 +190,13 @@ class Simulator(object):
         voltage situated at the gap junction-connected membrane adjacent to
         this membrane, divided by the length in meters of this gap junction.
     E_gj_y : ndarray
-        One-dimensional Numpy array indexing each simulated cell membrane, such
+        One-dimensional Numpy array indexing each simulated cell membrane such
         that each element is the Y component of the intracellular electric
         field vector defined as for the corresponding :attr:`E_gj_X` array.
     efield_gj_x_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes each simulated cell membrane, such that each
+        * Second dimension indexes each simulated cell membrane such that each
           element is the X component of the intracellular electric field vector
           defined as for the corresponding :attr:`E_gj_x` array.
         Equivalently, this array is the concatenation of all :attr:`E_gj_x`
@@ -207,7 +204,7 @@ class Simulator(object):
     efield_gj_y_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
-        * Second dimension indexes each simulated cell membrane, such that each
+        * Second dimension indexes each simulated cell membrane such that each
           element is the Y component of the intracellular electric field vector
           defined as for the corresponding :attr:`E_gj_y` array.
         Equivalently, this array is the concatenation of all :attr:`E_gj_y`

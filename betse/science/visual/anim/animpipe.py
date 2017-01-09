@@ -28,7 +28,6 @@ from betse.science.visual.anim.anim import (
 )
 from betse.science.visual import visuals
 from betse.util.io.log import logs
-from betse.util.type import types
 from betse.util.type.types import type_check
 
 # ....................{ PIPELINES                          }....................

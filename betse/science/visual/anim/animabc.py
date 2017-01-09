@@ -98,12 +98,11 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
-from betse.science.visual.visualabc import VisualCellsABC
+from betse.science.vector.fieldelectric import (
+    VectorFieldCurrentIntra, VectorFieldCurrentIntraExtra)
 from betse.science.visual.layer.layerstream import (
-    LayerCellsStreamABC,
-    LayerCellsStreamCurrentIntra,
-    LayerCellsStreamCurrentIntraExtra,
-)
+    LayerCellsStreamABC, LayerCellsStreamVectorField)
+from betse.science.visual.visualabc import VisualCellsABC
 from betse.util.io.log import logs
 from betse.util.os import oses
 from betse.util.path import dirs, paths
@@ -470,45 +469,77 @@ class AnimCellsABC(VisualCellsABC):
 
         return self._time_step
 
-    # ..................{ ANIMATORS                          }..................
+    # ..................{ PREPARERS                          }..................
     # This method has been overridden to support subclasses that manually
     # handle animations rather than calling the _animate() method (e.g., the
     # "AnimCellsWhileSolving" subclass).
     def _prep_figure(self, *args, **kwargs) -> None:
 
-        #FIXME: Shift this logic into the superclass _prep_figure()
-        #implementation *AFTER* eliminating these boolean attributes, as
-        #detailed in an __init__() method comment above.
+        #FIXME: Refactor this method as follows:
+        #
+        #* Eliminate all current overlay-specific boolean attributes (e.g.,
+        #  "_is_current_overlayable"), as detailed in an __init__() method
+        #  comment above.
+        #* Shift the _prep_layer_current() method into the superclass.
+        #* Call the _prep_layer_current() method in the superclass
+        #  _prep_figure() implementation.
+        #* Remove this _prep_figure() implementation.
 
-        # If...
-        if (
-            # This simulation configuration requests a current overlay.
-            self._is_current_overlayable and
-
-            # No layer in the layer sequence already plots streamlines. Since
-            # the current overlay also plots streamlines, attempting to plot
-            # streamlines over existing streamlines would produce an
-            # unintelligible plot or animation... which would be bad.
-            not iterables.is_items_any_instance_of(
-                iterable=self._layers, cls=LayerCellsStreamABC)
-        # ...then overlay current. Append a layer doing so *AFTER* all lower
-        # layers (e.g., cell data) have been appended but *BEFORE* all higher
-        # layers (e.g., cell labelling) have been appended.
-        ):
-            # If layering only intracellular current, do so.
-            if self._is_current_overlay_only_gj:
-                logs.log_debug('Overlayering intracellular current...')
-                self._append_layer(LayerCellsStreamCurrentIntra())
-            # Else, layer both intra- and extracellular current.
-            else:
-                logs.log_debug(
-                    'Overlayering intra- and extracellular current...')
-                self._append_layer(LayerCellsStreamCurrentIntraExtra())
+        # Append a layer overlaying current density *AFTER* all lower layers
+        # (e.g., cell data) have been appended but *BEFORE* all higher layers
+        # (e.g., cell labelling) have been appended.
+        self._prep_layer_current()
 
         # Perform superclass figure preparation.
         super()._prep_figure(*args, **kwargs)
 
 
+    def _prep_layer_current(self) -> None:
+        '''
+        Append a layer overlaying current density if this simulation
+        configuration requests a current overlay and no layer in the layer
+        sequence already plots streamlines _or_ noop otherwise.
+
+        If an existing layer in the layer sequence already plots streamlines,
+        this method avoids adding another layer also doing so. Since the
+        current overlay also plots streamlines, attempting to plot streamlines
+        over existing streamlines would produce an unintelligible plot or
+        animation. (That would be bad.)
+        '''
+
+        # If either...
+        if (
+            # This simulation configuration requests no current overlay.
+            not self._is_current_overlayable or
+
+            # A layer in the layer sequence already plots streamlines.
+            iterables.is_items_any_instance_of(
+                iterable=self._layers, cls=LayerCellsStreamABC)
+        # ...then silently noop.
+        ):
+            return
+        # Else, overlay current.
+
+        # Type of current density vector field to layer.
+        field_type = None
+
+        # If layering only intracellular current, do so.
+        if self._is_current_overlay_only_gj:
+            logs.log_debug('Overlayering intracellular current...')
+            field_type = VectorFieldCurrentIntra
+        # Else, layer both intra- and extracellular current.
+        else:
+            logs.log_debug(
+                'Overlayering intra- and extracellular current...')
+            field_type = VectorFieldCurrentIntraExtra
+
+        # Current density vector field to layer.
+        field = field_type(sim=self._sim, cells=self._cells, p=self._p)
+
+        # Append a layer overlaying this field.
+        self._append_layer(LayerCellsStreamVectorField(field=field))
+
+    # ..................{ ANIMATORS                          }..................
     @type_check
     def _animate(self, *args, **kwargs) -> None:
         '''

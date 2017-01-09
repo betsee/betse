@@ -23,11 +23,10 @@ Layer subclasses spatially overlaying streamlines onto the current cell cluster.
 #Doing so is ultimately trivial but tedious and hence deferred to another day.
 
 # ....................{ IMPORTS                            }....................
-from abc import abstractmethod, abstractproperty
-
 import numpy as np
+from abc import abstractmethod, abstractproperty
+from betse.science.vector.fieldabc import VectorFieldABC
 from betse.science.vector.fieldelectric import (
-    VectorFieldSimmedABC,
     VectorFieldCurrentIntra,
     VectorFieldCurrentIntraExtra,
 )
@@ -36,7 +35,6 @@ from betse.science.visual.layer.layerabc import LayerCellsABC
 from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
-
 
 # ....................{ SUPERCLASSES                       }....................
 class LayerCellsStreamABC(LayerCellsABC):
@@ -186,16 +184,35 @@ class LayerCellsStreamABC(LayerCellsABC):
         self._layer_first()
 
 
-class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
+#FIXME: Merge this subclass into the "LayerCellsStreamABC" superclass and then
+#remove this subclass entirely. The "LayerCellsStreamABC" superclass should be
+#refactored to leverage vector fields everywhere; that superclass currently
+#contains separate _get_velocities_x(), _get_velocities_y(), and
+#_get_velocities_magnitude() methods -- which, in light of our vector field API,
+#is simply insane overkill.
+class LayerCellsStreamVectorField(LayerCellsStreamABC):
     '''
-    Abstract base class of all layer subclasses plotting streamlines of
-    electrical current density onto the cell cluster.
+    Layer subclass plotting streamlines of an arbitrary vector field onto the
+    cell cluster.
+    '''
 
-    Such layers are somewhat more computationally expensive in both space and
-    time than the average layer. For each plot or animation frame to be layered
-    with streamlines, the subclass solves an internal fluid simulation of the
-    current density through this cell cluster specific to this frame.
-    '''
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, *args, field: VectorFieldABC, **kwargs) -> None:
+        '''
+        Initialize this layer.
+
+        Parameters
+        ----------
+        field : VectorFieldABC
+            Vector field to be streamplotted by this layer.
+        '''
+
+        # Initialize our superclass with all remaining parameters.
+        super().__init__(*args, **kwargs)
+
+        # Classify this passed parameter.
+        self._field = field
 
     # ..................{ SUPERCLASS                         }..................
     def _get_velocities_x(self) -> SequenceTypes:
@@ -204,7 +221,7 @@ class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
         field for the current time step.
         '''
 
-        return self._time_currents.x[self._visual.time_step]
+        return self._field.x[self._visual.time_step]
 
 
     def _get_velocities_y(self) -> SequenceTypes:
@@ -213,7 +230,7 @@ class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
         field for the current time step.
         '''
 
-        return self._time_currents.y[self._visual.time_step]
+        return self._field.y[self._visual.time_step]
 
 
     def _get_velocities_magnitudes(self) -> SequenceTypes:
@@ -222,47 +239,4 @@ class LayerCellsStreamCurrentABC(LayerCellsStreamABC):
         field for the current time step.
         '''
 
-        return self._time_currents.magnitudes[self._visual.time_step]
-
-    # ..................{ SUBCLASS                           }..................
-    @abstractproperty
-    def _time_currents(self) -> VectorFieldSimmedABC:
-        '''
-        Vector field of the current densities of all intracellular and/or
-        extracellular spaces spatially situated at grid space centres for all
-        time steps of the current simulation.
-        '''
-
-        pass
-
-# ....................{ SUBCLASSES                         }....................
-class LayerCellsStreamCurrentIntraExtra(LayerCellsStreamCurrentABC):
-    '''
-    Layer plotting streamlines of the current density of all intracellular and
-    extracellular spaces onto the cell cluster.
-    '''
-
-    # ..................{ SUPERCLASS                         }..................
-    @property_cached
-    def _time_currents(self) -> VectorFieldSimmedABC:
-        return VectorFieldCurrentIntraExtra(
-            sim=self._visual._sim,
-            cells=self._visual._cells,
-            p=self._visual._p,
-        )
-
-
-class LayerCellsStreamCurrentIntra(LayerCellsStreamCurrentABC):
-    '''
-    Layer plotting streamlines of the current density of only all intracellular
-    spaces (e.g., gap junctions) onto the cell cluster.
-    '''
-
-    # ..................{ SUPERCLASS                         }..................
-    @property_cached
-    def _time_currents(self) -> VectorFieldSimmedABC:
-        return VectorFieldCurrentIntra(
-            sim=self._visual._sim,
-            cells=self._visual._cells,
-            p=self._visual._p,
-        )
+        return self._field.magnitudes[self._visual.time_step]

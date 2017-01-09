@@ -337,7 +337,7 @@ class LayerCellsMappableArrayABC(LayerCellsMappableABC):
           the centre of this cell for this time step.
         '''
 
-        return self._visual._cells.map_membranes_midpoint_to_cells_centre_data(
+        return self._visual._cells.map_membranes_midpoint_to_cells_centre(
             self._times_membranes_midpoint_data)
 
 
