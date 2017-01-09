@@ -518,7 +518,7 @@ class SimRunner(object):
 
         if p.plot_cell_cluster is True:
             fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
-                p, dyna, cells, clrmap=p.default_cm)
+                p, dyna, cells, clrmap=p.background_cm)
 
             if p.autosave is True:
                 savename10 = savedImg + 'cluster_mosaic' + '.png'
@@ -534,7 +534,7 @@ class SimRunner(object):
                 np.log10(sim.D_env_weight.reshape(cells.X.shape)),
                 origin='lower',
                 extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-                cmap=p.default_cm,
+                cmap=p.background_cm,
             )
             plt.colorbar()
 
@@ -557,7 +557,7 @@ class SimRunner(object):
                 cells.maskM,
                 origin='lower',
                 extent=[p.um*cells.xmin,p.um*cells.xmax,p.um*cells.ymin,p.um*cells.ymax],
-                cmap=p.default_cm,
+                cmap=p.background_cm,
             )
             plt.colorbar()
             plt.title('Cluster Masking Matrix')
