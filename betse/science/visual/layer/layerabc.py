@@ -39,14 +39,11 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 #particularly for implementing a general-purpose BETSE GUI.
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from abc import ABCMeta, abstractmethod, abstractproperty
-from betse.lib.numpy import arrays
+from betse.science.vector.vectors import VectorCells
 from betse.util.py import references
-from betse.util.type.callables import property_cached
 from betse.util.type.types import (
-    type_check, IterableTypes, SequenceTypes, SequenceOrNoneTypes,)
-from numpy import ndarray
+    type_check, IterableTypes, SequenceOrNoneTypes,)
 
 # ....................{ SUPERCLASS                         }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
@@ -278,132 +275,41 @@ class LayerCellsMappableABC(LayerCellsABC):
         pass
 
 # ....................{ SUBCLASSES                         }....................
-class LayerCellsMappableArrayABC(LayerCellsMappableABC):
+class LayerCellsMappableVectorABC(LayerCellsMappableABC):
     '''
-    Abstract base class of all classes spatially plotting a single cell-specific
-    modelled variable (e.g., cell membrane voltage) of the cell cluster whose
-    values are mappable as colors onto the colorbar of a parent plot or
-    animation from a two-dimensional Numpy array of these values for all time
-    steps to be animated.
+    Abstract base class of all classes spatially plotting a vector of arbitrary
+    cell data (e.g., membrane voltage) for all time steps to be animated, such
+    that each vector element may be mapped as a color onto the colorbar of the
+    parent plot or animation.
 
     Attributes
     ----------
-    _times_membranes_midpoint_data : ndarray
-        Two-dimensional Numpy array of all arbitrary cell membrane data for all
-        time steps to be animated cached by the :meth:`__init__` method and
-        returned by the :meth:`times_membranes_midpoint_data` property.
+    _vector : VectorCells
+        Vector of arbitrary cell data for all time steps to be animated.
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    def __init__(self, times_membranes_midpoint_data: SequenceTypes) -> None:
+    def __init__(self, vector: VectorCells) -> None:
         '''
         Initialize this layer.
 
         Parameters
         ----------
-        times_membranes_midpoint_data : Sequence
-            Two-dimensional sequence of all cell membrane data for a single
-            cell membrane-specific modelled variable (e.g., cell membrane
-            voltage) for all simulation time steps, whose:
-            . First dimension indexes each simulation time step.
-            . Second dimension indexes each cell membrane in the simulated cell
-              cluster, such that each element is arbitrary cell membrane data
-              spatially situated at the midpoint of this membrane for this time
-              step.
+        vector : VectorCells
+            Vector of arbitrary cell data for all time steps to be animated.
         '''
 
         # Initialize our superclass.
         super().__init__()
 
-        # For efficiency, convert the passed sequence into a Numpy array.
-        self._times_membranes_midpoint_data = arrays.from_sequence(
-            times_membranes_midpoint_data)
-
-    # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties, preventing callers from setting these attributes.
-
-    #FIXME: Refactor the following methods to internally defer to the
-    #corresponding Cells.map_*() methods.
-
-    @property_cached
-    def times_cells_centre_data(self) -> ndarray:
-        '''
-        Two-dimensional Numpy array of all arbitrary cell data for all
-        simulation time steps, whose:
-
-        . First dimension indexes each simulation time step.
-        . Second dimension indexes each cell in the simulated cell cluster, such
-          that each element is arbitrary cell data spatially situated at the
-          the centre of this cell for this time step.
-        '''
-
-        return self._visual._cells.map_membranes_midpoint_to_cells_centre(
-            self._times_membranes_midpoint_data)
+        # Classify all passed parameters.
+        self._vector = vector
 
 
-    @property
-    def times_membranes_midpoint_data(self) -> ndarray:
-        '''
-        Two-dimensional sequence of all arbitrary cell membrane data for all
-        simulation time steps, whose:
+    def prep(self, *args, **kwargs) -> None:
 
-        . First dimension indexes each simulation time step.
-        . Second dimension indexes each cell membrane in the simulated cell
-          cluster, such that each element is arbitrary cell membrane data
-          spatially situated at the midpoint of this membrane for this time
-          step.
-        '''
+        # Prepare our superclass with the passed parameters.
+        super().prep(*args, **kwargs)
 
-        return self._times_membranes_midpoint_data
-
-
-    @property_cached
-    def times_membranes_vertex_data(self) -> ndarray:
-        '''
-        Two-dimensional Numpy array of all arbitrary cell membrane vertex data
-        for all simulation time steps, whose:
-
-        . First dimension indexes each simulation time step.
-        . Second dimension indexes each cell membrane vertex in the simulated
-          cell cluster, such that each element is arbitrary data spatially
-          situated at this cell membrane vertex for this time step.
-        '''
-
-        #FIXME: Consider generalizing this logic into a new public "Cells"
-        #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
-        #method called above.
-
-        return np.dot(
-            self._times_membranes_midpoint_data,
-            self._visual.cells.matrixMap2Verts)
-
-
-    @property_cached
-    def times_regions_centre_data(self) -> ndarray:
-        '''
-        Two-dimensional Numpy array of all arbitrary Voronoi region centre data
-        for all simulation time steps, whose:
-
-        . First dimension indexes each simulation time step.
-        . Second dimension indexes each polygonal regions in the Voronoi
-          diagram for the simulated cell cluster, such that each element is
-          arbitrary data spatially situated at the centre of this region for
-          this time step.
-        '''
-
-        #FIXME: Consider generalizing this logic into a new public "Cells"
-        #method ala the Cells.map_mems_midpoint_to_cells_centre_data()
-        #method called above.
-
-        # Initialize this array of the desired shape with zeroes.
-        times_regions_centre_data = np.zeros((
-            len(self.times_cells_centre_data),
-            len(self._visual.cells.voronoi_centres)))
-
-        # Map cell- to region-centred data for all time steps.
-        times_regions_centre_data[
-            :, self._visual.cells.cell_to_grid] = (
-            self.times_cells_centre_data)
-
-        # Return this array for subsequent caching.
-        return times_regions_centre_data
+        # Prepare this vector for subsequent use.
+        self._vector.prep(cells=self._visual.cells)

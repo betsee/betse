@@ -94,14 +94,16 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
+from matplotlib import pyplot
+from matplotlib.animation import FuncAnimation
+
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
-from betse.science.vector.fieldelectric import (
+from betse.science.vector.field.fieldelectric import (
     VectorFieldCurrentIntra, VectorFieldCurrentIntraExtra)
-from betse.science.visual.layer.layerstream import (
-    LayerCellsStreamABC, LayerCellsStreamVectorField)
+from betse.science.visual.layer.layerstream import LayerCellsStream
 from betse.science.visual.visualabc import VisualCellsABC
 from betse.util.io.log import logs
 from betse.util.os import oses
@@ -109,8 +111,7 @@ from betse.util.path import dirs, paths
 from betse.util.type import iterables
 from betse.util.type.types import (
     type_check, BoolOrNoneTypes, IntOrNoneTypes, SequenceTypes)
-from matplotlib import pyplot
-from matplotlib.animation import FuncAnimation
+
 
 # ....................{ BASE                               }....................
 class AnimCellsABC(VisualCellsABC):
@@ -514,7 +515,7 @@ class AnimCellsABC(VisualCellsABC):
 
             # A layer in the layer sequence already plots streamlines.
             iterables.is_items_any_instance_of(
-                iterable=self._layers, cls=LayerCellsStreamABC)
+                iterable=self._layers, cls=LayerCellsStream)
         # ...then silently noop.
         ):
             return
@@ -537,7 +538,7 @@ class AnimCellsABC(VisualCellsABC):
         field = field_type(sim=self._sim, cells=self._cells, p=self._p)
 
         # Append a layer overlaying this field.
-        self._append_layer(LayerCellsStreamVectorField(field=field))
+        self._append_layer(LayerCellsStream(field=field))
 
     # ..................{ ANIMATORS                          }..................
     @type_check

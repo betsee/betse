@@ -9,17 +9,44 @@ Layer subclasses spatially shading the current cell cluster.
 # ....................{ IMPORTS                            }....................
 # import numpy as np
 from betse.science.visual import visuals
-from betse.science.visual.layer.layerabc import LayerCellsMappableArrayABC
+from betse.science.visual.layer.layerabc import LayerCellsMappableVectorABC
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
 # from numpy import ndarray
+
+# ....................{ FACTORIES                          }....................
+@type_check
+def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
+    LayerCellsMappableVectorABC):
+    '''
+    Layer plotting the cell cluster as a Gouraud-shaded surface in either a
+    contiguous or discontiguous manner according to the passed configuration.
+
+    Parameters
+    ----------
+    p : Parameters
+        Current simulation configuration.
+
+    All remaining parameters are passed to either the
+    :class:`LayerCellsShadeDiscrete` or :class:`LayerCellsShadeContinuous`
+    constructor as is.
+    '''
+
+    # Type of layer to be created.
+    layer_type = (
+        LayerCellsShadeDiscrete if p.showCells else
+        LayerCellsShadeContinuous)
+
+    # Create and return an instance of this type, passed the passed parameters.
+    return layer_type(*args, **kwargs)
 
 # ....................{ CLASSES                            }....................
 #FIXME: Fix us up, please. This layer is effectively broken at the moment,
 #plotting a spatially symmetric distribution even where the underlying data is
 #asymmetric (in which case one would hope for some sort of distinct gradient).
 #This layer is frequently leveraged elsewhere and hence fairly critical.
+#FIXME: Is the above comment still the case? The output appears reasonable now.
 
-class LayerCellsShadeContinuous(LayerCellsMappableArrayABC):
+class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
     '''
     Layer plotting the entire cell cluster as a continuous Gouraud-shaded
     surface represented as a polygonal mesh, interpolating the cell data for
@@ -45,7 +72,7 @@ class LayerCellsShadeContinuous(LayerCellsMappableArrayABC):
     @property
     def color_data(self) -> SequenceOrNoneTypes:
 
-        return self.times_regions_centre_data
+        return self._vector.times_regions_centre
 
 
     def _layer_first_color_mappables(self) -> IterableTypes:
@@ -61,7 +88,7 @@ class LayerCellsShadeContinuous(LayerCellsMappableArrayABC):
 
         # One-dimensional array of all region centre data for this time step.
         regions_centre_data = (
-            self.times_regions_centre_data[self._visual.time_step])
+            self._vector.times_regions_centre[self._visual.time_step])
 
         # Gouraud-shaded triangulation mesh for this cell cluster, computed from
         # the Delaunay hull of the non-triangular centers of these regions.
@@ -85,14 +112,14 @@ class LayerCellsShadeContinuous(LayerCellsMappableArrayABC):
     def _layer_next(self) -> None:
 
         # One-dimensional array of all region centre data for this time step.
-        regions_centre_data = (
-            self.times_regions_centre_data[self._visual.time_step])
+        regions_centre_data = self._vector.times_regions_centre[
+            self._visual.time_step]
 
         # Gouraud-shade this triangulation mesh with these color values.
         self._cluster_tri_mesh.set_array(regions_centre_data)
 
 
-class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
+class LayerCellsShadeDiscrete(LayerCellsMappableVectorABC):
     '''
     Layer plotting each cell in the cell cluster as a discontiguous
     Gouraud-shaded surface represented as a polygonal mesh.
@@ -124,15 +151,15 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
     @property
     def color_data(self) -> SequenceOrNoneTypes:
 
-        return self.times_membranes_vertex_data
+        return self._vector.times_membranes_vertex
 
 
     @type_check
     def _layer_first_color_mappables(self) -> IterableTypes:
 
         # One-dimensional array of all membrane vertex data for this time step.
-        membranes_vertex_data = (
-            self.times_membranes_vertex_data[self._visual.time_step])
+        membranes_vertex_data = self._vector.times_membranes_vertex[
+            self._visual.time_step]
 
         # Three-dimensional array of all upscaled cell vertex coordinates. See
         # "Cells.cell_verts" documentation for further details.
@@ -179,14 +206,13 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
         return self._cell_tri_meshes
 
 
+    # For efficiency, this method simply reshades the triangulated mesh for each
+    # cell previously computed by _layer_first_color_mappables().
     def _layer_next(self) -> None:
 
-        # For efficiency, this method simply reshades the triangulated mesh for
-        # each cell previously computed by _layer_first_color_mappables().
-
         # One-dimensional array of all membrane vertex data for this time step.
-        membranes_vertex_data = (
-            self.times_membranes_vertex_data[self._visual.time_step])
+        membranes_vertex_data = self._vector.times_membranes_vertex[
+            self._visual.time_step]
 
         # For the index and triangulation mesh for each cell...
         for cell_index, cell_tri_mesh in enumerate(self._cell_tri_meshes):
@@ -196,29 +222,3 @@ class LayerCellsShadeDiscrete(LayerCellsMappableArrayABC):
 
             # Gouraud-shade this triangulation mesh with these color values.
             cell_tri_mesh.set_array(cell_membranes_vertex_data)
-
-# ....................{ FACTORIES                          }....................
-@type_check
-def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
-    LayerCellsMappableArrayABC):
-    '''
-    Layer plotting the cell cluster as a Gouraud-shaded surface in either a
-    contiguous or discontiguous manner according to the passed configuration.
-
-    Parameters
-    ----------
-    p : Parameters
-        Current simulation configuration.
-
-    All remaining parameters are passed to either the
-    :class:`LayerCellsShadeDiscrete` or :class:`LayerCellsShadeContinuous`
-    constructor as is.
-    '''
-
-    # Type of layer to be created.
-    layer_type = (
-        LayerCellsShadeDiscrete if p.showCells else
-        LayerCellsShadeContinuous)
-
-    # Create and return an instance of this type, passed the passed parameters.
-    return layer_type(*args, **kwargs)

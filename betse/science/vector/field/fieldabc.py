@@ -10,9 +10,10 @@ Abstract base classes of all vector field subclasses.
 import numpy as np
 from abc import ABCMeta, abstractproperty
 from betse.exceptions import BetseSimConfigException
+from betse.lib.numpy import arrays
 from betse.util.py import references
 from betse.util.type.callables import property_cached
-from betse.util.type.types import type_check, NumericTypes
+from betse.util.type.types import type_check, NumericTypes, SequenceTypes
 from numpy import ndarray
 
 # ....................{ SUPERCLASSES                       }....................
@@ -118,7 +119,7 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         deferred to the first read of this property.
         '''
 
-        return self.x / self._magnitudes
+        return self.x / self.magnitudes
 
 
     @property_cached
@@ -135,7 +136,7 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         deferred to the first read of this property.
         '''
 
-        return self.y / self._magnitudes
+        return self.y / self.magnitudes
 
 # ....................{ SUPERCLASSES ~ simulated           }....................
 class VectorFieldSimmedABC(VectorFieldABC):
@@ -213,3 +214,49 @@ class VectorFieldSimmedABC(VectorFieldABC):
         self._sim = references.proxy_weak(sim)
         self._cells = references.proxy_weak(cells)
         self._p = references.proxy_weak(p)
+
+# ....................{ SUBCLASSES                         }....................
+class VectorFieldArrayed(VectorFieldABC):
+    '''
+    Vector field whose X and Y components are predefined two-dimensional
+    sequences passed at initialization time.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(
+        self, x: SequenceTypes, y: SequenceTypes, *args, **kwargs) -> None:
+        '''
+        Initialize this vector field.
+
+        Parameters
+        ----------
+        x : ndarray
+            Two-dimensional sequence whose:
+            * First dimension indexes one or more time steps of this simulation.
+            * Second dimension indexes each X component of each vector in this
+              vector field for this time step.
+        y : ndarray
+            Two-dimensional sequence whose:
+            * First dimension indexes one or more time steps of this simulation.
+            * Second dimension indexes each Y component of each vector in this
+              vector field for this time step.
+
+        All remaining parameters are passed as is to the superclass.
+        '''
+
+        # Initialize our superclass with all remaining parameters.
+        super().__init__(*args, **kwargs)
+
+        # Classify the passed sequences as Numpy arrays for efficiency.
+        self._x = arrays.from_sequence(x)
+        self._y = arrays.from_sequence(y)
+
+    # ..................{ SUBCLASS                           }..................
+    @property
+    def x(self) -> ndarray:
+        return self._x
+
+    @property
+    def y(self) -> ndarray:
+        return self._y

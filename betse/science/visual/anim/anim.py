@@ -34,6 +34,7 @@ from enum import Enum
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
+from betse.science.vector.vectors import VectorCells
 from betse.science.visual import visuals
 from betse.science.visual.anim.animabc import (
     AnimCellsABC, AnimCellsAfterSolving, AnimField, AnimVelocity)
@@ -308,7 +309,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
 #"AnimCellsAfterSolving" class with the appropriate layers.
 class AnimCellsMembranesData(AnimCellsAfterSolving):
     '''
-    Post-simulation animation of an arbitrary cell-centric time series (e.g.,
+    Post-simulation animation of arbitrary cell data as a time series (e.g.,
     cell membrane voltage as a function of time), plotted over the cell
     cluster.
     '''
@@ -318,7 +319,7 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
     def __init__(
         self,
         p: 'betse.science.parameters.Parameters',
-        times_membranes_midpoint_data: SequenceTypes,
+        vector: VectorCells,
         *args, **kwargs
     ) -> None:
         '''
@@ -328,24 +329,15 @@ class AnimCellsMembranesData(AnimCellsAfterSolving):
         ----------
         p : Parameters
             Current simulation configuration.
-        times_membranes_midpoint_data : Sequence
-            Two-dimensional sequence of all cell membrane data for a single
-            cell membrane-specific modelled variable (e.g., cell membrane
-            voltage) for all time steps to be animated, whose:
-            . First dimension indexes time steps, whose length is the number of
-              simulation time steps.
-            . Second dimension indexes cell membranes, whose length is the
-              number of cell membranes in the current cluster. Each element of
-              this dimension is arbitrary cell membrane data spatially situated
-              at that membrane's midpoint.
+        vector : VectorCells
+            Vector of arbitrary cell data for all time steps to be animated.
 
-        See the superclass :meth:`AnimCellsABC.__init__` method for all
-        remaining parameters.
+        All remaining parameters are passed as is to the superclass
+        :meth:`AnimCellsABC.__init__` method.
         '''
 
         # Layer plotting the cell cluster as a Gouraud-shaded surface.
-        layer = layershade.make(
-            p=p, times_membranes_midpoint_data=times_membranes_midpoint_data,)
+        layer = layershade.make(p=p, vector=vector)
 
         # Initialize the superclass.
         super().__init__(p=p, layers=(layer,), *args, **kwargs)

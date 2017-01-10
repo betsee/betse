@@ -12,6 +12,7 @@ High-level facilities for displaying and/or saving all enabled animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from betse.science.vector.vectors import VectorCells
 from betse.science.visual.anim.anim import (
     AnimCellsMembranesData,
     AnimCurrent,
@@ -90,10 +91,13 @@ def pipeline_anims(
         )
 
     if p.ani_vm2d is True:
+        # Vector of all cell data for all time steps to be animated.
+        vector = VectorCells(
+            times_membranes_midpoint=visuals.upscale_cell_data(sim.vm_time))
+
         AnimCellsMembranesData(
             sim=sim, cells=cells, p=p,
-            times_membranes_midpoint_data=visuals.upscale_cell_data(
-                sim.vm_time),
+            vector=vector,
             label='Vmem',
             figure_title='Transmembrane Voltage',
             colorbar_title='Voltage [mV]',

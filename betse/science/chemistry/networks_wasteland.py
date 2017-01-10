@@ -16,30 +16,30 @@ and plot.
 
 """
 
-import os
-import os.path
-import numpy as np
-from betse.science import toolbox as tb
-from betse.science import sim_toolbox as stb
-from betse.science.tissue.handler import TissueHandler
-from betse.science.event import modulators as mods
-from betse.util.io.log import logs
-import matplotlib.pyplot as plt
-from betse.exceptions import BetseSimConfigException
-from betse.science.visual import plot as viz
-from betse.science.visual.anim.anim import AnimCellsMembranesData, AnimEnvTimeSeries
-from betse.science.organelles.mitochondria import Mito
-from matplotlib import colors
-from matplotlib import cm
-
-from betse.science.tissue.channels import vg_na as vgna
-from betse.science.tissue.channels import vg_nap as vgnap
-from betse.science.tissue.channels import vg_k as vgk
-from betse.science.tissue.channels import vg_kir as vgkir
-from betse.science.tissue.channels import vg_funny as vgfun
-from betse.science.tissue.channels import vg_ca as vgca
-
-
+# import os
+# import os.path
+# import numpy as np
+# from betse.science import toolbox as tb
+# from betse.science import sim_toolbox as stb
+# from betse.science.tissue.handler import TissueHandler
+# from betse.science.event import modulators as mods
+# from betse.util.io.log import logs
+# import matplotlib.pyplot as plt
+# from betse.exceptions import BetseSimConfigException
+# from betse.science.visual import plot as viz
+# from betse.science.visual.anim.anim import AnimCellsMembranesData, AnimEnvTimeSeries
+# from betse.science.organelles.mitochondria import Mito
+# from matplotlib import colors
+# from matplotlib import cm
+#
+# from betse.science.tissue.channels import vg_na as vgna
+# from betse.science.tissue.channels import vg_nap as vgnap
+# from betse.science.tissue.channels import vg_k as vgk
+# from betse.science.tissue.channels import vg_kir as vgkir
+# from betse.science.tissue.channels import vg_funny as vgfun
+# from betse.science.tissue.channels import vg_ca as vgca
+#
+#
 # class MasterOfMolecules(object):
 #
 #     def __init__(self, sim, cells, config_substances, p, mit_enabled = False):
@@ -3553,11 +3553,3 @@ from betse.science.tissue.channels import vg_ca as vgca
 #                                        "Valid options include: 'cell' and 'mitochondria'."
 #                                        "Please check your config(s) settings defining reactions"
 #                                        " and try again. ")
-
-
-
-
-
-
-
-

@@ -24,32 +24,30 @@ Layer subclasses spatially overlaying streamlines onto the current cell cluster.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from abc import abstractmethod, abstractproperty
-from betse.science.vector.fieldabc import VectorFieldABC
-from betse.science.vector.fieldelectric import (
-    VectorFieldCurrentIntra,
-    VectorFieldCurrentIntraExtra,
-)
-from betse.science.visual import visuals
-from betse.science.visual.layer.layerabc import LayerCellsABC
-from betse.util.type.callables import property_cached
-from betse.util.type.types import type_check, SequenceTypes
 from matplotlib.patches import FancyArrowPatch
 
-# ....................{ SUPERCLASSES                       }....................
-class LayerCellsStreamABC(LayerCellsABC):
-    '''
-    Abstract base class of all layer subclasses plotting streamlines of a single
-    modelled vector field (e.g., intracellular current) for one on more
-    simulation time steps.
+from betse.science.vector.field.fieldabc import VectorFieldABC
+from betse.science.visual import visuals
+from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.util.type.types import type_check
 
-    Such layers are somewhat more computationally expensive in both space and
-    time than the average layer. For each plot or animation frame to be layered
-    with streamlines, an internal fluid simulation of the density of the desired
+
+# ....................{ SUBCLASSES                         }....................
+class LayerCellsStream(LayerCellsABC):
+    '''
+    Layer subclass plotting streamlines of a single vector field (e.g.,
+    intracellular current) for one on more simulation time steps.
+
+    This layer is somewhat more computationally expensive in both space and time
+    than the average layer. For each plot or animation frame to be layered with
+    streamlines, an internal fluid simulation of the density of the desired
     vector field through the cell cluster specific to this frame is solved.
 
     Attributes
     ----------
+    _field : VectorFieldABC
+        Vector field of all velocity vectors for all simulation time steps to be
+        streamplotted by this layer.
     _streamplot : StreamplotSet
         Streamplot of all streamlines previously plotted for the prior time step
         if any or `None` otherwise, temporarily preserved for only one time step
@@ -59,43 +57,25 @@ class LayerCellsStreamABC(LayerCellsABC):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self) -> None:
+    def __init__(self, *args, field: VectorFieldABC, **kwargs) -> None:
+        '''
+        Initialize this layer.
 
-        # Initialize our superclass.
-        super().__init__()
+        Parameters
+        ----------
+        field : VectorFieldABC
+            Vector field of all velocity vectors for all simulation time steps
+            to be streamplotted by this layer.
+        '''
 
-        # Default instance attributes.
+        # Initialize our superclass with all remaining parameters.
+        super().__init__(*args, **kwargs)
+
+        # Classify the passed parameter.
+        self._field = field
+
+        # Default all remaining attributes.
         self._streamplot = None
-
-    # ..................{ SUBCLASS                           }..................
-    @abstractmethod
-    def _get_velocities_x(self) -> SequenceTypes:
-        '''
-        Numpy array of the X components of all velocity vectors in this vector
-        field for the current time step.
-        '''
-
-        pass
-
-
-    @abstractmethod
-    def _get_velocities_y(self) -> SequenceTypes:
-        '''
-        Numpy array of the Y components of all velocity vectors in this vector
-        field for the current time step.
-        '''
-
-        pass
-
-
-    @abstractmethod
-    def _get_velocities_magnitudes(self) -> SequenceTypes:
-        '''
-        Numpy array of the magnitudes of all velocity vectors in this vector
-        field for the current time step.
-        '''
-
-        pass
 
     # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
@@ -109,24 +89,19 @@ class LayerCellsStreamABC(LayerCellsABC):
         grid_x = visuals.upscale_cell_coordinates(self._visual.cells.X)
         grid_y = visuals.upscale_cell_coordinates(self._visual.cells.Y)
 
-        # Arrays of all X and Y components and magnitudes of this vector field
-        # for this time step.
-        velocities_x = self._get_velocities_x()
-        velocities_y = self._get_velocities_y()
-        velocities_magnitudes = self._get_velocities_magnitudes()
-
-        # Arrays of all normalized X and Y components of this vector field for
-        # this time step.
-        normalized_velocities_x = velocities_x / velocities_magnitudes
-        normalized_velocities_y = velocities_y / velocities_magnitudes
+        # Arrays of all magnitudes *AND* normalized X and Y components of this
+        # vector field for this time step.
+        field_magnitudes = self._field.magnitudes[self._visual.time_step]
+        field_unit_x = self._field.unit_x[self._visual.time_step]
+        field_unit_y = self._field.unit_y[self._visual.time_step]
 
         # Maximum magnitude of this vector field for this time step.
-        velocities_magnitude_max = np.max(velocities_magnitudes)
+        field_magnitude_max = np.max(field_magnitudes)
 
         # Array of display-specific line widths for all vectors of this vector
         # field for this time step.
         streamlines_width = (
-            3.0 * velocities_magnitudes / velocities_magnitude_max) + 0.5
+            3.0 * field_magnitudes / field_magnitude_max) + 0.5
 
         # Streamplot of all streamlines plotted for this time step. See the
         # matplotlib.streamplot.streamplot() docstring for further details.
@@ -135,9 +110,9 @@ class LayerCellsStreamABC(LayerCellsABC):
             x=grid_x,
             y=grid_y,
 
-            # X and Y coomponents of all vector field velocities.
-            u=normalized_velocities_x,
-            v=normalized_velocities_y,
+            # X and Y normalized coomponents of all vector field velocities.
+            u=field_unit_x,
+            v=field_unit_y,
 
             # Matplotlib-specific color code of all streamlines.
             color=self._visual.p.vcolor,
@@ -148,8 +123,10 @@ class LayerCellsStreamABC(LayerCellsABC):
             # Line widths of all streamlines.
             linewidth=streamlines_width,
 
-            # FIXME: for stillframes an arrow size of about 5.0 is best; for rendered video these
-            # blow up and a size of 3.0 is better. Not that this is important enough to ever get to it :)
+            #FIXME: For still frames, an arrow size of about 5.0 is best; for
+            #rendered video, these blow up and a size of 3.0 is better. Not that
+            #this is important enough to ever get to it. :)
+
             # Factor by which to upscale the size of all streamline arrowheads.
             arrowsize=3.0,
         )
@@ -182,61 +159,3 @@ class LayerCellsStreamABC(LayerCellsABC):
 
         # Replot this streamplot for this time step.
         self._layer_first()
-
-
-#FIXME: Merge this subclass into the "LayerCellsStreamABC" superclass and then
-#remove this subclass entirely. The "LayerCellsStreamABC" superclass should be
-#refactored to leverage vector fields everywhere; that superclass currently
-#contains separate _get_velocities_x(), _get_velocities_y(), and
-#_get_velocities_magnitude() methods -- which, in light of our vector field API,
-#is simply insane overkill.
-class LayerCellsStreamVectorField(LayerCellsStreamABC):
-    '''
-    Layer subclass plotting streamlines of an arbitrary vector field onto the
-    cell cluster.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(self, *args, field: VectorFieldABC, **kwargs) -> None:
-        '''
-        Initialize this layer.
-
-        Parameters
-        ----------
-        field : VectorFieldABC
-            Vector field to be streamplotted by this layer.
-        '''
-
-        # Initialize our superclass with all remaining parameters.
-        super().__init__(*args, **kwargs)
-
-        # Classify this passed parameter.
-        self._field = field
-
-    # ..................{ SUPERCLASS                         }..................
-    def _get_velocities_x(self) -> SequenceTypes:
-        '''
-        Numpy array of the X components of all velocity vectors in this vector
-        field for the current time step.
-        '''
-
-        return self._field.x[self._visual.time_step]
-
-
-    def _get_velocities_y(self) -> SequenceTypes:
-        '''
-        Numpy array of the Y components of all velocity vectors in this vector
-        field for the current time step.
-        '''
-
-        return self._field.y[self._visual.time_step]
-
-
-    def _get_velocities_magnitudes(self) -> SequenceTypes:
-        '''
-        Numpy array of the magnitudes of all velocity vectors in this vector
-        field for the current time step.
-        '''
-
-        return self._field.magnitudes[self._visual.time_step]
