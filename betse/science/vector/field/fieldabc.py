@@ -16,7 +16,7 @@ from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
 from numpy import ndarray
 
-# ....................{ SUPERCLASSES                       }....................
+# ....................{ CLASSES                            }....................
 class VectorFieldABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all vector field subclasses.
@@ -139,6 +139,9 @@ class VectorFieldABC(object, metaclass=ABCMeta):
         return self.y / self.magnitudes
 
 # ....................{ SUPERCLASSES ~ simulated           }....................
+#FIXME: Obsolete. Remove after replacing the
+#"VectorFieldCurrentIntra" and "VectorFieldCurrentIntraExtra" subclasses with
+#simple instantiation of the new "VectorFieldCells" class.
 class VectorFieldSimmedABC(VectorFieldABC):
     '''
     Abstract base class of all **simulated vector field subclasses** (i.e.,
@@ -216,6 +219,10 @@ class VectorFieldSimmedABC(VectorFieldABC):
         self._p = references.proxy_weak(p)
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Merge this subclass entirely into the "VectorFieldABC" superclass
+#*AFTER* eliminating the "VectorFieldSimmedABC" subclass. On doing so, the the
+#"VectorFieldABC" superclass should be renamed to simply "VectorField" and cease
+#having an "ABC" metaclass.
 class VectorFieldArrayed(VectorFieldABC):
     '''
     Vector field whose X and Y components are predefined two-dimensional
@@ -252,7 +259,7 @@ class VectorFieldArrayed(VectorFieldABC):
         self._x = arrays.from_sequence(x)
         self._y = arrays.from_sequence(y)
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ SUPERCLASS                         }..................
     @property
     def x(self) -> ndarray:
         return self._x
@@ -260,3 +267,27 @@ class VectorFieldArrayed(VectorFieldABC):
     @property
     def y(self) -> ndarray:
         return self._y
+
+# ....................{ CLASSES ~ cells                    }....................
+#FIXME: Implement in an analogous manner to "VectorCells". Specifically:
+#
+#* The VectorFieldCells.__init__() method should accept at least the following
+#  parameters:
+#  * "x" of type "VectorCells".
+#  * "y" of type "VectorCells".
+#* For each property of the "VectorCells" class (e.g.,
+#  VectorCells.times_cells_centre()), a corresponding
+#  "VectorFieldCells" property should be defined to return an instance of the
+#  "VectorFieldArrayed" class. The implementation of each such property should
+#  be extremely trivial, deferring to the corresponding property of the
+#  "VectorCells" class. See the times_cells_centre() implementation below.
+class VectorFieldCells(object):
+
+    #FIXME: Document us up.
+    @property_cached
+    def times_cells_centre(self) -> VectorFieldArrayed:
+
+        return VectorFieldArrayed(
+            x=self._x.times_cells_centre(),
+            y=self._y.times_cells_centre(),
+        )

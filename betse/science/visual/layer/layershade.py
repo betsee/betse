@@ -86,9 +86,9 @@ class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
         regions_centre_y = visuals.upscale_cell_coordinates(
             self._visual.cells.voronoi_centres[:,1])
 
-        # One-dimensional array of all region centre data for this time step.
-        regions_centre_data = (
-            self._vector.times_regions_centre[self._visual.time_step])
+        # One-dimensional array of all region-centred data for this time step.
+        regions_centre_data = self._vector.times_regions_centre[
+            self._visual.time_step]
 
         # Gouraud-shaded triangulation mesh for this cell cluster, computed from
         # the Delaunay hull of the non-triangular centers of these regions.
@@ -111,7 +111,7 @@ class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
 
     def _layer_next(self) -> None:
 
-        # One-dimensional array of all region centre data for this time step.
+        # One-dimensional array of all region-centred data for this time step.
         regions_centre_data = self._vector.times_regions_centre[
             self._visual.time_step]
 

@@ -13,10 +13,10 @@ High-level facilities for displaying and/or saving all enabled animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.vector.vectors import VectorCells
+from betse.science.vector.field.fieldabc import VectorFieldArrayed
+from betse.science.visual import visuals
 from betse.science.visual.anim.anim import (
-    AnimCellsMembranesData,
     AnimCurrent,
-    # AnimDeformTimeSeries,
     AnimateDeformation,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
@@ -27,7 +27,10 @@ from betse.science.visual.anim.anim import (
     AnimFlatCellsTimeSeries,
     AnimEnvTimeSeries
 )
-from betse.science.visual import visuals
+from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
+from betse.science.visual.layer import layershade
+from betse.science.visual.layer.layershade import LayerCellsShadeContinuous
+from betse.science.visual.layer.layerstream import LayerCellsStream
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
@@ -90,21 +93,9 @@ def pipeline_anims(
             color_max=p.Ca_ani_max_clr,
         )
 
+    # If animating cell membrane voltage, do so.
     if p.ani_vm2d is True:
-        # Vector of all cell data for all time steps to be animated.
-        vector = VectorCells(
-            times_membranes_midpoint=visuals.upscale_cell_data(sim.vm_time))
-
-        AnimCellsMembranesData(
-            sim=sim, cells=cells, p=p,
-            vector=vector,
-            label='Vmem',
-            figure_title='Transmembrane Voltage',
-            colorbar_title='Voltage [mV]',
-            is_color_autoscaled=p.autoscale_Vmem_ani,
-            color_min=p.Vmem_ani_min_clr,
-            color_max=p.Vmem_ani_max_clr,
-        )
+        _anim_voltage_membrane(sim=sim, cells=cells, p=p)
 
     # Animate the gap junction state over cell membrane voltage if desired.
     if p.ani_vmgj2d is True:
@@ -148,17 +139,7 @@ def pipeline_anims(
 
     if p.ani_Efield is True:
         # Always animate the gap junction electric field.
-        AnimFieldIntracellular(
-            sim=sim, cells=cells, p=p,
-            x_time_series=sim.efield_gj_x_time,
-            y_time_series=sim.efield_gj_y_time,
-            label='Efield_gj',
-            figure_title='Intracellular E Field',
-            colorbar_title='Electric Field [V/m]',
-            is_color_autoscaled=p.autoscale_Efield_ani,
-            color_min=p.Efield_ani_min_clr,
-            color_max=p.Efield_ani_max_clr,
-        )
+        _anim_electric_field_intra(sim=sim, cells=cells, p=p)
 
         # Also animate the extracellular spaces electric field if desired.
         if p.sim_ECM is True:
@@ -309,106 +290,94 @@ def pipeline_anims(
             color_max=p.mem_ani_max_clr,
         )
 
+# ....................{ PRIVATE ~ animators                }....................
+def _anim_electric_field_intra(
+    sim: 'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p: 'betse.science.parameters.Parameters',
+) -> None:
+    '''
+    Animate the intracellular (i.e., gap junction-specific) electric field for
+    all time steps.
+    '''
 
+    # # Vector field of the intracellular (i.e., gap junction-specific) electric
+    # # field for all time steps, spatially remapped from cell membrane midpoints
+    # # onto cell centres.
+    # field = VectorFieldArrayed(
+    #     x=cells.map_membranes_midpoint_to_cells_centre(sim.efield_gj_x_time),
+    #     y=cells.map_membranes_midpoint_to_cells_centre(sim.efield_gj_y_time),
+    # )
     #
-    # anim_sim(sim, cells, p)
+    # # Vector of all intracellular electric field magnitudes for all time steps.
+    # field_magnitudes = VectorCells(
+    #     cells=cells, times_cells_centre=field.magnitudes)
+    #
+    # # Sequence of layers consisting of...
+    # layers = (
+    #     # A lower layer animating these magnitudes.
+    #     LayerCellsShadeContinuous(vector=field_magnitudes),
+    #
+    #     # A higher layer animating this field.
+    #     LayerCellsQuiver(field=field),
+    # )
+    #
+    # # Produce this animation.
+    # AnimCellsAfterSolvingLayered(
+    #     sim=sim, cells=cells, p=p, layers=layers,
+    #     label='Efield_gj',
+    #     figure_title='Intracellular E Field',
+    #     colorbar_title='Electric Field [V/m]',
+    #     is_color_autoscaled=p.autoscale_Efield_ani,
+    #     color_min=p.Efield_ani_min_clr,
+    #     color_max=p.Efield_ani_max_clr,
+    #
+    #     # Prefer an alternative colormap.
+    #     colormap=p.background_cm,
+    # )
 
-# FIXME: these are no longer sim-specific, content moved above, this can be deleted
-# def anim_sim(sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
-#     '''
-#     Serially (i.e., in series) display and/or save all enabled animations if
-#     the current simulation phase is `sim` _or_ noop otherwise.
-#
-#     Parameters
-#     ----------------------------
-#     sim : Simulator
-#         Current simulation.
-#     cells : Cells
-#         Current cell cluster.
-#     p : Parameters
-#         Current simulation configuration.
-#     '''
-#     assert types.is_simulator(sim), types.assert_not_simulator(sim)
-#     assert types.is_cells(cells), types.assert_not_parameters(cells)
-#     assert types.is_parameters(p), types.assert_not_parameters(p)
-#
-#     # If the current simulation phase is *NOT* "sim", noop.
-#     if not sim.run_sim:
-#        return
-#
-#     if (p.ani_Velocity is True and p.fluid_flow is True):
-#         # Always animate the gap junction fluid velocity.
-#         AnimVelocityIntracellular(
-#             sim=sim, cells=cells, p=p,
-#             label='Velocity_gj',
-#             figure_title='Intracellular Fluid Velocity',
-#             colorbar_title='Fluid Velocity [nm/s]',
-#             is_color_autoscaled=p.autoscale_Velocity_ani,
-#             color_min=p.Velocity_ani_min_clr,
-#             color_max=p.Velocity_ani_max_clr,
-#         )
-#
-#         # Also animate the extracellular spaces fluid velocity if desired.
-#         if p.sim_ECM is True:
-#             AnimVelocityExtracellular(
-#                 sim=sim, cells=cells, p=p,
-#                 label='Velocity_ecm',
-#                 figure_title='Extracellular Fluid Velocity',
-#                 colorbar_title='Fluid Velocity [nm/s]',
-#                 is_color_autoscaled=p.autoscale_Velocity_ani,
-#                 color_min=p.Velocity_ani_min_clr,
-#                 color_max=p.Velocity_ani_max_clr,
-#             )
-#
-#     # Animate if desired.
-#     if p.ani_Deformation is True and p.deformation is True:
-#         AnimateDeformation(
-#             sim, cells, p,
-#             ani_repeat=True,
-#             save=p.anim.is_after_sim_save,
-#         )
-#
-#         # if p.ani_Deformation_type == 'Displacement':
-#         #     displacement_time_series = [
-#         #         np.sqrt(cell_dx_series**2 + cell_dy_series**2) * self.p.um
-#         #         for cell_dx_series, cell_dy_series in zip(
-#         #            self.sim.dx_cell_time, self.sim.dy_cell_time)]
-#         #     AnimDeformTimeSeries(
-#         #         sim=sim, cells=cells, p=p,
-#         #         cell_time_series=displacement_time_series,
-#         #         label='Deform_dxdy',
-#         #         figure_title='Displacement Field and Deformation',
-#         #         colorbar_title='Displacement [um]',
-#         #         is_color_autoscaled=p.autoscale_Deformation_ani,
-#         #         color_min=p.Deformation_ani_min_clr,
-#         #         color_max=p.Deformation_ani_max_clr,
-#         #         colormap=p.background_cm,
-#         #     )
-#         # elif p.ani_Deformation_type == 'Vmem':
-#         #     AnimDeformTimeSeries(
-#         #         sim=sim, cells=cells, p=p,
-#         #         cell_time_series=_get_vmem_time_series(sim, p),
-#         #         label='Deform_Vmem',
-#         #         figure_title='Cell Vmem and Deformation',
-#         #         colorbar_title='Voltage [mV]',
-#         #         is_color_autoscaled=p.autoscale_Deformation_ani,
-#         #         color_min=p.Deformation_ani_min_clr,
-#         #         color_max=p.Deformation_ani_max_clr,
-#         #         colormap=p.default_cm,
-#         #     )
-#
-#     # Animate the cell membrane pump density factor as a function of time.
-#     if p.ani_mem is True and p.sim_eosmosis is True:
-#         AnimMembraneTimeSeries(
-#             sim=sim, cells=cells, p=p,
-#             time_series=sim.rho_pump_time,
-#             label='rhoPump',
-#             figure_title='Pump Density Factor',
-#             colorbar_title='mol fraction/m2',
-#             is_color_autoscaled=p.autoscale_mem_ani,
-#             color_min=p.mem_ani_min_clr,
-#             color_max=p.mem_ani_max_clr,
-#         )
+    #FIXME: Replace by the above code *AFTER* implementing the new
+    #"LayerCellsQuiver" class.
+    AnimFieldIntracellular(
+        sim=sim, cells=cells, p=p,
+        x_time_series=sim.efield_gj_x_time,
+        y_time_series=sim.efield_gj_y_time,
+        label='Efield_gj',
+        figure_title='Intracellular E Field',
+        colorbar_title='Electric Field [V/m]',
+        is_color_autoscaled=p.autoscale_Efield_ani,
+        color_min=p.Efield_ani_min_clr,
+        color_max=p.Efield_ani_max_clr,
+    )
+
+
+def _anim_voltage_membrane(
+    sim: 'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p: 'betse.science.parameters.Parameters',
+) -> None:
+    '''
+    Animate all cell membrane voltages for all time steps.
+    '''
+
+    # Vector of all cell membrane voltages for all time steps.
+    vector = VectorCells(
+        times_membranes_midpoint=visuals.upscale_cell_data(sim.vm_time))
+
+    # Sequence of layers, consisting of only one layer animating these voltages
+    # as a Gouraud-shaded surface.
+    layers = (layershade.make(p=p, vector=vector),)
+
+    # Produce this animation.
+    AnimCellsAfterSolvingLayered(
+        sim=sim, cells=cells, p=p, layers=layers,
+        label='Vmem',
+        figure_title='Transmembrane Voltage',
+        colorbar_title='Voltage [mV]',
+        is_color_autoscaled=p.autoscale_Vmem_ani,
+        color_min=p.Vmem_ani_min_clr,
+        color_max=p.Vmem_ani_max_clr,
+    )
 
 # ....................{ PRIVATE ~ getters                  }....................
 #FIXME: Use everywhere above. Since recomputing this is heavy, we probably want

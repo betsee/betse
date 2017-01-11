@@ -94,9 +94,6 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
-from matplotlib import pyplot
-from matplotlib.animation import FuncAnimation
-
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
@@ -109,9 +106,9 @@ from betse.util.io.log import logs
 from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.type import iterables
-from betse.util.type.types import (
-    type_check, BoolOrNoneTypes, IntOrNoneTypes, SequenceTypes)
-
+from betse.util.type.types import type_check, BoolOrNoneTypes, IntOrNoneTypes
+from matplotlib import pyplot
+from matplotlib.animation import FuncAnimation
 
 # ....................{ BASE                               }....................
 class AnimCellsABC(VisualCellsABC):
@@ -187,8 +184,8 @@ class AnimCellsABC(VisualCellsABC):
         #  animate() function, permitting subclasses to append one or more
         #  layers that plot streamlines.
         #* If any layer in this list is an instance of the new
-        #  "LayerCellsStreamCurrent" subclass, then the
-        #  "_is_current_overlayable" attribute should be disabled.
+        #  "LayerCellsStream" subclass, then the "_is_current_overlayable"
+        #  attribute should be disabled.
         #* Else, that attribute should default to the corresponding setting(s)
         #  in the current simulation configuration.
 
@@ -981,137 +978,3 @@ class AnimCellsABC(VisualCellsABC):
         '''
 
         pass
-
-# ....................{ SUBCLASSES                         }....................
-#FIXME: Refactor as follows:
-#
-#* Rename the existing "anim" submodule of this subpackage to "animafter".
-#* Define a new "animwhile" submodule of this subpackage.
-#* Shift this and the following subclasses to the "animafter" submodule.
-#* Shift the "AnimCellsWhileSolving" subclass to the "animwhile" submodule.
-class AnimCellsAfterSolving(AnimCellsABC):
-    '''
-    Abstract base class of all post-simulation cell animation subclasses,
-    animating simulation data over the cell cluster _after_ rather than
-    _during_ simulation modelling.
-    '''
-
-    @type_check
-    def __init__(
-        self,
-        p: 'betse.science.parameters.Parameters',
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this post-simulation animation.
-
-        Parameters
-        ----------
-        p : Parameters
-            Current simulation configuration.
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-
-        # Initialize our superclass.
-        super().__init__(
-            # Pass this simulation configuration as is to our superclass.
-            p=p,
-
-            # Save and show this post-simulation animation only if this
-            # configuration enables doing so.
-            is_save=p.anim.is_after_sim_save,
-            is_show=p.anim.is_after_sim_show,
-
-            # Save all post-simulation animations to the same parent directory.
-            save_dir_parent_basename='anim',
-
-            # Pass all remaining arguments as is to our superclass.
-            *args, **kwargs
-        )
-
-
-class AnimField(AnimCellsAfterSolving):
-    '''
-    Abstract base class of all animations of electric field strength plotted on
-    the current cell cluster.
-
-    Attributes
-    ----------
-    _magnitude_time_series : SequenceTypes
-        Electric field magnitudes as a function of time.
-    _mesh_plot : matplotlib.image.AxesImage
-        Meshplot of the current or prior frame's electric field magnitude.
-    _stream_plot : matplotlib.streamplot.StreamplotSet
-        Streamplot of the current or prior frame's electric field.
-    _x_time_series : SequenceTypes
-        Electric field X components as a function of time.
-    _y_time_series : SequenceTypes
-        Electric field Y components as a function of time.
-    _unit_x_time_series : SequenceTypes
-        Electric field X unit components as a function of time. The resulting
-        electric field vectors are **unit vectors** (i.e., have magnitude 1).
-    _unit_y_time_series : SequenceTypes
-        Electric field Y unit components as a function of time. The resulting
-        electric field vectors are **unit vectors** (i.e., have magnitude 1).
-    '''
-
-    @type_check
-    def __init__(
-        self,
-        x_time_series: SequenceTypes,
-        y_time_series: SequenceTypes,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        x_time_series : SequenceTypes
-            SequenceTypes (e.g., list, numpy array) of all electric field
-            strength X components indexed by simulation time.
-        y_time_series : SequenceTypes
-            SequenceTypes (e.g., list, numpy array) of all electric field
-            strength Y components indexed by simulation time.
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-
-        # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            # Since this class already plots a streamplot, prevent the
-            # superclass from plotting another streamplot as an overlay.
-            is_current_overlayable=False,
-            *args, **kwargs)
-
-        # Classify all remaining parameters.
-        self._x_time_series = x_time_series
-        self._y_time_series = y_time_series
-
-        # Electric field magnitudes and X and Y unit components.
-        self._magnitude_time_series = []
-        self._unit_x_time_series = []
-        self._unit_y_time_series = []
-
-        # Prefer an alternative colormap.
-        self._colormap = self._p.background_cm
-
-
-class AnimVelocity(AnimCellsAfterSolving):
-    '''
-    Abstract base class of all animations of a velocity flow plotted on the
-    current cell cluster.
-    '''
-
-    def __init__(self, *args, **kwargs) -> None:
-
-        # Pass all parameters *NOT* listed above to our superclass.
-        super().__init__(
-            # Since this class already plots a streamplot, prevent the
-            # superclass from plotting another streamplot as an overlay.
-            is_current_overlayable=False,
-            *args, **kwargs)
-
-        # Prefer an alternative colormap.
-        self._colormap = self._p.background_cm

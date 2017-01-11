@@ -8,39 +8,59 @@ Abstract base classes of all vector subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.util.py import references
+from betse.exceptions import BetseVectorException
 from betse.lib.numpy import arrays
+from betse.util.py import references
 from betse.util.type.callables import property_cached
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, SequenceOrNoneTypes
 from numpy import ndarray
 
 # ....................{ SUPERCLASSES                       }....................
 class VectorCells(object):
     '''
     Two-dimensional vector of arbitrary cell data for one or more simulation
-    time steps, providing properties permitting input data spatially situated
-    along one grid system (e.g., cell centres, cell membrane midpoints) to be
-    efficiently interpolated along other grid systems.
+    time steps.
 
-    The data encapsulated by this vector may be spatially situated at either:
+    The input data encapsulated by this vector may be spatially situated at
+    either:
 
     * The centre of each cell in the simulated cluster.
     * The vertex of each cell membrane in the simulated cluster.
     * The midpoint of each cell membrane in the simulated cluster.
+    * The centre of each square grid space (in either dimension).
+
+    Each property provided by this vector (e.g., :meth:`times_cell_centres`)
+    then efficiently interpolates this input data from its original coordinate
+    system into the corresponding output data in another coordinate system.
 
     Attributes
     ----------
     _cells : Cells
         Current cell cluster.
-    _times_membranes_midpoint : ndarray
+    _p : Parameters
+        Current simulation configuration.
+    _times_cell_centres : ndarray
         Two-dimensional Numpy array of all arbitrary cell data for one or more
-        simulation time steps spatially situated at cell membrane midpoints,
-        returned by the :meth:`times_membranes_midpoint` property.
+        simulation time steps spatially situated at cell centres, returned by
+        the :meth:`times_cells_centre` property.
+    _times_membranes_midpoint : ndarray
+        Two-dimensional Numpy array of all arbitrary cell membrane data for one
+        or more simulation time steps spatially situated at cell membrane
+        midpoints, returned by the :meth:`times_membranes_midpoint` property.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, times_membranes_midpoint: SequenceTypes) -> None:
+    def __init__(
+        self,
+        times_cells_centre: SequenceOrNoneTypes = None,
+        times_membranes_midpoint: SequenceOrNoneTypes = None,
+        cells: 'betse.science.cells.Cells' = None,
+
+        #FIXME: Uncomment this *AFTER* improving the @type_check decorator to
+        #handle strings embedded in annotation tuples.
+        # cells: ('betse.science.cells.Cells', NoneType) = None,
+    ) -> None:
         '''
         Initialize this vector.
 
@@ -49,7 +69,25 @@ class VectorCells(object):
 
         Parameters
         ----------
-        times_membranes_midpoint : SequenceTypes
+        p : Parameters
+            Current simulation configuration.
+        cells : betse.science.cells.Cells
+            Current cell cluster.
+        times_cells_centre : optional[SequenceTypes]
+            Two-dimensional sequence of all cell data for a single cell
+            membrane-specific modelled variable (e.g., cell electric field
+            magnitude) for all simulation time steps, whose:
+            . First dimension indexes each simulation time step.
+            . Second dimension indexes each cell, such that each element is
+              arbitrary cell data spatially situated at the centre of this cell
+              for this time step.
+            The `times_membranes_midpoint` parameter _must_ be:
+            * `None` if this parameter is non-`None`.
+            * Non-`None` if this parameter is `None`.
+            In other words, exactly one of this and the
+            `times_membranes_midpoint` parameters _must_ be passed. Defaults to
+            `None`.
+        times_membranes_midpoint : optional[SequenceTypes]
             Two-dimensional sequence of all cell membrane data for a single
             cell membrane-specific modelled variable (e.g., cell membrane
             voltage) for all simulation time steps, whose:
@@ -57,14 +95,52 @@ class VectorCells(object):
             . Second dimension indexes each cell membrane, such that each
               element is arbitrary cell membrane data spatially situated at the
               midpoint of this membrane for this time step.
+            The `times_cells_centre` parameter _must_ be:
+            * `None` if this parameter is non-`None`.
+            * Non-`None` if this parameter is `None`.
+            In other words, exactly one of this and the `times_cells_centre`
+            parameters _must_ be passed. Defaults to `None`.
+
+        Raises
+        ----------
+        BetseVectorException
+            If exactly one of the `times_cells_centre` and
+            `times_membranes_midpoint` parameters is *not* passed.
         '''
 
         # Initialize our superclass.
         super().__init__()
 
-        # Classify the passed sequence as a Numpy array for efficiency.
-        self._times_membranes_midpoint = arrays.from_sequence(
-            times_membranes_midpoint)
+        # If no sequence was passed, raise an exception.
+        if times_cells_centre is None and times_membranes_midpoint is None:
+            raise BetseVectorException(
+                'Parameters "times_cells_centre" and '
+                '"times_membranes_midpoint" not passed.')
+
+        # If both sequences were passed, raise an exception.
+        if (
+            times_cells_centre is not None and
+            times_membranes_midpoint is not None
+        ):
+            raise BetseVectorException(
+                'Parameters "times_cells_centre" and '
+                '"times_membranes_midpoint" both passed.')
+
+        # Default all instance variables.
+        self._cells = None
+        self._times_cells_centre = None
+        self._times_membranes_midpoint = None
+
+        # Classify each passed sequence as a Numpy array for efficiency.
+        if times_cells_centre is not None:
+            self._times_cells_centre = arrays.from_sequence(times_cells_centre)
+        if times_membranes_midpoint is not None:
+            self._times_membranes_midpoint = arrays.from_sequence(
+                times_membranes_midpoint)
+
+        # If passed a cell cluster, prepare this vector with this cluster.
+        if cells is not None:
+            self.prep(cells=cells)
 
 
     @type_check
@@ -90,7 +166,7 @@ class VectorCells(object):
         # None if this object is unexpectedly garbage-collected).
         self._cells = references.proxy_weak(cells)
 
-    # ..................{ PROPERTIES ~ read-only             }..................
+    # ..................{ PROPERTIES                         }..................
     # Read-only properties, preventing callers from setting these attributes.
 
     @property_cached
@@ -105,11 +181,17 @@ class VectorCells(object):
           for this time step.
         '''
 
+        # If this vector was originally situated at cell centres, return the
+        # original array of such data.
+        if self._times_cells_centre is not None:
+            return self._times_cells_centre
+
+        # Else, remap this vector from cell membrane midpoints to cell centres.
         return self._cells.map_membranes_midpoint_to_cells_centre(
-            self._times_membranes_midpoint)
+            self.times_membranes_midpoint)
 
 
-    @property
+    @property_cached
     def times_membranes_midpoint(self) -> ndarray:
         '''
         Two-dimensional sequence of all arbitrary cell membrane data for all
@@ -121,7 +203,14 @@ class VectorCells(object):
           this membrane for this time step.
         '''
 
-        return self._times_membranes_midpoint
+        # If this vector was originally situated at cell centres, return the
+        # original array of such data.
+        if self._times_membranes_midpoint is not None:
+            return self._times_membranes_midpoint
+
+        # Else, remap this vector from cell centres to cell membrane midpoints.
+        return self._cells.map_cells_centre_to_membranes_midpoint(
+            self.times_cells_centre)
 
 
     #FIXME: Refactor the following methods to internally defer to the
@@ -144,7 +233,7 @@ class VectorCells(object):
         #method called above.
 
         return np.dot(
-            self._times_membranes_midpoint, self._cells.matrixMap2Verts)
+            self.times_membranes_midpoint, self._cells.matrixMap2Verts)
 
 
     @property_cached
@@ -174,3 +263,27 @@ class VectorCells(object):
 
         # Return this array for subsequent caching.
         return times_regions_centre
+
+    # ..................{ PROPERTIES ~ grid                  }..................
+    # Read-only properties, preventing callers from setting these attributes.
+
+    #FIXME: Generalize from the current grid interpolation implemented by the
+    #VectorFieldCurrentIntra._get_component() method. Note that, to do so, we'll
+    #need to require that an additional "p" parameter be passed to the
+    #__init__() method. For sanity, both this and the existing "cells" parameter
+    #should be made mandatory. To avoid future refactoring pain, ensure we do
+    #this *NOW* before things spiral out-of-hand elsewhere in the codebase.
+
+    @property_cached
+    def times_grid_centres(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array of all arbitrary grid data for all
+        simulation time steps, whose:
+
+        . First dimension indexes each simulation time step.
+        . Second dimension indexes each square grid space (in either dimension),
+          such that each element is arbitrary grid data spatially situated at
+          the the centre of this grid space for this time step.
+        '''
+
+        pass

@@ -268,3 +268,17 @@ class BetseSimInstabilityException(BetseSimException):
     computationally unstable.
     '''
     pass
+
+# ....................{ EXCEPTIONS ~ science : visual      }....................
+class BetseLayerException(BetseException):
+    '''
+    Layer-specific exception.
+    '''
+    pass
+
+
+class BetseVectorException(BetseException):
+    '''
+    Vector-specific exception.
+    '''
+    pass

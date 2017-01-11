@@ -30,7 +30,7 @@ from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
 from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
-from betse.science.visual.anim.anim import AnimCellsWhileSolving
+from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check
 

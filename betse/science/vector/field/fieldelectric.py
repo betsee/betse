@@ -11,8 +11,7 @@ intracellular and extracellular simulated fields and current density fields.
 from numpy import ndarray
 from scipy import interpolate
 from betse.lib.numpy import arrays
-from betse.science.vector.field.fieldabc import (
-    VectorFieldSimmedABC, VectorFieldArrayed)
+from betse.science.vector.field.fieldabc import VectorFieldSimmedABC
 from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 
@@ -22,34 +21,6 @@ _MAGNITUDE_FACTOR_CURRENT = 100
 Factor by which to multiply each magnitude of each vector in each current
 density vector field, yielding magnitude in units of uA/cm^2.
 '''
-
-# ....................{ ELECTRIC FIELD                     }....................
-#FIXME: This subclass is currently horribly broken, as "self._cells" and
-#"self._sim" are undefined at their time of use below. Instead, the X and Y
-#components should be externally passed as "VectorCells" instances by the
-#"animpipe" logic requiring this field.
-class VectorFieldElectricIntra(VectorFieldArrayed):
-    '''
-    Intracellular (i.e., jap junction) electric vector field spatially situated
-    at cell centres for all time steps of the current simulation.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(self, *args, **kwargs) -> None:
-
-        # X components already computed for this simulation, resituated from
-        # cell membrane midpoints onto cell centres.
-        x = self._cells.map_membranes_midpoint_to_cells_centre(
-            self._sim.efield_gj_x_time)
-
-        # y components already computed for this simulation, resituated from
-        # cell membrane midpoints onto cell centres.
-        y = self._cells.map_membranes_midpoint_to_cells_centre(
-            self._sim.efield_gj_y_time)
-
-        # Initialize our superclass with all remaining parameters.
-        super().__init__(*args, x=x, y=y, **kwargs)
 
 # ....................{ CURRENT DENSITY ~ intra-extra      }....................
 class VectorFieldCurrentIntraExtra(VectorFieldSimmedABC):

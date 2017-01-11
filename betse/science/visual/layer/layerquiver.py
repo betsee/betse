@@ -3,28 +3,11 @@
 # See "LICENSE" for further details.
 
 '''
-Layer subclasses spatially overlaying streamlines onto the current cell cluster.
+Layer subclasses spatially overlaying vector components onto the current cell cluster.
 '''
-
-#FIXME: Optimize. The current _get_time_currents() approach is extremely
-#inefficient, as this entire vector field will be recomputed for each plot and
-#animation when current overlays are enabled. The simpliest alternative is to
-#add two new properties to the "Simulator" class:
-#
-#* Simulator.time_currents_intra(), returning the vector field...
-#FIXME: Oh, wait. These vector fields require the "sim", "cells", and "p"
-#parameters -- which, due to arguably poor Simulator design, are currently
-#unavailable as attributes there. Very well. We see little choice but to finally
-#define a pipeline class. As these vector fields are currently only required by
-#plots and animations, sequestering these fields to that pipeline class would be
-#trivial. However, we would then need to pass the same instance of that class to
-#*EVERY* instantiated plot and animation.
-#
-#Doing so is ultimately trivial but tedious and hence deferred to another day.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseVectorException
 from betse.science.vector.field.fieldabc import VectorFieldABC
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
@@ -32,15 +15,10 @@ from betse.util.type.types import type_check
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Generalize this layer to accept a vector field whose X and Y components
-#are *NOT* spatially situated at square grid spaces, presumably by interpolating
-#from the coordinate system of these components onto square grid spaces.
-
-class LayerCellsStream(LayerCellsABC):
+class LayerCellsQuiver(LayerCellsABC):
     '''
-    Layer subclass plotting streamlines of a single vector field whose X and Y
-    components are spatially situated at square grid spaces (e.g.,
-    intracellular current density) for one on more simulation time steps.
+    Layer subclass plotting vector components of a single vector field (e.g.,
+    intracellular electric field) for one on more simulation time steps.
 
     This layer is somewhat more computationally expensive in both space and time
     than the average layer. For each plot or animation frame to be layered with
@@ -50,8 +28,8 @@ class LayerCellsStream(LayerCellsABC):
     Attributes
     ----------
     _field : VectorFieldABC
-        Vector field of all velocity vectors spatially situated at square grid
-        spaces for all simulation time steps to be streamplotted by this layer.
+        Vector field of all velocity vectors for all simulation time steps to be
+        streamplotted by this layer.
     _streamplot : StreamplotSet
         Streamplot of all streamlines previously plotted for the prior time step
         if any or `None` otherwise, temporarily preserved for only one time step
@@ -80,43 +58,6 @@ class LayerCellsStream(LayerCellsABC):
 
         # Default all remaining instance variables.
         self._streamplot = None
-
-
-    def prep(self, *args, **kwargs) -> None:
-        '''
-        Prepare this layer to be layered onto the passed plot or animation.
-
-        Parameters
-        ----------
-        All parameters are passed to the :meth:`LayerCellsABC.__init__` method
-        as is.
-
-        Raises
-        ----------
-        BetseVectorException
-            If the X and Y components of this vector field are *not* spatially
-            situated at square grid spaces.
-        '''
-
-        # Prepare our superclass with the passed parameters.
-        super().prep(*args, **kwargs)
-
-        # If the X and Y components of this vector field are *not* spatially
-        # situated at square grid spaces, raise an exception. Ideally, this
-        # validation would be performed in the constructor. Since the
-        # "self._visual" attribute is only defined by the prior call to our
-        # superclass implementation, this validation is delayed to here.
-        if not (
-            len(self._field.x[0]) == len(self._visual.cells.X) and
-            len(self._field.y[0]) == len(self._visual.cells.Y)
-        ):
-            raise BetseVectorException(
-                'Vector field not defined at square grid spaces (i.e., '
-                'expected dimensions {} x {} but '
-                'received dimensions {} x {}).'.format(
-                    len(self._visual.cells.X),
-                    len(self._visual.cells.Y),
-                    len(self._field.x[0]), len(self._field.y[0])))
 
     # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
