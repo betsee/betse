@@ -87,19 +87,31 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
         c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
 
+        if p.ions_dict['Ca'] == 1:
+            c_mem_Ca = sim.cc_cells[sim.iCa][cells.mem_to_cells]
+
         if p.sim_ECM is True:
             c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
             c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
 
+            if p.ions_dict['Ca'] == 1:
+                c_env_Ca = sim.cc_env[sim.iCa][cells.map_mem2ecm]
+
         else:
             c_env_Na = sim.cc_env[sim.iNa]
             c_env_K = sim.cc_env[sim.iK]
+
+            if p.ions_dict['Ca'] == 1:
+                c_env_Ca = sim.cc_env[sim.iCa]
 
 
         IdM = np.ones(sim.mdl)
 
         z_Na = sim.zs[sim.iNa] * IdM
         z_K = sim.zs[sim.iK] * IdM
+
+        if p.ions_dict['Ca'] == 1:
+            z_Ca = sim.zs[sim.iCa] * IdM
 
         # membrane diffusion constant of the channel:
         Dchan = dyna.maxDmFun*P*1.0e-9
@@ -108,11 +120,20 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
         delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
 
+        if p.ions_dict['Ca'] == 1:
+            delta_Q_Ca = stb.electroflux(c_env_Ca, c_mem_Ca, Dchan, p.tm * IdM, z_Ca, sim.vm, sim.T, p, rho=sim.rho_channel)
+
         self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
         self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
 
+        if p.ions_dict['Ca'] == 1:
+            self.clip_flux(delta_Q_Ca, threshold=p.flux_threshold)
+
         self.update_charge(sim.iNa, delta_Q_Na, dyna.targets_vgFun, sim, cells, p)
         self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgFun, sim, cells, p)
+
+        if p.ions_dict['Ca'] == 1:
+            self.update_charge(sim.iCa, self._PmCa*delta_Q_Ca, dyna.targets_vgFun, sim, cells, p)
 
 
     @abstractmethod
@@ -131,6 +152,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASS                           }....................
+
 class HCN2(VgFunABC):
     '''
     HCN2 model from 21 day old dorsal root ganglion of mouse. HCN channels are voltage-gated ionic channels,
@@ -164,6 +186,8 @@ class HCN2(VgFunABC):
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
         self._hpower = 0
+
+        self._PmCa = 0.05  # channel permeability to Ca2+
 
 
     def _calculate_state(self, V, dyna, sim, p):
@@ -216,6 +240,8 @@ class HCN4(VgFunABC):
         self._mpower = 1
         self._hpower = 0
 
+        self._PmCa = 0.05  # channel permeability to Ca2+
+
 
     def _calculate_state(self, V, dyna, sim, p):
         """
@@ -255,6 +281,8 @@ class HCN1(VgFunABC):
         self._mpower = 1
         self._hpower = 0
 
+        self._PmCa = 0.0  # channel permeability to Ca2+
+
     def _calculate_state(self, V, dyna, sim, p):
 
 
@@ -287,7 +315,7 @@ class HCNLeak(VgFunABC):
 
         """
 
-        logs.log_info('You are using the funny current channel: HCN2')
+        logs.log_info('You are using the funny current channel: HCN Leak')
 
         self.v_corr = 0
 
@@ -298,6 +326,8 @@ class HCNLeak(VgFunABC):
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
+
+        self._PmCa = 0.05  # channel permeability to Ca2+
 
 
     def _calculate_state(self, V, dyna, sim, p):
@@ -314,3 +344,58 @@ class HCNLeak(VgFunABC):
         self._mTau = 1.0
         self._hInf = 1.0
         self._hTau = 1.0
+
+class HCN2_Ca(VgFunABC):
+    '''
+    HCN2 model from 21 day old dorsal root ganglion of mouse. HCN channels are voltage-gated ionic channels,
+    regulated by cyclic nucleotides, such as cyclic adenosine-mono-phosphate (cAMP) (not modelled here).
+    In contrast to most Na+ and K+ ionic channels, which open when membrane potential is depolarized,
+    they are opened when the membrane potential hyperpolarizes below -50 mV.
+
+    This channel is expressed in brain and heart tissue, though the specific function is unknown.
+
+    Reference:  Moosmang S. et al. Cellular expression and functional characterization of four
+    hyperpolarization-activated pacemaker channels in cardiac and neuronal tissues.
+    Eur. J. Biochem., 2001 Mar , 268 (1646-52).
+
+    This channel has significant permeability to Ca2+ ions, and is assumed to couple to an intracellular
+    Ca-induced-Ca release from the endoplasmic reticulum.
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the funny current channel: HCN2_Ca')
+
+        self.v_corr = 0
+
+        # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
+        dyna.m_Fun = 1.0000 / (1 + np.exp((V - -99) / 6.2))
+        dyna.h_Fun = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 0
+
+        self._PmCa = 1.0  # channel permeability to Ca2+
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self.vrev = -45  # reversal voltage used in model [mV]
+
+        self._mInf = 1.0000 / (1 + np.exp((V - -99) / 6.2))
+        self._mTau = 184.0000
+        self._hInf = 1
+        self._hTau = 1

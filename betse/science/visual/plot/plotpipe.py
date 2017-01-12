@@ -503,9 +503,12 @@ def pipeline_plots(
 
         if p.sim_ECM is True:
 
+            vv = sim.v_env.reshape(cells.X.shape)
+            vv = gaussian_filter(vv, 1, mode = 'constant')
+
             plt.figure()
             plt.imshow(
-                1e3*sim.v_env.reshape(cells.X.shape),
+                1e3*vv,
                 origin='lower',
                 extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
                 cmap=p.default_cm,

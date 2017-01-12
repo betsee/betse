@@ -1359,7 +1359,16 @@ class Simulator(object):
             self.I_tot_x_time.append(self.J_env_x[:])
             self.I_tot_y_time.append(self.J_env_y[:])
 
-            self.venv_time.append(self.v_env)
+            if p.smooth_level == 0.0:
+
+                vv = self.v_env.reshape(cells.X.shape)
+
+                vvenv = gaussian_filter(vv, 1.0, mode = 'constant').ravel()
+
+            else:
+                vvenv = self.v_env*1
+
+            self.venv_time.append(vvenv)
 
             if p.fluid_flow is True:
                 self.u_env_x_time.append(self.u_env_x[:])

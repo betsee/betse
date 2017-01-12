@@ -2535,7 +2535,7 @@ class MasterOfNetworks(object):
             moddy = eval(self.channels[name].alpha_eval_string, self.globals,
                 self.locals)
 
-            self.channels[name].channel_core.modulator = moddy[self.channels[name].channel_targets_mem]
+            self.channels[name].channel_core.modulator = moddy
 
             self.channels[name].channel_core.run(self.channels[name].dummy_dyna, sim, cells, p)
 
