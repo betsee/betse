@@ -14,6 +14,8 @@ from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
 # from numpy import ndarray
 
 # ....................{ FACTORIES                          }....................
+#FIXME: Probably overkill. Simply inline the logic of this function directly at
+#its sole point of use; then excise this function.
 @type_check
 def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
     LayerCellsMappableVectorABC):

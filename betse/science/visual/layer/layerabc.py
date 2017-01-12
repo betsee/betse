@@ -41,6 +41,7 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod, abstractproperty
 from betse.science.vector.vectors import VectorCells
+from betse.science.vector.field.fieldabc import VectorFieldCells
 from betse.util.py import references
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
@@ -166,13 +167,12 @@ class LayerCellsABC(object, metaclass=ABCMeta):
 
         pass
 
-# ....................{ SUBCLASSES                         }....................
+# ....................{ SUBCLASSES ~ mappable              }....................
 class LayerCellsMappableABC(LayerCellsABC):
     '''
-    Abstract base class of all classes spatially plotting a single cell-specific
-    modelled variable (e.g., cell membrane voltage) of the cell cluster whose
-    values are mappable as colors onto the colorbar for a parent plot or
-    animation.
+    Abstract base class of all classes spatially plotting a single modelled
+    variable of the cell cluster (e.g., cell membrane voltage) whose values are
+    mappable as colors onto the colorbar for a parent plot or animation.
 
     Attributes
     ----------
@@ -274,18 +274,18 @@ class LayerCellsMappableABC(LayerCellsABC):
 
         pass
 
-# ....................{ SUBCLASSES                         }....................
+
 class LayerCellsMappableVectorABC(LayerCellsMappableABC):
     '''
     Abstract base class of all classes spatially plotting a vector of arbitrary
-    cell data (e.g., membrane voltage) for all time steps to be animated, such
-    that each vector element may be mapped as a color onto the colorbar of the
-    parent plot or animation.
+    data of the cell cluster (e.g., cell membrane voltage) whose elements are
+    mappable as colors onto the colorbar for a parent plot or animation.
 
     Attributes
     ----------
     _vector : VectorCells
-        Vector of arbitrary cell data for all time steps to be animated.
+        Cache of various vectors of the same underlying data situated along
+        different coordinate systems for all time steps to be animated.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -296,7 +296,8 @@ class LayerCellsMappableVectorABC(LayerCellsMappableABC):
         Parameters
         ----------
         vector : VectorCells
-            Vector of arbitrary cell data for all time steps to be animated.
+            Cache of various vectors of the same underlying data situated along
+            different coordinate systems for all time steps to be animated.
         '''
 
         # Initialize our superclass.
@@ -305,11 +306,36 @@ class LayerCellsMappableVectorABC(LayerCellsMappableABC):
         # Classify all passed parameters.
         self._vector = vector
 
+# ....................{ SUBCLASSES ~ field                 }....................
+class LayerCellsVectorFieldABC(LayerCellsABC):
+    '''
+    Abstract base class of all classes spatially plotting a vector field of
+    arbitrary data of the cell cluster (e.g., intracellular current density)
+    whose components are _not_ mappable as colors onto the colorbar for a parent
+    plot or animation.
 
-    def prep(self, *args, **kwargs) -> None:
+    Attributes
+    ----------
+    _field : VectorFieldCells
+        Cache of various vector fields of the same underlying data situated
+        along different coordinate systems for all time steps to be animated.
+    '''
 
-        # Prepare our superclass with the passed parameters.
-        super().prep(*args, **kwargs)
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, field: VectorFieldCells) -> None:
+        '''
+        Initialize this layer.
 
-        # Prepare this vector for subsequent use.
-        self._vector.prep(cells=self._visual.cells)
+        Parameters
+        ----------
+        field : VectorFieldCells
+            Cache of various vector fields of the same underlying data situated
+            along different coordinate systems for all time steps to be
+            animated.
+        '''
+
+        # Initialize our superclass.
+        super().__init__()
+
+        # Classify all passed parameters.
+        self._field = field

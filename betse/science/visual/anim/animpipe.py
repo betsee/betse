@@ -311,7 +311,7 @@ def _anim_electric_field_intra(
     #
     # # Vector of all intracellular electric field magnitudes for all time steps.
     # field_magnitudes = VectorCells(
-    #     cells=cells, times_cells_centre=field.magnitudes)
+    #     cells=cells, p=p, times_cells_centre=field.magnitudes)
     #
     # # Sequence of layers consisting of...
     # layers = (
@@ -362,7 +362,9 @@ def _anim_voltage_membrane(
 
     # Vector of all cell membrane voltages for all time steps.
     vector = VectorCells(
-        times_membranes_midpoint=visuals.upscale_cell_data(sim.vm_time))
+        cells=cells, p=p,
+        times_membranes_midpoint=visuals.upscale_cell_data(sim.vm_time),
+    )
 
     # Sequence of layers, consisting of only one layer animating these voltages
     # as a Gouraud-shaded surface.

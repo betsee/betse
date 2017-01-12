@@ -11,6 +11,7 @@ import numpy as np
 from abc import ABCMeta, abstractproperty
 from betse.exceptions import BetseSimConfigException
 from betse.lib.numpy import arrays
+from betse.science.vector.vectors import VectorCells
 from betse.util.py import references
 from betse.util.type.callables import property_cached
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
@@ -225,8 +226,8 @@ class VectorFieldSimmedABC(VectorFieldABC):
 #having an "ABC" metaclass.
 class VectorFieldArrayed(VectorFieldABC):
     '''
-    Vector field whose X and Y components are predefined two-dimensional
-    sequences passed at initialization time.
+    Vector field whose X and Y components are two-dimensional sequences
+    redefined at initialization time.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -269,25 +270,125 @@ class VectorFieldArrayed(VectorFieldABC):
         return self._y
 
 # ....................{ CLASSES ~ cells                    }....................
-#FIXME: Implement in an analogous manner to "VectorCells". Specifically:
-#
-#* The VectorFieldCells.__init__() method should accept at least the following
-#  parameters:
-#  * "x" of type "VectorCells".
-#  * "y" of type "VectorCells".
-#* For each property of the "VectorCells" class (e.g.,
-#  VectorCells.times_cells_centre()), a corresponding
-#  "VectorFieldCells" property should be defined to return an instance of the
-#  "VectorFieldArrayed" class. The implementation of each such property should
-#  be extremely trivial, deferring to the corresponding property of the
-#  "VectorCells" class. See the times_cells_centre() implementation below.
 class VectorFieldCells(object):
+    '''
+    Cache of various related vector fields whose X and Y components are
+    two-dimensional Numpy arrays describing the same underlying data spatially
+    situated along different coordinate systems (e.g., cell centres, cell
+    membrane vertices) for one or more simulation time steps.
 
-    #FIXME: Document us up.
+    The input data encapsulated by this cache may be spatially situated at
+    either:
+
+    * The centre of each cell in the simulated cluster.
+    * The vertex of each cell membrane in the simulated cluster.
+    * The midpoint of each cell membrane in the simulated cluster.
+    * The centre of each square grid space (in either dimension).
+
+    Each property provided by this vector field (e.g.,
+    :meth:`times_cell_centres`) then efficiently interpolates this input data
+    from its original coordinate system into the corresponding output data in
+    another coordinate system.
+
+    Attributes
+    ----------
+    _x : VectorCells
+        Two-dimensional array of the X components of all vectors in this field
+        for one or more simulation time steps.
+    _y : VectorCells
+        Two-dimensional array of the Y components of all vectors in this field
+        for one or more simulation time steps.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, x: VectorCells, y: VectorCells) -> None:
+        '''
+        Initialize this vector field cache.
+
+        Parameters
+        ----------
+        x : VectorCells
+            Two-dimensional array of the X components of all vectors in this
+            field for one or more simulation time steps.
+        y : VectorCells
+            Two-dimensional array of the Y components of all vectors in this
+            field for one or more simulation time steps.
+        '''
+
+        # Classify all passed parameters.
+        self._x = x
+        self._y = y
+
+    # ..................{ PROPERTIES                         }..................
+    # Read-only properties, preventing callers from setting these attributes.
+
     @property_cached
     def times_cells_centre(self) -> VectorFieldArrayed:
+        '''
+        Vector field whose X and Y components are two-dimensional Numpy arrays
+        of data spatially situated at cell centres for one or more time steps.
+
+        See Also
+        ----------
+        :meth:`VectorCells.times_cells_centre`
+            Details on the structure of these arrays.
+        '''
 
         return VectorFieldArrayed(
-            x=self._x.times_cells_centre(),
-            y=self._y.times_cells_centre(),
-        )
+            x=self._x.times_cells_centre,
+            y=self._y.times_cells_centre)
+
+
+    @property_cached
+    def times_grids_centre(self) -> VectorFieldArrayed:
+        '''
+        Vector field whose X and Y components are two-dimensional Numpy arrays
+        of data spatially situated at grid space centres for one or more
+        time steps.
+
+        See Also
+        ----------
+        :meth:`VectorCells.times_grids_centre`
+            Details on the structure of these arrays.
+        '''
+
+        return VectorFieldArrayed(
+            x=self._x.times_grids_centre,
+            y=self._y.times_grids_centre)
+
+
+    @property_cached
+    def times_membranes_midpoint(self) -> VectorFieldArrayed:
+        '''
+        Vector field whose X and Y components are two-dimensional Numpy arrays
+        of data spatially situated at cell membrane midpoints for one or more
+        time steps.
+
+        See Also
+        ----------
+        :meth:`VectorCells.times_membranes_midpoint`
+            Details on the structure of these arrays.
+        '''
+
+        return VectorFieldArrayed(
+            x=self._x.times_membranes_midpoint,
+            y=self._y.times_membranes_midpoint)
+
+
+    @property_cached
+    def times_membranes_vertex(self) -> VectorFieldArrayed:
+        '''
+        Vector field whose X and Y components are two-dimensional Numpy arrays
+        of data spatially situated at cell membrane vertices for one or more
+        time steps.
+
+        See Also
+        ----------
+        :meth:`VectorCells.times_membranes_vertex`
+            Details on the structure of these arrays.
+        '''
+
+        return VectorFieldArrayed(
+            x=self._x.times_membranes_vertex,
+            y=self._y.times_membranes_vertex)

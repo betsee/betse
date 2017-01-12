@@ -35,6 +35,8 @@ from matplotlib.patches import FancyArrowPatch
 #FIXME: Generalize this layer to accept a vector field whose X and Y components
 #are *NOT* spatially situated at square grid spaces, presumably by interpolating
 #from the coordinate system of these components onto square grid spaces.
+#FIXME: To do so, subclass from the new "LayerCellsVectorFieldABC" superclass
+#instead.
 
 class LayerCellsStream(LayerCellsABC):
     '''
