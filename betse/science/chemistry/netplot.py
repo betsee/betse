@@ -14,6 +14,7 @@ and plot.
 
 """
 
+from betse.exceptions import BetsePyDotException
 from betse.lib import libs
 from betse.util.io.log import logs
 
@@ -54,6 +55,7 @@ def set_net_opts(self, net_plot_opts, p):
         self.vmem_shape = net_plot_opts['Vmem']['node shape']
 
         self.subnets_dicts = net_plot_opts['sub-nets']
+        self.additional_edges = net_plot_opts.get('additional relationships', None)
 
     else: # set to defaults
 
@@ -89,11 +91,13 @@ def set_net_opts(self, net_plot_opts, p):
         self.vmem_shape = 'oval'
 
         self.subnets_dicts = None
+        self.additional_edges = None
 
 def plot_master_network(self, p):
 
     # If PyDot is unimportable, raise an exception.
     libs.die_unless_runtime_optional('pydot')
+
     # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
     import pydot
 
@@ -102,7 +106,7 @@ def plot_master_network(self, p):
                                 splines=True, strict = True, rankdir = self.net_layout)
 
     # add Vmem to the graph
-    nde = pydot.Node('+Vmem', style='filled', shape=self.vmem_shape, color = self.vmem_node_color,
+    nde = pydot.Node('Vmem', style='filled', shape=self.vmem_shape, color = self.vmem_node_color,
                              fontcolor = self.vmem_node_font_color, fontname = self.net_font_name,
                              fontsize = self.node_font_size)
     base_graph.add_node(nde)
@@ -245,11 +249,11 @@ def plot_master_network(self, p):
 
     # detail how Vmem is affected via membrane permeability relationships to core ions:
 
-    base_graph.add_edge(pydot.Edge('Pmem_Na', '+Vmem', arrowhead='dot', color='blue', penwidth = self.edge_width))
+    base_graph.add_edge(pydot.Edge('Pmem_Na', 'Vmem', arrowhead='dot', color='blue', penwidth = self.edge_width))
 
-    base_graph.add_edge(pydot.Edge('Pmem_K', '+Vmem', arrowhead='tee', color='red', penwidth = self.edge_width))
+    base_graph.add_edge(pydot.Edge('Pmem_K', 'Vmem', arrowhead='tee', color='red', penwidth = self.edge_width))
 
-    base_graph.add_edge(pydot.Edge('K_env', '+Vmem', arrowhead='dot', color='blue', penwidth = self.edge_width))
+    base_graph.add_edge(pydot.Edge('K_env', 'Vmem', arrowhead='dot', color='blue', penwidth = self.edge_width))
 
     #-------------------------------------------------------------------------------------------------------------------
 
@@ -447,6 +451,9 @@ def plot_master_network(self, p):
             elif chan_class == 'Cat':
                 ion_name = ['Na', 'K']
 
+            elif chan_class == 'Cl':
+                ion_name = ['Cl']
+
             else:
                 ion_name = []
 
@@ -469,6 +476,38 @@ def plot_master_network(self, p):
                                    zone_tags_a=chan.channel_activators_zone,
                                    zone_tags_i=chan.channel_inhibitors_zone)
 
+    # if there are any user-defined relations, add them in:
+
+    if self.additional_edges is not None:
+        for node_list in self.additional_edges:
+
+            node1, node2, relation = node_list
+
+            if not base_graph.get_node(node1):
+
+                raise BetsePyDotException('Additional node "{}" not found.'.format(node1))
+
+            if not base_graph.get_node(node2):
+
+                raise BetsePyDotException('Additional node "{}" not found.'.format(node2))
+
+            if relation == 'activation':
+                arrowh = 'dot'
+                arrowc = 'blue'
+
+            elif relation == 'inhibition':
+                arrowh = 'tee'
+                arrowc = 'red'
+
+            else:
+                arrowh = 'normal'
+                arrowc = 'black'
+
+
+            base_graph.add_edge(pydot.Edge(node1, node2, arrowhead=arrowh, color=arrowc,
+                                           penwidth=self.edge_width))
+
+
     # if sub-graphs are defined, re-jigger the network to have clusters/sub-networks:
     if self.subnets_dicts is not None and self.subnets_dicts != 'None':
 
@@ -483,6 +522,7 @@ def make_subgraphs(self, base_graph, p):
 
     # If PyDot or Networkx are unimportable, raise an exception.
     libs.die_unless_runtime_optional('pydot', 'networkx')
+
     # reserve import of pydot and networkx in case the user doesn't have it and needs to turn this functionality off:
     import pydot
     import networkx as nx
@@ -578,6 +618,8 @@ def graph_influencers(self, base_graph, name, a_list, i_list, p, reaction_zone =
     graph           Updated pydot graph object
 
     """
+    # If PyDot is unimportable, raise an exception.
+    libs.die_unless_runtime_optional('pydot')
 
     import pydot
 

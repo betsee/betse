@@ -149,6 +149,13 @@ class BetseMatplotlibException(BetseLibException):
     '''
     pass
 
+
+class BetsePyDotException(BetseLibException):
+    '''
+    PyDot-specific exception.
+    '''
+    pass
+
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetsePathException(BetseException):
     '''

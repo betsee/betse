@@ -237,6 +237,12 @@ network plotting:
     node color: Maroon
     node shape: ellipse
 
+  additional relationships:         # specify any extra edges for the graph as node1, node2 and relationship
+                                    # relationship may be 'activation', 'inhibition' or 'None'
+    - ['ClCa', 'Pmem_Cl', 'activation']
+    - ['NaK-ATPase', '+Vmem', 'inhibition']
+    - ['V-ATPase', '+Vmem', 'inhibition']
+
   sub-nets:
 
     - name: Glycolysis Pathway
