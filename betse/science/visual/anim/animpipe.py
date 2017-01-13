@@ -12,8 +12,8 @@ High-level facilities for displaying and/or saving all enabled animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.science.vector.vectors import VectorCells
-from betse.science.vector.field.fieldabc import VectorFieldArrayed
+from betse.science.vector.vectorcls import VectorCells
+# from betse.science.vector.field.fieldcls import VectorField
 from betse.science.visual import visuals
 from betse.science.visual.anim.anim import (
     AnimCurrent,
@@ -301,10 +301,13 @@ def _anim_electric_field_intra(
     all time steps.
     '''
 
+    #FIXME: Refactor this creation into a new make_electric_intra() factory
+    #function of the new "fieldmake" submodule.
+
     # # Vector field of the intracellular (i.e., gap junction-specific) electric
     # # field for all time steps, spatially remapped from cell membrane midpoints
     # # onto cell centres.
-    # field = VectorFieldArrayed(
+    # field = VectorField(
     #     x=cells.map_membranes_midpoint_to_cells_centre(sim.efield_gj_x_time),
     #     y=cells.map_membranes_midpoint_to_cells_centre(sim.efield_gj_y_time),
     # )
@@ -359,6 +362,9 @@ def _anim_voltage_membrane(
     '''
     Animate all cell membrane voltages for all time steps.
     '''
+
+    #FIXME: Refactor this creation into a new make_voltages_intra() factory
+    #function of the new "vectormake" submodule.
 
     # Vector of all cell membrane voltages for all time steps.
     vector = VectorCells(

@@ -497,7 +497,7 @@ class AnimFieldIntracellular(AnimField):
             #* Refactor the __init__() method of this class to accept a single
             #  2-dimensional "times_membranes_midpoint_data" sequence rather
             #  than two separate X and Y data arrays. Or perhaps even a single
-            #  "VectorFieldABC" instance providing the desired object directly?
+            #  "VectorField" instance providing the desired object directly?
             #  In any case, do something.
 
             #FIXME: In light of the above, this entire class can be refactored
@@ -518,7 +518,7 @@ class AnimFieldIntracellular(AnimField):
             #
             #     # ..................{ INITIALIZERS                       }..................
             #     @type_check
-            #     def __init__(self, *args, times_field: VectorFieldABC, **kwargs) -> None:
+            #     def __init__(self, *args, times_field: VectorField, **kwargs) -> None:
             #
             #         super().__init__(*args, **kwargs)
             #

@@ -40,8 +40,8 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod, abstractproperty
-from betse.science.vector.vectors import VectorCells
-from betse.science.vector.field.fieldabc import VectorFieldCells
+from betse.science.vector.vectorcls import VectorCells
+from betse.science.vector.field.fieldcls import VectorFieldCells
 from betse.util.py import references
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
@@ -322,6 +322,7 @@ class LayerCellsVectorFieldABC(LayerCellsABC):
     '''
 
     # ..................{ INITIALIZERS                       }..................
+    @type_check
     def __init__(self, field: VectorFieldCells) -> None:
         '''
         Initialize this layer.

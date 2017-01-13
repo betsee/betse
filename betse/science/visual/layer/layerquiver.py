@@ -8,7 +8,7 @@ Layer subclasses spatially overlaying vector components onto the current cell cl
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.science.vector.field.fieldabc import VectorFieldABC
+from betse.science.vector.field.fieldcls import VectorField
 from betse.science.visual import visuals
 from betse.science.visual.layer.layerabc import LayerCellsABC
 from betse.util.type.types import type_check
@@ -27,7 +27,7 @@ class LayerCellsQuiver(LayerCellsABC):
 
     Attributes
     ----------
-    _field : VectorFieldABC
+    _field : VectorField
         Vector field of all velocity vectors for all simulation time steps to be
         streamplotted by this layer.
     _streamplot : StreamplotSet
@@ -39,13 +39,13 @@ class LayerCellsQuiver(LayerCellsABC):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, field: VectorFieldABC) -> None:
+    def __init__(self, field: VectorField) -> None:
         '''
         Initialize this layer.
 
         Parameters
         ----------
-        field : VectorFieldABC
+        field : VectorField
             Vector field of all velocity vectors for all simulation time steps
             to be streamplotted by this layer.
         '''

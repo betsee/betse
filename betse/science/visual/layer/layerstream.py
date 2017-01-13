@@ -24,10 +24,10 @@ Layer subclasses spatially overlaying streamlines onto the current cell cluster.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseVectorException
-from betse.science.vector.field.fieldabc import VectorFieldABC
+# from betse.exceptions import BetseVectorException
+# from betse.science.vector.field.fieldabc import VectorField
 from betse.science.visual import visuals
-from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.science.visual.layer.layerabc import LayerCellsVectorFieldABC
 from betse.util.type.types import type_check
 from matplotlib.patches import FancyArrowPatch
 
@@ -38,7 +38,7 @@ from matplotlib.patches import FancyArrowPatch
 #FIXME: To do so, subclass from the new "LayerCellsVectorFieldABC" superclass
 #instead.
 
-class LayerCellsStream(LayerCellsABC):
+class LayerCellsStream(LayerCellsVectorFieldABC):
     '''
     Layer subclass plotting streamlines of a single vector field whose X and Y
     components are spatially situated at square grid spaces (e.g.,
@@ -51,7 +51,7 @@ class LayerCellsStream(LayerCellsABC):
 
     Attributes
     ----------
-    _field : VectorFieldABC
+    _field : VectorField
         Vector field of all velocity vectors spatially situated at square grid
         spaces for all simulation time steps to be streamplotted by this layer.
     _streamplot : StreamplotSet
@@ -63,80 +63,35 @@ class LayerCellsStream(LayerCellsABC):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, field: VectorFieldABC) -> None:
-        '''
-        Initialize this layer.
-
-        Parameters
-        ----------
-        field : VectorFieldABC
-            Vector field of all velocity vectors for all simulation time steps
-            to be streamplotted by this layer.
-        '''
+    def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass.
-        super().__init__()
-
-        # Classify the passed parameter.
-        self._field = field
+        super().__init__(*args, **kwargs)
 
         # Default all remaining instance variables.
         self._streamplot = None
 
-
-    def prep(self, *args, **kwargs) -> None:
-        '''
-        Prepare this layer to be layered onto the passed plot or animation.
-
-        Parameters
-        ----------
-        All parameters are passed to the :meth:`LayerCellsABC.__init__` method
-        as is.
-
-        Raises
-        ----------
-        BetseVectorException
-            If the X and Y components of this vector field are *not* spatially
-            situated at square grid spaces.
-        '''
-
-        # Prepare our superclass with the passed parameters.
-        super().prep(*args, **kwargs)
-
-        # If the X and Y components of this vector field are *not* spatially
-        # situated at square grid spaces, raise an exception. Ideally, this
-        # validation would be performed in the constructor. Since the
-        # "self._visual" attribute is only defined by the prior call to our
-        # superclass implementation, this validation is delayed to here.
-        if not (
-            len(self._field.x[0]) == len(self._visual.cells.X) and
-            len(self._field.y[0]) == len(self._visual.cells.Y)
-        ):
-            raise BetseVectorException(
-                'Vector field not defined at square grid spaces (i.e., '
-                'expected dimensions {} x {} but '
-                'received dimensions {} x {}).'.format(
-                    len(self._visual.cells.X),
-                    len(self._visual.cells.Y),
-                    len(self._field.x[0]), len(self._field.y[0])))
-
     # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
         '''
-        Simulate and layer streamlines of a single modelled vector field (e.g.,
-        intracellular current) for the next time step onto the figure axes of
-        the current plot or animation.
+        Simulate and layer streamlines of this vector field (e.g., intracellular
+        current density) for the next time step onto the figure axes of the
+        current plot or animation.
         '''
 
-        # Arrays of the upscaled X and Y coordinates of all grid points.
+        # Arrays of the upscaled X and Y coordinates of all grid spaces.
         grid_x = visuals.upscale_cell_coordinates(self._visual.cells.X)
         grid_y = visuals.upscale_cell_coordinates(self._visual.cells.Y)
 
+        # Vector field whose X and and Y components are spatially situated at
+        # grid space centres.
+        field = self._field.times_grids_centre
+
         # Arrays of all magnitudes *AND* normalized X and Y components of this
         # vector field for this time step.
-        field_magnitudes = self._field.magnitudes[self._visual.time_step]
-        field_unit_x = self._field.unit_x[self._visual.time_step]
-        field_unit_y = self._field.unit_y[self._visual.time_step]
+        field_magnitudes = field.magnitudes[self._visual.time_step]
+        field_unit_x = field.unit_x[self._visual.time_step]
+        field_unit_y = field.unit_y[self._visual.time_step]
 
         # Maximum magnitude of this vector field for this time step.
         field_magnitude_max = np.max(field_magnitudes)

@@ -94,8 +94,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         4. The maximum value of the figure's Y axis.
     _axes_title : str
         Text displayed above the figure axes. If a non-`None` value for the
-        `axes_title` parameter is passed to the `__init__()` method, this is
-        that value; else, this is the value of the `figure_title` parameter
+        `axes_title` parameter is passed to the :meth:`__init__` method, this
+        is that value; else, this is the value of the `figure_title` parameter
         passed to the same method.
     _axes_x_label : str
         Text displayed below the figure's X axis.
@@ -136,9 +136,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self,
 
         # Mandatory parameters.
-        sim: 'betse.science.sim.Simulator',
+        sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
-        p: 'betse.science.parameters.Parameters',
+        p:     'betse.science.parameters.Parameters',
         is_save: bool,
         is_show: bool,
         label: str,
