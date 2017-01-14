@@ -18,7 +18,7 @@ from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
-from betse.science.visual import visuals
+from betse.science.visual import visualutil
 from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsMappableABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
@@ -1102,7 +1102,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=visuals.upscale_cell_coordinates(self._cells.cell_verts),
+            verts=visualutil.upscale_cell_coordinates(self._cells.cell_verts),
             cmap=self._colormap,
             edgecolors='none',
         )

@@ -165,6 +165,9 @@ class VectorCells(object):
         . Second dimension indexes each cell, such that each element is
           arbitrary cell data spatially situated at the centre of this cell for
           this time step.
+
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
         '''
 
         # If this vector was originally situated at cell centres, return the
@@ -198,6 +201,9 @@ class VectorCells(object):
         . Second dimension indexes each cell membrane, such that each element is
           arbitrary cell membrane data spatially situated at the midpoint of
           this membrane for this time step.
+
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
         '''
 
         # If this vector was originally situated at cell centres, return the
@@ -220,6 +226,9 @@ class VectorCells(object):
         . Second dimension indexes each cell membrane vertex, such that each
           element is arbitrary data spatially situated at this cell membrane
           vertex for this time step.
+
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
         '''
 
         return np.dot(
@@ -236,6 +245,9 @@ class VectorCells(object):
         . Second dimension indexes each polygonal regions in the Voronoi
           diagram, such that each element is arbitrary data spatially situated
           at the centre of this region for this time step.
+
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
         '''
 
         # Array to be returned, zeroed to the desired shape.
@@ -251,6 +263,9 @@ class VectorCells(object):
         return times_regions_centre
 
 
+    #FIXME: Is this actually grid point vertices rather than grid space centres?
+    #It doesn't particularly matter in terms of implementation (which clearly
+    #works), but it would be useful to eliminate incorrectness in terminology.
     @property_cached
     def times_grids_centre(self) -> ndarray:
         '''
@@ -276,6 +291,9 @@ class VectorCells(object):
               this vector was initialized with a cell-centric array rather than
               the `times_grids_centre` parameter, this vector contains no
               extracellular data to interpolate environmental grid spaces from.
+
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
         '''
 
         # If this vector was originally situated at grid space centres, return

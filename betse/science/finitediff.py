@@ -5,17 +5,50 @@
 
 import numpy as np
 import math
-import scipy.ndimage
+# import scipy.ndimage
 import scipy.spatial as sps
 
 
 class FiniteDiffSolver(object):
-    """
-    Provides methods to establish a rectangular Marker and Cell (MACs) grid, compute discrete Laplacian operators
-    and solve the Poisson, Laplacian, Heat, or Unsteady Stokes Flow (linearized Navier-Stokes) equations in 2D using
-    the Central Finite Difference method.
+    '''
+    Finite difference solver.
 
-    """
+    This solver provides methods to establish a rectangular Marker and Cell
+    (MACs) grid, compute discrete Laplacian operators and solve the Poisson,
+    Laplacian, Heat, or Unsteady Stokes Flow (linearized Navier-Stokes)
+    equations in 2D using the Central Finite Difference method.
+
+    Attributes (Grid)
+    ------------------------
+    delta : NumericTypes
+        Distance in meters between each grid point, uniformally applied in both
+        the X and Y dimensions.
+    grid_nx : int
+        Number of grid points in the X dimension.
+    grid_ny : int
+        Number of grid points in the Y dimension.
+    verts_X : ndarray
+        Two-dimensional Numpy array of gridded X coordinates, whose:
+        * First dimension indexes each row of this grid.
+        * Second dimension indexes each column of this grid such that each
+          element is the X coordinate in meters of the grid point at this row
+          and column.
+    verts_Y : ndarray
+        Two-dimensional Numpy array of gridded Y coordinates, whose:
+        * First dimension indexes each row of this grid.
+        * Second dimension indexes each column of this grid such that each
+          element is the Y coordinate in meters of the grid point at this row
+          and column.
+    xmin : NumericTypes
+        X coordinate in meters of the leftmost grid point(s).
+    xmax : NumericTypes
+        X coordinate in meters of the rightmost grid point(s).
+    ymin : NumericTypes
+        Y coordinate in meters of the bottom-most grid point(s).
+    ymax : NumericTypes
+        Y coordinate in meters of the topmost grid point(s).
+    xy_cents : ndarray
+    '''
 
     def __init__(self):
 

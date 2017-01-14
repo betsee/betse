@@ -21,7 +21,7 @@ of intra- and/or extracellular current densities, producing magnitude in units
 of uA/cm^2.
 '''
 
-# ....................{ MAKERS                             }....................
+# ....................{ MAKERS ~ currents                  }....................
 @type_check
 def make_currents_intra(
     sim:   'betse.science.sim.Simulator',
@@ -44,10 +44,9 @@ def make_currents_intra(
     Returns
     ----------
     VectorFieldCells
-        Vector field cache of all intracellular spaces.
+        Intracellular vector field cache of all current densities.
     '''
 
-    # Create and return this field.
     return VectorFieldCells(
         x=VectorCells(cells=cells, p=p, times_cells_centre=sim.I_cell_x_time),
         y=VectorCells(cells=cells, p=p, times_cells_centre=sim.I_cell_y_time),
@@ -77,7 +76,7 @@ def make_currents_intra_extra(
     Returns
     ----------
     VectorFieldCells
-        Vector field cache of all intra- and extracellular spaces.
+        Intra- and extracellular vector field cache of all current densities.
 
     Raises
     ----------
@@ -96,4 +95,37 @@ def make_currents_intra_extra(
         x=VectorCells(cells=cells, p=p, times_grids_centre=sim.I_tot_x_time),
         y=VectorCells(cells=cells, p=p, times_grids_centre=sim.I_tot_y_time),
         magnitude_factor=_MAGNITUDE_FACTOR_CURRENTS,
+    )
+
+# ....................{ MAKERS ~ electric                  }....................
+@type_check
+def make_electric_intra(
+    sim:   'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p:     'betse.science.parameters.Parameters',
+) -> VectorFieldCells:
+    '''
+    Create and return a vector field cache of the eletric field across all
+    intracellular spaces for all time steps of the passed simulation.
+
+    Parameters
+    ----------
+    sim : Simulator
+        Current simulation.
+    cells : Cells
+        Current cell cluster.
+    p : Parameters
+        Current simulation configuration.
+
+    Returns
+    ----------
+    VectorFieldCells
+        Intracellular electric vector field cache.
+    '''
+
+    return VectorFieldCells(
+        x=VectorCells(
+            cells=cells, p=p, times_membranes_midpoint=sim.efield_gj_x_time),
+        y=VectorCells(
+            cells=cells, p=p, times_membranes_midpoint=sim.efield_gj_y_time),
     )

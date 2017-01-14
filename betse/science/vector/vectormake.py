@@ -6,10 +6,38 @@
 Vector factories, producing instances of the :class:`VectorCells` class.
 '''
 
-#FIXME: Rename this submodule to "fieldmake".
-
 # ....................{ IMPORTS                            }....................
 from betse.science.vector.vectorcls import VectorCells
+from betse.science.visual import visualutil
 from betse.util.type.types import type_check
 
 # ....................{ MAKERS                             }....................
+@type_check
+def make_voltages_intra(
+    sim:   'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p:     'betse.science.parameters.Parameters',
+) -> VectorCells:
+    '''
+    Create and return a vector cache of the voltages across all intracellular
+    membranes (i.e., gap junctions) for all time steps of the passed simulation.
+
+    Parameters
+    ----------
+    sim : Simulator
+        Current simulation.
+    cells : Cells
+        Current cell cluster.
+    p : Parameters
+        Current simulation configuration.
+
+    Returns
+    ----------
+    VectorFieldCells
+        Intracellular vector cache of all voltages.
+    '''
+
+    return VectorCells(
+        cells=cells, p=p,
+        times_membranes_midpoint=visualutil.upscale_cell_data(sim.vm_time),
+    )

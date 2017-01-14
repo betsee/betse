@@ -120,7 +120,7 @@ class VectorField(object):
           field for this time step. For safety, this magnitude is guaranteed to
           be non-zero, avoiding division-by-zero errors elsewhere in the
           codebase when these magnitudes are subsequently divided by (e.g., to
-          normalize the X or Y vector components).
+          normalize the X or Y components of this field).
 
         For space and time efficiency, the definition of this array is lazily
         deferred to the first read of this property.
@@ -246,6 +246,9 @@ class VectorFieldCells(object):
         Vector field whose X and Y components are two-dimensional Numpy arrays
         of data spatially situated at cell centres for one or more time steps.
 
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
+
         See Also
         ----------
         :meth:`VectorCells.times_cells_centre`
@@ -266,6 +269,9 @@ class VectorFieldCells(object):
         Vector field whose X and Y components are two-dimensional Numpy arrays
         of data spatially situated at grid space centres for one or more
         time steps.
+
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
 
         See Also
         ----------
@@ -288,6 +294,9 @@ class VectorFieldCells(object):
         of data spatially situated at cell membrane midpoints for one or more
         time steps.
 
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
+
         See Also
         ----------
         :meth:`VectorCells.times_membranes_midpoint`
@@ -308,6 +317,9 @@ class VectorFieldCells(object):
         Vector field whose X and Y components are two-dimensional Numpy arrays
         of data spatially situated at cell membrane vertices for one or more
         time steps.
+
+        For space and time efficiency, the definition of this field is lazily
+        deferred to the first read of this property.
 
         See Also
         ----------

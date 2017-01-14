@@ -12,15 +12,15 @@ High-level facilities for displaying and/or saving all enabled animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from betse.science.vector import vectormake
 from betse.science.vector.vectorcls import VectorCells
-# from betse.science.vector.field.fieldcls import VectorField
-from betse.science.visual import visuals
+from betse.science.vector.field import fieldmake
+from betse.science.visual import visualutil
 from betse.science.visual.anim.anim import (
     AnimCurrent,
     AnimateDeformation,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
-    AnimFieldIntracellular,
     AnimFieldExtracellular,
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
@@ -29,8 +29,9 @@ from betse.science.visual.anim.anim import (
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
 from betse.science.visual.layer import layershade
+from betse.science.visual.layer.layerquiver import LayerCellsQuiver
 from betse.science.visual.layer.layershade import LayerCellsShadeContinuous
-from betse.science.visual.layer.layerstream import LayerCellsStream
+# from betse.science.visual.layer.layerstream import LayerCellsStream
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
@@ -301,56 +302,36 @@ def _anim_electric_field_intra(
     all time steps.
     '''
 
-    #FIXME: Refactor this creation into a new make_electric_intra() factory
-    #function of the new "fieldmake" submodule.
+    # Vector field cache of the intracellular electric field for all time steps.
+    field = fieldmake.make_electric_intra(sim=sim, cells=cells, p=p)
 
-    # # Vector field of the intracellular (i.e., gap junction-specific) electric
-    # # field for all time steps, spatially remapped from cell membrane midpoints
-    # # onto cell centres.
-    # field = VectorField(
-    #     x=cells.map_membranes_midpoint_to_cells_centre(sim.efield_gj_x_time),
-    #     y=cells.map_membranes_midpoint_to_cells_centre(sim.efield_gj_y_time),
-    # )
-    #
-    # # Vector of all intracellular electric field magnitudes for all time steps.
-    # field_magnitudes = VectorCells(
-    #     cells=cells, p=p, times_cells_centre=field.magnitudes)
-    #
-    # # Sequence of layers consisting of...
-    # layers = (
-    #     # A lower layer animating these magnitudes.
-    #     LayerCellsShadeContinuous(vector=field_magnitudes),
-    #
-    #     # A higher layer animating this field.
-    #     LayerCellsQuiver(field=field),
-    # )
-    #
+    # Vector of all intracellular electric field magnitudes for all time steps,
+    # spatially situated at cell centres.
+    field_magnitudes = VectorCells(
+        cells=cells, p=p,
+        times_cells_centre=field.times_cells_centre.magnitudes)
+
+    # Sequence of layers consisting of...
+    layers = (
+        # A lower layer animating these magnitudes.
+        LayerCellsShadeContinuous(vector=field_magnitudes),
+
+        # A higher layer animating this field.
+        LayerCellsQuiver(field=field),
+    )
+
     # # Produce this animation.
-    # AnimCellsAfterSolvingLayered(
-    #     sim=sim, cells=cells, p=p, layers=layers,
-    #     label='Efield_gj',
-    #     figure_title='Intracellular E Field',
-    #     colorbar_title='Electric Field [V/m]',
-    #     is_color_autoscaled=p.autoscale_Efield_ani,
-    #     color_min=p.Efield_ani_min_clr,
-    #     color_max=p.Efield_ani_max_clr,
-    #
-    #     # Prefer an alternative colormap.
-    #     colormap=p.background_cm,
-    # )
-
-    #FIXME: Replace by the above code *AFTER* implementing the new
-    #"LayerCellsQuiver" class.
-    AnimFieldIntracellular(
-        sim=sim, cells=cells, p=p,
-        x_time_series=sim.efield_gj_x_time,
-        y_time_series=sim.efield_gj_y_time,
+    AnimCellsAfterSolvingLayered(
+        sim=sim, cells=cells, p=p, layers=layers,
         label='Efield_gj',
         figure_title='Intracellular E Field',
         colorbar_title='Electric Field [V/m]',
         is_color_autoscaled=p.autoscale_Efield_ani,
         color_min=p.Efield_ani_min_clr,
         color_max=p.Efield_ani_max_clr,
+
+        # Prefer an alternative colormap.
+        colormap=p.background_cm,
     )
 
 
@@ -363,14 +344,8 @@ def _anim_voltage_membrane(
     Animate all cell membrane voltages for all time steps.
     '''
 
-    #FIXME: Refactor this creation into a new make_voltages_intra() factory
-    #function of the new "vectormake" submodule.
-
     # Vector of all cell membrane voltages for all time steps.
-    vector = VectorCells(
-        cells=cells, p=p,
-        times_membranes_midpoint=visuals.upscale_cell_data(sim.vm_time),
-    )
+    vector = vectormake.make_voltages_intra(sim=sim, cells=cells, p=p)
 
     # Sequence of layers, consisting of only one layer animating these voltages
     # as a Gouraud-shaded surface.
@@ -402,7 +377,7 @@ def _get_vmem_time_series(
 
     # Scaled membrane voltage time series.
     if p.sim_ECM is False:
-        return visuals.upscale_cell_data(sim.vm_time)
+        return visualutil.upscale_cell_data(sim.vm_time)
     else:
         #FIXME: What's the difference between "sim.vcell_time" and
         #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "AnimCellsWhileSolving"
@@ -417,4 +392,4 @@ def _get_vmem_time_series(
         #  ECM and "sim.vm_time" for non-ECM.
         #* _get_vmem_time_series_discontinuous(), returning "sim.vcell_time" for
         #  ECM and "sim.vm_time" for non-ECM.
-        return visuals.upscale_cell_data(sim.vcell_time)
+        return visualutil.upscale_cell_data(sim.vcell_time)

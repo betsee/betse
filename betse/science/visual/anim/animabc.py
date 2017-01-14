@@ -99,6 +99,7 @@ from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
 from betse.science.vector.field import fieldmake
+from betse.science.visual.layer.layerabc import LayerCellsVectorFieldABC
 from betse.science.visual.layer.layerstream import LayerCellsStream
 from betse.science.visual.visualabc import VisualCellsABC
 from betse.util.io.log import logs
@@ -509,9 +510,9 @@ class AnimCellsABC(VisualCellsABC):
             # This simulation configuration requests no current overlay.
             not self._is_current_overlayable or
 
-            # A layer in the layer sequence already plots streamlines.
+            # A layer in the layer sequence already plots a vector field.
             iterables.is_items_any_instance_of(
-                iterable=self._layers, cls=LayerCellsStream)
+                iterable=self._layers, cls=LayerCellsVectorFieldABC)
         # ...then silently noop.
         ):
             return

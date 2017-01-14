@@ -3,141 +3,115 @@
 # See "LICENSE" for further details.
 
 '''
-Layer subclasses spatially overlaying vector components onto the current cell cluster.
+Layer subclasses spatially overlaying vector components as quiver plots onto the
+cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
-from betse.science.vector.field.fieldcls import VectorField
-from betse.science.visual import visuals
-from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.science.visual import visualutil
+from betse.science.visual.layer.layerabc import LayerCellsVectorFieldABC
 from betse.util.type.types import type_check
-from matplotlib.patches import FancyArrowPatch
 
 # ....................{ SUBCLASSES                         }....................
-class LayerCellsQuiver(LayerCellsABC):
+class LayerCellsQuiver(LayerCellsVectorFieldABC):
     '''
-    Layer subclass plotting vector components of a single vector field (e.g.,
-    intracellular electric field) for one on more simulation time steps.
-
-    This layer is somewhat more computationally expensive in both space and time
-    than the average layer. For each plot or animation frame to be layered with
-    streamlines, an internal fluid simulation of the density of the desired
-    vector field through the cell cluster specific to this frame is solved.
+    Layer subclass plotting the most significant X and Y components of a single
+    vector field (e.g., electric field) onto the cell cluster for one on more
+    simulation time steps.
 
     Attributes
     ----------
-    _field : VectorField
-        Vector field of all velocity vectors for all simulation time steps to be
-        streamplotted by this layer.
-    _streamplot : StreamplotSet
-        Streamplot of all streamlines previously plotted for the prior time step
-        if any or `None` otherwise, temporarily preserved for only one time step
-        to permit its removal prior to plotting a new streamplot for the current
-        time step.
+    _quiver_plot : matplotlib.quiver.Quiver
+        Ouiver plot of all vector components previously plotted for the prior
+        time step if any or `None` otherwise.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, field: VectorField) -> None:
-        '''
-        Initialize this layer.
-
-        Parameters
-        ----------
-        field : VectorField
-            Vector field of all velocity vectors for all simulation time steps
-            to be streamplotted by this layer.
-        '''
+    def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass.
-        super().__init__()
-
-        # Classify the passed parameter.
-        self._field = field
+        super().__init__(*args, **kwargs)
 
         # Default all remaining instance variables.
-        self._streamplot = None
+        self._quiver_plot = None
 
     # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
         '''
-        Simulate and layer streamlines of a single modelled vector field (e.g.,
-        intracellular current) for the next time step onto the figure axes of
-        the current plot or animation.
+        Layer the most significant X and Y components of this vector field for
+        the first time step onto the figure axes of the current plot or
+        animation.
         '''
 
-        # Arrays of the upscaled X and Y coordinates of all grid points.
-        grid_x = visuals.upscale_cell_coordinates(self._visual.cells.X)
-        grid_y = visuals.upscale_cell_coordinates(self._visual.cells.Y)
+        # Vector field whose X and Y components are spatially situated at cell
+        # centres.
+        field = self._field.times_cells_centre
 
-        # Arrays of all magnitudes *AND* normalized X and Y components of this
-        # vector field for this time step.
-        field_magnitudes = self._field.magnitudes[self._visual.time_step]
-        field_unit_x = self._field.unit_x[self._visual.time_step]
-        field_unit_y = self._field.unit_y[self._visual.time_step]
+        # Arrays of the upscaled X and Y coordinates of all cell centres.
+        cells_centre_x = visualutil.upscale_cell_coordinates(
+            self._visual.cells.cell_centres[:,0])
+        cells_centre_y = visualutil.upscale_cell_coordinates(
+            self._visual.cells.cell_centres[:,1])
 
-        # Maximum magnitude of this vector field for this time step.
-        field_magnitude_max = np.max(field_magnitudes)
+        # Ouiver plot of all vector components plotted for this time step. See
+        # the matplotlib.quiver.quiver() docstring for further details.
+        self._quiver_plot = self._visual.axes.quiver(
+            # Positional arguments. Thanks to internal flaws in the
+            # matplotlib.quiver._parse_args() function parsing arguments passed
+            # to the matplotlib.axes.quiver() method called here, the first four
+            # arguments *MUST* be passed as positional arguments.
 
-        # One-dimensional array of the visual widths of all vectors of this
-        # vector field for this time step.
-        streamlines_width = (
-            3.0 * field_magnitudes / field_magnitude_max) + 0.5
+            # X and Y coordinates of all cell centres.
+            cells_centre_x,
+            cells_centre_y,
 
-        # Streamplot of all streamlines plotted for this time step. See the
-        # matplotlib.streamplot.streamplot() docstring for further details.
-        self._streamplot = self._visual.axes.streamplot(
-            # X and Y coordinates of all grid points.
-            x=grid_x,
-            y=grid_y,
+            # Normalized X and Y vector field components for this time step.
+            field.unit_x[self._visual.time_step],
+            field.unit_y[self._visual.time_step],
 
-            # X and Y normalized coomponents of all vector field velocities.
-            u=field_unit_x,
-            v=field_unit_y,
+            # Keyword arguments. All remaining arguments *MUST* be passed as
+            # keyword arguments.
 
-            # Matplotlib-specific color code of all streamlines.
+            # Matplotlib-specific color code of all vector arrows.
             color=self._visual.p.vcolor,
 
-            # Density of streamlines in both the X and Y dimensions.
-            density=self._visual.p.stream_density,
+            # Multiples of the width and height (respectively) of vector arrow
+            # shafts by which to scale the width and height of vector arrow
+            # heads. These settings default to 3 and 5 (respectively).
+            headwidth=5,
+            headlength=7,
 
-            # Line widths of all streamlines.
-            linewidth=streamlines_width,
+            # The portion of each vector arrow to situate at the X and Y
+            # coordinates of the corresponding cell centre.
+            pivot='middle',
 
-            #FIXME: For still frames, an arrow size of about 5.0 is best; for
-            #rendered video, these blow up and a size of 3.0 is better. Not that
-            #this is important enough to ever get to it. :)
+            # Scale vector arrows such that arrow size increases as the
+            # user-defined zoom level increases in either X or Y dimensions.
+            # units='xy',
+            units='x',
 
-            # Factor by which to upscale the size of all streamline arrowheads.
-            arrowsize=3.0,
+            #FIXME: This appears to be ignored. Is this still required?
+            # zorder=10,
         )
 
 
     def _layer_next(self) -> None:
         '''
-        Simulate and layer streamlines of a single modelled vector field (e.g.,
-        intracellular current) for the first time step onto the figure axes of
-        the current plot or animation.
+        Layer the most significant X and Y components of this vector field for
+        the next time step onto the figure axes of the current plot or
+        animation.
         '''
 
-        # Remove all streamlines plotted for the prior time step.
-        self._streamplot.lines.remove()
+        # Vector field whose X and Y components are spatially situated at cell
+        # centres.
+        field = self._field.times_cells_centre
 
-        # If this Matplotlib version supports removing the set of all streamline
-        # arrowheads plotted for the prior time step, do so.
-        try:
-            self._streamplot.arrows.remove()
-        # Else, these arrowheads *MUST* be manually erased by iterating over all
-        # patch objects and preserving all non-arrowhead patches. Doing so also
-        # removes all arrowhead patches of other streamplots already plotted for
-        # this time step and is hence non-ideal. But no alternatives exist.
-        except NotImplementedError:
-            self._visual.axes.patches = [
-                patch
-                for patch in self._visual.axes.patches
-                if not isinstance(patch, FancyArrowPatch)
-            ]
+        # Arrays of all normalized X and Y components of this vector field for
+        # this time step.
+        field_unit_x = field.unit_x[self._visual.time_step]
+        field_unit_y = field.unit_y[self._visual.time_step]
 
-        # Replot this streamplot for this time step.
-        self._layer_first()
+        # Replace all normalized X and Y components previously plotted for the
+        # prior time step by these components.
+        self._quiver_plot.set_UVC(U=field_unit_x, V=field_unit_y)

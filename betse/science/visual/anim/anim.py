@@ -34,7 +34,7 @@ from enum import Enum
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
-from betse.science.visual import visuals
+from betse.science.visual import visualutil
 from betse.science.visual.anim.animafter import (
     AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.science.visual.plot.plotutil import (
@@ -243,7 +243,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Gap junction data series for the first frame plotted as lines.
         self._gapjunc_plot = LineCollection(
-            visuals.upscale_cell_coordinates(self._cells.nn_edges),
+            visualutil.upscale_cell_coordinates(self._cells.nn_edges),
             array=self._time_series[0],
             cmap=self._p.gj_cm,
             linewidths=2.0,
@@ -439,203 +439,6 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
                 self._cells.X.shape))
 
 # ....................{ SUBCLASSES ~ field                 }....................
-class AnimFieldIntracellular(AnimField):
-    '''
-    Animation of the electric field over all intracellular gap junctions
-    plotted on the cell cluster.
-
-    Attributes
-    ----------
-    _mesh_plot : matplotlib.image.AxesImage
-        Meshplot of the current or prior frame's electric field magnitude.
-    _stream_plot : matplotlib.streamplot.StreamplotSet
-        Streamplot of the current or prior frame's electric field.
-    '''
-
-    def __init__(self, *args, **kwargs) -> None:
-
-        # Initialize the superclass.
-        super().__init__(*args, **kwargs)
-
-        # Define electric field arrays for all animation frames.
-        for time_step in range(0, self._time_step_count):
-            # Electric field X and Y unit components for this frame.
-            field_x = self._x_time_series[time_step]
-            field_y = self._y_time_series[time_step]
-
-            #FIXME: What's this about then? Buttercups and bitter nightingales!
-            #FIXME: Right. Research: what's the length of both
-            #"sim.efield_gj_x_time[0]" and
-            #"sim.F_hydro_x_time[0]"? These are the *ONLY* two X component
-            #arrays ever passed to this method. It seems highly likely that
-            #both are defined on membranes, but let's verify that. It might be
-            #the case that:
-            #
-            #* "sim.efield_gj_x_time[0]" is defined on membrane midpoints.
-            #" "sim.F_hydro_x_time[0]" is defined on cell centres.
-            #
-            #In either case, we want the "x_time_series" parameter accepted by
-            #the superclass __init__() method to be renamed to
-            #"times_membranes_midpoint_data_x" and likewise with the
-            #"y_time_series" parameter. Depending on what
-            #"sim.F_hydro_x_time[0]" is, we might want additional parameters.
-            #FIXME: Each "sim.efield_gj_x_time[time_step]" array is indeed
-            #defined on membranes; likewise, the "sim.F_hydro_x_time" array is
-            #always empty and hence ignorable. Hence, the if conditional below
-            #is *ALWAYS* guaranteed to be True. As with the
-            #"AnimCellsMembranesData" class, this class thus always operates on
-            #membrane midpoint-centric data. Excellent!
-            #FIXME: Actually, let's refactor the superclass __init__() method
-            #to accept only a single 2-dimensional
-            #"times_membranes_midpoint_data" sequence, much like the
-            #"AnimCellsMembranesData" class. To do so without breaking
-            #anything, it would probably be simplest to:
-            #
-            #* Mark our superclass as @deprecated.
-            #* Refactor this class to subclass "AnimCellsWhileSolvingABC"
-            #  rather than our current superclass.
-            #* Refactor the __init__() method of this class to accept a single
-            #  2-dimensional "times_membranes_midpoint_data" sequence rather
-            #  than two separate X and Y data arrays. Or perhaps even a single
-            #  "VectorField" instance providing the desired object directly?
-            #  In any case, do something.
-
-            #FIXME: In light of the above, this entire class can be refactored
-            #in terms of two layers:
-            #
-            #* A new "LayerCellsStreamElectricIntra" layer, defined much like
-            #  the existing "LayerCellsStreamCurrentIntra" layer. Actually,
-            #  this is getting a bit silly. We clearly want the vector field to
-            #  be in the driver seat. Having to define one new layer class for
-            #  each new vector field class we add is simply obnoxious. Instead,
-            #  define a single "LayerCellsStreamVectorField" class resembling:
-            #
-            # class LayerCellsStreamVectorField(LayerCellsStreamABC):
-            #     '''
-            #     Layer subclass plotting streamlines of an arbitrary vector field onto the
-            #     cell cluster.
-            #     '''
-            #
-            #     # ..................{ INITIALIZERS                       }..................
-            #     @type_check
-            #     def __init__(self, *args, times_field: VectorField, **kwargs) -> None:
-            #
-            #         super().__init__(*args, **kwargs)
-            #
-            #         self._times_field = times_field
-            #
-            #     # ..................{ SUPERCLASS                         }..................
-            #     def _get_velocities_x(self) -> SequenceTypes:
-            #         '''
-            #         Numpy array of the X components of all velocity vectors in this vector
-            #         field for the current time step.
-            #         '''
-            #
-            #         return self._times_field.x[self._visual.time_step]
-            #
-            #
-            #     def _get_velocities_y(self) -> SequenceTypes:
-            #         '''
-            #         Numpy array of the Y components of all velocity vectors in this vector
-            #         field for the current time step.
-            #         '''
-            #
-            #         return self._times_field.y[self._visual.time_step]
-            #
-            #
-            #     def _get_velocities_magnitudes(self) -> SequenceTypes:
-            #         '''
-            #         Numpy array of the magnitudes of all velocity vectors in this vector
-            #         field for the current time step.
-            #         '''
-            #
-            #         return self._times_field.magnitudes[self._visual.time_step]
-            #
-            #* An instance of either "LayerCellsShadeContinuous" or
-            #  "LayerCellsShadeDiscrete" as requested by the current
-            #  configuration. Perhaps we *REALLY* just want to define a new
-            #  "LayerCellsShade" class internally deciding which of these two
-            #  classes to defer to and then instiate this "LayerCellsShade"
-            #  class both here and in the "AnimCellsMembranesData" class, which
-            #  would even further simplify the latter. (Excellent!) In any
-            #  case, this layer would be passed the "magnitudes" property of
-            #  the vector field instance as its membrane-centric data series.
-            #
-            #To do so, we'll also need the following new vector field:
-            #
-            #* "VectorFieldElectricIntra", defined as the electric field across
-            #  membrane-centric gap junctions. Trivial, thankfully.
-            #
-            #Note, however, that we'll still need to perform the mapping from
-            #membrane-centric electric field components to cell-centric
-            #electric field components somewhere. Where? Within the vector
-            #field class itself? Quite a bit to chew on, here.
-
-            # If the user passes somethign defined on membranes, this automatically
-            # averages it to cell centers
-            if len(field_x) != len(self._cells.cell_i):
-                field_x = (
-                    np.dot(self._cells.M_sum_mems, field_x) /
-                    self._cells.num_mems)
-                field_y = (
-                    np.dot(self._cells.M_sum_mems, field_y) /
-                    self._cells.num_mems)
-
-            # Electric field magnitudes for this frame.
-            field_magnitude = np.sqrt(field_x**2 + field_y**2)
-
-            # If all such magnitudes are non-zero and hence safely divisible,
-            # reduce all electric field X and Y components to unit vectors. To
-            # avoid modifying the original arrays, use the "/" rather than
-            # "/=" operator. The former produces a new array, whereas the
-            # latter modifies the existing array in-place.
-            if field_magnitude.all() != 0.0:
-                field_x = field_x / field_magnitude
-                field_y = field_y / field_magnitude
-
-            # Add all such quantities to the corresponding lists.
-            self._magnitude_time_series.append(field_magnitude)
-            self._unit_x_time_series.append(field_x)
-            self._unit_y_time_series.append(field_y)
-
-        #FIXME: Why the last rather than first time step for the first frame?
-        #(This seems increasingly wrong the more I bleakly stare at it.)
-
-        # Electric field streamplot for the first frame.
-        self._stream_plot, self._axes = cell_quiver(
-            self._unit_x_time_series[-1], self._unit_y_time_series[-1],
-            self._axes, self._cells, self._p)
-
-        # Electric field magnitude meshplot for the first frame.
-        self._mesh_plot, self._axes = cell_mesh(
-            self._magnitude_time_series[-1],
-            self._axes, self._cells, self._p, self._colormap)
-
-        # Display and/or save this animation.
-        self._animate(
-            color_mappables=self._mesh_plot,
-            color_data=self._magnitude_time_series,
-        )
-
-
-    def _plot_frame_figure(self) -> None:
-
-        #FIXME: This is probably code copied from the helpers called above
-        #(e.g., cell_mesh()). It'd be great to centralize this code somewhere.
-        #Skinny trees fronded with blue ribbons!
-        emag_grid = np.zeros(len(self._cells.voronoi_centres))
-        emag_grid[self._cells.cell_to_grid] = (
-            self._magnitude_time_series[self._time_step])
-
-        # Electric field streamplot for this frame.
-        self._stream_plot.set_UVC(
-            self._unit_x_time_series[self._time_step],
-            self._unit_y_time_series[self._time_step])
-
-        # Electric field magnitude meshplot for this frame.
-        self._mesh_plot.set_array(emag_grid)
-
-
 class AnimFieldExtracellular(AnimField):
     '''
     Animation of the electric field over all extracellular spaces plotted on
@@ -654,6 +457,7 @@ class AnimFieldExtracellular(AnimField):
         # Electric field magnitude.
         efield_mag = np.sqrt(
             self._x_time_series[-1] ** 2 + self._y_time_series[-1] ** 2)
+        # print('env_mesh shape: {}'.format(efield_mag.shape))
 
         self.msh, self._axes = env_mesh(
             efield_mag, self._axes, self._cells, self._p, self._colormap,

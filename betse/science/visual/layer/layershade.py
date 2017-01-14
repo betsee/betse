@@ -3,15 +3,13 @@
 # See "LICENSE" for further details.
 
 '''
-Layer subclasses spatially shading the current cell cluster.
+Layer subclasses spatially shading the cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-# import numpy as np
-from betse.science.visual import visuals
+from betse.science.visual import visualutil
 from betse.science.visual.layer.layerabc import LayerCellsMappableVectorABC
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
-# from numpy import ndarray
 
 # ....................{ FACTORIES                          }....................
 #FIXME: Probably overkill. Simply inline the logic of this function directly at
@@ -79,13 +77,11 @@ class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
 
     def _layer_first_color_mappables(self) -> IterableTypes:
 
-        # Upscaled X coordinates of the centers of all polygonol regions of the
+        # X and Y coordinates of the centers of all polygonol regions of the
         # Voronoi diagram defining this cell cluster.
-        regions_centre_x = visuals.upscale_cell_coordinates(
+        regions_centre_x = visualutil.upscale_cell_coordinates(
             self._visual.cells.voronoi_centres[:,0])
-
-        # Upscaled Y coordinates of the centers of all polygonol regions.
-        regions_centre_y = visuals.upscale_cell_coordinates(
+        regions_centre_y = visualutil.upscale_cell_coordinates(
             self._visual.cells.voronoi_centres[:,1])
 
         # One-dimensional array of all region-centred data for this time step.
@@ -95,11 +91,14 @@ class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
         # Gouraud-shaded triangulation mesh for this cell cluster, computed from
         # the Delaunay hull of the non-triangular centers of these regions.
         self._cluster_tri_mesh = self._visual.axes.tripcolor(
-            # For equally obscure and uninteresting reasons, this
-            # function requires these parameters to be passed positionally.
+            # Positional arguments. Thanks to internal flaws in the
+            # matplotlib.tri.tripcolor() function parsing arguments passed
+            # to the matplotlib.axes.tripcolor() method called here, the first
+            # four arguments *MUST* be passed as positional arguments.
             regions_centre_x, regions_centre_y, regions_centre_data,
 
-            # All remaining parameters may be passed by keyword.
+            # Keyword arguments. All remaining arguments *MUST* be passed as
+            # keyword arguments.
             shading='gouraud',
             cmap=self._visual.colormap,
             vmin=self._visual.color_min,
@@ -165,7 +164,7 @@ class LayerCellsShadeDiscrete(LayerCellsMappableVectorABC):
 
         # Three-dimensional array of all upscaled cell vertex coordinates. See
         # "Cells.cell_verts" documentation for further details.
-        cells_vertices_coords = visuals.upscale_cell_coordinates(
+        cells_vertices_coords = visualutil.upscale_cell_coordinates(
             self._visual.cells.cell_verts)
 
         # List of triangulation meshes created by iteration below.
