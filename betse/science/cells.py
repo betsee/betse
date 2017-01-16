@@ -244,6 +244,37 @@ class Cells(object):
         array of the same length providing the corresponding data spatially
         situated at their adjacent membranes.
 
+    Attributes (Extracellular Grid)
+    ----------
+    The following attributes are defined *only* if the :meth:`makeECM` has been
+    called, implying the current simulation to enable extracellular spaces. If
+    that method has *not* yet been called, these attributes remain undefined.
+
+    delta : NumericTypes
+        Distance in meters between between each extracellular grid point *and*
+        between each extracellular grid space, uniformally applied in both the
+        X and Y dimensions.
+    grid_obj : fd.FiniteDiffSolver
+        Finite difference solver defining the extracellular grid.
+    index_k : list
+        List of the indices of all extracellular grid spaces, equivalent to
+        ``[0, 1, ..., len(self.xypts)-2, len(self.xypts)-1]``.
+    map_ij2k : ndarray
+        See the :attr:`fd.FiniteDiffSolver.map_ij2k_cents` array for further
+        details.
+    X : ndarray
+        Two-dimensional Numpy array of the X coordinates of the centres of all
+        extracellular grid spaces. See the :attr:`fd.FiniteDiffSolver.cents_X`
+        array for further details.
+    Y : ndarray
+        Two-dimensional Numpy array of the Y coordinates of the centres of all
+        extracellular grid spaces. See the :attr:`fd.FiniteDiffSolver.cents_Y`
+        array for further details.
+    xypts : ndarray
+        Two-dimensional Numpy array of the Cartesian coordinates of the centres
+        of all extracellular grid spaces. See the
+        :attr:`fd.FiniteDiffSolver.xy_cents` array for further details.
+
     Attributes (Voronoi Diagram)
     ----------
     cell_to_grid : ndarray
@@ -501,8 +532,10 @@ class Cells(object):
         # Finish up by creating indices vectors and converting to Numpy arrays where needed:
 
         #FIXME: Reduce the following two assignments to simply:
+        #
         #    self.cell_i = np.asarray(range(len(self.cell_centres)))
         #    self.mem_i =  np.asarray(range(len(self.mem_mids_flat)))
+        #
         #No need for intermediate list comprehensions. Fire-beast flagons!
 
         self.cell_i = [x for x in range(0, len(self.cell_centres))]
@@ -1494,6 +1527,12 @@ class Cells(object):
 
         self.xypts = self.grid_obj.xy_cents
         self.map_ij2k = self.grid_obj.map_ij2k_cents
+
+        #FIXME: The following complex assignment can be reduced to simply:
+        #
+        #    self.index_k = range(len(self.xypts))
+        #
+        #Neat-o, eh?
 
         # linear k index:
         self.index_k = [x for x in range(0,len(self.xypts))]

@@ -123,30 +123,11 @@ class Simulator(object):
     ----------
     cdl : int
         Number of cells in this simulated cluster.
+    edl : int
+        Number of extracellular grid spaces in this simulated cluster if this
+        simulation enables extracellular spaces *or* :attr:`mdl` otherwise.
     mdl : int
         Number of cell membranes in this simulated cluster.
-
-    Attributes (Voltage)
-    ----------
-    vcell_time : ndarray
-        Voltage at the inner membrane surface of each cell as a function of
-        time.
-    venv_time : ndarray
-        Voltage at the outer membrane surface of each cell as a function of
-        time.
-    vm : ndarray
-        One-dimensional Numpy array indexing each cell membranes such that each
-        element is the transmembrane voltage spatially situated across the cell
-        membrane indexed by that element for the current time step.
-    vm_time : ndarray
-        Two-dimensional Numpy array of the transmembrane voltage across all
-        cell membranes, whose:
-        . First dimension indexes each simulation time step.
-        . Second dimension indexes each cell membrane such that each element is
-          the transmembrane voltage spatially situated across the cell membrane
-          indexed by that element for this time step.
-        Equivalently, this array is the concatenation of all :attr:`vm` arrays
-        over all time steps.
 
     Attributes (Current Density)
     ----------
@@ -179,36 +160,103 @@ class Simulator(object):
           extracellular current densities) spatially situated at the center of
           that grid space for this time step.
 
-    Attributes (Electric Field)
+    Attributes (Electric Field, Extracellular)
+    ----------
+    The following attributes are defined *only* if this simulation enables
+    extracellular spaces. If this is *not* the case for this simulation, these
+    these attributes remain undefined.
+
+    E_env_x : ndarray
+        Two-dimensional Numpy array of the X components of the extracellular
+        electric field for the current time step, whose:
+        * First dimension indexes each row of the extracellular spaces grid.
+        * Second dimension indexes each column of the extracellular spaces grid
+          such that each element is the X component of the extracellular
+          electric field spatially situated at the centre of the extracellular
+          grid space corresponding to the current row and column.
+    E_env_y : ndarray
+        Two-dimensional Numpy array of the Y components of the extracellular
+        electric field for the current time step, whose:
+        * First dimension indexes each row of the extracellular spaces grid.
+        * Second dimension indexes each column of the extracellular spaces grid
+          such that each element is the Y component of the extracellular
+          electric field spatially situated at the centre of the extracellular
+          grid space corresponding to the current row and column.
+    efield_ecm_x_time : list
+        Three-dimensional list of the X components of the extracellular
+        electric fields for all time steps, whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension yields a two-dimensional Numpy array of the X
+          components of the extracellular electric field for this time step,
+          defined as for the corresponding :attr:`E_env_x` array.
+        Equivalently, this list is the concatenation of all :attr:`E_env_x`
+        arrays for all time steps.
+    efield_ecm_y_time : list
+        Three-dimensional list of the Y components of the extracellular
+        electric fields for all time steps, whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension yields a two-dimensional Numpy array of the Y
+          components of the extracellular electric field for this time step,
+          defined as for the corresponding :attr:`E_env_y` array.
+        Equivalently, this list is the concatenation of all :attr:`E_env_y`
+        arrays for all time steps.
+
+    Attributes (Electric Field, Intracellular)
     ----------
     E_gj_x : ndarray
         One-dimensional Numpy array indexing each simulated cell membrane such
         that each element is the X component of the intracellular electric
-        field vector spatially situated across the gap junction to which the
-        current membrane connects: specifically, the difference of the X
-        component of the voltage situated at this membrane with that of the
-        voltage situated at the gap junction-connected membrane adjacent to
-        this membrane, divided by the length in meters of this gap junction.
+        field vector for the current time step spatially situated across the
+        gap junction to which the current membrane connects: specifically, the
+        difference of the X component of the voltage situated at this membrane
+        with that of the voltage situated at the gap junction-connected
+        membrane adjacent to this membrane, divided by the length in meters of
+        this gap junction.
     E_gj_y : ndarray
         One-dimensional Numpy array indexing each simulated cell membrane such
         that each element is the Y component of the intracellular electric
-        field vector defined as for the corresponding :attr:`E_gj_X` array.
+        field vector for the current time step defined as for the corresponding
+        :attr:`E_gj_X` array.
     efield_gj_x_time : list
-        Two-dimensional list whose:
+        Two-dimensional list of the X components of the intracellular electric
+        fields for all time steps, whose:
         * First dimension indexes each simulation time step.
         * Second dimension indexes each simulated cell membrane such that each
           element is the X component of the intracellular electric field vector
           defined as for the corresponding :attr:`E_gj_x` array.
-        Equivalently, this array is the concatenation of all :attr:`E_gj_x`
+        Equivalently, this list is the concatenation of all :attr:`E_gj_x`
         arrays for all time steps.
     efield_gj_y_time : list
-        Two-dimensional list whose:
+        Two-dimensional list of the Y components of the intracellular electric
+        fields for all time steps, whose:
         * First dimension indexes each simulation time step.
         * Second dimension indexes each simulated cell membrane such that each
           element is the Y component of the intracellular electric field vector
           defined as for the corresponding :attr:`E_gj_y` array.
-        Equivalently, this array is the concatenation of all :attr:`E_gj_y`
+        Equivalently, this list is the concatenation of all :attr:`E_gj_y`
         arrays for all time steps.
+
+    Attributes (Voltage)
+    ----------
+    vcell_time : ndarray
+        Voltage at the inner membrane surface of each cell as a function of
+        time.
+    venv_time : ndarray
+        Voltage at the outer membrane surface of each cell as a function of
+        time.
+    vm : ndarray
+        One-dimensional Numpy array indexing each cell membranes such that each
+        element is the transmembrane voltage spatially situated across the cell
+        membrane indexed by that element for the current time step.
+    vm_time : ndarray
+        Two-dimensional Numpy array of the transmembrane voltage across all
+        cell membranes, whose:
+        . First dimension indexes each simulation time step.
+        . Second dimension indexes each cell membrane such that each element is
+          the transmembrane voltage spatially situated across the cell membrane
+          indexed by that element for this time step.
+        Equivalently, this array is the concatenation of all :attr:`vm` arrays
+        over all time steps.
     '''
 
     @type_check
@@ -366,6 +414,12 @@ class Simulator(object):
             self.c_env_bound = []  # moving ion concentration at global boundary
             self.Dtj_rel = []  # relative diffusion constants for ions across tight junctions
 
+            #FIXME: The following complex assignments can be reduced to simply:
+            #
+            #    self.E_env_x = np.zeros(cells.X.shape)
+            #    self.E_env_y = np.zeros(cells.X.shape)
+            #
+            #This works because np.zeros() accepts a shape tuple directly. Ooh!
             self.E_env_x = np.zeros(self.edl).reshape(cells.X.shape)
             self.E_env_y = np.zeros(self.edl).reshape(cells.X.shape)
 

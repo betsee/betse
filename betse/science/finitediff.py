@@ -3,8 +3,8 @@
 # See "LICENSE" for further details.
 
 
-import numpy as np
 import math
+import numpy as np
 # import scipy.ndimage
 import scipy.spatial as sps
 
@@ -21,24 +21,36 @@ class FiniteDiffSolver(object):
     Attributes (Grid)
     ------------------------
     delta : NumericTypes
-        Distance in meters between each grid point, uniformally applied in both
-        the X and Y dimensions.
+        Distance in meters between each grid point *and* between each grid
+        space, uniformally applied in both the X and Y dimensions.
+
+    Attributes (Grid Points)
+    ----------
+    Each grid point is a vertex equidistant from each adjacent grid points
+    collectively forming the square lattice referred to as the grid.
+
     grid_nx : int
         Number of grid points in the X dimension.
     grid_ny : int
         Number of grid points in the Y dimension.
     verts_X : ndarray
-        Two-dimensional Numpy array of gridded X coordinates, whose:
+        Two-dimensional Numpy array of the X coordinates of all grid points,
+        whose:
         * First dimension indexes each row of this grid.
         * Second dimension indexes each column of this grid such that each
           element is the X coordinate in meters of the grid point at this row
           and column.
     verts_Y : ndarray
-        Two-dimensional Numpy array of gridded Y coordinates, whose:
+        Two-dimensional Numpy array of the Y coordinates of all grid points,
+        whose:
         * First dimension indexes each row of this grid.
         * Second dimension indexes each column of this grid such that each
           element is the Y coordinate in meters of the grid point at this row
           and column.
+    verts_shape : tuple
+        2-tuple ``(height, width)`` of this grid, where:
+        * ``height`` is the number of rows in this grid.
+        * ``width`` is the number of columns in this grid.
     xmin : NumericTypes
         X coordinate in meters of the leftmost grid point(s).
     xmax : NumericTypes
@@ -47,25 +59,78 @@ class FiniteDiffSolver(object):
         Y coordinate in meters of the bottom-most grid point(s).
     ymax : NumericTypes
         Y coordinate in meters of the topmost grid point(s).
+    xy_verts : ndarray
+        Two dimensional Numpy array of the Cartesian coordinates of all grid
+        points, whose:
+        * First dimension indexes each grid point in row-column order
+          (beginning with the grid point at the origin in the lower-left corner
+          and ending with the grid point at the upper-right corner, traversing
+          grid points left to right).
+        * Second dimension indexes each Cartesian coordinate of the current
+          grid point, whose:
+          * First element is the X coordinate of this grid point.
+          * Second element is the Y coordinate of this grid point.
+
+    Attributes (Grid Spaces)
+    ----------
+    Each grid space is the square whose four vertices are the four grid points
+    surrounding that space such that a grid containing m x n grid points
+    contains (m-1) x (n-1) grid spaces.
+
+    cents_X : ndarray
+        Two-dimensional Numpy array of the X coordinates of the centres of all
+        grid spaces, whose:
+        * First dimension indexes each row of this grid (excluding the last).
+        * Second dimension indexes each column of this grid (excluding the
+          last) such that each element is:
+          * The X coordinate in meters of the centre of the grid space
+            immediately above this row and to the right of this column.
+          * Equivalently, the X coordinate of the midpoint between the grid
+            points immediately to the left and right of this grid space.
+    cents_X : ndarray
+        Two-dimensional Numpy array of the Y coordinates of the centres of all
+        grid spaces, whose:
+        * First dimension indexes each row of this grid (excluding the last).
+        * Second dimension indexes each column of this grid (excluding the
+          last) such that each element is:
+          * The Y coordinate in meters of the centre of the grid space
+            immediately above this row and to the right of this column.
+          * Equivalently, the Y coordinate of the midpoint between the grid
+            points immediately below and above this grid space.
+    cents_shape : tuple
+        2-tuple ``(height, width)`` of the spaces of this grid, where:
+        * ``height`` is the number of rows in this grid (excluding the last).
+        * ``width`` is the number of columns in this grid (excluding the last).
+        Hence, the following invariants are guaranteed to hold:
+        * ``cents_shape[0] == verts_shape[0] - 1``.
+        * ``cents_shape[1] == verts_shape[1] - 1``.
     xy_cents : ndarray
+        Two dimensional Numpy array of the Cartesian coordinates of all grid
+        spaces, whose:
+        * First dimension indexes each grid space in row-column order
+          (beginning with the grid space at the origin in the lower-left corner
+          and ending with the grid space at the upper-right corner, traversing
+          grid spaces left to right).
+        * Second dimension indexes each Cartesian coordinate of the current
+          grid space, whose:
+          * First element is the X coordinate of this grid space.
+          * Second element is the Y coordinate of this grid space.
     '''
 
-    def __init__(self):
-
+    def __init__(self) -> None:
         pass
 
-    def makeGrid(self,grid_n, xmin = -1, xmax = 1, ymin = -1, ymax = 1):
-
+    def makeGrid(
+        self, grid_n, xmin = -1, xmax = 1, ymin = -1, ymax = 1) -> None:
         """
-        Create linear vectors, rectangular grids and expanded grids of spatial coordinates
-        and solution vectors.This method produces a standard grid.
+        Create linear vectors, rectangular grids and expanded grids of spatial
+        coordinates and solution vectors.This method produces a standard grid.
 
         delta:          spacing between grid points (same in the x and y dimensions)
         xmin:           minimum x-value  [m]
         xmax:           max x-value [m]
         ymin:           minimum y-value  [m]
         ymax:           max y value [m]
-
         """
 
         # Create linear vectors and rectangular grids of spatial coordinates (indexed by i and j)
@@ -90,15 +155,14 @@ class FiniteDiffSolver(object):
 
         self.map_ij2k = np.asarray(self.map_ij2k)
 
-    def cell_grid(self,grid_delta, xmin, xmax, ymin, ymax):
-
+    def cell_grid(self,grid_delta, xmin, xmax, ymin, ymax) -> None:
         """
         Make a staggered n x n grid for use with finite volume or MACs method.
+
         One n x n grid contains the cell centres.
         One n+1 x n+1 grid contains the cell corners (vertices)
         One n+1 x n grid contains the u-coordinate points for velocity and x-coordinate for fluxes
         One n x n+1 grid contains the v-coordinate points for velocity and y-coordinate for fluxes
-
         """
 
         # max-min dimensions of the 2D world space:
@@ -1297,11 +1361,9 @@ def makeMask(M,xy_pts,X,Y,delta,sensitivity=1.0):
     return maskM
 
 def boundTag(points,delta,alpha=1.0):
-
     """
-
-    Flag elements that are on the boundary to the environment by calculating the convex hull
-    for a points cluster.
+    Flag elements that are on the boundary to the environment by calculating
+    the convex hull for a points cluster.
 
     Parameters
     ----------
@@ -1324,7 +1386,7 @@ def boundTag(points,delta,alpha=1.0):
 
     tri = sps.Delaunay(points)
     tri_edges = []
-    circum_r_list = []
+    # circum_r_list = []
 
     for ia, ib, ic in tri.vertices:
         pa = points[ia]
@@ -1604,10 +1666,3 @@ def flux_summer_sym(U,V):
 #     Ainv = np.linalg.pinv(Ai)
 #
 #     return Ainv, bound_pts_k
-
-
-
-
-
-
-
