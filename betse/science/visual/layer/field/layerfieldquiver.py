@@ -9,11 +9,11 @@ cell cluster.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.visual import visualutil
-from betse.science.visual.layer.layerabc import LayerCellsVectorFieldABC
+from betse.science.visual.layer.field.layerfieldabc import LayerCellsFieldColorlessABC
 from betse.util.type.types import type_check
 
 # ....................{ SUBCLASSES                         }....................
-class LayerCellsQuiver(LayerCellsVectorFieldABC):
+class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
     '''
     Layer subclass plotting the most significant X and Y components of a single
     vector field (e.g., electric field) onto the cell cluster for one on more

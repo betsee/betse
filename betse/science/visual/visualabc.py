@@ -20,7 +20,7 @@ from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
 from betse.science.visual import visualutil
 from betse.science.visual.layer.layerabc import (
-    LayerCellsABC, LayerCellsMappableABC)
+    LayerCellsABC, LayerCellsColorfulABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
 from betse.util.io.log import logs
 from betse.util.py import references
@@ -390,8 +390,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             Defaults to `None`, in which case this parameter defaults to the
             iterable of all mappables provided by the topmost and hence last
             mappable layer in the current layer sequence (i.e., the
-            :meth:`LayerCellsMappableABC.color_mappables` property of the
-            last instance of the :class:`LayerCellsMappableABC` subclass in
+            :meth:`LayerCellsColorfulABC.color_mappables` property of the
+            last instance of the :class:`LayerCellsColorfulABC` subclass in
             the :attr:`_layers` attribute).
         color_data : optional[SequenceTypes]
             Multi-dimensional sequence of all color values to be plotted _or_
@@ -603,7 +603,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             # placeholder constant otherwise.
             mappable_layer = iterables.get_item_last_instance_of_or_sentinel(
                 iterable=self._layers,
-                cls=LayerCellsMappableABC,
+                cls=LayerCellsColorfulABC,
             )
 
             # If this layer exists, defer to its color data.
@@ -644,8 +644,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             which case the iterable of all mappables provided by the topmost
             and hence last mappable layer in the current layer sequence is
             defaulted to (i.e., the value of the
-            :meth:`LayerCellsMappableABC.color_mappables` property of the last
-            instance of the :class:`LayerCellsMappableABC` subclass in the
+            :meth:`LayerCellsColorfulABC.color_mappables` property of the last
+            instance of the :class:`LayerCellsColorfulABC` subclass in the
             :attr:`_layers` attribute).
         '''
 
@@ -655,7 +655,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             # exception with this message otherwise.
             mappable_layer = iterables.get_item_last_instance_of(
                 iterable=self._layers,
-                cls=LayerCellsMappableABC,
+                cls=LayerCellsColorfulABC,
                 exception_message=(
                     'Visual "{}" mappable layer not found.'.format(
                         self._label)),
@@ -825,7 +825,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         )
 
 
-    #FIXME: Replace entirely by the appropriate "LayerCellsStream" subclass.
+    #FIXME: Replace entirely by the appropriate "LayerCellsFieldStream" subclass.
     @type_check
     def _plot_stream(
         self,
@@ -1118,7 +1118,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
 
     #FIXME: This plots somewhat similarly to the presumably superior
-    #"LayerCellsShadeDiscrete" subclass. Generalize this method into a new
+    #"LayerCellsVectorSurfaceDiscrete" subclass. Generalize this method into a new
     #"LayerCellsGouraudContinuous" subclass of the same submodule.
     def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
         '''

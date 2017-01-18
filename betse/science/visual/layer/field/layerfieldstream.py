@@ -26,12 +26,12 @@ current cell cluster.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.visual import visualutil
-from betse.science.visual.layer.layerabc import LayerCellsVectorFieldABC
+from betse.science.visual.layer.field.layerfieldabc import LayerCellsFieldColorlessABC
 from betse.util.type.types import type_check
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ SUBCLASSES                         }....................
-class LayerCellsStream(LayerCellsVectorFieldABC):
+class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
     '''
     Layer subclass both simulating *and* plotting streamlines of a single vector
     field (e.g., total current density) onto the cell cluster for one on more

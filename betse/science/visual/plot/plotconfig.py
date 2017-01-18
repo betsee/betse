@@ -9,7 +9,7 @@ Plot configuration and serialization classes.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type import ints, types
+from betse.util.type import ints
 from betse.util.type.types import type_check
 
 # ....................{ SUPERCLASS                         }....................
@@ -40,43 +40,7 @@ class PlotConfig(object):
         Ignored if `is_after_sim_save` is `False`.
     '''
 
-    # ..................{ ABSTRACT ~ static                  }..................
-    @staticmethod
-    def make(params: 'Parameters') -> "PlotConfig":
-        '''
-        Factory method producing an instance of this class encapsulating the
-        passed simulation configuration.
-
-        Parameters
-        ----------------------------
-        params : Parameters
-            Current simulation configuration.
-
-        Returns
-        ----------------------------
-        PlotConfig
-            Instance of this class encapsulating this configuration.
-        '''
-        assert types.is_parameters(params), types.assert_not_parameters(params)
-
-        # For convenience, localize configuration subdictionaries.
-        results = params.config['results options']
-        after_solving = results['after solving']['plots']
-        image = results['save']['plots']
-
-        # Create and return this instance.
-        return PlotConfig(
-            # Post-simulation plots.
-            is_after_sim=     after_solving['enabled'],
-            is_after_sim_show=after_solving['show'],
-            is_after_sim_save=after_solving['save'],
-
-            # Image saving.
-            image_filetype=image['filetype'],
-            image_dpi=     image['dpi'],
-        )
-
-    # ..................{ CONCRETE ~ public                  }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -103,3 +67,38 @@ class PlotConfig(object):
         self.is_after_sim_save = is_after_sim_save
         self.image_filetype = image_filetype
         self.image_dpi = image_dpi
+
+# ....................{ FUNCTIONS                          }....................
+@type_check
+def make(p: 'betse.science.parameters.Parameters') -> PlotConfig:
+    '''
+    Factory method producing an instance of this class encapsulating the passed
+    simulation configuration.
+
+    Parameters
+    ----------------------------
+    p : Parameters
+        Current simulation configuration.
+
+    Returns
+    ----------------------------
+    PlotConfig
+        Instance of this class encapsulating this configuration.
+    '''
+
+    # For convenience, localize configuration subdictionaries.
+    results = p.config['results options']
+    after_solving = results['after solving']['plots']
+    image = results['save']['plots']
+
+    # Create and return this instance.
+    return PlotConfig(
+        # Post-simulation plots.
+        is_after_sim=     after_solving['enabled'],
+        is_after_sim_show=after_solving['show'],
+        is_after_sim_save=after_solving['save'],
+
+        # Image saving.
+        image_filetype=image['filetype'],
+        image_dpi=     image['dpi'],
+    )

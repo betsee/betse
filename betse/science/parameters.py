@@ -3,10 +3,7 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
-from collections import OrderedDict
-
 import numpy as np
-
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib import matplotlibs
 from betse.science.config import confio
@@ -14,12 +11,12 @@ from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
-from betse.science.visual.anim.animconfig import AnimConfig
-from betse.science.visual.plot.plotconfig import PlotConfig
+from betse.science.visual.anim import animconfig
+from betse.science.visual.plot import plotconfig
 from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.types import type_check, SequenceTypes
-
+from collections import OrderedDict
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
@@ -363,10 +360,8 @@ class Parameters(object):
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         # self.gated_targets = self.config['ion channel target cells']
 
-
         bool_cagK = bool(self.config['calcium gated K+']['turn on'])
         bool_stretch = bool(self.config['stretch gated Na+']['turn on'])
-
 
         # set specific character of gated ion channel dynamics:
         opNa = self.config['voltage gated Na+']
@@ -375,7 +370,7 @@ class Parameters(object):
         opKir = self.config['additional voltage gated K+']
         opFun = self.config['funny current']
         opCa = self.config['voltage gated Ca2+']
-        opcK = self.config['calcium gated K+']
+        # opcK = self.config['calcium gated K+']
 
         opStretch = self.config['gated ion channel options']['stretch gated Na']
 
@@ -629,7 +624,7 @@ class Parameters(object):
 
         # ................{ PLOTS                              }................
         # Object encapsulating plot configuration.
-        self.plot = PlotConfig.make(self)
+        self.plot = plotconfig.make(self)
 
         ro = self.config['results options']
 
@@ -721,7 +716,7 @@ class Parameters(object):
 
         # ................{ ANIMATIONS                         }................
         # Object encapsulating animation configuration.
-        self.anim = AnimConfig.make(self)
+        self.anim = animconfig.make(self)
 
         # specify desired animations:
         self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
@@ -1185,8 +1180,7 @@ class Parameters(object):
             raise BetseSimConfigException(
                 'Ion profile name "{}" unrecognized.'.format(self.ion_profile))
 
-
-    #FIXME: Apply these changes to our default configuration file as well.
+    # ..................{ PRIVATE ~ initializers             }..................
     def _init_backward_compatibility(self) -> None:
         '''
         Attempt to preserve backward compatibility with prior configuration
@@ -1303,11 +1297,10 @@ class Parameters(object):
         model_hole = tpd.get('internal pore file', None)
 
         if model_hole is not None:
-
-            self.clipping_bitmap_hole = TissuePickerBitmap(tpd['internal pore file'], self.config_dirname)
+            self.clipping_bitmap_hole = TissuePickerBitmap(
+                tpd['internal pore file'], self.config_dirname)
 
         else:
-
             self.clipping_bitmap_hole = None
 
         # If tissue profiles are currently enabled, parse all profiles.
@@ -1321,10 +1314,24 @@ class Parameters(object):
                     z_order=i + 1,
                 )
 
+    # ..................{ EXCEPTIONS                         }..................
+    def die_unless_ecm(self) -> None:
+        '''
+        Raise an exception unless this configuration has enabled simulation of
+        the extracellular matrix and hence environmental grid spaces.
+        '''
+
+        if not self.sim_ECM:
+            raise BetseSimConfigException(
+                'Extracellular spaces disabled by '
+                'this simulation configuration.')
+
     # ..................{ SETTERS                            }..................
     #FIXME: Refactor to accept an enumeration value rather than raw string --
     #or, better yet, to accept no parameter and leverage an enumeration value
     #identifying the current phase already set as an attribute of this object..
+    #FIXME: Right. Use the new "betse.science.sim.SimPhase" enumeration value.
+
     @type_check
     def set_time_profile(self, time_profile: str) -> None:
         '''

@@ -8,11 +8,13 @@
 '''
 
 # ....................{ IMPORTS                            }....................
+# import matplotlib
 import numpy as np
 from betse.science.visual import visualutil
 from betse.science.visual.anim.animabc import AnimCellsABC
+# from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
-from matplotlib import pyplot as plt
+from matplotlib import pyplot
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Rename "_cell_data_plot" to "_cell_body_plot".
@@ -109,6 +111,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
             # Pass all remaining arguments as is to our superclass.
             *args, **kwargs
         )
+        # logs.log_debug('Showing mid-simulation animation: {}'.format(self._is_show))
 
         # Classify all remaining parameters.
         self._is_colorbar_autoscaling_telescoped = (
@@ -153,7 +156,28 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         # Id displaying this animation, do so in a non-blocking manner.
         if self._is_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
+
+            #FIXME: Unfortunately, the "block=False" combination leveraged above
+            #is backend-specific and seemingly unsupported by at least the
+            #"Qt4Agg" backend. Under this backend, an alternative approach is
+            #required. Unfortunately, all attempts to implement such an approach
+            #have thus far failed. Clearly, something is not quite right.
+            #FIXME: At the very least, we should:
+            #
+            #* Add a new tester to the
+            #  "betse.lib.matplotlib.matplotlibs.MatplotlibConfig" class
+            #  returning True only if the current backend is non-blockable. This
+            #  is at least the case for the "TkAgg" and "Agg" backends. Any
+            #  others?
+            #* Call this tester here and, if False, log a non-fatal warning
+            #  informing the user that the mid-simulation animation will
+            #  probably not be displayed due to unresolved matplotlib issues.
+
+            # logs.log_debug('Showing mid-simulation animation!')
+            # pyplot.ion()
+            # matplotlib.interactive(True)
+            # pyplot.show()
 
     # ..................{ PLOTTERS                           }..................
     def _plot_frame_figure(self) -> None:
@@ -215,6 +239,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         # If displaying this frame, do so.
         if self._is_show:
             self._figure.canvas.draw()
+            pyplot.draw()
 
 
     @type_check

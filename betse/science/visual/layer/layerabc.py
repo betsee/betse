@@ -3,7 +3,8 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract base classes of all Matplotlib-based layer subclasses.
+Abstract base classes of all matplotlib-based layer subclasses  spatially
+plotting onto the cell cluster.
 '''
 
 #FIXME: The current approach to implementing animation overlays is
@@ -40,11 +41,11 @@ Abstract base classes of all Matplotlib-based layer subclasses.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod, abstractproperty
-from betse.science.vector.vectorcls import VectorCells
-from betse.science.vector.field.fieldcls import VectorFieldCells
+
 from betse.util.py import references
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
+
 
 # ....................{ SUPERCLASS                         }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
@@ -167,8 +168,8 @@ class LayerCellsABC(object, metaclass=ABCMeta):
 
         pass
 
-# ....................{ SUBCLASSES ~ mappable              }....................
-class LayerCellsMappableABC(LayerCellsABC):
+# ....................{ SUBCLASSES ~ colorful              }....................
+class LayerCellsColorfulABC(LayerCellsABC):
     '''
     Abstract base class of all classes spatially plotting a single modelled
     variable of the cell cluster (e.g., cell membrane voltage) whose values are
@@ -224,12 +225,18 @@ class LayerCellsMappableABC(LayerCellsABC):
     # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
         '''
-        Layer the spatial distribution of a single cell-specific modelled
-        variable (e.g., cell membrane voltage) for the first simulation time
-        step onto the figure axes of the current plot or animation.
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the first simulation time step onto the figure
+        axes of the current plot or animation.
 
         This method internally caches the :attr:`_color_mappables` attribute
         returned by the :meth:`color_mappables` property.
+
+        Caveats
+        ----------
+        **Subclasses should not override this method,** which preserves various
+        invariants required for colorbar mapping. Instead, subclasses should
+        *only* override the :meth:`_layer_first_color_mappables` method.
         '''
 
         # Iterable of mappables layered by the subclass for the first time step.
@@ -261,9 +268,10 @@ class LayerCellsMappableABC(LayerCellsABC):
     @abstractmethod
     def _layer_first_color_mappables(self) -> IterableTypes:
         '''
-        Layer the spatial distribution of a single cell-specific modelled
-        variable (e.g., cell membrane voltage) for the first simulation time
-        step onto the figure axes of the current plot or animation.
+        Layer the spatial distribution of a single modelled variable (e.g., cell
+        membrane voltage) for the first simulation time step onto the figure
+        axes of the current plot or animation, returning the mappable or
+        mappables with which to map color data onto the colorbar.
 
         Returns
         ----------
@@ -273,70 +281,3 @@ class LayerCellsMappableABC(LayerCellsABC):
         '''
 
         pass
-
-
-class LayerCellsMappableVectorABC(LayerCellsMappableABC):
-    '''
-    Abstract base class of all classes spatially plotting a vector of arbitrary
-    data of the cell cluster (e.g., cell membrane voltage) whose elements are
-    mappable as colors onto the colorbar for a parent plot or animation.
-
-    Attributes
-    ----------
-    _vector : VectorCells
-        Cache of various vectors of the same underlying data situated along
-        different coordinate systems for all time steps to be animated.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, vector: VectorCells) -> None:
-        '''
-        Initialize this layer.
-
-        Parameters
-        ----------
-        vector : VectorCells
-            Cache of various vectors of the same underlying data situated along
-            different coordinate systems for all time steps to be animated.
-        '''
-
-        # Initialize our superclass.
-        super().__init__()
-
-        # Classify all passed parameters.
-        self._vector = vector
-
-# ....................{ SUBCLASSES ~ field                 }....................
-class LayerCellsVectorFieldABC(LayerCellsABC):
-    '''
-    Abstract base class of all classes spatially plotting a vector field of
-    arbitrary data of the cell cluster (e.g., intracellular current density)
-    whose components are _not_ mappable as colors onto the colorbar for a parent
-    plot or animation.
-
-    Attributes
-    ----------
-    _field : VectorFieldCells
-        Cache of various vector fields of the same underlying data situated
-        along different coordinate systems for all time steps to be animated.
-    '''
-
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(self, field: VectorFieldCells) -> None:
-        '''
-        Initialize this layer.
-
-        Parameters
-        ----------
-        field : VectorFieldCells
-            Cache of various vector fields of the same underlying data situated
-            along different coordinate systems for all time steps to be
-            animated.
-        '''
-
-        # Initialize our superclass.
-        super().__init__()
-
-        # Classify all passed parameters.
-        self._field = field

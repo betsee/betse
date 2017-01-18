@@ -12,9 +12,10 @@ High-level facilities for displaying and/or saving all enabled animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+
 from betse.science.vector import vectormake
-from betse.science.vector.vectorcls import VectorCells
 from betse.science.vector.field import fieldmake
+from betse.science.vector.vectorcls import VectorCells
 from betse.science.visual import visualutil
 from betse.science.visual.anim.anim import (
     AnimCurrent,
@@ -28,12 +29,12 @@ from betse.science.visual.anim.anim import (
     AnimEnvTimeSeries
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
-from betse.science.visual.layer import layershade
-from betse.science.visual.layer.layerquiver import LayerCellsQuiver
-from betse.science.visual.layer.layershade import LayerCellsShadeContinuous
-# from betse.science.visual.layer.layerstream import LayerCellsStream
+from betse.science.visual.layer.field.layerfieldquiver import LayerCellsFieldQuiver
+from betse.science.visual.layer.vector import layervectorsurface
+from betse.science.visual.layer.vector.layervectorsurface import LayerCellsVectorSurfaceContinuous
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
+
 
 # ....................{ PIPELINES                          }....................
 @type_check
@@ -140,21 +141,11 @@ def pipeline_anims(
 
     if p.ani_Efield is True:
         # Always animate the gap junction electric field.
-        _anim_electric_field_intra(sim=sim, cells=cells, p=p)
+        _anim_field_electric_intra(sim=sim, cells=cells, p=p)
 
         # Also animate the extracellular spaces electric field if desired.
         if p.sim_ECM is True:
-            AnimFieldExtracellular(
-                sim=sim, cells=cells, p=p,
-                x_time_series=sim.efield_ecm_x_time,
-                y_time_series=sim.efield_ecm_y_time,
-                label='Efield_ecm',
-                figure_title='Extracellular E Field',
-                colorbar_title='Electric Field [V/m]',
-                is_color_autoscaled=p.autoscale_Efield_ani,
-                color_min=p.Efield_ani_min_clr,
-                color_max=p.Efield_ani_max_clr,
-            )
+            _anim_field_electric_extra(sim=sim, cells=cells, p=p)
 
     # if np.mean(sim.P_cells_time) != 0.0:
 
@@ -292,14 +283,35 @@ def pipeline_anims(
         )
 
 # ....................{ PRIVATE ~ animators                }....................
-def _anim_electric_field_intra(
+def _anim_field_electric_extra(
     sim: 'betse.science.sim.Simulator',
     cells: 'betse.science.cells.Cells',
     p: 'betse.science.parameters.Parameters',
 ) -> None:
     '''
-    Animate the intracellular (i.e., gap junction-specific) electric field for
-    all time steps.
+    Animate the extracellular electric field for all time steps.
+    '''
+
+    AnimFieldExtracellular(
+        sim=sim, cells=cells, p=p,
+        x_time_series=sim.efield_ecm_x_time,
+        y_time_series=sim.efield_ecm_y_time,
+        label='Efield_ecm',
+        figure_title='Extracellular E Field',
+        colorbar_title='Electric Field [V/m]',
+        is_color_autoscaled=p.autoscale_Efield_ani,
+        color_min=p.Efield_ani_min_clr,
+        color_max=p.Efield_ani_max_clr,
+    )
+
+
+def _anim_field_electric_intra(
+    sim: 'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p: 'betse.science.parameters.Parameters',
+) -> None:
+    '''
+    Animate the intracellular electric field for all time steps.
     '''
 
     # Vector field cache of the intracellular electric field for all time steps.
@@ -314,13 +326,13 @@ def _anim_electric_field_intra(
     # Sequence of layers consisting of...
     layers = (
         # A lower layer animating these magnitudes.
-        LayerCellsShadeContinuous(vector=field_magnitudes),
+        LayerCellsVectorSurfaceContinuous(vector=field_magnitudes),
 
         # A higher layer animating this field.
-        LayerCellsQuiver(field=field),
+        LayerCellsFieldQuiver(field=field),
     )
 
-    # # Produce this animation.
+    # Animate these layers.
     AnimCellsAfterSolvingLayered(
         sim=sim, cells=cells, p=p, layers=layers,
         label='Efield_gj',
@@ -349,9 +361,9 @@ def _anim_voltage_membrane(
 
     # Sequence of layers, consisting of only one layer animating these voltages
     # as a Gouraud-shaded surface.
-    layers = (layershade.make(p=p, vector=vector),)
+    layers = (layervectorsurface.make(p=p, vector=vector),)
 
-    # Produce this animation.
+    # Animate these layers.
     AnimCellsAfterSolvingLayered(
         sim=sim, cells=cells, p=p, layers=layers,
         label='Vmem',

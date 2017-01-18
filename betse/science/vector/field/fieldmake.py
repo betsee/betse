@@ -8,7 +8,6 @@ class.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseSimConfigException
 from betse.science.vector.vectorcls import VectorCells
 from betse.science.vector.field.fieldcls import VectorFieldCells
 from betse.util.type.types import type_check
@@ -30,7 +29,8 @@ def make_currents_intra(
 ) -> VectorFieldCells:
     '''
     Create and return a vector field cache of the current densities of all
-    intracellular spaces for all time steps of the passed simulation.
+    intracellular spaces for all time steps of the passed simulation, originally
+    spatially situated at cell centres.
 
     Parameters
     ----------
@@ -62,7 +62,8 @@ def make_currents_intra_extra(
 ) -> VectorFieldCells:
     '''
     Create and return a vector field cache of the current densities of all
-    intra- and extracellular spaces for all time steps of the passed simulation.
+    intra- and extracellular spaces for all time steps of the passed simulation,
+    originally spatially situated at environmental grid space centres.
 
     Parameters
     ----------
@@ -81,14 +82,11 @@ def make_currents_intra_extra(
     Raises
     ----------
     BetseSimConfigException
-        If this simulation disabled extracellular spaces.
+        If this simulation has disabled extracellular spaces.
     '''
 
-    # If this simulation disabled extracellular spaces, raise an exception.
-    if not p.sim_ECM:
-        raise BetseSimConfigException(
-            'Extracellular spaces disabled, but required by the requested '
-            'total current density vector field.')
+    # If extracellular spaces are disabled, raise an exception.
+    p.die_unless_ecm()
 
     # Create and return this field.
     return VectorFieldCells(
@@ -99,6 +97,49 @@ def make_currents_intra_extra(
 
 # ....................{ MAKERS ~ electric                  }....................
 @type_check
+def make_electric_extra(
+    sim:   'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p:     'betse.science.parameters.Parameters',
+) -> VectorFieldCells:
+    '''
+    Create and return a vector field cache of the eletric field across all
+    extracellular spaces for all time steps of the passed simulation, originally
+    spatially situated at environmental grid space centres.
+
+    Parameters
+    ----------
+    sim : Simulator
+        Current simulation.
+    cells : Cells
+        Current cell cluster.
+    p : Parameters
+        Current simulation configuration.
+
+    Returns
+    ----------
+    VectorFieldCells
+        Extracellular electric vector field cache.
+
+    Raises
+    ----------
+    BetseSimConfigException
+        If this simulation has disabled extracellular spaces.
+    '''
+
+    # If extracellular spaces are disabled, raise an exception.
+    p.die_unless_ecm()
+
+    # Create and return this field.
+    return VectorFieldCells(
+        x=VectorCells(
+            cells=cells, p=p, times_grids_centre=sim.efield_ecm_x_time),
+        y=VectorCells(
+            cells=cells, p=p, times_grids_centre=sim.efield_ecm_y_time),
+    )
+
+
+@type_check
 def make_electric_intra(
     sim:   'betse.science.sim.Simulator',
     cells: 'betse.science.cells.Cells',
@@ -106,7 +147,8 @@ def make_electric_intra(
 ) -> VectorFieldCells:
     '''
     Create and return a vector field cache of the eletric field across all
-    intracellular spaces for all time steps of the passed simulation.
+    intracellular spaces for all time steps of the passed simulation, originally
+    spatially situated at cell membrane midpoints.
 
     Parameters
     ----------

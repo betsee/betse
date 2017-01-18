@@ -94,21 +94,23 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
+from matplotlib import pyplot
+from matplotlib.animation import FuncAnimation
+
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
 from betse.science.vector.field import fieldmake
-from betse.science.visual.layer.layerabc import LayerCellsVectorFieldABC
-from betse.science.visual.layer.layerstream import LayerCellsStream
+from betse.science.visual.layer.field.layerfieldabc import LayerCellsFieldColorlessABC
+from betse.science.visual.layer.field.layerfieldstream import LayerCellsFieldStream
 from betse.science.visual.visualabc import VisualCellsABC
 from betse.util.io.log import logs
 from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.type import iterables
 from betse.util.type.types import type_check, BoolOrNoneTypes, IntOrNoneTypes
-from matplotlib import pyplot
-from matplotlib.animation import FuncAnimation
+
 
 # ....................{ BASE                               }....................
 class AnimCellsABC(VisualCellsABC):
@@ -184,7 +186,7 @@ class AnimCellsABC(VisualCellsABC):
         #  animate() function, permitting subclasses to append one or more
         #  layers that plot streamlines.
         #* If any layer in this list is an instance of the new
-        #  "LayerCellsStream" subclass, then the "_is_current_overlayable"
+        #  "LayerCellsFieldStream" subclass, then the "_is_current_overlayable"
         #  attribute should be disabled.
         #* Else, that attribute should default to the corresponding setting(s)
         #  in the current simulation configuration.
@@ -512,7 +514,7 @@ class AnimCellsABC(VisualCellsABC):
 
             # A layer in the layer sequence already plots a vector field.
             iterables.is_items_any_instance_of(
-                iterable=self._layers, cls=LayerCellsVectorFieldABC)
+                iterable=self._layers, cls=LayerCellsFieldColorlessABC)
         # ...then silently noop.
         ):
             return
@@ -535,7 +537,7 @@ class AnimCellsABC(VisualCellsABC):
         field = field_type(sim=self._sim, cells=self._cells, p=self._p)
 
         # Append a layer overlaying this field.
-        self._append_layer(LayerCellsStream(field=field))
+        self._append_layer(LayerCellsFieldStream(field=field))
 
     # ..................{ ANIMATORS                          }..................
     @type_check

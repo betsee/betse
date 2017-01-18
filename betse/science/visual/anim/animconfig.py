@@ -12,10 +12,10 @@ Animation configuration and serialization classes.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type import ints, types
+from betse.util.type import ints
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
-# ....................{ SUPERCLASS                         }....................
+# ....................{ CLASSES                            }....................
 class AnimConfig(object):
     '''
     Object encapsulating both the configuration and writing of all animations
@@ -26,15 +26,6 @@ class AnimConfig(object):
 
     Attributes
     ----------
-    is_while_sim : bool
-        `True` only if this configuration enables (but _not_ necessarily
-        displays or saves) in-simulation animations.
-    is_while_sim_show : bool
-        `True` only if this configuration displays in-simulation animations.
-        Ignored if `is_while_sim` is `False`.
-    is_while_sim_save : bool
-        `True` only if this configuration saves in-simulation animations.
-        Ignored if `is_midsim` is `False`.
     is_after_sim : bool
         `True` only if this configuration enables (but _not_ necessarily
         displays or saves) post-simulation animations.
@@ -48,6 +39,15 @@ class AnimConfig(object):
         `True` only if this configuration saves animation frames as images.
     is_video_save : bool
         `True` only if this configuration saves animation frames as video.
+    is_while_sim : bool
+        `True` only if this configuration enables (but _not_ necessarily
+        displays or saves) mid-simulation animations.
+    is_while_sim_show : bool
+        `True` only if this configuration displays mid-simulation animations.
+        Ignored if `is_while_sim` is `False`.
+    is_while_sim_save : bool
+        `True` only if this configuration saves mid-simulation animations.
+        Ignored if `is_midsim` is `False`.
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
         `is_images_save` is `False`.
@@ -105,62 +105,7 @@ class AnimConfig(object):
           suite supporting _only_ creation of animated GIFs.
     '''
 
-    # ..................{ ABSTRACT ~ static                  }..................
-    @staticmethod
-    def make(params: 'Parameters') -> "AnimConfig":
-        '''
-        Factory method producing an instance of this class encapsulating the
-        passed simulation configuration.
-
-        Parameters
-        ----------------------------
-        params : Parameters
-            Current simulation configuration.
-
-        Returns
-        ----------------------------
-        AnimConfig
-            Instance of this class encapsulating this configuration.
-        '''
-        assert types.is_parameters(params), types.assert_not_parameters(params)
-
-        # For convenience, localize configuration subdictionaries.
-        results = params.config['results options']
-        while_solving = results['while solving']['animations']
-        after_solving = results['after solving']['animations']
-        save = results['save']['animations']
-        images = save['images']
-        video = save['video']
-
-        # Create and return this instance.
-        return AnimConfig(
-            # In-simulation animations.
-            is_while_sim=while_solving['enabled'],
-            is_while_sim_show=while_solving['show'],
-            is_while_sim_save=while_solving['save'],
-
-            # Post-simulation animations.
-            is_after_sim=after_solving['enabled'],
-            is_after_sim_show=after_solving['show'],
-            is_after_sim_save=after_solving['save'],
-
-            # Image saving.
-            is_images_save=images['enabled'],
-            image_filetype=images['filetype'],
-            image_dpi=images['dpi'],
-
-            # Video saving.
-            is_video_save=video['enabled'],
-            video_bitrate=video['bitrate'],
-            video_dpi=video['dpi'],
-            video_filetype=video['filetype'],
-            video_framerate=video['framerate'],
-            video_metadata=video['metadata'],
-            video_writer_names=video['writers'],
-            video_codec_names=video['codecs'],
-        )
-
-    # ..................{ CONCRETE ~ public                  }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -216,3 +161,57 @@ class AnimConfig(object):
         self.video_metadata = video_metadata
         self.video_writer_names = video_writer_names
         self.video_codec_names = video_codec_names
+
+# ....................{ FUNCTIONS                          }....................
+@type_check
+def make(p: 'betse.science.parameters.Parameters') -> AnimConfig:
+    '''
+    Factory method producing an instance of this class encapsulating the passed
+    simulation configuration.
+
+    Parameters
+    ----------------------------
+    p : Parameters
+        Current simulation configuration.
+
+    Returns
+    ----------------------------
+    AnimConfig
+        Instance of this class encapsulating this configuration.
+    '''
+
+    # For convenience, localize configuration subdictionaries.
+    results = p.config['results options']
+    while_solving = results['while solving']['animations']
+    after_solving = results['after solving']['animations']
+    save = results['save']['animations']
+    images = save['images']
+    video = save['video']
+
+    # Create and return this instance.
+    return AnimConfig(
+        # Mid-simulation animations.
+        is_while_sim=while_solving['enabled'],
+        is_while_sim_show=while_solving['show'],
+        is_while_sim_save=while_solving['save'],
+
+        # Post-simulation animations.
+        is_after_sim=after_solving['enabled'],
+        is_after_sim_show=after_solving['show'],
+        is_after_sim_save=after_solving['save'],
+
+        # Image saving.
+        is_images_save=images['enabled'],
+        image_filetype=images['filetype'],
+        image_dpi=images['dpi'],
+
+        # Video saving.
+        is_video_save=video['enabled'],
+        video_bitrate=video['bitrate'],
+        video_dpi=video['dpi'],
+        video_filetype=video['filetype'],
+        video_framerate=video['framerate'],
+        video_metadata=video['metadata'],
+        video_writer_names=video['writers'],
+        video_codec_names=video['codecs'],
+    )

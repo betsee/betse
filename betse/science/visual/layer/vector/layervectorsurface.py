@@ -6,9 +6,18 @@
 Layer subclasses spatially shading the cell cluster.
 '''
 
+#FIXME: Refactor this submodule as follows:
+#
+#* Rename the "LayerCellsVectorSurfaceDiscrete" subclass to
+#  "LayerCellsVectorSurfaceDiscrete".
+#* Rename the "LayerCellsShadeVectorContinuous" subclass to
+#  "LayerCellsVectorSurfaceContinuous".
+#* Rename this submodule to "layer.vector.layervectorsurface".
+
 # ....................{ IMPORTS                            }....................
 from betse.science.visual import visualutil
-from betse.science.visual.layer.layerabc import LayerCellsMappableVectorABC
+from betse.science.visual.layer.vector.layervectorabc import (
+    LayerCellsVectorColorfulABC)
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
 
 # ....................{ FACTORIES                          }....................
@@ -16,7 +25,7 @@ from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
 #its sole point of use; then excise this function.
 @type_check
 def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
-    LayerCellsMappableVectorABC):
+    LayerCellsVectorColorfulABC):
     '''
     Layer plotting the cell cluster as a Gouraud-shaded surface in either a
     contiguous or discontiguous manner according to the passed configuration.
@@ -27,14 +36,14 @@ def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
         Current simulation configuration.
 
     All remaining parameters are passed to either the
-    :class:`LayerCellsShadeDiscrete` or :class:`LayerCellsShadeContinuous`
+    :class:`LayerCellsVectorSurfaceDiscrete` or :class:`LayerCellsVectorSurfaceContinuous`
     constructor as is.
     '''
 
     # Type of layer to be created.
     layer_type = (
-        LayerCellsShadeDiscrete if p.showCells else
-        LayerCellsShadeContinuous)
+        LayerCellsVectorSurfaceDiscrete if p.showCells else
+        LayerCellsVectorSurfaceContinuous)
 
     # Create and return an instance of this type, passed the passed parameters.
     return layer_type(*args, **kwargs)
@@ -46,7 +55,7 @@ def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
 #This layer is frequently leveraged elsewhere and hence fairly critical.
 #FIXME: Is the above comment still the case? The output appears reasonable now.
 
-class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
+class LayerCellsVectorSurfaceContinuous(LayerCellsVectorColorfulABC):
     '''
     Layer plotting the entire cell cluster as a continuous Gouraud-shaded
     surface represented as a polygonal mesh, interpolating the cell data for
@@ -100,9 +109,11 @@ class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
             # Keyword arguments. All remaining arguments *MUST* be passed as
             # keyword arguments.
             shading='gouraud',
-            cmap=self._visual.colormap,
             vmin=self._visual.color_min,
             vmax=self._visual.color_max,
+
+            # Colormap converting input data values into output color values.
+            cmap=self._visual.colormap,
         )
 
         # Map this triangulation mesh onto the figure colorbar, returned as a
@@ -120,7 +131,7 @@ class LayerCellsShadeContinuous(LayerCellsMappableVectorABC):
         self._cluster_tri_mesh.set_array(regions_centre_data)
 
 
-class LayerCellsShadeDiscrete(LayerCellsMappableVectorABC):
+class LayerCellsVectorSurfaceDiscrete(LayerCellsVectorColorfulABC):
     '''
     Layer plotting each cell in the cell cluster as a discontiguous
     Gouraud-shaded surface represented as a polygonal mesh.
@@ -189,15 +200,20 @@ class LayerCellsShadeDiscrete(LayerCellsMappableVectorABC):
             # Gouraud-shaded triangulation mesh for this cell, computed from
             # the Delaunay hull of the non-triangular vertices of this cell.
             cell_tri_mesh = self._visual.axes.tripcolor(
-                # For equally obscure and uninteresting reasons, this
-                # function requires these parameters to be passed positionally.
+                # Positional arguments. Thanks to internal flaws in the
+                # matplotlib.tri.tripcolor() function parsing arguments passed
+                # to the matplotlib.axes.tripcolor() method called here, the
+                # first four arguments *MUST* be passed as positional arguments.
                 cell_vertices_x, cell_vertices_y, cell_membranes_vertex_data,
 
-                # All remaining parameters may be passed by keyword.
+                # Keyword arguments. All remaining arguments *MUST* be passed as
+                # keyword arguments.
                 shading='gouraud',
-                cmap=self._visual.colormap,
                 vmin=self._visual.color_min,
                 vmax=self._visual.color_max,
+
+                # Colormap converting input values into output color values.
+                cmap=self._visual.colormap,
             )
 
             # Add this triangulation mesh to the cached set of such meshes.
