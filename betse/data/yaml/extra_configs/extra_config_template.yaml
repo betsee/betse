@@ -99,7 +99,7 @@ reactions:
 
   - name: consume_A              # unique identifier for the reaction **DO NOT** end with '_growth' or '_decay'
 
-    reaction zone: cell        # reaction zone identifier: 'cell' or 'mitochondria'; where reaction takes place
+    reaction zone: cell        # reaction zone identifier: 'cell', 'env', or 'mit'; where reaction takes place
     reactants: ['Substance_A']              # list of reagents; must be from set of names defined for biomolecules in above
     reactant multipliers: [1]      # reaction coefficients for reagents, in same order as reagent definition
     Km reactants: [1.0]             # list of half-max coefficients for reagents, in same order as reagents list

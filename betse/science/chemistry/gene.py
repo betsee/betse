@@ -57,11 +57,14 @@ class MasterOfGenes(object):
             self.core.read_reactions(reactions_config, sim, cells, p)
             self.core.write_reactions()
             self.core.create_reaction_matrix()
+            self.core.write_reactions_env()
+            self.core.create_reaction_matrix_env()
 
             self.reactions = True
 
         else:
             self.core.create_reaction_matrix()
+            self.core.create_reaction_matrix_env()
             self.reactions = False
 
         # initialize transporters, if defined:
@@ -143,11 +146,14 @@ class MasterOfGenes(object):
             self.core.read_reactions(reactions_config, sim, cells, p)
             self.core.write_reactions()
             self.core.create_reaction_matrix()
+            self.core.write_reactions_env()
+            self.core.create_reaction_matrix_env()
 
             self.reactions = True
 
         else:
             self.core.create_reaction_matrix()
+            self.core.create_reaction_matrix_env()
             self.reactions = False
 
         # initialize transporters, if defined:

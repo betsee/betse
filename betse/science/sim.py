@@ -928,6 +928,7 @@ class Simulator(object):
 
         try:
             for t in tt:  # run through the loop
+
                 # start the timer to approximate time for the simulation
                 if do_once is True:
                     loop_measure = time.time()

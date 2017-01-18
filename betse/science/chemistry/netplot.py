@@ -268,7 +268,14 @@ def plot_master_network(self, p):
 
             base_graph.add_node(nde)
 
+    if len(self.reactions_env) > 0:
 
+        for i, name in enumerate(self.reactions_env):
+            nde = pydot.Node(name, style='filled', color=self.react_node_color, shape=self.reaction_shape,
+                             fontcolor=self.react_node_font_color, fontname=self.net_font_name,
+                             fontsize=self.node_font_size)
+
+            base_graph.add_node(nde)
 
 
     # if there are any reactions in the mitochondria, add them to the graph
@@ -283,28 +290,65 @@ def plot_master_network(self, p):
             base_graph.add_node(nde)
 
 
+    # if there are any env reactions, plot their edges on the graph--------------------------------------------------
+    if len(self.reactions_env) > 0:
 
-    # if there are any reactions, plot their edges on the graph--------------------------------------------------
-    if len(self.reactions) > 0:
+        for i, name in enumerate(self.reactions_env):
 
-        for i, name in enumerate(self.reactions):
-
-            rea = self.reactions[name]
+            rea = self.reactions_env[name]
 
             for i, react_name in enumerate(rea.reactants_list):
                 rea_coeff = rea.reactants_coeff[i]
-                base_graph.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff=rea_coeff,
+                react_name_e = react_name + '_env'
+
+                nde = pydot.Node(react_name_e, style='filled', color=self.conc_node_color, shape=self.conc_shape,
+                                 fontcolor=self.conc_node_font_color, fontname=self.net_font_name,
+                                 fontsize=self.node_font_size)
+
+                base_graph.add_node(nde)
+
+                base_graph.add_edge(pydot.Edge(react_name_e, name, arrowhead='normal', coeff=rea_coeff,
                                                penwidth = self.edge_width))
 
             for j, prod_name in enumerate(rea.products_list):
                 prod_coeff = rea.products_coeff[j]
-                base_graph.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff=prod_coeff,
+                prod_name_e = prod_name + '_env'
+
+                nde = pydot.Node(prod_name_e, style='filled', color=self.conc_node_color, shape=self.conc_shape,
+                                 fontcolor=self.conc_node_font_color, fontname=self.net_font_name,
+                                 fontsize=self.node_font_size)
+
+                base_graph.add_node(nde)
+
+                base_graph.add_edge(pydot.Edge(name, prod_name_e, arrowhead='normal', coeff=prod_coeff,
                                                penwidth = self.edge_width))
 
             graph_influencers(self, base_graph, name, rea.reaction_activators_list,
                                    rea.reaction_inhibitors_list, p, reaction_zone=rea.reaction_zone,
                                    zone_tags_a=rea.reaction_activators_zone,
                                    zone_tags_i=rea.reaction_inhibitors_zone)
+
+        # if there are any reactions, plot their edges on the graph--------------------------------------------------
+        if len(self.reactions) > 0:
+
+            for i, name in enumerate(self.reactions):
+
+                rea = self.reactions[name]
+
+                for i, react_name in enumerate(rea.reactants_list):
+                    rea_coeff = rea.reactants_coeff[i]
+                    base_graph.add_edge(pydot.Edge(react_name, name, arrowhead='normal', coeff=rea_coeff,
+                                                   penwidth=self.edge_width))
+
+                for j, prod_name in enumerate(rea.products_list):
+                    prod_coeff = rea.products_coeff[j]
+                    base_graph.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff=prod_coeff,
+                                                   penwidth=self.edge_width))
+
+                graph_influencers(self, base_graph, name, rea.reaction_activators_list,
+                                  rea.reaction_inhibitors_list, p, reaction_zone=rea.reaction_zone,
+                                  zone_tags_a=rea.reaction_activators_zone,
+                                  zone_tags_i=rea.reaction_inhibitors_zone)
 
     # if there are any mitochondria zone reactions, plot their edges on the graph (and react/prod nodes):
     if len(self.reactions_mit) > 0:

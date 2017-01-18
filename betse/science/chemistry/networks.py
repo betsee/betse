@@ -53,6 +53,8 @@ class MasterOfNetworks(object):
         self.molecules = OrderedDict({})
         # Initialize a dict that keeps the Reaction objects:
         self.reactions = OrderedDict({})
+        # Initialize a dict that keeps the Reaction objects specific to environment:
+        self.reactions_env = OrderedDict({})
         # Initialize a dict of Transporter objects:
         self.transporters = OrderedDict({})
         # Initialize a dict of Channels:
@@ -138,19 +140,19 @@ class MasterOfNetworks(object):
                 # add the ion to the conc mappings by its short string name:
                 cell_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.cc_cells[ion_index],
-                    lambda value, ion_index=ion_index: sim.cc_cells.__setindex__(ion_index, value))
+                    lambda value, ion_index=ion_index: sim.cc_cells.__setitem__(ion_index, value))
 
                 # mem_concs_mapping[k] = DynamicValue(
                 #     lambda ion_index=ion_index: sim.cc_mems[ion_index],
-                #     lambda value, ion_index=ion_index: setattr(sim.cc_mems.__setindex__(ion_index, value)))
+                #     lambda value, ion_index=ion_index: setattr(sim.cc_mems.__setitem__(ion_index, value)))
 
                 env_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.cc_env[ion_index],
-                    lambda value, ion_index=ion_index: sim.cc_env.__setindex__(ion_index, value))
+                    lambda value, ion_index=ion_index: sim.cc_env.__setitem__(ion_index, value))
 
                 bound_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.c_env_bound[ion_index],
-                    lambda value, ion_index=ion_index: sim.c_env_bound.__setindex__(ion_index, value))
+                    lambda value, ion_index=ion_index: sim.c_env_bound.__setitem__(ion_index, value))
 
                 self.zmol[k] = sim.zs[ion_index]
                 self.Dmem[k] = sim.Dm_cells[ion_index].mean()
@@ -158,7 +160,7 @@ class MasterOfNetworks(object):
                 if self.mit_enabled:
                     mit_concs_mapping[k] = DynamicValue(
                         lambda ion_index=ion_index: sim.cc_mit[ion_index],
-                        lambda value, ion_index=ion_index: sim.cc_mit.__setindex__(ion_index, value))
+                        lambda value, ion_index=ion_index: sim.cc_mit.__setitem__(ion_index, value))
 
 
 
@@ -675,6 +677,7 @@ class MasterOfNetworks(object):
 
         # Initialize a dict that keeps the Reaction objects for reactions occuring in the 'cell' zone:
         self.reactions = OrderedDict({})
+        self.reactions_env = OrderedDict({})
 
         if self.mit_enabled is True:
             # Initialize a dict that keeps the Reaction objects for reactions occuring in the 'mit' zone:
@@ -696,6 +699,11 @@ class MasterOfNetworks(object):
                 # add a Reaction object to MasterOfReactions reaction dictionary:
                 self.reactions_mit[name] = Reaction(sim, cells, p)
                 obj = self.reactions_mit[name]
+
+            elif zone == 'env':
+
+                self.reactions_env[name] = Reaction(sim, cells, p)
+                obj = self.reactions_env[name]
 
             else:
                 logs.log_warning("---------------------------------------------------------------")
@@ -920,6 +928,8 @@ class MasterOfNetworks(object):
                                                                     Km_i_list, n_i_list, tex_list = tex_vars,
                                                                     reaction_zone='mem', zone_tags_a=zone_a,
                                                                     zone_tags_i=zone_i)
+
+            # FIXME this doesn't seem to work...! Maybe Sess broke it ??
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
 
@@ -1618,6 +1628,256 @@ class MasterOfNetworks(object):
 
             self.reactions_mit[reaction_name].reaction_tex_string = reaction_tex_string
 
+    def write_reactions_env(self):
+
+        """
+        Reactions are now constructed during the init as strings that are evaluated in eval calls in each time-step.
+        This function constructs the evaluation strings for each reaction, given the metadata stored
+        in each reaction object (e.g. lists of reactants, products, etc).
+
+        """
+
+        logs.log_info("Writing reaction equations for env zone...")
+
+        for reaction_name in self.reactions_env:
+
+            # initialize an empty list that will hold strings defining fixed parameter values as LaTeX math string
+            rea_tex_var_list = []
+
+            # define aliases for convenience:
+
+            reactant_names = self.reactions_env[reaction_name].reactants_list
+            reactant_coeff = self.reactions_env[reaction_name].reactants_coeff
+            reactant_Km = self.reactions_env[reaction_name].Km_reactants_list
+
+            product_names = self.reactions_env[reaction_name].products_list
+            product_coeff = self.reactions_env[reaction_name].products_coeff
+            product_Km = self.reactions_env[reaction_name].Km_products_list
+
+            # activator/inhibitor lists and associated data:
+            a_list = self.reactions_env[reaction_name].reaction_activators_list
+            Km_a_list = self.reactions_env[reaction_name].reaction_activators_Km
+            n_a_list = self.reactions_env[reaction_name].reaction_activators_n
+            zone_a = self.reactions_env[reaction_name].reaction_activators_zone
+
+            i_list = self.reactions_env[reaction_name].reaction_inhibitors_list
+            Km_i_list = self.reactions_env[reaction_name].reaction_inhibitors_Km
+            n_i_list = self.reactions_env[reaction_name].reaction_inhibitors_n
+            zone_i = self.reactions_env[reaction_name].reaction_inhibitors_zone
+
+            r_zone = self.reactions_env[reaction_name].reaction_zone
+
+            # first calculate a reaction coefficient Q, as a string expression
+            numo_string_Q = "("
+            denomo_string_Q = "("
+
+            numo_tex_Q = ""
+            deno_tex_Q = ""
+
+            for i, (name, coeff) in enumerate(zip(reactant_names, reactant_coeff)):
+
+                tex_name = name
+
+                denomo_string_Q += "(self.env_concs['{}']".format(name)
+
+                denomo_string_Q += "**{})".format(coeff)
+
+                deno_tex_Q += "[%s]^{%.1f}" % (tex_name, coeff)
+
+                if i < len(reactant_names) - 1:
+
+                    denomo_string_Q += "*"
+                    deno_tex_Q += r"\,"
+
+                else:
+
+                    denomo_string_Q += ")"
+
+            for i, (name, coeff) in enumerate(zip(product_names, product_coeff)):
+
+                tex_name = name
+                numo_string_Q += "(self.env_concs['{}']".format(name)
+
+                numo_string_Q += "**{})".format(coeff)
+
+                numo_tex_Q += "[%s]^{%.1f}" % (tex_name, coeff)
+
+                if i < len(product_names) - 1:
+
+                    numo_string_Q += "*"
+                    numo_tex_Q += r"\,"
+
+                else:
+
+                    numo_string_Q += ")"
+
+            # define the final reaction quotient string, Q:
+            Q = "(" + numo_string_Q + '/' + denomo_string_Q + ")"
+
+            Q_tex = r"\frac{%s}{%s}" % (numo_tex_Q, deno_tex_Q)  # LaTeX version
+
+            # next calculate the forward and backward reaction rate coefficients:---------------------------------------
+
+            forward_coeff = "("
+            backward_coeff = "("
+
+            fwd_coeff_tex = ""
+            bwd_coeff_tex = ""
+
+            for i, (name, n, Km) in enumerate(zip(reactant_names, reactant_coeff, reactant_Km)):
+
+                tex_name = name
+                numo_string_r = "((self.env_concs['{}']/{})**{})".format(name, Km, n)
+                denomo_string_r = "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+
+                cc_tex = r"\left(\frac{[%s]}{K_{%s_f}^{%s}}\right)" % (tex_name, reaction_name, tex_name)
+                tex_term = r"\left(\frac{%s}{1 + %s}\right)" % (cc_tex, cc_tex)
+
+                term = "(" + numo_string_r + "/" + denomo_string_r + ")"
+
+                forward_coeff += term
+
+                # tex equation:
+
+                fwd_coeff_tex += tex_term
+
+                # write fixed parameter names and values to the LaTeX storage list:
+                kmval = tex_val(Km)
+                km_tex = "K_{%s_f}^{%s} & =" % (reaction_name, name)
+                km_tex += kmval
+
+                nval = tex_val(n)
+                n_tex = "n_{%s_f}^{%s} & =" % (reaction_name, name)
+                n_tex += nval
+
+                rea_tex_var_list.append(km_tex)
+                rea_tex_var_list.append(n_tex)
+
+                if i < len(reactant_names) - 1:
+
+                    forward_coeff += "*"
+
+                    fwd_coeff_tex += r"\,"
+
+                else:
+
+                    forward_coeff += ")"
+
+            for i, (name, n, Km) in enumerate(zip(product_names, product_coeff, product_Km)):
+
+                tex_name = name
+
+                numo_string_p = "((self.env_concs['{}']/{})**{})".format(name, Km, n)
+                denomo_string_p = "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+
+                term = "(" + numo_string_p + "/" + denomo_string_p + ")"
+
+                cc_tex = r"\left(\frac{[%s]}{K_{%s_r}^{%s}}\right)" % (tex_name, reaction_name, tex_name)
+                tex_term = r"\left(\frac{%s}{1 + %s}\right)" % (cc_tex, cc_tex)
+
+                backward_coeff += term
+
+                bwd_coeff_tex += tex_term
+
+                if self.reactions_env[reaction_name].delta_Go is not None:
+                    # write fixed parameter names and values to the LaTeX storage list:
+                    kmval = tex_val(Km)
+                    km_tex = "K_{%s_r}^{%s} & =" % (reaction_name, name)
+                    km_tex += kmval
+
+                    nval = tex_val(n)
+                    n_tex = "n_{%s_r}^{%s} & =" % (reaction_name, name)
+                    n_tex += nval
+
+                    rea_tex_var_list.append(km_tex)
+                    rea_tex_var_list.append(n_tex)
+
+                if i < len(product_names) - 1:
+
+                    backward_coeff += "*"
+
+                    bwd_coeff_tex += r"\,"
+
+                else:
+
+                    backward_coeff += ")"
+
+            # if reaction is reversible deal calculate an equilibrium constant:
+            if self.reactions_env[reaction_name].delta_Go is not None:
+
+                # define the reaction equilibrium coefficient expression:
+                Keqm = "(np.exp(-self.reactions_env['{}'].delta_Go / (p.R * sim.T)))".format(reaction_name)
+
+                Keqm_tex = r"exp\left(-\frac{deltaG_{%s}^{o}}{R\,T}\right)" % reaction_name
+
+                # write fixed parameter names and values to the LaTeX storage list:
+                gval = tex_val(self.reactions_env[reaction_name].delta_Go)
+                g_tex = "deltaG_{%s}^{o} & =" % reaction_name
+                g_tex += gval
+                rea_tex_var_list.append(g_tex)
+
+            else:
+
+                Q = "0"
+                backward_coeff = "0"
+                Keqm = "1"
+
+                Q_tex = ""
+                Keqm_tex = ""
+                bwd_coeff_tex = ""
+
+            # Put it all together into a final reaction string (+max rate):
+
+            reversed_term = "(" + Q + "/" + Keqm + ")"
+
+            reversed_term_tex = r"\frac{%s}{%s}" % (Q_tex, Keqm_tex)
+
+            all_alpha, alpha_tex, rea_tex_var_list = self.get_influencers(a_list, Km_a_list,
+                                                                          n_a_list,
+                                                                          i_list, Km_i_list, n_i_list,
+                                                                          tex_list=rea_tex_var_list,
+                                                                          reaction_zone=r_zone, zone_tags_a=zone_a,
+                                                                          zone_tags_i=zone_i)
+
+            vmax = "self.reactions_env['{}'].vmax".format(reaction_name)
+
+            reaction_eval_string = vmax + "*" + all_alpha + "*" + "(" + \
+                                   forward_coeff + "-" + "(" + reversed_term + "*" + backward_coeff + ")" + ")"
+
+            r_tex = "r_{%s}^{max}" % reaction_name
+            r_main = "r_{%s} = " % reaction_name
+
+            if self.reactions_env[reaction_name].delta_Go is not None:
+
+                reaction_tex_string = r_main + r_tex + r"\," + alpha_tex + r"\,\left(" + fwd_coeff_tex + "-" + \
+                                      reversed_term_tex + r"\," + bwd_coeff_tex + r"\right)"
+
+            else:
+
+                reaction_tex_string = r_main + r_tex + r"\," + alpha_tex + r"\," + fwd_coeff_tex
+
+            # write fixed parameter names and values to the LaTeX storage list:
+            rval = tex_val(self.reactions_env[reaction_name].vmax)
+            r_tex = "r_{%s}^{max} & =" % (reaction_name)
+            r_tex += rval
+            rea_tex_var_list.append(r_tex)
+
+            # finalize the fixed parameters LaTeX list:
+            tex_params = r"\begin{aligned}"
+            for i, tex_str in enumerate(rea_tex_var_list):
+                tex_params += tex_str
+                if i < len(rea_tex_var_list) - 1:
+                    tex_params += r"\\"
+                else:
+                    tex_params += r"\end{aligned}"
+
+            self.reactions_env[reaction_name].reaction_tex_vars = tex_params
+
+            # add the composite string describing the reaction math to a new field:
+            self.reactions_env[reaction_name].reaction_eval_string = reaction_eval_string
+
+            self.reactions_env[reaction_name].reaction_tex_string = reaction_tex_string
+
     def write_transporters(self, sim, cells, p):
         """
         Reactions are now constructed during the init as strings that are evaluated in eval calls in each time-step.
@@ -2226,21 +2486,25 @@ class MasterOfNetworks(object):
         """
 
         logs.log_info("Writing reaction network matrix for cell zone...")
-        n_reacts = len(self.molecules) + len(self.reactions)
-        n_mols = len(self.molecules)
+        n_reacts = len(self.molecules) + len(self.reactions)  # (this is + len(molecules) due to added gad reactions
+        n_mols = len(self.cell_concs)
+
+        n_subs = len(self.molecules)
 
         # initialize the network's reaction matrix:
         self.reaction_matrix = np.zeros((n_mols, n_reacts))
 
-        molecule_keys = list(self.molecules.keys())
+        molecule_keys = list(self.cell_concs.keys())
 
         for i, name in enumerate(self.molecules):
+
+            jj = molecule_keys.index(name)
             # add in terms referencing the self-growth and decay reaction for each substance
-            self.reaction_matrix[i, i] += 1
+            self.reaction_matrix[jj, i] += 1
 
         for jo, reaction_name in enumerate(self.reactions):
 
-            j = jo + n_mols
+            j = jo + n_subs
 
             for react_name, coeff in zip(self.reactions[reaction_name].reactants_list,
                 self.reactions[reaction_name].reactants_coeff):
@@ -2264,12 +2528,12 @@ class MasterOfNetworks(object):
 
         logs.log_info("Writing reaction network matrix for mit zone...")
         n_reacts = len(self.reactions_mit)
-        n_mols = len(self.molecules)
+        n_mols = len(self.mit_concs)
 
         # initialize the network's reaction matrix:
         self.reaction_matrix_mit = np.zeros((n_mols, n_reacts))
 
-        molecule_keys = list(self.molecules.keys())
+        molecule_keys = list(self.mit_concs.keys())
 
         for j, reaction_name in enumerate(self.reactions_mit):
 
@@ -2284,6 +2548,37 @@ class MasterOfNetworks(object):
                 i = molecule_keys.index(prod_name)
 
                 self.reaction_matrix_mit[i, j] += coeff
+
+    def create_reaction_matrix_env(self):
+
+        """
+        Creates a matrix representation of the system of coupled
+        differential equations underlying the reaction network for environment.
+
+        """
+
+        logs.log_info("Writing reaction network matrix for env zone...")
+        n_reacts = len(self.reactions_env)
+        n_mols = len(self.env_concs)
+
+        # initialize the network's reaction matrix:
+        self.reaction_matrix_env = np.zeros((n_mols, n_reacts))
+
+        molecule_keys = list(self.env_concs.keys())
+
+        for j, reaction_name in enumerate(self.reactions_env):
+
+            for react_name, coeff in zip(self.reactions_env[reaction_name].reactants_list,
+                                         self.reactions_env[reaction_name].reactants_coeff):
+                i = molecule_keys.index(react_name)
+
+                self.reaction_matrix_env[i, j] += -coeff
+
+            for prod_name, coeff in zip(self.reactions_env[reaction_name].products_list,
+                                        self.reactions_env[reaction_name].products_coeff):
+                i = molecule_keys.index(prod_name)
+
+                self.reaction_matrix_env[i, j] += coeff
 
     #------runners------------------------------------------------------------------------------------------------------
     def run_loop(self, t, sim, cells, p):
@@ -2347,59 +2642,91 @@ class MasterOfNetworks(object):
             # calculate concentration rate of change using linear algebra:
             self.delta_conc_mit = np.dot(self.reaction_matrix_mit, self.reaction_rates_mit)
 
-        for ii, (name, deltac) in enumerate(zip(self.molecules, self.delta_conc)):
+        # update environmental concentrations:
+        if len(self.reactions_env)>0:
+            # ... rates of chemical reactions in env:
+            self.reaction_rates_env = np.asarray(
+                [eval(self.reactions_env[rn].reaction_eval_string, self.globals, self.locals) for
+                    rn in self.reactions_env])
 
-            obj = self.molecules[name]
+            # calculate concentration rate of change using linear algebra:
+            self.delta_conc_env = np.dot(self.reaction_matrix_env, self.reaction_rates_env)
+
+        else:
+
+            self.delta_conc_env = None
+
+        if self.delta_conc_env is not None:
+
+            for name_env, deltae in zip(self.env_concs, self.delta_conc_env):
+
+                conce = self.env_concs[name_env]
+                self.env_concs[name_env] = conce + deltae*p.dt
+
+        for ii, (name, deltac) in enumerate(zip(self.cell_concs, self.delta_conc)):
+
+            conco = self.cell_concs[name]
+
+            if name not in p.ions_dict:
+
+                obj = self.molecules[name]
+
+            else:
+                obj = None
 
             # update concentration due to growth/decay and chemical reactions:
-            obj.c_cells = obj.c_cells + deltac*p.dt
-
+            self.cell_concs[name] = conco + deltac * p.dt
 
             # if pumping is enabled:
-            if obj.active_pumping:
-                obj.pump(sim, cells, p)
+            if obj is not None:
+
+                if obj.active_pumping:
+                    obj.pump(sim, cells, p)
 
             # if p.run_sim is True:
             # use the substance as a gating ligand (if desired)
-            if obj.ion_channel_gating:
-                obj.gating_mod = eval(obj.gating_mod_eval_string, self.globals, self.locals)
-                obj.gating(sim, self, cells, p)
 
-            if p.run_sim is True:
-                # update the global boundary (if desired)
-                if obj.change_bounds:
-                    obj.update_boundary(t, p)
+                if obj.ion_channel_gating:
+                    obj.gating_mod = eval(obj.gating_mod_eval_string, self.globals, self.locals)
+                    obj.gating(sim, self, cells, p)
 
-            # transport the molecule through gap junctions and environment:
-            obj.transport(sim, cells, p)
+                if p.run_sim is True:
+                    # update the global boundary (if desired)
+                    if obj.change_bounds:
+                        obj.update_boundary(t, p)
 
-            # update the substance on the inside of the cell:
-            obj.updateIntra(sim, self, cells, p)
+                # transport the molecule through gap junctions and environment:
+                obj.transport(sim, cells, p)
 
-            # calculate energy charge in the cell:
-            self.energy_charge(sim)
+                # update the substance on the inside of the cell:
+                obj.updateIntra(sim, self, cells, p)
 
-            # ensure no negs:
-            stb.no_negs(obj.c_cells)
-            stb.no_negs(obj.c_env)
+                # ensure no negs:
+                stb.no_negs(obj.c_cells)
+                stb.no_negs(obj.c_env)
+
+                if p.substances_affect_charge:
+                    # calculate the charge density this substance contributes to cell and environment:
+                    self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z
+                    self.extra_rho_env[:] += p.F*obj.c_env*obj.z
 
 
             if self.mit_enabled and len(self.reactions_mit)>0:
+
+                concm = self.mit_concs[name]
                 # update concentration due to chemical reactions in mitochondria:
-                obj.c_mit = obj.c_mit + self.delta_conc_mit[ii]*p.dt
+                self.mit_concs[name] = concm + self.delta_conc_mit[ii]*p.dt
 
                 # ensure no negative values:
-                stb.no_negs(obj.c_mit)
+                stb.no_negs(self.mit_concs[name])
 
 
-            if p.substances_affect_charge:
-                # calculate the charge density this substance contributes to cell and environment:
-                self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z
-                self.extra_rho_env[:] += p.F*obj.c_env*obj.z
+            if self.mit_enabled and obj is not None:
+                # calculate the charge density this substance contributes to mit:
+                self.extra_rho_mit[:] += p.F*obj.c_mit*obj.z
 
-                if self.mit_enabled:
-                    # calculate the charge density this substance contributes to mit:
-                    self.extra_rho_mit[:] += p.F*obj.c_mit*obj.z
+        # calculate energy charge in the cell:
+        self.energy_charge(sim)
 
         if p.substances_affect_charge:
             sim.extra_rho_cells = self.extra_rho_cells
@@ -3554,6 +3881,12 @@ class MasterOfNetworks(object):
 
         elif reaction_zone == 'mit':
             dl = 'np.ones(sim.cdl))'
+
+        elif reaction_zone == 'env':
+            dl = "np.ones(sim.edl))"
+
+        else:
+            raise BetseSimConfigException("Reaction zone requested not an existing option!")
 
 
         if a_list is not None and a_list != 'None' and len(a_list) > 0:

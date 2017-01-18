@@ -179,6 +179,8 @@ class HCN2(VgFunABC):
 
         self.v_corr = 0
 
+        # V = V - 20
+
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V - -99) / 6.2))
         dyna.h_Fun = 1
@@ -200,6 +202,8 @@ class HCN2(VgFunABC):
         """
 
         self.vrev = -45  # reversal voltage used in model [mV]
+
+        # V = V - 20
 
         self._mInf = 1.0000 / (1 + np.exp((V - -99) / 6.2))
         self._mTau = 184.0000
@@ -233,6 +237,8 @@ class HCN4(VgFunABC):
 
         self.v_corr = 0
 
+        # V = V - 20
+
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V - -100) / 9.6))
         dyna.h_Fun = 1
@@ -254,6 +260,8 @@ class HCN4(VgFunABC):
         """
 
         self.vrev = -45  # reversal voltage used in model [mV]
+
+        # V = V - 20
 
         self._mInf = 1.0000 / (1 + np.exp((V - -100) / 9.6))
         self._mTau = 461.0000
