@@ -13,9 +13,7 @@ callables) facilities.
 # ....................{ DECORATORS                         }....................
 def noop(obj: object) -> object:
     '''
-    Noop decorator, also referred to as the **identity decorator.**
-
-    This decorator returns the decorated callable (e.g., function) unmodified.
+    Identity decorator returning the decorated callable unmodified.
     '''
 
     return obj

@@ -8,7 +8,7 @@
 '''
 
 # ....................{ IMPORTS                            }....................
-# import matplotlib
+import matplotlib
 import numpy as np
 from betse.science.visual import visualutil
 from betse.science.visual.anim.animabc import AnimCellsABC
@@ -173,9 +173,48 @@ class AnimCellsWhileSolving(AnimCellsABC):
             #* Call this tester here and, if False, log a non-fatal warning
             #  informing the user that the mid-simulation animation will
             #  probably not be displayed due to unresolved matplotlib issues.
+            #FIXME: O.K.; the implementation below actually works now. It's
+            #non-ideal, however, and results in matplotlib deprecation warnings
+            #resembling:
+            #
+            #    [betse] /usr/lib64/python3.4/site-packages/matplotlib/backend_bases.py:2437: MatplotlibDeprecationWarning: Using default event loop until function specific to this GUI is implemented
+            #
+            #Is that bad? Not particularly, but it *IS* annoying. Can we avoid
+            #this? Yes, but only for backends known to support the experimental
+            #"block=False" parameter (e.g., "TkAgg"). Specifically:
+            #
+            #* If the current backend supports this parameter, preferably call:
+            #
+            #     pyplot.show(block=False)
+            #
+            #* Else, fallback to:
+            #
+            #     matplotlib.interactive(True)
+            #     pyplot.show()
+            #FIXME: Unfortunately, the fact that we need to temporarily enable
+            #"matplotlib.interactive(True)" *ONLY* for this duration of this
+            #animation implies that we need to generalize this animation with
+            #context manager functionality: specifically, we need to implement
+            #the following special methods:
+            #
+            #* __enter__(), performing the logic detailed in the prior FIXME.
+            #* __exit__(), calling "matplotlib.interactive(False)" *ONLY* if the
+            #  prior __enter__() call called "matplotlib.interactive(True)".
+            #
+            #Properly implementing these methods is somewhat subtle, of course.
+            #FIXME: After implementing non-blocking correctly here, generalize
+            #this logic to the superclass by adding a new "is_blocking=True"
+            #parameter to the AnimCellsABC.__init__() method. Ideally, *ALL*
+            #animations should default to non-blocking behaviour; for safety,
+            #however, blocking should remain the default until well-tested.
+            #
+            #This implies that all animations will become context managers.
+            #While that's absolutely the correct long-term design, we currently
+            #use post-simulation animations everywhere as if they are *NOT*
+            #context managers. Since refactoring such usage is highly
+            #non-trivial, we'll want to wait on this refactoring for a bit.
 
-            # logs.log_debug('Showing mid-simulation animation!')
-            # pyplot.ion()
+            # logs.log_debug('Enabling non-blocking animation behaviour...')
             # matplotlib.interactive(True)
             # pyplot.show()
 
@@ -236,10 +275,28 @@ class AnimCellsWhileSolving(AnimCellsABC):
             # Autoscale the colorbar to these colors.
             self._rescale_color_mappables()
 
-        # If displaying this frame, do so.
+        # If displaying this frame...
         if self._is_show:
-            self._figure.canvas.draw()
-            pyplot.draw()
+            # If the current event loop is idle, draw this frame; else, noop.
+            # This is the OO-style equivalent to calling pyplot.draw().
+            self._figure.canvas.draw_idle()
+            # self._figure.canvas.draw()
+
+            #FIXME: Duplicate call in the superclass plot_frame() method.
+            #Ideally, this method's implementation should be entirely integrated
+            #into the superclass plot_frame() method and then excised.
+
+            # Temporarily yield the time slice for the minimum amount of time
+            # required by the current matplotlib backend and operating system
+            # for responding to queued events in the GUI eventloop of the
+            # current process. Failing to do so reliably results in unresponsive
+            # animations under poorly implemented backends (e.g., "Qt4Agg") and
+            # the POSIX-incompatible Windows process model. For further details,
+            # see also:
+            #
+            #     https://gitlab.com/betse/betse/issues/9
+            #     https://github.com/matplotlib/matplotlib/issues/2134/
+            pyplot.pause(0.0001)
 
 
     @type_check

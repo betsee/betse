@@ -869,16 +869,17 @@ class AnimCellsABC(VisualCellsABC):
         #when using "FuncAnimation" under Windows suggests a Windows-specific
         #issue with that class. Consider reporting.
 
-        # If the current platform is Windows, temporarily yield the time slice
-        # for the minimum amount of time required by the POSIX-incompatible
-        # Windows process model for responding to queued events in the GUI
-        # eventloop of the current process. Failing to do so reliably results
-        # in unresponsive plots and animations *ONLY* under Windows. For
-        # further details, see also:
+        # If displaying this frame *AND* the current platform is Windows,
+        # temporarily yield the time slice for the minimum amount of time
+        # required by the POSIX-incompatible Windows process model for
+        # responding to queued events in the GUI eventloop of the current
+        # process. Failing to do so reliably results in unresponsive plots and
+        # animations *ONLY* under Windows. For further details, see also:
         #
         #     https://gitlab.com/betse/betse/issues/9
         #     https://github.com/matplotlib/matplotlib/issues/2134/
-        if oses.is_windows():
+        # If displaying this frame...
+        if self._is_show and oses.is_windows():
             pyplot.pause(0.0001)
 
         # If saving this animation, save this frame.

@@ -9,9 +9,6 @@ import os.path
 import time
 import matplotlib.pyplot as plt
 import numpy as np
-from random import shuffle
-from scipy import interpolate as interp
-from scipy.ndimage.filters import gaussian_filter
 from betse.exceptions import BetseSimInstabilityException
 from betse.util.io.log import logs
 from betse.science import filehandling as fh
@@ -32,9 +29,15 @@ from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.type.enums import EnumOrdered
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, NoneType
+from numpy import ndarray
+from random import shuffle
+from scipy import interpolate as interp
+from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ ENUMS                              }....................
+#FIXME: Rename to "SimPhaseType" for clarity. (We'll probably want a distinct
+#"SimPhase" class at some point.)
 SimPhase = EnumOrdered('SimPhase', (
     'SEED', 'INIT', 'SIM',
 ))
@@ -112,10 +115,6 @@ class Simulator(object):
 
     Attributes
     ----------
-    _anim_cells_while_solving : AnimCellsWhileSolving
-        In-place animation of cell voltage as a function of time plotted during
-        (rather than after) simulation modelling if both requested and a
-        simulation is currently being modelled _or_ `None` otherwise.
     _phase : SimPhase
         Current simulation phase.
 
@@ -283,7 +282,7 @@ class Simulator(object):
 
         #FIXME: Define all other instance attributes as well.
         # Default all remaining attributes.
-        self._anim_cells_while_solving = None
+        self.ignore_ecm = False
 
         #FIXME: Defer until later. To quote the "simrunner" module, which
         #explicitly calls this public method:
@@ -293,7 +292,6 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
-        self.ignore_ecm = False
 
     def fileInit(self, p):
         '''
@@ -896,301 +894,51 @@ class Simulator(object):
         # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)
 
-    def run_sim_core(self, cells, p):
+    def run_sim_core(self, cells, p) -> None:
         '''
-        Runs and saves the current simulation phase (e.g. init or sim phases)
-
-        This method drives the time-loop for the main simulation, including
-        gap-junction connections and calls to all dynamic channels and entities (sim phase
-        only).
-
+        Perform the current phase (e.g., initialization, simulation), pickling
+        the results to files defined by the passed configuration.
         '''
 
-        self.init_tissue(cells, p)  # Initialize all structures used for gap junctions, ion channels, and other dynamics
+        # Initialize all structures used for gap junctions, ion channels, and
+        # other dynamics.
+        self.init_tissue(cells, p)
 
         # Reinitialize all time-data structures
         self.clear_storage(cells, p)
 
-        # get the net, unbalanced charge and corresponding voltage in each cell to initialize values of voltages:
+        # Get the net, unbalanced charge and corresponding voltage in each cell
+        # to initialize values of voltages.
         self.update_V(cells, p)
 
         # Display and/or save an animation during solving and calculate:
         #
-        # * "tt", a time-steps vector appropriate for the current run.
-        # * "tsamples", that vector resampled to save data at fewer times.
-        tt, tsamples = self._plot_loop(self.cellso, p)
+        # * "time_steps", the array of all time steps for this phase.
+        # * "time_steps_sampled", this array resampled to reduce data storage.
+        # * "anim_cells", the mid-simulation animation providing cell voltages.
+        time_steps, time_steps_sampled, anim_cells = self._plot_loop(
+            self.cellso, p)
 
-        # Exception raised if this simulation goes unstable, permitting us to safely
-        # handle this instability (e.g., by saving simulation results).
+        # Exception raised if this simulation becomes unstable, enabling safe
+        # handling of this instability (e.g., by saving simulation results).
         exception_instability = None
 
-        do_once = True  # a variable to time the loop only once
-
+        # Perform the time loop for this simulation phase.
         try:
-            for t in tt:  # run through the loop
-
-                # start the timer to approximate time for the simulation
-                if do_once is True:
-                    loop_measure = time.time()
-
-                # Reinitialize flux storage devices:
-                self.fluxes_mem.fill(0)
-                self.fluxes_gj.fill(0)
-
-                if p.sim_ECM is True:
-
-                    self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
-                    self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
-                    self.Phi_vect = np.zeros((len(self.zs), self.edl))
-
-                    self.conc_J_x = np.zeros(self.edl)
-                    self.conc_J_y = np.zeros(self.edl)
-
-                # Calculate the values of scheduled and dynamic quantities (e.g.
-                # ion channel multipliers):
-                if p.run_sim is True:
-                    self.dyna.runAllDynamics(self, cells, p, t)
-
-                # -----------------PUMPS-------------------------------------------------------------------------------------
-
-                if p.sim_ECM is True:
-                    # run the Na-K-ATPase pump:
-                    fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                        self.cc_cells[self.iNa][cells.mem_to_cells],
-                        self.cc_env[self.iNa][cells.map_mem2ecm],
-                        self.cc_cells[self.iK][cells.mem_to_cells],
-                        self.cc_env[self.iK][cells.map_mem2ecm],
-                        self.vm,
-                        self.T,
-                        p,
-                        self.NaKATP_block,
-                        met = self.met_concs
-                    )
-
-                else:
-
-                    fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                                self.cc_cells[self.iNa][cells.mem_to_cells],
-                                self.cc_env[self.iNa],
-                                self.cc_cells[self.iK][cells.mem_to_cells],
-                                self.cc_env[self.iK],
-                                self.vm,
-                                self.T,
-                                p,
-                                self.NaKATP_block,
-                                met = self.met_concs
-                            )
-
-
-                # modify pump flux with any lateral membrane diffusion effects:
-                fNa_NaK = self.rho_pump*fNa_NaK
-                fK_NaK = self.rho_pump*fK_NaK
-
-                if p.cluster_open is False:
-                    fNa_NaK[cells.bflags_mems] = 0
-                    fK_NaK[cells.bflags_mems] = 0
-
-                # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
-                self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
-                self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
-
-                if p.metabolism_enabled:
-                    # update ATP concentrations after pump action:
-                    self.metabo.update_ATP(fNa_NaK, self, cells, p)
-
-                # update the concentrations of Na and K in cells and environment:
-                self.cc_cells[self.iNa],  self.cc_env[self.iNa] =  stb.update_Co(self, self.cc_cells[self.iNa],
-                                                                            self.cc_env[self.iNa],fNa_NaK, cells, p,
-                                                                            ignoreECM = self.ignore_ecm)
-
-                self.cc_cells[self.iK], self.cc_env[self.iK] = stb.update_Co(self, self.cc_cells[self.iK],
-                    self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = self.ignore_ecm)
-
-
-                # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
-
-                # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
-
-                shuffle(self.movingIons)
-
-                for i in self.movingIons:
-
-                    IdM = np.ones(self.mdl)
-
-                    if p.sim_ECM is True:
-
-                        f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_cells[i][cells.mem_to_cells],
-                            self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
-                            rho=self.rho_channel)
-
-                    else:
-
-                        f_ED = stb.electroflux(self.cc_env[i],self.cc_cells[i][cells.mem_to_cells],
-                                               self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
-                                        self.vm,self.T,p,rho=self.rho_channel)
-
-                    if p.cluster_open is False:
-                        f_ED[cells.bflags_mems] = 0
-
-                    # add membrane flux to storage
-                    self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
-
-                    # update ion concentrations in cell and ecm:
-                    self.cc_cells[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
-                        self.cc_env[i], f_ED, cells, p, ignoreECM = self.ignore_ecm)
-
-                    # update flux between cells due to gap junctions
-                    self.update_gj(cells, p, t, i)
-
-                    if p.sim_ECM:
-                        #update concentrations in the extracellular spaces:
-                        self.update_ecm(cells, p, t, i)
-
-                    # ensure no negative concentrations:
-                    stb.no_negs(self.cc_cells[i])
-
-                # ----transport and handling of special ions------------------------------------------------------------
-
-                if p.ions_dict['Ca'] == 1:
-
-                    self.ca_handler(cells, p)
-
-
-                if p.ions_dict['H'] == 1:
-
-                    self.acid_handler(cells, p)
-
-
-                # update the general molecules handler-----------------------------------------------------------------
-                if p.molecules_enabled:
-
-                    if self.molecules.transporters:
-
-                        self.molecules.core.run_loop_transporters(t, self, self.molecules, cells, p)
-
-                    if self.molecules.channels:
-
-                        self.molecules.core.run_loop_channels(self, self.molecules, cells, p)
-
-                    if self.molecules.modulators:
-
-                        self.molecules.core.run_loop_modulators(self, self.molecules, cells, p)
-
-                    self.molecules.core.run_loop(t, self, cells, p)
-
-                # update metabolic handler----------------------------------------------------------------------
-
-                if p.metabolism_enabled:
-
-                    if self.metabo.transporters:
-                        self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
-
-                    if self.metabo.channels:
-
-                        self.metabo.core.run_loop_channels(self, self.metabo.core, cells, p)
-
-                    if self.metabo.modulators:
-
-                        self.metabo.core.run_loop_modulators(self, self.metabo.core, cells, p)
-
-                    self.metabo.core.run_loop(t, self, cells, p)
-
-                # update gene regulatory network handler--------------------------------------------------------
-
-                if p.grn_enabled:
-
-                    if self.grn.transporters:
-                        self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
-
-                    if self.grn.channels and p.run_sim is True:
-                        self.grn.core.run_loop_channels(self, self.grn.core, cells, p)
-
-                    if self.grn.modulators:
-                        self.grn.core.run_loop_modulators(self, self.grn.core, cells, p)
-
-                    # update the main gene regulatory network:
-                    self.grn.core.run_loop(t, self, cells, p)
-
-
-                # dynamic noise handling-----------------------------------------------------------------------------------
-
-                if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
-
-                    # add a random walk on protein concentration to generate dynamic noise:
-                    self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
-
-                    # update the concentration of P in cells and environment:
-                    self.cc_cells[self.iP], self.cc_env[self.iP] = stb.update_Co(self, self.cc_cells[self.iP],
-                        self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = self.ignore_ecm)
-
-                    # recalculate the net, unbalanced charge and voltage in each cell:
-                    # self.update_V(cells, p)
-
-                #-----forces, fields, and flow-----------------------------------------------------------------------------
-
-                # calculate specific forces and pressures:
-
-                if p.deform_osmo is True:
-                    osmotic_P(self,cells, p)
-
-                if p.fluid_flow is True:
-
-                    self.run_sim = True
-
-                    getFlow(self,cells, p)
-
-                # if desired, electroosmosis of membrane channels
-                if p.sim_eosmosis is True:
-
-                    self.run_sim = True
-
-                    eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
-
-                if p.deformation is True:
-
-                    self.run_sim = True
-
-                    if p.td_deform is False:
-
-                        getDeformation(self,cells, t, p)
-
-                    elif p.td_deform is True:
-
-                        timeDeform(self,cells, t, p)
-
-                # recalculate the net, unbalanced charge and voltage in each cell:
-                self.update_V(cells, p)
-
-                # check for NaNs in voltage and stop simulation if found:
-                stb.check_v(self.vm)
-
-
-                # ---------time sampling and data storage---------------------------------------------------
-                if t in tsamples:
-
-                    self.write2storage(t, cells, p)  # write data to time storage vectors
-
-                    # Update the currently displayed and/or saved animation.
-                    self._replot_loop(p)
-
-                # Get time for loop and estimate total time for simulation.
-                if do_once is True:
-                    loop_time = time.time() - loop_measure
-
-                    if p.run_sim is True:
-                        time_estimate = round(loop_time * p.sim_tsteps, 2)
-                    else:
-                        time_estimate = round(loop_time * p.init_tsteps, 2)
-                    logs.log_info("This run should take approximately " + str(time_estimate) + ' s to compute...')
-                    do_once = False
+            self._run_sim_core_loop(
+                cells, p, time_steps, time_steps_sampled, anim_cells)
+        # If this phase becomes computationally unstable, preserve this
+        # exception *BEFORE* saving the results and then reraising this
+        # exception. Doing so guarantees access to these results even in the
+        # common edge case of computational instability, preventing data loss.
         except BetseSimInstabilityException as exception:
             exception_instability = exception
-
-        #--------------
-        cells.points_tree = None
+        # If any other type of exception is raised, an unexpected fatal error
+        # has occurred. In this case, these results are likely to be in an
+        # inconsistent, nonsensical state and hence safely discarded.
 
         # Explicitly close the prior animation to conserve memory.
-        self._deplot_loop()
+        self._deplot_loop(anim_cells)
 
         # Save this initialization or simulation and report results of
         # potential interest to the user.
@@ -1204,11 +952,316 @@ class Simulator(object):
             logs.log_error('Simulation prematurely halted due to instability.')
             raise exception_instability
 
+
+    @type_check
+    def _run_sim_core_loop(
+        self,
+        cells: 'betse.science.cells.Cells',
+        p:     'betse.science.parameters.Parameters',
+        time_steps: ndarray,
+        time_steps_sampled: set,
+        anim_cells: (AnimCellsWhileSolving, NoneType),
+    ) -> None:
+        '''
+        Drive the time loop for the current simulation phase, including:
+
+        * Gap-junction connections.
+        * Calls to all dynamic channels and entities (when simulating).
+
+        Parameters
+        --------
+        cells : betse.science.cells.Cells
+            Current cell cluster.
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
+        time_steps : ndarray
+            One-dimensional Numpy array defining the time-steps vector for the
+            current phase.
+        time_steps_sampled : set
+            Subset of the ``time_steps`` array whose elements are **sampled
+            time steps** (i.e., time step at which to sample data,
+            substantially reducing data storage). In particular, the length of
+            this set governs the number of frames in each exported animation.
+        anim_cells : (AnimCellsWhileSolving, NoneType)
+            A mid-simulation animation of cell voltage as a function of time if
+            enabled by this configuration *or* ``None`` otherwise.
+        '''
+
+        # True only on the first time step of this phase.
+        is_time_step_first = True
+
+        for t in time_steps:  # run through the loop
+            # Start the timer to approximate time for the simulation.
+            if is_time_step_first is True:
+                loop_measure = time.time()
+
+            # Reinitialize flux storage devices:
+            self.fluxes_mem.fill(0)
+            self.fluxes_gj.fill(0)
+
+            if p.sim_ECM is True:
+
+                self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
+                self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
+                self.Phi_vect = np.zeros((len(self.zs), self.edl))
+
+                self.conc_J_x = np.zeros(self.edl)
+                self.conc_J_y = np.zeros(self.edl)
+
+            # Calculate the values of scheduled and dynamic quantities (e.g.
+            # ion channel multipliers):
+            if p.run_sim is True:
+                self.dyna.runAllDynamics(self, cells, p, t)
+
+            # -----------------PUMPS-------------------------------------------------------------------------------------
+
+            if p.sim_ECM is True:
+                # run the Na-K-ATPase pump:
+                fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
+                    self.cc_cells[self.iNa][cells.mem_to_cells],
+                    self.cc_env[self.iNa][cells.map_mem2ecm],
+                    self.cc_cells[self.iK][cells.mem_to_cells],
+                    self.cc_env[self.iK][cells.map_mem2ecm],
+                    self.vm,
+                    self.T,
+                    p,
+                    self.NaKATP_block,
+                    met = self.met_concs
+                )
+
+            else:
+
+                fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
+                            self.cc_cells[self.iNa][cells.mem_to_cells],
+                            self.cc_env[self.iNa],
+                            self.cc_cells[self.iK][cells.mem_to_cells],
+                            self.cc_env[self.iK],
+                            self.vm,
+                            self.T,
+                            p,
+                            self.NaKATP_block,
+                            met = self.met_concs
+                        )
+
+
+            # modify pump flux with any lateral membrane diffusion effects:
+            fNa_NaK = self.rho_pump*fNa_NaK
+            fK_NaK = self.rho_pump*fK_NaK
+
+            if p.cluster_open is False:
+                fNa_NaK[cells.bflags_mems] = 0
+                fK_NaK[cells.bflags_mems] = 0
+
+            # modify the fluxes by electrodiffusive membrane redistribution factor and add fluxes to storage:
+            self.fluxes_mem[self.iNa] = self.fluxes_mem[self.iNa]  + fNa_NaK
+            self.fluxes_mem[self.iK] = self.fluxes_mem[self.iK] + fK_NaK
+
+            if p.metabolism_enabled:
+                # update ATP concentrations after pump action:
+                self.metabo.update_ATP(fNa_NaK, self, cells, p)
+
+            # update the concentrations of Na and K in cells and environment:
+            self.cc_cells[self.iNa],  self.cc_env[self.iNa] =  stb.update_Co(self, self.cc_cells[self.iNa],
+                                                                        self.cc_env[self.iNa],fNa_NaK, cells, p,
+                                                                        ignoreECM = self.ignore_ecm)
+
+            self.cc_cells[self.iK], self.cc_env[self.iK] = stb.update_Co(self, self.cc_cells[self.iK],
+                self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = self.ignore_ecm)
+
+
+            # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
+
+            # electro-diffuse all ions (except for proteins, which don't move) across the cell membrane:
+
+            shuffle(self.movingIons)
+
+            for i in self.movingIons:
+
+                IdM = np.ones(self.mdl)
+
+                if p.sim_ECM is True:
+
+                    f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_cells[i][cells.mem_to_cells],
+                        self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
+                        rho=self.rho_channel)
+
+                else:
+
+                    f_ED = stb.electroflux(self.cc_env[i],self.cc_cells[i][cells.mem_to_cells],
+                                            self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
+                                    self.vm,self.T,p,rho=self.rho_channel)
+
+                if p.cluster_open is False:
+                    f_ED[cells.bflags_mems] = 0
+
+                # add membrane flux to storage
+                self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
+
+                # update ion concentrations in cell and ecm:
+                self.cc_cells[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
+                    self.cc_env[i], f_ED, cells, p, ignoreECM = self.ignore_ecm)
+
+                # update flux between cells due to gap junctions
+                self.update_gj(cells, p, t, i)
+
+                if p.sim_ECM:
+                    #update concentrations in the extracellular spaces:
+                    self.update_ecm(cells, p, t, i)
+
+                # ensure no negative concentrations:
+                stb.no_negs(self.cc_cells[i])
+
+            # ----transport and handling of special ions------------------------------------------------------------
+
+            if p.ions_dict['Ca'] == 1:
+
+                self.ca_handler(cells, p)
+
+
+            if p.ions_dict['H'] == 1:
+
+                self.acid_handler(cells, p)
+
+
+            # update the general molecules handler-----------------------------------------------------------------
+            if p.molecules_enabled:
+
+                if self.molecules.transporters:
+
+                    self.molecules.core.run_loop_transporters(t, self, self.molecules, cells, p)
+
+                if self.molecules.channels:
+
+                    self.molecules.core.run_loop_channels(self, self.molecules, cells, p)
+
+                if self.molecules.modulators:
+
+                    self.molecules.core.run_loop_modulators(self, self.molecules, cells, p)
+
+                self.molecules.core.run_loop(t, self, cells, p)
+
+            # update metabolic handler----------------------------------------------------------------------
+
+            if p.metabolism_enabled:
+
+                if self.metabo.transporters:
+                    self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
+
+                if self.metabo.channels:
+
+                    self.metabo.core.run_loop_channels(self, self.metabo.core, cells, p)
+
+                if self.metabo.modulators:
+
+                    self.metabo.core.run_loop_modulators(self, self.metabo.core, cells, p)
+
+                self.metabo.core.run_loop(t, self, cells, p)
+
+            # update gene regulatory network handler--------------------------------------------------------
+
+            if p.grn_enabled:
+
+                if self.grn.transporters:
+                    self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
+
+                if self.grn.channels and p.run_sim is True:
+                    self.grn.core.run_loop_channels(self, self.grn.core, cells, p)
+
+                if self.grn.modulators:
+                    self.grn.core.run_loop_modulators(self, self.grn.core, cells, p)
+
+                # update the main gene regulatory network:
+                self.grn.core.run_loop(t, self, cells, p)
+
+
+            # dynamic noise handling-----------------------------------------------------------------------------------
+
+            if p.dynamic_noise == 1 and p.ions_dict['P'] == 1:
+
+                # add a random walk on protein concentration to generate dynamic noise:
+                self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
+
+                # update the concentration of P in cells and environment:
+                self.cc_cells[self.iP], self.cc_env[self.iP] = stb.update_Co(self, self.cc_cells[self.iP],
+                    self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = self.ignore_ecm)
+
+                # recalculate the net, unbalanced charge and voltage in each cell:
+                # self.update_V(cells, p)
+
+            #-----forces, fields, and flow-----------------------------------------------------------------------------
+
+            # calculate specific forces and pressures:
+
+            if p.deform_osmo is True:
+                osmotic_P(self,cells, p)
+
+            if p.fluid_flow is True:
+
+                self.run_sim = True
+
+                getFlow(self,cells, p)
+
+            # if desired, electroosmosis of membrane channels
+            if p.sim_eosmosis is True:
+
+                self.run_sim = True
+
+                eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
+
+            if p.deformation is True:
+
+                self.run_sim = True
+
+                if p.td_deform is False:
+
+                    getDeformation(self,cells, t, p)
+
+                elif p.td_deform is True:
+
+                    timeDeform(self,cells, t, p)
+
+            # recalculate the net, unbalanced charge and voltage in each cell:
+            self.update_V(cells, p)
+
+            # check for NaNs in voltage and stop simulation if found:
+            stb.check_v(self.vm)
+
+
+            # ---------time sampling and data storage---------------------------------------------------
+            # If this time step is sampled...
+            if t in time_steps_sampled:
+                # Write data to time storage vectors.
+                self.write2storage(t, cells, p)
+
+                # If animating this phase, display and/or save the next frame
+                # of this animation. For simplicity, pass "-1" implying the
+                # last frame and hence the results of the most recently solved
+                # time step.
+                if anim_cells is not None:
+                    anim_cells.plot_frame(time_step=-1)
+
+            # Get time for loop and estimate total time for simulation.
+            if is_time_step_first:
+                # Ignore this conditional on all subsequent time steps.
+                is_time_step_first = False
+
+                loop_time = time.time() - loop_measure
+
+                # Estimated number of seconds to complete this phase.
+                if p.run_sim is True:
+                    time_estimate = round(loop_time * p.sim_tsteps, 2)
+                else:
+                    time_estimate = round(loop_time * p.init_tsteps, 2)
+
+                # Log this estimate.
+                logs.log_info(
+                    'This run should take approximately %fs to compute...',
+                    time_estimate)
+
     #.................{  INITIALIZERS & FINALIZERS  }............................................
     def clear_storage(self, cells, p):
         """
         Re-initializes time storage vectors at the begining of a sim or init.
-
         """
 
         # clear mass flux storage vectors:
@@ -1370,7 +1423,7 @@ class Simulator(object):
 
             # make a copy of cells to apply deformation to:
             # self.cellso = copy.deepcopy(cells)
-            implement_deform_timestep(self,self.cellso, t, p)
+            implement_deform_timestep(self, self.cellso, t, p)
             self.dx_cell_time.append(self.d_cells_x[:])
             self.dy_cell_time.append(self.d_cells_y[:])
 
@@ -1439,8 +1492,6 @@ class Simulator(object):
         #
         # self.Pol_tot_time.append(self.Pol_tot)
 
-
-
         self.vm_ave_time.append(self.vm_ave)
 
         # # magnetic vector potential:
@@ -1450,9 +1501,14 @@ class Simulator(object):
         # magnetic field
         # self.Bz_time.append(self.Bz)
 
-    def save_and_report(self,cells,p):
+    def save_and_report(self, cells, p) -> None:
+        '''
+        Save the results of running the current phase (e.g., initialization,
+        simulation).
+        '''
 
-        # save the init or sim:
+        #FIXME: What is this? Why do we need an extra copy of "cells", anyway?
+        cells.points_tree = None
 
         # get rid of the extra copy of cells
         if p.deformation:
@@ -1900,8 +1956,31 @@ class Simulator(object):
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
 
+    # ..................{ PROPERTIES                         }..................
+    @property
+    def phase(self) -> SimPhase:
+        '''
+        Current simulation phase.
+        '''
+
+        return self._phase
+
+
+    @phase.setter
+    @type_check
+    def phase(self, phase: SimPhase) -> None:
+        '''
+        Set whether the current simulation phase.
+        '''
+
+        self._phase = phase
+
     # ..................{ PLOTTERS                           }..................
-    def _plot_loop(self, cells, p):
+    def _plot_loop(
+        self,
+        cells: 'betse.science.cells.Cells',
+        p:     'betse.science.parameters.Parameters',
+    ) -> tuple:
         '''
         Display and/or save an animation during solving if requested _and_
         calculate data common to solving both with and without extracellular
@@ -1909,12 +1988,19 @@ class Simulator(object):
 
         Returns
         --------
-        tt : np.ndarray
-            Time-steps vector appropriate for the current run.
-        tsamples : set
-            Time-steps vector resampled to save data at substantially fewer
-            times. The length of this vector governs the number of frames in
-            plotted animations, for example.
+        (ndarray, set, (AnimCellsWhileSolving, NoneType))
+            3-tuple ``(time_steps, time_steps_sampled, anim_cells)`` where:
+            * ``time_steps`` is a one-dimensional Numpy array defining the
+              time-steps vector for the current phase.
+            * ``time_steps_sampled`` is the subset of the ``time_steps`` array
+              whose elements are **sampled time steps** (i.e., time step at
+              which to sample data, substantially reducing data storage). In
+              particular, the length of this set governs the number of frames
+              in each exported animation.
+            * ``anim_cells`` is either:
+              * If a mid-simulation animation of cell voltage as a function of
+                time is enabled by this configuration, this animation.
+              * Else, ``None``.
         '''
 
         #FIXME: Refactor these conditionally set local variables into
@@ -1938,14 +2024,14 @@ class Simulator(object):
         phase_time_len = phase_time_step_count * p.dt
 
         # Time-steps vector appropriate for the current run.
-        tt = np.linspace(0, phase_time_len, phase_time_step_count)
+        time_steps = np.linspace(0, phase_time_len, phase_time_step_count)
 
-        tsamples = set()
+        time_steps_sampled = set()
         i = 0
-        while i < len(tt) - p.t_resample:
+        while i < len(time_steps) - p.t_resample:
             i += p.t_resample
             i = int(i)
-            tsamples.add(tt[i])
+            time_steps_sampled.add(time_steps[i])
 
         # Log this run.
         logs.log_info(
@@ -1953,64 +2039,44 @@ class Simulator(object):
             'in %d time steps (%d sampled).',
             phase_noun,
             phase_time_len,
-            len(tt),
-            len(tsamples),
+            len(time_steps),
+            len(time_steps_sampled),
         )
 
-        # If plotting an animation during simulation computation, do so.
+        # Mid-simulation animation of cell voltage as a function of time if
+        # enabled by this configuration or None otherwise.
+        anim_cells = None
+
+        # If this animation is enabled, create this animation.
         if p.anim.is_while_sim:
-            self._anim_cells_while_solving = AnimCellsWhileSolving(
+            anim_cells = AnimCellsWhileSolving(
+                sim=self, cells=cells, p=p,
+
+                # Number of frames to animate, corresponding to the number of
+                # sampled time steps. The plot_frame() method of this animation
+                # will be called only for each such step.
+                time_step_count=len(time_steps_sampled),
+
+                # Animation metadata.
                 label='Vmem',
                 figure_title='Vmem while {}'.format(phase_verb),
                 colorbar_title='Voltage [mV]',
+
+                # Animation colors.
                 color_min=p.Vmem_min_clr,
                 color_max=p.Vmem_max_clr,
                 is_color_autoscaled=p.autoscale_Vmem,
-                sim=self, cells=cells, p=p,
-
-                # The number of animation frames is the number of sampled time
-                # steps, as the _replot_loop() method plotting each such frame
-                # is called *ONLY* for each such step.
-                time_step_count=len(tsamples),
             )
-        # Else, nullify the object encapsulating this animation for safety.
-        else:
-            self._anim_cells_while_solving = None
 
-        return tt, tsamples
-
-    # ..................{ PROPERTIES                         }..................
-    @property
-    def phase(self) -> SimPhase:
-        '''
-        Current simulation phase.
-        '''
-
-        return self._phase
+        # Return the 3-tuple of these objects to the caller.
+        return time_steps, time_steps_sampled, anim_cells
 
 
-    @phase.setter
+    #FIXME: Shift the entirety of this method into the
+    #AnimCellsWhileSolving.__exit__() special method's implementation.
     @type_check
-    def phase(self, phase: SimPhase) -> None:
-        '''
-        Set whether the current simulation phase.
-        '''
-
-        self._phase = phase
-
-    # ..................{ PLOTTERS                           }..................
-    def _replot_loop(self, p):
-        '''
-        Update the currently displayed and/or saved animation during solving
-        with the results of the most recently solved time step, if requested.
-        '''
-
-        # Update this animation for the "last frame" if desired, corresponding
-        # to the results of the most recently solved time step.
-        if p.anim.is_while_sim:
-            self._anim_cells_while_solving.plot_frame(time_step=-1)
-
-    def _deplot_loop(self):
+    def _deplot_loop(
+        self, anim_cells: (AnimCellsWhileSolving, NoneType)) -> None:
         '''
         Explicitly close the previously displayed and/or saved animation if
         any _or_ noop otherwise.
@@ -2020,9 +2086,8 @@ class Simulator(object):
         '''
 
         # Close the previously displayed and/or saved animation if any.
-        if self._anim_cells_while_solving is not None:
-            self._anim_cells_while_solving.close()
-            self._anim_cells_while_solving = None
+        if anim_cells is not None:
+            anim_cells.close()
 
         # For safety, close all remaining plots and animations as well.
         plt.close()
