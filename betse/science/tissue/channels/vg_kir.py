@@ -79,13 +79,11 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
         dmKir = tb.RK4(lambda m: (self._mInf - m) / self._mTau)
         dhKir = tb.RK4(lambda h: (self._hInf - h) / self._hTau)
 
-        dyna.m_Kir = dmKir(dyna.m_Kir, p.dt * 1e3) + dyna.m_Kir
-        dyna.h_Kir = dhKir(dyna.h_Kir, p.dt * 1e3) + dyna.h_Kir
+        dyna.m_Kir = dmKir(dyna.m_Kir, p.dt) + dyna.m_Kir
+        dyna.h_Kir = dhKir(dyna.h_Kir, p.dt) + dyna.h_Kir
 
         # calculate the open-probability of the channel:
         P = (dyna.m_Kir ** self._mpower) * (dyna.h_Kir ** self._hpower)
-
-        # print(P.min(), P.max(), P.mean())
 
         # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
@@ -100,13 +98,6 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
         IdM = np.ones(sim.mdl)
 
         z_ion = sim.zs[sim.iK] * IdM
-
-        # make sure probablility is binned between zero and 1:
-        # inds_PL = (P < 0.0).nonzero()
-        # inds_PH = (P > 1.0).nonzero()
-        #
-        # P[inds_PL] = 0.0
-        # P[inds_PH] = 1.0
 
         # membrane diffusion constant of the channel:
         Dchan = dyna.maxDmKir*P*1.0e-9
