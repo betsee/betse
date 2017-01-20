@@ -325,6 +325,7 @@ class Simulator(object):
 
         """
 
+
         # initialize all extra substances related objects to None, to be filled in if desired later
         self.molecules = None
         self.metabo = None
