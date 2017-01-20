@@ -15,7 +15,7 @@ from contextlib import contextmanager
 
 # ....................{ MANAGERS                           }....................
 @contextmanager
-def noop() -> GeneratorType:
+def noop_context() -> GeneratorType:
     '''
     Empty context manager exiting immediately after being entered.
     '''

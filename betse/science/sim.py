@@ -7,10 +7,8 @@ import copy
 import os
 import os.path
 import time
-import matplotlib.pyplot as plt
 import numpy as np
 from betse.exceptions import BetseSimInstabilityException
-from betse.util.io.log import logs
 from betse.science import filehandling as fh
 from betse.science import finitediff as fd
 # from betse.science import toolbox as tb
@@ -28,6 +26,8 @@ from betse.science.physics.pressures import osmotic_P
 from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
+from betse.util.io.log import logs
+from betse.util.type.contexts import noop_context
 from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check, NoneType
 from numpy import ndarray
@@ -923,10 +923,15 @@ class Simulator(object):
         # handling of this instability (e.g., by saving simulation results).
         exception_instability = None
 
-        # Perform the time loop for this simulation phase.
+        # Attempt to...
         try:
-            self._run_sim_core_loop(
-                cells, p, time_steps, time_steps_sampled, anim_cells)
+            # Perform the time loop for this simulation phase. For the duration
+            # of doing so, temporarily enable non-blocking display of this
+            # mid-simulation animation if any *OR* enter the empty context
+            # doing nothing.
+            with anim_cells or noop_context():
+                self._run_sim_core_loop(
+                    cells, p, time_steps, time_steps_sampled, anim_cells)
         # If this phase becomes computationally unstable, preserve this
         # exception *BEFORE* saving the results and then reraising this
         # exception. Doing so guarantees access to these results even in the
@@ -936,9 +941,6 @@ class Simulator(object):
         # If any other type of exception is raised, an unexpected fatal error
         # has occurred. In this case, these results are likely to be in an
         # inconsistent, nonsensical state and hence safely discarded.
-
-        # Explicitly close the prior animation to conserve memory.
-        self._deplot_loop(anim_cells)
 
         # Save this initialization or simulation and report results of
         # potential interest to the user.
@@ -2071,26 +2073,6 @@ class Simulator(object):
         # Return the 3-tuple of these objects to the caller.
         return time_steps, time_steps_sampled, anim_cells
 
-
-    #FIXME: Shift the entirety of this method into the
-    #AnimCellsWhileSolving.__exit__() special method's implementation.
-    @type_check
-    def _deplot_loop(
-        self, anim_cells: (AnimCellsWhileSolving, NoneType)) -> None:
-        '''
-        Explicitly close the previously displayed and/or saved animation if
-        any _or_ noop otherwise.
-
-        To conserve memory, this method nullifies and hence garbage collects
-        both this animation and this animation's associated figure.
-        '''
-
-        # Close the previously displayed and/or saved animation if any.
-        if anim_cells is not None:
-            anim_cells.close()
-
-        # For safety, close all remaining plots and animations as well.
-        plt.close()
 
 #FIXME: Can this be reasonably removed now?  No...not yet :-)
 #-----------------------------------------------------------------------------------------------------------------------

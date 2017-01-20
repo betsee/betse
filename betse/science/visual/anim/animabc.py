@@ -94,23 +94,22 @@ Abstract base classes of all Matplotlib-based animation subclasses.
 #    https://stackoverflow.com/questions/21099121/python-matplotlib-unable-to-call-funcanimation-from-inside-a-function
 
 # ....................{ IMPORTS                            }....................
-from matplotlib import pyplot
-from matplotlib.animation import FuncAnimation
-
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
 from betse.science.vector.field import fieldmake
-from betse.science.visual.layer.field.layerfieldabc import LayerCellsFieldColorlessABC
-from betse.science.visual.layer.field.layerfieldstream import LayerCellsFieldStream
+from betse.science.visual.layer.field.layerfieldabc import (
+    LayerCellsFieldColorlessABC)
+from betse.science.visual.layer.field.layerfieldstream import (
+    LayerCellsFieldStream)
 from betse.science.visual.visualabc import VisualCellsABC
 from betse.util.io.log import logs
-from betse.util.os import oses
 from betse.util.path import dirs, paths
 from betse.util.type import iterables
 from betse.util.type.types import type_check, BoolOrNoneTypes, IntOrNoneTypes
-
+from matplotlib import pyplot
+from matplotlib.animation import FuncAnimation
 
 # ....................{ BASE                               }....................
 class AnimCellsABC(VisualCellsABC):
@@ -743,7 +742,7 @@ class AnimCellsABC(VisualCellsABC):
 
         See Also
         ----------
-        close()
+        :meth:`VisualCellsABC.close`
             Superclass method destroying this animation's low-level plot and
             all memory associated with this plot.
         '''
@@ -754,7 +753,7 @@ class AnimCellsABC(VisualCellsABC):
         # Finalize all writers saving this animation if any.
         self._close_writers()
 
-        # Prevent this animation from being reused and break hard cycles.
+        # Prevent this animation from being reused *AND* break hard cycles.
         self._anim = None
 
 
@@ -780,204 +779,3 @@ class AnimCellsABC(VisualCellsABC):
 
             # Prevent this writer from being reused and break hard cycles.
             self._writer_video = None
-
-    # ..................{ PLOTTERS                           }..................
-    #FIXME: Shift this method and similar methods called by this method (e.g.,
-    #_plot_frame_axes_title()) into the "VisualCellsABC" superclass. When doing
-    #so, consider renaming this method to visualize_time_step() for generality.
-    #FIXME: Insanity. For "PlotAfterSolving"-style plots, the first frame is
-    #uselessly plotted twice. Investigate, please.
-
-    @type_check
-    def plot_frame(self, time_step: int) -> None:
-        '''
-        Iterate this animation to the next frame.
-
-        This method is iteratively called by Matplotlib's `FuncAnimation()`
-        class instantiated by our `_animate()` method. The subclass
-        implementation of this abstract method is expected to modify this
-        animation's figure and axes so as to display the next frame. It is
-        _not_, however, expected to save that figure to disk; frame saving is
-        already implemented by this base class in a general-purpose manner.
-
-        Specifically, this method (in order):
-
-        . Calls the subclass :meth:`_plot_frame_figure` method to update the
-          current figure with this frame's data.
-        . Updates the current figure's axes title with the current time.
-        . Optionally writes this frame to disk if desired.
-
-        Parameters
-        ----------
-        time_step : int
-            0-based index of the frame to be plotted _or_ -1 if the most recent
-            frame is to be plotted.
-        '''
-
-        # Absolute 0-based index of the frame to be plotted.
-        #
-        # If the passed index is -1 and hence relative rather than absolute,
-        # this index is assumed to be the last index of the current
-        # simulation's array of time steps.
-        if time_step == -1:
-            time_step_absolute = len(self._sim.time) - 1
-        # Else, the passed index is already absolute and hence used as is.
-        else:
-            time_step_absolute = time_step
-
-        # Log this animation frame.
-        logs.log_debug(
-            'Plotting animation "%s" frame %d / %d...',
-            self._label, time_step_absolute, self._time_step_last)
-
-        # Classify this time step for subsequent access by subclasses.
-        self._time_step = time_step
-
-        # Plot this frame's title *BEFORE* this frame, allowing axes changes
-        # performed by the subclass implementation of the _plot_frame_figure()
-        # method called below to override the default title.
-        self._plot_frame_axes_title()
-
-        # Plot this frame via external layers *BEFORE* plotting this frame
-        # via subclass logic, allowing the latter to override the former.
-        self._plot_layers()
-
-        # Plot this frame via subclass logic *AFTER* performing all
-        # superclass-specific plotting.
-        self._plot_frame_figure()
-
-        #FIXME; This doesn't seem quite right, even for Windows. In theory, the
-        #"matplotlib.animation.FuncAnimation" class should handle such low-
-        #level details, as confirmed by the pyplot.pause() docstring:
-        #
-        #  pause(interval)
-        #
-        #     Pause for *interval* seconds.
-        #
-        #     If there is an active figure it will be updated and displayed,
-        #     and the gui event loop will run during the pause.
-        #
-        #     If there is no active figure, or if a non-interactive backend
-        #     is in use, this executes time.sleep(interval).
-        #
-        #     This can be used for crude animation. For more complex
-        #     animation, see :mod:`matplotlib.animation`.
-        #
-        #Note the last paragraph, suggesting pyplot.pause() is intended to be
-        #used as an *ALTERNATIVE* to "FuncAnimation" rather than in addition to
-        #"FuncAnimation". The fact that pyplot.pause() is required here even
-        #when using "FuncAnimation" under Windows suggests a Windows-specific
-        #issue with that class. Consider reporting.
-
-        # If displaying this frame *AND* the current platform is Windows,
-        # temporarily yield the time slice for the minimum amount of time
-        # required by the POSIX-incompatible Windows process model for
-        # responding to queued events in the GUI eventloop of the current
-        # process. Failing to do so reliably results in unresponsive plots and
-        # animations *ONLY* under Windows. For further details, see also:
-        #
-        #     https://gitlab.com/betse/betse/issues/9
-        #     https://github.com/matplotlib/matplotlib/issues/2134/
-        # If displaying this frame...
-        if self._is_show and oses.is_windows():
-            pyplot.pause(0.0001)
-
-        # If saving this animation, save this frame.
-        if self._is_save:
-            # If saving animation frames as images, save this frame as such.
-            if self._writer_images is not None:
-                self._writer_images.grab_frame(**self._writer_savefig_kwargs)
-
-            # If saving animation frames as video, save this frame as such.
-            if self._writer_video is not None:
-                # For debuggability, temporarily escalate the
-                # matplotlib-specific verbosity level.
-                with mpl_config.verbosity_debug_if_helpful():
-                    self._writer_video.grab_frame(
-                        **self._writer_savefig_kwargs)
-
-            # If this is the last frame to be plotted, finalize all writers
-            # *AFTER* instructing these writers to write this frame.
-            if time_step_absolute == self._time_step_last:
-                logs.log_debug(
-                    'Finalizing animation "%s" saving...', self._label)
-                self._close_writers()
-
-
-    #FIXME: Update with support for time acceleration.
-    def _plot_frame_axes_title(self) -> None:
-        '''
-        Plot the current frame title of this animation onto this animation's
-        axes.
-
-        By default, this title interpolates the current time step and must thus
-        be replotted for each animation frame.
-        '''
-
-        #FIXME: Shift into a new "betse.util.time.times" submodule.
-
-        # Number of seconds in a minute.
-        SECONDS_PER_MINUTE = 60
-
-        # Number of seconds in an hour.
-        SECONDS_PER_HOUR = SECONDS_PER_MINUTE * 60
-
-        #FIXME: For efficiency, classify the following local variables as
-        #object attributes in the __init__() method rather than recompute these
-        #variables each animation frame here.
-
-        # Human-readable suffix of the units that simulation times are reported
-        # in (e.g., "ms" for milliseconds).
-        time_unit_suffix = None
-
-        # Factor by which low-level simulation times are multiplied to yield
-        # human-readable simulation times in the same units of
-        # "time_unit_suffix".
-        time_unit_factor = None
-
-        # Duration in seconds of the current simulation phase (e.g., "init",
-        # "run"), accelerated by the current gap junction acceleration factor.
-        time_len = self._p.total_time_accelerated
-
-        # If this phase runs for less than or equal to 100ms, report
-        # simulation time in milliseconds (i.e., units of 0.001s).
-        if time_len <= 0.1:
-            time_unit_suffix = 'ms'
-            time_unit_factor = 1e3
-        # Else if this phase runs for less than or equal to one minute, report
-        # simulation time in seconds (i.e., units of 1s).
-        elif time_len <= SECONDS_PER_MINUTE:
-            time_unit_suffix = 's'
-            time_unit_factor = 1
-        # Else if this phase runs for less than or equal to one hour, report
-        # simulation time in minutes (i.e., units of 60s).
-        elif time_len <= SECONDS_PER_HOUR:
-            time_unit_suffix = ' minutes'
-            time_unit_factor = 1/SECONDS_PER_MINUTE
-        # Else, this phase is assumed to run for less than or equal to one day.
-        # In this case, simulation time is reported in hours (i.e., units of
-        # 60*60s).
-        else:
-            time_unit_suffix = ' hours'
-            time_unit_factor = 1/SECONDS_PER_HOUR
-
-        # Update this figure with the current time, rounded to one decimal
-        # place for readability.
-        self._axes.set_title('{} (time: {:.1f}{})'.format(
-            self._axes_title,
-            time_unit_factor * self._p.gj_acceleration * self._sim.time[self._time_step],
-            time_unit_suffix,
-        ))
-
-
-    def _plot_frame_figure(self) -> None:
-        '''
-        Update this plot or animation's figure (and typically axes) content to
-        reflect the current simulation time step.
-
-        This method defaults to a noop. Subclasses may optionally redefine this
-        method with subclass-specific logic but are strongly encouraged to
-        append layers containing such logic instead.
-        '''
-
-        pass

@@ -16,6 +16,7 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
+from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
 from betse.science.visual import visualutil
@@ -23,6 +24,7 @@ from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
 from betse.util.io.log import logs
+from betse.util.io.warning import warnings_ignored
 from betse.util.py import references
 from betse.util.type import iterables, types
 from betse.util.type.iterables import SENTINEL
@@ -128,6 +130,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         to be the corresponding minimum and maximum values for the current
         frame _or_ `False` if statically setting the minimum and maximum
         colorbar values to predetermined constants.
+
+    Attributes (Private: Time)
+    ----------
+    _is_time_step_first : bool
+        ``True`` only if the first frame either has yet to be plotter *or* is
+        currently being plotted.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -268,7 +276,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             self._color_max = color_max
             self._color_min = color_min
 
-        # Classify attributes to be subsequently defined.
+        # Default all attributes having sane defaults.
+        self._is_time_step_first = True
+
+        # Default all attributes to be subsequently defined.
         self._color_mappables = None
         self._writer_frames = None
         self._writer_video = None
@@ -770,6 +781,294 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             layer.layer()
 
     # ..................{ PLOTTERS                           }..................
+    #FIXME: Shift this method and similar methods called by this method (e.g.,
+    #_plot_frame_axes_title()) into the "VisualCellsABC" superclass. When doing
+    #so, consider renaming this method to visualize_time_step() for generality.
+    #FIXME: Insanity. For "PlotAfterSolving"-style plots, the first frame is
+    #uselessly plotted twice. Investigate, please.
+
+    @type_check
+    def plot_frame(self, time_step: int) -> None:
+        '''
+        Display and/or save the frame corresponding to the passed sampled
+        simulation time step for this plot or animation.
+
+        This method is iteratively called by matplotlib's
+        :class:`FuncAnimation` class instantiated by our :meth:`_animate`
+        method. The subclass implementation of this abstract method is expected
+        to modify this animation's figure and axes so as to display the next
+        frame. It is *not*, however, expected to save that figure to disk;
+        frame saving is already implemented by this base class in a
+        general-purpose manner.
+
+        Specifically, this method (in order):
+
+        . Calls the subclass :meth:`_plot_frame_figure` method to update the
+          current figure with this frame's data.
+        . Updates the current figure's axes title with the current time.
+        . Optionally writes this frame to disk if desired.
+
+        Parameters
+        ----------
+        time_step : int
+            0-based index of the frame to be plotted _or_ -1 if the most recent
+            frame is to be plotted.
+        '''
+
+        # Absolute 0-based index of the frame to be plotted.
+        #
+        # If the passed index is -1 and hence relative rather than absolute,
+        # this index is assumed to be the last index of the current
+        # simulation's array of time steps.
+        if time_step == -1:
+            time_step_absolute = len(self._sim.time) - 1
+        # Else, the passed index is already absolute and hence used as is.
+        else:
+            time_step_absolute = time_step
+
+        # Log this animation frame.
+        logs.log_debug(
+            'Plotting animation "%s" frame %d / %d...',
+            self._label, time_step_absolute, self._time_step_last)
+
+        # Classify this time step for subsequent access by subclasses.
+        self._time_step = time_step
+
+        # Plot this frame's title *BEFORE* this frame, allowing axes changes
+        # performed by the subclass implementation of the _plot_frame_figure()
+        # method called below to override the default title.
+        self._plot_frame_axes_title()
+
+        # Plot this frame via external layers *BEFORE* plotting this frame
+        # via subclass logic, allowing the latter to override the former.
+        self._plot_layers()
+
+        # Plot this frame via subclass logic *AFTER* performing all
+        # superclass-specific plotting.
+        self._plot_frame_figure()
+
+        # Interactively display this frame if requested.
+        self._show_frame(time_step_absolute)
+
+        # Non-interactively write this frame to disk if requested.
+        self._save_frame(time_step_absolute)
+
+        # Inform subclasses that subsequent frames are no longer the first.
+        self._is_time_step_first = False
+
+
+    def _plot_frame_axes_title(self) -> None:
+        '''
+        Plot the current frame title of this animation onto this animation's
+        axes.
+
+        By default, this title interpolates the current time step and must thus
+        be replotted for each animation frame.
+        '''
+
+        #FIXME: Shift into a new "betse.util.time.times" submodule.
+
+        # Number of seconds in a minute.
+        SECONDS_PER_MINUTE = 60
+
+        # Number of seconds in an hour.
+        SECONDS_PER_HOUR = SECONDS_PER_MINUTE * 60
+
+        #FIXME: For efficiency, classify the following local variables as
+        #object attributes in the __init__() method rather than recompute these
+        #variables each animation frame here.
+
+        # Human-readable suffix of the units that simulation times are reported
+        # in (e.g., "ms" for milliseconds).
+        time_unit_suffix = None
+
+        # Factor by which low-level simulation times are multiplied to yield
+        # human-readable simulation times in the same units of
+        # "time_unit_suffix".
+        time_unit_factor = None
+
+        # Duration in seconds of the current simulation phase (e.g., "init",
+        # "run"), accelerated by the current gap junction acceleration factor.
+        time_len = self._p.total_time_accelerated
+
+        # If this phase runs for less than or equal to 100ms, report
+        # simulation time in milliseconds (i.e., units of 0.001s).
+        if time_len <= 0.1:
+            time_unit_suffix = 'ms'
+            time_unit_factor = 1e3
+        # Else if this phase runs for less than or equal to one minute, report
+        # simulation time in seconds (i.e., units of 1s).
+        elif time_len <= SECONDS_PER_MINUTE:
+            time_unit_suffix = 's'
+            time_unit_factor = 1
+        # Else if this phase runs for less than or equal to one hour, report
+        # simulation time in minutes (i.e., units of 60s).
+        elif time_len <= SECONDS_PER_HOUR:
+            time_unit_suffix = ' minutes'
+            time_unit_factor = 1/SECONDS_PER_MINUTE
+        # Else, this phase is assumed to run for less than or equal to one day.
+        # In this case, simulation time is reported in hours (i.e., units of
+        # 60*60s).
+        else:
+            time_unit_suffix = ' hours'
+            time_unit_factor = 1/SECONDS_PER_HOUR
+
+        # Current time adjusted for optional gap junction acceleration.
+        time_accelerated = (
+            time_unit_factor *
+            self._sim.time[self._time_step] *
+            self._p.gj_acceleration)
+
+        # Update this figure with this time, rounded to one decimal place.
+        self._axes.set_title('{} (time: {:.1f}{})'.format(
+            self._axes_title, time_accelerated, time_unit_suffix,))
+
+
+    def _show_frame(self, time_step_absolute: int) -> None:
+        '''
+        Display the current frame of this animation if requested by the current
+        simulation configuration *or* silently noop otherwise.
+
+        Parameters
+        ----------
+        time_step_absolute : int
+            0-based index of the current frame to be shown.
+        '''
+
+        # If *NOT* showing this frame, return immediately.
+        if not self._is_show:
+            return
+
+        # Temporarily yield the time slice for the smallest amount of time
+        # required by the current matplotlib backend to handle queued events in
+        # the GUI eventloop of the current process on the current platform.
+        # Failing to do so results in subtle (and hence non-trivial) issues
+        # with plot and animation display. Technically, doing so only appears
+        # to be required on one or more of the following edge-case conditions:
+        #
+        # * The current platform is Windows, whose POSIX-incompatible process
+        #   model has special needs.
+        # * The current plot or animation is non-blocking *AND* the current
+        #   backend is poorly implemented or supported (e.g., "Qt4Agg").
+        #
+        # Since reliably detecting all such conditions is non-trivial and
+        # certainly more time consuming than unconditionally yielding the time
+        # slice for a negligible amount of time, we prefer the latter approach.
+        #
+        # In theory, the time slice should *NEVER* need to be manually yielded.
+        # The "matplotlib.animation.FuncAnimation" class should handle such
+        # low-level details, as confirmed by the pyplot.pause() docstring:
+        #
+        #  pause(interval)
+        #
+        #     Pause for *interval* seconds.
+        #
+        #     If there is an active figure it will be updated and displayed,
+        #     and the gui event loop will run during the pause.
+        #
+        #     If there is no active figure, or if a non-interactive backend
+        #     is in use, this executes time.sleep(interval).
+        #
+        #     This can be used for crude animation. For more complex
+        #     animation, see :mod:`matplotlib.animation`.
+        #
+        # Note the last paragraph, implying the low-level pyplot.pause() method
+        # to be an alternative (rather than addition) to the the higher-level
+        # "matplotlib.animation" submodule. Unfortunately, this does *NOT*
+        # appear to be the case; the pyplot.pause() method *MUST* be manually
+        # called even when leveraging "matplotlib.animation" functionality.
+        #
+        # For further details, see also:
+        #
+        #     https://gitlab.com/betse/betse/issues/9
+        #     https://github.com/matplotlib/matplotlib/issues/2134/
+
+        # Suppress the following non-fatal deprecation warning "infrequently"
+        # but annoyingly emitted by the pyplot.pause() function:
+        #
+        #     [betse] /usr/lib64/python3.4/site-packages/matplotlib/backend_bases.py:2437:
+        #     MatplotlibDeprecationWarning: Using default event loop
+        #     until function specific to this GUI is implemented
+        #       warnings.warn(str, mplDeprecation)
+        #
+        # Since this warning is overly verbose and safely ignorable, we do so.
+        # Although this warning appears to be emitted *ONLY* on the second call
+        # to this function and hence the second frame to be displayed,
+        # depending on private matplotlib behavior is probably unwise. This
+        # warning is unconditionally suppressed regardless of the time step.
+        #
+        # While mildly inefficient, ignoring this warning is preferable to the
+        # alternatives of enraging, berating, and frightening end users.
+
+        #FIXME: Inefficient. While we can't get around the need to suppress
+        #warnings here, we *CAN* get around the need to instantiate a new
+        #context manager on each call to this method. How? By making the
+        #warnings_ignored() manager reusable rather than single-use. For
+        #convenience, this manager is currently created via the @contextmanager
+        #decorator. Sadly, that makes this manager single-use.
+        #
+        #Fortunately, creating reusable context managers is trivial. Simply:
+        #
+        #* Define a new "betse.util.io.warning.WarningsIgnored" class defining
+        #  the usual __enter__() and __exit__() special methods in the trivial
+        #  way. That's it! Instances of this class are now reusable.
+        #* Define a new "betse.util.io.warning.WARNINGS_IGNORED" singleton
+        #  instance of this class, which we then enter here. Nice, eh?
+        with warnings_ignored():
+            pyplot.pause(0.0001)
+
+
+    def _save_frame(self, time_step_absolute: int) -> None:
+        '''
+        Persist the current frame of this animation to disk if requested by the
+        current simulation configuration *or* silently noop otherwise.
+
+        Parameters
+        ----------
+        time_step_absolute : int
+            0-based index of the current frame to be saved.
+        '''
+
+        # If *NOT* saving this frame, return immediately.
+        if not self._is_save:
+            return
+
+        # If saving animation frames as images, save this frame as such.
+        if self._writer_images is not None:
+            self._writer_images.grab_frame(**self._writer_savefig_kwargs)
+
+        # If saving animation frames as video, save this frame as such.
+        if self._writer_video is not None:
+            # For debuggability, temporarily escalate the
+            # matplotlib-specific verbosity level.
+            with mpl_config.verbosity_debug_if_helpful():
+                self._writer_video.grab_frame(
+                    **self._writer_savefig_kwargs)
+
+        # If this is the last frame to be plotted, finalize all writers
+        # *AFTER* instructing these writers to write this frame.
+        if time_step_absolute == self._time_step_last:
+            logs.log_debug(
+                'Finalizing animation "%s" saving...', self._label)
+            self._close_writers()
+
+    # ..................{ SUBCLASS                           }..................
+    def _plot_frame_figure(self) -> None:
+        '''
+        Update this plot or animation's figure (and typically axes) content to
+        reflect the current simulation time step.
+
+        This method defaults to a noop. Subclasses may optionally redefine this
+        method with subclass-specific logic but are strongly encouraged to
+        append layers containing such logic instead.
+        '''
+
+        pass
+
+    # ..................{ PLOTTERS ~ image                   }..................
+    #FIXME: Merge the useful docstring for this method into the
+    #"betse.science.visual.layer.field.layerfieldsurface.LayerCellsFieldSurface"
+    #class; then, excise this method.
     @type_check
     def _plot_image(
         self,
@@ -792,9 +1091,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             array is:
             * Two-dimensional, a greyscale image mapped onto the passed
               colormap will be plotted.
-            * Three-dimensional, an RGB image _not_ mapped onto the passed
+            * Three-dimensional, an RGB image *not* mapped onto the passed
               colormap will be plotted.
-            * Four-dimensional, an RGBa image _not_ mapped onto the passed
+            * Four-dimensional, an RGBa image *not* mapped onto the passed
               colormap will be plotted.
         colormap : matplotlib.cm.Colormap
             Optional colormap with which to map the passed pixel data when

@@ -694,12 +694,12 @@ class MatplotlibConfig(object):
     @property
     def backend_name(self) -> str:
         '''
-        Human-readable name (e.g., `Qt5Agg`) of the current backend.
+        Human-readable name (e.g., ``Qt5Agg``) of the current backend.
 
-        This name is _not_ guaranteed to be lowercase. This name is typically a
+        This name is *not* guaranteed to be lowercase. This name is typically a
         mix of lower- and uppercase alphanumeric characters.
 
-        This backend is _not_ guaranteed to be usable. If no backend has been
+        This backend is *not* guaranteed to be usable. If no backend has been
         enabled yet (either explicitly or implicitly), this is the name of the
         default backend implicitly enabled by importing the
         :mod:`motplotlib.pyplot` submodule.
@@ -740,9 +740,9 @@ class MatplotlibConfig(object):
     # ..................{ TESTERS                            }..................
     def is_backend(self) -> bool:
         '''
-        `True` only if a backend has been successfully enabled.
+        ``True`` only if a backend has been successfully enabled.
 
-        This function returns `True` only if a backend has been either:
+        This function returns ``True`` only if a backend has been either:
 
         * Explicitly enabled by setting the :meth:`backend_name` property
           internally calling the :func:`matplotlib.use` function.
@@ -759,15 +759,15 @@ class MatplotlibConfig(object):
     @type_check
     def is_backend_usable(self, backend_name: str) -> bool:
         '''
-        `True` if the backend with the passed name is **usable** (i.e., safely
-        switchable to without raising exceptions) on the current system.
+        ``True`` only if the backend with the passed name is **usable** (i.e.,
+        safely switchable to without raising exceptions) on the current system.
 
         If this backend is usable, this method switches the current backend
-        to this backend _without_ restoring the previously set backend. This is
+        to this backend *without* restoring the previously set backend. This is
         the unavoidable price of robust, reproducible test results. Callers
         requiring the previously set backend to be restored must do so manually
         (e.g., by setting the :func:`property` attribute to the name of that
-        backend) _after_ calling this method.
+        backend) *after* calling this method.
         '''
 
         # Log this attempt.
@@ -798,7 +798,9 @@ class MatplotlibConfig(object):
         # * "Gtk3cairo", which, despite claiming to be a GTK+ 3.x-specific
         #   backend, appears to attempt to dynamically load GTK+ 2.x-specific
         #   shared libraries -- inducing the fatal segmentation fault above.
+
         #FIXME: For efficiency, compile this regex for reuse during iteration.
+
         if regexes.is_match(
             text=backend_name, regex=r'^gtk(?:3(?:agg|cairo)|[^3]|$)'):
             # print("bad gtk backend: " + backend_name)
@@ -815,11 +817,76 @@ class MatplotlibConfig(object):
         except:
             return False
 
+    # ..................{ TESTERS                            }..................
+    def is_backend_current_nonblockable(self) -> bool:
+        '''
+        ``True`` only if the current backend supports true non-blocking display
+        on the current system.
+
+        See Also
+        ----------
+        :meth:`is_backend_nonblockable`
+            Further details.
+        '''
+
+        return self.is_backend_nonblockable(self.backend_name)
+
+
+    @type_check
+    def is_backend_nonblockable(self, backend_name: str) -> bool:
+        '''
+        ``True`` only if the backend with the passed name supports **true
+        non-blocking display** (i.e., in a backend-specific GUI eventloop in
+        a separate thread of the current process) on the current system.
+
+        If this method returns:
+
+        * ``True``, this backend may reliably display plots and animations in a
+          non-blocking manner by passing the experimental ``block=False``
+          parameter to the :func:`matplotlib.pyplot.show` method.
+        * ``False``, the experimental ``block=False`` parameter must *not* be
+          passed to the :func:`matplotlib.pyplot.show` function. Doing so will
+          silently hide plots and animations with no warnings or errors.
+          Instead, fallback to the following approach:
+
+          .. code:: python
+
+              # Setup the current plot or animation for non-blocking display.
+              matplotlib.interactive(True)
+              matplotlib.pyplot.show()
+
+              # Display the current frame of this plot or animation.
+              matplotlib.pyplot.draw()
+              matplotlib.pyplot.pause(0.0001)
+
+              # Teardown the current plot or animation.
+              matplotlib.interactive(False)
+
+        Caveats
+        ----------
+        The fallback approach detailed above typically emits the following
+        non-fatal warning on the first ``matplotlib.interactive(True)`` call:
+
+        .. code::
+
+           [betse] /usr/lib64/python3.4/site-packages/matplotlib/backend_bases.py:2437: MatplotlibDeprecationWarning: Using default event loop until function specific to this GUI is implemented
+             warnings.warn(str, mplDeprecation)
+
+        While verbose, this warning appears to be safely ignorable.
+        '''
+
+        # For safety, we adhere to a whitelist approach. That is, we assume
+        # that only backends explicitly known to support the experimental
+        # "pyplot.show(block=False)" behavior do so; all other backends are
+        # assumed to *NOT* support this behavior.
+        return backend_name == 'TkAgg'
+
+
     # ..................{ GETTERS                            }..................
     def get_rc_param(self, param_name) -> object:
         '''
-        Value of the parameter with the passed `.`-delimited name (e.g.,
-        `savefile.dpi`) in the external `matplotlibrc` file.
+        Value of the parameter with the passed ``.``-delimited name (e.g.,
+        ``savefile.dpi``) in the external ``matplotlibrc`` file.
 
         If no such parameter exists, an exception is raised.
 

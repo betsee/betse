@@ -3,13 +3,14 @@
 # See "LICENSE" for further details.
 
 '''
-**In-simulation animation** (i.e., animation produced *while* rather than
+**Mid-simulation animation** (i.e., animation produced *while* rather than
 *after* solving a simulation) subclasses.
 '''
 
 # ....................{ IMPORTS                            }....................
 import matplotlib
 import numpy as np
+from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.visual import visualutil
 from betse.science.visual.anim.animabc import AnimCellsABC
 # from betse.util.io.log import logs
@@ -22,11 +23,19 @@ from matplotlib import pyplot
 
 class AnimCellsWhileSolving(AnimCellsABC):
     '''
-    In-simulation animation.
+    Context manager animating a mid-simulation animation.
 
-    This class animates arbitrary cell data as a time series plotted over the
+    This manager animates arbitrary cell data as a time series plotted over the
     cell cluster (e.g., cell membrane voltage as a function of time) *while*
-    rather than *after* solving a simulation.
+    rather than *after* solving a simulation phase.
+
+    Caveats
+    ----------
+    This animation *must* be the target clause of a ``with`` statement, ensuring
+    safe setup and teardown of this animation's non-blocking behavior. Likewise,
+    this animation's :meth:`plot_frame` method *must* be called within the body
+    of this ``with`` statement after producing for each sampled time step the
+    cell data visualized by this animation for the corresponding frame.
 
     Attributes
     ----------
@@ -49,11 +58,9 @@ class AnimCellsWhileSolving(AnimCellsABC):
         long-term patterns in cell data at a cost of deemphasizing unstable
         short-term patterns. If colorbar autoscaling is disabled (i.e.,
         `is_color_autoscaled` is `False`), this will be ignored.
-    _is_time_step_first : bool
-        `True` only if the current frame being animated is the first.
     '''
 
-
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self,
@@ -65,6 +72,9 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         #FIXME: Permit this option to be configured via a new configuration
         #option in the YAML file.
+        #FIXME: Actually, just excise this everywhere. Ally dislikes this effect
+        #and I certainly never require it; ergo, remove.
+
         is_colorbar_autoscaling_telescoped: bool = False,
         *args, **kwargs
     ) -> None:
@@ -117,9 +127,6 @@ class AnimCellsWhileSolving(AnimCellsABC):
         self._is_colorbar_autoscaling_telescoped = (
             is_colorbar_autoscaling_telescoped)
 
-        # "True" only if the current frame being animated is the first.
-        self._is_time_step_first = True
-
         # Unique identifier for the array of cell vertices. (See docstring.)
         self._cell_verts_id = id(self._cells.cell_verts)
 
@@ -154,69 +161,58 @@ class AnimCellsWhileSolving(AnimCellsABC):
             color_data=cell_data,
         )
 
+    # ..................{ CONTEXTS                           }..................
+    def __enter__(self) -> 'AnimCellsWhileSolving':
+        '''
+        Enter the runtime context for this context manager, returning the same
+        context manager as the value bound to the identifier in the ``as``
+        clause of the ``with`` block using this context manager.
+
+        This special method temporarily enables non-blocking matplotlib behavior
+        for the duration of this plot or animation.
+        '''
+
         # Id displaying this animation, do so in a non-blocking manner.
         if self._is_show:
-            pyplot.show(block=False)
+            # If the current matplotlib backend supports "true" non-blocking
+            # behavior, prefer this non-deprecated approach.
+            if mpl_config.is_backend_current_nonblockable():
+                pyplot.show(block=False)
+            # Else, fallback to the deprecated approach guaranteed to apply to
+            # all matplotlib backends.
+            else:
+                matplotlib.interactive(True)
+                pyplot.show()
 
-            #FIXME: Unfortunately, the "block=False" combination leveraged above
-            #is backend-specific and seemingly unsupported by at least the
-            #"Qt4Agg" backend. Under this backend, an alternative approach is
-            #required. Unfortunately, all attempts to implement such an approach
-            #have thus far failed. Clearly, something is not quite right.
-            #FIXME: At the very least, we should:
-            #
-            #* Add a new tester to the
-            #  "betse.lib.matplotlib.matplotlibs.MatplotlibConfig" class
-            #  returning True only if the current backend is non-blockable. This
-            #  is at least the case for the "TkAgg" and "Agg" backends. Any
-            #  others?
-            #* Call this tester here and, if False, log a non-fatal warning
-            #  informing the user that the mid-simulation animation will
-            #  probably not be displayed due to unresolved matplotlib issues.
-            #FIXME: O.K.; the implementation below actually works now. It's
-            #non-ideal, however, and results in matplotlib deprecation warnings
-            #resembling:
-            #
-            #    [betse] /usr/lib64/python3.4/site-packages/matplotlib/backend_bases.py:2437: MatplotlibDeprecationWarning: Using default event loop until function specific to this GUI is implemented
-            #
-            #Is that bad? Not particularly, but it *IS* annoying. Can we avoid
-            #this? Yes, but only for backends known to support the experimental
-            #"block=False" parameter (e.g., "TkAgg"). Specifically:
-            #
-            #* If the current backend supports this parameter, preferably call:
-            #
-            #     pyplot.show(block=False)
-            #
-            #* Else, fallback to:
-            #
-            #     matplotlib.interactive(True)
-            #     pyplot.show()
-            #FIXME: Unfortunately, the fact that we need to temporarily enable
-            #"matplotlib.interactive(True)" *ONLY* for this duration of this
-            #animation implies that we need to generalize this animation with
-            #context manager functionality: specifically, we need to implement
-            #the following special methods:
-            #
-            #* __enter__(), performing the logic detailed in the prior FIXME.
-            #* __exit__(), calling "matplotlib.interactive(False)" *ONLY* if the
-            #  prior __enter__() call called "matplotlib.interactive(True)".
-            #
-            #Properly implementing these methods is somewhat subtle, of course.
-            #FIXME: After implementing non-blocking correctly here, generalize
-            #this logic to the superclass by adding a new "is_blocking=True"
-            #parameter to the AnimCellsABC.__init__() method. Ideally, *ALL*
-            #animations should default to non-blocking behaviour; for safety,
-            #however, blocking should remain the default until well-tested.
-            #
-            #This implies that all animations will become context managers.
-            #While that's absolutely the correct long-term design, we currently
-            #use post-simulation animations everywhere as if they are *NOT*
-            #context managers. Since refactoring such usage is highly
-            #non-trivial, we'll want to wait on this refactoring for a bit.
+        # Bind this animation to the "as" clause of this "with" block.
+        return self
 
-            # logs.log_debug('Enabling non-blocking animation behaviour...')
-            # matplotlib.interactive(True)
-            # pyplot.show()
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        '''
+        Exit the runtime context for this context manager given the passed
+        exception metadata for an exception raised by the body of the ``with``
+        block using this context manager if any, returning ``True`` only if that
+        exception should be suppressed by this ``with`` block.
+
+        This special method (in order):
+
+        . Disables the non-blocking matplotlib behavior temporarily enabled by
+          the prior :meth:`__enter__` call.
+        . Safely closes this plot or animation.
+        '''
+
+        # Id displaying this animation *AND* the current matplotlib backend
+        # fails to support "true" non-blocking behavior, disable the "fake"
+        # non-blocking behavior enabled by the prior __enter__() call.
+        if self._is_show and not mpl_config.is_backend_current_nonblockable():
+            matplotlib.interactive(False)
+
+        # Close this plot or animation.
+        self.close()
+
+        # Avoid suppressing exceptions raised by this "with" block.
+        return False
 
     # ..................{ PLOTTERS                           }..................
     def _plot_frame_figure(self) -> None:
@@ -268,10 +264,6 @@ class AnimCellsWhileSolving(AnimCellsABC):
                 self._color_min = np.min(cell_data_vm)
                 self._color_max = np.max(cell_data_vm)
 
-                # If autoscaling this colorbar in a telescoping manner, do so
-                # for subsequent time steps.
-                self._is_time_step_first = False
-
             # Autoscale the colorbar to these colors.
             self._rescale_color_mappables()
 
@@ -281,22 +273,6 @@ class AnimCellsWhileSolving(AnimCellsABC):
             # This is the OO-style equivalent to calling pyplot.draw().
             self._figure.canvas.draw_idle()
             # self._figure.canvas.draw()
-
-            #FIXME: Duplicate call in the superclass plot_frame() method.
-            #Ideally, this method's implementation should be entirely integrated
-            #into the superclass plot_frame() method and then excised.
-
-            # Temporarily yield the time slice for the minimum amount of time
-            # required by the current matplotlib backend and operating system
-            # for responding to queued events in the GUI eventloop of the
-            # current process. Failing to do so reliably results in unresponsive
-            # animations under poorly implemented backends (e.g., "Qt4Agg") and
-            # the POSIX-incompatible Windows process model. For further details,
-            # see also:
-            #
-            #     https://gitlab.com/betse/betse/issues/9
-            #     https://github.com/matplotlib/matplotlib/issues/2134/
-            pyplot.pause(0.0001)
 
 
     @type_check
