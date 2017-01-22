@@ -16,7 +16,6 @@ http://matplotlib.org/examples/pylab_examples/zorder_demo.html
 '''
 
 # ....................{ CONSTANTS                          }....................
-
 ZORDER_PATCH = 1
 '''
 Default **z-order** (i.e., positive integer ordering artist drawing, such that

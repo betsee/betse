@@ -16,7 +16,7 @@ from matplotlib import verbose
 from matplotlib.animation import writers, MovieWriter
 
 # ....................{ CLASSES                            }....................
-#FIXME: Rename to "NullMovieWriter" and the name "noop" to "null".
+#FIXME: Rename to "NoopMovieWriter".
 @writers.register('noop')
 class NoopWriter(MovieWriter):
     '''
@@ -45,6 +45,7 @@ class NoopWriter(MovieWriter):
         Notify users that this class does _not_ depend on external commands and
         hence is _always_ available.
         '''
+
         return True
 
     # ..................{ PUBLIC                             }..................
@@ -93,6 +94,8 @@ class NoopWriter(MovieWriter):
         '''
         pass
 
+
+#FIXME: Rename to "ImageMovieWriter".
 
 # This writer shares sufficiently many similarities with the "noop" writer to
 # warrant inheriting that writer.

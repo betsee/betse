@@ -11,9 +11,9 @@ simulation objects.
 
 # ....................{ IMPORTS                            }....................
 import sys
-from collections.abc import Sequence
 from betse.lib.pickle import pickles
 from betse.util.type.types import type_check
+from collections.abc import Sequence
 
 # ....................{ SAVERS                             }....................
 #FIXME: Consider replacing all calls to this function with calls to the
@@ -89,7 +89,7 @@ def loadSim(loadPath) -> tuple:
 #FIXME: For orthogonality, rename to load_seed().
 def loadWorld(loadPath) -> tuple:
     '''
-    Unpickle the 2-tuple `(cells, p)` describing a previously seeded cell
+    Unpickle the 2-tuple ``(cells, p)`` describing a previously seeded cell
     cluster from the file with the passed path.
 
     Parameters
@@ -100,7 +100,7 @@ def loadWorld(loadPath) -> tuple:
     Returns
     ----------
     (Cells, Parameters)
-        2-tuple `(cells, p)` unpickled from this file.
+        2-tuple ``(cells, p)`` unpickled from this file.
     '''
 
     # Preserve backward importability with obsolete pickled objects.
@@ -123,11 +123,22 @@ def _preserve_backward_importability() -> None:
     these modules having since been moved, renamed, or outright removed.
     '''
 
-    # Import all modules whose fully-qualified names have been modified.
-    from betse.science.visual.anim import animconfig
-    from betse.science.visual.plot import plotconfig
+    #FIXME: Comment out after a sufficient amount of time -- say, mid-2017.
 
-    # Import the same modules under their prior fully-qualified names, aliased
-    # to the current versions of these modules imported above.
-    sys.modules['betse.science.plot.plotconfig'] = plotconfig
-    sys.modules['betse.science.plot.anim.animconfig'] = animconfig
+    # Import all modules whose fully-qualified names have been modified.
+    from betse.science import sim
+    from betse.science.config.sub import subconfanim
+    from betse.science.config.sub import subconfplot
+
+    # Alias obsolete module names to current module objects.
+    sys.modules['betse.science.visual.anim.animconfig'] = subconfanim
+    sys.modules['betse.science.visual.plot.plotconfig'] = subconfplot
+    sys.modules['betse.science.plot.plotconfig'] = subconfplot
+    sys.modules['betse.science.plot.anim.animconfig'] = subconfanim
+
+    # Alias obsolete to current class names.
+    sim.SimPhase = sim.SimPhaseType
+    sys.modules['betse.science.visual.anim.animconfig'].AnimConfig = (
+        subconfanim.SimSubconfAnim)
+    sys.modules['betse.science.visual.plot.plotconfig'].PlotConfig = (
+        subconfplot.SimSubconfPlot)

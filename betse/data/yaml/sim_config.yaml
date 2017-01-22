@@ -190,92 +190,90 @@ tissue profile definition:
     profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
 
     profiles:
-        # Example default tissue profile applying to all cells.
-        - type: tissue
-          name: all            # unique profile name
-          insular: False       # tissue has gj connecting within tissue but not between tissues (True)
+      # Example default tissue profile applying to all cells.
+      - type: tissue
+        name: all            # unique profile name
+        insular: False       # tissue has gj connecting within tissue but not between tissues (True)
 
-          diffusion constants: # constants applied to all targetted cells
-              Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-              Dm_K: 15.0e-18   # K+ membrane diffusion constant [m2/s]
-              Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
-              Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
-              Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
-              Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
+        diffusion constants: # constants applied to all targetted cells
+          Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 2.0e-18     # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18      # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0          # proteins membrane diffusion constant [m2/s]
 
-          cell targets:   # cell population to which this profile applies.
-              type: all   # "all", uniformly apply this tissue profile to all cells
-                          # "bitmap", match cells falling in a bitmap's colored area
-                          # "indices", match cells with the listed indices
-                          # "random", match a random subset of cells in the cluster
+        cell targets: # cell population to which this profile applies.
+          type: all   # "all", uniformly apply this tissue profile to all cells
+                      # "bitmap", match cells falling in a bitmap's colored area
+                      # "indices", match cells with the listed indices
+                      # "random", match a random subset of cells in the cluster
 
-              bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
+          bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
 
-                  file: geo/circle/circle_base.png  # Absolute or relative bitmap path
+            file: geo/circle/circle_base.png  # Absolute or relative bitmap path
 
-              indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
-                                           # otherwise this is ignored. This must be a list of positive integers
-                                           # for cells existing in cluster.
+          indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
+                                       # otherwise this is ignored. This must be a list of positive integers
+                                       # for cells existing in cluster.
 
-              random: 50                 # If "type: random" specified above,
-                                         # define percentage of cells to which this tissue
-                                         # profile will be randomly applied; otherwise this is ignored.
-                                         # This must be an integer
-                                         # ranging from 0 to 100 (e.g., "50" randomly applies this profile
-                                         # to 50% of all cells).
+          random: 50                 # If "type: random" specified above,
+                                     # define percentage of cells to which this tissue
+                                     # profile will be randomly applied; otherwise this is ignored.
+                                     # This must be an integer
+                                     # ranging from 0 to 100 (e.g., "50" randomly applies this profile
+                                     # to 50% of all cells).
 
-        # Example tissue profile for a small, slightly depolarized cluster of
-        # cells near the cluster centre.
+      # Example tissue profile for a small, slightly depolarized cluster of
+      # cells near the cluster centre.
+      - type: tissue
+        name: spot
+        insular: False
 
-        - type: tissue
-          name: spot
-          insular: False
+        diffusion constants:
+          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
-          diffusion constants:
-              Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-              Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
-              Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
-              Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
-              Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
-              Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
+        cell targets:
+          type: bitmap
+          bitmap: { file: geo/circle/mini_spot.png }
+          indices: [3, 14, 15, 9, 265]
+          random: 50
 
-          cell targets:
-              type: bitmap
-              bitmap: { file: geo/circle/mini_spot.png }
-              indices: [3, 14, 15, 9, 265]
-              random: 50
+      # Example tissue profile for a small, slightly depolarized cluster of
+      # cells near the cluster boundary.
+      - type: tissue
+        name: wound
+        insular: False
 
-        # Example tissue profile for a small cluster of depolarized cells near
-        # the cluster boundary.
+        diffusion constants:
+          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
+          Dm_K: 150.0e-18  # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
+          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
+          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
+          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
+          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
 
-        - type: tissue
-          name: wound
-          insular: False
+        cell targets:
+          type: bitmap
+          bitmap: { file: geo/circle/wedge.png }
+          indices: [3, 14, 15, 9, 265]
+          random: 50
 
-          diffusion constants:
-              Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-              Dm_K: 150.0e-18  # K+ membrane diffusion constant [m2/s]
-              Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
-              Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-              Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
-              Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
-              Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
+      # Example cut profile for a small cluster of cells near the boundary.
+      - type: cut       # unique type for cut profiles
+        name: surgery   # unique profile name
 
-          cell targets:
-              type: bitmap
-              bitmap: { file: geo/circle/wedge.png }
-              indices: [3, 14, 15, 9, 265]
-              random: 50
-
-        # Example cut profile for a small cluster of cells near the boundary.
-        - type: cut       # unique type for cut profiles
-          name: surgery   # unique profile name
-
-          bitmap:         # bitmap whose coloured pixel area defines the
-                          # subset of cells to be removed
-              file: geo/circle/wedge.png
+        bitmap: # Bitmap whose coloured pixel area defines the subregion of the
+                # cell cluster to be removed.
+          file: geo/circle/wedge.png
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -726,8 +724,9 @@ variable settings:
 # ----------------------------------------------------------------------------------------------------------------------
 # RESULTS
 # ----------------------------------------------------------------------------------------------------------------------
-# Configure results viewing and saving options for simulations.
-# All of the parameters under 'results options' can be altered at any time between seed, init and sim.
+# Configure results viewing and saving options for simulations. All of the
+# parameters under 'results options' can be altered at any time between seed,
+# init and sim.
 
 results options:
 
@@ -743,7 +742,7 @@ results options:
   after solving:     # Results produced after simulation computation.
     plots:           # Plots produced after simulation computation.
       enabled: True  # Produce plots after simulation computation?
-      show: False     # Display plots after simulation computation?
+      show: False    # Display plots after simulation computation?
                      # Ignored if "enabled" is False.
       save: True     # Save plots with the plot saving options specified below 
                      # after simulation computation? 
@@ -751,11 +750,36 @@ results options:
 
     animations:      # Animations produced after simulation computation.
       enabled: False # Produce animations after simulation computation?
-      show: False     # Display animations after simulation computation?
+      show: False    # Display animations after simulation computation?
                      # Ignored if "enabled" is False.
       save: True     # Save animations with the animation saving options
                      # specified below after simulation computation? 
                      # Ignored if "enabled" is False.
+
+      # List of all animations to be produced after simulation computation.
+      # Ignored if either "enabled" is False *OR* if "enabled" is True but both
+      # "show" and "save" are False.
+      list:
+        # Example intracellular voltage animation.
+        - type: voltages_intra  # Animation type. Supported types include:
+                                # * "currents_intra" (intracellular current
+                                #   density).
+                                # * "currents_total" (intra- and extracellular
+                                #   current density).
+                                # * "electric_intra" (intracellular electric
+                                #   field).
+                                # * "electric_total" (intra- and extracellular
+                                #   electric field).
+                                # * "voltages_intra" (intracellular voltage).
+                                # * "voltages_total" (intra- and extracellular
+                                #   voltage).
+          colorbar:          # Animation colorbar settings.
+            autoscale: True  # Automatically scale colorbar to minimum and
+                             # maximum values of underlying data series?
+            minimum: -70.0   # Minimum fixed colorbar value. Ignored if
+                             # "autoscale" is True.
+            maximum:  10.0   # Maximum fixed colorbar value. Ignored if
+                             # "autoscale" is True.
 
   save:                 # Saving options for result types enabled above.
     plots:              # Saving options for plots enabled above.

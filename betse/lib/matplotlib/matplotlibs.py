@@ -83,7 +83,7 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To permit matplotlib's default verbosity and backend to be replaced
 # by BETSE-specific values, no matplotlib package or module may be imported
-# until *AFTER* the MatplotlibConfig.init() method has been called -- including
+# until *AFTER* the MplConfig.init() method has been called -- including
 # here at the top-level.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -112,7 +112,7 @@ RC_PARAMS = {
 '''
 Dictionary mapping `matplotlibrc` option names to corresponding values.
 
-The :meth:`MatplotlibConfig.init` method subsequently updates
+The :meth:`MplConfig.init` method subsequently updates
 the :attr:`matplotlib.rcParams` dictionary of default `matplotlibrc` options
 deserialized from the current `matplotlibrc` file with this dictionary. Ergo,
 the custom options specified by this dictionary override the default options
@@ -175,44 +175,8 @@ _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Darwin'] = (
 _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Windows'] = (
     _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED['Linux'])
 
-# ....................{ GETTERS                            }....................
-@type_check
-def get_colormap(colormap_name: str):
-    '''
-    Matplotlib colormap with the passed name.
-
-    Parameters
-    ----------
-    colormap_name : str
-        Name of the attribute in the :mod:`matplotlib.cm` module corresponding
-        to the desired colormap (e.g., `Blues`, `Greens`, `jet`, `rainbow).
-
-    Returns
-    ----------
-    matplotlib.colors.Colormap
-        Matplotlib colormap with this name.
-
-    See Also
-    ----------
-    http://matplotlib.org/examples/color/colormaps_reference.html
-        List of supported colormaps.
-    '''
-
-    # Delay importation of the "matplotlib.__init__" module.
-    from matplotlib import cm as colormaps
-    from matplotlib.colors import Colormap
-
-    # Colormap with the passed name if any or "None" otherwise.
-    colormap = getattr(colormaps, colormap_name, None)
-    if not isinstance(colormap, Colormap):
-        raise BetseMatplotlibException(
-            'Matplotlib colormap "{}" not found.'.format(colormap_name))
-
-    # Return this colormap.
-    return colormap
-
 # ....................{ CLASSES                            }....................
-class MatplotlibConfig(object):
+class MplConfig(object):
     '''
     High-level wrapper simplifying low-level configuration and introspection of
     matplotlib.
@@ -1127,7 +1091,7 @@ class MatplotlibConfig(object):
         pyplot.close()
 
 # ....................{ SINGLETONS                         }....................
-mpl_config = MatplotlibConfig()
+mpl_config = MplConfig()
 '''
 Singleton matplotlib configuration wrapper.
 '''

@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Animation configuration and serialization classes.
+YAML-backed simulation animation subconfigurations.
 '''
 
 #FIXME: Default the "copyright" entry of video metadata to
@@ -12,17 +12,20 @@ Animation configuration and serialization classes.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
+from betse.science.config.sub.subconfabc import SimSubconfABC
 from betse.util.type import ints
-from betse.util.type.types import type_check, MappingType, SequenceTypes
+#from betse.util.type.types import type_check
 
-# ....................{ CLASSES                            }....................
-class AnimConfig(object):
+# ....................{ SUBCLASSES                         }....................
+class SimSubconfAnim(SimSubconfABC):
     '''
-    Object encapsulating both the configuration and writing of all animations
-    (both in- and post-simulation), parsed from the current configuration file.
+    YAML-backed simulation animation subconfiguration, encapsulating both the
+    configuration and writing of all animations (both mid- and post-simulation)
+    parsed from the current YAML-formatted simulation configuration file.
 
-    This object saves (i.e., writes, serializes) in-memory animations to on-disk
-    cache, image, and/or video files configured by this configuration.
+    This subconfiguration saves (i.e., writes, serializes) in-memory animations
+    to on-disk cache, image, and/or video files configured by this
+    configuration.
 
     Attributes
     ----------
@@ -106,112 +109,48 @@ class AnimConfig(object):
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(
-        self,
+    def __init__(self, *args, **kwargs) -> None:
 
-        # In-simulation animations.
-        is_while_sim: bool,
-        is_while_sim_show: bool,
-        is_while_sim_save: bool,
+        # Initialize our superclass with all passed parameters.
+        super().__init__(*args, **kwargs)
 
-        # Post-simulation animations.
-        is_after_sim: bool,
-        is_after_sim_show: bool,
-        is_after_sim_save: bool,
+        # For convenience, localize configuration subdictionaries.
+        results = self._config['results options']
+        while_solving = results['while solving']['animations']
+        after_solving = results['after solving']['animations']
+        save =          results['save']['animations']
+        images = save['images']
+        video =  save['video']
 
-        # Image saving.
-        is_images_save: bool,
-        image_filetype: str,
-        image_dpi: int,
-
-        # Video saving.
-        is_video_save: bool,
-        video_bitrate: int,
-        video_dpi: int,
-        video_filetype: str,
-        video_framerate: int,
-        video_metadata: MappingType,
-        video_writer_names: SequenceTypes,
-        video_codec_names: SequenceTypes,
-    ) -> None:
-
-        # Validate all passed integers as positive.
-        ints.die_unless_positive(
-            image_dpi, video_bitrate, video_dpi, video_framerate)
-
-        #FIXME: Repetition is vile and demeaning. Design and leverage a new
-        #@classify_params decorator here instead, please.
-
-        # Classify the passed parameters.
-        self.is_while_sim = is_while_sim
-        self.is_while_sim_show = is_while_sim_show
-        self.is_while_sim_save = is_while_sim_save
-        self.is_after_sim = is_after_sim
-        self.is_after_sim_show = is_after_sim_show
-        self.is_after_sim_save = is_after_sim_save
-        self.is_images_save = is_images_save
-        self.is_video_save = is_video_save
-        self.image_filetype = image_filetype
-        self.image_dpi = image_dpi
-        self.video_bitrate = video_bitrate
-        self.video_dpi = video_dpi
-        self.video_filetype = video_filetype
-        self.video_framerate = video_framerate
-        self.video_metadata = video_metadata
-        self.video_writer_names = video_writer_names
-        self.video_codec_names = video_codec_names
-
-# ....................{ FUNCTIONS                          }....................
-@type_check
-def make(p: 'betse.science.parameters.Parameters') -> AnimConfig:
-    '''
-    Factory method producing an instance of this class encapsulating the passed
-    simulation configuration.
-
-    Parameters
-    ----------------------------
-    p : Parameters
-        Current simulation configuration.
-
-    Returns
-    ----------------------------
-    AnimConfig
-        Instance of this class encapsulating this configuration.
-    '''
-
-    # For convenience, localize configuration subdictionaries.
-    results = p.config['results options']
-    while_solving = results['while solving']['animations']
-    after_solving = results['after solving']['animations']
-    save = results['save']['animations']
-    images = save['images']
-    video = save['video']
-
-    # Create and return this instance.
-    return AnimConfig(
         # Mid-simulation animations.
-        is_while_sim=while_solving['enabled'],
-        is_while_sim_show=while_solving['show'],
-        is_while_sim_save=while_solving['save'],
+        self.is_while_sim = while_solving['enabled']
+        self.is_while_sim_show = while_solving['show']
+        self.is_while_sim_save = while_solving['save']
 
         # Post-simulation animations.
-        is_after_sim=after_solving['enabled'],
-        is_after_sim_show=after_solving['show'],
-        is_after_sim_save=after_solving['save'],
+        self.is_after_sim = after_solving['enabled']
+        self.is_after_sim_show = after_solving['show']
+        self.is_after_sim_save = after_solving['save']
 
         # Image saving.
-        is_images_save=images['enabled'],
-        image_filetype=images['filetype'],
-        image_dpi=images['dpi'],
+        self.is_images_save = images['enabled']
+        self.image_filetype = images['filetype']
+        self.image_dpi = images['dpi']
 
         # Video saving.
-        is_video_save=video['enabled'],
-        video_bitrate=video['bitrate'],
-        video_dpi=video['dpi'],
-        video_filetype=video['filetype'],
-        video_framerate=video['framerate'],
-        video_metadata=video['metadata'],
-        video_writer_names=video['writers'],
-        video_codec_names=video['codecs'],
-    )
+        self.is_video_save = video['enabled']
+        self.video_bitrate = video['bitrate']
+        self.video_dpi = video['dpi']
+        self.video_filetype = video['filetype']
+        self.video_framerate = video['framerate']
+        self.video_metadata = video['metadata']
+        self.video_writer_names = video['writers']
+        self.video_codec_names = video['codecs']
+
+        # Validate all configured integers as positive.
+        ints.die_unless_positive(
+            self.image_dpi,
+            self.video_bitrate,
+            self.video_dpi,
+            self.video_framerate,
+        )

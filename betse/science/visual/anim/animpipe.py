@@ -224,51 +224,6 @@ def pipeline_anims(
             save=p.anim.is_after_sim_save,
         )
 
-    # if p.ani_Deformation is True and p.deformation is True:
-    #
-    #     if p.ani_Deformation_data == 'Displacement':
-    #
-    #         displacement_time_series = [
-    #             np.sqrt(cell_dx_series**2 + cell_dy_series**2) * p.um
-    #             for cell_dx_series, cell_dy_series in zip(
-    #                sim.dx_cell_time, sim.dy_cell_time)]
-    #
-    #         AnimDeformTimeSeries(
-    #             sim=sim, cells=cells, p=p,
-    #             cell_time_series=displacement_time_series,
-    #             label='Deform_dxdy',
-    #             figure_title='Displacement and Deformation',
-    #             colorbar_title='Displacement [um]',
-    #             is_color_autoscaled=p.autoscale_Deformation_ani,
-    #             color_min=p.Deformation_ani_min_clr,
-    #             color_max=p.Deformation_ani_max_clr,
-    #             colormap=p.background_cm,
-    #         )
-    #     elif p.ani_Deformation_data == 'Vmem':
-    #
-    #         AnimDeformTimeSeries(
-    #             sim=sim, cells=cells, p=p,
-    #             cell_time_series=_get_vmem_time_series(sim, p),
-    #             label='Deform_Vmem',
-    #             figure_title='Vmem and Deformation',
-    #             colorbar_title='Voltage [mV]',
-    #             is_color_autoscaled=p.autoscale_Deformation_ani,
-    #             color_min=p.Deformation_ani_min_clr,
-    #             color_max=p.Deformation_ani_max_clr,
-    #             colormap=p.default_cm,
-    #         )
-
-
-
-        # AnimDeformTimeSeries(
-        #     sim=sim,
-        #     cells=cells,
-        #     p=p,
-        #     ani_repeat=True,
-        #     save=p.anim.is_after_sim_save,
-        # )
-
-
     # Animate the cell membrane pump density factor as a function of time.
     if p.ani_mem is True and p.sim_eosmosis is True:
         AnimMembraneTimeSeries(
@@ -282,7 +237,7 @@ def pipeline_anims(
             color_max=p.mem_ani_max_clr,
         )
 
-# ....................{ PRIVATE ~ animators                }....................
+# ....................{ PRIVATE ~ electric field           }....................
 def _anim_field_electric_extra(
     sim: 'betse.science.sim.Simulator',
     cells: 'betse.science.cells.Cells',
@@ -346,14 +301,15 @@ def _anim_field_electric_intra(
         colormap=p.background_cm,
     )
 
-
+# ....................{ PRIVATE ~ voltage                  }....................
+#FIXME: Rename to _anim_voltage_intra().
 def _anim_voltage_membrane(
     sim: 'betse.science.sim.Simulator',
     cells: 'betse.science.cells.Cells',
     p: 'betse.science.parameters.Parameters',
 ) -> None:
     '''
-    Animate all cell membrane voltages for all time steps.
+    Animate all intracellular voltages for all time steps.
     '''
 
     # Vector of all cell membrane voltages for all time steps.

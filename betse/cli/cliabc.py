@@ -32,8 +32,8 @@ from betse.util.type.types import ArgParserType, SequenceTypes
 # ....................{ CLASSES                            }....................
 class CLIABC(object, metaclass=ABCMeta):
     '''
-    Abstract command line interface (CLI) suitable for use by both CLI and GUI
-    front-ends for BETSE.
+    Abstract base class of all top-level command line interface (CLI)
+    subclasses, suitable for use by both CLI and GUI front-ends for BETSE.
 
     Attributes
     ----------

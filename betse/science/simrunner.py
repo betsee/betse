@@ -18,7 +18,7 @@ from betse.science.config import confio
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
-from betse.science.sim import Simulator, SimPhase
+from betse.science.sim import Simulator, SimPhaseType
 from betse.science.simulate.simphaser import SimPhaser
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
@@ -88,7 +88,7 @@ class SimRunner(object):
         p.I_overlay = False
 
         # Simulation simulator and cell cluster.
-        sim = Simulator(p=p, phase=SimPhase.SEED)
+        sim = Simulator(p=p, phase=SimPhaseType.SEED)
         cells = Cells(p)  # create an instance of the Cells object
 
         logs.log_info('Cell cluster is being created...')
@@ -199,7 +199,7 @@ class SimRunner(object):
                     "Please run 'betse seed' to try again.")
 
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhase.INIT)
+        sim = Simulator(p=p, phase=SimPhaseType.INIT)
         sim.run_sim = False
 
         # Initialize simulation data structures, run, and save simulation phase
@@ -243,7 +243,7 @@ class SimRunner(object):
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
 
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhase.SIM)
+        sim = Simulator(p=p, phase=SimPhaseType.SIM)
 
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
@@ -355,7 +355,7 @@ class SimRunner(object):
         #below suggest this is, indeed, an initialization.
 
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhase.INIT)
+        sim = Simulator(p=p, phase=SimPhaseType.INIT)
 
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
@@ -435,7 +435,7 @@ class SimRunner(object):
 
         #FIXME: Is "INIT" the proper phase here? See sim_brn() for discussion.
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhase.INIT)
+        sim = Simulator(p=p, phase=SimPhaseType.INIT)
 
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)

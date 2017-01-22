@@ -3,20 +3,22 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
+from collections import OrderedDict
+
 import numpy as np
 from betse.exceptions import BetseSimConfigException
-from betse.lib.matplotlib import matplotlibs
+from betse.lib.matplotlib import mplutil
 from betse.science.config import confio
+from betse.science.config.sub.subconfanim import SimSubconfAnim
+from betse.science.config.sub.subconfplot import SimSubconfPlot
 from betse.science.event.cut import ActionCut
 from betse.science.event.voltage import PulseVoltage
 from betse.science.tissue.picker import TissuePickerBitmap
 from betse.science.tissue.profile import Profile
-from betse.science.visual.anim import animconfig
-from betse.science.visual.plot import plotconfig
 from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.types import type_check, SequenceTypes
-from collections import OrderedDict
+
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
@@ -60,8 +62,10 @@ class Parameters(object):
 
     Attributes (Results)
     ----------------------------
-    anim : AnimConfig
-        Object encapsulating the configuration of all animations.
+    anim : SimSubconfAnim
+        Subconfiguration encapsulating exported simulation animations.
+    plot : SimSubconfPlot
+        Subconfiguration encapsulating exported simulation plots.
 
     Attributes (Tissue)
     ----------------------------
@@ -84,8 +88,8 @@ class Parameters(object):
         Parameters
         ----------------------------
         config_filename : str
-            Absolute or relative path of the source YAML configuration file from
-            which to deserialize this object.
+            Absolute or relative path of the source YAML configuration file
+            from which to deserialize this object.
         '''
 
         # Unique absolute path of the passed file and directory containing this
@@ -623,8 +627,8 @@ class Parameters(object):
         self.GHK_calc = self.config['variable settings']['use Goldman calculator']
 
         # ................{ PLOTS                              }................
-        # Object encapsulating plot configuration.
-        self.plot = plotconfig.make(self)
+        # Plot subconfiguration.
+        self.plot = SimSubconfPlot(config=self.config)
 
         ro = self.config['results options']
 
@@ -639,15 +643,15 @@ class Parameters(object):
         self.plot_cutlines = ro['plot cutlines']
 
         # Colormaps.
-        self.default_cm = matplotlibs.get_colormap(ro['default colormap'])
-        self.background_cm = matplotlibs.get_colormap(ro['background colormap'])
+        self.default_cm = mplutil.get_colormap(ro['default colormap'])
+        self.background_cm = mplutil.get_colormap(ro['background colormap'])
 
         # Colormap for plotting gj currents on top of default colormap.
-        self.gj_cm = matplotlibs.get_colormap(ro['gj colormap'])
+        self.gj_cm = mplutil.get_colormap(ro['gj colormap'])
 
         # new options for plotting reaction network graphs:
         self.plot_network = ro.get('plot networks', False)
-        self.network_cm = matplotlibs.get_colormap(ro.get('network colormap', 'coolwarm'))
+        self.network_cm = mplutil.get_colormap(ro.get('network colormap', 'coolwarm'))
 
         # Colors.
         self.vcolor = ro['vector and stream color']  # color of vector and streamlines
@@ -715,8 +719,8 @@ class Parameters(object):
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 
         # ................{ ANIMATIONS                         }................
-        # Object encapsulating animation configuration.
-        self.anim = animconfig.make(self)
+        # Animation subconfiguration.
+        self.anim = SimSubconfAnim(config=self.config)
 
         # specify desired animations:
         self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
@@ -1330,7 +1334,7 @@ class Parameters(object):
     #FIXME: Refactor to accept an enumeration value rather than raw string --
     #or, better yet, to accept no parameter and leverage an enumeration value
     #identifying the current phase already set as an attribute of this object..
-    #FIXME: Right. Use the new "betse.science.sim.SimPhase" enumeration value.
+    #FIXME: Right. Use the new "betse.science.sim.SimPhaseType" enumeration value.
 
     @type_check
     def set_time_profile(self, time_profile: str) -> None:

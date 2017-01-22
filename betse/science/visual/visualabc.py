@@ -16,6 +16,7 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseMethodException
+from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
@@ -24,7 +25,6 @@ from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
 from betse.util.io.log import logs
-from betse.util.io.warning import warnings_ignored
 from betse.util.py import references
 from betse.util.type import iterables, types
 from betse.util.type.iterables import SENTINEL
@@ -276,15 +276,15 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             self._color_max = color_max
             self._color_min = color_min
 
-        # Default all attributes having sane defaults.
-        self._is_time_step_first = True
-
         # Default all attributes to be subsequently defined.
         self._color_mappables = None
         self._writer_frames = None
         self._writer_video = None
 
-        # Initialize this plot's figure.
+        # Default all remaining attributes.
+        self._is_time_step_first = True
+
+        # Initialize this plot's figure *AFTER* defining all attributes.
         self._init_figure()
 
     # ..................{ INITIALIZERS ~ figure              }..................
@@ -982,9 +982,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #
         #     https://gitlab.com/betse/betse/issues/9
         #     https://github.com/matplotlib/matplotlib/issues/2134/
-
-        # Suppress the following non-fatal deprecation warning "infrequently"
-        # but annoyingly emitted by the pyplot.pause() function:
+        #
+        # When yielding the time slice, the following non-fatal deprecation
+        # warning emitted by the pyplot.pause() function is temporarily
+        # suppressed:
         #
         #     [betse] /usr/lib64/python3.4/site-packages/matplotlib/backend_bases.py:2437:
         #     MatplotlibDeprecationWarning: Using default event loop
@@ -992,29 +993,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #       warnings.warn(str, mplDeprecation)
         #
         # Since this warning is overly verbose and safely ignorable, we do so.
-        # Although this warning appears to be emitted *ONLY* on the second call
-        # to this function and hence the second frame to be displayed,
-        # depending on private matplotlib behavior is probably unwise. This
-        # warning is unconditionally suppressed regardless of the time step.
-        #
         # While mildly inefficient, ignoring this warning is preferable to the
         # alternatives of enraging, berating, and frightening end users.
-
-        #FIXME: Inefficient. While we can't get around the need to suppress
-        #warnings here, we *CAN* get around the need to instantiate a new
-        #context manager on each call to this method. How? By making the
-        #warnings_ignored() manager reusable rather than single-use. For
-        #convenience, this manager is currently created via the @contextmanager
-        #decorator. Sadly, that makes this manager single-use.
-        #
-        #Fortunately, creating reusable context managers is trivial. Simply:
-        #
-        #* Define a new "betse.util.io.warning.WarningsIgnored" class defining
-        #  the usual __enter__() and __exit__() special methods in the trivial
-        #  way. That's it! Instances of this class are now reusable.
-        #* Define a new "betse.util.io.warning.WARNINGS_IGNORED" singleton
-        #  instance of this class, which we then enter here. Nice, eh?
-        with warnings_ignored():
+        with mplutil.deprecations_ignored():
             pyplot.pause(0.0001)
 
 

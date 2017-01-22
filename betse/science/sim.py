@@ -36,9 +36,7 @@ from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ ENUMS                              }....................
-#FIXME: Rename to "SimPhaseType" for clarity. (We'll probably want a distinct
-#"SimPhase" class at some point.)
-SimPhase = EnumOrdered('SimPhase', (
+SimPhaseType = EnumOrdered('SimPhaseType', (
     'SEED', 'INIT', 'SIM',
 ))
 '''
@@ -49,7 +47,7 @@ Each member's value is less than that of another member's value if and only if
 the former simulation phase is performed _before_ the latter. Specifically,
 this enumeration is a total ordering such that:
 
-    >>> SimPhase.SEED < SimPhase.INIT < SimPhase.SIM
+    >>> SimPhaseType.SEED < SimPhaseType.INIT < SimPhaseType.SIM
     True
 
 Attributes
@@ -115,7 +113,7 @@ class Simulator(object):
 
     Attributes
     ----------
-    _phase : SimPhase
+    _phase : SimPhaseType
         Current simulation phase.
 
     Attributes (Counts)
@@ -264,7 +262,7 @@ class Simulator(object):
         p: 'betse.science.parameters.Parameters',
 
         #FIXME: Refactor to be a mandatory parameter if feasible.
-        phase: SimPhase = None,
+        phase: SimPhaseType = None,
     ) -> None:
         '''
         Create this simulation.
@@ -273,7 +271,7 @@ class Simulator(object):
         ----------
         p : betse.science.parameters.Parameters
             Current simulation configuration.
-        phase : SimPhase
+        phase : SimPhaseType
             Current simulation phase.
         '''
 
@@ -1961,7 +1959,7 @@ class Simulator(object):
 
     # ..................{ PROPERTIES                         }..................
     @property
-    def phase(self) -> SimPhase:
+    def phase(self) -> SimPhaseType:
         '''
         Current simulation phase.
         '''
@@ -1971,7 +1969,7 @@ class Simulator(object):
 
     @phase.setter
     @type_check
-    def phase(self, phase: SimPhase) -> None:
+    def phase(self, phase: SimPhaseType) -> None:
         '''
         Set whether the current simulation phase.
         '''
