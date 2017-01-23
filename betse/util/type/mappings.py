@@ -22,7 +22,7 @@ from betse.util.type.types import (
 )
 from collections import OrderedDict
 
-# ....................{ CLASSES ~ dynamic                  }....................
+# ....................{ CLASSES ~ dict : dynamic           }....................
 class DynamicValue(object):
     '''
     Object encapsulating a single variable gettable and settable via callables
@@ -217,7 +217,7 @@ class DynamicValueDict(MutableMappingType):
 
         return iter(self._key_to_dynamic_value)
 
-# ....................{ CLASSES ~ ordered                  }....................
+# ....................{ CLASSES ~ dict : ordered           }....................
 #FIXME: Supplant all existing usage of "OrderedDict" with this subclass.
 #FIXME: Unit test this.
 
@@ -225,14 +225,15 @@ class OrderedParamsDict(OrderedDict):
     '''
     Ordered dictionary initialized by a sequence of key-value pairs.
 
-    The canonical `OrderedDict` class providing ordered dictionaries in Python
-    is initialized by a sequence of 2-sequences (typically, tuple of 2-tuples)
-    whose first element comprises the key and whose second element comprises the
-    value of each key-value pair of this dictionary. This subclass of that class
-    is initialized by a flat sequence of keys and values, simplifying the burden
-    of initializing ordered dictionaries.
+    The canonical :class:`OrderedDict` class providing ordered dictionaries in
+    Python is initialized by a sequence of 2-sequences (typically, tuple of
+    2-tuples) whose first element comprises the key and whose second element
+    comprises the value of each key-value pair of this dictionary. This subclass
+    of that class is initialized by a flat sequence of keys and values,
+    simplifying the burden of initializing ordered dictionaries.
 
-    In all other respects, this class is identical to the `OrderedDict` class.
+    In all other respects, this class is identical to the :class:`OrderedDict`
+    class.
 
     Examples
     ----------
@@ -299,7 +300,7 @@ class OrderedParamsDict(OrderedDict):
         # Initialize the superclass with this zip.
         super().__init__(key_value_pairs_nested)
 
-# ....................{ CLASSES ~ reversible               }....................
+# ....................{ CLASSES ~ dict : reversible        }....................
 #FIXME: Unit test this.
 class ReversibleDict(dict):
     '''
