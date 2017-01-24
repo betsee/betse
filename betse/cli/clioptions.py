@@ -163,7 +163,7 @@ class CLIOptionABC(object, metaclass=ABCMeta):
 
             # Replace this option's identifier by this long variant, sanitizing.
             # all hyphens with underscores to generate a conformant identifier.
-            var_name_default = identifiers.sanitize(long_name)
+            var_name_default = identifiers.sanitize_snakecase(long_name)
 
             # (Re)prefix this variant by "--".
             long_name = '--' + long_name

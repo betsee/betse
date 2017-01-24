@@ -232,7 +232,7 @@ def get_size_profile(
     case and ambiguous in the worst case. In either case, such output is mostly
     unusable. For example:
 
-    >>> from betse.util.type.obj import objsize
+    >>> from betse.util.type.obj import objsizes
     >>> from pympler.asizeof import asizesof
     >>> class ObjectLessons(object):
     ...     def __init__(self):

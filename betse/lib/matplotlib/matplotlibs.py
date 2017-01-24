@@ -255,7 +255,7 @@ class MplConfig(object):
         _must_ be prevented from performing this logic. Since this submodule is
         imported only on the first importation of a matplotlib module, it
         performing this preventation _only_ on the first importation of the
-        top-level :mod:`matplotlib` package by this method suffices to sanitize
+        top-level :mod:`matplotlib` package by this method suffices to sanitize_snakecase
         matplotlib behaviour.
         '''
 

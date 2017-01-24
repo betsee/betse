@@ -313,7 +313,7 @@ class AnimCellsABC(VisualCellsABC):
             return
 
         #FIXME: This is silly. Rather than prohibiting animation names
-        #containing such separators, simply sanitize this animation's name by
+        #containing such separators, simply sanitize_snakecase this animation's name by
         #globally replacing all such separators by non-separator characters
         #guaranteed to be permitted in pathnames for all platforms (e.g., "_"
         #or "-" characters).

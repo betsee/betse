@@ -140,7 +140,7 @@ class CLICLI(CLIABC):
         # Else, a subcommand was passed.
         #
         # Sanitized name of this subcommand.
-        subcommand_name_top = identifiers.sanitize(
+        subcommand_name_top = identifiers.sanitize_snakecase(
             self._args.subcommand_name_top)
 
         # Name of the method running this subcommand.
@@ -267,7 +267,7 @@ class CLICLI(CLIABC):
 
         # Run this subcommand's passed subcommand and return the result
         # of doing so. See _run() for details.
-        subcommand_name_plot = identifiers.sanitize(
+        subcommand_name_plot = identifiers.sanitize_snakecase(
             self._args.subcommand_name_plot)
         subcommand_method_name = '_do_plot_' + subcommand_name_plot
         subcommand_method = getattr(self, subcommand_method_name)

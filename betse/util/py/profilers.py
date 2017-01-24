@@ -337,7 +337,7 @@ def _profile_callable_size(
 
     # Avoid circular import dependencies.
     from betse.lib import libs
-    from betse.util.type.obj import objsize
+    from betse.util.type.obj import objsizes
 
     # Log this fact.
     logs.log_debug('Memory profiling enabled.')
@@ -358,7 +358,7 @@ def _profile_callable_size(
     #FIXME: Excise the "SizeProfilableABC" class entirely.
 
     # Human-readable string synopsizing this object's memory consumption.
-    size_profile = objsize.get_size_profile(
+    size_profile = objsizes.get_size_profile(
         obj=return_value,
 
         # Maximum depth of the recursion tree induced by calling this function.

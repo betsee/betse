@@ -878,7 +878,7 @@ def package_distribution_entry_points(
         for script_basename, entry_point in (
             distribution.get_entry_map(script_type_group).items()):
             # Yield this 3-tuple. To simplify integration with the downstream
-            # setuptools API, do *NOT* sanitize this script's basename by
+            # setuptools API, do *NOT* sanitize_snakecase this script's basename by
             # calling sanitize_command_basename(). Since that API already
             # implicitly suffixes this basename by ".exe", doing so here would
             # erroneously result in this basename being suffixed by ".exe.exe".

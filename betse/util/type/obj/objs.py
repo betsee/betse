@@ -9,8 +9,7 @@ Low-level object facilities.
 
 # ....................{ IMPORTS                            }....................
 import inspect, platform
-from betse.util.type.types import (
-    type_check, CallableTypes, ClassType, GeneratorType)
+from betse.util.type.types import type_check, CallableTypes, GeneratorType
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -195,111 +194,6 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
 
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
-
-# ....................{ DESCRIPTORS                        }....................
-#FIXME: Revise docstring in light of this function's generalization to variables
-#looked up in an arbitrary manner.
-@type_check
-def var_alias(lookup: str, tester: ClassType = None) -> object:
-    '''
-    Dictionary-backed **descriptor** (i.e., object satisfying the descriptor
-    protocol) binding a high-level instance variable in the class instantiating
-    this descriptor to a low-level nested entry of a dictionary instance
-    variable of the same class.
-
-    This function (in order):
-
-    #. Dynamically defines a new descriptor class specific to the passed string
-       such that:
-       * Getting the value of the target variable internally gets the current
-         value of the source dictionary entry.
-       * Setting the value of the target variable either:
-         * If this value is of the expected type, internally sets the current
-           value of the source dictionary entry to this value.
-         * Else, raises a type exception.
-       * Deleting the target variable deletes this variable from the instance to
-         which this variable is bound much as for a typical instance variable.
-         Deleting this variable does *not* delete the corresponding entry from
-         the source dictionary entry.
-    #. Creates an instance of this descriptor class.
-    #. Returns this instance.
-
-    The typical use case for this class is to bind an instance variable to a
-    nested entry of the dictionary produced by loading a YAML-formatted file.
-    Doing so implicitly propagates modifications to this variable back to this
-    dictionary and thus back to this file on saving this dictionary in YAML
-    format back to this file.
-
-    Caveats
-    ----------
-    As with all descriptors, this function is intended to be called *only* at
-    **class scope** (i.e., directly from within the body of a class) in a manner
-    assigning the descriptor returned by this function to a class variable of
-    arbitrary name. While feasible, calling this function from any other scope
-    is highly discouraged.
-
-    Parameters
-    ----------
-    lookup : str
-        Python expression evaluating to the value of an arbitrarily nested
-        dictionary entry, typically:
-        * Prefixed by the name of the instance variable to which this dictionary
-          is bound in instances of the class containing this descriptor (e.g.,
-          ``self._config``).
-        * Suffixed by one or more `[`- and `]`-delimited key lookups into the
-          same dictionary (e.g.,
-          ``['variable settings']['noise']['dynamic noise']``).
-    tester: optional[type]
-        Either:
-        * A class, in which case attempting to set this variable to a value
-          *not* an instance of this class raises an exception.
-        * A callable, in which caseattempting to set this variable to a value
-          passes this value to this callable first, which may then raise an
-          exception of arbitrary type.
-        Defaults to `None`, in which case this variable is permissively settable
-        to any arbitrary value.
-
-    Returns
-    ----------
-    object
-        Dictionary-backed descriptor as detailed above.
-    '''
-
-    #FIXME: Dynamically create a new class defining the __get__() and __set__()
-    #methods of the descriptor protocol. To do so, the 3-parameter form of the
-    #type() builtin may be called. For example:
-    #
-    # #FIXME: Not quite right. Do we have an identifiers.sanitize() method? If
-    # #so, it will need to be generalized to handle the punctuation found in
-    # #dictionary lookup expressions.
-    # dict_var_class_name = identifiers.sanitize(lookup)
-    # dict_var_class_superclasses = (object,)
-    # dict_var_class_methods = {}
-    #
-    # dict_var_class_method_defs = '''
-    # def __get__(self_descriptor, self, objtype=None) -> None:
-    #     return {lookup}
-    #
-    # def __set__(self_descriptor, self, value) -> None:
-    #     {tester}(value)
-    #     {lookup} = value
-    # '''.format(lookup=lookup, tester=tester)
-    #
-    # exec(
-    #     dict_var_class_method_defs,
-    #     globals(),
-    #     dict_var_class_methods,
-    # )
-    #
-    # dict_var_class = type(
-    #     dict_var_class_name,
-    #     dict_var_class_superclasses,
-    #     dict_var_class_methods,
-    # )
-    #
-    # return dict_var_class()
-
-    pass
 
 # ....................{ ITERATORS ~ name-value             }....................
 def iter_vars(obj: object) -> GeneratorType:

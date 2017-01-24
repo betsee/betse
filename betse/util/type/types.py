@@ -120,15 +120,15 @@ NoneType = type(None)
 '''
 Type of the singleton `None` object.
 
-Curiously, although the type of the `None` object is a class object whose
-`__name__` attribute is `NoneType`, there exists no globally accessible class
-by that name. To circumvents this obvious oversight, this global globally
+Curiously, although the type of the ``None`` object is a class object whose
+``__name__`` attribute is ``NoneType``, there exists no globally accessible
+class by that name. To circumvents this obvious oversight, this global globally
 exposes this class.
 
 This class is principally useful for annotating both:
 
-* CallableTypes parameters accepting `None` as a valid value.
-* Callables returning `None` as a valid value.
+* Callable parameters accepting ``None`` as a valid value.
+* Callables returning ``None`` as a valid value.
 
 Note that, for obscure and uninteresting reasons, the standard :mod:`types`
 module defined the same type with the same name under Python 2.x but _not_ 3.x.
@@ -217,6 +217,12 @@ methods).
 '''
 
 
+CallableOrStrTypes = CallableTypes + (str,)
+'''
+Tuple of all callable classes *and* the string type.
+'''
+
+
 FunctionTypes = (BuiltinFunctionType, FunctionType,)
 '''
 Tuple of all **function classes** (i.e., classes whose instances are either
@@ -276,14 +282,6 @@ For generality, this tuple contains classes matching both pure-Python sequences
 _and_ non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
 subclass `collections.abc.Sequence` despite implementing the entirety of that
 that API.
-'''
-
-
-RegexTypes = (str, Pattern)
-'''
-Tuple of all **regex-like types** (i.e., types either defining regular
-expressions or losslessly convertible to such types, typically accepted by
-functions in the :mod:`betse.util.type.regexes` submodule).
 '''
 
 
@@ -395,7 +393,34 @@ Tuple of all numeric types as well as the type of the singleton `None` object.
 
 StrOrNoneTypes = (str, NoneType)
 '''
-Tuple of both the string type _and_ the type of the singleton `None` object.
+Tuple of both the string type *and* the type of the singleton ``None`` object.
+'''
+
+# ....................{ TUPLES ~ regex                     }....................
+RegexTypes = (str, Pattern)
+'''
+Tuple of all **regular expression-like types** (i.e., types either defining
+regular expressions or losslessly convertible to such types, typically accepted
+by functions in the :mod:`betse.util.type.regexes` submodule).
+'''
+
+
+# Yes, this type is required for type validation et the module scope lsewhere.
+# Yes, this is the most time-efficient means of obtaining this type. No, this
+# type is *NOT* directly importable. Although this type's classname is
+# published to be "_sre.SRE_Match", the "_sre" C extension provides no such
+# type for pure-Python importation.
+RegexMatchType = re.match(r'', '').__class__
+'''
+Type of all **regular expression match objects** (i.e., objects returned by the
+:func:`re.match` function).
+'''
+
+
+RegexMatchOrNoneTypes = (RegexMatchType, NoneType)
+'''
+Tuple of both the regular expression match object type *and* the type of the
+singleton ``None`` object.
 '''
 
 # ....................{ SETS : private                     }....................

@@ -199,56 +199,63 @@ class BetseTestException(BetseException):
     pass
 
 # ....................{ EXCEPTIONS ~ type                  }....................
-class BetseDictException(BetseException):
+class BetseTypeException(BetseException):
+    '''
+    General-purpose exception applicable to types (i.e., classes).
+    '''
+    pass
+
+
+class BetseDictException(BetseTypeException):
     '''
     Dictionary-specific type or value exception.
     '''
     pass
 
 
-class BetseEnumException(BetseException):
+class BetseEnumException(BetseTypeException):
     '''
     Enumeration-specific type or value exception.
     '''
     pass
 
 
-class BetseNumericException(BetseException):
+class BetseNumericException(BetseTypeException):
     '''
     Exception generally applicable to both integer and float types and values.
     '''
     pass
 
 
-class BetseIntException(BetseException):
+class BetseIntException(BetseTypeException):
     '''
     Integer-specific type or value exception.
     '''
     pass
 
 
-class BetseIterableException(BetseException):
+class BetseIterableException(BetseTypeException):
     '''
     Iterable-specific type or value exception.
     '''
     pass
 
 
-class BetseSequenceException(BetseException):
+class BetseSequenceException(BetseTypeException):
     '''
     Sequence-specific type or value exception.
     '''
     pass
 
 
-class BetseStrException(BetseException):
+class BetseStrException(BetseTypeException):
     '''
     String-specific type or value exception.
     '''
     pass
 
 
-class BetseRegexException(BetseException):
+class BetseRegexException(BetseTypeException):
     '''
     Regular exception-specific type or value exception.
     '''

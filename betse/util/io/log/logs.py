@@ -257,7 +257,7 @@ def log_exception(exception: Exception) -> None:
                     exc_message_lines, 'Exception message lines'))
             exc_message_match_groups = regexes.get_match_groups_numbered(
                 exc_message_line, r'^({})(?:\s*|:\s+(.+))$'.format(
-                    identifiers.PYTHON_IDENTIFIER_QUALIFIED_REGEX_RAW))
+                    identifiers.IDENTIFIER_QUALIFIED_REGEX))
 
             # This message is guaranteed to be prefixed by a class name.
             exc_class_name = exc_message_match_groups[0]
@@ -278,7 +278,7 @@ def log_exception(exception: Exception) -> None:
                     # the file and function containing the corresponding
                     # call; the substring following this newline is this
                     # call. Hence, ignore the former.
-                    regexes.remove_substrings(
+                    regexes.remove_substrs(
                         exc_traceback_lines[-1], r'^.+\n\s*'))
             # Else, convert this exception's class name into a
             # human-readable message (e.g., from "FileNotFoundError" to

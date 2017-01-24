@@ -11,7 +11,15 @@ Low-level **regex** (i.e., Python-compatible regular expression) facilities.
 import re
 from betse.exceptions import BetseRegexException
 from betse.util.type.types import (
-    type_check, CallableTypes, GeneratorType, IterableTypes, MappingType, RegexTypes)
+    type_check,
+    CallableOrStrTypes,
+    IterableTypes,
+    MappingType,
+    RegexTypes,
+    RegexMatchType,
+    RegexMatchOrNoneTypes,
+    SequenceTypes,
+)
 
 # ....................{ FLAGS                              }....................
 FLAG_MULTILINE = re.MULTILINE
@@ -87,7 +95,8 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
     return get_match_line_if_any(text, regex, **kwargs) is not None
 
 # ....................{ MATCHERS ~ group : named           }....................
-def get_match_groups_named(text: str, regex: RegexTypes, **kwargs) -> list:
+def get_match_groups_named(
+    text: str, regex: RegexTypes, **kwargs) -> MappingType:
     '''
     Dictionary mapping explicitly named groups to substrings matched anchored to
     the beginning of the passed string against the passed regular expression if
@@ -112,24 +121,25 @@ def get_match_groups_named(text: str, regex: RegexTypes, **kwargs) -> list:
 
     Returns
     ----------
-    dict
+    MappingType
         Dictionary mapping matched named groups.
 
     Raises
     ----------
     BetseRegexException
-        If this string does _not_ match this expression.
+        If this string does *not* match this expression.
 
     See Also
     ----------
-    get_match_if_any
+    :func:`get_match_if_any`
         Further details on regular expressions and keyword arguments.
     '''
 
     return get_match(text, regex, **kwargs).groupdict()
 
 # ....................{ MATCHERS ~ group : numbered        }....................
-def get_match_groups_numbered(text: str, regex: RegexTypes, **kwargs) -> list:
+def get_match_groups_numbered(
+    text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
     '''
     List of all groups matched anchored to the beginning of the passed string
     against the passed regular expression (ordered by the left-to-right lexical
@@ -152,17 +162,17 @@ def get_match_groups_numbered(text: str, regex: RegexTypes, **kwargs) -> list:
 
     Returns
     ----------
-    list
+    SequenceTypes
         List of matched groups.
 
     Raises
     ----------
     BetseRegexException
-        If this string does _not_ match this expression.
+        If this string does *not* match this expression.
 
     See Also
     ----------
-    get_match_if_any
+    :func:`get_match_if_any`
         Further details on regular expressions and keyword arguments.
     '''
 
@@ -170,7 +180,7 @@ def get_match_groups_numbered(text: str, regex: RegexTypes, **kwargs) -> list:
 
 
 def get_match_groups_numbered_if_any(
-    text: str, regex: RegexTypes, **kwargs) -> list:
+    text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
     '''
     List of all groups matched anchored to the beginning of the passed string
     against the passed regular expression (ordered by the left-to-right lexical
@@ -192,12 +202,12 @@ def get_match_groups_numbered_if_any(
 
     Returns
     ----------
-    list
-        List of matched groups if any or `None` otherwise.
+    SequenceTypes
+        List of matched groups if any *or* ``None`` otherwise.
 
     See Also
     ----------
-    get_match_if_any
+    :func:`get_match_if_any`
         Further details on regular expressions and keyword arguments.
     '''
 
@@ -205,7 +215,7 @@ def get_match_groups_numbered_if_any(
     return match.groups() if match is not None else None
 
 # ....................{ MATCHERS ~ object                  }....................
-def get_match(text: str, regex: RegexTypes, **kwargs) -> 'SRE_Match':
+def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
     '''
     Match object obtained by matching zero or more characters anchored to the
     beginning of the passed string against the passed regular expression if any
@@ -225,17 +235,17 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> 'SRE_Match':
 
     Returns
     ----------
-    SRE_Match
-        The match object.
+    RegexMatchType
+        Match object.
 
     Raises
     ----------
     BetseRegexException
-        If this string does _not_ match this expression.
+        If this string does *not* match this expression.
 
     See Also
     ----------
-    get_match_if_any
+    :func:`get_match_if_any`
         Further details on calling conventions.
     '''
 
@@ -254,11 +264,12 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> 'SRE_Match':
 
 
 @type_check
-def get_match_if_any(text: str, regex: RegexTypes, **kwargs):
+def get_match_if_any(
+    text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     Match object obtained by matching zero or more characters anchored to the
     beginning of the passed string against the passed regular expression if any
-    match exists _or_ `None` otherwise.
+    match exists *or* ``None`` otherwise.
 
     Parameters
     ----------
@@ -276,14 +287,14 @@ def get_match_if_any(text: str, regex: RegexTypes, **kwargs):
     ----------
     For convenience, the following match flags will be enabled by default:
 
-    * `re.DOTALL`, forcing the `.` special character to match any character
-      including newline. By default, this character matches any character
-      excluding newline. The former is almost always preferable, however.
+    * :data:`re.DOTALL`, forcing the ``.`` special character to match any
+      character including newline. By default, this character matches any
+      character excluding newline. The former is almost always preferable.
 
     Returns
     ----------
-    re.SRE_Match, None
-        The match object if a match exists _or_ `None` otherwise.
+    RegexMatchOrNoneTypes
+        Match object if a match exists *or* ``None`` otherwise.
 
     See Also
     ----------
@@ -299,7 +310,8 @@ def get_match_if_any(text: str, regex: RegexTypes, **kwargs):
 
 # ....................{ MATCHERS ~ object : line           }....................
 @type_check
-def get_match_line_if_any(text: str, regex: RegexTypes, **kwargs):
+def get_match_line_if_any(
+    text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     Match object obtained by matching the passed string against the passed
     regular expression in a line-oriented manner if any such match exists _or_
@@ -336,8 +348,8 @@ def get_match_line_if_any(text: str, regex: RegexTypes, **kwargs):
 
     Returns
     ----------
-    re.SRE_Match, None
-        The match object if a match exists _or_ `None` otherwise.
+    RegexMatchOrNoneTypes
+        Match object if a match exists *or* ``None`` otherwise.
 
     See Also
     ----------
@@ -377,9 +389,9 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     ----------
     For convenience, the following match flags will be enabled by default:
 
-    * `re.DOTALL`, forcing the `.` special character to match any character
-      including newline. By default, this character matches any character
-      excluding newline. The former is almost always preferable, however.
+    * :data:`re.DOTALL`, forcing the ``.`` special character to match any
+      character including newline. By default, this character matches any
+      character excluding newline. The former is almost always preferable.
 
     Returns
     ----------
@@ -430,12 +442,12 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     ----------
     For convenience, the following match flags will be enabled by default:
 
-    * `re.DOTALL`, forcing the `.` special character to match any character
-      including newline. By default, this character matches any character
-      excluding newline. The former is almost always preferable, however.
-    * `re.MULTILINE`, forcing the `^` and `$` special characters to match both
-      at the start and end of this string _and_ at the start and end of each
-      line of this string. By default, these characters match only at the
+    * :data:`re.DOTALL`, forcing the `.` special character to match any
+      character including newline. By default, this character matches any
+      character excluding newline. The former is almost always preferable.
+    * :data:`re.MULTILINE`, forcing the `^` and `$` special characters to match
+      both at the start and end of this string _and_ at the start and end of
+      each line of this string. By default, these characters match only at the
       former. Line-oriented requires both, however.
 
     Returns
@@ -450,8 +462,8 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     # Return this generator.
     return re.finditer(regex, text, **kwargs)
 
-# ....................{ REPLACERS                          }....................
-def remove_substrings(text: str, regex: RegexTypes, **kwargs) -> str:
+# ....................{ REMOVERS                           }....................
+def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
     '''
     Remove all substrings in the passed string matching the passed regular
     expression.
@@ -477,29 +489,32 @@ def remove_substrings(text: str, regex: RegexTypes, **kwargs) -> str:
         Further details on regular expressions and keyword arguments.
     '''
 
-    return substitute_substrings(text, regex, '', **kwargs)
+    return replace_substrs(text=text, regex=regex, replacement='', **kwargs)
 
-# ....................{ SUBSTITUTERS                       }....................
+# ....................{ REPLACERS                          }....................
 @type_check
-def substitute_substrings(
+def replace_substrs(
     text: str,
     regex: RegexTypes,
-    substitution: (str,) + CallableTypes,
+    replacement: CallableOrStrTypes,
     **kwargs
 ) -> str:
     '''
-    Replace all substrings in the passed string matching the passed regular
-    expression if any with the passed substitution _or_ noop otherwise.
+    Passed string with all substrings matching the passed regular expression
+    globally replaced with the passed substitution.
 
     Parameters
     ----------
+    text : str
+        String to perform these replacements in.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
         * `str`, signifying an uncompiled regular expression.
         * `Pattern`, signifying a compiled regular expression object.
-    substitution : str, func
-        Substitution to be performed. This should be either a string or
-        callable (e.g., function, method).
+    replacement : CallableOrStrTypes
+        Substitution to be performed, either a:
+        * String.
+        * Callable (e.g., function, lambda, method).
 
     This function accepts the same optional keyword arguments as
     :func:`re.sub`.
@@ -508,7 +523,7 @@ def substitute_substrings(
     ----------
     str
         Passed string with all substrings matching this regular expression
-        replaced with this substitution.
+        globally replaced with this substitution.
 
     See Also
     ----------
@@ -520,7 +535,7 @@ def substitute_substrings(
     _init_kwargs_flags(kwargs)
 
     # Substitute, if you please.
-    return re.sub(regex, substitution, text, **kwargs)
+    return re.sub(regex, replacement, text, **kwargs)
 
 # ....................{ SUBSTITUTERS                       }....................
 @type_check
