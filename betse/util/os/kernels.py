@@ -14,7 +14,7 @@ Caveats
 
 # ....................{ IMPORTS                            }....................
 import platform
-from betse.util.type.callables import callable_cached
+from betse.util.type.call.memoizers import callable_cached
 from collections import OrderedDict
 
 # ....................{ GETTERS                            }....................

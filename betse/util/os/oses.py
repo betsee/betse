@@ -12,9 +12,13 @@ Caveats
 '''
 
 # ....................{ IMPORTS                            }....................
-import os, platform, sys
-from betse.util.type.callables import callable_cached
+import os
+import platform
+import sys
 from collections import OrderedDict
+
+from betse.util.type.call.memoizers import callable_cached
+
 
 # ....................{ TESTERS ~ posix                    }....................
 @callable_cached

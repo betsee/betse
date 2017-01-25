@@ -8,11 +8,13 @@ Abstract base classes of all vector field subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from numpy import ndarray
+
 from betse.lib.numpy import arrays
 from betse.science.vector.vectorcls import VectorCells
-from betse.util.type.callables import property_cached
+from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
-from numpy import ndarray
+
 
 # ....................{ CLASSES                            }....................
 class VectorField(object):

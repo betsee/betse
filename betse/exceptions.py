@@ -206,6 +206,7 @@ class BetseTypeException(BetseException):
     pass
 
 
+#FIXME: Rename to "BetseMappingException" for generality.
 class BetseDictException(BetseTypeException):
     '''
     Dictionary-specific type or value exception.

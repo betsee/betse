@@ -73,10 +73,9 @@ def output_info() -> None:
             ('codename', metadata.CODENAME),
             ('authors', metadata.AUTHORS),
             ('license', metadata.LICENSE),
-            ('home directory', pathtree.HOME_DIRNAME),
-            ('dot directory',  pathtree.DOT_DIRNAME),
-            ('data directory', pathtree.DATA_DIRNAME),
-            ('default config file', pathtree.CONFIG_DEFAULT_FILENAME),
+            ('home directory',  pathtree.get_home_dirname()),
+            ('dot directory',   pathtree.get_dot_dirname()),
+            ('data directory',  pathtree.get_data_dirname()),
         ))),
 
         # Logging metadata.

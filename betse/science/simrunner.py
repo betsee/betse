@@ -25,7 +25,7 @@ from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.plot import plotpipe
 from betse.util.io.log import logs
 from betse.util.path import files, paths
-from betse.util.type.callables import deprecated
+from betse.util.type.call.callables import deprecated
 
 # ....................{ CLASSES                            }....................
 class SimRunner(object):

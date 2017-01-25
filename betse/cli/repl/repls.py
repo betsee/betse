@@ -11,9 +11,9 @@ REPL packages (e.g., :mod:`code`, :mod:`ptpython`).
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse import pathtree
 from betse.cli.repl import environment
 from betse.lib import libs
-from betse.pathtree import REPL_HISTORY_FILENAMES
 from betse.util.io.log import logs
 from betse.util.path import files
 from betse.util.path.command import exits
@@ -96,7 +96,7 @@ def start_ptpython_repl() -> None:
     # If the "ptpython" key is missing from the dictionary of history
     # filenames, then default to no history file. This prevents the readline
     # history files being corrupted by ptpython's unique format.
-    history_filename = REPL_HISTORY_FILENAMES.get('ptpython', None)
+    history_filename = pathtree.get_repl_history_filename('ptpython')
 
     # Run this REPL.
     try:
@@ -128,7 +128,7 @@ def start_code_repl() -> None:
 
     # Absolute path of the file persisting a REPL-specific history of commands.
     # Note this REPL leverages a "readline"-style history file format.
-    history_filename = REPL_HISTORY_FILENAMES['readline']
+    history_filename = pathtree.get_repl_history_filename('readline')
     readline.set_history_length(1000)
 
     # If this file exists, deserialize this REPL's history from this file.

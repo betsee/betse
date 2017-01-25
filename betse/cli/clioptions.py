@@ -439,7 +439,7 @@ type of logging to perform (defaults to "{default}"):
                 '(defaults to "{default}")'
             ),
             var_name='log_filename',
-            default_value=pathtree.LOG_DEFAULT_FILENAME,
+            default_value=pathtree.get_log_default_filename(),
         ),
 
         CLIOptionArgEnum(
@@ -462,7 +462,7 @@ type of profiling to perform (defaults to "{default}"):
                 '(defaults to "{default}")'
             ),
             var_name='profile_filename',
-            default_value=pathtree.PROFILE_DEFAULT_FILENAME,
+            default_value=pathtree.get_profile_default_filename(),
         ),
     )
 

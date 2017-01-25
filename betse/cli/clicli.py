@@ -22,7 +22,7 @@ from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.py import identifiers, pys
-from betse.util.type.callables import property_cached
+from betse.util.type.call.memoizers import property_cached
 
 
 # ....................{ CLASS                              }....................

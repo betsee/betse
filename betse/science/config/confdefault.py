@@ -93,7 +93,7 @@ def _write_dir(config_filename: str) -> None:
 
     # For the absolute path of each source subdirectory containing assets
     # required by this file...
-    for source_asset_dirname in pathtree.DATA_DEFAULT_ASSET_DIRNAMES:
+    for source_asset_dirname in pathtree.get_data_default_asset_dirnames():
         # Absolute path of the corresponding target subdirectory.
         target_asset_dirname = paths.join(
             target_dirname, paths.get_basename(source_asset_dirname))
@@ -131,7 +131,7 @@ def _write_file(config_filename: str) -> None:
     # Write the default configuration to this file, modifying the latter with
     # "sed"-like global string substitution as detailed above.
     files.replace_substrs(
-        filename_source=pathtree.CONFIG_DEFAULT_FILENAME,
+        filename_source=pathtree.get_sim_config_default_filename(),
         filename_target=config_filename,
         replacements=(
             # Prevent static plots from being displayed by default.

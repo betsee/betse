@@ -17,7 +17,7 @@ def test_callable_cached() -> None:
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.callables import callable_cached
+    from betse.util.type.call.memoizers import callable_cached
 
     # Class containing the callable to be cached.
     class Dreamland(object):
@@ -73,7 +73,7 @@ def test_property_cached() -> None:
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.callables import property_cached
+    from betse.util.type.call.memoizers import property_cached
 
     # Class containing the property to be cached.
     class Keeper(object):

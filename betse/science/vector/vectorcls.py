@@ -11,7 +11,7 @@ import numpy as np
 from betse.exceptions import BetseVectorException
 from betse.lib.numpy import arrays
 from betse.util.py import references
-from betse.util.type.callables import property_cached
+from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceOrNoneTypes
 from numpy import ndarray
 from scipy import interpolate

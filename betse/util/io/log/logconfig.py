@@ -154,11 +154,11 @@ class LogConfig(object):
     * Printed to standard output if the logging level for this output is
       `INFO`. Together with the prior item, this suggests that output with a
       logging level of `DEBUG` will _not_ be printed by default.
-    * Appended to the user-specific file given by
-      `pathtree.LOG_DEFAULT_FILENAME`, whose:
-      * Level defaults to `logger.ALL`. Hence, _all_ messages will be logged by
-        default, including low-level debug messages. (This is helpful for
-        debugging client-side errors.)
+    * Appended to the user-specific file specified by the
+      :func:`pathtree.get_log_default_filename` function, whose:
+        * Level defaults to :data:`logger.ALL`. Hence, *all* messages will be
+          logged by default, including low-level debug messages. (This is
+          helpful for debugging client-side errors.)
       * Contents will be automatically rotated on exceeding a sensible filesize
         (e.g., 16Kb).
 
