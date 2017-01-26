@@ -12,7 +12,7 @@ from scipy import interpolate as interp
 from scipy import spatial as sps
 from scipy.interpolate import SmoothBivariateSpline
 from betse.science import toolbox as tb
-from betse.science.event import modulators as mod
+from betse.science.event import eventmodulate as mod
 from betse.science.tissue.channels import vg_na as vgna
 from betse.science.tissue.channels import vg_nap as vgnap
 from betse.science.tissue.channels import vg_k as vgk
@@ -980,7 +980,7 @@ class TissueHandler(object):
 
         Parameters
         ---------------------------------
-        tissue_picker : TissuePicker
+        tissue_picker : TissuePickerABC
             Object matching all cells to be removed.
         sim : Simulator
             Instance of the `Simulator` class.

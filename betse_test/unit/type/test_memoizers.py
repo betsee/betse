@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests exercising generic decorators.
+Unit tests exercising memoization decorators.
 '''
 
 # ....................{ IMPORTS                            }....................

@@ -21,6 +21,7 @@ module = sys.modules[__name__]
 Current module object, for use in setattr() calls below.
 '''
 
+
 varda = (
     'O stars that in the Sunless Year',
     'With shining hand by her were sown,',
@@ -46,7 +47,8 @@ yavanna = (
 @fixture(scope='session')
 def betse_dynamicvaluedict() -> 'DynamicValueDict':
     '''
-    Fixture creating and returning a mock `DynamicValueDict` to be tested.
+    Fixture creating and returning a mock :class:`DynamicValueDict` to be
+    tested.
     '''
 
     # Defer heavyweight imports.
@@ -70,7 +72,7 @@ def betse_dynamicvaluedict() -> 'DynamicValueDict':
 # ....................{ TESTS                              }....................
 def test_dynamicvaluedict_pass(betse_dynamicvaluedict) -> None:
     '''
-    Test all aspects of the `DynamicValueDict` type intended to succeed.
+    Test all aspects of the :class:`DynamicValueDict` type intended to succeed.
 
     Parameters
     ----------
@@ -104,7 +106,7 @@ def test_dynamicvaluedict_pass(betse_dynamicvaluedict) -> None:
 
 def test_dynamicvaluedict_fail(betse_dynamicvaluedict) -> None:
     '''
-    Test all aspects of the `DynamicValueDict` type intended to fail.
+    Test all aspects of the :class:`DynamicValueDict` type intended to fail.
 
     Parameters
     ----------

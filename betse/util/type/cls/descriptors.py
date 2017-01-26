@@ -22,7 +22,6 @@ Unique arbitrary identifier with which to uniquify the class name of the next
 '''
 
 # ....................{ DATA DESCRIPTORS                   }....................
-#FIXME: Unit test us up, please.
 @type_check
 def expr_alias(expr: str, cls: ClassType = None) -> object:
     '''
@@ -55,6 +54,37 @@ def expr_alias(expr: str, cls: ClassType = None) -> object:
     dictionary and thus back to this file on saving this dictionary in YAML
     format back to this file.
 
+    Expressions
+    ----------
+    The passed expression may be any arbitrarily complex source Python
+    expression suitable for use as both the left- and right-hand sides of Python
+    assignment statements. This expression may refer to the following local
+    variables:
+
+    * ``self``, the current instance of the class instantiating this descriptor.
+      If this descriptor is retrieved:
+      * As an **instance variable** (i.e., from the current instance of this
+        class), this local is that instance.
+      * As a **class variable** (i.e., from this class), this local is `None`.
+        In this case, the ``cls`` local is guaranteed to be defined to the class
+        instantiating this descriptor.
+    * ``cls``, the class instantiating this descriptor. This local is only
+      defined when getting this descriptor; equivalently, this local is
+      undefined when setting this descriptor. Since the ``self`` local is
+      *always* defined, however, the class instantiating this descriptor may
+      *always* be safely obtained in expressions by referencing ``cls`` only if
+      ``self`` is ``None``. For example, to get and set the name of this class:
+
+      .. code:: python
+
+         expr_alias(
+             expr='(cls if self is None else self.__class__).__name__', cls=str)
+
+    * ``self_descriptor``, the current instance of this descriptor. Since this
+      descriptor only implements special methods required by the data descriptor
+      protocol (e.g., ``__get__``, ``__set__``) and hence contains no data, this
+      local is unlikely to be of interest to most callers.
+
     Caveats
     ----------
     As with all descriptors, this function is intended to be called *only* at
@@ -63,17 +93,23 @@ def expr_alias(expr: str, cls: ClassType = None) -> object:
     arbitrary name. While feasible, calling this function from any other scope
     is highly discouraged.
 
+    Additionally, the instance variable bound by the descriptor returned by this
+    function is *not* deletable via the :func:`del` builtin. Attempting to do so
+    reliably raises an :class:`AttributeError` exception. Why? To preserve
+    backward compatibility with pre-Python 3.6 versions, which provide no means
+    of doing so.
+
     Parameters
     ----------
     expr : str
         Arbitrarily complex Python expression suitable for use as both the left-
         and right-hand sides of Python assignment statements, typically
-        evaluating to the value of an arbitrarily nested dictionary entry:
+        evaluating to the value of an arbitrarily nested dictionary key:
         * Prefixed by the name of the instance variable to which this dictionary
           is bound in instances of the class containing this descriptor (e.g.,
           ``self._config``).
-        * Suffixed by one or more `[`- and `]`-delimited key lookups into the
-          same dictionary (e.g.,
+        * Suffixed by one or more ``[``- and ``]``-delimited key lookups into
+          the same dictionary (e.g.,
           ``['variable settings']['noise']['dynamic noise']``).
     cls: optional[ClassType]
         Either:
@@ -82,8 +118,8 @@ def expr_alias(expr: str, cls: ClassType = None) -> object:
         * A callable, in which caseattempting to set this variable to a value
           passes this value to this callable first, which may then raise an
           exception of arbitrary type.
-        Defaults to `None`, in which case this variable is permissively settable
-        to any arbitrary value.
+        Defaults to ``None``, in which case this variable is permissively
+        settable to any arbitrary value.
 
     Returns
     ----------
@@ -128,9 +164,26 @@ def expr_alias(expr: str, cls: ClassType = None) -> object:
 
     # If *NOT* validating the type of this variable, define this data descriptor
     # to permissively accept all possible values.
+    #
+    # Note that the following special methods supported by the descriptor
+    # protocol are intentionally left undefined:
+    #
+    # * "__set_name__(self, owner, name)", first introduced by Python 3.6 to
+    #   notify descriptors of the variable names to which they have been bound.
+    #   Since these names are irrelevant for aliasing purposes, this descriptor
+    #   class leaves this special method unimplemented.
+    # * "__delete__(self, instance)", deleting the variable to which this
+    #   descriptor has been bound from the current instance of the class
+    #   instantiating this descriptor. Sanely defining this method would require
+    #   implementing the aforementioned __set_name__() method to store the name
+    #   of the variable to which this descriptor is bound. That method is only
+    #   available under Python 3.6, whereas this application is currently
+    #   compatible with older Python 3.x versions. Since deletion of this
+    #   descriptor is non-essential (and arguably undesirable), this descriptor
+    #   class leaves this special method unimplemented.
     if cls is None:
         expr_alias_class_method_defs = '''
-def __get__(self_descriptor, self):
+def __get__(self_descriptor, self, cls):
     return {expr}
 
 def __set__(self_descriptor, self, value):
@@ -142,7 +195,7 @@ def __set__(self_descriptor, self, value):
 def __init__(self_descriptor, __var_alias_cls=__var_alias_cls):
     self_descriptor._var_alias_cls = __var_alias_cls
 
-def __get__(self_descriptor, self):
+def __get__(self_descriptor, self, cls):
     return {expr}
 
 def __set__(self_descriptor, self, value):

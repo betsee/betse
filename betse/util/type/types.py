@@ -1124,12 +1124,12 @@ def is_simrunner(obj: object) -> bool:
 def is_tissue_picker(obj: object) -> bool:
     '''
     `True` only if the passed object is an instance of the BETSE-specific
-    `TissuePicker` class.
+    `TissuePickerABC` class.
     '''
 
     # Avoid circular import dependencies.
-    from betse.science.tissue.picker import TissuePicker
-    return isinstance(obj, TissuePicker)
+    from betse.science.tissue.tissuepick import TissuePickerABC
+    return isinstance(obj, TissuePickerABC)
 
 # ....................{ TESTERS ~ lib : argparse           }....................
 def is_arg_parser(obj: object) -> bool:
@@ -1508,9 +1508,9 @@ def assert_not_simulator(obj: object) -> str:
 def assert_not_tissue_picker(obj: object) -> str:
     '''
     String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `TissuePicker` class.
+    specific `TissuePickerABC` class.
     '''
-    return '"{}" not a "TissuePicker" instance.'.format(trim(obj))
+    return '"{}" not a "TissuePickerABC" instance.'.format(trim(obj))
 
 # ....................{ ASSERTERS ~ lib : argparse         }....................
 def assert_not_arg_parser(obj: object) -> bool:

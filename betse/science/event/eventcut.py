@@ -7,7 +7,7 @@ High-level classes aggregating all parameters pertaining to simulation events.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.event.abc import Action
+from betse.science.event.eventabc import Action
 from betse.util.io.log import logs
 from betse.util.type import types
 

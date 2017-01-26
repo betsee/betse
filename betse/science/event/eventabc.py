@@ -11,7 +11,7 @@ from abc import ABCMeta, abstractmethod, abstractstaticmethod
 from betse.util.type import types
 
 # ....................{ BASE                               }....................
-class Event(object, metaclass=ABCMeta):
+class EventABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all timed event classes.
 
@@ -26,7 +26,7 @@ class Event(object, metaclass=ABCMeta):
 
     # ..................{ ABSTRACT ~ static                  }..................
     @abstractstaticmethod
-    def make(params: 'Parameters') -> 'Event':
+    def make(params: 'Parameters') -> 'EventABC':
         '''
         Factory method producing a concrete instance of this abstract base class
         from the passed simulation configuration.
@@ -38,7 +38,7 @@ class Event(object, metaclass=ABCMeta):
 
         Returns
         ----------------------------
-        Event
+        EventABC
             Concrete instance of this abstract base class.
         '''
         pass
@@ -60,7 +60,7 @@ class Event(object, metaclass=ABCMeta):
         pass
 
 # ....................{ PERIOD                             }....................
-class Action(Event):
+class Action(EventABC):
     '''
     Abstract base class of all classes describing simulation events occurring at
     only a single time step (rather than over a range of time steps).
@@ -82,7 +82,7 @@ class Action(Event):
         self._is_fired = False
 
 # ....................{ PULSE                              }....................
-class Pulse(Event):
+class Pulse(EventABC):
     '''
     Abstract base class of all classes describing simulation events occurring
     over a range of time steps (rather than at only a single time step).
