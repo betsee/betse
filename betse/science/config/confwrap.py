@@ -3,6 +3,12 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+#FIXME: *OBSOLETE,* mostly. This entire submodule should pretty much go away in
+#favour of the new "confabc"-based approach -- namely, the "SimConfABC" base
+#class coupled with the conf_alias() data descriptor. Together, this
+#functionality provides a substantially better YAML-to-Python-object-mapping
+#(YPOM) than the ad-hoc and overly verbose boilerplate implemented below.
+
 '''
 High-level simulation configuration classes wrapping low-level dictionaries both
 serialized to and deserialized from on-disk YAML-formatted files.

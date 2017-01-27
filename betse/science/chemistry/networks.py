@@ -2,39 +2,40 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-import os
-import os.path
 import csv
 import math
+import os
+import os.path
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import cm
+from matplotlib import colors
+from scipy.ndimage.filters import gaussian_filter
+from scipy.optimize import basinhopping
+
 from betse.exceptions import BetseSimConfigException
 from betse.lib import libs
-from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
 from betse.science.chemistry.netplot import plot_master_network, set_net_opts
-from betse.science.tissue.handler import TissueHandler
-from betse.science.event import eventmodulate as mods
-from betse.science.visual.plot import plotutil as viz
-from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.math import modulate as mods
+from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
+from betse.science.tissue.channels import cation as vgcat
+from betse.science.tissue.channels import vg_ca as vgca
+from betse.science.tissue.channels import vg_cl as vgcl
+from betse.science.tissue.channels import vg_funny as vgfun
+from betse.science.tissue.channels import vg_k as vgk
+from betse.science.tissue.channels import vg_kir as vgkir
+from betse.science.tissue.channels import vg_na as vgna
+from betse.science.tissue.channels import vg_nap as vgnap
+from betse.science.tissue.handler import TissueHandler
+from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
+from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
-from collections import OrderedDict
-from matplotlib import colors
-from matplotlib import cm
-from scipy.optimize import basinhopping
-from scipy.ndimage.filters import gaussian_filter
-
-from betse.science.tissue.channels import vg_na as vgna
-from betse.science.tissue.channels import vg_nap as vgnap
-from betse.science.tissue.channels import vg_k as vgk
-from betse.science.tissue.channels import vg_cl as vgcl
-from betse.science.tissue.channels import vg_kir as vgkir
-from betse.science.tissue.channels import vg_funny as vgfun
-from betse.science.tissue.channels import vg_ca as vgca
-from betse.science.tissue.channels import cation as vgcat
 
 
 class MasterOfNetworks(object):
@@ -4236,7 +4237,6 @@ class MasterOfNetworks(object):
         libs.die_unless_runtime_optional('networkx', 'pydot')
 
         # Import NetworkX and NetworkX's PyDot interface:
-        import networkx as nx
         from networkx import nx_pydot
 
         mssg = "Optimizing with {} in {} iterations".format(

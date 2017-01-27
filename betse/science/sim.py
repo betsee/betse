@@ -7,20 +7,25 @@ import copy
 import os
 import os.path
 import time
+from random import shuffle
+
 import numpy as np
+from numpy import ndarray
+from scipy import interpolate as interp
+from scipy.ndimage.filters import gaussian_filter
+
 from betse.exceptions import BetseSimInstabilityException
 from betse.science import filehandling as fh
-from betse.science import finitediff as fd
-# from betse.science import toolbox as tb
 from betse.science import sim_toolbox as stb
-from betse.science.chemistry.molecules import MasterOfMolecules
-from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.gene import MasterOfGenes
+from betse.science.chemistry.metabolism import  MasterOfMetabolism
+from betse.science.chemistry.molecules import MasterOfMolecules
+from betse.science.math import finitediff as fd
 from betse.science.organelles.endo_retic import EndoRetic
-from betse.science.physics.ion_current import get_current
-from betse.science.physics.flow import getFlow
 from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
+from betse.science.physics.flow import getFlow
+from betse.science.physics.ion_current import get_current
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
 from betse.science.tissue.channels.gap_junction import Gap_Junction
@@ -30,10 +35,6 @@ from betse.util.io.log import logs
 from betse.util.type.contexts import noop_context
 from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check, NoneType
-from numpy import ndarray
-from random import shuffle
-from scipy import interpolate as interp
-from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ ENUMS                              }....................
 SimPhaseType = EnumOrdered('SimPhaseType', (

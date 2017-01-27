@@ -7,15 +7,17 @@
 # FIXME need to have cells.old and cells.new saved in the simulation for dealing with changing cell structure
 # FIXME need to put the flattened data stuff into all animations to deal with chanigng cell structure
 
+import os
+import os.path
+
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
-import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection, PolyCollection
-import matplotlib.cm as cm
-from scipy import interpolate
-from betse.science import toolbox as tb
 from matplotlib import animation
-import os, os.path
+from matplotlib.collections import LineCollection, PolyCollection
+from scipy import interpolate
+
 
 class AnimateCellData(object):
     """

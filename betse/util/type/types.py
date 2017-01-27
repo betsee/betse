@@ -899,7 +899,11 @@ def _check_type_annotation(
             'new-style class nor '
             'tuple of such classes).'.format(annotation_label, annotation))
 
-# ....................{ TESTERS                            }....................
+# ....................{ OBSOLETE                           }....................
+#FIXME: *ALL OF THE FOLLOWING FUNCTIONALITY SHOULD EVENTUALLY BE REMOVED.* The
+#@type_check decorator defined above provides a substantially superior
+#solution to this decidedly... unsavoury approach.
+
 def is_bool(obj: object) -> bool:
     '''
     `True` only if the passed object is **boolean** (i.e., either `True` or
@@ -1120,49 +1124,7 @@ def is_simrunner(obj: object) -> bool:
     from betse.science.simrunner import SimRunner
     return isinstance(obj, SimRunner)
 
-
-def is_tissue_picker(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an instance of the BETSE-specific
-    `TissuePickerABC` class.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.science.tissue.tissuepick import TissuePickerABC
-    return isinstance(obj, TissuePickerABC)
-
-# ....................{ TESTERS ~ lib : argparse           }....................
-def is_arg_parser(obj: object) -> bool:
-    '''
-    `True` only if the passed object is an argument parser.
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from argparse import ArgumentParser
-    return isinstance(obj, ArgumentParser)
-
 # ....................{ TESTERS ~ lib : matplotlib         }....................
-#FIXME: Rename "_matplotlib_" everywhere below to merely "_mpl_".
-def is_matplotlib_collection(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a Matplotlib collection.
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from matplotlib.collections import Collection
-    return isinstance(obj, Collection)
-
-
-def is_matplotlib_colormap(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a Matplotlib colormap.
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from matplotlib.colors import Colormap
-    return isinstance(obj, Colormap)
-
-
 def is_matplotlib_mappable(obj: object) -> bool:
     '''
     `True` only if the passed object is a Matplotlib mappable.
@@ -1182,17 +1144,6 @@ def is_matplotlib_polycollection(obj: object) -> bool:
     # Avoid importing third-party packages at the top level.
     from matplotlib.collections import PolyCollection
     return isinstance(obj, PolyCollection)
-
-
-def is_matplotlib_streamplot(obj: object) -> bool:
-    '''
-    `True` only if the passed object is a Matplotlib **streamplot** (i.e., an
-    object returned by the `matplotlib.plt.streamplot()` function).
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from matplotlib.streamplot import StreamplotSet
-    return isinstance(obj, StreamplotSet)
 
 
 def is_matplotlib_trimesh(obj: object) -> bool:
@@ -1504,36 +1455,7 @@ def assert_not_simulator(obj: object) -> str:
     '''
     return '"{}" not a "Simulator" instance.'.format(trim(obj))
 
-
-def assert_not_tissue_picker(obj: object) -> str:
-    '''
-    String asserting the passed object to _not_ be an instance of the BETSE-
-    specific `TissuePickerABC` class.
-    '''
-    return '"{}" not a "TissuePickerABC" instance.'.format(trim(obj))
-
-# ....................{ ASSERTERS ~ lib : argparse         }....................
-def assert_not_arg_parser(obj: object) -> bool:
-    '''
-    String asserting the passed object to _not_ be an argument parser.
-    '''
-    return '"{}" not an argument parser.'.format(trim(obj))
-
 # ....................{ ASSERTERS ~ lib : matplotlib       }....................
-def assert_not_matplotlib_collection(obj: object) -> bool:
-    '''
-    String asserting the passed object to _not_ be a Matplotlib collection.
-    '''
-    return '"{}" not a Matplotlib collection.'.format(trim(obj))
-
-
-def assert_not_matplotlib_colormap(obj: object) -> bool:
-    '''
-    String asserting the passed object to _not_ be a Matplotlib colormap.
-    '''
-    return '"{}" not a Matplotlib colormap.'.format(trim(obj))
-
-
 def assert_not_matplotlib_mappable(obj: object) -> bool:
     '''
     String asserting the passed object to _not_ be a Matplotlib mappable.
@@ -1547,13 +1469,6 @@ def assert_not_matplotlib_polycollection(obj: object) -> bool:
     collection.
     '''
     return '"{}" not a Matplotlib polygon collection.'.format(trim(obj))
-
-
-def assert_not_matplotlib_streamplot(obj: object) -> bool:
-    '''
-    String asserting the passed object to _not_ be a Matplotlib streamplot.
-    '''
-    return '"{}" not a Matplotlib streamplot.'.format(trim(obj))
 
 
 def assert_not_matplotlib_trimesh(obj: object) -> bool:

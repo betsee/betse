@@ -126,7 +126,6 @@ def init() -> None:
         return
 
     # Defer heavyweight imports to their point of use.
-    from betse import pathtree
     from betse.lib import libs
     from betse.util.io.log import logconfig
     from betse.util.py import pys
@@ -146,9 +145,6 @@ def init() -> None:
     # While the former (mostly) comprises unenforced recommendations, the latter
     # comprises enforced requirements and should thus be validated first.
     pys.init()
-
-    # Validate core directories and files required at program startup.
-    pathtree.init()
 
     # Record this function as having been called *AFTER* successfully doing so.
     _IS_IGNITED = True

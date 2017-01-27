@@ -4,21 +4,21 @@
 
 # FIXME include other channels in morphogen (dye) dynamics
 
-from random import shuffle
 import copy
+from random import shuffle
 
 import numpy as np
 from scipy import interpolate as interp
 from scipy import spatial as sps
-from scipy.interpolate import SmoothBivariateSpline
-from betse.science import toolbox as tb
-from betse.science.event import eventmodulate as mod
-from betse.science.tissue.channels import vg_na as vgna
-from betse.science.tissue.channels import vg_nap as vgnap
+
+from betse.science.math import modulate as mod
+from betse.science.math import toolbox as tb
+from betse.science.tissue.channels import vg_ca as vgca
+from betse.science.tissue.channels import vg_funny as vgfun
 from betse.science.tissue.channels import vg_k as vgk
 from betse.science.tissue.channels import vg_kir as vgkir
-from betse.science.tissue.channels import vg_funny as vgfun
-from betse.science.tissue.channels import vg_ca as vgca
+from betse.science.tissue.channels import vg_na as vgna
+from betse.science.tissue.channels import vg_nap as vgnap
 from betse.science.tissue.channels import wound_channel as w
 from betse.science.tissue.channels_o import cagPotassium
 from betse.util.io.log import logs
@@ -168,7 +168,8 @@ class TissueHandler(object):
             # 'gradient_x', 'gradient_y', 'gradient_r'
 
             if self.function_Namem != 'None':
-                self.scalar_Namem, self.dyna_Namem = getattr(mod, self.function_Namem)(self.targets_Namem,cells,p)
+                self.scalar_Namem, self.dyna_Namem = getattr(
+                    mod, self.function_Namem)(self.targets_Namem,cells,p)
 
         #----------------------------------------------
 
@@ -995,7 +996,7 @@ class TissueHandler(object):
 
         # Redo environmental diffusion matrices by setting the environmental spaces
         # around cut world to the free value (True) or not (False)?
-        open_TJ = True
+        # open_TJ = True
 
         # Subtract this bitmap's clipping mask from the global cluster mask.
         bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix

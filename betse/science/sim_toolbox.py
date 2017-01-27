@@ -8,8 +8,9 @@ import numpy as np
 import numpy.ma as ma
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
+
 from betse.exceptions import BetseSimInstabilityException
-from betse.science import finitediff as fd
+from betse.science.math import finitediff as fd
 
 
 # Toolbox of functions used in the Simulator class to calculate key bioelectric properties.

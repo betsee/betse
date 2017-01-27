@@ -3,20 +3,13 @@
 # See "LICENSE" for further details.
 
 
-from scipy import interpolate as interp
-import scipy.spatial as sps
-from betse.science import finitediff as fd
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import numpy as np
-import os, os.path
-import time
-from betse.exceptions import BetseSimException
-from matplotlib.collections import LineCollection, PolyCollection
-from matplotlib import animation
-from betse import ignition, pathtree
-import sys
 import math
+
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import animation
+
 
 # FIXME to integrate with BETSE, needs to be able to take in forcing function data (which comes from BETSE) and may
 # need to be interpolated to this particular grid (along with 'c', by the way, which might be 0 outside of cell cluster)

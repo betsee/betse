@@ -817,7 +817,8 @@ results options:
         writers: ['ffmpeg', 'avconv', 'mencoder', 'imagemagick']
 
         # List of the names of all encoder-specific codecs with which to
-        # encode video (in descending order of preference).
+        # encode video (in descending order of preference). The reserved name
+        # "auto" implies the best codec provided by the current video encoder.
         codecs: ['auto']
 
     data:              # Saving options for spreadsheet-compatible data.

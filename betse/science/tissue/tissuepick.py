@@ -10,11 +10,13 @@ of the total cell population to the corresponding tissue profile.
 # ....................{ IMPORTS                            }....................
 import random
 from abc import ABCMeta, abstractmethod
+
 from betse.exceptions import BetseSimConfigException
-from betse.science import toolbox
+from betse.science.math import toolbox
 from betse.util.path import files, paths
 from betse.util.type.types import (
     type_check, MappingType, NumericTypes, SequenceTypes)
+
 
 # ....................{ SUPERCLASS                         }....................
 class TissuePickerABC(object, metaclass=ABCMeta):

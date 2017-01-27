@@ -34,7 +34,7 @@ import numpy as np
 import scipy.spatial as sps
 
 from betse.science import filehandling as fh
-from betse.science import toolbox as tb
+from betse.science.math import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
 

@@ -127,18 +127,18 @@ def _preserve_backward_importability() -> None:
 
     # Import all modules whose fully-qualified names have been modified.
     from betse.science import sim
-    from betse.science.config.sub import subconfanim
-    from betse.science.config.sub import subconfplot
+    from betse.science.config.visual import confanim
+    from betse.science.config.visual import confplot
 
     # Alias obsolete module names to current module objects.
-    sys.modules['betse.science.visual.anim.animconfig'] = subconfanim
-    sys.modules['betse.science.visual.plot.plotconfig'] = subconfplot
-    sys.modules['betse.science.plot.plotconfig'] = subconfplot
-    sys.modules['betse.science.plot.anim.animconfig'] = subconfanim
+    sys.modules['betse.science.visual.anim.animconfig'] = confanim
+    sys.modules['betse.science.visual.plot.plotconfig'] = confplot
+    sys.modules['betse.science.plot.plotconfig'] = confplot
+    sys.modules['betse.science.plot.anim.animconfig'] = confanim
 
     # Alias obsolete to current class names.
     sim.SimPhase = sim.SimPhaseType
     sys.modules['betse.science.visual.anim.animconfig'].AnimConfig = (
-        subconfanim.SimSubconfAnim)
+        confanim.SimConfAnim)
     sys.modules['betse.science.visual.plot.plotconfig'].PlotConfig = (
-        subconfplot.SimSubconfPlot)
+        confplot.SimConfPlot)

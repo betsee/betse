@@ -7,12 +7,13 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib import mplutil
 from betse.science.config import confio #, confalias
-from betse.science.config.sub.subconfanim import SimSubconfAnim
-from betse.science.config.sub.subconfplot import SimSubconfPlot
-from betse.science.event.eventcut import ActionCut
-from betse.science.event.eventvoltage import PulseVoltage
-from betse.science.tissue.tissuepick import TissuePickerBitmap
+from betse.science.config.confabc import conf_alias
+from betse.science.config.event import eventcut
+from betse.science.config.event import eventvoltage
+from betse.science.config.visual.confanim import SimConfAnim
+from betse.science.config.visual.confplot import SimConfPlot
 from betse.science.tissue import tissuecls
+from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.types import type_check, SequenceTypes
@@ -70,9 +71,9 @@ class Parameters(object):
 
     Attributes (Results)
     ----------------------------
-    anim : SimSubconfAnim
+    anim : SimConfAnim
         Subconfiguration encapsulating exported simulation animations.
-    plot : SimSubconfPlot
+    plot : SimConfPlot
         Subconfiguration encapsulating exported simulation plots.
 
     Attributes (Tissue)
@@ -89,8 +90,25 @@ class Parameters(object):
         to be associated with particular simulation constants and parameters).
     '''
 
+    # ..................{ ALIASES                            }..................
+    #FIXME: The following configuration aliases demonstrate use of the
+    #conf_alias() function, our new YAML-to-Python-object-mapping (YPOM).
+    #Luckily, the syntax is pretty breezy:
+    #
+    #* The first parameter to this function states the sequence of YAML
+    #  dictionary keys providing this configuration setting.
+    #* The second parameter states the expected type of this setting.
+    #
+    #Ideally, all or most of the variables parsed in the __init__() method
+    #below should be converted into aliases of this form. Brainy rainbows!
 
-    def __init__(self, config_filename: str):
+    world_filename = conf_alias("['init file saving']['worldfile']", str)
+    init_filename  = conf_alias("['init file saving']['file']", str)
+    sim_filename   = conf_alias("['sim file saving']['file']", str)
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, config_filename: str) -> None:
         '''
         Parse all settings from the passed YAML-formatted simulation
         configuration file.
@@ -123,6 +141,29 @@ class Parameters(object):
         # FILE HANDLING
         #---------------------------------------------------------------------------------------------------------------
 
+        #FIXME: Convert the following variables into typical @property-style
+        #properties, as they require dynamic logic and hence *CANNOT* be
+        #encapsulated via conf_alias() above. When doing so, note that it would
+        #be quite nice if:
+        #
+        #* We cached rather than recomputed each such path using
+        #  @property_cached. To do so, we'll need to redefine that decorator to
+        #  return a new descriptor rather than merely a @property, which will
+        #  then permit us to redefine the setter() method of that descriptor to
+        #  invalidate the currently cached value on being set. Pretty sweet
+        #  functionality, which we *REALLY* want elsewhere as well.
+        #* We set each such path using:
+        #
+        #     # ...this:
+        #     os.path.expanduser(paths.join(self.config_dirname, ...))
+        #
+        #     # ...rather than merely this:
+        #     paths.join(self.config_dirname, ...)
+        #
+        #  Since all logic that accesses these variables in the codebase
+        #  *ALWAYS* wraps these variables with os.path.expanduser(), let's just
+        #  do so once for each variable.
+
          # Define paths for saving initialization runs, simulation runs, and results:
         self.init_path = paths.join(
             self.config_dirname, self._config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
@@ -132,11 +173,6 @@ class Parameters(object):
             self.config_dirname, self._config['results file saving']['sim directory']) # folder to auto-save results (graphs, images, animations)
         self.init_results = paths.join(
             self.config_dirname, self._config['results file saving']['init directory']) # folder to auto-save results (graphs, images, ani
-
-
-        self.init_filename = self._config['init file saving']['file']
-        self.sim_filename = self._config['sim file saving']['file']
-        self.world_filename = self._config['init file saving']['worldfile']
 
         #---------------------------------------------------------------------------------------------------------------
         # INIT & SIM SETTINGS
@@ -271,7 +307,7 @@ class Parameters(object):
         #Thus spake Sessums!
 
         # Parameterize the voltage event if enabled.
-        self.scheduled_options['extV'] = PulseVoltage.make(self)
+        self.scheduled_options['extV'] = eventvoltage.make(p=self)
 
         if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0
@@ -296,7 +332,7 @@ class Parameters(object):
         self.wound_channel_inhibitors_Km = wc.get('Km inhibitors', None)
         self.wound_channel_inhibitors_n = wc.get('n inhibitors', None)
 
-        self.scheduled_options['cuts'] = ActionCut.make(self)
+        self.scheduled_options['cuts'] = eventcut.make(p=self)
 
         #---------------------------------------------------------------------------------------------------------------
         # GLOBAL INTERVENTIONS
@@ -643,7 +679,7 @@ class Parameters(object):
 
         # ................{ PLOTS                              }................
         # Plot subconfiguration.
-        self.plot = SimSubconfPlot(config=self._config)
+        self.plot = SimConfPlot(config=self._config)
 
         ro = self._config['results options']
 
@@ -735,7 +771,7 @@ class Parameters(object):
 
         # ................{ ANIMATIONS                         }................
         # Animation subconfiguration.
-        self.anim = SimSubconfAnim(config=self._config)
+        self.anim = SimConfAnim(config=self._config)
 
         # specify desired animations:
         self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?

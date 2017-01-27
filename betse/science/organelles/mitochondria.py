@@ -11,13 +11,12 @@ remove mitochondria during a cutting event, save and report on data, and plot.
 
 """
 
-import os
-import os.path
-import numpy as np
-from betse.science import toolbox as tb
-from betse.science import sim_toolbox as stb
-from betse.util.io.log import logs
 import copy
+
+import numpy as np
+
+from betse.science import sim_toolbox as stb
+
 
 class Mito(object):
 

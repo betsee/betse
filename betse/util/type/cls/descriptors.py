@@ -10,7 +10,7 @@ defined at class scope) facilities.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseTypeException
-from betse.util.type.types import type_check, ClassType
+from betse.util.type.types import type_check, TestableTypes
 
 if False: BetseTypeException   # squelch IDE warnings
 
@@ -23,7 +23,7 @@ Unique arbitrary identifier with which to uniquify the class name of the next
 
 # ....................{ DATA DESCRIPTORS                   }....................
 @type_check
-def expr_alias(expr: str, cls: ClassType = None) -> object:
+def expr_alias(expr: str, cls: TestableTypes = None) -> object:
     '''
     Expression alias **data descriptor** (i.e., object satisfying the data
     descriptor protocol), dynamically aliasing a target variable bound to
@@ -111,13 +111,16 @@ def expr_alias(expr: str, cls: ClassType = None) -> object:
         * Suffixed by one or more ``[``- and ``]``-delimited key lookups into
           the same dictionary (e.g.,
           ``['variable settings']['noise']['dynamic noise']``).
-    cls: optional[ClassType]
+    cls: optional[TestableTypes]
         Either:
-        * A class, in which case attempting to set this variable to a value
-          *not* an instance of this class raises an exception.
-        * A callable, in which caseattempting to set this variable to a value
-          passes this value to this callable first, which may then raise an
-          exception of arbitrary type.
+        * A class, in which case setting this variable to a value *not* an
+          instance of this class raises an exception.
+        * A tuple of classes, in which case setting this variable to a value
+          *not* an instance of at least one class in this tuple raises an
+          exception.
+        * A callable, in which case setting this variable to a value passes this
+          value to this callable first, which may then raise an exception of
+          arbitrary type.
         Defaults to ``None``, in which case this variable is permissively
         settable to any arbitrary value.
 
@@ -201,11 +204,12 @@ def __get__(self_descriptor, self, cls):
 def __set__(self_descriptor, self, value):
     if not isinstance(value, self_descriptor._var_alias_cls):
         raise BetseTypeException(
-            'Expression "{expr}" of type {{}} not settable to {{!r}}.'.format(
+            'Expression alias of type {{}} not settable to {{!r}}.'.format(
                 self_descriptor._var_alias_cls.__name__, value))
 
     {expr} = value
 '''.format(expr=expr)
+    # print('expr_alias code:\n' + expr_alias_class_method_defs)
 
     # Define these methods and this dictionary containing these methods.
     exec(expr_alias_class_method_defs, globals(), expr_alias_class_methods)

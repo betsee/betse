@@ -3,9 +3,7 @@
 # See "LICENSE" for further details.
 
 import numpy as np
-from betse.exceptions import BetseLambdaException
-from betse.util.type import types
-from betse.science import toolbox as tb
+
 
 # calcium (and voltage) gated K+ channel-------------------------------------------------------------------------------
 #

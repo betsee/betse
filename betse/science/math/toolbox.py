@@ -37,7 +37,7 @@ def flatten(ls_of_ls: list) -> tuple:
 
     Examples
     ----------
-    >>> from betse.science import toolbox as tb
+    >>> from betse.science.math import toolbox as tb
     >>> tb.flatten([['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']])
     (['a',   'b',   'c',   'd',   'e',   'f',   'g',   'h',   'i'],
      [[0,0], [0,1], [0,2], [1,0], [1,1], [1,2], [2,0], [2,1], [2,2]])
@@ -514,10 +514,3 @@ def RK4(f):
             )(dt * f(y + dy2 / 2))
         )(dt * f(y + dy1 / 2))
     )(dt * f(y))
-
-
-
-
-
-
-

@@ -12,12 +12,12 @@ YAML-backed simulation animation subconfigurations.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.sub.subconfabc import SimSubconfABC
+from betse.science.config.confabc import SimConfABC, conf_alias
 from betse.util.type import ints
-#from betse.util.type.types import type_check
+from betse.util.type.types import MappingType, SequenceTypes
 
 # ....................{ SUBCLASSES                         }....................
-class SimSubconfAnim(SimSubconfABC):
+class SimConfAnim(SimConfABC):
     '''
     YAML-backed simulation animation subconfiguration, encapsulating both the
     configuration and writing of all animations (both mid- and post-simulation)
@@ -27,7 +27,19 @@ class SimSubconfAnim(SimSubconfABC):
     to on-disk cache, image, and/or video files configured by this
     configuration.
 
-    Attributes
+    Attributes (While)
+    ----------
+    is_while_sim : bool
+        `True` only if this configuration enables (but _not_ necessarily
+        displays or saves) mid-simulation animations.
+    is_while_sim_show : bool
+        `True` only if this configuration displays mid-simulation animations.
+        Ignored if `is_while_sim` is `False`.
+    is_while_sim_save : bool
+        `True` only if this configuration saves mid-simulation animations.
+        Ignored if `is_midsim` is `False`.
+
+    Attributes (After)
     ----------
     is_after_sim : bool
         `True` only if this configuration enables (but _not_ necessarily
@@ -38,25 +50,22 @@ class SimSubconfAnim(SimSubconfABC):
     is_after_sim_save : bool
         `True` only if this configuration saves post-simulation animations.
         Ignored if `is_after_sim` is `False`.
+
+    Attributes (Images)
+    ----------
     is_images_save : bool
         `True` only if this configuration saves animation frames as images.
-    is_video_save : bool
-        `True` only if this configuration saves animation frames as video.
-    is_while_sim : bool
-        `True` only if this configuration enables (but _not_ necessarily
-        displays or saves) mid-simulation animations.
-    is_while_sim_show : bool
-        `True` only if this configuration displays mid-simulation animations.
-        Ignored if `is_while_sim` is `False`.
-    is_while_sim_save : bool
-        `True` only if this configuration saves mid-simulation animations.
-        Ignored if `is_midsim` is `False`.
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
         `is_images_save` is `False`.
     image_dpi : int
         Dots per inch (DPI) of all image files saved by this configuration.
         Ignored if `is_images_save` is `False`.
+
+    Attributes (Video
+    ----------
+    is_video_save : bool
+        `True` only if this configuration saves animation frames as video.
     video_bitrate : int
         Bitrate in bits per second of all video files saved by this
         configuration. Ignored if `is_video_save` is `False`.
@@ -98,15 +107,60 @@ class SimSubconfAnim(SimSubconfABC):
         List of the names of all matplotlib animation writers with which to
         encode animations (in order of descending preference), automatically
         selecting the first writer installed on the current system. Ignored if
-        `is_video_save` is `False`. Supported names include:
-        * `ffmpeg`, an open-source cross-platform audio and video encoder.
-        * `avconv`, an open-source cross-platform audio and video encoder
+        ``is_video_save`` is ``False``. Supported names include:
+        * ``ffmpeg``, an open-source cross-platform audio and video encoder.
+        * ``avconv``, an open-source cross-platform audio and video encoder
           forked from (and largely interchangeable with) `ffmpeg`.
-        * `mencoder`, an open-source cross-platform audio and video encoder
+        * ``mencoder``, an open-source cross-platform audio and video encoder
           associated with MPlayer, a popular media player.
-        * `imagemagick`, an open-source cross-platform image manipulation
-          suite supporting _only_ creation of animated GIFs.
+        * ``imagemagick``, an open-source cross-platform image manipulation
+          suite supporting *only* creation of animated GIFs.
     '''
+
+    # ..................{ ALIASES ~ while                    }..................
+    is_while_sim = conf_alias(
+        "['results options']['while solving']['animations']['enabled']", bool)
+    is_while_sim_save = conf_alias(
+        "['results options']['while solving']['animations']['save']", bool)
+    is_while_sim_show = conf_alias(
+        "['results options']['while solving']['animations']['show']", bool)
+
+    # ..................{ ALIASES ~ after                    }..................
+    is_after_sim = conf_alias(
+        "['results options']['after solving']['animations']['enabled']", bool)
+    is_after_sim_save = conf_alias(
+        "['results options']['after solving']['animations']['save']", bool)
+    is_after_sim_show = conf_alias(
+        "['results options']['after solving']['animations']['show']", bool)
+
+    # ..................{ ALIASES ~ save : images            }..................
+    is_images_save = conf_alias(
+        "['results options']['save']['animations']['images']['enabled']", bool)
+    image_filetype = conf_alias(
+        "['results options']['save']['animations']['images']['filetype']", str)
+    image_dpi = conf_alias(
+        "['results options']['save']['animations']['images']['dpi']", int)
+
+    # ..................{ ALIASES ~ save : video             }..................
+    is_video_save = conf_alias(
+        "['results options']['save']['animations']['video']['enabled']", bool)
+    video_bitrate = conf_alias(
+        "['results options']['save']['animations']['video']['bitrate']", int)
+    video_dpi = conf_alias(
+        "['results options']['save']['animations']['video']['dpi']", int)
+    video_filetype = conf_alias(
+        "['results options']['save']['animations']['video']['filetype']", str)
+    video_framerate = conf_alias(
+        "['results options']['save']['animations']['video']['framerate']", int)
+    video_metadata = conf_alias(
+        "['results options']['save']['animations']['video']['metadata']",
+        MappingType)
+    video_writer_names = conf_alias(
+        "['results options']['save']['animations']['video']['writers']",
+        SequenceTypes)
+    video_codec_names = conf_alias(
+        "['results options']['save']['animations']['video']['codecs']",
+        SequenceTypes)
 
     # ..................{ INITIALIZERS                       }..................
     def __init__(self, *args, **kwargs) -> None:
@@ -114,40 +168,7 @@ class SimSubconfAnim(SimSubconfABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        # For convenience, localize configuration subdictionaries.
-        results = self._config['results options']
-        while_solving = results['while solving']['animations']
-        after_solving = results['after solving']['animations']
-        save =          results['save']['animations']
-        images = save['images']
-        video =  save['video']
-
-        # Mid-simulation animations.
-        self.is_while_sim = while_solving['enabled']
-        self.is_while_sim_show = while_solving['show']
-        self.is_while_sim_save = while_solving['save']
-
-        # Post-simulation animations.
-        self.is_after_sim = after_solving['enabled']
-        self.is_after_sim_show = after_solving['show']
-        self.is_after_sim_save = after_solving['save']
-
-        # Image saving.
-        self.is_images_save = images['enabled']
-        self.image_filetype = images['filetype']
-        self.image_dpi = images['dpi']
-
-        # Video saving.
-        self.is_video_save = video['enabled']
-        self.video_bitrate = video['bitrate']
-        self.video_dpi = video['dpi']
-        self.video_filetype = video['filetype']
-        self.video_framerate = video['framerate']
-        self.video_metadata = video['metadata']
-        self.video_writer_names = video['writers']
-        self.video_codec_names = video['codecs']
-
-        # Validate all configured integers as positive.
+        # Validate all configured integers to be positive.
         ints.die_unless_positive(
             self.image_dpi,
             self.video_bitrate,

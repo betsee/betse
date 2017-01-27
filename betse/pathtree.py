@@ -344,31 +344,3 @@ def get_repl_history_filename(repl_module_name: str) -> dict:
 
     # Else, return the history filename for this REPL.
     return REPL_MODULE_NAME_TO_HISTORY_FILENAME[repl_module_name]
-
-# ....................{ OBSOLETE                           }....................
-#FIXME: Excise *ALL* of the following functionality after no longer required for
-#backward compatibility.
-HOME_DIRNAME = None   # initialized below
-'''
-Absolute path of the current user's home directory.
-'''
-
-def init() -> None:
-    '''
-    Validate core directories and files required at program startup and
-    initialize the corresponding module constants (e.g., `HOME_DIRNAME`).
-
-    This function automatically creates non-existent paths where feasible and
-    otherwise raises exceptions on such paths *not* being found or *not* having
-    correct metadata (e.g., permissions).
-
-    Such paths are required by both the CLI and GUI interfaces for BETSE. To
-    support caller-specific exception handling, this function *must* be manually
-    called early in program startup.
-    '''
-
-    # Declare these constants to be globals, permitting modification below.
-    global HOME_DIRNAME
-
-    # Absolute path of the current user's home directory.
-    HOME_DIRNAME = get_home_dirname()

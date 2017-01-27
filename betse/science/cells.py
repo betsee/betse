@@ -8,18 +8,16 @@
 import math
 import os
 import os.path
-
 import numpy as np
 import scipy.spatial as sps
 from numpy import ndarray
 from scipy import interpolate as interp
 from scipy import ndimage
-
 from betse.exceptions import BetseSimConfigException
 from betse.lib.numpy import arrays
 from betse.science import filehandling as fh
-from betse.science import finitediff as fd
-from betse.science import toolbox as tb
+from betse.science.math import finitediff as fd
+from betse.science.math import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
 from betse.util.type.call.memoizers import property_cached

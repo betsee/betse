@@ -983,7 +983,7 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
 
 
 
-    #FIXME: Refactor into a new ActionCut.plot() method. Beans and fragrance!
+    #FIXME: Refactor into a new SimEventCut.plot() method. Beans and fragrance!
     if p.plot_cutlines and p.scheduled_options['cuts'] is not None:
         # For each profile cutting a subset of the cell population...
         for cut_profile_name in p.scheduled_options['cuts'].profile_names:

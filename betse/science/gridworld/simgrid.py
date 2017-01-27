@@ -16,15 +16,14 @@ import os.path
 import time
 from random import shuffle
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy import interpolate as interp
 
 from betse.exceptions import BetseSimException
 from betse.science import filehandling as fh
-from betse.science import toolbox as tb
-from betse.science.finitediff import gradient
 from betse.science.gridworld import vizgrid as viz
+from betse.science.math import toolbox as tb
+from betse.science.math.finitediff import gradient
 from betse.science.tissue.handler import TissueHandler
 from betse.util.io.log import logs
 

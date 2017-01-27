@@ -21,11 +21,11 @@ class SimPhaser(object):
 
     Attributes
     ----------
-    _cells : Cells
+    cells : Cells
         Current cell cluster.
-    _p : Parameters
+    p : Parameters
         Current simulation configuration.
-    _sim : Simulator
+    sim : Simulator
         Current simulation.
     '''
 
