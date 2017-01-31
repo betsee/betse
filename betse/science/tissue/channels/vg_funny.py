@@ -358,3 +358,120 @@ class HCNLeak(VgFunABC):
         self._hInf = 1.0
         self._hTau = 1.0
 
+class HCN2_cAMP(VgFunABC):
+    '''
+    HCN2 model from 21 day old dorsal root ganglion of mouse. HCN channels are voltage-gated ionic channels,
+    regulated by cyclic nucleotides, such as cyclic adenosine-mono-phosphate (cAMP), modelled here as a simple
+    shift in the channel voltage gating threshold.
+    In contrast to most Na+ and K+ ionic channels, which open when membrane potential is depolarized,
+    they are opened when the membrane potential hyperpolarizes below -50 mV.
+
+    This channel is expressed in brain and heart tissue, though the specific function is unknown.
+
+    Reference:  Moosmang S. et al. Cellular expression and functional characterization of four
+    hyperpolarization-activated pacemaker channels in cardiac and neuronal tissues.
+    Eur. J. Biochem., 2001 Mar , 268 (1646-52).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the funny current channel: HCN2')
+
+        self.v_corr = 0
+
+        V = V - 10
+
+        # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
+        dyna.m_Fun = 1.0000 / (1 + np.exp((V + 99) / 6.2))
+        dyna.h_Fun = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 0
+
+        self._PmCa = 0.05  # channel permeability to Ca2+
+        self._PmNa = 0.2  # channel permeability ratio to Na+
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self.vrev = -45  # reversal voltage used in model [mV]
+
+        V = V - 10
+
+        self._mInf = 1.0000 / (1 + np.exp((V + 99) / 6.2))
+        self._mTau = 184.0000
+        self._hInf = 1
+        self._hTau = 1
+
+class HCN4_cAMP(VgFunABC):
+    '''
+    HCN4 model from 21 day old dorsal root ganglion of mouse. HCN channels are voltage-gated ionic channels,
+    regulated by cyclic nucleotides, such as cyclic adenosine-mono-phosphate (cAMP), modelled here as a simple
+    shift in the channel voltage gating threshold.
+    In contrast to most Na+ and K+ ionic channels, which open when membrane potential is depolarized,
+    they are opened when the membrane potential hyperpolarizes below -50 mV.
+
+    This channel is expressed in brain and heart tissue, and plays a crucial role in pacemaker activity of the
+    heart, and possibly the repetitive firing of Purkunjie neurons.
+
+    Reference:  Moosmang S. et al. Cellular expression and functional characterization of four
+    hyperpolarization-activated pacemaker channels in cardiac and neuronal tissues.
+    Eur. J. Biochem., 2001 Mar , 268 (1646-52).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the funny current channel: HCN4')
+
+        self.v_corr = 0
+
+        V = V - 10
+
+        # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
+        dyna.m_Fun = 1.0000 / (1 + np.exp((V  + 100) / 9.6))
+        dyna.h_Fun = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 0
+
+        self._PmCa = 0.05  # channel permeability to Ca2+
+        self._PmNa = 0.20  # channel permeability ratio to Na+
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self.vrev = -45  # reversal voltage used in model [mV]
+
+        V = V - 10
+
+        self._mInf = 1.0000 / (1 + np.exp((V + 100) / 9.6))
+        self._mTau = 461.0000
+        self._hInf = 1
+        self._hTau = 1
+
