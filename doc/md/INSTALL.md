@@ -1,44 +1,61 @@
 Installation
 ===========
 
-BETSE is manually installable and uninstallable as follows.
+BETSE is installable with only [two simple steps](/README.rst) on all supported
+platforms – complete with multicore-aware hardware optimizations. These steps
+leverage scientific standards for Python packaging, including the cross-platform
+**[Anaconda](https://www.continuum.io/downloads)** Python distribution *and*
+**[`pip`](https://pypi.python.org/pypi/pip)** Python package manager.
+
+For advanced users preferring to manually install dependencies with existing
+package managers (e.g.,
+[APT](https://en.wikipedia.org/wiki/Advanced_Packaging_Tool)) rather than
+[Anaconda](https://www.continuum.io/downloads), BETSE may also be manually
+installed in a platform-specific manner. This approach has the obvious advantage
+of cleanly integrating with existing packaging regimes but the non-obvious
+disadvantage of typically installing a single-core version of BETSE with *no*
+multicore-aware hardware optimizations. <sup>_That's bad._</sup>
+
+Due to the difficulty of manually installing BETSE in a multicore-aware manner,
+the [simple installation instructions](/README.rst) are *strongly* recommended.
+For completeness, this document nonetheless details the manual approach for
+several popular package managers.
 
 ## Requirements
 
-BETSE currently runs _only_ on:
+BETSE requires:
 
-* **64-bit systems**. This is principally due to the increasing obsolescence and
+* Either **Windows,** **macOS,** or **Linux.** All other platforms (e.g.,
+  Android, FreeBSD) are explicitly unsupported.
+* At least **Python 3.4** (e.g., 3.4, 3.5, 3.6). All prior Python versions (e.g.,
+  Python 2.7, 3.3) are explicitly unsupported.
+* A **64-bit system.** This is principally due to the increasing obsolescence and
   hence irrelevance of 32-bit systems for scientific work. [Read: no clients or
   developers still use 32-bit systems.] To a lesser extent, this is due to the
   so-called ["3GB barrier"](https://en.wikipedia.org/wiki/3_GB_barrier) imposed
   by most existing 32-bit systems -- including *all* non-server 32-bit editions
   of Microsoft Windows. This barrier prevents usage of more than 3 to 4GB of
   available RAM, which rarely suffices for even small-scale tissue simulations.
-* **Python 3.3** or newer (e.g., 3.4, 3.5, 3.6).
-* Operating systems matching either:
-  * **Microsoft Windows XP** or newer (e.g., Vista, 7, 8, 10).
-  * **Apple OS X 10.8.5** (Mountain Lion) or newer (e.g., 10.9, 10.10, 10.11).
-  * **Linux distributions providing at least `glibc` 2.19** or newer. (The
-    currently installed version of `glibc` is printable by running the following
-    command at the command line: `ldd --version`.) This includes but is *not*
-    limited to the following Linux distributions:
-    * **Linux Mint 17.1** (Rebecca) or newer.
-    * **Ubuntu 14.10** (Utopic Unicorn) or newer.
 
 ## Recommendations
 
-BETSE currently recommends:
+For optimal performance, BETSE also recommends:
 
-* **At least 4GB RAM**. 
+* At least **4GB RAM;** ideally, at least **16GB RAM.**
 
 ## Dependencies
 
-BETSE has both:
+Like most Python applications, BETSE has both mandatory dependencies that must
+be installed before BETSE itself is installed *and* optional dependencies safely
+installable at any time.
 
-* Mandatory dependencies that must be installed _before_ BETSE itself is
-  installed.
-* Optional dependencies that may be installed at any time, at the user's
-  discretion.
+Unlike most Python applications, these dependencies should *not* be installed
+with [`pip`](https://pypi.python.org/pypi/pip), the standard Python package
+manager. This is especially the case for scientific dependencies partially
+implemented in C or Fortran (e.g., [NumPy](http://www.numpy.org),
+[SciPy](http://www.scipy.org)). While technically feasible, installing these
+dependencies with [`pip`](https://pypi.python.org/pypi/pip) typically results in
+an unoptimized single-core installation of BETSE. <sup>_Again, that's bad._</sup>
 
 ### Mandatory
 
@@ -47,13 +64,13 @@ require non-Python precompiled libraries (e.g., C, Fortran) and hence are best
 installed manually via the system-wide package manager for your current
 operating system:
 
-* Python >= 3.3.
+* Python >= 3.4.
 * [Dill](https://github.com/uqfoundation/dill) >= 0.2.3.
-* [Matplotlib](http://matplotlib.org) >= 1.4.0.
 * [NumPy](http://www.numpy.org) >= 1.8.0.
 * [Pillow](https://python-pillow.github.io) >= 2.3.0.
 * [PyYaml](http://pyyaml.org) >= 3.10.
 * [SciPy](http://www.scipy.org) >= 0.12.0.
+* [matplotlib](http://matplotlib.org) >= 1.4.0.
 * [setuptools](https://pythonhosted.org/setuptools) >= 3.3.
 * [six](https://pythonhosted.org/six) >= 1.5.2.
 
@@ -61,33 +78,53 @@ To install these dependencies, the following instructions also install `pip3`,
 the Python 3-specific release of the popular Python package manager `pip`.
 <sup>Naturally, BETSE itself does _not_ require `pip3` at runtime.</sup>
 
-### Linux
+#### Matplotlib Backend
 
-Under Linux, BETSE also requires:
+Under Linux and Windows, BETSE also requires at least one of the following
+third-party widget toolkits and corresponding matplotlib backends (*in
+descending order of preference*):
 
-* [Tcl/Tk](https://www.tcl.tk).
-* Matplotlib compiled with Tcl/Tk support (i.e., the `tkagg` backend).
+* **[Tcl/Tk](https://www.tcl.tk)** *and* matplotlib compiled with Tcl/Tk support
+  (i.e., the `TkAgg` backend). This backend comes highly recommended for optimal
+  display of BETSE plots and animations under both Linux and Windows.
+* **[PyQt5](https://www.riverbankcomputing.com/software/pyqt/download5)** *and*
+  matplotlib compiled with Qt5 support (i.e., the `Qt5Agg` backend).
+* **[PyQt4](https://www.riverbankcomputing.com/software/pyqt/download)** *and*
+  matplotlib compiled with Qt4 support (i.e., the `Qt4Agg` backend).
 
-#### Linux Debian
+Under macOS, BETSE instead prefers the `MacOSX` matplotlib backend. This backend
+comes highly recommended for optimal display of BETSE plots and animations under
+macOS, requiring no additional third-party widget toolkits.
 
-Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu), these
-dependencies are installable in a system-wide manner as follows:
+## Linux
 
-    $ sudo apt-get install python3-dev python3-dill python3-matplotlib python3-numpy python3-pil python3-pip python3-pyqt5 python3-scipy python3-setuptools python3-six python3-yaml tcl tk
+BETSE is manually installable with *most* Linux-centric package managers.
 
-Under some (especially older) Debian-based Linux distributions, the above
-instructions may not entirely suffice to satisfy all installation-time or
-runtime requirements. Under these ditributions, dependencies may require some
-form of recompilation, relinking, or reinstallation.
+### Debian
+
+Under [Debian](https://www.debian.org)-based Linux distributions (e.g., [Linux
+Mint](https://www.linuxmint.com), [Ubuntu](https://www.ubuntu.com)), all
+mandatory dependencies are installable in a system-wide manner as follows:
+
+    $ sudo apt-get install python3-dev python3-dill python3-matplotlib \
+      python3-numpy python3-pil python3-pip python3-pyqt5 python3-scipy \
+      python3-setuptools python3-six python3-yaml tcl tk
+
+Under some (especially older) [Debian](https://www.debian.org)-based Linux
+distributions, the above instructions may not entirely suffice to satisfy all
+installation-time or runtime requirements. Under these distributions,
+dependencies may require some form of recompilation, relinking, or
+reinstallation.
 
 ##### Updated Matplotlib
 
-BETSE requires a fairly recent version of Matplotlib. If the newest version of
-Matplotlib installed by your distribution is insufficient, the newest version of
-Matplotlib is installable in a system-wide manner as follows:
+BETSE requires a fairly recent version of matplotlib. If the newest version of
+matplotlib installed by your distribution is insufficient, the newest version of
+matplotlib is installable in a system-wide manner as follows:
 
     $ sudo apt-get uninstall python3-matplotlib &&
-      sudo apt-get install gcc gfortran libfreetype6-dev libpng-dev libpython3-all-dev tcl-dev tk-dev &&
+      sudo apt-get install gcc gfortran libfreetype6-dev libpng-dev \
+        libpython3-all-dev tcl-dev tk-dev &&
       sudo pip3 install matplotlib[all]
 
 ##### Optimized BLAS and LAPACK
@@ -123,23 +160,73 @@ instead. OpenBLAS is installable in a system-wide manner as follows:
 
 Note that OpenBLAS and ATLAS _cannot_ be installed at the same time.
 
-#### Apple macOS
+### Gentoo
 
-Under Apple macOS, these dependencies are installable in a system-wide manner
-via either:
+Under [Gentoo](https://www.gentoo.org)-based Linux distributions (e.g., [Chrome
+OS](https://en.wikipedia.org/wiki/Chrome_OS),
+[Sabayon](https://www.sabayon.org)), all mandatory and optional dependencies are
+installable in a system-wide manner as follows:
 
-* **_(Recommended)_ [Homebrew](http://brew.sh),** an unofficial macOS package
-  manager. Homebrew provides robust support for features commonly required by
-  BETSE developers, including the capacity to install older rather than
-  merely the newest versions of packages.
-* **_(Not recommended)_ [MacPorts](https://www.macports.org),** an alternative
-  unofficial macOS package manager. MacPorts lacks robust support for features
-  commonly required by BETSE developers, as described above. Since
-  Homebrew and MacPorts install packages into different system directories
-  (i.e., `/usr/local` for Homebrew and `/opt` for MacPorts), the two _can_
-  technically be used on the same system. However, this is generally
-  discouraged. If you currently use and prefer MacPorts, we recommend adopting
-  the following instructions to use MacPorts rather than Homebrew.
+1. **Install [`layman`](https://wiki.gentoo.org/wiki/Layman),** Gentoo's
+   official overlay manager.
+
+        $ sudo emerge layman
+        $ sudo echo 'source /var/lib/layman/make.conf' >> /etc/portage/make.conf
+
+* **Add the [`raiagent`](https://github.com/leycec/raiagent) overlay,**
+  religiously maintained by a [BETSE co-maintainer](https://github.com/leycec).
+
+        $ sudo layman -a raiagent
+
+* **Synchronize overlays.**
+
+        $ sudo layman -S
+
+* Either:
+
+  * **_(Recommended)_** Install the [optimized BLAS and LAPACK
+    stack](https://wiki.gentoo.org/wiki/User_talk:Houseofsuns) published by the
+    [`science`](https://github.com/gentoo-science/sci) overlay. While
+    technically optional, failing to do so *will* reduce BETSE to unoptimized
+    single-core behavior. To properly install this stack, see these
+    [authoritative
+    instructions](https://wiki.gentoo.org/wiki/User_talk:Houseofsuns).
+  * Disable the `smp` USE flag enabled by default for BETSE. In this case, the
+    default unoptimized BLAS and LAPACK stack will be linked against instead.
+
+            $ sudo echo 'sci-biology/betse -smp' >> /etc/portage/package.use
+
+* **Unmask BETSE.** Either:
+
+  * **_(Recommended)_** Unmask the most recent stable release of BETSE.
+
+            $ sudo echo '>=sci-biology/betse-0.4.1' >> /etc/portage/package.accept_keywords
+
+  * Unmask the most recent unstable commit to the BETSE `git` repository.
+
+            $ sudo echo '>=sci-biology/betse-0.4.1 **' >> /etc/portage/package.accept_keywords
+
+* **Install BETSE.**
+
+        $ sudo emerge betse
+
+#### macOS
+
+Under Apple macOS, all mandatory dependencies are installable in a system-wide
+manner with either:
+
+* **_(Recommended)_** **[Homebrew](http://brew.sh),** an unofficial 
+  package manager for macOS. Homebrew provides robust support for features
+  commonly required by BETSE developers, including the capacity to install older
+  rather than merely the newest versions of packages.
+* **[MacPorts](https://www.macports.org),** another unofficial package manager
+  for macOS. MacPorts lacks robust support for features commonly required by
+  BETSE developers, as described above. Since Homebrew and MacPorts install
+  packages into different system directories (i.e., `/usr/local` for Homebrew
+  and `/opt` for MacPorts), the two _can_ technically be used on the same
+  system. However, this is generally discouraged. If you currently use and
+  prefer MacPorts, we recommend adopting the following instructions to use
+  MacPorts rather than Homebrew.
 
 For simplicity, the following instructions assume use of Homebrew:
 
@@ -199,7 +286,7 @@ For simplicity, the following instructions assume use of Homebrew:
    issues on attempting to install dependencies with Homebrew or MacPorts.
    There are various approaches to installing the correct version of the CLT –
    some inherently safer than others. Either:
-   1. **_(Recommended)_ Manually download and install the CLT:**
+   1. **_(Recommended)_** **Manually download and install the CLT:**
       1. Browse to the [Apple Developer
          Downloads](https://developer.apple.com/downloads) site.
       1. Enter `xcode` into the search bar.
@@ -207,11 +294,11 @@ For simplicity, the following instructions assume use of Homebrew:
       1. Note the official date of this version's release (e.g., June 12, 2013
          for XCode 4.6.3).
       1. Manually search the resulting hits for the most recent version of the
-	     CLT _preceding_ this date (e.g., April 11, 2013 for the CLT
+         CLT _preceding_ this date (e.g., April 11, 2013 for the CLT
          corresponding to XCode 4.6.3).
       1. Download and install this version.
-   1. **_(Not recommended)_ Automatically download and install the CLT.** While
-      error-prone and hence discouraged, automatically downloading and
+   1. **_(Not recommended)_** **Automatically download and install the CLT.**
+      While error-prone and hence discouraged, automatically downloading and
       installing the CLT with Apple-based automation _is_ technically feasible
       in common edge cases. If your system has been upgraded to both the most
       recently released minor version of the currently installed major version
@@ -232,7 +319,7 @@ For simplicity, the following instructions assume use of Homebrew:
 1. **Manually prepend the current `${PATH}`** by the absoute paths of all
    directories to which Homebrew installs packages. To do so permanently, append
    the following line to the appropriate startup dotfile in your home directory
-   for your preferred shell (e.g., `.bashrc` for Bash, the default OS X shell).
+   for your preferred shell (e.g., `.bashrc` for Bash, the default macOS shell).
 
         export PATH="/usr/local/bin:/usr/local/sbin:${PATH}"
 
@@ -271,31 +358,32 @@ this writing: Apple's **[Accelerate
 Framework](https://developer.apple.com/reference/accelerate/1668466-blas).** No
 further BLAS or LAPACK configuration is required or recommended.
 
-#### Microsoft Windows
+#### Windows
 
-Under Windows, BETSE additionally requires:
+> **Note:** these instructions are _woefully_ inadequate at present, encouraging
+> installation of the [Cygwin](https://www.cygwin.com)-based
+> **[Babun](https://babun.github.io)** wrapper rather than usage of the existing
+> **[Bash on ubuntu on
+> Windows](https://msdn.microsoft.com/en-us/commandline/wsl/about)** environment
+> bundled with the Windows 10's Anniversary Update. Until these instructions are
+> updated accordingly, Windows users are _strongly_ encouraged to follow the
+> [simple installation instructions](/README.rst) instead.
 
-* [Qt4](https://www.qt.io).
-* Matplotlib compiled with Qt4 support (i.e., the `qt4agg` backend).
-
-These dependencies are installable under both Microsoft Windows _and_ Wine
-prefixes emulating Windows on non-Windows systems (e.g., Linux, OS X).
-
-##### Native
-
-Under native Microsoft Windows, such dependencies are installable as follows.
-For simplicity, the following instructions assume use of the
+Under Microsoft Windows, all mandatory dependencies are installable in a
+system-wide manner via any number of POSIX compatibility layers. For simplicity,
+the following instructions assume use of the
 [Miniconda](http://conda.pydata.org/miniconda.html) Python distribution *and*
 [Babun](http://babun.github.io) POSIX compatibility layer under 64-bit Windows:
 
-1. Download and install **Babun**, an open-source Cygwin convenience wrapper
-   complete with `pact`, a CLI-based package manager for Windows. Due to
-   unreconcilable flaws in Windows' non-POSIX-compatible process model, Cygwin
-   and hence Babun is incompatible with all Windows applications on the [Big List
-   of Dodgy Apps (BLODA)](https://cygwin.com/faq/faq.html#faq.using.bloda).
-   Unfortunately, this includes most antivirus software. If Babun begins behaving
-   erratically, consider temporarily disabling such software for the duration of
-   Babun usage. (This is the fault of neither Babun nor Cygwin!)
+1. Download and install **[Babun](https://babun.github.io)**, an open-source
+   [Cygwin](https://www.cygwin.com) convenience wrapper complete with `pact`, a
+   CLI-based package manager for Windows. Due to unreconcilable flaws in
+   Windows' non-POSIX-compatible process model, Cygwin and hence Babun is
+   incompatible with all Windows applications on the [Big List of Dodgy Apps
+   (BLODA)](https://cygwin.com/faq/faq.html#faq.using.bloda).  Unfortunately,
+   this includes most antivirus software. If Babun begins behaving erratically,
+   consider temporarily disabling such software for the duration of Babun usage.
+   (This is the fault of neither Babun nor Cygwin!)
 1. Download and install the 64-bit Python 3 Windows version of **Miniconda**.
    (See the "Wine" subsection below for further details.)
 1. Double click the desktop shortcut `babun` to open a new terminal window.
@@ -313,7 +401,7 @@ For simplicity, the following instructions assume use of the
         export MINICONDA_HOME="/cygdrive/c/Miniconda3"
         export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${HOME}/bin:${PATH}"
 
-1. Apply such changes to the current shell session. 
+1. Apply such changes to the current shell session.
 
         $ source ~/.zshrc
 
@@ -328,79 +416,6 @@ For simplicity, the following instructions assume use of the
    does *not* appear to provide a `python3` executable. To fix this:
 
         $ ln -s /c/Miniconda3/python.exe /c/Miniconda3/python3
-
-##### Wine
-
-> **NOTE** While BETSE may indeed be installable _and_ runnable under Wine,
-> there's little point in doing so, as the resulting PyInstaller-frozen binaries
-> are likely to embed Wine-specific shared libraries unlikely to behave as
-> expected under actual Windows systems. Excise this entire subsection, please.
-
-Under non-Windows systems, these dependencies are installable in a system-wide
-manner via Wine emulation. This emulation requires the following packages:
-
-* Wine >= 1.7.41. Prior versions of Wine fail to implement Windows API functions
-  transitively required by Anaconda (e.g., `GetSystemTime()`).
-
-For simplicity, the following instructions assume use of the
-[Miniconda](http://conda.pydata.org/miniconda.html) Python distribution *and*
-[PlayOnLinux](https://www.playonlinux.com) Wine manager under 64-bit Ubuntu
-Linux. Thanks to the cross-platform portability of both Wine and Anaconda (if
-not PlayOnLinux, for obvious reasons), these instructions should trivially
-generalize to alternate setups (e.g., 32-bit OS X) as well:
-
-1. Download the 64-bit Python 3 Windows installer for Miniconda, an open-source,
-   cross-platform, binary-based Python package manager, from
-   `http://conda.pydata.org/miniconda.html`. Miniconda is a minimalist version of
-   Anaconda, a popular full-stack SciPy distribution. Whereas Anaconda comes
-   pre-bundled with numerous Python and non-Python dependencies, Miniconda
-   requires manual installation of such dependencies. We prefer the latter.
-   Either suffices, however.
-1. If using Linux *and* your preferred Linux distribution provides a readily
-   installable package for Wine Staging, consider installing Wine Staging.
-1. Install PlayOnLinux, an open-source Wine manager simplifying Wine usage.
-
-        $ sudo apt-get install playonlinux
-
-1. Install the newest 64-bit version of Wine via PlayOnLinux.
-  1. Run PlayOnLinux.
-  1. Select the *Tools* -> *Manage Wine versions* menu item.
-  1. Select the *Wine versions (amd64)* tab.
-  1. Select the topmost list item under *Available Wine versions*. Note that this
-     version of Wine *must* be greater than or equal to that stipulated above.
-  1. Click the right arrow.
-  1. Click the *Next* button until complete.
-1. Create a new Wine prefix named `betse` via PlayOnLinux.
-  1. Click the *Configure* toolbar button.
-  1. Click the *New* button.
-  1. Click the *Next* button.
-  1. Select the *64 bits windows installation* list item and click the *Next*
-     button.
-  1. Select the list item corresponding to the newly installed version of Wine
-     and click the *Next* button.
-  1. Enter `betse` and click the *Next* button.
-1. Open a terminal window.
-1. Activate the newly installed version of Wine, where `${WINE\_VERSION}` should
-   be replaced by the installed version number (e.g., `1.7.40`).
-
-        $ export WINEDEBUG='-all'
-        $ export WINEPREFIX="${HOME}/.PlayOnLinux/wineprefix/betse"
-        $ export PATH="${HOME}/.PlayOnLinux/wine/linux-amd64/${WINE_VERSION}/bin:${PATH}"
-
-1. Install Miniconda via Wine, where `${MINICONDA\_INSTALLER}` should be replaced
-  by the path to the previously downloaded Miniconda installer (e.g.,
-  `~/Downloads/Miniconda3-latest-Windows-x86\_64.exe`).
-
-        $ wine "${MINICONDA_INSTALLER}"
-
-1. Active Miniconda.
-
-        $ export MINICONDA_HOME="${WINEPREFIX}/drive_c/Miniconda3"
-        $ export PATH="${MINICONDA_HOME}:${MINICONDA_HOME}/Scripts:${PATH}"
-
-1. Install dependencies via `conda`, Miniconda's package manager:
-
-        $ wine conda install numpy matplotlib pyside pyyaml pywin32 scipy
 
 ### Optional
 
@@ -466,7 +481,7 @@ installable in a system-wide manner as follows:
 
 #### `py.test`
 
-To optionally [run tests](#testing), BETSE requires `py.test`, a pure-Python 
+To optionally [run tests](#testing), BETSE requires `py.test`, a pure-Python
 test harness. This dependency is installable in a system-wide manner as follows:
 
 * Under Debian-based Linux distributions (e.g., Linux Mint, Ubuntu):

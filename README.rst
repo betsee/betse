@@ -55,8 +55,8 @@ Simple
 
 For new users, BETSE is readily installable as follows:
 
-#. Install the **Python 3.x**\ [#python2_not]_ (e.g., 3.5) variant of
-   Anaconda_.\ [#anaconda_not]_
+#. Install the **Python 3.x** [#python2_not]_ (e.g., 3.5) variant of
+   Anaconda_. [#anaconda_not]_
 #. Run the following commands from a command-line terminal.
 
    #. **Install BETSE.**
@@ -71,6 +71,7 @@ For new users, BETSE is readily installable as follows:
       .. code:: bash
 
          betse try
+
 
 .. [#python2_not]
    Do *not* install the **Python 2.7** variant of Anaconda_. BETSE requires
@@ -174,16 +175,28 @@ repository and prior stable releases – is manually installable as follows:
 
       cd /tmp && betse try
 
+
 .. [#pip_not]
-   Do *not* install scientific dependencies (e.g., NumPy_, SciPy_) via `pip` or
-   `easy_install`; doing so typically degrades BETSE to single-core operation.
-   To optimize BETSE across multiple cores, *always* install these dependencies
-   via your platform-specific package manager (e.g., Homebrew_, APT_).
+   Do *not* install scientific dependencies (e.g., NumPy_, SciPy_) with either
+   `pip` or `easy_install`; doing so typically degrades BETSE to single-core
+   performance. To optimize BETSE across multiple cores, *always* install these
+   dependencies with your platform-specific package manager (e.g., Homebrew_,
+   APT_).
+
 .. [#windows]
    Unlike Linux and macOS, Anaconda_ is (\ *effectively*\ ) required under
    Windows. Due to this platform's lack of support for POSIX-conformant
    toolchains, *no* reasonable alternatives for installing multicore-aware
    scientific dependencies exist.
+
+Usage
+============
+
+See the following external documents for detailed usage instructions – complete
+with explanatory examples, sample plots, and ample screenshots:
+
+- Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
+- Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
 
 Introduction
 ============
@@ -343,8 +356,6 @@ For prospective users:
 
 -  `Installation <dependencies_>`__, detailing BETSE's installation with
    exhaustive platform-specific instructions.
--  `Usage <doc/md/USAGE.md>`__, detailing BETSE's command-line interface (CLI)
-   with human-readable explanation and examples.
 
 For prospective contributors:
 
@@ -399,6 +410,12 @@ For prospective contributors:
    https://gitlab.com/betse/betse/pipelines
 .. _tarballs:
    https://gitlab.com/betse/betse/tags
+
+.. # ------------------( LINKS ~ documentation              )------------------
+.. _BETSE 0.4 documentation:
+   https://www.dropbox.com/s/n8qfms2oks9cvv2/BETSE04_Documentation_Dec1st2016.pdf?dl=0
+.. _BETSE 0.3 documentation:
+   https://www.dropbox.com/s/fsxhjpipbiog0ru/BETSE_Documentation_Nov1st2015.pdf?dl=0
 
 .. # ------------------( LINKS ~ science                    )------------------
 .. _bioelectricity:
