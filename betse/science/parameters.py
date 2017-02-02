@@ -1190,7 +1190,7 @@ class Parameters(object):
             self.cK_env = float(cip['extracellular K+ concentration'])
             self.cCl_env = float(cip['extracellular Cl- concentration'])
             self.cCa_env = float(cip['extracellular Ca2+ concentration'])
-            self.cM_env = float(cip['extracellular HCO3- concentration'])
+            self.cM_env = float(cip['extracellular HCO3- concentration'])   # FIXME change in config to be 'anion'
             self.cP_env = float(cip['extracellular protein- concentration'])
 
             zs = [self.z_Na, self.z_K, self.z_Cl, self.z_Ca, self.z_P]

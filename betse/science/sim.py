@@ -17,6 +17,7 @@ from scipy.ndimage.filters import gaussian_filter
 from betse.exceptions import BetseSimInstabilityException
 from betse.science import filehandling as fh
 from betse.science import sim_toolbox as stb
+from betse.science.channels.gap_junction import Gap_Junction
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import  MasterOfMetabolism
 from betse.science.chemistry.molecules import MasterOfMolecules
@@ -28,7 +29,6 @@ from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
-from betse.science.tissue.channels.gap_junction import Gap_Junction
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs

@@ -8,12 +8,10 @@ Voltage-gated inward rectifying potassium channel classes.
 
 # .................... IMPORTS                            ....................
 from abc import ABCMeta, abstractmethod
-
 import numpy as np
-
 from betse.science import sim_toolbox as stb
+from betse.science.channels.channelsabc import ChannelsABC
 from betse.science.math import toolbox as tb
-from betse.science.tissue.channels.channels_abc import ChannelsABC
 from betse.util.io.log import logs
 
 # FIXME update with new formalism dealing with charge transfer
@@ -270,5 +268,3 @@ class Kv3p3(VgKirABC):
         self._mTau = 0.676808 + (27.913114 / (1 + np.exp((V - 22.414149) / 9.704638)))
         self._hInf = 0.25 + (0.75 / (1 + np.exp((V - (-28.293856)) / 29.385636)))
         self._hTau = 199.786728 + (2776.119438 * np.exp(-V / 7.309565))
-
-

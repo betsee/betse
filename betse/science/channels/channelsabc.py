@@ -9,7 +9,7 @@ Abstract base classes of all channel classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 import numpy as np
-from betse.science import sim_toolbox as stb
+#from betse.science import sim_toolbox as stb
 
 # ....................{ BASE                               }....................
 class ChannelsABC(object, metaclass=ABCMeta):

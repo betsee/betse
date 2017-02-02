@@ -18,18 +18,18 @@ from scipy.optimize import basinhopping
 from betse.exceptions import BetseSimConfigException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
+from betse.science.channels import cation as vgcat
+from betse.science.channels import vg_ca as vgca
+from betse.science.channels import vg_cl as vgcl
+from betse.science.channels import vg_funny as vgfun
+from betse.science.channels import vg_k as vgk
+from betse.science.channels import vg_kir as vgkir
+from betse.science.channels import vg_na as vgna
+from betse.science.channels import vg_nap as vgnap
 from betse.science.chemistry.netplot import plot_master_network, set_net_opts
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
-from betse.science.tissue.channels import cation as vgcat
-from betse.science.tissue.channels import vg_ca as vgca
-from betse.science.tissue.channels import vg_cl as vgcl
-from betse.science.tissue.channels import vg_funny as vgfun
-from betse.science.tissue.channels import vg_k as vgk
-from betse.science.tissue.channels import vg_kir as vgkir
-from betse.science.tissue.channels import vg_na as vgna
-from betse.science.tissue.channels import vg_nap as vgnap
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
@@ -3112,6 +3112,8 @@ class MasterOfNetworks(object):
 
         """
 
+
+
         logs.log_info('time: '+ str(np.round(sim.time[-1], 2)) +
                       ' s of ' + str(np.round(p.total_time, 2)) + ' s')
 
@@ -3148,6 +3150,19 @@ class MasterOfNetworks(object):
 
         if self.chi.mean() != 0.0:
             logs.log_info('Energy charge: ' + str(np.round(self.chi.mean(), 3)))
+
+        if 'H+' in self.molecules:
+
+            obj = self.molecules['H+']
+
+            ph = -np.log10(1.0e-3*obj.c_cells.mean())
+
+            logs.log_info('Average pH in the cell: ' +
+                          str(np.round(ph, 2)))
+
+
+
+
 
         logs.log_info("-------------------------------------------------------------------")
 

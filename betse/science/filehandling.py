@@ -127,10 +127,14 @@ def _preserve_backward_importability() -> None:
 
     # Import all modules whose fully-qualified names have been modified.
     from betse.science import sim
+    from betse.science.math import finitediff
+    from betse.science.tissue import tissuepick
     from betse.science.config.visual import confanim
     from betse.science.config.visual import confplot
 
     # Alias obsolete module names to current module objects.
+    sys.modules['betse.science.finitediff'] = finitediff
+    sys.modules['betse.science.tissue.picker'] = tissuepick
     sys.modules['betse.science.visual.anim.animconfig'] = confanim
     sys.modules['betse.science.visual.plot.plotconfig'] = confplot
     sys.modules['betse.science.plot.plotconfig'] = confplot

@@ -11,15 +11,15 @@ import numpy as np
 from scipy import interpolate as interp
 from scipy import spatial as sps
 
+from betse.science.channels import vg_ca as vgca
+from betse.science.channels import vg_funny as vgfun
+from betse.science.channels import vg_k as vgk
+from betse.science.channels import vg_kir as vgkir
+from betse.science.channels import vg_na as vgna
+from betse.science.channels import vg_nap as vgnap
+from betse.science.channels import wound_channel as w
 from betse.science.math import modulate as mod
 from betse.science.math import toolbox as tb
-from betse.science.tissue.channels import vg_ca as vgca
-from betse.science.tissue.channels import vg_funny as vgfun
-from betse.science.tissue.channels import vg_k as vgk
-from betse.science.tissue.channels import vg_kir as vgkir
-from betse.science.tissue.channels import vg_na as vgna
-from betse.science.tissue.channels import vg_nap as vgnap
-from betse.science.tissue.channels import wound_channel as w
 from betse.science.tissue.channels_o import cagPotassium
 from betse.util.io.log import logs
 from betse.util.type import types
