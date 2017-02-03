@@ -318,14 +318,14 @@ class CLIOptionArgEnum(CLIOptionArgABC):
     instance variable of high-level type :class:`Enum` rather than of low-level
     type :class:`str`. This is currently infeasible.
 
-    Why? Entirely because of the overly simplistic `choices` parameter accepted
+    Why? Entirely thanks to the overly simplistic ``choices`` parameter accepted
     by the :meth:`ArgParserType.add_argument` method, which validates this
-    option's argument _after_ converting that argument from a string into the
+    option's argument *after* converting that argument from a string into the
     desired with the type or callable supplied by the `type` parameter. Whereas
     the names of enumeration members are uppercase throughout this codebase
-    (e.g., `ProfileType['SIZE']`), their corresponding arguments are lowercase
-    (e.g., `--profile-type=size`). Since `choices` provides no means of mapping
-    between the two, callers should do so manually instead.
+    (e.g., ``ProfileType['SIZE']``), their corresponding arguments are lowercase
+    (e.g., ``--profile-type=size``). Since `choices` provides no means of
+    mapping between the two, callers should do so manually instead.
     '''
 
     # ..................{ INITIALIZERS                       }..................

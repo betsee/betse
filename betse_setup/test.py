@@ -8,7 +8,7 @@ BETSE-specific `test` subcommand for `setuptools`.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.util.type.obj import objs
+from betse.util.type.obj import objects
 from betse_setup import util
 from distutils.errors import DistutilsClassError
 from setuptools import Command
@@ -210,7 +210,7 @@ class test(Command):
 
         # If the private method to be monkey-patched no longer exists, py.test
         # is either broken or unsupported. In either case, raise an exception.
-        if not objs.is_method(CaptureManager, '_getcapture'):
+        if not objects.is_method(CaptureManager, '_getcapture'):
             raise DistutilsClassError(
                 'Method pytest.capture.CaptureManager._getcapture() '
                 'not found. The current version of py.test is either '

@@ -10,8 +10,8 @@ from betse.science.config import confio #, confalias
 from betse.science.config.confabc import conf_alias
 from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
-from betse.science.config.visual.confanim import SimConfAnim
-from betse.science.config.visual.confplot import SimConfPlot
+from betse.science.config.visual.confanim import SimConfAnimAll
+from betse.science.config.visual.confplot import SimConfPlotAll
 from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
@@ -71,9 +71,9 @@ class Parameters(object):
 
     Attributes (Results)
     ----------------------------
-    anim : SimConfAnim
+    anim : SimConfAnimAll
         Subconfiguration encapsulating exported simulation animations.
-    plot : SimConfPlot
+    plot : SimConfPlotAll
         Subconfiguration encapsulating exported simulation plots.
 
     Attributes (Tissue)
@@ -126,13 +126,13 @@ class Parameters(object):
         self.config_dirname = paths.get_dirname(self.config_filename)
 
         # Dictionary loaded from this YAML file.
-        self._config = confio.read(self.config_filename)
+        self._conf = confio.read(self.config_filename)
 
         #FIXME: Excise this hack *AFTER* refactoring the codebase to use the
         #preferable "self._config" attribute defined above. Since the
         #conf_alias() data descriptor expects that private attribute rather
         #than this public attribute, this public attribute is unhelpful now.
-        self.config = self._config
+        self.config = self._conf
 
         # Preserve backward compatibility with prior configuration formats.
         self._init_backward_compatibility()
@@ -166,13 +166,13 @@ class Parameters(object):
 
          # Define paths for saving initialization runs, simulation runs, and results:
         self.init_path = paths.join(
-            self.config_dirname, self._config['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
+            self.config_dirname, self._conf['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
         self.sim_path = paths.join(
-            self.config_dirname, self._config['sim file saving']['directory']) # folder to save unique simulation and data linked to init
+            self.config_dirname, self._conf['sim file saving']['directory']) # folder to save unique simulation and data linked to init
         self.sim_results = paths.join(
-            self.config_dirname, self._config['results file saving']['sim directory']) # folder to auto-save results (graphs, images, animations)
+            self.config_dirname, self._conf['results file saving']['sim directory']) # folder to auto-save results (graphs, images, animations)
         self.init_results = paths.join(
-            self.config_dirname, self._config['results file saving']['init directory']) # folder to auto-save results (graphs, images, ani
+            self.config_dirname, self._conf['results file saving']['init directory']) # folder to auto-save results (graphs, images, ani
 
         #---------------------------------------------------------------------------------------------------------------
         # INIT & SIM SETTINGS
@@ -186,22 +186,22 @@ class Parameters(object):
         #FIXME: Redundant. The set_time_profile() method already sets the more
         #appropriately named "self.init_end", "self.sim_end", and
         #"self.total_time" attributes to these values. Remove these, please.
-        self.time4init = self._config['init time settings']['total time']      # set the time for the initialization sim [s]
-        self.time4sim = self._config['sim time settings']['total time']        # set total time for simulation [s]
+        self.time4init = self._conf['init time settings']['total time']      # set the time for the initialization sim [s]
+        self.time4sim = self._conf['sim time settings']['total time']        # set total time for simulation [s]
 
         #---------------------------------------------------------------------------------------------------------------
         # GENERAL OPTIONS
         #---------------------------------------------------------------------------------------------------------------
 
-        self.autoInit = self._config['automatically run initialization']
+        self.autoInit = self._conf['automatically run initialization']
 
-        self.grid_size = int(self._config['general options']['comp grid size'])
-        self.plot_grid_size = int(self._config['general options']['plot grid size'])
+        self.grid_size = int(self._conf['general options']['comp grid size'])
+        self.plot_grid_size = int(self._conf['general options']['plot grid size'])
           # boolean letting us know if extracellular spaces are included
-        self.sim_ECM = self._config['general options']['simulate extracellular spaces']
+        self.sim_ECM = self._conf['general options']['simulate extracellular spaces']
 
        # set ion profile to be used: 'basic', 'basic_Ca', 'animal', 'xenopus', 'scratch'
-        self.ion_profile = self._config['general options']['ion profile']
+        self.ion_profile = self._conf['general options']['ion profile']
 
         #---------------------------------------------------------------------------------------------------------------
         # WORLD OPTIONS
@@ -209,15 +209,15 @@ class Parameters(object):
 
 
         # Geometric constants and factors
-        self.wsx = float(self._config['world options']['world size'])  # the x-dimension of the world space
+        self.wsx = float(self._conf['world options']['world size'])  # the x-dimension of the world space
         self.wsy = self.wsx  # the y-dimension of the world space [m]
-        self.rc = float(self._config['world options']['cell radius'])  # radius of single cell
-        self.cell_height = float(self._config['world options']['cell height'])  # the height of a cell in the z-direction
-        self.lattice_type = self._config['world options']['lattice type']  # hex or rect lattice base
-        self.cell_space = float(self._config['world options']['cell spacing'])  # the true cell-cell spacing
-        self.nl = float(self._config['world options']['lattice disorder'])  # noise level for the lattice
+        self.rc = float(self._conf['world options']['cell radius'])  # radius of single cell
+        self.cell_height = float(self._conf['world options']['cell height'])  # the height of a cell in the z-direction
+        self.lattice_type = self._conf['world options']['lattice type']  # hex or rect lattice base
+        self.cell_space = float(self._conf['world options']['cell spacing'])  # the true cell-cell spacing
+        self.nl = float(self._conf['world options']['lattice disorder'])  # noise level for the lattice
 
-        volmult = float(self._config['internal parameters']['environment volume multiplier'])
+        volmult = float(self._conf['internal parameters']['environment volume multiplier'])
 
         self.vol_env = volmult*self.wsx*self.wsy*self.cell_height  # environmental volume for "no ECM" simulation
 
@@ -234,71 +234,71 @@ class Parameters(object):
         # initialize dictionary keeping track of targeted scheduled options for the sim:
         self.scheduled_options = {}
 
-        bool_Namem = bool(self._config['change Na mem']['event happens'])
-        bool_Kmem = bool(self._config['change K mem']['event happens'])
-        bool_Clmem = bool(self._config['change Cl mem']['event happens'])
-        bool_Camem = bool(self._config['change Ca mem']['event happens'])
-        bool_press = bool(self._config['apply pressure']['event happens'])
-        bool_ecmj = bool(self._config['break ecm junctions']['event happens'])
+        bool_Namem = bool(self._conf['change Na mem']['event happens'])
+        bool_Kmem = bool(self._conf['change K mem']['event happens'])
+        bool_Clmem = bool(self._conf['change Cl mem']['event happens'])
+        bool_Camem = bool(self._conf['change Ca mem']['event happens'])
+        bool_press = bool(self._conf['apply pressure']['event happens'])
+        bool_ecmj = bool(self._conf['break ecm junctions']['event happens'])
 
 
         if bool_Namem is False:
             self.scheduled_options['Na_mem'] = 0
         elif bool_Namem is True:
-            on_Namem = float(self._config['change Na mem']['change start'])
-            off_Namem = float(self._config['change Na mem']['change finish'])
-            rate_Namem = float(self._config['change Na mem']['change rate'])
-            multi_Namem = float(self._config['change Na mem']['multiplier'])
-            apply_Namem = self._config['change Na mem']['apply to']
-            function = self._config['change Na mem']['modulator function']
+            on_Namem = float(self._conf['change Na mem']['change start'])
+            off_Namem = float(self._conf['change Na mem']['change finish'])
+            rate_Namem = float(self._conf['change Na mem']['change rate'])
+            multi_Namem = float(self._conf['change Na mem']['multiplier'])
+            apply_Namem = self._conf['change Na mem']['apply to']
+            function = self._conf['change Na mem']['modulator function']
             Namem = [on_Namem, off_Namem, rate_Namem, multi_Namem, apply_Namem,function]
             self.scheduled_options['Na_mem'] = Namem
 
         if bool_Kmem is False:
             self.scheduled_options['K_mem'] = 0
         elif bool_Kmem is True:
-            on_Kmem = float(self._config['change K mem']['change start'])
-            off_Kmem = float(self._config['change K mem']['change finish'])
-            rate_Kmem = float(self._config['change K mem']['change rate'])
-            multi_Kmem = float(self._config['change K mem']['multiplier'])
-            apply_Kmem = self._config['change K mem']['apply to']
-            function = self._config['change K mem']['modulator function']
+            on_Kmem = float(self._conf['change K mem']['change start'])
+            off_Kmem = float(self._conf['change K mem']['change finish'])
+            rate_Kmem = float(self._conf['change K mem']['change rate'])
+            multi_Kmem = float(self._conf['change K mem']['multiplier'])
+            apply_Kmem = self._conf['change K mem']['apply to']
+            function = self._conf['change K mem']['modulator function']
             Kmem = [on_Kmem, off_Kmem, rate_Kmem, multi_Kmem, apply_Kmem,function]
             self.scheduled_options['K_mem'] = Kmem
 
         if bool_Clmem is False:
             self.scheduled_options['Cl_mem'] = 0
         elif bool_Clmem is True:
-            on_Clmem = float(self._config['change Cl mem']['change start'])
-            off_Clmem = float(self._config['change Cl mem']['change finish'])
-            rate_Clmem = float(self._config['change Cl mem']['change rate'])
-            multi_Clmem = float(self._config['change Cl mem']['multiplier'])
-            apply_Clmem = self._config['change Cl mem']['apply to']
-            function = self._config['change Cl mem']['modulator function']
+            on_Clmem = float(self._conf['change Cl mem']['change start'])
+            off_Clmem = float(self._conf['change Cl mem']['change finish'])
+            rate_Clmem = float(self._conf['change Cl mem']['change rate'])
+            multi_Clmem = float(self._conf['change Cl mem']['multiplier'])
+            apply_Clmem = self._conf['change Cl mem']['apply to']
+            function = self._conf['change Cl mem']['modulator function']
             Clmem = [on_Clmem, off_Clmem, rate_Clmem, multi_Clmem, apply_Clmem, function]
             self.scheduled_options['Cl_mem'] = Clmem
 
         if bool_Camem is False:
             self.scheduled_options['Ca_mem'] = 0
         elif bool_Camem is True:
-            on_Camem = float(self._config['change Ca mem']['change start'])
-            off_Camem = float(self._config['change Ca mem']['change finish'])
-            rate_Camem = float(self._config['change Ca mem']['change rate'])
-            multi_Camem = float(self._config['change Ca mem']['multiplier'])
-            apply_Camem = self._config['change Ca mem']['apply to']
-            function = self._config['change Ca mem']['modulator function']
+            on_Camem = float(self._conf['change Ca mem']['change start'])
+            off_Camem = float(self._conf['change Ca mem']['change finish'])
+            rate_Camem = float(self._conf['change Ca mem']['change rate'])
+            multi_Camem = float(self._conf['change Ca mem']['multiplier'])
+            apply_Camem = self._conf['change Ca mem']['apply to']
+            function = self._conf['change Ca mem']['modulator function']
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
 
         if bool_press is False:
             self.scheduled_options['pressure'] = 0
         elif bool_press is True:
-            on_p = float(self._config['apply pressure']['change start'])
-            off_p = float(self._config['apply pressure']['change finish'])
-            rate_p = float(self._config['apply pressure']['change rate'])
-            multi_p = float(self._config['apply pressure']['multiplier'])
-            apply_p = self._config['apply pressure']['apply to']
-            function = self._config['apply pressure']['modulator function']
+            on_p = float(self._conf['apply pressure']['change start'])
+            off_p = float(self._conf['apply pressure']['change finish'])
+            rate_p = float(self._conf['apply pressure']['change rate'])
+            multi_p = float(self._conf['apply pressure']['multiplier'])
+            apply_p = self._conf['apply pressure']['apply to']
+            function = self._conf['apply pressure']['modulator function']
             pressure_ops = [on_p, off_p, rate_p, multi_p, apply_p,function]
 
             self.scheduled_options['pressure'] = pressure_ops
@@ -312,16 +312,16 @@ class Parameters(object):
         if bool_ecmj is False:
             self.scheduled_options['ecmJ'] = 0
         elif bool_ecmj is True:
-            on_ecmj = float(self._config['break ecm junctions']['change start'])
-            off_ecmj = float(self._config['break ecm junctions']['change finish'])
-            rate_ecmj = float(self._config['break ecm junctions']['change rate'])
-            apply_ecmj = self._config['break ecm junctions']['apply to']
+            on_ecmj = float(self._conf['break ecm junctions']['change start'])
+            off_ecmj = float(self._conf['break ecm junctions']['change finish'])
+            rate_ecmj = float(self._conf['break ecm junctions']['change rate'])
+            apply_ecmj = self._conf['break ecm junctions']['apply to']
             ecmj = [on_ecmj, off_ecmj, rate_ecmj, apply_ecmj]
 
             self.scheduled_options['ecmJ'] = ecmj
 
         # Parameterize the cutting event if enabled.
-        wc = self._config['cutting event']['wound channel']
+        wc = self._conf['cutting event']['wound channel']
         self.use_wound_channel = wc['use channel']
         self.wound_Dmax = float(wc['max conductivity'])
         self.wound_close_factor = float(wc['closure delay'])
@@ -341,69 +341,69 @@ class Parameters(object):
         # initialize dictionary keeping track of global scheduled options for the sim:
         self.global_options = {}
 
-        bool_Naenv = bool(self._config['change Na env']['event happens'])
-        bool_Kenv = bool(self._config['change K env']['event happens'])
-        bool_Clenv = bool(self._config['change Cl env']['event happens'])
-        bool_gjblock = bool(self._config['block gap junctions']['event happens'])
-        bool_temp =  bool(self._config['change temperature']['event happens'])
-        bool_NaKblock = bool(self._config['block NaKATP pump']['event happens'])
+        bool_Naenv = bool(self._conf['change Na env']['event happens'])
+        bool_Kenv = bool(self._conf['change K env']['event happens'])
+        bool_Clenv = bool(self._conf['change Cl env']['event happens'])
+        bool_gjblock = bool(self._conf['block gap junctions']['event happens'])
+        bool_temp =  bool(self._conf['change temperature']['event happens'])
+        bool_NaKblock = bool(self._conf['block NaKATP pump']['event happens'])
 
         if bool_Kenv is False:
             self.global_options['K_env'] = 0
         elif bool_Kenv is True:
-            on_Kenv = float(self._config['change K env']['change start'])
-            off_Kenv = float(self._config['change K env']['change finish'])
-            rate_Kenv = float(self._config['change K env']['change rate'])
-            multi_Kenv = float(self._config['change K env']['multiplier'])
+            on_Kenv = float(self._conf['change K env']['change start'])
+            off_Kenv = float(self._conf['change K env']['change finish'])
+            rate_Kenv = float(self._conf['change K env']['change rate'])
+            multi_Kenv = float(self._conf['change K env']['multiplier'])
             kenv = [on_Kenv, off_Kenv, rate_Kenv, multi_Kenv]
             self.global_options['K_env'] = kenv
 
         if bool_Clenv is False:
             self.global_options['Cl_env'] = 0
         elif bool_Clenv is True:
-            on_Clenv = float(self._config['change Cl env']['change start'])
-            off_Clenv = float(self._config['change Cl env']['change finish'])
-            rate_Clenv = float(self._config['change Cl env']['change rate'])
-            multi_Clenv = float(self._config['change Cl env']['multiplier'])
+            on_Clenv = float(self._conf['change Cl env']['change start'])
+            off_Clenv = float(self._conf['change Cl env']['change finish'])
+            rate_Clenv = float(self._conf['change Cl env']['change rate'])
+            multi_Clenv = float(self._conf['change Cl env']['multiplier'])
             Clenv = [on_Clenv, off_Clenv, rate_Clenv, multi_Clenv]
             self.global_options['Cl_env'] = Clenv
 
         if bool_Naenv is False:
             self.global_options['Na_env'] = 0
         elif bool_Naenv is True:
-            on_Naenv = float(self._config['change Na env']['change start'])
-            off_Naenv = float(self._config['change Na env']['change finish'])
-            rate_Naenv = float(self._config['change Na env']['change rate'])
-            multi_Naenv = float(self._config['change Na env']['multiplier'])
+            on_Naenv = float(self._conf['change Na env']['change start'])
+            off_Naenv = float(self._conf['change Na env']['change finish'])
+            rate_Naenv = float(self._conf['change Na env']['change rate'])
+            multi_Naenv = float(self._conf['change Na env']['multiplier'])
             Naenv = [on_Naenv, off_Naenv, rate_Naenv, multi_Naenv]
             self.global_options['Na_env'] = Naenv
 
         if bool_gjblock is False:
             self.global_options['gj_block'] = 0
         elif bool_gjblock is True:
-            on_gj = float(self._config['block gap junctions']['change start'])
-            off_gj = float(self._config['block gap junctions']['change finish'])
-            rate_gj = float(self._config['block gap junctions']['change rate'])
-            fraction_gj = float(self._config['block gap junctions']['random fraction'])
+            on_gj = float(self._conf['block gap junctions']['change start'])
+            off_gj = float(self._conf['block gap junctions']['change finish'])
+            rate_gj = float(self._conf['block gap junctions']['change rate'])
+            fraction_gj = float(self._conf['block gap junctions']['random fraction'])
             gjb = [on_gj,off_gj,rate_gj,fraction_gj]
             self.global_options['gj_block'] = gjb
 
         if bool_temp is False:
             self.global_options['T_change'] = 0
         elif bool_temp is True:
-            on_T = float(self._config['change temperature']['change start'])
-            off_T = float(self._config['change temperature']['change finish'])
-            rate_T = float(self._config['change temperature']['change rate'])
-            multi_T = float(self._config['change temperature']['multiplier'])
+            on_T = float(self._conf['change temperature']['change start'])
+            off_T = float(self._conf['change temperature']['change finish'])
+            rate_T = float(self._conf['change temperature']['change rate'])
+            multi_T = float(self._conf['change temperature']['multiplier'])
             temper = [on_T, off_T, rate_T, multi_T]
             self.global_options['T_change'] = temper
 
         if bool_NaKblock is False:
             self.global_options['NaKATP_block'] = 0
         elif bool_NaKblock is True:
-            on_nak = float(self._config['block NaKATP pump']['change start'])
-            off_nak = float(self._config['block NaKATP pump']['change finish'])
-            rate_nak = float(self._config['block NaKATP pump']['change rate'])
+            on_nak = float(self._conf['block NaKATP pump']['change start'])
+            off_nak = float(self._conf['block NaKATP pump']['change finish'])
+            rate_nak = float(self._conf['block NaKATP pump']['change rate'])
             nak = [on_nak,off_nak,rate_nak]
             self.global_options['NaKATP_block'] = nak
 
@@ -415,21 +415,21 @@ class Parameters(object):
         # cells to effect with voltage gated channels: (choices = 'none','all','random1','random50', [1,2,3])
         # self.gated_targets = self._config['ion channel target cells']
 
-        bool_cagK = bool(self._config['calcium gated K+']['turn on'])
-        bool_stretch = bool(self._config['stretch gated Na+']['turn on'])
+        bool_cagK = bool(self._conf['calcium gated K+']['turn on'])
+        bool_stretch = bool(self._conf['stretch gated Na+']['turn on'])
 
         # set specific character of gated ion channel dynamics:
-        opNa = self._config['voltage gated Na+']
-        opNaP = self._config['persistent vg Na+']
-        opK = self._config['voltage gated K+']
-        opKir = self._config['additional voltage gated K+']
-        opFun = self._config['funny current']
-        opCa = self._config['voltage gated Ca2+']
+        opNa = self._conf['voltage gated Na+']
+        opNaP = self._conf['persistent vg Na+']
+        opK = self._conf['voltage gated K+']
+        opKir = self._conf['additional voltage gated K+']
+        opFun = self._conf['funny current']
+        opCa = self._conf['voltage gated Ca2+']
         # opcK = self._config['calcium gated K+']
 
-        opStretch = self._config['gated ion channel options']['stretch gated Na']
+        opStretch = self._conf['gated ion channel options']['stretch gated Na']
 
-        self.flux_threshold = self._config['gated ion channel options']['flux threshold']
+        self.flux_threshold = self._conf['gated ion channel options']['flux threshold']
 
         # voltage gated sodium:
         self.vgNa_bool = opNa['turn on']
@@ -470,12 +470,12 @@ class Parameters(object):
 
         # calcium gated K
 
-        max_NaSt = float(self._config['stretch gated Na+']['max value']) * 1.0e-9
-        max_cagK = float(self._config['calcium gated K+']['max value']) * 1.0e-9
+        max_NaSt = float(self._conf['stretch gated Na+']['max value']) * 1.0e-9
+        max_cagK = float(self._conf['calcium gated K+']['max value']) * 1.0e-9
 
         cagK = [max_cagK, 1.0e-3, 3.0]
 
-        apply_cagK = self._config['calcium gated K+']['apply to']
+        apply_cagK = self._conf['calcium gated K+']['apply to']
 
         cagK.append(apply_cagK)
 
@@ -483,7 +483,7 @@ class Parameters(object):
 
         stNa = [max_NaSt,float(opStretch['hill K_half']),float(opStretch['hill n'])]
 
-        apply_stNa = self._config['stretch gated Na+']['apply to']
+        apply_stNa = self._conf['stretch gated Na+']['apply to']
 
         stNa.append(apply_stNa)
 
@@ -503,23 +503,23 @@ class Parameters(object):
         # Calcium TissueHandler: Calcium Induced Calcium Release (CICR).....................................................
 
         # include full calcium dynamics in the situation (i.e. endoplasmic reticulum, etc)?
-        self.Ca_dyn = self._config['Ca dynamics']['turn on']
+        self.Ca_dyn = self._conf['Ca dynamics']['turn on']
 
         if self.Ca_dyn:
-            self.serca_max = self._config['Ca dynamics']['serca pump max'] # maximum rate of the ER membrane Ca++ ATPase (serca)
-            self.max_er = self._config['Ca dynamics']['max er']    # maximum conductivity of ER membrane Ca++ channel
-            self.act_Km_Ca = self._config['Ca dynamics']['act Km Ca'] # concentration at which calcium activates ER opening
-            self.act_n_Ca = self._config['Ca dynamics']['act n Ca']    # exponent for Ca activation
-            self.inh_Km_Ca = self._config['Ca dynamics']['inh Km Ca']  # concentration at which calcium inhibits ER opening
-            self.inh_n_Ca = self._config['Ca dynamics']['inh n Ca']     # exponent for Ca inhibition
-            self.act_Km_IP3 = self._config['Ca dynamics']['act Km IP3']   # concentration at which IP3 (if included in biomolecules) activates opening
-            self.act_n_IP3 = self._config['Ca dynamics']['act n IP3']     # exponent for IP3 (if included in biomolecules) activates opening
+            self.serca_max = self._conf['Ca dynamics']['serca pump max'] # maximum rate of the ER membrane Ca++ ATPase (serca)
+            self.max_er = self._conf['Ca dynamics']['max er']    # maximum conductivity of ER membrane Ca++ channel
+            self.act_Km_Ca = self._conf['Ca dynamics']['act Km Ca'] # concentration at which calcium activates ER opening
+            self.act_n_Ca = self._conf['Ca dynamics']['act n Ca']    # exponent for Ca activation
+            self.inh_Km_Ca = self._conf['Ca dynamics']['inh Km Ca']  # concentration at which calcium inhibits ER opening
+            self.inh_n_Ca = self._conf['Ca dynamics']['inh n Ca']     # exponent for Ca inhibition
+            self.act_Km_IP3 = self._conf['Ca dynamics']['act Km IP3']   # concentration at which IP3 (if included in biomolecules) activates opening
+            self.act_n_IP3 = self._conf['Ca dynamics']['act n IP3']     # exponent for IP3 (if included in biomolecules) activates opening
 
         #--------------------------------------------------------------------------------------------------------------
         #  CUSTOM GENERAL NETWORK (defined in main config file)
         #--------------------------------------------------------------------------------------------------------------
 
-        self.network_config = self._config.get('general network', None)
+        self.network_config = self._conf.get('general network', None)
 
         if self.network_config is not None:
             self.molecules_enabled = self.network_config['implement network']
@@ -532,17 +532,17 @@ class Parameters(object):
         #  METABOLISM
         #---------------------------------------------------------------------------------------------------------------
 
-        self.metabolism_enabled = self._config['metabolism settings']['metabolism simulated']
+        self.metabolism_enabled = self._conf['metabolism settings']['metabolism simulated']
 
-        self.metabo_config_filename = self._config['metabolism settings']['metabolism config']
+        self.metabo_config_filename = self._conf['metabolism settings']['metabolism config']
 
         #---------------------------------------------------------------------------------------------------------------
         #  GENE REGULATORY NETWORKS
         #---------------------------------------------------------------------------------------------------------------
 
-        self.grn_enabled = self._config['gene regulatory network settings']['gene regulatory network simulated']
+        self.grn_enabled = self._conf['gene regulatory network settings']['gene regulatory network simulated']
 
-        self.grn_config_filename = self._config['gene regulatory network settings']['gene regulatory network config']
+        self.grn_config_filename = self._conf['gene regulatory network settings']['gene regulatory network config']
 
         #--------------------------------------------------------------------------------------------------------------
         # VARIABLE SETTINGS
@@ -550,7 +550,7 @@ class Parameters(object):
 
         self.gravity = False
 
-        self.T = float(self._config['variable settings']['temperature'])  # system temperature
+        self.T = float(self._conf['variable settings']['temperature'])  # system temperature
 
         # current calculation---------------------------
 
@@ -558,27 +558,27 @@ class Parameters(object):
         self.calc_J = True
 
         # electroosmotic fluid flow-----------------------------------------------------
-        self.fluid_flow = self._config['variable settings']['fluid flow']['include fluid flow']
-        self.mu_water = float(self._config['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]
+        self.fluid_flow = self._conf['variable settings']['fluid flow']['include fluid flow']
+        self.mu_water = float(self._conf['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]
 
         # electrodiffusive movement pumps and channels -----------------------------------
-        self.sim_eosmosis = self._config['variable settings']['channel electroosmosis']['turn on']
-        self.D_membrane = float(self._config['variable settings']['channel electroosmosis']['membrane mobility'])
-        self.z_channel = float(self._config['variable settings']['channel electroosmosis']['channel charge'])
-        self.z_pump = float(self._config['variable settings']['channel electroosmosis']['pump charge'])
+        self.sim_eosmosis = self._conf['variable settings']['channel electroosmosis']['turn on']
+        self.D_membrane = float(self._conf['variable settings']['channel electroosmosis']['membrane mobility'])
+        self.z_channel = float(self._conf['variable settings']['channel electroosmosis']['channel charge'])
+        self.z_pump = float(self._conf['variable settings']['channel electroosmosis']['pump charge'])
 
         # mechanical deformation ----------------------------------------------------------
-        self.deformation = self._config['variable settings']['deformation']['turn on']
+        self.deformation = self._conf['variable settings']['deformation']['turn on']
 
-        self.galvanotropism = float(self._config['variable settings']['deformation']['galvanotropism'])
+        self.galvanotropism = float(self._conf['variable settings']['deformation']['galvanotropism'])
         self.td_deform = False # this has been disabled due to ongoing technical difficulties
-        self.fixed_cluster_bound = self._config['variable settings']['deformation']['fixed cluster boundary']
-        self.youngMod = float(self._config['variable settings']['deformation']['young modulus'])
-        self.mu_tissue = float(self._config['variable settings']['deformation']['viscous damping'])
+        self.fixed_cluster_bound = self._conf['variable settings']['deformation']['fixed cluster boundary']
+        self.youngMod = float(self._conf['variable settings']['deformation']['young modulus'])
+        self.mu_tissue = float(self._conf['variable settings']['deformation']['viscous damping'])
 
         # osmotic and electrostatic pressures --------------------------------
-        self.deform_osmo = self._config['variable settings']['pressures']['include osmotic pressure']
-        self.aquaporins = float(self._config['variable settings']['pressures']['membrane water conductivity'])
+        self.deform_osmo = self._conf['variable settings']['pressures']['include osmotic pressure']
+        self.aquaporins = float(self._conf['variable settings']['pressures']['membrane water conductivity'])
 
         # calculate lame's parameters from young mod and the poisson ratio:
         self.poi = 0.49 # Poisson's ratio for the biological medium
@@ -590,48 +590,48 @@ class Parameters(object):
 
         # Gap junction parameters ------------------
 
-        self.gj_surface = float(self._config['variable settings']['gap junctions']['gap junction surface area'])
+        self.gj_surface = float(self._conf['variable settings']['gap junctions']['gap junction surface area'])
         self.gj_flux_sensitive = False
-        self.gj_vthresh = float(self._config['variable settings']['gap junctions']['gj voltage threshold'])
-        self.gj_vgrad  = float(self._config['variable settings']['gap junctions']['gj voltage window'])
-        self.gj_min = float(self._config['variable settings']['gap junctions']['gj minimum'])
+        self.gj_vthresh = float(self._conf['variable settings']['gap junctions']['gj voltage threshold'])
+        self.gj_vgrad  = float(self._conf['variable settings']['gap junctions']['gj voltage window'])
+        self.gj_min = float(self._conf['variable settings']['gap junctions']['gj minimum'])
         self.gj_respond_flow = False # (feature currently unsupported)
-        self.v_sensitive_gj = self._config['variable settings']['gap junctions']['voltage sensitive gj']
+        self.v_sensitive_gj = self._conf['variable settings']['gap junctions']['voltage sensitive gj']
 
         # Environmental features and tight junctions ---------------------------------------------------
         self.env_type = True # for now, can't handle air boundaries
         self.cluster_open = True
         self.closed_bound = False
-        self.D_tj = float(self._config['variable settings']['tight junction scaling'])
-        self.D_adh = float(self._config['variable settings']['adherens junction scaling'])
+        self.D_tj = float(self._conf['variable settings']['tight junction scaling'])
+        self.D_adh = float(self._conf['variable settings']['adherens junction scaling'])
         # tight junction relative ion movement properties:
         self.Dtj_rel = {}  # use a dictionary to hold the tj values:
 
-        self.Dtj_rel['Na']=float(self._config['variable settings']['tight junction relative diffusion']['Na'])
-        self.Dtj_rel['K']=float(self._config['variable settings']['tight junction relative diffusion']['K'])
-        self.Dtj_rel['Cl']=float(self._config['variable settings']['tight junction relative diffusion']['Cl'])
-        self.Dtj_rel['Ca']=float(self._config['variable settings']['tight junction relative diffusion']['Ca'])
-        self.Dtj_rel['M']=float(self._config['variable settings']['tight junction relative diffusion']['M'])
-        self.Dtj_rel['P']=float(self._config['variable settings']['tight junction relative diffusion']['P'])
-        self.Dtj_rel['H']=float(self._config['variable settings']['tight junction relative diffusion']['H'])
+        self.Dtj_rel['Na']=float(self._conf['variable settings']['tight junction relative diffusion']['Na'])
+        self.Dtj_rel['K']=float(self._conf['variable settings']['tight junction relative diffusion']['K'])
+        self.Dtj_rel['Cl']=float(self._conf['variable settings']['tight junction relative diffusion']['Cl'])
+        self.Dtj_rel['Ca']=float(self._conf['variable settings']['tight junction relative diffusion']['Ca'])
+        self.Dtj_rel['M']=float(self._conf['variable settings']['tight junction relative diffusion']['M'])
+        self.Dtj_rel['P']=float(self._conf['variable settings']['tight junction relative diffusion']['P'])
+        self.Dtj_rel['H']=float(self._conf['variable settings']['tight junction relative diffusion']['H'])
 
         # default membrane diffusion constants: easy control of cell's base resting potential
-        self.Dm_Na = float(self._config['variable settings']['default tissue properties']['Dm_Na'])     # sodium [m2/s]
-        self.Dm_K = float(self._config['variable settings']['default tissue properties']['Dm_K'])     #  potassium [m2/s]
-        self.Dm_Cl = float(self._config['variable settings']['default tissue properties']['Dm_Cl'])    # chloride [m2/s]
-        self.Dm_Ca = float(self._config['variable settings']['default tissue properties']['Dm_Ca'])   #  calcium [m2/s]
-        self.Dm_H = float(self._config['variable settings']['default tissue properties']['Dm_H'])    #  hydrogen [m2/s]
-        self.Dm_M = float(self._config['variable settings']['default tissue properties']['Dm_M'])    #  anchor ion [m2/s]
-        self.Dm_P = float(self._config['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
+        self.Dm_Na = float(self._conf['variable settings']['default tissue properties']['Dm_Na'])     # sodium [m2/s]
+        self.Dm_K = float(self._conf['variable settings']['default tissue properties']['Dm_K'])     #  potassium [m2/s]
+        self.Dm_Cl = float(self._conf['variable settings']['default tissue properties']['Dm_Cl'])    # chloride [m2/s]
+        self.Dm_Ca = float(self._conf['variable settings']['default tissue properties']['Dm_Ca'])   #  calcium [m2/s]
+        self.Dm_H = float(self._conf['variable settings']['default tissue properties']['Dm_H'])    #  hydrogen [m2/s]
+        self.Dm_M = float(self._conf['variable settings']['default tissue properties']['Dm_M'])    #  anchor ion [m2/s]
+        self.Dm_P = float(self._conf['variable settings']['default tissue properties']['Dm_P'])     #  proteins [m2/s]
 
         # environmental (global) boundary concentrations:
-        self.cbnd = self._config['variable settings']['env boundary concentrations']
+        self.cbnd = self._conf['variable settings']['env boundary concentrations']
 
         # include noise in the simulation?
-        self.channel_noise_level = float(self._config['variable settings']['noise']['static noise level'])
+        self.channel_noise_level = float(self._conf['variable settings']['noise']['static noise level'])
 
-        self.dynamic_noise = self._config['variable settings']['noise']['dynamic noise']
-        self.dynamic_noise_level = float(self._config['variable settings']['noise']['dynamic noise level'])
+        self.dynamic_noise = self._conf['variable settings']['noise']['dynamic noise']
+        self.dynamic_noise_level = float(self._conf['variable settings']['noise']['dynamic noise level'])
 
         # Modulator functions ------------------------------------------------------------------------------------------
         self.gradient_x_properties = {}
@@ -641,29 +641,29 @@ class Parameters(object):
         self.periodic_properties = {}
         self.f_scan_properties = {}
 
-        self.gradient_x_properties['slope'] =float(self._config['modulator function properties']['gradient_x']['slope'])
-        self.gradient_x_properties['offset'] =float(self._config['modulator function properties']['gradient_x']['offset'])
+        self.gradient_x_properties['slope'] =float(self._conf['modulator function properties']['gradient_x']['slope'])
+        self.gradient_x_properties['offset'] =float(self._conf['modulator function properties']['gradient_x']['offset'])
         self.gradient_x_properties['exponent'] = float(
-                                        self._config['modulator function properties']['gradient_x'].get('exponent', 1))
+                                        self._conf['modulator function properties']['gradient_x'].get('exponent', 1))
 
-        self.gradient_y_properties['slope'] =float(self._config['modulator function properties']['gradient_y']['slope'])
-        self.gradient_y_properties['offset'] = float(self._config['modulator function properties']['gradient_y']['offset'])
+        self.gradient_y_properties['slope'] =float(self._conf['modulator function properties']['gradient_y']['slope'])
+        self.gradient_y_properties['offset'] = float(self._conf['modulator function properties']['gradient_y']['offset'])
         self.gradient_y_properties['exponent'] = float(
-                                    self._config['modulator function properties']['gradient_y'].get('exponent', 1))
+                                    self._conf['modulator function properties']['gradient_y'].get('exponent', 1))
 
-        self.gradient_r_properties['slope'] = float(self._config['modulator function properties']['gradient_r']['slope'])
-        self.gradient_r_properties['offset'] = float(self._config['modulator function properties']['gradient_r']['offset'])
+        self.gradient_r_properties['slope'] = float(self._conf['modulator function properties']['gradient_r']['slope'])
+        self.gradient_r_properties['offset'] = float(self._conf['modulator function properties']['gradient_r']['offset'])
         self.gradient_r_properties['exponent'] = float(
-            self._config['modulator function properties']['gradient_r'].get('exponent', 1))
+            self._conf['modulator function properties']['gradient_r'].get('exponent', 1))
 
-        self.periodic_properties['frequency'] = float(self._config['modulator function properties']['periodic']['frequency'])
-        self.periodic_properties['phase'] = float(self._config['modulator function properties']['periodic']['phase'])
+        self.periodic_properties['frequency'] = float(self._conf['modulator function properties']['periodic']['frequency'])
+        self.periodic_properties['phase'] = float(self._conf['modulator function properties']['periodic']['phase'])
 
         self.f_scan_properties['f start'] = \
-                                float(self._config['modulator function properties']['f_sweep']['start frequency'])
+                                float(self._conf['modulator function properties']['f_sweep']['start frequency'])
 
         self.f_scan_properties['f stop'] = \
-                                float(self._config['modulator function properties']['f_sweep']['end frequency'])
+                                float(self._conf['modulator function properties']['f_sweep']['end frequency'])
 
         #initialize the f vect field to None as it's set depending on the sim timestep:
 
@@ -675,13 +675,13 @@ class Parameters(object):
         #--------------------------------------------------------------------------------------------------------------
 
         # use the GHK equation to calculate alt Vmem from params?
-        self.GHK_calc = self._config['variable settings']['use Goldman calculator']
+        self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
 
         # ................{ PLOTS                              }................
         # Plot subconfiguration.
-        self.plot = SimConfPlot(config=self._config)
+        self.plot = SimConfPlotAll(conf=self._conf)
 
-        ro = self._config['results options']
+        ro = self._conf['results options']
 
         #FIXME: Replace all instances of "p.turn_all_plots_off" in the codebase
         #by "not p.plot.is_after_sim_show" and remove this attribute entirely.
@@ -771,7 +771,7 @@ class Parameters(object):
 
         # ................{ ANIMATIONS                         }................
         # Animation subconfiguration.
-        self.anim = SimConfAnim(config=self._config)
+        self.anim = SimConfAnimAll(conf=self._conf)
 
         # specify desired animations:
         self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
@@ -845,7 +845,7 @@ class Parameters(object):
         # INTERNAL USE ONLY
         #--------------------------------------------------------------------------------------------------------------
 
-        iu = self._config['internal parameters']
+        iu = self._conf['internal parameters']
 
         self.interp_type = 'nearest'
 
@@ -1184,7 +1184,7 @@ class Parameters(object):
             self.cH_cell = None
             self.cH_env = None
 
-            cip = self._config['general options']['customized ion profile']
+            cip = self._conf['general options']['customized ion profile']
 
             self.cNa_env = float(cip['extracellular Na+ concentration'])
             self.cK_env = float(cip['extracellular K+ concentration'])
@@ -1244,11 +1244,7 @@ class Parameters(object):
         '''
 
         # For convenience, localize configuration subdictionaries.
-        results = self._config['results options']
-
-        #FIXME: Excise this specific branch after a sufficient amount of
-        #time has passed. This commit's date is 2016-07-26. Late autumn
-        #or early winter 2016, mayhap?
+        results = self._conf['results options']
 
         # For backward compatibility, convert the prior into the current
         # configuration format.
@@ -1335,6 +1331,20 @@ class Parameters(object):
                 }
             }
 
+        after_solving_anims = results['after solving']['animations']
+
+        if 'pipeline' not in after_solving_anims:
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Config file post-animation results option '
+                '"pipeline" not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
+
+            # Default the value for this dictionary key to the empty list.
+            after_solving_anims['pipeline'] = []
+
 
     def _init_tissue_and_cut_profiles(self) -> None:
         '''
@@ -1342,10 +1352,10 @@ class Parameters(object):
         configuration file.
         '''
 
-        tpd = self._config['tissue profile definition']
+        tpd = self._conf['tissue profile definition']
 
         self.default_tissue_name = (
-            self._config['variable settings']['default tissue name'])
+            self._conf['variable settings']['default tissue name'])
         self.clipping_bitmap_matcher = TissuePickerBitmap(
             tpd['clipping']['bitmap']['file'], self.config_dirname)
 
@@ -1363,7 +1373,7 @@ class Parameters(object):
             for i, profile_config in enumerate(tpd['profiles']):
                 self.profiles[profile_config['name']] = tissuecls.make(
                     p=self,
-                    profile_config=profile_config,
+                    conf=profile_config,
                     # Convert from 0-based list indices to 1-based z order.
                     z_order=i + 1,
                 )
@@ -1408,10 +1418,10 @@ class Parameters(object):
 
         # If this simulation phase is an initialization...
         if time_profile == 'custom init':
-            self.dt = float(self._config['init time settings']['time step'])
-            self.init_end = float(self._config['init time settings']['total time'])
+            self.dt = float(self._conf['init time settings']['time step'])
+            self.init_end = float(self._conf['init time settings']['total time'])
             self.init_tsteps = self.init_end/self.dt
-            self.resample = float(self._config['init time settings']['sampling rate'])
+            self.resample = float(self._conf['init time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
 
             # Duration in seconds of the current simulation phase.
@@ -1419,10 +1429,10 @@ class Parameters(object):
 
         # Else, this simulation phase is a simulation.
         else:   # if time_profile == 'custom sim':
-            self.dt = float(self._config['sim time settings']['time step'])
-            self.sim_end = float(self._config['sim time settings']['total time'])
+            self.dt = float(self._conf['sim time settings']['time step'])
+            self.sim_end = float(self._conf['sim time settings']['total time'])
             self.sim_tsteps = self.sim_end/self.dt
-            self.resample = float(self._config['sim time settings']['sampling rate'])
+            self.resample = float(self._conf['sim time settings']['sampling rate'])
             self.t_resample = self.resample/self.dt
 
             # Duration in seconds of the current simulation phase.

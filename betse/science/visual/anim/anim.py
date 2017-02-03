@@ -87,7 +87,7 @@ class AnimFlatCellsTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : Sequence
+        cell_time_series : SequenceTypes
             Arbitrary cell data as a function of time
 
         See the superclass `__init__()` method for all remaining parameters.
@@ -159,7 +159,7 @@ class AnimEnvTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        time_series : Sequence
+        time_series : SequenceTypes
             Arbitrary environmental data as a function of time to be plotted.
 
         See the superclass `__init__()` method for all remaining parameters.
@@ -223,9 +223,9 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         Parameters
         ----------
-        cell_time_series : Sequence
+        cell_time_series : SequenceTypes
             Arbitrary cell data as a function of time to be underlayed.
-        gapjunc_time_series : Sequence
+        gapjunc_time_series : SequenceTypes
             Arbitrary gap junction data as a function of time to be overlayed.
 
         See the superclass `__init__()` method for all remaining parameters.
@@ -303,7 +303,7 @@ class AnimMembraneTimeSeries(AnimCellsAfterSolving):
     ----------
     _mem_edges : LineCollection
         Membrane edges coloured for the current or prior frame.
-    _time_series : Sequence
+    _time_series : SequenceTypes
         Arbitrary cell membrane data as a function of time to be plotted.
     '''
 

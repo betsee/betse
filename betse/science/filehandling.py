@@ -123,16 +123,15 @@ def _preserve_backward_importability() -> None:
     these modules having since been moved, renamed, or outright removed.
     '''
 
-    #FIXME: Comment out after a sufficient amount of time -- say, mid-2017.
-
     # Import all modules whose fully-qualified names have been modified.
-    from betse.science import sim
+    from betse.science import channels, sim
     from betse.science.math import finitediff
     from betse.science.tissue import tissuepick
     from betse.science.config.visual import confanim
     from betse.science.config.visual import confplot
 
     # Alias obsolete module names to current module objects.
+    sys.modules['betse.science.tissue.channels'] = channels
     sys.modules['betse.science.finitediff'] = finitediff
     sys.modules['betse.science.tissue.picker'] = tissuepick
     sys.modules['betse.science.visual.anim.animconfig'] = confanim
@@ -142,7 +141,11 @@ def _preserve_backward_importability() -> None:
 
     # Alias obsolete to current class names.
     sim.SimPhase = sim.SimPhaseType
+    sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
+        confanim.SimConfAnimAll)
+    sys.modules['betse.science.config.visual.confplot'].SimConfPlot = (
+        confplot.SimConfPlotAll)
     sys.modules['betse.science.visual.anim.animconfig'].AnimConfig = (
-        confanim.SimConfAnim)
+        confanim.SimConfAnimAll)
     sys.modules['betse.science.visual.plot.plotconfig'].PlotConfig = (
-        confplot.SimConfPlot)
+        confplot.SimConfPlotAll)

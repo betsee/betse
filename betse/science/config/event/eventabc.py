@@ -7,7 +7,7 @@ Abstract base classes of all timed event classes.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod, abstractstaticmethod
+from abc import ABCMeta, abstractmethod
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ BASE                               }....................

@@ -75,7 +75,7 @@ def make(p: 'betse.science.parameters.Parameters') -> (SimEventCut, NoneType):
     # Object to be returned, defaulting to nothing.
     action = None
 
-    ce = p._config['cutting event']
+    ce = p._conf['cutting event']
 
     # If this event is enabled, create an instance of this class.
     if bool(ce['event happens']):

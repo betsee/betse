@@ -10,13 +10,11 @@ of the total cell population to the corresponding tissue profile.
 # ....................{ IMPORTS                            }....................
 import random
 from abc import ABCMeta, abstractmethod
-
 from betse.exceptions import BetseSimConfigException
 from betse.science.math import toolbox
 from betse.util.path import files, paths
 from betse.util.type.types import (
     type_check, MappingType, NumericTypes, SequenceTypes)
-
 
 # ....................{ SUPERCLASS                         }....................
 class TissuePickerABC(object, metaclass=ABCMeta):
@@ -288,20 +286,20 @@ class TissuePickerRandom(TissuePickerABC):
 @type_check
 def make(
     p: 'betse.science.parameters.Parameters',
-    config: MappingType,
+    conf: MappingType,
 ) -> TissuePickerABC:
     '''
-    Factory method producing a concrete instance of this abstract base class
-    from the passed picker-specific dictionary and simulation parameters.
+    Create and return a concrete instance of this abstract base class from the
+    passed picker-specific dictionary and simulation parameters.
 
     Parameters
     ----------------------------
-    config : dict
-            Dictionary describing the type and contents of the tissue picker to
-            be created via the following key-value pairs:
-            * `type`, a string enumeration.
     p : Parameters
-            Current simulation parameters.
+        Current simulation configuration.
+    conf : MappingType
+        Dictionary describing the type and contents of the tissue picker to be
+        created via the following key-value pairs:
+        * ``type``, a string enumeration.
 
     Returns
     ----------------------------
@@ -310,16 +308,16 @@ def make(
     '''
 
     picker = None
-    picker_type = config['type']
+    picker_type = conf['type']
 
     if picker_type == 'all':
         picker = TissuePickerAll()
     elif picker_type == 'bitmap':
-        picker = make_bitmap(p=p, config=config['bitmap'])
+        picker = make_bitmap(p=p, conf=conf['bitmap'])
     elif picker_type == 'indices':
-        picker = TissuePickerIndices(config['indices'])
+        picker = TissuePickerIndices(conf['indices'])
     elif picker_type == 'random':
-        picker = TissuePickerRandom(config['random'])
+        picker = TissuePickerRandom(conf['random'])
     else:
         raise BetseSimConfigException(
             'Tissue picker type "{}"' 'unrecognized.'.format(picker_type))
@@ -330,19 +328,19 @@ def make(
 @type_check
 def make_bitmap(
     p: 'betse.science.parameters.Parameters',
-    config: MappingType,
+    conf: MappingType,
 ) -> TissuePickerBitmap:
     '''
-    Factory method producing an instance of this class from the passed
-    bitmap-specific dictionary and simulation parameters.
+    Create and return an instance of this class from the passed bitmap-specific
+    dictionary and simulation parameters.
 
     Parameters
     ----------------------------
     p : Parameters
         Current simulation configuration.
-    config : MappingType
-        Dictionary describing the type and contents of the bitmap tissue
-        picker to be created via the following key-value pairs:
+    conf : MappingType
+        Dictionary describing the type and contents of the bitmap tissue picker
+        to be created via the following key-value pairs:
         * ``file``, the absolute or relative path of this bitmap's file.
 
     Returns
@@ -352,4 +350,4 @@ def make_bitmap(
     '''
 
     return TissuePickerBitmap(
-        filename=config['file'], dirname=p.config_dirname)
+        filename=conf['file'], dirname=p.config_dirname)

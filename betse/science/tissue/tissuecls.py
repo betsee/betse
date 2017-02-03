@@ -89,20 +89,20 @@ class TissueCut(TissueABC):
 @type_check
 def make(
     p: 'betse.science.parameters.Parameters',
-    profile_config: MappingType,
+    conf: MappingType,
     z_order: int,
-
-#FIXME: Eliminate the "MappingType" here. This is demonstrably terrible.
-) -> (MappingType, TissueABC):
+) -> (
+    #FIXME: Eliminate the "MappingType" here. This is demonstrably terrible.
+    MappingType, TissueABC):
     '''
-    Factory method producing a concrete instance of this abstract base class
-    from the passed tissue simulation configuration.
+    Create and return a concrete instance of the abstract base class
+    :class:`TissueABC` from the passed tissue simulation configuration.
 
     Parameters
     ----------------------------
     p : Parameters
         Current simulation configuration.
-    profile_config : MappingType
+    conf : MappingType
         Dictionary configuring the profile to be created.
     z_order : int
         1-based order in which this profile will be plotted with respect to
@@ -118,49 +118,42 @@ def make(
     profile = None
 
     #FIXME: Breaking privacy encapsulation isn't terribly nice. Ideally, the
-    #caller should pass the "p._config" object to this function by switching out
+    #caller should pass the "p._confi object to this function by switching out
     #the "p" parameter for a "config" parameter.
 
-    # Localize this dictionary for readability.
-    tpd = p._config['tissue profile definition']
+    profile_type = conf['type']
 
-    # If cut profiles are enabled, return an instance of this class.
-    if tpd['profiles enabled']:
-        profile_type = profile_config['type']
+    # If this is a tissue profile...
+    if profile_type == 'tissue':
+        #FIXME: Refactor to return the following class instead:
+        # profile = TissueProfile(
+        #     name=config['name'],
+        #     picker=TissuePickerABC.make(config['cell targets'], p),
+        # )
 
-        # If this is a tissue profile...
-        if profile_type == 'tissue':
-            #FIXME: Refactor to return the following class instead:
-            # profile = TissueProfile(
-            #     name=config['name'],
-            #     picker=TissuePickerABC.make(config['cell targets'], p),
-            # )
+        profile = {
+            'type': conf['type'],
+            'name': conf['name'],
+            'z order': z_order,
+        }
 
-            profile = {
-                'type': profile_config['type'],
-                'name': profile_config['name'],
-                'z order': z_order,
-            }
+        profile['insular gj'] = conf['insular']
+        profile['picker'] = tissuepick.make(p=p, conf=conf['cell targets'])
 
-            profile['insular gj'] = profile_config['insular']
-            profile['picker'] = tissuepick.make(
-                p=p, config=profile_config['cell targets'])
-
-            # For safety, coerce all diffusion constants to floats.
-            profile['diffusion constants'] = {
-                key: float(value) for key, value in (
-                    profile_config['diffusion constants'].items()) }
-        # Else if this is a "cutting" profile...
-        elif profile_type == 'cut':
-            profile = TissueCut(
-                name=profile_config['name'],
-                z_order=z_order,
-                picker=tissuepick.make_bitmap(
-                    p=p, config=profile_config['bitmap']),
-            )
-        # Else, this profile is invalid. Raise an exception, matey!
-        else:
-            raise BetseSimConfigException(
-                'Profile type "{}"' 'unrecognized.'.format(profile_type))
+        # For safety, coerce all diffusion constants to floats.
+        profile['diffusion constants'] = {
+            key: float(value) for key, value in (
+                conf['diffusion constants'].items()) }
+    # Else if this is a "cutting" profile...
+    elif profile_type == 'cut':
+        profile = TissueCut(
+            name=conf['name'],
+            z_order=z_order,
+            picker=tissuepick.make_bitmap(p=p, conf=conf['bitmap']),
+        )
+    # Else, this profile is invalid. Raise an exception, matey!
+    else:
+        raise BetseSimConfigException(
+            'Profile type "{}"' 'unrecognized.'.format(profile_type))
 
     return profile

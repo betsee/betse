@@ -9,13 +9,34 @@ Low-level object facilities.
 
 # ....................{ IMPORTS                            }....................
 import inspect, platform
-from betse.util.type.types import type_check, CallableTypes, GeneratorType
+from betse.exceptions import BetseTypeException
+from betse.util.type.types import (
+    type_check, CallableTypes, ClassType, GeneratorType)
+
+# ....................{ EXCEPTIONS                         }....................
+@type_check
+def die_unless_instance(obj: object, cls: ClassType) -> None:
+    '''
+    Raise an exception unless the passed object is an instance of the passed
+    class.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be validated.
+    cls : ClassType
+        Class to be validated.
+    '''
+
+    if not isinstance(obj, cls):
+        raise BetseTypeException(
+            'Object {!r} not an instance of class {!r}'.format(obj, cls))
 
 # ....................{ TESTERS                            }....................
 @type_check
 def is_method(obj: object, method_name: str) -> bool:
     '''
-    `True` only if a method with the passed name is bound to the passed object.
+    ``True`` only if the passed object has a method with the passed name.
 
     Parameters
     ----------

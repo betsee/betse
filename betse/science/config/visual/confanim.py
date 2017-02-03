@@ -12,16 +12,75 @@ YAML-backed simulation animation subconfigurations.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confabc import SimConfABC, conf_alias
+from betse.exceptions import BetseMethodUnimplementedException
+from betse.science.config.confabc import (
+    SimConfABC, SimConfListableABC, SimConfList, conf_alias)
 from betse.util.type import ints
-from betse.util.type.types import MappingType, SequenceTypes
+from betse.util.type.types import MappingType, NumericTypes, SequenceTypes
 
 # ....................{ SUBCLASSES                         }....................
-class SimConfAnim(SimConfABC):
+#FIXME: Rename to merely "SimConfAnimOne" *AFTER* eliminating the following
+#filehandling._preserve_backward_importability() assignment:
+#
+#    sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
+#        confanim.SimConfAnimAll)
+class SimConfAnimOne(SimConfListableABC):
     '''
-    YAML-backed simulation animation subconfiguration, encapsulating both the
-    configuration and writing of all animations (both mid- and post-simulation)
-    parsed from the current YAML-formatted simulation configuration file.
+    YAML-backed simulation animation subconfiguration, encapsulating the
+    configuration of a single animation (either in- or post-simulation) parsed
+    from the list of all such animations in the current YAML-formatted
+    simulation configuration file.
+
+    Attributes (General)
+    ----------
+    kind : str
+        Low-level string identifying this animation's type. See the "type" entry
+        of the default configuration file for further details.
+
+    Attributes (Colorbar)
+    ----------
+    color_max : NumericTypes
+        Maximum color value to be displayed by the colorbar. Ignored if
+        :attr:`is_color_autoscaled` is ``True``.
+    color_min : NumericTypes
+        Minimum color value to be displayed by the colorbar. Ignored if
+        :attr:`is_color_autoscaled` is ``True``.
+    is_color_autoscaled : bool
+        ``True`` if dynamically setting the minimum and maximum colorbar values
+        for this animation to the minimum and maximum values flattened from the
+        corresponding time series *or* ``False`` if statically setting these
+        values to :attr:`color_min` and :attr:`color_max`.
+    '''
+
+    # ..................{ ALIASES                            }..................
+    #FIXME: Ideally, this would be a typesafe enumeration rather than a string.
+    #Since this crude type will ultimately be replaced by general-purpose
+    #layering support, however, there exists little incentive to improve this.
+    #FIXME: Actually, this *SHOULD* be encapsulated with an enumeration. Why?
+    #Because we'll require such functionality elsewhere -- so we'd might as well
+    #implement it correctly now. To do so, consider defining a new
+    #conf_enum_alias() descriptor ideally implemented in terms of a new
+    #expr_enum_alias() descriptor automatically mapping between low-level
+    #strings and high-level enumerations. For pertinent logic, see the existing
+    #"betse.cli.clioptionsCLIOptionArgEnum" class.
+    kind = conf_alias("['type']", str)
+
+    # ..................{ ALIASES ~ colorbar                 }..................
+    is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)
+    color_min = conf_alias("['colorbar']['minimum']", NumericTypes)
+    color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
+
+    # ..................{ SUPERCLASS                         }..................
+    #FIXME: Actually implement this method.
+    def default(self) -> None:
+        raise BetseMethodUnimplementedException()
+
+# ....................{ SUBCLASSES ~ all                   }....................
+class SimConfAnimAll(SimConfABC):
+    '''
+    YAML-backed simulation animations subconfiguration, encapsulating the
+    configuration of all animations (both in- and post-simulation) parsed from
+    the current YAML-formatted simulation configuration file.
 
     This subconfiguration saves (i.e., writes, serializes) in-memory animations
     to on-disk cache, image, and/or video files configured by this
@@ -29,32 +88,36 @@ class SimConfAnim(SimConfABC):
 
     Attributes (While)
     ----------
+    while_sim_pipeline : SimConfList
+        List of all post-simulation animations to be animated.
     is_while_sim : bool
-        `True` only if this configuration enables (but _not_ necessarily
+        ``True`` only if this configuration enables (but _not_ necessarily
         displays or saves) mid-simulation animations.
     is_while_sim_show : bool
-        `True` only if this configuration displays mid-simulation animations.
+        ``True`` only if this configuration displays mid-simulation animations.
         Ignored if `is_while_sim` is `False`.
     is_while_sim_save : bool
-        `True` only if this configuration saves mid-simulation animations.
+        ``True`` only if this configuration saves mid-simulation animations.
         Ignored if `is_midsim` is `False`.
 
     Attributes (After)
     ----------
+    after_sim_pipeline : SimConfList
+        List of all post-simulation animations to be animated.
     is_after_sim : bool
-        `True` only if this configuration enables (but _not_ necessarily
+        ``True`` only if this configuration enables (but _not_ necessarily
         displays or saves) post-simulation animations.
     is_after_sim_show : bool
-        `True` only if this configuration displays post-simulation animations.
+        ``True`` only if this configuration displays post-simulation animations.
         Ignored if `is_after_sim` is `False`.
     is_after_sim_save : bool
-        `True` only if this configuration saves post-simulation animations.
+        ``True`` only if this configuration saves post-simulation animations.
         Ignored if `is_after_sim` is `False`.
 
     Attributes (Images)
     ----------
     is_images_save : bool
-        `True` only if this configuration saves animation frames as images.
+        ``True`` only if this configuration saves animation frames as images.
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
         `is_images_save` is `False`.
@@ -62,10 +125,10 @@ class SimConfAnim(SimConfABC):
         Dots per inch (DPI) of all image files saved by this configuration.
         Ignored if `is_images_save` is `False`.
 
-    Attributes (Video
+    Attributes (Video)
     ----------
     is_video_save : bool
-        `True` only if this configuration saves animation frames as video.
+        ``True`` only if this configuration saves animation frames as video.
     video_bitrate : int
         Bitrate in bits per second of all video files saved by this
         configuration. Ignored if `is_video_save` is `False`.
@@ -167,6 +230,17 @@ class SimConfAnim(SimConfABC):
 
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
+
+        # Encapsulate low-level lists of dictionaries with high-level wrappers.
+        self.after_sim_pipeline = SimConfList(
+            confs=self._conf[
+                'results options']['after solving']['animations']['pipeline'],
+            conf_type=SimConfAnimOne,
+        )
+
+        #FIXME: Actually initialize to a valid "SimConfList", once the codebase
+        #supports general-purpose in-simulation animations.
+        self.while_sim_pipeline = []
 
         # Validate all configured integers to be positive.
         ints.die_unless_positive(

@@ -8,10 +8,31 @@ Low-level object facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.exceptions import BetseTypeException
 from betse.util.type.types import (
     type_check, ClassType, MappingType, SequenceTypes)
 
-# ....................{ TESTERS                            }....................
+# ....................{ EXCEPTIONS                         }....................
+@type_check
+def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
+    '''
+    Raise an exception unless the first passed class inherits and is thus a
+    subclass of the second passed class.
+
+    Parameters
+    ----------
+    subclass : ClassType
+        Subclass to be validated.
+    superclass : ClassType
+        Superclass to be validated.
+    '''
+
+    if not issubclass(subclass, superclass):
+        raise BetseTypeException(
+            'Class {!r} not a subclass of class {!r}'.format(
+                subclass, superclass))
+
+# ....................{ DEFINERS                           }....................
 @type_check
 def define_class(
     class_name: str,

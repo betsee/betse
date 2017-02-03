@@ -13,12 +13,12 @@ from betse.science.config.confabc import SimConfABC, conf_alias
 from betse.util.type import ints
 #from betse.util.type.types import type_check
 
-# ....................{ SUBCLASSES                         }....................
-class SimConfPlot(SimConfABC):
+# ....................{ SUBCLASSES ~ all                   }....................
+class SimConfPlotAll(SimConfABC):
     '''
-    YAML-backed simulation plot subconfiguration, encapsulating both the
-    configuration and writing of all plots (both mid- and post-simulation)
-    parsed from the current YAML-formatted simulation configuration file.
+    YAML-backed simulation plot subconfiguration, encapsulating the
+    configuration of all plots (both in- and post-simulation) parsed from the
+    current YAML-formatted simulation configuration file.
 
     This subconfiguration saves (i.e., writes, serializes) in-memory plots to
     on-disk cache, image, and/or video files configured by this configuration.

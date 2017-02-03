@@ -28,7 +28,7 @@ from betse.util.io.log import logs
 from betse.util.py import references
 from betse.util.type import iterables, types
 from betse.util.type.iterables import SENTINEL
-from betse.util.type.obj import objs
+from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check,
     IterableOrNoneTypes,
@@ -111,25 +111,23 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         :class:`ScalarMappable` class added to the figure axes of this plot or
         animation) whose minimum and maximum values define the color range
         displayed both in the figure axes and colorbar of this plot or
-        animation. Due to Matplotlib constraints, only the first mappable in
+        animation. Due to matplotlib constraints, only the first mappable in
         this iterable is associated with this colorbar.
     _colorbar_title: str
         Text displayed above the figure colorbar.
-    _color_min : float
-        Minimum color value to be displayed by the colorbar. If colorbar
-        autoscaling is enabled (i.e., `_is_color_autoscaled` is `True`), the
-        subclass is responsible for redefining this value as appropriate.
-    _color_max : float
-        Maximum color value to be displayed by the colorbar. If colorbar
-        autoscaling is enabled (i.e., `_is_color_autoscaled` is `True`), the
-        subclass is responsible for redefining this value as appropriate.
+    _color_max : NumericTypes
+        Maximum color value to be displayed by the colorbar. Ignored if
+        :attr:`_is_color_autoscaled` is ``True``.
+    _color_min : NumericTypes
+        Minimum color value to be displayed by the colorbar. Ignored if
+        :attr:`_is_color_autoscaled` is ``True``.
     _colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
     _is_color_autoscaled : bool
-        `True` if dynamically resetting the minimum and maximum colorbar values
-        to be the corresponding minimum and maximum values for the current
-        frame _or_ `False` if statically setting the minimum and maximum
-        colorbar values to predetermined constants.
+        ``True`` if dynamically setting the minimum and maximum colorbar values
+        to the minimum and maximum values flattened from the first iterable in
+        ``_color_mappables`` *or* ``False`` if statically setting these values
+        to :attr:`_color_min` and :attr:`_color_max`.
 
     Attributes (Private: Time)
     ----------
@@ -459,7 +457,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             pyplot.close(self._figure)
 
         # For each name and value of a field bound to this object...
-        for field_name, field_value in objs.iter_vars_simple_custom(self):
+        for field_name, field_value in objects.iter_vars_simple_custom(self):
             # If this field itself contains a "figure" attribute, explicitly
             # nullify the latter to break this figure's circular references in a
             # manner ignoring "AttributeError: can't set attribute" exceptions.

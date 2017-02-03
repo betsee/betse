@@ -759,7 +759,7 @@ results options:
       # List of all animations to be produced after simulation computation.
       # Ignored if either "enabled" is False *OR* if "enabled" is True but both
       # "show" and "save" are False.
-      list:
+      pipeline:
         # Example intracellular voltage animation.
         - type: voltages_intra  # Animation type. Supported types include:
                                 # * "currents_intra" (intracellular current

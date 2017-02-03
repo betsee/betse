@@ -157,14 +157,14 @@ def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
 
     # Avoid circular import dependencies.
     from betse.util.type import iterables, numerics
-    from betse.util.type.obj import objs
+    from betse.util.type.obj import objects
 
     # List of all 2-tuples to be returned.
     vars_size = []
 
     # For the name and value of each non-builtin variable of this object (in
     # arbitrary order)...
-    for var_name, var_value in objs.iter_vars_custom(obj):
+    for var_name, var_value in objects.iter_vars_custom(obj):
         # Recursive in-memory size of this object.
         var_size = get_size(obj=var_value, *args, **kwargs)
 
@@ -336,7 +336,7 @@ def get_size_profile(
     # Avoid circular import dependencies.
     from betse.util.type import iterables, strs
     from betse.util.type.ints import MiB
-    from betse.util.type.obj import objs
+    from betse.util.type.obj import objects
 
     #FIXME: Convert the current "kwargs['size_divisor']" into a human-readable
     #denomenation (e.g., "GiB", "KiB", "B"). Since this is both non-trivial and
@@ -442,7 +442,7 @@ def get_size_profile(
         # variables bound to application-specific pure-Python objects rather
         # than those bound to external C-based objects.
         is_nonrecursive = (
-            vars_depth == 0 or vars_max < 1 or objs.is_c_based(obj))
+            vars_depth == 0 or vars_max < 1 or objects.is_c_based(obj))
 
         # If this function is possibly recursively calling itself below...
         if not is_nonrecursive:
@@ -453,7 +453,7 @@ def get_size_profile(
             # For efficiency, this inefficient operation is performed only if
             # this function is possibly recursively calling itself below. If
             # this function is *NOT* doing so, this operation is avoided.
-            vars_name_value = tuple(objs.iter_vars_custom(obj))
+            vars_name_value = tuple(objects.iter_vars_custom(obj))
 
             # Number of such variables.
             vars_count = len(vars_name_value)

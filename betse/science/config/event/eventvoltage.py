@@ -100,7 +100,7 @@ def make(p: 'betse.science.parameters.Parameters') -> (SimEventPulseVoltage, Non
     event = None
 
     # If this event is enabled, create an instance of this class.
-    aev = p._config['apply external voltage']
+    aev = p._conf['apply external voltage']
 
     if bool(aev['event happens']):
         # If extracellular spaces are enabled, parse this event.
