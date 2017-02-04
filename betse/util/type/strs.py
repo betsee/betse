@@ -84,10 +84,28 @@ def die_unless_prefix(
         # Raise this exception.
         raise BetseStrException(exception_message)
 
-# ....................{ TESTERS                            }....................
+# ....................{ TESTERS ~ case                     }....................
+def is_lowercase(text: str) -> bool:
+    '''
+    ``True`` only if the passed string is strictly lowercase (i.e., all
+    characters of this string are lowercase).
+    '''
+
+    return text.islower()
+
+
+def is_uppercase(text: str) -> bool:
+    '''
+    ``True`` only if the passed string is strictly uppercase (i.e., all
+    characters of this string are uppercase).
+    '''
+
+    return text.isupper()
+
+# ....................{ TESTERS ~ [pre|suf]fix             }....................
 def is_prefix(text: str, prefix: str) -> bool:
     '''
-    `True` only if the second passed string prefixes the first passed string.
+    ``True`` only if the second passed string prefixes the first passed string.
 
     Parameters
     ----------
@@ -103,7 +121,7 @@ def is_prefix(text: str, prefix: str) -> bool:
 @type_check
 def is_suffix(text: str, suffix: str) -> bool:
     '''
-    `True` only if the second passed string suffixes the first passed string.
+    ``True`` only if the second passed string suffixes the first passed string.
 
     Parameters
     ----------

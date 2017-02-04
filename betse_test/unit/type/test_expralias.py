@@ -26,15 +26,20 @@ def betse_expralias() -> object:
 
     # Class containing instances of this descriptor.
     class SongOfAragorn(object):
-        # Data descriptor aliasing an existing dictionary entry with typing.
+        # Descriptor aliasing an existing dictionary entry with typing.
         line_four = expr_alias(
             expr='self._deep_roots["are not"]["reached by"]', cls=str)
 
-        # Data descriptor aliasing an existing dictionary entry without typing.
+        # Descriptor aliasing an existing dictionary entry with typing, whose
+        # corresponding value is erroneously of a different type.
+        line_two = expr_alias(
+            expr='self._deep_roots["Not all those"]["who wander"]', cls=str)
+
+        # Descriptor aliasing an existing dictionary entry without typing.
         line_five = expr_alias(
             expr='self._deep_roots["From the ashes"]["a fire shall"]')
 
-        # Data descriptor aliasing a non-existing dictionary entry with typing.
+        # Descriptor aliasing a non-existing dictionary entry with typing.
         line_none = expr_alias(
             expr='self._deep_roots["Many a man"]["his life hath"]', cls=str)
 
@@ -43,6 +48,9 @@ def betse_expralias() -> object:
             self._deep_roots = {
                 "are not": {
                     "reached by": "the frost.",
+                },
+                "Not all those": {
+                    "who wander": 0xA3E01054,
                 },
                 "From the ashes": {
                     "a fire shall": "be woken,",
@@ -112,7 +120,12 @@ def test_expralias_fail(betse_expralias) -> None:
     with pytest.raises(BetseTypeException):
         betse_expralias.line_four = 0xFEEDBABE
 
-    # Test the invalid data descriptor's __get__() implementation, aliased to
+    # Test an invalid data descriptor's __get__() implementation, aliased to
+    # access an existing key of an existing dictionary with an unexpected type.
+    with pytest.raises(BetseTypeException):
+        betse_expralias.line_two
+
+    # Test an invalid data descriptor's __get__() implementation, aliased to
     # access a non-existing key of an existing dictionary.
     with pytest.raises(KeyError):
         betse_expralias.line_none

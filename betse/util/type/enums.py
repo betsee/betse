@@ -154,7 +154,7 @@ def die_unless_enum_member_name(
 @type_check
 def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
     '''
-    `True` only if the passed enumeration contains the passed member.
+    ``True`` only if the passed enumeration contains the passed member.
 
     Parameters
     ----------
@@ -166,7 +166,7 @@ def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
     Returns
     ----------
     bool
-        `True` only if this enumeration contains this member.
+        ``True`` only if this enumeration contains this member.
     '''
 
     # No, thank *YOU*, Enum.__contains__().
@@ -176,7 +176,7 @@ def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
 @type_check
 def is_enum_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     '''
-    `True` only if the passed enumeration contains an enumeration member with
+    ``True`` only if the passed enumeration contains an enumeration member with
     the passed name.
 
     Parameters
@@ -189,7 +189,7 @@ def is_enum_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     Returns
     ----------
     bool
-        `True` only if this enumeration contains a member with this name.
+        ``True`` only if this enumeration contains a member with this name.
 
     See Also
     ----------
@@ -198,7 +198,7 @@ def is_enum_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     '''
 
     # This is insanity, but insanity that works. (Yes, this is the accepted
-    # method for testing enumeration member existence by name.)
+    # method for testing enumeration member existence by name. Thanks, Guido.)
     return enum_member_name in enum_type.__members__
 
 # ....................{ GETTERS                            }....................

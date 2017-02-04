@@ -182,7 +182,7 @@ permitting callers to avoid importing that private class.
 '''
 
 # ....................{ TYPES ~ enum                       }....................
-# Enumeration types are sufficiently obscure to warrant formalization here.
+# Enumeration types sufficiently obscure to warrant formalization here.
 
 EnumType = EnumMeta
 '''
