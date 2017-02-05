@@ -762,17 +762,12 @@ results options:
       pipeline:
         # Example intracellular voltage animation.
         - type: voltages_intra  # Animation type. Supported types include:
-                                # * "currents_intra" (intracellular current
-                                #   density).
-                                # * "currents_total" (intra- and extracellular
-                                #   current density).
-                                # * "electric_intra" (intracellular electric
-                                #   field).
-                                # * "electric_total" (intra- and extracellular
-                                #   electric field).
+                                # * "currents_intra" (intracellular current density).
+                                # * "currents_total" (intra- and extracellular current density).
+                                # * "electric_intra" (intracellular electric field).
+                                # * "electric_total" (intra- and extracellular electric field).
                                 # * "voltages_intra" (intracellular voltage).
-                                # * "voltages_total" (intra- and extracellular
-                                #   voltage).
+                                # * "voltages_total" (intra- and extracellular voltage).
           colorbar:          # Animation colorbar settings.
             autoscale: True  # Automatically scale colorbar to minimum and
                              # maximum values of underlying data series?

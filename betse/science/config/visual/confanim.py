@@ -14,9 +14,26 @@ YAML-backed simulation animation subconfigurations.
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.science.config.confabc import (
-    SimConfABC, SimConfListableABC, SimConfList, conf_alias)
+    SimConfABC, SimConfListableABC, SimConfList, conf_alias, conf_enum_alias)
 from betse.util.type import ints
 from betse.util.type.types import MappingType, NumericTypes, SequenceTypes
+from enum import Enum
+
+# ....................{ ENUMERATIONS                       }....................
+SimConfAnimKind = Enum('SimConfAnimKind', (
+    'CURRENTS_INTRA',
+    'CURRENTS_TOTAL',
+    'ELECTRIC_INTRA',
+    'ELECTRIC_TOTAL',
+    'VOLTAGES_INTRA',
+    'VOLTAGES_TOTAL',
+))
+'''
+Enumeration of all possible types of animations.
+
+See the corresponding entry of the default YAML-based simulation configuration
+file for further commentary.
+'''
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Rename to merely "SimConfAnimOne" *AFTER* eliminating the following
@@ -33,9 +50,8 @@ class SimConfAnimOne(SimConfListableABC):
 
     Attributes (General)
     ----------
-    kind : str
-        Low-level string identifying this animation's type. See the "type" entry
-        of the default configuration file for further details.
+    kind : SimConfAnimKind
+        Type of this animation.
 
     Attributes (Colorbar)
     ----------
@@ -53,17 +69,7 @@ class SimConfAnimOne(SimConfListableABC):
     '''
 
     # ..................{ ALIASES                            }..................
-    #FIXME: Ideally, this would be a typesafe enumeration rather than a string.
-    #Since this crude type will ultimately be replaced by general-purpose
-    #layering support, however, there exists little incentive to improve this.
-    #FIXME: Actually, this *SHOULD* be encapsulated with an enumeration. Why?
-    #Because we'll require such functionality elsewhere -- so we'd might as well
-    #implement it correctly now. To do so, consider defining a new
-    #conf_enum_alias() descriptor ideally implemented in terms of a new
-    #expr_enum_alias() descriptor automatically mapping between low-level
-    #strings and high-level enumerations. For pertinent logic, see the existing
-    #"betse.cli.clioptionsCLIOptionArgEnum" class.
-    kind = conf_alias("['type']", str)
+    kind = conf_enum_alias("['type']", SimConfAnimKind)
 
     # ..................{ ALIASES ~ colorbar                 }..................
     is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)

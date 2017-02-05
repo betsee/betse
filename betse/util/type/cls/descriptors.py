@@ -242,7 +242,6 @@ def __set__(self_descriptor, self, value):
     return expr_alias_class()
 
 
-#FIXME: Unit test us up.
 @type_check
 def expr_enum_alias(expr: str, enum_type: EnumType) -> object:
     '''
@@ -290,9 +289,9 @@ def expr_enum_alias(expr: str, enum_type: EnumType) -> object:
           the same dictionary (e.g.,
           ``['variable settings']['noise']['dynamic noise']``).
     enum_type : EnumType
-        Type of enumeration that the value of this variable is a member of.
-        Setting this variable to a value that is *not* a member of this
-        enumeration raises an exception.
+        Enumeration that the value of this variable *must* be a member of.
+        Setting this variable to a value *not* a member of this enumeration will
+        raise an exception.
 
     Returns
     ----------
@@ -336,7 +335,7 @@ def __get__(self_descriptor, self, cls):
     enum_member_name = {expr}
 
     # If this expression failed to evaluate to a string, raise an exception.
-    if not ininstance(enum_member_name, str):
+    if not isinstance(enum_member_name, str):
         raise BetseTypeException(
             'Expression alias value {{!r}} not a string.'.format(
                 enum_member_name))
@@ -349,14 +348,14 @@ def __get__(self_descriptor, self, cls):
     # duplicates that of the enums.is_enum_member_name() function.
     if enum_member_name not in (
         self_descriptor.__expr_enum_alias_type.__members__):
-        raise BetseTypeException(
+        raise BetseEnumException(
             'Expression alias value {{!r}} unrecognized (i.e., not the name of '
             'an enumeration member of {{!r}}).'.format(
                 enum_member_name.lower(),
                 self_descriptor.__expr_enum_alias_type))
 
     # Get the enumeration member with this name.
-    return self_descriptor.__expr_enum_alias_type[enum_member]
+    return self_descriptor.__expr_enum_alias_type[enum_member_name]
 
 
 # Convert the passed high-level enumeration member into a low-level string.
@@ -365,7 +364,7 @@ def __set__(self_descriptor, self, enum_member):
     # exception. For both efficiency and readability, this logic duplicates that
     # of the enums.is_enum_member() function.
     if enum_member not in self_descriptor.__expr_enum_alias_type:
-        raise BetseTypeException(
+        raise BetseEnumException(
             'Expression alias value {{!r}} unrecognized (i.e., not an '
             'enumeration member of {{!r}}).'.format(
                 enum_member, self_descriptor.__expr_enum_alias_type))

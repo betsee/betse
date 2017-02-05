@@ -87,19 +87,29 @@ def die_unless_prefix(
 # ....................{ TESTERS ~ case                     }....................
 def is_lowercase(text: str) -> bool:
     '''
-    ``True`` only if the passed string is strictly lowercase (i.e., all
-    characters of this string are lowercase).
+    ``True`` only if the passed string is strictly lowercase (i.e., this string
+    contains at least one alphabetic character *and* all such characters are
+    lowercase).
+
+    This function ignores all non-alphabetic characters (e.g., digits,
+    punctuation) in this string.
     '''
 
+    # O.K., that's pretty sweet.
     return text.islower()
 
 
 def is_uppercase(text: str) -> bool:
     '''
-    ``True`` only if the passed string is strictly uppercase (i.e., all
-    characters of this string are uppercase).
+    ``True`` only if the passed string is strictly uppercase (i.e., this string
+    contains at least one alphabetic character *and* all such characters are
+    uppercase).
+
+    This function ignores all non-alphabetic characters (e.g., digits,
+    punctuation) in this string.
     '''
 
+    # Ditto on the sweetness.
     return text.isupper()
 
 # ....................{ TESTERS ~ [pre|suf]fix             }....................

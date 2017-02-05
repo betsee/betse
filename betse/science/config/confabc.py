@@ -10,10 +10,10 @@ well as functionality pertaining to such classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from betse.util.type.cls import classes
-from betse.util.type.cls.descriptors import expr_alias
+from betse.util.type.cls.descriptors import expr_alias, expr_enum_alias
 from betse.util.type.obj import objects
 from betse.util.type.types import (
-    type_check, ClassType, MappingType, SequenceTypes, TestableTypes)
+    type_check, ClassType, EnumType, MappingType, SequenceTypes, TestableTypes)
 from collections.abc import MutableSequence
 
 # ....................{ SUPERCLASSES                       }....................
@@ -258,3 +258,38 @@ def conf_alias(keys: str, cls: TestableTypes = None) -> object:
     '''
 
     return expr_alias(expr='self._conf' + keys, cls=cls)
+
+
+@type_check
+def conf_enum_alias(keys: str, enum_type: EnumType) -> object:
+    '''
+    Enumeration-specific expression alias **data descriptor** (i.e., object
+    satisfying the data descriptor protocol) specific to simulation
+    configurations, dynamically aliasing a target variable of the passed
+    enumeration type bound to instances of the class instantiating this
+    descriptor to an arbitrarily complex source Python expression performing one
+    or more key lookups into the dictionary loaded from a YAML-formatted
+    simulation configuration file.
+
+    Parameters
+    ----------
+    keys : str
+        Oner or more ``[``- and ``]``-delimited key lookups. See the
+        :func:`conf_alias` function for further details.
+    enum_type: EnumType
+        Enumeration that the value of this variable *must* be a member of.
+        Setting this variable to a value *not* a member of this enumeration will
+        raise an exception.
+
+    Returns
+    ----------
+    object
+        Enumeration-specific expression alias data descriptor as detailed above.
+
+    See Also
+    ----------
+    :func:`expr_enum_alias`
+        Further details.
+    '''
+
+    return expr_enum_alias(expr='self._conf' + keys, enum_type=enum_type)
