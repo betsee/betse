@@ -23,7 +23,7 @@ from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.py import identifiers, pys
 from betse.util.type.call.memoizers import property_cached
-
+from betse.util.type.obj import objects
 
 # ....................{ CLASS                              }....................
 class CLICLI(CLIABC):
@@ -147,10 +147,11 @@ class CLICLI(CLIABC):
         subcommand_method_name = '_do_' + subcommand_name_top
 
         # Method running this subcommand. If this method does *NOT* exist,
-        # getattr() will raise a non-human-readable exception. Usually, that
+        # get_method() will raise a non-human-readable exception. Usually, that
         # would be bad. In this case, however, argument parsing coupled with a
         # reliable class implementation guarantees this method to exist.
-        subcommand_method = getattr(self, subcommand_method_name)
+        subcommand_method = objects.get_method(
+            obj=self, method_name=subcommand_method_name)
 
         # Run this subcommand and return the result of doing so (if any).
         return subcommand_method()
@@ -158,7 +159,7 @@ class CLICLI(CLIABC):
     # ..................{ SUBCOMMANDS_TOP ~ info                 }..................
     def _do_info(self) -> None:
         '''
-        Run the `info` subcommand.
+        Run the ``info`` subcommand.
         '''
 
         info.output_info()

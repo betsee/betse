@@ -351,13 +351,20 @@ tuples of types containing this type.
 
 BoolOrNoneTypes = (bool, NoneType)
 '''
-Tuple of both the boolean type _and_ the type of the singleton `None` object.
+Tuple of both the boolean type and the type of the singleton ``None`` object.
+'''
+
+
+CallableOrNoneTypes = CallableTypes + NoneTypes
+'''
+Tuple of all callable classes as well as the type of the singleton ``None``
+object.
 '''
 
 
 IntOrNoneTypes = (int, NoneType)
 '''
-Tuple of both the integer type _and_ the type of the singleton `None` object.
+Tuple of both the integer type and the type of the singleton ``None`` object.
 '''
 
 
@@ -365,7 +372,7 @@ IterableOrNoneTypes = IterableTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
 subclassing) the canonical :class:`collections.abc.Iterable` API as well as the
-type of the singleton `None` object.
+type of the singleton ``None`` object.
 '''
 
 

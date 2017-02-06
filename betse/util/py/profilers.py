@@ -60,7 +60,7 @@ LINE : enum
 SIZE : enum
     Memory profiling of top-level objects returned by top-level callables,
     typically instances of the
-    :class:`betse.science.simulate.simphaser.SimPhaser` class returned by public
+    :class:`betse.science.simulate.simphaser.SimPhaseStrong` class returned by public
     methods of the :class:`betse.science.simrunner.SimRunner` class. This
     profiling type requires installation of the optional third-party dependency
     :mod:`pympler`.

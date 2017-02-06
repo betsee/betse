@@ -6,6 +6,11 @@
 YAML-backed simulation animation subconfigurations.
 '''
 
+#FIXME: For brevity, globally rename all attributes containing:
+#
+#* "while_sim" to "insim".
+#* "after_sim" to "postsim".
+
 #FIXME: Default the "copyright" entry of video metadata to
 #"@ {}".format(current_year)".
 
@@ -14,72 +19,9 @@ YAML-backed simulation animation subconfigurations.
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.science.config.confabc import (
-    SimConfABC, SimConfListableABC, SimConfList, conf_alias, conf_enum_alias)
+    SimConfABC, SimConfListableABC, SimConfList, conf_alias)
 from betse.util.type import ints
 from betse.util.type.types import MappingType, NumericTypes, SequenceTypes
-from enum import Enum
-
-# ....................{ ENUMERATIONS                       }....................
-SimConfAnimKind = Enum('SimConfAnimKind', (
-    'CURRENTS_INTRA',
-    'CURRENTS_TOTAL',
-    'ELECTRIC_INTRA',
-    'ELECTRIC_TOTAL',
-    'VOLTAGES_INTRA',
-    'VOLTAGES_TOTAL',
-))
-'''
-Enumeration of all possible types of animations.
-
-See the corresponding entry of the default YAML-based simulation configuration
-file for further commentary.
-'''
-
-# ....................{ SUBCLASSES                         }....................
-#FIXME: Rename to merely "SimConfAnimOne" *AFTER* eliminating the following
-#filehandling._preserve_backward_importability() assignment:
-#
-#    sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
-#        confanim.SimConfAnimAll)
-class SimConfAnimOne(SimConfListableABC):
-    '''
-    YAML-backed simulation animation subconfiguration, encapsulating the
-    configuration of a single animation (either in- or post-simulation) parsed
-    from the list of all such animations in the current YAML-formatted
-    simulation configuration file.
-
-    Attributes (General)
-    ----------
-    kind : SimConfAnimKind
-        Type of this animation.
-
-    Attributes (Colorbar)
-    ----------
-    color_max : NumericTypes
-        Maximum color value to be displayed by the colorbar. Ignored if
-        :attr:`is_color_autoscaled` is ``True``.
-    color_min : NumericTypes
-        Minimum color value to be displayed by the colorbar. Ignored if
-        :attr:`is_color_autoscaled` is ``True``.
-    is_color_autoscaled : bool
-        ``True`` if dynamically setting the minimum and maximum colorbar values
-        for this animation to the minimum and maximum values flattened from the
-        corresponding time series *or* ``False`` if statically setting these
-        values to :attr:`color_min` and :attr:`color_max`.
-    '''
-
-    # ..................{ ALIASES                            }..................
-    kind = conf_enum_alias("['type']", SimConfAnimKind)
-
-    # ..................{ ALIASES ~ colorbar                 }..................
-    is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)
-    color_min = conf_alias("['colorbar']['minimum']", NumericTypes)
-    color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
-
-    # ..................{ SUPERCLASS                         }..................
-    #FIXME: Actually implement this method.
-    def default(self) -> None:
-        raise BetseMethodUnimplementedException()
 
 # ....................{ SUBCLASSES ~ all                   }....................
 class SimConfAnimAll(SimConfABC):
@@ -94,7 +36,7 @@ class SimConfAnimAll(SimConfABC):
 
     Attributes (While)
     ----------
-    while_sim_pipeline : SimConfList
+    insim_pipeline : SimConfList
         List of all post-simulation animations to be animated.
     is_while_sim : bool
         ``True`` only if this configuration enables (but _not_ necessarily
@@ -108,7 +50,7 @@ class SimConfAnimAll(SimConfABC):
 
     Attributes (After)
     ----------
-    after_sim_pipeline : SimConfList
+    postsim_pipeline : SimConfList
         List of all post-simulation animations to be animated.
     is_after_sim : bool
         ``True`` only if this configuration enables (but _not_ necessarily
@@ -238,7 +180,7 @@ class SimConfAnimAll(SimConfABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.after_sim_pipeline = SimConfList(
+        self.postsim_pipeline = SimConfList(
             confs=self._conf[
                 'results options']['after solving']['animations']['pipeline'],
             conf_type=SimConfAnimOne,
@@ -246,7 +188,7 @@ class SimConfAnimAll(SimConfABC):
 
         #FIXME: Actually initialize to a valid "SimConfList", once the codebase
         #supports general-purpose in-simulation animations.
-        self.while_sim_pipeline = []
+        self.insim_pipeline = []
 
         # Validate all configured integers to be positive.
         ints.die_unless_positive(
@@ -255,3 +197,52 @@ class SimConfAnimAll(SimConfABC):
             self.video_dpi,
             self.video_framerate,
         )
+
+# ....................{ SUBCLASSES ~ one                   }....................
+#FIXME: Rename to merely "SimConfAnim" *AFTER* eliminating the following
+#filehandling._preserve_backward_importability() assignment:
+#
+#    sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
+#        confanim.SimConfAnimAll)
+class SimConfAnimOne(SimConfListableABC):
+    '''
+    YAML-backed simulation animation subconfiguration, encapsulating the
+    configuration of a single animation (either in- or post-simulation) parsed
+    from the list of all such animations in the current YAML-formatted
+    simulation configuration file.
+
+    Attributes (General)
+    ----------
+    kind : str
+        Type of this animation as a lowercase alphanumeric string (e.g.,
+        ``voltage_intra``, signifying an animation of intracellular voltages).
+        See the corresponding entry of the default simulation configuration file
+        for further commentary.
+
+    Attributes (Colorbar)
+    ----------
+    color_max : NumericTypes
+        Maximum color value to be displayed by the colorbar. Ignored if
+        :attr:`is_color_autoscaled` is ``True``.
+    color_min : NumericTypes
+        Minimum color value to be displayed by the colorbar. Ignored if
+        :attr:`is_color_autoscaled` is ``True``.
+    is_color_autoscaled : bool
+        ``True`` if dynamically setting the minimum and maximum colorbar values
+        for this animation to the minimum and maximum values flattened from the
+        corresponding time series *or* ``False`` if statically setting these
+        values to :attr:`color_min` and :attr:`color_max`.
+    '''
+
+    # ..................{ ALIASES                            }..................
+    kind = conf_alias("['type']", str)
+
+    # ..................{ ALIASES ~ colorbar                 }..................
+    is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)
+    color_min = conf_alias("['colorbar']['minimum']", NumericTypes)
+    color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
+
+    # ..................{ SUPERCLASS                         }..................
+    #FIXME: Actually implement this method.
+    def default(self) -> None:
+        raise BetseMethodUnimplementedException()

@@ -141,6 +141,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     def __init__(
         self,
 
+        #FIXME: Refactor the three "sim", "cells", and "p" parameters into a
+        #single "phase: betse.science.simulate.simphase.SimPhase" parameter.
+        #Note, however, that there may exist a complication in doing so. See
+        #the "FIXME: For currently unknown reasons," comment below.
+
         # Mandatory parameters.
         sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',

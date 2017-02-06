@@ -19,7 +19,7 @@ from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator, SimPhaseType
-from betse.science.simulate.simphaser import SimPhaser
+from betse.science.simulate.simphase import SimPhaseStrong
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.plot import plotpipe
@@ -56,7 +56,7 @@ class SimRunner(object):
         self._config_basename = paths.get_basename(self._config_filename)
 
     # ..................{ RUNNERS                            }..................
-    def seed(self) -> SimPhaser:
+    def seed(self) -> SimPhaseStrong:
         '''
         Seed this simulation with a new cell cluster and cache this cluster to
         an output file, specified by the current configuration file.
@@ -66,7 +66,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -131,10 +131,10 @@ class SimRunner(object):
         sim.sim_info_report(cells,p)
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
-    def init(self) -> SimPhaser:
+    def init(self) -> SimPhaseStrong:
         '''
         Initialize this simulation with the cell cluster seeded by a prior call
         to the :meth:`seed` method and cache this initialization to an output
@@ -145,7 +145,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -212,10 +212,10 @@ class SimRunner(object):
             round(time.time() - start_time, 2))
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
-    def sim(self) -> SimPhaser:
+    def sim(self) -> SimPhaseStrong:
         '''
         Simulate this simulation with the cell cluster initialized by a prior
         call to the :meth:`init` method and cache this simulation to an output
@@ -226,7 +226,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -280,7 +280,7 @@ class SimRunner(object):
             round(time.time() - start_time, 2))
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
     #FIXME: Eliminate duplication. This and the sim_grn() methods are currently
@@ -289,13 +289,13 @@ class SimRunner(object):
     #internally instantiates "MasterOfGenes". Hence, define a new private method
     #with the following signature, which these two methods should defer to:
     #
-    #    def _sim_network(self, master_type: ClassType) -> SimPhaser:
+    #    def _sim_network(self, master_type: ClassType) -> SimPhaseStrong:
     #
     #Given that, this method then reduces to the following one-liner:
     #
-    #    def sim_brn(self) -> SimPhaser:
+    #    def sim_brn(self) -> SimPhaseStrong:
     #        return self._sim_network(master_type=MasterOfMolecules)
-    def sim_brn(self) -> SimPhaser:
+    def sim_brn(self) -> SimPhaseStrong:
         '''
         Initialize and simulate a pure bioenergetics reaction network (BRN)
         _without_ bioelectrics with the cell cluster seeded by a prior call
@@ -307,7 +307,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -375,10 +375,10 @@ class SimRunner(object):
             round(time.time() - start_time, 2))
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
-    def sim_grn(self) -> SimPhaser:
+    def sim_grn(self) -> SimPhaseStrong:
         '''
         Initialize and simulate a pure gene regulatory network (GRN) _without_
         bioelectrics with the cell cluster seeded by a prior call to the
@@ -390,7 +390,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -455,14 +455,14 @@ class SimRunner(object):
             round(time.time() - start_time, 2))
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Return "SimPhaser" instances from all of the following methods.
+    #FIXME: Return "SimPhaseStrong" instances from all of the following methods.
     #FIXME: Shift the low-level matplotlib plotting performed by this method
     #into a new "betse.science.visual.seedpipe" submodule.
 
-    def plot_seed(self) -> SimPhaser:
+    def plot_seed(self) -> SimPhaseStrong:
         '''
         Visualize the cell cluster seed by a prior call to the :meth:`seed`
         method and export the resulting plots and animations to various output
@@ -470,7 +470,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -609,10 +609,10 @@ class SimRunner(object):
                 self._config_basename)
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
-    def plot_init(self) -> SimPhaser:
+    def plot_init(self) -> SimPhaseStrong:
         '''
         Visualize the cell cluster initialized by a prior call to the
         :meth:`init` method and export the resulting plots and animations to
@@ -620,7 +620,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -702,10 +702,10 @@ class SimRunner(object):
             plt.show()
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
-    def plot_sim(self) -> SimPhaser:
+    def plot_sim(self) -> SimPhaseStrong:
         '''
         Visualize the cell cluster simulated by a prior call to the :meth:`sim`
         method and export the resulting plots and animations to various output
@@ -713,7 +713,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -788,10 +788,10 @@ class SimRunner(object):
             plt.show()
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
-    def plot_brn(self) -> SimPhaser:
+    def plot_brn(self) -> SimPhaseStrong:
         '''
         Visualize the pure bioenergetics reaction network (BRN) initialized and
         simulated by a prior call to the :meth:`sim_brn` method and export the
@@ -800,7 +800,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -828,10 +828,10 @@ class SimRunner(object):
             plt.show()
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
 
-    def plot_grn(self) -> SimPhaser:
+    def plot_grn(self) -> SimPhaseStrong:
         '''
         Visualize the pure gene regulatory network (GRN) initialized and
         simulated by a prior call to the :meth:`sim_grn` method and export the
@@ -840,7 +840,7 @@ class SimRunner(object):
 
         Returns
         ----------
-        SimPhaser
+        SimPhaseStrong
             High-level simulation phase instance encapsulating all objects
             internally created by this method to run this phase.
         '''
@@ -867,7 +867,7 @@ class SimRunner(object):
             plt.show()
 
         # Create and return an object encapsulating this phase.
-        return SimPhaser(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(cells=cells, p=p, sim=sim)
 
     # ..................{ UTILITIES                          }..................
     def _die_unless_seed_same(self, p_old, p) -> None:

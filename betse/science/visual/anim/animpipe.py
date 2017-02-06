@@ -12,7 +12,8 @@ High-level facilities for displaying and/or saving all enabled animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-
+from betse.exceptions import BetseSimConfigException
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -29,14 +30,164 @@ from betse.science.visual.anim.anim import (
     AnimEnvTimeSeries
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
-from betse.science.visual.layer.field.layerfieldquiver import LayerCellsFieldQuiver
+from betse.science.visual.layer.field.layerfieldquiver import (
+    LayerCellsFieldQuiver)
 from betse.science.visual.layer.vector import layervectorsurface
-from betse.science.visual.layer.vector.layervectorsurface import LayerCellsVectorSurfaceContinuous
+from betse.science.visual.layer.vector.layervectorsurface import (
+    LayerCellsVectorSurfaceContinuous)
 from betse.util.io.log import logs
+from betse.util.type.obj import objects
 from betse.util.type.types import type_check
 
+# ....................{ CLASSES                            }....................
+#FIXME: Actually use below.
+class AnimCellsPipelayer(object):
+    '''
+    Animation factory running the currently requested **post-simulation
+    animation pipeline** (i.e., list of all animations to be animated after
+    simulation solving, requested by this simulation configuration).
 
-# ....................{ PIPELINES                          }....................
+    Attributes (Private)
+    ----------
+    _phase : SimPhaseABC
+        Current simulation phase.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, phase: SimPhaseABC) -> None:
+        '''
+        Initialize this animation pipeline.
+
+        Parameters
+        ----------
+        phase : SimPhaseABC
+            Current simulation phase.
+        '''
+
+        # Classify all passed parameters.
+        self._phase = phase
+
+    # ..................{ RUNNERS                            }..................
+    def run(self) -> None:
+        '''
+        Run the currently requested post-simulation animation pipeline.
+
+        This method iteratively animates all post-simulation animations
+        requested by this simulation configuration (in the order in which .
+
+        Raises
+        ----------
+        BetseSimConfigException
+        '''
+
+        # For each post-simulation animation in this pipeline...
+        for anim in self._phase.p.anim.postsim_pipeline:
+            # Name of the method animating this animation.
+            anim_method_name = 'anim_' + anim.kind
+
+            # Method animating this animation *OR* None if this type of
+            # animation is unrecognized.
+            anim_method = objects.get_method_or_none(
+                obj=self, method_name=anim_method_name)
+
+            # If this type of animation is unrecognized, raise an exception.
+            if anim_method is None:
+                raise BetseSimConfigException(
+                    'Animation type "{}" unrecognized.'.format(
+                        anim_method_name))
+
+            # Else, this type of animation is recognized. Run this animation.
+            anim_method()
+
+    # ..................{ ANIMATORS ~ electric               }..................
+    def anim_electric_intra(self) -> None:
+        '''
+        Animate the intracellular electric field for all time steps.
+        '''
+
+        # Vector field cache of the intracellular electric field for all time steps.
+        field = fieldmake.make_electric_intra(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
+
+        # Vector of all intracellular electric field magnitudes for all time steps,
+        # spatially situated at cell centres.
+        field_magnitudes = VectorCells(
+            cells=self._phase.cells, p=self._phase.p,
+            times_cells_centre=field.times_cells_centre.magnitudes)
+
+        # Sequence of layers consisting of...
+        layers = (
+            # A lower layer animating these magnitudes.
+            LayerCellsVectorSurfaceContinuous(vector=field_magnitudes),
+
+            # A higher layer animating this field.
+            LayerCellsFieldQuiver(field=field),
+        )
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            layers=layers,
+            label='Efield_gj',
+            figure_title='Intracellular E Field',
+            colorbar_title='Electric Field [V/m]',
+            is_color_autoscaled=self._phase.p.autoscale_Efield_ani,
+            color_min=self._phase.p.Efield_ani_min_clr,
+            color_max=self._phase.p.Efield_ani_max_clr,
+
+            # Prefer an alternative colormap.
+            colormap=self._phase.p.background_cm,
+        )
+
+
+    def anim_electric_total(self) -> None:
+        '''
+        Animate the total electric field (i.e., both intra- and extracellular)
+        for all time steps.
+        '''
+
+        AnimFieldExtracellular(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            x_time_series=self._phase.sim.efield_ecm_x_time,
+            y_time_series=self._phase.sim.efield_ecm_y_time,
+            label='Efield_ecm',
+            figure_title='Extracellular E Field',
+            colorbar_title='Electric Field [V/m]',
+            is_color_autoscaled=self._phase.p.autoscale_Efield_ani,
+            color_min=self._phase.p.Efield_ani_min_clr,
+            color_max=self._phase.p.Efield_ani_max_clr,
+        )
+
+    # ..................{ ANIMATORS ~ voltage                }..................
+    def anim_voltage_intra(self) -> None:
+        '''
+        Animate all intracellular voltages for all time steps.
+        '''
+
+        # Vector of all cell membrane voltages for all time steps.
+        vector = vectormake.make_voltages_intra(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
+
+        # Sequence of layers, consisting of only one layer animating these voltages
+        # as a Gouraud-shaded surface.
+        layers = (layervectorsurface.make(p=self._phase.p, vector=vector),)
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            layers=layers,
+            label='Vmem',
+            figure_title='Transmembrane Voltage',
+            colorbar_title='Voltage [mV]',
+            is_color_autoscaled=self._phase.p.autoscale_Vmem_ani,
+            color_min=self._phase.p.Vmem_ani_min_clr,
+            color_max=self._phase.p.Vmem_ani_max_clr,
+        )
+
+# ....................{ OBSOLETE                           }....................
+#FIXME: Replace *ALL* functionality defined below with the "AnimCellsPipelayer"
+#class defined above.
 @type_check
 def pipeline_anims(
     sim: 'betse.science.sim.Simulator',
@@ -97,7 +248,7 @@ def pipeline_anims(
 
     # If animating cell membrane voltage, do so.
     if p.ani_vm2d is True:
-        _anim_voltage_membrane(sim=sim, cells=cells, p=p)
+        _anim_voltage_intra(sim=sim, cells=cells, p=p)
 
     # Animate the gap junction state over cell membrane voltage if desired.
     if p.ani_vmgj2d is True:
@@ -141,11 +292,11 @@ def pipeline_anims(
 
     if p.ani_Efield is True:
         # Always animate the gap junction electric field.
-        _anim_field_electric_intra(sim=sim, cells=cells, p=p)
+        _anim_electric_intra(sim=sim, cells=cells, p=p)
 
         # Also animate the extracellular spaces electric field if desired.
         if p.sim_ECM is True:
-            _anim_field_electric_extra(sim=sim, cells=cells, p=p)
+            _anim_electric_total(sim=sim, cells=cells, p=p)
 
     # if np.mean(sim.P_cells_time) != 0.0:
 
@@ -238,29 +389,7 @@ def pipeline_anims(
         )
 
 # ....................{ PRIVATE ~ electric field           }....................
-def _anim_field_electric_extra(
-    sim: 'betse.science.sim.Simulator',
-    cells: 'betse.science.cells.Cells',
-    p: 'betse.science.parameters.Parameters',
-) -> None:
-    '''
-    Animate the extracellular electric field for all time steps.
-    '''
-
-    AnimFieldExtracellular(
-        sim=sim, cells=cells, p=p,
-        x_time_series=sim.efield_ecm_x_time,
-        y_time_series=sim.efield_ecm_y_time,
-        label='Efield_ecm',
-        figure_title='Extracellular E Field',
-        colorbar_title='Electric Field [V/m]',
-        is_color_autoscaled=p.autoscale_Efield_ani,
-        color_min=p.Efield_ani_min_clr,
-        color_max=p.Efield_ani_max_clr,
-    )
-
-
-def _anim_field_electric_intra(
+def _anim_electric_intra(
     sim: 'betse.science.sim.Simulator',
     cells: 'betse.science.cells.Cells',
     p: 'betse.science.parameters.Parameters',
@@ -301,9 +430,30 @@ def _anim_field_electric_intra(
         colormap=p.background_cm,
     )
 
+
+def _anim_electric_total(
+    sim: 'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p: 'betse.science.parameters.Parameters',
+) -> None:
+    '''
+    Animate the total electric field (i.e., both intra- and extracellular) for
+    all time steps.
+    '''
+
+    AnimFieldExtracellular(
+        sim=sim, cells=cells, p=p,
+        x_time_series=sim.efield_ecm_x_time,
+        y_time_series=sim.efield_ecm_y_time,
+        label='Efield_ecm',
+        figure_title='Extracellular E Field',
+        colorbar_title='Electric Field [V/m]',
+        is_color_autoscaled=p.autoscale_Efield_ani,
+        color_min=p.Efield_ani_min_clr,
+        color_max=p.Efield_ani_max_clr,
+    )
 # ....................{ PRIVATE ~ voltage                  }....................
-#FIXME: Rename to _anim_voltage_intra().
-def _anim_voltage_membrane(
+def _anim_voltage_intra(
     sim: 'betse.science.sim.Simulator',
     cells: 'betse.science.cells.Cells',
     p: 'betse.science.parameters.Parameters',

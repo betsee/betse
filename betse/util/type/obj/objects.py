@@ -9,9 +9,9 @@ Low-level object facilities.
 
 # ....................{ IMPORTS                            }....................
 import inspect, platform
-from betse.exceptions import BetseTypeException
+from betse.exceptions import BetseMethodException, BetseTypeException
 from betse.util.type.types import (
-    type_check, CallableTypes, ClassType, GeneratorType)
+    type_check, CallableTypes, CallableOrNoneTypes, ClassType, GeneratorType)
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -147,9 +147,9 @@ else:
 
 # Docstring dynamically set for the tester defined above.
 is_pure_python.__doc__ = '''
-`True` if the passed object is either a pure-Python class or instance of such a
-class _or_ `False` otherwise (i.e., if this object is either a C-based class or
-instance of such a class, either builtin or defined by a C extension,).
+``True`` if the passed object is either a pure-Python class or instance of such
+a class *or* ``False`` otherwise (i.e., if this object is either a C-based class
+or instance of such a class, either builtin or defined by a C extension,).
 
 Parameters
 ----------
@@ -159,7 +159,7 @@ obj : object
 Returns
 ----------
 bool
-    `True` only if this object is a pure-Python class _or_ instance of such a
+    ``True`` only if this object is a pure-Python class _or_ instance of such a
     class.
 
 See Also
@@ -171,8 +171,8 @@ https://stackoverflow.com/a/41012823/2809027
 
 def is_c_based(obj: object) -> bool:
     '''
-    `True` if the passed object is either a C-based class or instance of such a
-    class (either builtin or defined by a C extension) _or_ `False` otherwise
+    ``True`` if the passed object is either a C-based class or instance of such a
+    class (either builtin or defined by a C extension) *or* ``False`` otherwise
     (i.e., if this object is either a pure-Python class or instance of such a
     class).
 
@@ -184,7 +184,7 @@ def is_c_based(obj: object) -> bool:
     Returns
     ----------
     bool
-        `True` only if this object is a C-based class _or_ instance of such a
+        ``True`` only if this object is a C-based class _or_ instance of such a
         class.
     '''
 
@@ -192,9 +192,50 @@ def is_c_based(obj: object) -> bool:
 
 # ....................{ GETTERS                            }....................
 @type_check
-def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
+def get_method(obj: object, method_name: str) -> CallableTypes:
     '''
-    Method with the passed name bound to the passed object if any _or_ `None`
+    Method with the passed name bound to the passed object.
+
+    Parameters
+    ----------
+    obj : object
+        Object to obtain this method from.
+    method_name : str
+        Name of the method to be obtained.
+
+    Returns
+    ----------
+    CallableTypes
+        Method with this name bound to this object.
+
+    Raises
+    ----------
+    BetseMethodException
+        If no such method is bound to this object.
+    '''
+
+    # Attribute with this name in this object if any or None otherwise.
+    method = getattr(obj, method_name, None)
+
+    # If no such attribute exists, raise an exception.
+    if method is None:
+        raise BetseMethodException('Method {}.{}() undefined.'.format(
+            obj.__class__.__name__, method_name))
+
+    # If such an attribute exists but is *NOT* a method, raise an exception.
+    if not callable(method):
+        raise BetseMethodException(
+            'Object attribute "{}.{}" not a method: {!r}'.format(
+            obj.__class__.__name__, method_name, method))
+
+    # Else, this attribute is a method. Return this method as is.
+    return method
+
+
+@type_check
+def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
+    '''
+    Method with the passed name bound to the passed object if any *or* ``None``
     otherwise.
 
     Parameters
@@ -206,8 +247,9 @@ def get_method_or_none(obj: object, method_name: str) -> CallableTypes:
 
     Returns
     ----------
-    callable, None
-        Method with this name in this object if any _or_ `None` otherwise.
+    CallableOrNoneTypes
+        Method with this name bound to this object if any *or* ``None``
+        otherwise.
     '''
 
     # Attribute with this name in this object if any or None otherwise.
@@ -294,7 +336,6 @@ def iter_vars_custom(obj: object) -> GeneratorType:
             yield var_name, var_value
 
 
-#FIXME: Reimplement in terms of .
 def iter_vars_simple_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin

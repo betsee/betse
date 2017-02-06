@@ -114,10 +114,11 @@ from matplotlib.animation import FuncAnimation
 # ....................{ BASE                               }....................
 class AnimCellsABC(VisualCellsABC):
     '''
-    Abstract base class of all animation classes.
+    Abstract base class of all animation subclasses.
 
-    Instances of this class animate the spatial distribution of modelled
-    variables (e.g., Vmem) over all time steps of the simulation.
+    Instances of this class animate the spatial distribution of one or more
+    modelled variables (e.g., membrane voltage) over all time steps of the
+    current simulation.
 
     Attributes (Private)
     ----------
