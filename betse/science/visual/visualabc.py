@@ -241,7 +241,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #FIXME: For currently unknown reasons, this object occasionally retains
         #the only remaining reference to the passed "Cells" instance -- which
         #*CANNOT* therefore be safely classified as a weak reference. This is
-        #highly unexpected, however, and should thus be investigated.
+        #highly unexpected, however, and should thus be investigated. In theory,
+        #this should remain a strong reference *ONLY* for non-blocking plots
+        #and animations (e.g., in-simulation); blocking plots and animations
+        #should be able to safely use a weak reference here..
+
         # self.cells = references.proxy_weak(cells)
         self._cells = cells
 
@@ -831,7 +835,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Log this animation frame.
         logs.log_debug(
-            'Plotting animation "%s" frame %d / %d...',
+            'Plotting "%s" frame %d / %d...',
             self._label, time_step_absolute, self._time_step_last)
 
         # Classify this time step for subsequent access by subclasses.

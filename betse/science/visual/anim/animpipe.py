@@ -13,7 +13,7 @@ High-level facilities for displaying and/or saving all enabled animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimConfigException
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhaseABC, SimPhaseWeak
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -36,11 +36,12 @@ from betse.science.visual.layer.vector import layervectorsurface
 from betse.science.visual.layer.vector.layervectorsurface import (
     LayerCellsVectorSurfaceContinuous)
 from betse.util.io.log import logs
+from betse.util.type import strs
+from betse.util.type.call import callers
 from betse.util.type.obj import objects
 from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
-#FIXME: Actually use below.
 class AnimCellsPipelayer(object):
     '''
     Animation factory running the currently requested **post-simulation
@@ -100,11 +101,58 @@ class AnimCellsPipelayer(object):
             # Else, this type of animation is recognized. Run this animation.
             anim_method()
 
+    # ..................{ ANIMATORS ~ current                }..................
+    def anim_current_intra(self) -> None:
+        '''
+        Animate the intracellular current density for all time steps.
+        '''
+
+        # Log this animation attempt.
+        self._log_intra()
+
+        # Animate this animation.
+        AnimCurrent(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            is_current_overlay_only_gj=True,
+            label='current_gj',
+            figure_title='Intracellular Current',
+            colorbar_title='Current Density [uA/cm2]',
+            is_color_autoscaled=self._phase.p.autoscale_I_ani,
+            color_min=self._phase.p.I_ani_min_clr,
+            color_max=self._phase.p.I_ani_max_clr,
+        )
+
+
+    def anim_current_total(self) -> None:
+        '''
+        Animate the total current density (i.e., both intra- and extracellular)
+        for all time steps.
+        '''
+
+        # Log this animation attempt. If extracellular spaces are disabled,
+        # return without attempting (but failing) to create this animation.
+        if not self._log_extra(): return
+
+        # Animate this animation.
+        AnimCurrent(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            is_current_overlay_only_gj=False,
+            label='current_ecm',
+            figure_title='Extracellular Current',
+            colorbar_title='Current Density [uA/cm2]',
+            is_color_autoscaled=self._phase.p.autoscale_I_ani,
+            color_min=self._phase.p.I_ani_min_clr,
+            color_max=self._phase.p.I_ani_max_clr,
+        )
+
     # ..................{ ANIMATORS ~ electric               }..................
     def anim_electric_intra(self) -> None:
         '''
         Animate the intracellular electric field for all time steps.
         '''
+
+        # Log this animation attempt.
+        self._log_intra()
 
         # Vector field cache of the intracellular electric field for all time steps.
         field = fieldmake.make_electric_intra(
@@ -147,6 +195,11 @@ class AnimCellsPipelayer(object):
         for all time steps.
         '''
 
+        # Log this animation attempt. If extracellular spaces are disabled,
+        # return without attempting (but failing) to create this animation.
+        if not self._log_extra(): return
+
+        # Animate this animation.
         AnimFieldExtracellular(
             sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
             x_time_series=self._phase.sim.efield_ecm_x_time,
@@ -159,11 +212,36 @@ class AnimCellsPipelayer(object):
             color_max=self._phase.p.Efield_ani_max_clr,
         )
 
+    # ..................{ ANIMATORS ~ gap junction           }..................
+    def anim_gap_junction(self) -> None:
+        '''
+        Animate all intracellular voltages overlayed by gap junction connection
+        states for all time steps.
+        '''
+
+        # Log this animation attempt.
+        self._log_intra()
+
+        # Animate this animation.
+        AnimGapJuncTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=self._phase.sim.gjopen_time,
+            label='Vmem_gj',
+            figure_title='Gap Junction State over Vmem',
+            colorbar_title='Voltage [mV]',
+            is_color_autoscaled=self._phase.p.autoscale_Vgj_ani,
+            color_min=self._phase.p.Vgj_ani_min_clr,
+            color_max=self._phase.p.Vgj_ani_max_clr,
+        )
+
     # ..................{ ANIMATORS ~ voltage                }..................
     def anim_voltage_intra(self) -> None:
         '''
         Animate all intracellular voltages for all time steps.
         '''
+
+        # Log this animation attempt.
+        self._log_intra()
 
         # Vector of all cell membrane voltages for all time steps.
         vector = vectormake.make_voltages_intra(
@@ -184,6 +262,104 @@ class AnimCellsPipelayer(object):
             color_min=self._phase.p.Vmem_ani_min_clr,
             color_max=self._phase.p.Vmem_ani_max_clr,
         )
+
+
+    def anim_voltage_total(self) -> None:
+        '''
+        Animate all voltages (i.e., both intra- and extracellular) for all time
+        steps.
+        '''
+
+        # Log this animation attempt. If extracellular spaces are disabled,
+        # return without attempting (but failing) to create this animation.
+        if not self._log_extra(): return
+
+        # List of environment voltages, indexed by time step.
+        venv_time_series = [
+            venv.reshape(self._phase.cells.X.shape)*1000
+            for venv in self._phase.sim.venv_time
+        ]
+
+        # Animate this animation.
+        AnimEnvTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=venv_time_series,
+            label='Venv',
+            figure_title='Environmental Voltage',
+            colorbar_title='Voltage [mV]',
+            is_color_autoscaled=self._phase.p.autoscale_venv_ani,
+            color_min=self._phase.p.venv_ani_min_clr,
+            color_max=self._phase.p.venv_ani_max_clr,
+        )
+
+    # ..................{ PRIVATE ~ loggers                  }..................
+    def _log_intra(self) -> None:
+        '''
+        Log an attempt to subsequently create the current intracellular-specific
+        animation.
+        '''
+
+        # Human-readable name of the current animation.
+        anim_name = self._get_anim_name()
+
+        # Log this animation attempt.
+        logs.log_info('Animating "%s"...', anim_name)
+
+
+    def _log_extra(self) -> bool:
+        '''
+        Log an attempt to subsequently create the current extracellular-specific
+        animation, returning ``True`` only if the current simulation
+        configuration has enabled extracellular spaces.
+
+        Returns
+        ----------
+        bool
+            ``True`` only if extracellular spaces are enabled.
+        '''
+
+        # Human-readable name of the current animation.
+        anim_name = self._get_anim_name()
+
+        # If extracellular spaces are disabled, log a non-fatal warning and
+        # return False.
+        if not self._phase.p.sim_ECM:
+            logs.log_warn(
+                'Ignoring animation "electric_total", '
+                'as extracellular spaces are disabled.')
+            return False
+        # Else, extracellular spaces are enabled.
+
+        # Log this animation attempt and return True.
+        logs.log_info('Animating "%s"...', anim_name)
+        return True
+
+    # ..................{ PRIVATE ~ getters                  }..................
+    def _get_anim_name(self) -> str:
+        '''
+        Human-readable name of the current animation.
+
+        This method is intended to be called *only* by the private logging
+        methods for this class (e.g., :meth:`_log_intra`).
+
+        Returns
+        ----------
+        str
+            Name of the caller's caller stripped of the prefixing ``anim_``.
+        '''
+
+        # Name of the animation method calling the method calling this method
+        # (e.g., "anim_electric_extra").
+        anim_method_name = callers.get_caller_basename(call_stack_index=4)
+
+        # Return this name stripped of the "anim_" prefix, raising a
+        # human-readable exception if this is *NOT* the case.
+        return strs.remove_prefix(
+            text=anim_method_name,
+            prefix='anim_',
+            exception_message=(
+                'Callable "{}" not an '
+                '"anim_"-prefixed animation method.'.format(anim_method_name)))
 
 # ....................{ OBSOLETE                           }....................
 #FIXME: Replace *ALL* functionality defined below with the "AnimCellsPipelayer"
@@ -220,7 +396,17 @@ def pipeline_anims(
     # Log animation creation.
     logs.log_info('Creating animations...')
 
+    # Post-simulation animation pipeline producing all such animations.
+    pipelayer = AnimCellsPipelayer(
+        phase=SimPhaseWeak(sim=sim, cells=cells, p=p))
 
+    #FIXME: Replace *ALL* logic below with the following single call:
+    #    pipelayer.run()
+    #FIXME: When doing so, note that *ALL* uses of hardcoded animation-specific
+    #parameter options (e.g., "self._phase.p.I_ani_min_clr") will need to be
+    #refactored to use the general-purpose settings for the current animation.
+    #FIXME: Likewise, refactor tests to exercise the new dynamic pipeline schema
+    #rather than the obsolete hardcoded schema.
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1:
         AnimFlatCellsTimeSeries(
@@ -247,58 +433,29 @@ def pipeline_anims(
         )
 
     # If animating cell membrane voltage, do so.
-    if p.ani_vm2d is True:
-        _anim_voltage_intra(sim=sim, cells=cells, p=p)
+    if p.ani_vm2d:
+        pipelayer.anim_voltage_intra()
 
-    # Animate the gap junction state over cell membrane voltage if desired.
-    if p.ani_vmgj2d is True:
-        AnimGapJuncTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=sim.gjopen_time,
-            label='Vmem_gj',
-            figure_title='Gap Junction State over Vmem',
-            colorbar_title='Voltage [mV]',
-            is_color_autoscaled=p.autoscale_Vgj_ani,
-            color_min=p.Vgj_ani_min_clr,
-            color_max=p.Vgj_ani_max_clr,
-        )
+    # If animating gap junction states, do so.
+    if p.ani_vmgj2d:
+        pipelayer.anim_gap_junction()
 
+    # If animating current density, do so.
+    if p.ani_I:
+        # Always animate intracellular current density.
+        pipelayer.anim_current_intra()
 
-    if p.ani_I is True:
-        # Always animate the gap junction current.
-        AnimCurrent(
-            sim=sim, cells=cells, p=p,
-            is_current_overlay_only_gj=True,
-            label='current_gj',
-            figure_title='Intracellular Current',
-            colorbar_title='Current Density [uA/cm2]',
-            is_color_autoscaled=p.autoscale_I_ani,
-            color_min=p.I_ani_min_clr,
-            color_max=p.I_ani_max_clr,
-        )
-
-        # Animate the extracellular spaces current if desired as well.
-        if p.sim_ECM is True:
-            AnimCurrent(
-                sim=sim, cells=cells, p=p,
-                is_current_overlay_only_gj=False,
-                label='current_ecm',
-                figure_title='Extracellular Current',
-                colorbar_title='Current Density [uA/cm2]',
-                is_color_autoscaled=p.autoscale_I_ani,
-                color_min=p.I_ani_min_clr,
-                color_max=p.I_ani_max_clr,
-            )
+        # Animate extracellular spaces current if desired as well.
+        if p.sim_ECM:
+            pipelayer.anim_current_total()
 
     if p.ani_Efield is True:
         # Always animate the gap junction electric field.
-        _anim_electric_intra(sim=sim, cells=cells, p=p)
+        pipelayer.anim_electric_intra()
 
         # Also animate the extracellular spaces electric field if desired.
         if p.sim_ECM is True:
-            _anim_electric_total(sim=sim, cells=cells, p=p)
-
-    # if np.mean(sim.P_cells_time) != 0.0:
+            pipelayer.anim_electric_total()
 
     if p.ani_Pcell is True and np.mean(sim.P_cells_time) != 0.0:
         AnimFlatCellsTimeSeries(
@@ -312,7 +469,6 @@ def pipeline_anims(
             color_max=p.Pcell_ani_max_clr,
         )
 
-
     if p.ani_Pcell is True and p.deform_osmo is True:
         AnimFlatCellsTimeSeries(
             sim=sim, cells=cells, p=p,
@@ -325,22 +481,9 @@ def pipeline_anims(
             color_max=p.Pcell_ani_max_clr,
         )
 
-
     # Animate environment voltage if requested.
     if p.ani_venv is True and p.sim_ECM is True:
-        # List of environment voltages, indexed by time step.
-        venv_time_series = [
-            venv.reshape(cells.X.shape)*1000 for venv in sim.venv_time]
-        AnimEnvTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=venv_time_series,
-            label='Venv',
-            figure_title='Environmental Voltage',
-            colorbar_title='Voltage [mV]',
-            is_color_autoscaled=p.autoscale_venv_ani,
-            color_min=p.venv_ani_min_clr,
-            color_max=p.venv_ani_max_clr,
-        )
+        pipelayer.anim_voltage_total()
 
     # Display and/or save animations specific to the "sim" simulation phase.
     if (p.ani_Velocity is True and p.fluid_flow is True):
@@ -387,98 +530,6 @@ def pipeline_anims(
             color_min=p.mem_ani_min_clr,
             color_max=p.mem_ani_max_clr,
         )
-
-# ....................{ PRIVATE ~ electric field           }....................
-def _anim_electric_intra(
-    sim: 'betse.science.sim.Simulator',
-    cells: 'betse.science.cells.Cells',
-    p: 'betse.science.parameters.Parameters',
-) -> None:
-    '''
-    Animate the intracellular electric field for all time steps.
-    '''
-
-    # Vector field cache of the intracellular electric field for all time steps.
-    field = fieldmake.make_electric_intra(sim=sim, cells=cells, p=p)
-
-    # Vector of all intracellular electric field magnitudes for all time steps,
-    # spatially situated at cell centres.
-    field_magnitudes = VectorCells(
-        cells=cells, p=p,
-        times_cells_centre=field.times_cells_centre.magnitudes)
-
-    # Sequence of layers consisting of...
-    layers = (
-        # A lower layer animating these magnitudes.
-        LayerCellsVectorSurfaceContinuous(vector=field_magnitudes),
-
-        # A higher layer animating this field.
-        LayerCellsFieldQuiver(field=field),
-    )
-
-    # Animate these layers.
-    AnimCellsAfterSolvingLayered(
-        sim=sim, cells=cells, p=p, layers=layers,
-        label='Efield_gj',
-        figure_title='Intracellular E Field',
-        colorbar_title='Electric Field [V/m]',
-        is_color_autoscaled=p.autoscale_Efield_ani,
-        color_min=p.Efield_ani_min_clr,
-        color_max=p.Efield_ani_max_clr,
-
-        # Prefer an alternative colormap.
-        colormap=p.background_cm,
-    )
-
-
-def _anim_electric_total(
-    sim: 'betse.science.sim.Simulator',
-    cells: 'betse.science.cells.Cells',
-    p: 'betse.science.parameters.Parameters',
-) -> None:
-    '''
-    Animate the total electric field (i.e., both intra- and extracellular) for
-    all time steps.
-    '''
-
-    AnimFieldExtracellular(
-        sim=sim, cells=cells, p=p,
-        x_time_series=sim.efield_ecm_x_time,
-        y_time_series=sim.efield_ecm_y_time,
-        label='Efield_ecm',
-        figure_title='Extracellular E Field',
-        colorbar_title='Electric Field [V/m]',
-        is_color_autoscaled=p.autoscale_Efield_ani,
-        color_min=p.Efield_ani_min_clr,
-        color_max=p.Efield_ani_max_clr,
-    )
-# ....................{ PRIVATE ~ voltage                  }....................
-def _anim_voltage_intra(
-    sim: 'betse.science.sim.Simulator',
-    cells: 'betse.science.cells.Cells',
-    p: 'betse.science.parameters.Parameters',
-) -> None:
-    '''
-    Animate all intracellular voltages for all time steps.
-    '''
-
-    # Vector of all cell membrane voltages for all time steps.
-    vector = vectormake.make_voltages_intra(sim=sim, cells=cells, p=p)
-
-    # Sequence of layers, consisting of only one layer animating these voltages
-    # as a Gouraud-shaded surface.
-    layers = (layervectorsurface.make(p=p, vector=vector),)
-
-    # Animate these layers.
-    AnimCellsAfterSolvingLayered(
-        sim=sim, cells=cells, p=p, layers=layers,
-        label='Vmem',
-        figure_title='Transmembrane Voltage',
-        colorbar_title='Voltage [mV]',
-        is_color_autoscaled=p.autoscale_Vmem_ani,
-        color_min=p.Vmem_ani_min_clr,
-        color_max=p.Vmem_ani_max_clr,
-    )
 
 # ....................{ PRIVATE ~ getters                  }....................
 #FIXME: Use everywhere above. Since recomputing this is heavy, we probably want

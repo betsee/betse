@@ -204,6 +204,16 @@ class AnimCellsABC(VisualCellsABC):
         '''
         Initialize this animation.
 
+        Caveats
+        ----------
+        If neither displaying nor saving this animation, this animation would
+        ideally reduce to a noop. Since this is a superclass method, however,
+        simply returning would have little effect. While raising an exception
+        would have an effect, doing so would also require all callers to
+        explicitly catch and ignore that exception -- in which case this
+        animation would hardly have reduced to a noop. In short, ignoring this
+        edge case is currently the only sane policy.
+
         Parameters
         ----------
         save_dir_parent_basename : str
@@ -264,25 +274,6 @@ class AnimCellsABC(VisualCellsABC):
 
         # 0-based index of the last frame to be plotted.
         self._time_step_last = self._time_step_count - 1
-
-        # Type of animation attempt to be logged below.
-        animation_verb = None
-        if self._is_show:
-            animation_verb = 'Plotting'
-        elif self._is_save:
-            animation_verb = 'Saving'
-        # If neither displaying nor saving this animation, this animation would
-        # ideally reduce to a noop. Since this is a superclass method, however,
-        # simply returning would have little effect; while raising an exception
-        # would certainly have an effect, doing so would also require all
-        # callers to explicitly catch and ignore that exception -- in which
-        # case this object would hardly have reduced to a noop. In short,
-        # ignoring this edge case is currently the only sane policy.
-
-        # Log this animation as early as reasonably feasible.
-        if animation_verb is not None:
-            logs.log_info(
-                '%s animation "%s"...', animation_verb, self._label)
 
         # Classify attributes to be possibly redefined below.
         self._writer_images = None

@@ -130,7 +130,7 @@ class BetseMethodUnimplementedException(
     def __init__(self):
 
         # Avoid circular import dependencies.
-        from betse.util.py import callers
+        from betse.util.type.call import callers
 
         # Defer to superclass constructors.
         super().__init__('Method {}() unimplemented.'.format(

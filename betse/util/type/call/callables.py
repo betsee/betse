@@ -90,17 +90,17 @@ def is_method(func: CallableTypes) -> bool:
 
     return isinstance(func, MethodTypes)
 
-# ....................{ GETTERS                            }....................
+# ....................{ CONVERTERS                         }....................
 @type_check
 def to_str(func: CallableTypes) -> str:
     '''
     Human-readable string describing the type and name of the passed callable
-    (e.g., `method Pala()`).
+    (e.g., ``method Pala()``).
 
-    For generality, the:
+    For generality, this string's:
 
-    * First character of this string is guaranteed to be lowercase.
-    * Last character of this string is guaranteed to be the `)` delimiter.
+    * First character is guaranteed to be lowercase.
+    * Last character is guaranteed to be the ``)`` delimiter.
 
     Parameters
     ----------

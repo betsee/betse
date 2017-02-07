@@ -41,7 +41,7 @@ def output_traceback() -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.py import callers
+    from betse.util.type.call import callers
 
     # Print this call stack, excluding the calls to both this and the
     # callers.get_traceback() functions.
