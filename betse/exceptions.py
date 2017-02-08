@@ -271,7 +271,7 @@ class BetseSimException(BetseException):
     pass
 
 
-class BetseSimConfigException(BetseException):
+class BetseSimConfigException(BetseSimException):
     '''
     Simulation configuration-specific exception.
     '''
@@ -282,6 +282,14 @@ class BetseSimInstabilityException(BetseSimException):
     '''
     Exception indicating the current simulation to have erroneously become
     computationally unstable.
+    '''
+    pass
+
+
+class BetseSimVisualException(BetseSimException):
+    '''
+    Simulation visualization-specific exception, applicable to both plots and
+    animations.
     '''
     pass
 

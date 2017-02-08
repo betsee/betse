@@ -764,11 +764,18 @@ results options:
         - type: voltage_intra  # Animation type. Supported types include:
                                # * "current_intra"  (intracellular current density).
                                # * "current_total"  (intra- and extracellular current density).
+                               #   Ignored unless extracellular spaces are enabled.
                                # * "electric_intra" (intracellular electric field).
                                # * "electric_total" (intra- and extracellular electric field).
+                               #   Ignored unless extracellular spaces are enabled.
                                # * "gap_junction"   (gap junction connectivity state).
+                               # * "ion_calcium"    (calcium ion concentration: Ca2+)
+                               #   Ignored this ion profile enables calcium ions (Ca2+).
+                               # * "ion_hydrogen"   (hydrogen ion concentration: pH, H+)
+                               #   Ignored this ion profile enables hydrogen ions (H+).
                                # * "voltage_intra"  (intracellular voltage).
                                # * "voltage_total"  (intra- and extracellular voltage).
+                               #   Ignored unless extracellular spaces are enabled.
           colorbar:          # Animation colorbar settings.
             autoscale: True  # Automatically scale colorbar to minimum and
                              # maximum values of underlying data series?
@@ -776,6 +783,12 @@ results options:
                              # "autoscale" is True.
             maximum:  10.0   # Maximum fixed colorbar value. Ignored if
                              # "autoscale" is True.
+        # Example intracellular electric field animation.
+        - type: electric_intra
+          colorbar:
+            autoscale: True
+            minimum: -70.0
+            maximum:  10.0
 
   save:                 # Saving options for result types enabled above.
     plots:              # Saving options for plots enabled above.

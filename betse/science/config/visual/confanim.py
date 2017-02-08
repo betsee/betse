@@ -213,11 +213,11 @@ class SimConfAnimOne(SimConfListableABC):
 
     Attributes (General)
     ----------
-    kind : str
-        Type of this animation as a lowercase alphanumeric string (e.g.,
-        ``voltage_intra``, signifying an animation of intracellular voltages).
-        See the corresponding entry of the default simulation configuration file
-        for further commentary.
+    name : str
+        Lowercase alphanumeric string uniquely identifying the type of this
+        animation as a  (e.g., ``voltage_intra``, signifying an animation of
+        intracellular voltages). See the corresponding entry ``type`` of the
+        default simulation configuration file for further commentary.
 
     Attributes (Colorbar)
     ----------
@@ -235,7 +235,7 @@ class SimConfAnimOne(SimConfListableABC):
     '''
 
     # ..................{ ALIASES                            }..................
-    kind = conf_alias("['type']", str)
+    name = conf_alias("['type']", str)
 
     # ..................{ ALIASES ~ colorbar                 }..................
     is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)

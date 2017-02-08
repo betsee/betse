@@ -12,7 +12,7 @@ High-level facilities for displaying and/or saving all enabled animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfigException, BetseSimVisualException
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseWeak
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
@@ -85,7 +85,7 @@ class AnimCellsPipelayer(object):
         # For each post-simulation animation in this pipeline...
         for anim in self._phase.p.anim.postsim_pipeline:
             # Name of the method animating this animation.
-            anim_method_name = 'anim_' + anim.kind
+            anim_method_name = 'anim_' + anim.name
 
             # Method animating this animation *OR* None if this type of
             # animation is unrecognized.
@@ -97,9 +97,18 @@ class AnimCellsPipelayer(object):
                 raise BetseSimConfigException(
                     'Animation type "{}" unrecognized.'.format(
                         anim_method_name))
+            # Else, this type of animation is recognized.
 
-            # Else, this type of animation is recognized. Run this animation.
-            anim_method()
+            # Attempt to run this animation.
+            try:
+                anim_method()
+            # If this animation requires simulation features disabled by the
+            # current simulation configuration (e.g., extracellular spaces),
+            # ignore this animation with a non-fatal warning and continue.
+            except BetseSimVisualException as exception:
+                logs.log_warn(
+                    'Ignoring animation "%s", as:\n\t%s'.format(
+                        anim.name, str(exception)))
 
     # ..................{ ANIMATORS ~ current                }..................
     def anim_current_intra(self) -> None:
@@ -234,6 +243,59 @@ class AnimCellsPipelayer(object):
             color_max=self._phase.p.Vgj_ani_max_clr,
         )
 
+    # ..................{ ANIMATORS ~ ion                    }..................
+    def anim_ion_calcium(self) -> None:
+        '''
+        Animate all calcium (i.e., Ca2+) ion concentrations for all time steps.
+        '''
+
+        # Log this animation attempt.
+        self._log_ion('Ca')
+
+        # Array of all upscaled calcium ion concentrations.
+        time_series = [
+            1e6*arr[self._phase.sim.iCa] for arr in self._phase.sim.cc_time]
+
+        # Animate this animation.
+        AnimFlatCellsTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=time_series,
+            label='Ca',
+            figure_title='Cytosolic Ca2+',
+            colorbar_title='Concentration [nmol/L]',
+            is_color_autoscaled=self._phase.p.autoscale_Ca_ani,
+            color_min=self._phase.p.Ca_ani_min_clr,
+            color_max=self._phase.p.Ca_ani_max_clr,
+        )
+
+
+    def anim_ion_hydrogen(self) -> None:
+        '''
+        Animate all hydrogen (i.e., H+) ion concentrations for all time steps,
+        scaled to correspond exactly to pH.
+        '''
+
+        # Log this animation attempt.
+        self._log_ion('H')
+
+        # Array of all upscaled calcium ion concentrations.
+        time_series = [
+            -np.log10(1.0e-3 * arr[self._phase.sim.iH])
+            for arr in self._phase.sim.cc_time
+        ]
+
+        # Animate this animation.
+        AnimFlatCellsTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=time_series,
+            label='pH',
+            figure_title='Cytosolic pH',
+            colorbar_title='pH',
+            is_color_autoscaled=self._phase.p.autoscale_Ca_ani,
+            color_min=self._phase.p.Ca_ani_min_clr,
+            color_max=self._phase.p.Ca_ani_max_clr,
+        )
+
     # ..................{ ANIMATORS ~ voltage                }..................
     def anim_voltage_intra(self) -> None:
         '''
@@ -295,7 +357,7 @@ class AnimCellsPipelayer(object):
     # ..................{ PRIVATE ~ loggers                  }..................
     def _log_intra(self) -> None:
         '''
-        Log an attempt to subsequently create the current intracellular-specific
+        Log an attempt to subsequently create this intracellular-specific
         animation.
         '''
 
@@ -303,36 +365,80 @@ class AnimCellsPipelayer(object):
         anim_name = self._get_anim_name()
 
         # Log this animation attempt.
-        logs.log_info('Animating "%s"...', anim_name)
+        self._log_anim(anim_name)
 
 
-    def _log_extra(self) -> bool:
+    def _log_extra(self) -> None:
         '''
-        Log an attempt to subsequently create the current extracellular-specific
-        animation, returning ``True`` only if the current simulation
-        configuration has enabled extracellular spaces.
+        Log an attempt to subsequently create this extracellular-specific
+        animation if extracellular spaces are enabled by this simulation
+        configuration *or* raise an exception otherwise.
 
-        Returns
+        Raises
         ----------
-        bool
-            ``True`` only if extracellular spaces are enabled.
+        BetseSimVisualException
+            If this simulation configuration disabled extracellular spaces.
         '''
 
         # Human-readable name of the current animation.
         anim_name = self._get_anim_name()
 
-        # If extracellular spaces are disabled, log a non-fatal warning and
-        # return False.
+        # If extracellular spaces are disabled, raise an exception.
         if not self._phase.p.sim_ECM:
-            logs.log_warn(
-                'Ignoring animation "electric_total", '
-                'as extracellular spaces are disabled.')
-            return False
-        # Else, extracellular spaces are enabled.
+            raise BetseSimVisualException(
+                'Animation "{}" requirements unsatisfied'
+                '(i.e., extracellular spaces are disabled).'.format(anim_name))
 
-        # Log this animation attempt and return True.
+        # Log this animation attempt.
+        self._log_anim(anim_name)
+
+
+    def _log_ion(self, ion_name: str) -> None:
+        '''
+        Log an attempt to subsequently create this ion concentration-specific
+        animation if the ion with the passed name is enabled by this simulation
+        configuration *or* raise an exception otherwise.
+
+        Parameters
+        ----------
+        ion_name : str
+            Capitalized alphabetic name of the ion required by this animation
+            (e.g., ``Ca``, signifying calcium).
+
+        Raises
+        ----------
+        BetseSimVisualException
+            If this simulation configuration disabled extracellular spaces.
+        '''
+
+        # Human-readable name of the current animation.
+        anim_name = self._get_anim_name()
+
+        # If this ion is disabled, raise an exception.
+        if ion_name not in self._phase.p.ions_dict:
+            raise BetseSimConfigException(
+                'Ion "{}" unrecognized.'.format(ion_name))
+        if not self._phase.p.ions_dict[ion_name] == 1:
+            raise BetseSimVisualException(
+                'Animation "{}" requirements unsatisfied'
+                '(i.e., ion "{}" is disabled).'.format(anim_name, ion_name))
+
+        # Log this animation attempt.
+        self._log_anim(anim_name)
+
+
+    @type_check
+    def _log_anim(self, anim_name: str) -> None:
+        '''
+        Log an attempt to subsequently create the current animation.
+
+        Parameters
+        ----------
+        anim_name : str
+            Human-readable name of this animation.
+        '''
+
         logs.log_info('Animating "%s"...', anim_name)
-        return True
 
     # ..................{ PRIVATE ~ getters                  }..................
     def _get_anim_name(self) -> str:
@@ -409,28 +515,10 @@ def pipeline_anims(
     #rather than the obsolete hardcoded schema.
 
     if p.ani_ca2d is True and p.ions_dict['Ca'] == 1:
-        AnimFlatCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=[1e6*arr[sim.iCa] for arr in sim.cc_time],
-            label='Ca',
-            figure_title='Cytosolic Ca2+',
-            colorbar_title='Concentration [nmol/L]',
-            is_color_autoscaled=p.autoscale_Ca_ani,
-            color_min=p.Ca_ani_min_clr,
-            color_max=p.Ca_ani_max_clr,
-        )
+        pipelayer.anim_ion_calcium()
 
     if p.ani_pH2d is True and p.ions_dict['H'] == 1:
-        AnimFlatCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=[-np.log10(1.0e-3*arr[sim.iH]) for arr in sim.cc_time],
-            label='pH',
-            figure_title='Cytosolic pH',
-            colorbar_title='pH',
-            is_color_autoscaled=p.autoscale_Ca_ani,
-            color_min=p.Ca_ani_min_clr,
-            color_max=p.Ca_ani_max_clr,
-        )
+        pipelayer.anim_ion_hydrogen()
 
     # If animating cell membrane voltage, do so.
     if p.ani_vm2d:
