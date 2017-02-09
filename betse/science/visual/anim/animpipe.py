@@ -17,7 +17,7 @@ from betse.science.simulate.simphase import SimPhaseABC, SimPhaseWeak
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
-from betse.science.visual import visualutil
+# from betse.science.visual import visualutil
 from betse.science.visual.anim.anim import (
     AnimCurrent,
     AnimateDeformation,
@@ -82,6 +82,9 @@ class AnimCellsPipelayer(object):
         BetseSimConfigException
         '''
 
+        # Log animation creation.
+        logs.log_info('Creating animations...')
+
         # For each post-simulation animation in this pipeline...
         for anim in self._phase.p.anim.postsim_pipeline:
             # Name of the method animating this animation.
@@ -117,7 +120,7 @@ class AnimCellsPipelayer(object):
         '''
 
         # Log this animation attempt.
-        self._log_intra()
+        self._die_unless_intra()
 
         # Animate this animation.
         AnimCurrent(
@@ -138,9 +141,8 @@ class AnimCellsPipelayer(object):
         for all time steps.
         '''
 
-        # Log this animation attempt. If extracellular spaces are disabled,
-        # return without attempting (but failing) to create this animation.
-        if not self._log_extra(): return
+        # Raise an exception unless extracellular spaces are enabled.
+        self._die_unless_extra()
 
         # Animate this animation.
         AnimCurrent(
@@ -161,7 +163,7 @@ class AnimCellsPipelayer(object):
         '''
 
         # Log this animation attempt.
-        self._log_intra()
+        self._die_unless_intra()
 
         # Vector field cache of the intracellular electric field for all time steps.
         field = fieldmake.make_electric_intra(
@@ -204,9 +206,8 @@ class AnimCellsPipelayer(object):
         for all time steps.
         '''
 
-        # Log this animation attempt. If extracellular spaces are disabled,
-        # return without attempting (but failing) to create this animation.
-        if not self._log_extra(): return
+        # Raise an exception unless extracellular spaces are enabled.
+        self._die_unless_extra()
 
         # Animate this animation.
         AnimFieldExtracellular(
@@ -229,7 +230,7 @@ class AnimCellsPipelayer(object):
         '''
 
         # Log this animation attempt.
-        self._log_intra()
+        self._die_unless_intra()
 
         # Animate this animation.
         AnimGapJuncTimeSeries(
@@ -249,8 +250,8 @@ class AnimCellsPipelayer(object):
         Animate all calcium (i.e., Ca2+) ion concentrations for all time steps.
         '''
 
-        # Log this animation attempt.
-        self._log_ion('Ca')
+        # Raise an exception unless the calcium ion is enabled.
+        self._die_unless_ion('Ca')
 
         # Array of all upscaled calcium ion concentrations.
         time_series = [
@@ -275,8 +276,8 @@ class AnimCellsPipelayer(object):
         scaled to correspond exactly to pH.
         '''
 
-        # Log this animation attempt.
-        self._log_ion('H')
+        # Raise an exception unless the hydrogen ion is enabled.
+        self._die_unless_ion('H')
 
         # Array of all upscaled calcium ion concentrations.
         time_series = [
@@ -296,6 +297,52 @@ class AnimCellsPipelayer(object):
             color_max=self._phase.p.Ca_ani_max_clr,
         )
 
+    # ..................{ ANIMATORS ~ pressure               }..................
+    def anim_pressure_mechanical(self) -> None:
+        '''
+        Animate the cellular mechanical pressure for all time steps.
+        '''
+
+        # Raise an exception unless mechanical pressure is enabled..
+        self._die_unless_anim_satisfied(
+            is_anim_satisfied=self._phase.p.scheduled_options['pressure'] != 0,
+            exception_explanation='mechanical pressure event is disabled')
+
+        # Animate this animation.
+        AnimFlatCellsTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=self._phase.sim.P_cells_time,
+            label='Pcell',
+            figure_title='Pressure in Cells',
+            colorbar_title='Pressure [Pa]',
+            is_color_autoscaled=self._phase.p.autoscale_Pcell_ani,
+            color_min=self._phase.p.Pcell_ani_min_clr,
+            color_max=self._phase.p.Pcell_ani_max_clr,
+        )
+
+
+    def anim_pressure_osmotic(self) -> None:
+        '''
+        Animate the cellular osmotic pressure for all time steps.
+        '''
+
+        # Raise an exception unless osmotic pressure is enabled..
+        self._die_unless_anim_satisfied(
+            is_anim_satisfied=self._phase.p.deform_osmo,
+            exception_explanation='osmotic pressure is disabled')
+
+        # Animate this animation.
+        AnimFlatCellsTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=self._phase.sim.osmo_P_delta_time,
+            label='Osmotic Pcell',
+            figure_title='Osmotic Pressure in Cells',
+            colorbar_title='Pressure [Pa]',
+            is_color_autoscaled=self._phase.p.autoscale_Pcell_ani,
+            color_min=self._phase.p.Pcell_ani_min_clr,
+            color_max=self._phase.p.Pcell_ani_max_clr,
+        )
+
     # ..................{ ANIMATORS ~ voltage                }..................
     def anim_voltage_intra(self) -> None:
         '''
@@ -303,7 +350,7 @@ class AnimCellsPipelayer(object):
         '''
 
         # Log this animation attempt.
-        self._log_intra()
+        self._die_unless_intra()
 
         # Vector of all cell membrane voltages for all time steps.
         vector = vectormake.make_voltages_intra(
@@ -332,9 +379,8 @@ class AnimCellsPipelayer(object):
         steps.
         '''
 
-        # Log this animation attempt. If extracellular spaces are disabled,
-        # return without attempting (but failing) to create this animation.
-        if not self._log_extra(): return
+        # Raise an exception unless extracellular spaces are enabled.
+        self._die_unless_extra()
 
         # List of environment voltages, indexed by time step.
         venv_time_series = [
@@ -354,118 +400,105 @@ class AnimCellsPipelayer(object):
             color_max=self._phase.p.venv_ani_max_clr,
         )
 
-    # ..................{ PRIVATE ~ loggers                  }..................
-    def _log_intra(self) -> None:
+    # ..................{ PRIVATE ~ exceptions               }..................
+    def _die_unless_intra(self) -> None:
         '''
-        Log an attempt to subsequently create this intracellular-specific
-        animation.
-        '''
-
-        # Human-readable name of the current animation.
-        anim_name = self._get_anim_name()
-
-        # Log this animation attempt.
-        self._log_anim(anim_name)
-
-
-    def _log_extra(self) -> None:
-        '''
-        Log an attempt to subsequently create this extracellular-specific
-        animation if extracellular spaces are enabled by this simulation
-        configuration *or* raise an exception otherwise.
-
-        Raises
-        ----------
-        BetseSimVisualException
-            If this simulation configuration disabled extracellular spaces.
+        Raise an exception unless intracellular spaces are enabled *or* log an
+        attempt to create this animation otherwise.
         '''
 
-        # Human-readable name of the current animation.
-        anim_name = self._get_anim_name()
-
-        # If extracellular spaces are disabled, raise an exception.
-        if not self._phase.p.sim_ECM:
-            raise BetseSimVisualException(
-                'Animation "{}" requirements unsatisfied'
-                '(i.e., extracellular spaces are disabled).'.format(anim_name))
-
-        # Log this animation attempt.
-        self._log_anim(anim_name)
+        # Log this animation attempt. Since all simulations *ALWAYS* enable
+        # support for intracellular spaces, no actual validation is required.
+        self._die_unless_anim_satisfied()
 
 
-    def _log_ion(self, ion_name: str) -> None:
+    def _die_unless_extra(self) -> None:
         '''
-        Log an attempt to subsequently create this ion concentration-specific
-        animation if the ion with the passed name is enabled by this simulation
-        configuration *or* raise an exception otherwise.
+        Raise an exception unless extracellular spaces are enabled *or* log an
+        attempt to create this animation otherwise.
+        '''
+
+        self._die_unless_anim_satisfied(
+            is_anim_satisfied=self._phase.p.sim_ECM,
+            exception_explanation='extracellular spaces are disabled')
+
+
+    @type_check
+    def _die_unless_ion(self, ion_name: str) -> None:
+        '''
+        Raise an exception unless the ion with the passed name is enabled by the
+        current ion profile *or* log an attempt to create this animation
+        otherwise.
 
         Parameters
         ----------
         ion_name : str
             Capitalized alphabetic name of the ion required by this animation
             (e.g., ``Ca``, signifying calcium).
+        '''
+
+        # If this ion is unrecognized, raise a lower-level exception.
+        if ion_name not in self._phase.p.ions_dict:
+            raise BetseSimConfigException(
+                'Ion "{}" unrecognized.'.format(ion_name))
+        # Else, this ion is recognized.
+
+        # Validate whether this ion is enabled or not.
+        self._die_unless_anim_satisfied(
+            is_anim_satisfied=self._phase.p.ions_dict[ion_name] != 0,
+            exception_explanation='ion "{}" is disabled.'.format(ion_name))
+
+
+    def _die_unless_anim_satisfied(
+        self,
+        is_anim_satisfied: bool = True,
+        exception_explanation: str = None,
+    ) -> None:
+        '''
+        Raise an exception containing the passed explanation if the passed
+        boolean is ``False`` *or* log an attempt to create this animation
+        otherwise.
+
+        Parameters
+        ----------
+        is_anim_satisfied : optional[bool]
+            ``True`` only if all features required by this animation (e.g.,
+            extracellular spaces) are enabled by this simulation configuration.
+            Defaults to ``True``.
+        exception_explanation : optional[str]
+            Uncapitalized human-readable string to be embedded in the messages
+            of exceptions raised by this method, typically explaining all
+            features required by this animation. Defaults to ``None``.
 
         Raises
         ----------
         BetseSimVisualException
-            If this simulation configuration disabled extracellular spaces.
-        '''
-
-        # Human-readable name of the current animation.
-        anim_name = self._get_anim_name()
-
-        # If this ion is disabled, raise an exception.
-        if ion_name not in self._phase.p.ions_dict:
-            raise BetseSimConfigException(
-                'Ion "{}" unrecognized.'.format(ion_name))
-        if not self._phase.p.ions_dict[ion_name] == 1:
-            raise BetseSimVisualException(
-                'Animation "{}" requirements unsatisfied'
-                '(i.e., ion "{}" is disabled).'.format(anim_name, ion_name))
-
-        # Log this animation attempt.
-        self._log_anim(anim_name)
-
-
-    @type_check
-    def _log_anim(self, anim_name: str) -> None:
-        '''
-        Log an attempt to subsequently create the current animation.
-
-        Parameters
-        ----------
-        anim_name : str
-            Human-readable name of this animation.
-        '''
-
-        logs.log_info('Animating "%s"...', anim_name)
-
-    # ..................{ PRIVATE ~ getters                  }..................
-    def _get_anim_name(self) -> str:
-        '''
-        Human-readable name of the current animation.
-
-        This method is intended to be called *only* by the private logging
-        methods for this class (e.g., :meth:`_log_intra`).
-
-        Returns
-        ----------
-        str
-            Name of the caller's caller stripped of the prefixing ``anim_``.
+            If this boolean is ``False``.
         '''
 
         # Name of the animation method calling the method calling this method
         # (e.g., "anim_electric_extra").
-        anim_method_name = callers.get_caller_basename(call_stack_index=4)
+        anim_method_name = callers.get_caller_basename_matching(
+            predicate=lambda caller_basename:
+                caller_basename.startswith('anim_'))
 
         # Return this name stripped of the "anim_" prefix, raising a
         # human-readable exception if this is *NOT* the case.
-        return strs.remove_prefix(
+        anim_name = strs.remove_prefix(
             text=anim_method_name,
             prefix='anim_',
             exception_message=(
                 'Callable "{}" not an '
                 '"anim_"-prefixed animation method.'.format(anim_method_name)))
+
+        # If these animation requirements are unsatisfied, raise an exception.
+        if not is_anim_satisfied:
+            raise BetseSimVisualException(
+                'Animation "{}" requirements unsatisfied (i.e., {}).'.format(
+                    anim_name, exception_explanation))
+
+        # Log this animation attempt.
+        logs.log_info('Animating "%s"...', anim_name)
 
 # ....................{ OBSOLETE                           }....................
 #FIXME: Replace *ALL* functionality defined below with the "AnimCellsPipelayer"
@@ -499,9 +532,6 @@ def pipeline_anims(
     if not p.anim.is_after_sim:
        return
 
-    # Log animation creation.
-    logs.log_info('Creating animations...')
-
     # Post-simulation animation pipeline producing all such animations.
     pipelayer = AnimCellsPipelayer(
         phase=SimPhaseWeak(sim=sim, cells=cells, p=p))
@@ -524,6 +554,10 @@ def pipeline_anims(
     if p.ani_vm2d:
         pipelayer.anim_voltage_intra()
 
+    # Animate environment voltage if requested.
+    if p.ani_venv and p.sim_ECM:
+        pipelayer.anim_voltage_total()
+
     # If animating gap junction states, do so.
     if p.ani_vmgj2d:
         pipelayer.anim_gap_junction()
@@ -537,44 +571,23 @@ def pipeline_anims(
         if p.sim_ECM:
             pipelayer.anim_current_total()
 
-    if p.ani_Efield is True:
+    if p.ani_Efield:
         # Always animate the gap junction electric field.
         pipelayer.anim_electric_intra()
 
         # Also animate the extracellular spaces electric field if desired.
-        if p.sim_ECM is True:
+        if p.sim_ECM:
             pipelayer.anim_electric_total()
 
-    if p.ani_Pcell is True and np.mean(sim.P_cells_time) != 0.0:
-        AnimFlatCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=sim.P_cells_time,
-            label='Pcell',
-            figure_title='Pressure in Cells',
-            colorbar_title='Pressure [Pa]',
-            is_color_autoscaled=p.autoscale_Pcell_ani,
-            color_min=p.Pcell_ani_min_clr,
-            color_max=p.Pcell_ani_max_clr,
-        )
+    if p.ani_Pcell:
+        if p.scheduled_options['pressure'] != 0:
+            pipelayer.anim_pressure_mechanical()
 
-    if p.ani_Pcell is True and p.deform_osmo is True:
-        AnimFlatCellsTimeSeries(
-            sim=sim, cells=cells, p=p,
-            time_series=sim.osmo_P_delta_time,
-            label='Osmotic Pcell',
-            figure_title='Osmotic Pressure in Cells',
-            colorbar_title='Pressure [Pa]',
-            is_color_autoscaled=p.autoscale_Pcell_ani,
-            color_min=p.Pcell_ani_min_clr,
-            color_max=p.Pcell_ani_max_clr,
-        )
-
-    # Animate environment voltage if requested.
-    if p.ani_venv is True and p.sim_ECM is True:
-        pipelayer.anim_voltage_total()
+        if p.deform_osmo:
+            pipelayer.anim_pressure_osmotic()
 
     # Display and/or save animations specific to the "sim" simulation phase.
-    if (p.ani_Velocity is True and p.fluid_flow is True):
+    if p.ani_Velocity is True and p.fluid_flow is True:
         # Always animate the gap junction fluid velocity.
         AnimVelocityIntracellular(
             sim=sim, cells=cells, p=p,
@@ -587,7 +600,7 @@ def pipeline_anims(
         )
 
         # Also animate the extracellular spaces fluid velocity if desired.
-        if p.sim_ECM is True:
+        if p.sim_ECM:
             AnimVelocityExtracellular(
                 sim=sim, cells=cells, p=p,
                 label='Velocity_ecm',
@@ -618,35 +631,3 @@ def pipeline_anims(
             color_min=p.mem_ani_min_clr,
             color_max=p.mem_ani_max_clr,
         )
-
-# ....................{ PRIVATE ~ getters                  }....................
-#FIXME: Use everywhere above. Since recomputing this is heavy, we probably want
-#to refactor this module's functions into class methods. Fair dandylion hair!
-@type_check
-def _get_vmem_time_series(
-    sim: 'betse.science.sim.Simulator',
-    p: 'betse.science.parameters.Parameters',
-) -> list:
-    '''
-    Get the membrane voltage time series for the current simulation, upscaled
-    for use in animations.
-    '''
-
-    # Scaled membrane voltage time series.
-    if p.sim_ECM is False:
-        return visualutil.upscale_cell_data(sim.vm_time)
-    else:
-        #FIXME: What's the difference between "sim.vcell_time" and
-        #"sim.vm_Matrix"? Both the "p.ani_vm2d" and "AnimCellsWhileSolving"
-        #animations leverage the latter for extracellular spaces, whereas most
-        #animations leverage the former.
-        #FIXME: It would seem that "sim.vm_Matrix" is used where continuous
-        #plots (e.g., streamplots) are required and "sim.vcell_time" where
-        #discrete plots suffice, suggesting we probably want two variants of
-        #this method:
-        #
-        #* _get_vmem_time_series_continuous(), returning "sim.vm_Matrix" for
-        #  ECM and "sim.vm_time" for non-ECM.
-        #* _get_vmem_time_series_discontinuous(), returning "sim.vcell_time" for
-        #  ECM and "sim.vm_time" for non-ECM.
-        return visualutil.upscale_cell_data(sim.vcell_time)

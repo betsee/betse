@@ -31,7 +31,7 @@ def test_cli_sim_default(betse_cli_sim: 'CLISimTester') -> None:
 
 def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test simulating all exported visuals (e.g., plots, animations) _and_
+    Test simulating all exported visuals (e.g., plots, animations) *and*
     simulation features required by these visuals.
 
     Parameters
@@ -50,7 +50,7 @@ def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
 def test_cli_sim_vg_ions(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Test simulating all voltage-gated ion channels (e.g., sodium, potassium)
-    _and_ simulation features required by these channels.
+    *and* simulation features required by these channels.
 
     Parameters
     ----------

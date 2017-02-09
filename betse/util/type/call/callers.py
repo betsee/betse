@@ -25,66 +25,10 @@ See Also
 
 # ....................{ IMPORTS                            }....................
 import inspect, traceback
-from betse.exceptions import BetseFunctionException
-from betse.util.type.types import type_check
+from betse.exceptions import BetseCallableException
+from betse.util.type.types import type_check, CallableTypes
 
 # ....................{ GETTERS                            }....................
-@type_check
-def get_caller_basename(call_stack_index: int = 2) -> str:
-    '''
-    Basename of the callable with the passed index in the call stack.
-
-    This function returns the basename of the callableo obtained *after*
-    ignoring the passed number of leading stack frames on the call stack.
-
-    Parameters
-    ----------
-    call_stack_index : optional[int]
-        0-based index of the call stack frame to be inspected. Equivalently, the
-        1-based number of leading (most recent) stack frames to be ignored
-        including the call to this function. Defaults to an index inspecting the
-        **caller's caller** (i.e., the function or method calling the function
-        or method calling this function).
-    '''
-
-    # Call stack, including the call to this function.
-    call_stack = inspect.stack()
-
-    # If the desired function or method does not exist, raise an exception.
-    if call_stack_index >= len(call_stack):
-        raise BetseFunctionException(
-            'Call stack frame {} not found '
-            '(i.e., not in the range [1, {}]).'.format(
-                call_stack_index, len(call_stack)))
-
-    # Caller stack frame metadata as an instance of the 5-tuple
-    # "(frame, filename, lineno, function, code_context, index)".
-    caller_frame_metadata = call_stack[call_stack_index]
-
-    # Caller stack frame as a "FrameType" instance providing these fields:
-    #
-    # * "f_back", next outer frame object (this frame's caller).
-    # * "f_builtins", built-in namespace seen by this frame.
-    # * "f_code", code object being executed in this frame.
-    # * "f_globals", global namespace seen by this frame.
-    # * "f_lasti", index of last attempted instruction in bytecode.
-    # * "f_lineno", current line number in Python source code.
-    # * "f_locals", local namespace seen by this frame.
-    # * "f_trace", tracing function for this frame or "None".
-    caller_frame = caller_frame_metadata[0]
-
-    try:
-        # Return the fully-qualified name of this frame's function or method
-        # object. Lo, and the "inspect" module's API doth mightily sucketh!
-        return caller_frame.f_code.co_name
-        # return caller_frame.f_func.__qualname__
-    # For safety, explicitly release *ALL* call stack frames obtained above.
-    # Failing to do so invites memory leaks due to circular references. See:
-    #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack
-    finally:
-        del call_stack, caller_frame
-
-
 @type_check
 def get_traceback(call_stack_index_last: int = -1) -> str:
     '''
@@ -107,3 +51,159 @@ def get_traceback(call_stack_index_last: int = -1) -> str:
 
     # Return this traceback.
     return traceback_header + ''.join(traceback.format_list(call_stack))
+
+# ....................{ GETTERS ~ caller : basename        }....................
+@type_check
+def get_caller_basename(call_stack_index: int = 2) -> str:
+    '''
+    **Basename** (i.e., unqualified name *not* preceded by the ``.``-delimited
+    name of the parent module or class) of the callable with the passed index on
+    the call stack if any *or* raise an exception otherwise.
+
+    Parameters
+    ----------
+    call_stack_index : optional[int]
+        0-based index of the call stack frame to be inspected. Equivalently, the
+        1-based number of leading (most recent) stack frames to be ignored
+        including the call to this function. Defaults to an index inspecting the
+        **caller's caller** (i.e., the function or method calling the function
+        or method calling this function).
+
+    Returns
+    ----------
+    str
+        Basename of this callable, equivalent to the callable after ignoring the
+        passed number of leading stack frames on the call stack. As example, if
+        passed 2, this is the basename of the second callable on the call stack
+        corresponding to that of the caller's caller.
+
+    Raises
+    ----------
+    BetseCallableException
+        If this index exceeds the length of the call stack.
+    '''
+
+    # Call stack, including the call to this function.
+    call_stack = inspect.stack()
+
+    # Caller stack frame nullified to avoid exceptions on attempting to delete
+    # this attribute in the "finally" block below in edge cases.
+    caller_frame = None
+
+    # Attempt to...
+    try:
+        # Last valid index into the call stack.
+        call_stack_index_max = len(call_stack) - 1
+
+        # If no such callable exists, raise an exception.
+        if call_stack_index > call_stack_index_max:
+            raise BetseCallableException(
+                'Call stack frame {} not found '
+                '(i.e., not in range [0, {}]).'.format(
+                    call_stack_index, call_stack_index_max))
+
+        # Caller stack frame metadata as an instance of the 5-tuple
+        # "(frame, filename, lineno, function, code_context, index)".
+        caller_frame_metadata = call_stack[call_stack_index]
+
+        # Caller stack frame as a "FrameType" instance with these fields:
+        #
+        # * "f_back", next outer frame object (this frame's caller).
+        # * "f_builtins", built-in namespace seen by this frame.
+        # * "f_code", code object being executed in this frame.
+        # * "f_globals", global namespace seen by this frame.
+        # * "f_lasti", index of last attempted instruction in bytecode.
+        # * "f_lineno", current line number in Python source code.
+        # * "f_locals", local namespace seen by this frame.
+        # * "f_trace", tracing function for this frame or "None".
+        caller_frame = caller_frame_metadata[0]
+
+        # Return the basename of the callable associated with this frame's code
+        # object. Lo, and the "inspect" module's API doth mightily sucketh!
+        return caller_frame.f_code.co_name
+        # return caller_frame.f_func.__qualname__
+    # For safety, explicitly release *ALL* call stack frames obtained above.
+    # Failing to do so invites memory leaks due to circular references. See:
+    #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack
+    finally:
+        del call_stack, caller_frame
+
+
+@type_check
+def get_caller_basename_matching(predicate: CallableTypes) -> str:
+    '''
+    Basename of the first callable whose basename matches the passed predicate
+    in the call stack if any *or* raise an exception otherwise.
+
+    Parameters
+    ----------
+    predicate : CallableTypes
+        Callable iteratively passed the basename of each callable on the call
+        stack (starting at the call to this function and iterating up the call
+        stack), returning ``True`` only if that basename matches a
+        caller-defined predicate.
+
+    Returns
+    ----------
+    str
+        Basename of the first callable matching this predicate.
+
+    Raises
+    ----------
+    BetseCallableException
+        If no callable on the call stack matches this predicate.
+
+    See Also
+    ----------
+    :func:`get_caller_basename`
+        Further details.
+    '''
+
+    # Call stack, including the call to this function.
+    call_stack = inspect.stack()
+
+    # Caller stack frame nullified to avoid exceptions on attempting to delete
+    # this attribute in the "finally" block below in edge cases.
+    caller_frame = None
+
+    # Attempt to...
+    try:
+        # For each stack frame on the call stack as an instance of the 5-tuple
+        # "(frame, filename, lineno, function, code_context, index)"...
+        for caller_frame_metadata in call_stack:
+            # Caller stack frame as a "FrameType" instance with these fields:
+            #
+            # * "f_back", next outer frame object (this frame's caller).
+            # * "f_builtins", built-in namespace seen by this frame.
+            # * "f_code", code object being executed in this frame.
+            # * "f_globals", global namespace seen by this frame.
+            # * "f_lasti", index of last attempted instruction in bytecode.
+            # * "f_lineno", current line number in Python source code.
+            # * "f_locals", local namespace seen by this frame.
+            # * "f_trace", tracing function for this frame or "None".
+            caller_frame = caller_frame_metadata[0]
+
+            # Caller stack frame code object if any or None otherwise.
+            caller_frame_code = getattr(caller_frame, 'f_code', None)
+
+            # If this frame is associated with a code object...
+            if caller_frame_code is not None:
+                # Basename of the callable associated with this frame's code
+                # object if any or None otherwise.
+                caller_basename = getattr(caller_frame_code, 'co_name', None)
+
+                # If this basename both exists and matches this predicate,
+                # return this basename.
+                if caller_basename is not None and predicate(caller_basename):
+                    return caller_basename
+        # Else, no callable on the call stack matches this predicate. In this
+        # case, raise an exception.
+        else:
+            raise BetseCallableException(
+                'Caller basename matching predicate {!r} not found.'.format(
+                    predicate))
+    # For safety, explicitly release *ALL* call stack frames obtained above.
+    # Failing to do so invites memory leaks due to circular references. See:
+    #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack
+    finally:
+        del call_stack, caller_frame

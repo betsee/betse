@@ -202,36 +202,51 @@ class Simulator(object):
     Attributes (Electric Field, Intracellular)
     ----------
     E_gj_x : ndarray
-        One-dimensional Numpy array indexing each simulated cell membrane such
-        that each element is the X component of the intracellular electric
-        field vector for the current time step spatially situated across the
-        gap junction to which the current membrane connects: specifically, the
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the X component of the intracellular electric field vector
+        for the current time step spatially situated across the gap junction to
+        which the membrane indexed by that element connects: specifically, the
         difference of the X component of the voltage situated at this membrane
-        with that of the voltage situated at the gap junction-connected
-        membrane adjacent to this membrane, divided by the length in meters of
-        this gap junction.
+        with that of the voltage situated at the gap junction-connected membrane
+        adjacent to this membrane, divided by the length in meters of this gap
+        junction.
     E_gj_y : ndarray
-        One-dimensional Numpy array indexing each simulated cell membrane such
-        that each element is the Y component of the intracellular electric
-        field vector for the current time step defined as for the corresponding
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the Y component of the intracellular electric field vector
+        for the current time step defined as for the corresponding
         :attr:`E_gj_X` array.
     efield_gj_x_time : list
         Two-dimensional list of the X components of the intracellular electric
         fields for all time steps, whose:
-        * First dimension indexes each simulation time step.
-        * Second dimension indexes each simulated cell membrane such that each
-          element is the X component of the intracellular electric field vector
-          defined as for the corresponding :attr:`E_gj_x` array.
+        * First dimension indexes each time step.
+        * Second dimension indexes each cell membrane such that each element is
+          the X component of the intracellular electric field vector defined as
+          for the :attr:`E_gj_x` array.
         Equivalently, this list is the concatenation of all :attr:`E_gj_x`
         arrays for all time steps.
     efield_gj_y_time : list
         Two-dimensional list of the Y components of the intracellular electric
         fields for all time steps, whose:
-        * First dimension indexes each simulation time step.
-        * Second dimension indexes each simulated cell membrane such that each
-          element is the Y component of the intracellular electric field vector
-          defined as for the corresponding :attr:`E_gj_y` array.
+        * First dimension indexes each time step.
+        * Second dimension indexes each cell membrane such that each element is
+          the Y component of the intracellular electric field vector defined as
+          for the :attr:`E_gj_y` array.
         Equivalently, this list is the concatenation of all :attr:`E_gj_y`
+        arrays for all time steps.
+
+    Attributes (Mechanical Pressure)
+    ----------
+    P_cells : ndarray
+        One-dimensional Numpy array indexing each cell such that each element is
+        the mechanical pressure spatially situated at the centre of the cell
+        indexed by that element for the current time step.
+    P_cells_time : list
+        Two-dimensional list of the mechanical pressures for all time steps,
+        whose:
+        * First dimension indexes each time step.
+        * Second dimension indexes each cell such that each element is the
+          mechanical pressure defined as for the :attr:`P_cells` array.
+        Equivalently, this list is the concatenation of all :attr:`P_cells`
         arrays for all time steps.
 
     Attributes (Voltage)
@@ -243,13 +258,13 @@ class Simulator(object):
         Voltage at the outer membrane surface of each cell as a function of
         time.
     vm : ndarray
-        One-dimensional Numpy array indexing each cell membranes such that each
+        One-dimensional Numpy array indexing each cell membrane such that each
         element is the transmembrane voltage spatially situated across the cell
         membrane indexed by that element for the current time step.
     vm_time : ndarray
         Two-dimensional Numpy array of the transmembrane voltage across all
         cell membranes, whose:
-        . First dimension indexes each simulation time step.
+        . First dimension indexes each time step.
         . Second dimension indexes each cell membrane such that each element is
           the transmembrane voltage spatially situated across the cell membrane
           indexed by that element for this time step.

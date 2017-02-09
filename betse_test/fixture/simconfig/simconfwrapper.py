@@ -249,20 +249,21 @@ class SimConfigTestWrapper(SimConfigWrapper):
         * Cell enumeration, labelling each cell by its 0-based index.
         * Current overlays, displaying current density streamlines.
         * The calcium (Ca) plot and animation by enabling:
-          * The mammalian ion profile (i.e., `animal`), enabling all ions
+          * The mammalian ion profile (i.e., ``animal``), enabling all ions
             including calcium.
         * The deformation plot and animation by enabling:
           * Galvanotaxis (i.e., deformations).
         * The pH plot and animation dependent upon hydrogen (H) by enabling:
-          * The mammalian ion profile (i.e., `animal`), enabling all ions
+          * The mammalian ion profile (i.e., ``animal``), enabling all ions
             including hydrogen.
-        * The "Membrane" plot and animation of membrane pump density by
-          enabling:
+        * The membrane pump density plot and animation by enabling:
           * Membrane pump/channel movement via electrophoresis/osmosis.
-        * The "P cell", "Osmotic P", and "Force" plots and animations of
-          electroosmotic pressure, osmotic pressure, and hydrostatic body force
-          respectively by enabling:
+        * The electroosmotic pressure ("Osmotic Pcell"), osmotic pressure
+          ("Osmotic P"), and hydrostatic body force ("Force") plots and
+          animations respectively by enabling:
           * Osmotic pressure.
+        * The mechanical pressure plot and animation ("Pcell") by enabling:
+          * The mechanical pressure event.
         * The "Vcell", "Venv", and "Current" plots and animations of cellular
           voltage, environmental voltage, and extracellular current by enabling:
           * The extracellular matrix (ECM).
@@ -307,7 +308,8 @@ class SimConfigTestWrapper(SimConfigWrapper):
         # Enable all features required by these plots and animations.
         self.is_ecm = True
         self.ion_profile = 'animal'
+        self._config['apply pressure']['event happens'] = True
         variable['channel electroosmosis']['turn on'] = True
         variable['deformation']['turn on'] = True
         variable['fluid flow']['include fluid flow'] = True
-        # variable['pressures']['include osmotic pressure'] = True # FIXME check this!
+        variable['pressures']['include osmotic pressure'] = True

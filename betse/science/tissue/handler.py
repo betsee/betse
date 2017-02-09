@@ -277,7 +277,8 @@ class TissueHandler(object):
             # call a special toolbox function to change membrane permeability: spatial grads
             # 'gradient_x', 'gradient_y', 'gradient_r'
             if self.function_P != 'None':
-                self.scalar_P, self.dyna_P = getattr(mod, self.function_P)(self.targets_P,cells, p)
+                self.scalar_P, self.dyna_P = getattr(mod, self.function_P)(
+                    self.targets_P,cells, p)
 
         #--------------------------------------------------------
 
@@ -657,19 +658,22 @@ class TissueHandler(object):
             sim.Dm_scheduled[sim.iCa][self.targets_Camem] = self.mem_mult_Camem*effector_Ca*p.Dm_Ca
 
         if p.scheduled_options['pressure'] != 0:
-
-            sim.P_mod[self.targets_P] =  self.scalar_P*self.dyna_P(t)*self.rate_P*tb.pulse(t,self.t_onP,
-                                         self.t_offP,self.t_changeP)
+            # logs.log_debug('Applying pressure event...')
+            sim.P_mod[self.targets_P] = (
+                self.scalar_P*self.dyna_P(t)*self.rate_P*tb.pulse(
+                    t,self.t_onP, self.t_offP, self.t_changeP))
 
         if p.sim_ECM is True:
 
             if p.scheduled_options['ecmJ'] != 0:
                 for i, dmat in enumerate(sim.D_env):
 
-                    effector_ecmJ = tb.pulse(t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
+                    effector_ecmJ = tb.pulse(
+                        t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
 
-                    sim.D_env[i][self.targets_ecmJ] = sim.D_env_base[i][self.targets_ecmJ]*(1 - effector_ecmJ) \
-                                                      + effector_ecmJ*sim.D_free[i]
+                    sim.D_env[i][self.targets_ecmJ] = (
+                        sim.D_env_base[i][self.targets_ecmJ]*(
+                            1 - effector_ecmJ) + effector_ecmJ*sim.D_free[i])
 
                     sim.D_env_weight = sim.D_env_weight.ravel()
                     sim.D_env_weight_base = sim.D_env_weight_base.ravel()
@@ -958,24 +962,28 @@ class TissueHandler(object):
             else:
                 TypeError('Profile type {} unrecognized.'.format(profile_type))
 
-    def makeAllChanges(self, sim):
+
+    def makeAllChanges(self, sim) -> None:
         '''
         Add together all effects to finalize changes to cell membrane
-        permeabilities.
+        permeabilities for the current time step.
         '''
 
-        sim.Dm_cells = \
-            sim.Dm_scheduled + \
-            sim.Dm_cag + \
-            sim.Dm_morpho + \
-            sim.Dm_stretch +\
-            sim.Dm_custom +\
+        sim.Dm_cells = (
+            sim.Dm_scheduled +
+            sim.Dm_cag +
+            sim.Dm_morpho +
+            sim.Dm_stretch +
+            sim.Dm_custom +
             sim.Dm_base
+        )
 
         sim.P_cells = sim.P_mod + sim.P_base
 
+
     #FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
-    def removeCells(self,tissue_picker, sim, cells, p, hole_tag = False) -> None:
+    def removeCells(
+        self, tissue_picker, sim, cells, p, hole_tag = False) -> None:
         '''
         Permanently remove all cells selected by the passed tissue picker.
 
