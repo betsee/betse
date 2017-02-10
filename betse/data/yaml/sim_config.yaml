@@ -762,24 +762,32 @@ results options:
       pipeline:
         # Example intracellular voltage animation.
         - type: voltage_intra  # Animation type. Supported types include:
-                               # * "current_intra"  (intracellular current density).
-                               # * "current_total"  (intra- and extracellular current density).
-                               #   Ignored unless extracellular spaces are enabled.
-                               # * "electric_intra" (intracellular electric field).
-                               # * "electric_total" (intra- and extracellular electric field).
-                               #   Ignored unless extracellular spaces are enabled.
-                               # * "gap_junction"   (gap junction connectivity state).
-                               # * "ion_calcium"    (calcium ion concentration: Ca2+).
-                               #   Ignored unless ion profile enables calcium ions (Ca2+).
-                               # * "ion_hydrogen"   (hydrogen ion concentration: pH, H+).
-                               #   Ignored unless ion profile enables hydrogen ions (H+).
+                               # * "current_intra"    (intracellular current density).
+                               # * "current_total"    (intra- and extracellular current density).
+                               #   Ignored if extracellular spaces disabled.
+                               # * "deform"           (deformation).
+                               #   Ignored unless deformation disabled.
+                               # * "electric_intra"   (intracellular electric field).
+                               # * "electric_total"   (intra- and extracellular electric field).
+                               #   Ignored if extracellular spaces disabled.
+                               # * "fluid_intra"      (intracellular fluid flow).
+                               #   Ignored if fluid flow disabled.
+                               # * "fluid_total"      (intra- and extracellular fluid flow).
+                               #   Ignored if fluid flow or extracellular spaces disabled.
+                               # * "gap_junction"     (gap junction connectivity state).
+                               # * "ion_calcium"      (calcium ion concentration: Ca2+).
+                               #   Ignored if calcium (Ca2+) disabled by ion profile.
+                               # * "ion_hydrogen"     (hydrogen ion concentration: pH, H+).
+                               #   Ignored if hydrogen (H+) disabled by ion profile.
                                # * "pressure_mechanical" (cellular mechanical pressure).
-                               #   Ignored unless mechanical pressure event is enabled.
+                               #   Ignored if mechanical pressure event disabled.
                                # * "pressure_osmotic" (cellular osmotic pressure).
-                               #   Ignored unless osmotic pressure is enabled.
-                               # * "voltage_intra"  (intracellular voltage).
-                               # * "voltage_total"  (intra- and extracellular voltage).
-                               #   Ignored unless extracellular spaces are enabled.
+                               #   Ignored if osmotic pressure disabled.
+                               # * "pump_density"     (cellular membrane pump density factor)
+                               #   Ignored if channel electroosmosis disabled.
+                               # * "voltage_intra"    (intracellular voltage).
+                               # * "voltage_total"    (intra- and extracellular voltage).
+                               #   Ignored if extracellular spaces disabled.
           colorbar:          # Animation colorbar settings.
             autoscale: True  # Automatically scale colorbar to minimum and
                              # maximum values of underlying data series?
@@ -1013,7 +1021,6 @@ results options:
       max val: 1                # maximum colorbar value [pA]
       min val: 0                  # minimum colorbar value [pA]
 
-
   Velocity Ani:
       animate Velocity: True      # Plot a 2D animation of the velocity of
                                   # fluid in the cell cluster? Ignored unless
@@ -1023,6 +1030,16 @@ results options:
       max val: 500                # max colorbar value [V/m]
       min val: 0                  # min colorbar value [V/m]
 
+  #FIXME: This animation cannot be safely pipelined until the "data type" key
+  #defined below is refactored into two separate animation types above:
+  #
+  #* "deform_displace", animating... we have no idea. Physical displacement?
+  #* "deform_voltage", animating.... we have no idea. Voltage-based deformation?
+  #
+  #However, incorporating the "style" key as well into this scheme would then
+  #necessitate four distinct animation types above -- at which point it would
+  #probably be more prudent to defer this until this can be properly refactored
+  #into "composable" layers that can be dynamically combined and reused at will.
   Deformation Ani:
       animate Deformation: True   # Plot a 2D animation of cell deformation?
                                   # Ignored unless "deformation" enabled.

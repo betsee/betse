@@ -258,24 +258,136 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
 
-# ....................{ ITERATORS ~ name-value             }....................
+# ....................{ ITERATORS ~ methods                }....................
+def iter_methods(obj: object) -> GeneratorType:
+    '''
+    Generator yielding a 2-tuple of the name and value of each method bound to
+    the passed object (in ascending lexicographic order of method name).
+
+    This includes:
+
+    * All methods statically registered in this object's internal dictionary
+      (e.g., ``__dict__`` in unslotted objects), including both:
+      * Builtin methods, whose names are both prefixed and suffixed by ``__``.
+      * Custom methods, whose names are *not* prefixed and suffixed by ``__``.
+    * All methods dynamically returned by **property methods** (i.e., methods
+      decorated by the :func:`property` decorator).
+
+    This excludes:
+
+    * All property methods themselves.
+    * All methods dynamically defined by this object's ``__getattr__()`` method
+      or related runtime magic, which cannot (by definition) be inspected by
+      this generator.
+
+    Parameters
+    ----------
+    obj : object
+        Object to iterate the methods of.
+
+    Yields
+    ----------
+    (method_name, method_value)
+        2-tuple of the name and value of each method bound to this object (in
+        ascending lexicographic order of method name).
+
+    Raises
+    ----------
+    Exception
+        If any method of this object is a property whose
+        :func:`property`-decorated method raises an exception. To avoid handling
+        such exceptions, consider instead calling the
+        :func:`iter_methods_custom_simple` generator excluding all properties.
+    '''
+
+    # For the name and value of each attribute of this object...
+    for method_name, method_value in inspect.getmembers(obj):
+        # If this attribute is a method, yield this name and value.
+        if callable(method_value):
+            yield method_name, method_value
+
+
+@type_check
+def iter_methods_matching(
+    obj: object, predicate: CallableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each method bound to
+    the passed object whose method name matches the passed predicate (in
+    ascending lexicographic order of method name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all matching methods of.
+    predicate : CallableTypes
+        Callable iteratively passed the name of each method bound to this
+        object, returning ``True`` only if that name matches this predicate.
+
+    Yields
+    ----------
+    (method_name, method_value)
+        2-tuple of the name and value of each matching method bound to this
+        object (in ascending lexicographic order of method name).
+
+    See Also
+    ----------
+    :func:`iter_methods`
+        Further details.
+    '''
+
+    # For the name and value of each method of this object...
+    for method_name, method_value in iter_methods(obj):
+        # If this method matches this predicate, yield this name and value.
+        if predicate(method_name):
+            yield method_name, method_value
+
+
+def iter_methods_custom(obj: object) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each **non-builtin
+    method** (i.e., method whose name is *not* both prefixed and suffixed by
+    `__`) bound to the passed object (in ascending lexicographic order of
+    method name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all non-builtin methods of.
+
+    Yields
+    ----------
+    (method_name, method_value)
+        2-tuple of the name and value of each non-builtin method bound to this
+        object (in ascending lexicographic order of method name).
+
+    See Also
+    ----------
+    :func:`iter_methods`
+        Further details.
+    '''
+
+    yield from iter_methods_matching(
+        obj=obj, predicate=lambda method_name: not (
+            method_name.startswith('__') and method_name.endswith('__')))
+
+# ....................{ ITERATORS ~ vars                   }....................
 def iter_vars(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each variable bound to
-    the passed object (_in ascending lexicographic order of variable name_).
+    the passed object (in ascending lexicographic order of variable name).
 
     This includes:
 
     * All variables statically registered in this object's internal dictionary
-      (e.g., `__dict__` in unslotted objects), including both:
-      * Builtin variables, whose names are both prefixed and suffixed by `__`.
-      * Custom variables, whose names are _not_ prefixed and suffixed by `__`.
-    * All variables dynamically defined by the :func:`property` decorator to be
-      the implicit result of a method call.
+      (e.g., ``__dict__`` in unslotted objects), including both:
+      * Builtin variables, whose names are both prefixed and suffixed by ``__``.
+      * Custom variables, whose names are *not* prefixed and suffixed by ``__``.
+    * All variables dynamically returned by **property methods** (i.e., methods
+      decorated by the :func:`property` decorator).
 
-    This excludes _only_ variables dynamically defined by this object's
-    `__getattr__()` method or related runtime magic, which cannot (_by
-    definition_) be inspected by this generator.
+    This excludes *only* variables dynamically defined by this object's
+    ``__getattr__()`` method or related runtime magic, which cannot (by
+    definition) be inspected by this generator.
 
     Parameters
     ----------
@@ -285,8 +397,8 @@ def iter_vars(obj: object) -> GeneratorType:
     Yields
     ----------
     (var_name, var_value)
-        2-tuple of the name and value of each variable bound to this object (_in
-        ascending lexicographic order of variable name_).
+        2-tuple of the name and value of each variable bound to this object (in
+        ascending lexicographic order of variable name).
 
     Raises
     ----------
@@ -308,9 +420,9 @@ def iter_vars(obj: object) -> GeneratorType:
 def iter_vars_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
-    variable** (i.e., variable whose name is _not_ both prefixed and suffixed by
-    `__`) bound to the passed object (_in ascending lexicographic order of
-    variable name_).
+    variable** (i.e., variable whose name is *not* both prefixed and suffixed by
+    `__`) bound to the passed object (in ascending lexicographic order of
+    variable name).
 
     Parameters
     ----------
@@ -321,7 +433,7 @@ def iter_vars_custom(obj: object) -> GeneratorType:
     ----------
     (var_name, var_value)
         2-tuple of the name and value of each non-builtin variable bound to this
-        object (_in ascending lexicographic order of variable name_).
+        object (in ascending lexicographic order of variable name).
 
     See Also
     ----------
@@ -336,17 +448,18 @@ def iter_vars_custom(obj: object) -> GeneratorType:
             yield var_name, var_value
 
 
+#FIXME: For orthogonality, rename to iter_vars_custom_simple().
 def iter_vars_simple_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
-    non-property variable** (i.e., variable whose name is _not_ both prefixed
-    and suffixed by `__` and whose value _not_ dynamically defined by the
+    non-property variable** (i.e., variable whose name is *not* both prefixed
+    and suffixed by ``__`` and whose value is *not* dynamically defined by the
     `@property` decorator to be the implicit result of a method call) bound to
-    the passed object (_in ascending lexicographic order of variable name_).
+    the passed object (in ascending lexicographic order of variable name).
 
     Only variables statically registered in this object's internal dictionary
-    (e.g., `__dict__` in unslotted objects) are yielded. Variables dynamically
-    defined by this object's `__getattr__()` method or related runtime magic
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
+    defined by this object's ``__getattr__()`` method or related runtime magic
     are simply ignored.
 
     Parameters
@@ -358,8 +471,8 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
     ----------
     (var_name, var_value)
         2-tuple of the name and value of each non-builtin non-property variable
-        bound to this object (_in ascending lexicographic order of variable
-        name_).
+        bound to this object (in ascending lexicographic order of variable
+        name).
     '''
 
     # Ideally, this function would be reimplemented in terms of the iter_vars()
@@ -386,12 +499,12 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
             # Value of this attribute guaranteed to be statically rather than
             # dynamically retrieved. The getattr() builtin performs the latter,
             # dynamically calling this attribute's getter if this attribute is
-            # a property. Since such call could conceivably raise unwanted
+            # a property. Since that call could conceivably raise unwanted
             # exceptions *AND* since this function explicitly ignores
-            # properties, static attribute retrievable is strongly preferable.
+            # properties, static attribute retrievable is unavoidable.
             var_value = inspect.getattr_static(obj, var_name)
 
             # If this value is neither callable nor a property, this attribute
-            # is a non-property variable.
+            # is a non-property variable. Yield this variable.
             if not (callable(var_value) or isinstance(var_value, property)):
                 yield var_name, var_value

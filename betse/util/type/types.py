@@ -147,7 +147,7 @@ SetType = Set
 '''
 Abstract interface implemented by all set-like objects.
 
-This class is a synonym of the `collections.abc.Set` class, provided merely as
+This class is a synonym of the :class:`collections.abc.Set`, provided merely as
 a convenience to callers preferring to avoid importing that class.
 '''
 

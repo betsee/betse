@@ -129,6 +129,7 @@ def get_caller_basename(call_stack_index: int = 2) -> str:
         del call_stack, caller_frame
 
 
+#FIXME: For disambiguity, rename to get_caller_basename_first_matching().
 @type_check
 def get_caller_basename_matching(predicate: CallableTypes) -> str:
     '''
@@ -140,8 +141,7 @@ def get_caller_basename_matching(predicate: CallableTypes) -> str:
     predicate : CallableTypes
         Callable iteratively passed the basename of each callable on the call
         stack (starting at the call to this function and iterating up the call
-        stack), returning ``True`` only if that basename matches a
-        caller-defined predicate.
+        stack), returning ``True`` only if that basename matches this predicate.
 
     Returns
     ----------

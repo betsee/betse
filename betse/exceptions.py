@@ -280,12 +280,20 @@ class BetseSimConfigException(BetseSimException):
 
 class BetseSimInstabilityException(BetseSimException):
     '''
-    Exception indicating the current simulation to have erroneously become
-    computationally unstable.
+    Simulation-specific exception indicating the current simulation to have
+    unexpectedly failed due to computational instability.
     '''
     pass
 
 
+#FIXME: For orthogonality, rename to "BetseSimVectorException".
+class BetseVectorException(BetseSimException):
+    '''
+    Vector-specific exception.
+    '''
+    pass
+
+# ....................{ EXCEPTIONS ~ science : visual      }....................
 class BetseSimVisualException(BetseSimException):
     '''
     Simulation visualization-specific exception, applicable to both plots and
@@ -293,16 +301,19 @@ class BetseSimVisualException(BetseSimException):
     '''
     pass
 
-# ....................{ EXCEPTIONS ~ science : visual      }....................
-class BetseLayerException(BetseException):
+
+class BetseSimVisualUnsatisfiedException(BetseSimVisualException):
     '''
-    Layer-specific exception.
+    Simulation visualization-specific exception, applicable to both plots and
+    animations, raised when any feature required by a visualization (e.g.,
+    extracellular spaces) is disabled by the parent simulation configuration.
     '''
     pass
 
 
-class BetseVectorException(BetseException):
+#FIXME: For orthogonality, rename to "BetseSimVisualLayerException".
+class BetseLayerException(BetseSimVisualException):
     '''
-    Vector-specific exception.
+    Simulation visualization layer-specific exception.
     '''
     pass

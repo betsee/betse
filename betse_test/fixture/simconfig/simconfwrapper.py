@@ -62,11 +62,33 @@ class SimConfigTestWrapper(SimConfigWrapper):
         self.sim_time =        min(self.sim_time, init['total time'])
 
         # Minify the physical dimensions of the cell cluster in meters. By
-        # experimentation, the default simulation configuration exhibits
-        # instabilities (e.g., on performing the cutting event) raising fatal
-        # exceptions for physical dimensions less than that specified below.
-        # Hence, this appears to currently be a fairly hard minimum.
+        # experimentation, the default simulation configuration both:
+        #
+        # * Exhibits expected instabilities for physical dimensions less than
+        #   100e-6, typically due to the cell cluster cutting event. Since these
+        #   instabilities are expected and hence best ignored, the dimensions
+        #   specified below should *NEVER* be smaller than 100e-6.
+        # * Exhibits unexpected instabilities for physical dimensions greater
+        #   than 250e-6, typically due to non-linear interactions between
+        #   channel electroosmosis and physical deformation. Since these
+        #   instabilities are unexpected and hence *NOT* safely ignorable, the
+        #   dimensions specified below should *ALWAYS* be in this range.
+        #
+        # Hence, these dimensions reside in an optimal range both avoiding
+        # expected instabilities *AND* exposing unexpected instabilities.
         self.environment_size = min(self.environment_size, 100e-6)
+
+        #FIXME: Uncommenting the following line reliably causes the following
+        #test to fail with a computational instability during the "sim" phase:
+        #
+        #    ./test -k test_cli_sim_visuals
+        #
+        #Since it's unclear whether this behaviour is expected or not, this line
+        #remains commented out. (If this behaviour is indeed unexpected, this
+        #line should be shifted into the enable_visuals_all() method and the
+        #more preferable global default retained above).
+
+        # self.environment_size = min(self.environment_size, 250e-6)
 
         # Minify ECM-specific grid size. For similar reasons as above, the
         # computational grid size specified below appears to be a hard minimum.
