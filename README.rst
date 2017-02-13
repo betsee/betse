@@ -239,13 +239,13 @@ Ions
 Simulations may enable arbitrary combinations of the principal ions implicated
 in bioelectrical signaling – including:
 
-- Calcium_ (*Ca*\ :sup:`2+`).
-- Chloride_ (*Cl*\ :sup:`-`).
-- Hydrogen_ (*H*\ :sup:`+`).
-- Potassium_ (*K*\ :sup:`+`).
 - Sodium_ (*Na*\ :sup:`+`).
+- Potassium_ (*K*\ :sup:`+`).
+- Chloride_ (*Cl*\ :sup:`-`).
+- Calcium_ (*Ca*\ :sup:`2+`).
+- Hydrogen_ (*H*\ :sup:`+`).
 - `Anionic proteins`_ (*P*\ :sup:`-`).
-- `Bicarbonate ion`_ (*HCO*\ :sup:`-`\ :sub:`3`).
+- Bicarbonate_ (*HCO*\ :sup:`-`\ :sub:`3`).
 
 Ion Channels
 ------------
@@ -463,15 +463,14 @@ For prospective contributors:
    https://en.wikipedia.org/wiki/Transepithelial_potential_difference
 
 .. # ------------------( LINKS ~ science : ions             )------------------
-.. _calcium:   https://en.wikipedia.org/wiki/Calcium_in_biology
-.. _chloride:  https://en.wikipedia.org/wiki/Chloride
-.. _hydron:    https://en.wikipedia.org/wiki/Hydron_(chemistry)
-.. _sodium:    https://en.wikipedia.org/wiki/Sodium_in_biology
-.. _potassium: https://en.wikipedia.org/wiki/Potassium_in_biology
-.. _anionic protein:
-   https://en.wikipedia.org/wiki/Gibbs%E2%80%93Donnan_effect
-.. _bicarbonate transporter protein:
-   https://en.wikipedia.org/wiki/Bicarbonate_transporter_protein
+.. _anionic proteins:
+   https://en.wikipedia.org/wiki/Ion#anion
+.. _bicarbonate: https://en.wikipedia.org/wiki/Bicarbonate
+.. _calcium:     https://en.wikipedia.org/wiki/Calcium_in_biology
+.. _chloride:    https://en.wikipedia.org/wiki/Chloride
+.. _hydrogen:    https://en.wikipedia.org/wiki/Hydron_(chemistry)
+.. _sodium:      https://en.wikipedia.org/wiki/Sodium_in_biology
+.. _potassium:   https://en.wikipedia.org/wiki/Potassium_in_biology
 
 .. # ------------------( LINKS ~ science : channels         )------------------
 .. _ion channel:
