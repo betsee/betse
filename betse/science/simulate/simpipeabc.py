@@ -1,0 +1,290 @@
+#!/usr/bin/env python3
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry
+# See "LICENSE" for further details.
+
+'''
+High-level **simulation pipeline** (i.e., set of one or more processing ) functionality.
+'''
+
+# ....................{ IMPORTS                            }....................
+from abc import ABCMeta, abstractproperty
+from betse.exceptions import (
+    BetseSimConfigException,
+    BetseSimPipelineException,
+    BetseSimPipelineUnsatisfiedException,
+)
+from betse.science.simulate.simphase import SimPhaseABC
+from betse.util.io.log import logs
+from betse.util.type import strs
+from betse.util.type.call import callers
+from betse.util.type.cls import classes
+from betse.util.type.obj import objects
+from betse.util.type.types import type_check, GeneratorType, SequenceTypes
+
+# ....................{ SUPERCLASSES                       }....................
+class SimPipelayerABC(object, metaclass=ABCMeta):
+    '''
+    Abstract base class of all **simulation pipelines** (i.e., subclasses
+    iteritavely running all implementations of a single simulation activity,
+    either in parallel *or* in series).
+
+    Design
+    ----------
+    Each subclass is expected to define:
+
+    * One or more public methods with names prefixed by ``run_`` (e.g.,
+      ``run_voltage_intra``). For each such method, the name of that method
+      excluding the prefix ``run_`` is the name of that method's runner (e.g.,
+      ``voltage_intra`` for the method name ``run_voltage_intra``). Each such
+      method should:
+      * Accept exactly one parameter: ``self``.
+      * Return nothing (i.e.,``None``).
+    * The abstract :meth:`runner_names` property returning a sequence of the
+      names of all runners currently enabled by this pipeline (e.g.,
+      ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
+
+    The :meth:`run` method defined by this base class then dynamically
+    implements this pipeline by iterating over the :meth:`runner_names` property
+    and, for each enabled runner, calling that runner's method.
+
+    Attributes (Private)
+    ----------
+    _phase : SimPhaseABC
+        Current simulation phase.
+
+    Attributes (Private: Labels)
+    ----------
+    _label_singular_lowercase : str
+        Human-readable lowercase singular noun synopsizing the type of runners
+        implemented by this subclass (e.g., ``animation``, ``plot``).
+    _label_singular_uppercase : str
+        Human-readable singular noun whose first character is uppercase and all
+        remaining characters lowercase (e.g., ``Animation``, ``Plot``).
+    _label_plural_lowercase : str
+        Human-readable lowercase plural noun synopsizing the type of runners
+        implemented by this subclass (e.g., ``animations``, ``plots``).
+    '''
+
+    # ..................{ CONSTANTS                          }..................
+    _RUNNER_METHOD_NAME_PREFIX = 'run_'
+    '''
+    Substring prefixing the name of each runner defined by this pipeline.
+    '''
+
+    # ..................{ STATIC ~ iterators                 }..................
+    @classmethod
+    def iter_runner_names(cls) -> GeneratorType:
+        '''
+        Generator yielding the name of each runner defined by this pipeline.
+
+        For each subclass method whose name is prefixed by ``run_``, this
+        generator yields that name excluding the prefixing ``run_``. For
+        example, if this subclass defines only two methods ``run_exhra`` and
+        ``run_intra`` whose names are prefixed by ``run_``, this generator first
+        yields the string ``extra`` and then the string ``intra`` (in that
+        order).
+
+        Yields
+        ----------
+        str
+            Name of each runner defined by this pipeline.
+        '''
+
+        # For each "run_"-prefixed method defined by this class...
+        for anim_method_name in classes.iter_methods_matching(
+            cls=cls,
+            predicate=lambda method_name: method_name.startswith(
+                cls._RUNNER_METHOD_NAME_PREFIX)):
+            # Yield the name of this method excluding the "run_" prefix.
+            yield strs.remove_prefix(
+                text=anim_method_name, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(
+        self,
+        phase: SimPhaseABC,
+        label_singular: str,
+        label_plural: str,
+    ) -> None:
+        '''
+        Initialize this pipeline.
+
+        Parameters
+        ----------
+        phase : SimPhaseABC
+            Current simulation phase.
+        '''
+
+        # Classify all passed parameters.
+        self._phase = phase
+        self._label_singular_lowercase = label_singular
+        self._label_plural_lowercase = label_plural
+
+        # Human-readable capitalized singular noun.
+        self._label_singular_uppercase = strs.uppercase_first_char(
+            self._label_singular_lowercase)
+
+    # ..................{ RUNNERS                            }..................
+    def run(self) -> None:
+        '''
+        Run this pipeline.
+
+        Specifically, this method runs all currently enabled runners in this
+        pipeline.
+        '''
+
+        # Log animation creation.
+        logs.log_info('Running %s...', self._label_plural_lowercase)
+
+        # For the name of each currently enabled runner in this pipeline...
+        for runner_name in self.runner_names:
+            # Name of the method implementing this runner.
+            runner_method_name = self._RUNNER_METHOD_NAME_PREFIX + runner_name
+
+            # Method implementing this runner *OR* None if this runner is
+            # unrecognized.
+            runner_method = objects.get_method_or_none(
+                obj=self, method_name=runner_method_name)
+
+            # If this runner is unrecognized, raise an exception.
+            if runner_method is None:
+                raise BetseSimPipelineException(
+                    '{} "{}" unrecognized.'.format(
+                        self._label_singular_uppercase, runner_method_name))
+            # Else, this runner is recognized.
+
+            # Attempt to run this runner.
+            try:
+                runner_method()
+            # If this runner's requirements are unsatisfied (e.g., due to the
+            # current simulation configuration disabling extracellular spaces),
+            # ignore this runner with a non-fatal warning and continue.
+            except BetseSimPipelineUnsatisfiedException as exception:
+                logs.log_warn(
+                    'Ignoring %s "%s", as:\n\t%s',
+                    self._label_singular_lowercase,
+                    runner_name,
+                    str(exception))
+
+    # ..................{ EXCEPTIONS                         }..................
+    @type_check
+    def _die_unless(
+        self,
+        is_satisfied: bool,
+        exception_reason: str,
+    ) -> None:
+        '''
+        Raise an exception containing the passed explanation if the passed
+        boolean is ``False`` *or* log an attempt to create this animation
+        otherwise.
+
+        Parameters
+        ----------
+        is_satisfied : bool
+            ``True`` only if all simulation features required by this runner
+            (e.g., extracellular spaces) are currently available.
+        exception_reason : str
+            Uncapitalized human-readable string to be embedded in the messages
+            of exceptions raised by this method, typically explaining all
+            features required by this animation.
+
+        Raises
+        ----------
+        BetseSimVisualUnsatisfiedException
+            If this boolean is ``False``.
+        '''
+
+        # Name of the runner method either directly or indirectly calling this
+        # method (e.g., "run_electric_extra").
+        runner_method_name = callers.get_caller_basename_matching(
+            predicate=lambda caller_basename:
+                caller_basename.startswith(self._RUNNER_METHOD_NAME_PREFIX))
+
+        # Strip the prefixing "run_" from this name, raising a human-readable
+        # exception if this name has no such prefix.
+        runner_name = strs.remove_prefix(
+            text=runner_method_name,
+            prefix=self._RUNNER_METHOD_NAME_PREFIX,
+            exception_message=(
+                'Callable {}() not a "{}"-prefixed runner method.'.format(
+                    runner_method_name, self._RUNNER_METHOD_NAME_PREFIX)))
+
+        # If these animation requirements are unsatisfied, raise an exception.
+        if not is_satisfied:
+            raise BetseSimPipelineUnsatisfiedException(
+                '{} "{}" requirements unsatisfied (i.e., {}).'.format(
+                    self._label_singular_uppercase,
+                    runner_name,
+                    exception_reason))
+
+        # Log this animation attempt.
+        logs.log_info(
+            'Running %s "%s"...', self._label_singular_lowercase, runner_name)
+
+    # ..................{ EXCEPTIONS ~ config                }..................
+    def _die_unless_intra(self) -> None:
+        '''
+        Log an attempt to run the calling runner.
+
+        This method is intended to be called by runners requiring that only
+        intracellular spaces (i.e., a cell cluster) be enabled. As a cell
+        cluster *always* exists, this method reduces to logging this runner.
+        '''
+
+        # Log this animation attempt. Since all simulations *ALWAYS* enable
+        # support for intracellular spaces, no actual validation is required.
+        self._die_unless(
+            is_satisfied=True,
+            exception_reason='This exception should never be raised.')
+
+
+    def _die_unless_extra(self) -> None:
+        '''
+        Raise an exception unless extracellular spaces are enabled *or* log an
+        attempt to run the calling runner otherwise.
+        '''
+
+        self._die_unless(
+            is_satisfied=self._phase.p.sim_ECM,
+            exception_reason='extracellular spaces disabled')
+
+
+    @type_check
+    def _die_unless_ion(self, ion_name: str) -> None:
+        '''
+        Raise an exception unless the ion with the passed name is enabled by the
+        current ion profile *or* log an attempt to run the calling runner
+        otherwise.
+
+        Parameters
+        ----------
+        ion_name : str
+            Capitalized alphabetic name of the ion required by this animation
+            (e.g., ``Ca``, signifying calcium).
+        '''
+
+        # If this ion is unrecognized, raise a lower-level exception.
+        if ion_name not in self._phase.p.ions_dict:
+            raise BetseSimConfigException(
+                'Ion "{}" unrecognized.'.format(ion_name))
+        # Else, this ion is recognized.
+
+        # Validate whether this ion is enabled or not.
+        self._die_unless(
+            is_satisfied=self._phase.p.ions_dict[ion_name] != 0,
+            exception_reason='ion "{}" disabled'.format(ion_name))
+
+    # ..................{ SUBCLASS                           }..................
+    @abstractproperty
+    def runner_names(self) -> SequenceTypes:
+        '''
+        Sequence of the names of all currently enabled runners in this pipeline.
+
+        Pipeline subclasses typically implement this property to return the
+        user-defined sequence of the names of all runners listed in the
+        simulation configuration file associated with the current phase.
+        '''
+
+        pass

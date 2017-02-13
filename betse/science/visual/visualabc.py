@@ -45,7 +45,7 @@ from matplotlib.image import AxesImage
 from matplotlib.patches import FancyArrowPatch
 from matplotlib.streamplot import StreamplotSet
 
-# ....................{ BASE                               }....................
+# ....................{ SUPERCLASSES                       }....................
 class VisualCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all subclasses spatially plotting or animating the

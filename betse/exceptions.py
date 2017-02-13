@@ -293,6 +293,7 @@ class BetseVectorException(BetseSimException):
     '''
     pass
 
+
 # ....................{ EXCEPTIONS ~ science : visual      }....................
 class BetseSimVisualException(BetseSimException):
     '''
@@ -302,18 +303,25 @@ class BetseSimVisualException(BetseSimException):
     pass
 
 
-class BetseSimVisualUnsatisfiedException(BetseSimVisualException):
-    '''
-    Simulation visualization-specific exception, applicable to both plots and
-    animations, raised when any feature required by a visualization (e.g.,
-    extracellular spaces) is disabled by the parent simulation configuration.
-    '''
-    pass
-
-
 #FIXME: For orthogonality, rename to "BetseSimVisualLayerException".
 class BetseLayerException(BetseSimVisualException):
     '''
     Simulation visualization layer-specific exception.
+    '''
+    pass
+
+# ....................{ EXCEPTIONS ~ science : pipeline    }....................
+class BetseSimPipelineException(BetseSimException):
+    '''
+    Simulation pipeline-specific exception.
+    '''
+    pass
+
+
+class BetseSimPipelineUnsatisfiedException(BetseSimPipelineException):
+    '''
+    Simulation pipeline-specific exception raised on attempting to run a runner
+    with unsatisfied requirements (e.g., a post-simulation animation requiring
+    extracellular spaces to be enabled by the current simulation configuration).
     '''
     pass

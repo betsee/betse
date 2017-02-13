@@ -283,7 +283,7 @@ def iter_methods(obj: object) -> GeneratorType:
     Parameters
     ----------
     obj : object
-        Object to iterate the methods of.
+        Object to iterate all methods of.
 
     Yields
     ----------

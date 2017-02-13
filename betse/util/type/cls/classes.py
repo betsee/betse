@@ -10,7 +10,13 @@ Low-level object facilities.
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseTypeException
 from betse.util.type.types import (
-    type_check, ClassType, MappingType, SequenceTypes)
+    type_check,
+    CallableTypes,
+    ClassType,
+    GeneratorType,
+    MappingType,
+    SequenceTypes,
+)
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -31,6 +37,77 @@ def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
         raise BetseTypeException(
             'Class {!r} not a subclass of class {!r}'.format(
                 subclass, superclass))
+
+# ....................{ ITERATORS                          }....................
+@type_check
+def iter_methods(cls: ClassType) -> GeneratorType:
+    '''
+    Generator yielding a 2-tuple of the name and value of each method defined by
+    the passed class (in ascending lexicographic order of method name).
+
+    This generator *only* yields methods statically registered in the internal
+    dictionary for this class (e.g., ``__dict__`` in unslotted classes),
+    including:
+
+    * Builtin methods, whose names are both prefixed and suffixed by ``__``.
+    * Custom methods, whose names are *not* prefixed and suffixed by ``__``,
+      including:
+      * Custom standard methods.
+      * Custom property methods (i.e., methods decorated by the builtin
+        :func:`property` decorator).
+
+    Parameters
+    ----------
+    cls : ClassType
+        Class to iterate all methods of.
+
+    Yields
+    ----------
+    (method_name, method_value)
+        2-tuple of the name and value of each method bound to this object (in
+        ascending lexicographic order of method name).
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # Well, isn't that special?
+    yield from objects.iter_methods(cls)
+
+
+@type_check
+def iter_methods_matching(
+    cls: ClassType, predicate: CallableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each method defined by
+    the passed class whose method name matches the passed predicate (in
+    ascending lexicographic order of method name).
+
+    Parameters
+    ----------
+    cls: ClassType
+        Class to yield all matching methods of.
+    predicate : CallableTypes
+        Callable iteratively passed the name of each method bound to this
+        object, returning ``True`` only if that name matches this predicate.
+
+    Yields
+    ----------
+    (method_name, method_value)
+        2-tuple of the name and value of each matching method bound to this
+        object (in ascending lexicographic order of method name).
+
+    See Also
+    ----------
+    :func:`iter_methods`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.obj import objects
+
+    # Well, isn't that special?
+    yield from objects.iter_methods_matching(cls)
 
 # ....................{ DEFINERS                           }....................
 @type_check

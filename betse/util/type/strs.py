@@ -582,14 +582,15 @@ def remove_suffix_with_prefix(text: str, suffix_prefix: str) -> str:
         raise
 
 # ....................{ CASERS                             }....................
+#FIXME: For orthogonality, rename to uppercase_char_first().
 @type_check
 def uppercase_first_char(text: str) -> str:
     '''
     Uppercase the first character of the passed string.
 
     Whereas the related :meth:`str.capitalize` method both uppercases the first
-    character of this string _and_ lowercases all remaining characters, this
-    function _only_ uppercases the first character. All remaining characters
+    character of this string *and* lowercases all remaining characters, this
+    function *only* uppercases the first character. All remaining characters
     remain unmodified.
     '''
 
