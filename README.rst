@@ -241,7 +241,7 @@ in bioelectrical signaling – including:
 
 - Calcium_ (*Ca*\ :sup:`2+`).
 - Chloride_ (*Cl*\ :sup:`-`).
-- Hydron_ (*H*\ :sup:`+`).
+- Hydrogen_ (*H*\ :sup:`+`).
 - Potassium_ (*K*\ :sup:`+`).
 - Sodium_ (*Na*\ :sup:`+`).
 - `Anionic proteins`_ (*P*\ :sup:`-`).
