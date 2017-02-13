@@ -244,8 +244,8 @@ in bioelectrical signaling – including:
 - Hydron_ (*H*\ :sup:`+`).
 - Potassium_ (*K*\ :sup:`+`).
 - Sodium_ (*Na*\ :sup:`+`).
-- `Anionic protein`_ (*P*\ :sup:`-`).
-- `Bicarbonate transporter protein`_ (*HCO*\ :sup:`-`\ :sub:`3`).
+- `Anionic proteins`_ (*P*\ :sup:`-`).
+- `Bicarbonate ion`_ (*HCO*\ :sup:`-`\ :sub:`3`).
 
 Ion Channels
 ------------
