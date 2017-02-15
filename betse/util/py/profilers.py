@@ -343,7 +343,7 @@ def _profile_callable_size(
     logs.log_debug('Memory profiling enabled.')
 
     # Raise an exception unless the optional "pympler" dependency is available.
-    libs.die_unless_runtime_optional('Pympler')
+    libs.die_unless_runtime_optional('pympler')
 
     # Value returned by calling this callable with these arguments.
     return_value = call(*args, **kwargs)

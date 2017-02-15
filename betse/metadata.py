@@ -278,85 +278,83 @@ application.
 # ....................{ METADATA ~ scripts                 }....................
 SCRIPT_NAME_CLI = PACKAGE_NAME
 '''
-Basename of the CLI-specific Python script wrapper created by `setuptools`
+Basename of the CLI-specific Python script wrapper created by :mod:`setuptools`
 installation.
 '''
 
 SCRIPT_NAME_GUI = SCRIPT_NAME_CLI + '-qt'
 '''
-Basename of the GUI-specific Python script wrapper created by `setuptools`
+Basename of the GUI-specific Python script wrapper created by :mod:`setuptools`
 installation.
 '''
 
-# ....................{ METADATA ~ dependencies : setuptoo }....................
-# setuptools-specific metadata required outside of setuptools-based
-# installations, typically for performing runtime validation of the current
-# Python environment.
-
-DEPENDENCY_SETUPTOOLS = 'setuptools >= 3.3'
-'''
-Version of `setuptools` required by this application at both installation time
-_and_ runtime.
-
-For simplicity, this version is a `setuptools`-specific requirements string.
-
-Note that `betse` only requires the `pkg_resources` package installed along
-with `setuptools` rather than the `setuptools` package itself. Since there
-appears to exist no means of asserting a dependency on only `pkg_resources`,
-we pretend to require `setuptools` itself. Although non-ideal, so is life.
-'''
-
-# ....................{ METADATA ~ dependencies : runtime  }....................
+# ....................{ METADATA ~ libs : runtime          }....................
 #FIXME: Add a new unit test asserting that, for each dependency listed in the
 #various globals defined below, a corresponding key of the
 #"betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary exists.
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: Changes to this list *MUST* be synchronized with:
+# WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
 # * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by this application.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DEPENDENCIES_RUNTIME_MANDATORY = (
+DEPENDENCIES_RUNTIME_MANDATORY = {
     # setuptools is currently required at both install and runtime. At runtime,
     # setuptools is used to validate that dependencies are available.
-    DEPENDENCY_SETUPTOOLS,
+    'setuptools': '>= 3.3',
 
     # Dependencies directly required by this application.
-    'Numpy >= 1.8.0',
-    'PyYAML >= 3.10',
-    'SciPy >= 0.12.0',
-    'dill >= 0.2.3',
-    'matplotlib >= 1.4.0',
+    'Numpy': '>= 1.8.0',
+    'PyYAML': '>= 3.10',
+    'SciPy': '>= 0.12.0',
+    'dill': '>= 0.2.3',
+    'matplotlib': '>= 1.4.0',
 
     # Dependencies indirectly required by this application but only optionally
     # required by dependencies directly required by this application. Since the
     # "setup.py" scripts for the latter do *NOT* list these dependencies as
     # mandatory, these dependencies *MUST* be explicitly listed here.
-    'Pillow >= 2.3.0',    # required by the "scipy.misc.imread" module
+    'Pillow': '>= 2.3.0',    # required by the "scipy.misc.imread" module
 
     # Dependencies directly required by dependencies directly required by this
     # application. While these dependencies need *NOT* be explicitly listed
     # here, doing so improves detection of missing dependencies in a
     # human-readable manner.
-    'six >= 1.5.2',       # required by everything that should not be
-)
+    'six': '>= 1.5.2',       # required by everything that should not be
+}
 '''
-Set of all mandatory runtime dependencies for this application.
+Dictionary mapping from the :mod:`setuptools`-specific project name of each
+mandatory runtime dependency for this application to the suffix of a
+:mod:`setuptools`-specific requirements string constraining this dependency.
 
-For simplicity, this set is formatted as a tuple of `setuptools`-specific
-requirements strings whose:
+To simplify subsequent lookup, these dependencies are contained by a dictionary
+rather than a simple set or sequence such that each dictionary:
 
-* First word is the name of the `setuptools`-specific project being required,
-  which may have no relation to the name of that project's top-level module or
-  package (e.g., the `PyYAML` project's top-level package is `yaml`). For human
-  readability in error messages, this name should typically be case-sensitively
-  capitalized -- despite being parsed case-insensitively by `setuptools`.
-* Second word is a numeric comparison operator.
-* Third word is the version specifier of that project required by that
-  comparison.
+* Key is the name of a :mod:`setuptools`-specific project identifying this
+  dependency, which may have no relation to the name of that project's top-level
+  module or package (e.g., the ``PyYAML`` project's top-level package is
+  :mod:`yaml`). For human readability in error messages, this name should
+  typically be case-sensitively capitalized -- despite being parsed
+  case-insensitively by :mod:`setuptools`.
+* Value is a string of the form ``{comparator} {version}``, where:
+
+  * ``{comparator}`` is a comparison operator (e.g., ``>=``, ``!=``).
+  * ``{version}`` is the required version of this project to compare.
+
+Concatenating each such key and value yields a :mod:`setuptools`-specific
+requirements string of the form ``{project_name} {comparator} {version}``.
+
+Caveats
+----------
+This application requires :mod:`setuptools` at both installation time *and*
+runtime -- in the latter case, to validate all application dependencies at
+runtime. Note that doing so technically only requires the :mod:`pkg_resources`
+package installed with :mod:`setuptools` rather than the :mod:`setuptools`
+package itself.  Since there exists no means of asserting a dependency on only
+:mod:`pkg_resources`, however, :mod:`setuptools` is depended upon instead.
 
 See Also
 ----------
@@ -382,7 +380,7 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
     # project names case-insensitively, case is only of internal relevance.
 
     # Dependencies directly required by this application.
-    'Pympler': '>= 0.4.1',
+    'pympler': '>= 0.4.1',
     # 'numba': '>= 0.27.0',
     'pprofile': '>= 1.8',
     'ptpython': '>= 0.29',
@@ -394,32 +392,17 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
     # reverted to supporting "pydot", thus warranting blacklisting of only
     # NetworkX 1.11. It is confusing, maybe?
     'networkx': '>= 1.8, != 1.11',
-
-    #FIXME: PyDot requires GraphViz. Hence, GraphViz should *ALSO* be validated
-    #whenever validating PyDot. Since PyDot is unlikely to be installable in the
-    #wild without GraphViz also being installed (e.g., due to package manager
-    #dependencies), this is probably ignorable for the glorious moment.
     'pydot': '>= 1.0.28',
 }
 '''
-Dictionary mapping from the `setuptools`-specific project name of each optional
-runtime dependency for this application to the suffix of a `setuptools`-specific
-requirements string constraining this dependency.
-
-Whereas mandatory runtime dependencies are application prerequisites and hence
-_not_ individually looked up at runtime, optional runtime dependencies are
-prerequisites of specific logic paths throughout the application and hence
-_are_ individually looked up at runtime. To facilitate subsequent lookup, these
-dependencies are contained by a dictionary rather than simple set.
-
-Each key of this dictionary is the name of a `setuptools`-specific project
-identifying this dependency. Each value of this dictionary is a string of the
-form `{comparator} {version_number}`, that when prefixed by the corresponding
-key produces a `setuptools`-specific requirements string of the form
-`{project_name} {comparator} {version_number}`.
+Dictionary mapping from the :mod:`setuptools`-specific project name of each
+optional runtime dependency for this application to the suffix of a
+:mod:`setuptools`-specific requirements string constraining this dependency.
 
 See Also
 ----------
+:data:`DEPENDENCIES_RUNTIME_MANDATORY`
+    Further details on dictionary structure.
 :download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
 :func:`get_dependencies_runtime_optional_tuple`
@@ -427,27 +410,68 @@ See Also
     of strings (e.g., within :download:`/setup.py`).
 '''
 
-# ....................{ METADATA ~ dependencies : testing  }....................
+# ....................{ METADATA ~ libs : testing          }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: Changes to this list *MUST* be synchronized with:
+# WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., the top-level "README.rst").
 # * Gitlab-CI configuration (e.g., the top-level "requirements-anaconda.txt"
 #   file).
 # * Appveyor configuration (e.g., the "CONDA_DEPENDENCIES" key of the
 #   "environment.global" list of the top-level "appveyor.yml" file).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-DEPENDENCIES_TESTING_MANDATORY = (
+DEPENDENCIES_TESTING_MANDATORY = {
     # For simplicity, py.test should remain the only hard dependency for testing
     # on local machines. While our setuptools-driven testing regime optionally
     # leverages third-party py.test plugins (e.g., "pytest-xdist"), these
     # plugins are *NOT* required for simple testing.
-    'pytest >= 2.5.0',
-)
+    'pytest': '>= 2.5.0',
+}
 '''
-Set of all mandatory testing dependencies for this application.
+Dictionary mapping from the :mod:`setuptools`-specific project name of each
+mandatory testing dependency for this application to the suffix of a
+:mod:`setuptools`-specific requirements string constraining this dependency.
 
-For simplicity, this set is formatted as a tuple of `setuptools`-specific
-requirements strings in the same manner as `DEPENDENCIES_RUNTIME_MANDATORY`.
+See Also
+----------
+:data:`DEPENDENCIES_RUNTIME_MANDATORY`
+    Further details on dictionary structure.
+:download:`/doc/md/INSTALL.md`
+    Human-readable list of these dependencies.
+'''
+
+# ....................{ METADATA ~ libs : external         }....................
+class DependencyCommand(object):
+    '''
+    Metadata describing a single external command required by a single
+    application dependency (of any type, including optional, mandatory, runtime,
+    testing, or otherwise).
+
+    Attributes
+    ----------
+    name : str
+        Human-readable name associated with this command (e.g., ``Graphviz``).
+    basename : str
+        Basename of this command to be searched for in the current ``${PATH}``.
+    '''
+
+    def __init__(self, name: str, basename: str) -> None:
+        self.name = name
+        self.basename = basename
+
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: Changes to this dictionary *MUST* be synchronized with:
+# * Front-facing documentation (e.g., "doc/md/INSTALL.md").
+# * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+DEPENDENCIES_COMMANDS = {
+    'pydot': (DependencyCommand(name='Graphviz', basename='dot'),),
+}
+'''
+Dictionary mapping from the :mod:`setuptools`-specific project name of each
+application dependency (of any type, including optional, mandatory, runtime,
+testing, or otherwise) requiring one or more external commands to a tuple of
+:class:`DependencyCommand` instances describing these requirements.
 
 See Also
 ----------

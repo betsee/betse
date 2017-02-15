@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-**Command** (i.e., external executable file) facilities.
+Low-level **command** (i.e., external executable file) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................

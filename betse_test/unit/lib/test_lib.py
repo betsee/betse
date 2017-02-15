@@ -19,20 +19,20 @@ def test_lib_setuptools_mappings() -> None:
     '''
 
     # Defer heavyweight imports.
-    from betse.metadata import DEPENDENCIES_RUNTIME_OPTIONAL
-    from betse.lib import libs
+    from betse.metadata import (
+        DEPENDENCIES_RUNTIME_MANDATORY,
+        DEPENDENCIES_RUNTIME_OPTIONAL,
+        DEPENDENCIES_TESTING_MANDATORY,
+    )
     from betse.lib.setuptools.setuptool import SETUPTOOLS_TO_MODULE_NAME
     from betse.util.type import mappings
 
-    # Dictionaries of all mandatory and optional run- and test-time
-    # dependencies.
-    libs_runtime_mandatory = libs.get_runtime_mandatory_dict()
-    libs_runtime_optional = DEPENDENCIES_RUNTIME_OPTIONAL
-    libs_testing_mandatory = libs.get_testing_mandatory_dict()
-
     # Dictionary merged from these dictionaries.
     setuptools_name_to_specs = mappings.merge(
-        libs_runtime_mandatory, libs_runtime_optional, libs_testing_mandatory)
+        DEPENDENCIES_RUNTIME_MANDATORY,
+        DEPENDENCIES_RUNTIME_OPTIONAL,
+        DEPENDENCIES_TESTING_MANDATORY,
+    )
 
     # Assert the setuptools-specific project name of each such dependency to be
     # registered with the "setuptool" submodule.

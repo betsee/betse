@@ -399,7 +399,7 @@ For prospective contributors:
 
 .. # ------------------( LINKS ~ codebase                   )------------------
 .. _author list:
-   AUTHORS.md
+   doc/md/AUTHORS.md
 .. _codebase:
    https://gitlab.com/betse/betse/tree/master
 .. _contributors:

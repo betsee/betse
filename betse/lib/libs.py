@@ -8,7 +8,8 @@ High-level **dependency** (i.e., both mandatory and optional third-party Python
 packages imported at runtime) facilities.
 
 This module defines functions intended to be called by high-level interface
-modules (e.g., `betse.cli.clicli`) _before_ attempting to import dependencies.
+modules (e.g., :mod:`betse.cli.clicli`) *before* attempting to import
+dependencies.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -19,13 +20,14 @@ modules (e.g., `betse.cli.clicli`) _before_ attempting to import dependencies.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
+from betse.exceptions import BetseLibException
 from betse.util.type.types import type_check, StrOrNoneTypes
 from collections import OrderedDict
 
 # ....................{ GLOBALS                            }....................
 _IS_INITTED = False
 '''
-`True` only if the :func:`init` function has already been called.
+``True`` only if the :func:`init` function has already been called.
 
 That function uses this private boolean to guard against repeated invocations of
 that function from multiple modules in the same Python process (e.g.,
@@ -43,11 +45,11 @@ def die_unless_runtime_mandatory_all() -> None:
 
     Equivalently, this function raises an exception if at least one such
     dependency is unsatisfied. For importable unsatisfied dependencies with
-    `setuptools`-specific metadata (e.g., `.egg-info/`-suffixed subdirectories
-    of the `site-packages/` directory for the active Python 3 interpreter,
-    typically created by `setuptools` at install time), this function
-    additionally validates the versions of these dependencies to satisfy all
-    application requirements.
+    :mod:`setuptools`-specific metadata (e.g., ``.egg-info/``-suffixed
+    subdirectories of the `site-packages/` directory for the active Python 3
+    interpreter, typically created by :mod:`setuptools` at install time), this
+    function additionally validates the versions of these dependencies to
+    satisfy all application requirements.
 
     Raises
     ----------
@@ -65,27 +67,32 @@ def die_unless_runtime_mandatory_all() -> None:
         exception_message='Mandatory dependency "pkg_resources" not found.',
     )
 
-    # Validate these dependencies via "pkg_resources". Defer the importation of
-    # this submodule until *AFTER* validating "pkg_resources" to exist above.
+    # Import this submodule *AFTER* validating "pkg_resources" to exist above.
     from betse.lib.setuptools import setuptool
-    setuptool.die_unless_requirement_str(
-        *metadata.DEPENDENCIES_RUNTIME_MANDATORY)
 
+    # Validate these dependencies.
+    setuptool.die_unless_requirements_dict(
+        metadata.DEPENDENCIES_RUNTIME_MANDATORY)
 
+    # Validate all external commands required by these dependencies.
+    die_unless_commands(*metadata.DEPENDENCIES_RUNTIME_MANDATORY.keys())
+
+# ....................{ EXCEPTIONS ~ names                 }....................
 @type_check
 def die_unless_runtime_optional(*requirement_names: str) -> None:
     '''
     Raise an exception unless all optional runtime dependencies of this
-    application with the passed `setuptools`-specific project names are
+    application with the passed :mod:`setuptools`-specific project names are
     **satisfiable** (i.e., both importable and of a satisfactory version).
 
     Parameters
     ----------
     requirement_names : Tuple[str]
-        Tuple of the names of all `setuptools`-specific projects corresponding
-        to these dependencies (e.g., `NetworkX`). If any such name is _not_ a
-        key of the :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL`
-        dictionary and is thus unrecognized, an exception is raised.
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        corresponding to these dependencies (e.g., ``NetworkX``). If any such
+        name is *not* a key of the
+        :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary and is
+        thus unrecognized, an exception is raised.
 
     Raises
     ----------
@@ -101,27 +108,108 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
     # Avoid circular import dependencies.
     from betse.lib.setuptools import setuptool
 
-    # Validate these dependencies, converting all key-value pairs of these
-    # dependencies' requirements into a tuple of requirements string.
-    setuptool.die_unless_requirement_str(
-        *setuptool.convert_requirements_dict_keys_to_tuple(
-            metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names))
+    # Validate these dependencies.
+    setuptool.die_unless_requirements_dict_keys(
+        metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names)
 
-# ....................{ TESTERS                            }....................
+    # Validate all external commands required by these dependencies.
+    die_unless_commands(*requirement_names)
+
+
 @type_check
-def is_runtime_optional(*requirement_names: str) -> bool:
+def die_unless_commands(*requirement_names: str) -> None:
     '''
-    `True` only if all optional runtime dependencies of this application with
-    the passed `setuptools`-specific project names are **satisfiable** (i.e.,
-    both importable and of a satisfactory version).
+    Raise an exception unless all external commands required by all application
+    dependencies (of any type, including optional, mandatory, runtime, testing,
+    or otherwise) with the passed :mod:`setuptools`-specific project names are
+    **installed** (i.e., are executable files in the current ``${PATH}``).
 
     Parameters
     ----------
     requirement_names : Tuple[str]
-        Tuple of the names of all `setuptools`-specific projects corresponding
-        to these dependencies (e.g., `NetworkX`). If any such name is _not_ a
-        key of the :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL`
-        dictionary and is thus unrecognized, an exception is raised.
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        corresponding to these dependencies (e.g., ``NetworkX``).
+
+    Raises
+    ----------
+    BetseLibException
+        If any external command required by any such dependency is *not* found.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path.command import pathables
+
+    # If any external command required by any such dependency is *NOT* found,
+    # iteratively search for the first such missing command and raise a
+    # human-readable exception synopsizing this command. For efficiency, this
+    # inefficient iteration is performed *ONLY* as required.
+    if not is_commands(*requirement_names):
+        # For the name of each such dependency...
+        for requirement_name in requirement_names:
+            # For each "betse.metadata.DependencyCommand" instance
+            # describing each external command required by this dependency if
+            # any *OR* the empty tuple otherwise...
+            for dependency_command in metadata.DEPENDENCIES_COMMANDS.get(
+                requirement_name, ()):
+                # If this command is *NOT* in the ${PATH}, raise an exception.
+                if not pathables.is_pathable(dependency_command.basename):
+                    raise BetseLibException(
+                        'Dependency "{}" unsatisfied, as '
+                        '{} not installed '
+                        '(i.e., command "{}" not in ${{PATH}}).'.format(
+                            requirement_name,
+                            dependency_command.name,
+                            dependency_command.basename,
+                        ))
+
+# ....................{ TESTERS                            }....................
+@type_check
+def is_commands(*requirement_names: str) -> bool:
+    '''
+    ``True`` only if all external commands required by all application
+    dependencies (of any type, including optional, mandatory, runtime, testing,
+    or otherwise) with the passed :mod:`setuptools`-specific project names are
+    **installed** (i.e., are executable files in the current ``${PATH}``).
+
+    Parameters
+    ----------
+    requirement_names : Tuple[str]
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        corresponding to these dependencies (e.g., ``NetworkX``).
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path.command import pathables
+
+    # Return True only if...
+    return all(
+        # Each external command required by each dependency is in the ${PATH}.
+        pathables.is_pathable(dependency_command.basename)
+        # For the name of each passed dependency...
+        for requirement_name in requirement_names
+        # For the tuple of all "betse.metadata.DependencyCommand" instances
+        # describing all external commands required by this dependency if any
+        # *OR* the empty tuple otherwise...
+        for dependency_command in metadata.DEPENDENCIES_COMMANDS.get(
+            requirement_name, ())
+    )
+
+
+@type_check
+def is_runtime_optional(*requirement_names: str) -> bool:
+    '''
+    ``True`` only if all optional runtime dependencies of this application with
+    the passed :mod:`setuptools`-specific project names are **satisfiable**
+    (i.e., both importable and of a satisfactory version).
+
+    Parameters
+    ----------
+    requirement_names : Tuple[str]
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        corresponding to these dependencies (e.g., ``NetworkX``). If any such
+        name is *not* a key of the
+        :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary and is
+        thus unrecognized, an exception is raised.
 
     See Also
     ----------
@@ -132,11 +220,17 @@ def is_runtime_optional(*requirement_names: str) -> bool:
     # Avoid circular import dependencies.
     from betse.lib.setuptools import setuptool
 
-    # Test these dependencies, converting all key-value pairs of these
-    # dependencies' requirements into a tuple of requirements string.
-    return setuptool.is_requirement_str(
-        *setuptool.convert_requirements_dict_keys_to_tuple(
-            metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names))
+    # Return True only if...
+    return (
+        # These dependencies are all satisfied, converting all key-value pairs
+        # of these requirements into a tuple of requirements strings.
+        setuptool.is_requirement_str(
+            *setuptool.convert_requirements_dict_keys_to_tuple(
+                metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names)) and
+
+        # All external commands required by these dependencies are installed.
+        is_commands(*requirement_names)
+    )
 
 # ....................{ INITIALIZERS                       }....................
 def reinit(*args, **kwargs) -> None:
@@ -202,28 +296,11 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     _IS_INITTED = True
 
 # ....................{ GETTERS                            }....................
-def get_runtime_mandatory_dict() -> tuple:
-    '''
-    Dictionary mapping from the mandatory name to the optional version and
-    extras constraints of each optional runtime dependency for this application.
-
-    This dictionary is dynamically converted from the
-    :data:`metadata.DEPENDENCIES_RUNTIME_MANDATORY` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Convert this dictionary into a tuple.
-    return setuptool.convert_requirements_tuple_to_dict(
-        metadata.DEPENDENCIES_RUNTIME_MANDATORY)
-
-
 def get_runtime_optional_tuple() -> tuple:
     '''
-    Tuple listing the `setuptools`-specific requirement string containing the
-    mandatory name and optional version and extras constraints of each optional
-    runtime dependency for this application.
+    Tuple listing the :mod:`setuptools`-specific requirement string containing
+    the mandatory name and optional version and extras constraints of each
+    optional runtime dependency for this application.
 
     This tuple is dynamically converted from the
     :data:`metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary.
@@ -235,24 +312,6 @@ def get_runtime_optional_tuple() -> tuple:
     # Convert this dictionary into a tuple.
     return setuptool.convert_requirements_dict_to_tuple(
         metadata.DEPENDENCIES_RUNTIME_OPTIONAL)
-
-
-def get_testing_mandatory_dict() -> tuple:
-    '''
-    Dictionary mapping from the mandatory name to the optional version and
-    extras constraints of each mandatory test-time dependency for this
-    application.
-
-    This dictionary is dynamically converted from the
-    :data:`metadata.DEPENDENCIES_TESTING_MANDATORY` dictionary.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Convert this dictionary into a tuple.
-    return setuptool.convert_requirements_tuple_to_dict(
-        metadata.DEPENDENCIES_TESTING_MANDATORY)
 
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadatas() -> tuple:
@@ -301,8 +360,8 @@ def get_runtime_mandatory_metadata() -> OrderedDict:
     from betse.lib.setuptools import setuptool
 
     # Return this metadata.
-    return setuptool.get_requirement_str_metadata(
-        *metadata.DEPENDENCIES_RUNTIME_MANDATORY)
+    return setuptool.get_requirements_dict_metadata(
+        metadata.DEPENDENCIES_RUNTIME_MANDATORY)
 
 
 def get_runtime_optional_metadata() -> OrderedDict:
@@ -314,11 +373,9 @@ def get_runtime_optional_metadata() -> OrderedDict:
     # Avoid circular import dependencies.
     from betse.lib.setuptools import setuptool
 
-    # Return this metadata, converting this dictionary of optional dependencies
-    # into a tuple of these dependencies.
-    return setuptool.get_requirement_str_metadata(
-        *setuptool.convert_requirements_dict_to_tuple(
-            metadata.DEPENDENCIES_RUNTIME_OPTIONAL))
+    # Return this metadata.
+    return setuptool.get_requirements_dict_metadata(
+        metadata.DEPENDENCIES_RUNTIME_OPTIONAL)
 
 
 def get_testing_mandatory_metadata() -> OrderedDict:
@@ -331,5 +388,5 @@ def get_testing_mandatory_metadata() -> OrderedDict:
     from betse.lib.setuptools import setuptool
 
     # Return this metadata.
-    return setuptool.get_requirement_str_metadata(
-        *metadata.DEPENDENCIES_TESTING_MANDATORY)
+    return setuptool.get_requirements_dict_metadata(
+        metadata.DEPENDENCIES_TESTING_MANDATORY)

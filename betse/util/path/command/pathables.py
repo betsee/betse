@@ -4,9 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-**Pathable** (i.e., commands reseding in the current `${PATH}` and hence
-executable by specifying merely their basename rather than either relative or
-absolute path) facilities.
+Low-level **pathable** (i.e., commands reseding in the current ``${PATH}`` and
+hence executable by specifying merely their basename rather than either relative
+or absolute path) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -18,8 +18,8 @@ from betse.util.type.types import type_check, SequenceTypes
 @type_check
 def is_pathable(command_basename: str) -> bool:
     '''
-    `True` only if an external command with the passed basename exists (i.e.,
-    corresponds to an executable file in the current `${PATH}`).
+    ``True`` only if an external command with the passed basename exists (i.e.,
+    corresponds to an executable file in the current ``${PATH}``).
 
     Parameters
     ----------
@@ -29,7 +29,7 @@ def is_pathable(command_basename: str) -> bool:
     Raises
     ----------
     BetsePathException
-        If the passed string is _not_ a basename (i.e., contains one or more
+        If the passed string is *not* a basename (i.e., contains one or more
         directory separators).
 
     See Also
@@ -52,11 +52,10 @@ def is_pathable(command_basename: str) -> bool:
 # ....................{ GETTERS ~ first                    }....................
 @type_check
 def get_first_basename(
-    command_basenames: SequenceTypes,
-    exception_message: str = None) -> str:
+    command_basenames: SequenceTypes, exception_message: str = None) -> str:
     '''
-    Get the first pathable string in the passed list (i.e., the first string
-    that is the basename of a command in the current `${PATH}`).
+    First pathable string in the passed list (i.e., the first string that is the
+    basename of a command in the current ``${PATH}``).
 
     If no such strings are pathable, an exception is raised.
 

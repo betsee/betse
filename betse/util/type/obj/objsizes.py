@@ -93,7 +93,7 @@ def get_size(obj: object, size_divisor: NumericTypes = 1) -> NumericTypes:
     from betse.lib import libs
 
     # If Pympler is unavailable, raise an exception.
-    libs.die_unless_runtime_optional('Pympler')
+    libs.die_unless_runtime_optional('pympler')
 
     # Import Pympler *AFTER* validating its availability.
     from pympler import asizeof
