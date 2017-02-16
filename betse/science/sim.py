@@ -7,13 +7,7 @@ import copy
 import os
 import os.path
 import time
-from random import shuffle
-
 import numpy as np
-from numpy import ndarray
-from scipy import interpolate as interp
-from scipy.ndimage.filters import gaussian_filter
-
 from betse.exceptions import BetseSimInstabilityException
 from betse.science import filehandling as fh
 from betse.science import sim_toolbox as stb
@@ -29,45 +23,16 @@ from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
+from betse.science.simulate.simphase import SimPhaseType
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
 from betse.util.type.contexts import noop_context
-from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check, NoneType
-
-# ....................{ ENUMS                              }....................
-SimPhaseType = EnumOrdered('SimPhaseType', (
-    'SEED', 'INIT', 'SIM',
-))
-'''
-Ordered enumeration of all possible simulation phases.
-
-Each member of this enumeration is arbitrarily comparable to each other member.
-Each member's value is less than that of another member's value if and only if
-the former simulation phase is performed _before_ the latter. Specifically,
-this enumeration is a total ordering such that:
-
-    >>> SimPhaseType.SEED < SimPhaseType.INIT < SimPhaseType.SIM
-    True
-
-Attributes
-----------
-SEED : enum
-    Seed simulation phase, as implemented by the
-    :meth:`betse.science.simrunner.SimRunner.seed` method. This phase creates
-    the cell cluster and caches this cluster to an output file.
-INIT : enum
-    Initialization simulation phase, as implemented by the
-    :meth:`betse.science.simrunner.SimRunner.init` method. This phase
-    initializes the previously created cell cluster from a cached input file
-    and caches this initialization to an output file.
-SIM : enum
-    Proper simulation phase, as implemented by the
-    :meth:`betse.science.simrunner.SimRunner.sim` method. This phase simulates
-    the previously initialized cell cluster from a cached input file and caches
-    this simulation to an output file.
-'''
+from numpy import ndarray
+from random import shuffle
+from scipy import interpolate as interp
+from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ CLASSES                            }....................
 class Simulator(object):
@@ -277,7 +242,15 @@ class Simulator(object):
         self,
         p: 'betse.science.parameters.Parameters',
 
-        #FIXME: Refactor to be a mandatory parameter if feasible.
+        #FIXME: Refactor this optional parameter to be mandatory.
+        #FIXME: After doing so, shift this parameter into the higher-level
+        #"SimPhaseABC" base class -- where it properly belongs. To support this
+        #move, however, we'll need to begin pickling and unpickling proper
+        #"SimPhaseABC" instances rather than 3-tuples "(sim, cells, p)".
+        #Unfortunately, of course, we'll also need to preserve backwards
+        #compatibility for previously pickled 3-tuples -- presumably by
+        #converting unpickled 3-tuples into "SimPhaseABC" instances to ensure a
+        #consistent API.
         phase: SimPhaseType = None,
     ) -> None:
         '''

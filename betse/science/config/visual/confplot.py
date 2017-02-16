@@ -11,9 +11,9 @@ YAML-backed simulation plot subconfigurations.
 # ....................{ IMPORTS                            }....................
 from betse.science.config.confabc import SimConfABC, conf_alias
 from betse.util.type import ints
-#from betse.util.type.types import type_check
+from betse.util.type.types import type_check
 
-# ....................{ SUBCLASSES ~ all                   }....................
+# ....................{ SUBCLASSES                         }....................
 class SimConfPlotAll(SimConfABC):
     '''
     YAML-backed simulation plot subconfiguration, encapsulating the
@@ -26,14 +26,16 @@ class SimConfPlotAll(SimConfABC):
     Attributes (After)
     ----------
     is_after_sim : bool
-        ``True`` only if this configuration enables (but _not_ necessarily
-        displays or saves) post-simulation plots.
+        ``True`` only if this configuration displays and/or saves
+        post-simulation plots.
     is_after_sim_show : bool
         ``True`` only if this configuration displays post-simulation plots.
-        Ignored if ``is_after_sim`` is ``False``.
     is_after_sim_save : bool
         ``True`` only if this configuration saves post-simulation plots.
-        Ignored if ``is_after_sim`` is ``False``.
+    postsim_pipeline : SimConfList
+        List of all post-simulation plots to be animated. Ignored if
+        :attr:``is_after_sim_save`` and :attr:``is_after_sim_show`` are both
+        ``False``.
 
     Attributes (Image)
     ----------
@@ -45,9 +47,16 @@ class SimConfPlotAll(SimConfABC):
         Ignored if `is_after_sim_save` is `False`.
     '''
 
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass with all passed parameters.
+        super().__init__(*args, **kwargs)
+
+        # Validate all passed integers to be positive.
+        ints.die_unless_positive(self.image_dpi)
+
     # ..................{ ALIASES ~ after                    }..................
-    is_after_sim = conf_alias(
-        "['results options']['after solving']['plots']['enabled']", bool)
     is_after_sim_save = conf_alias(
         "['results options']['after solving']['plots']['save']", bool)
     is_after_sim_show = conf_alias(
@@ -59,11 +68,14 @@ class SimConfPlotAll(SimConfABC):
     image_dpi = conf_alias(
         "['results options']['save']['plots']['dpi']", int)
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, *args, **kwargs) -> None:
+    # ..................{ PROPERTIES ~ after                 }..................
+    @property
+    def is_after_sim(self) -> bool:
+        return self.is_after_sim_save or self.is_after_sim_show
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)
 
-        # Validate all passed integers to be positive.
-        ints.die_unless_positive(self.image_dpi)
+    @is_after_sim.setter
+    @type_check
+    def is_after_sim(self, is_after_sim: bool) -> None:
+        self.is_after_sim_save = is_after_sim
+        self.is_after_sim_show = is_after_sim

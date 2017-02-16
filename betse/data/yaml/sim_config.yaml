@@ -732,33 +732,37 @@ results options:
 
   while solving:     # Results produced during simulation computation.
     animations:      # Animations produced during simulation computation.
-      enabled: True  # Produce animations during simulation computation?
       show: True     # Display animations during simulation computation?
-                     # Ignored if "enabled" is False.
       save: True     # Save animations with the animation saving options
                      # specified below during simulation computation? 
-                     # Ignored if "enabled" is False.
 
   after solving:     # Results produced after simulation computation.
     plots:           # Plots produced after simulation computation.
-      enabled: True  # Produce plots after simulation computation?
       show: False    # Display plots after simulation computation?
-                     # Ignored if "enabled" is False.
       save: True     # Save plots with the plot saving options specified below 
                      # after simulation computation? 
-                     # Ignored if "enabled" is False.
+
+      # List of all plots to be produced after simulation computation.
+      # Ignored if both "show" and "save" are False.
+      pipeline:
+        # Example intracellular voltage plot.
+        - type: voltage_intra  # Animation type. Supported types include:
+                               # * "?????????????"    (intracellular ???).
+          colorbar:            # Plot colorbar settings.
+            autoscale: True    # Automatically scale colorbar to minimum and
+                               # maximum values of underlying data series?
+            minimum: -70.0     # Minimum fixed colorbar value. Ignored if
+                               # "autoscale" is True.
+            maximum:  10.0     # Maximum fixed colorbar value. Ignored if
+                               # "autoscale" is True.
 
     animations:      # Animations produced after simulation computation.
-      enabled: False # Produce animations after simulation computation?
       show: False    # Display animations after simulation computation?
-                     # Ignored if "enabled" is False.
-      save: True     # Save animations with the animation saving options
+      save: False    # Save animations with the animation saving options
                      # specified below after simulation computation? 
-                     # Ignored if "enabled" is False.
 
       # List of all animations to be produced after simulation computation.
-      # Ignored if either "enabled" is False *OR* if "enabled" is True but both
-      # "show" and "save" are False.
+      # Ignored if both "show" and "save" are False.
       pipeline:
         # Example intracellular voltage animation.
         - type: voltage_intra  # Animation type. Supported types include:
@@ -788,13 +792,13 @@ results options:
                                # * "voltage_intra"    (intracellular voltage).
                                # * "voltage_total"    (intra- and extracellular voltage).
                                #   Ignored if extracellular spaces disabled.
-          colorbar:          # Animation colorbar settings.
-            autoscale: True  # Automatically scale colorbar to minimum and
-                             # maximum values of underlying data series?
-            minimum: -70.0   # Minimum fixed colorbar value. Ignored if
-                             # "autoscale" is True.
-            maximum:  10.0   # Maximum fixed colorbar value. Ignored if
-                             # "autoscale" is True.
+          colorbar:            # Animation colorbar settings.
+            autoscale: True    # Automatically scale colorbar to minimum and
+                               # maximum values of underlying data series?
+            minimum: -70.0     # Minimum fixed colorbar value. Ignored if
+                               # "autoscale" is True.
+            maximum:  10.0     # Maximum fixed colorbar value. Ignored if
+                               # "autoscale" is True.
         # Example intracellular electric field animation.
         - type: electric_intra
           colorbar:

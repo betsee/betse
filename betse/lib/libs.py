@@ -156,7 +156,7 @@ def die_unless_commands(*requirement_names: str) -> None:
                     raise BetseLibException(
                         'Dependency "{}" unsatisfied, as '
                         '{} not installed '
-                        '(i.e., command "{}" not in ${{PATH}}).'.format(
+                        '(i.e., command "{}" not found in ${{PATH}}).'.format(
                             requirement_name,
                             dependency_command.name,
                             dependency_command.basename,

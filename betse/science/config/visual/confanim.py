@@ -6,24 +6,18 @@
 YAML-backed simulation animation subconfigurations.
 '''
 
-#FIXME: For brevity, globally rename all attributes containing:
-#
-#* "while_sim" to "insim".
-#* "after_sim" to "postsim".
-
 #FIXME: Default the "copyright" entry of video metadata to
 #"@ {}".format(current_year)".
 
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseMethodUnimplementedException
-from betse.science.config.confabc import (
-    SimConfABC, SimConfListableABC, SimConfList, conf_alias)
+from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
+from betse.science.config.visual.confvisualabc import SimConfVisual
 from betse.util.type import ints
-from betse.util.type.types import MappingType, NumericTypes, SequenceTypes
+from betse.util.type.types import type_check, MappingType, SequenceTypes
 
-# ....................{ SUBCLASSES ~ all                   }....................
+# ....................{ SUBCLASSES                         }....................
 class SimConfAnimAll(SimConfABC):
     '''
     YAML-backed simulation animations subconfiguration, encapsulating the
@@ -36,31 +30,27 @@ class SimConfAnimAll(SimConfABC):
 
     Attributes (While)
     ----------
-    insim_pipeline : SimConfList
-        List of all post-simulation animations to be animated.
     is_while_sim : bool
-        ``True`` only if this configuration enables (but _not_ necessarily
-        displays or saves) mid-simulation animations.
-    is_while_sim_show : bool
-        ``True`` only if this configuration displays mid-simulation animations.
-        Ignored if `is_while_sim` is `False`.
+        ``True`` only if this configuration displays and/or saves in-simulation
+        animations.
     is_while_sim_save : bool
-        ``True`` only if this configuration saves mid-simulation animations.
-        Ignored if `is_midsim` is `False`.
+        ``True`` only if this configuration saves in-simulation animations.
+    is_while_sim_show : bool
+        ``True`` only if this configuration displays in-simulation animations.
 
     Attributes (After)
     ----------
-    postsim_pipeline : SimConfList
-        List of all post-simulation animations to be animated.
     is_after_sim : bool
-        ``True`` only if this configuration enables (but _not_ necessarily
-        displays or saves) post-simulation animations.
-    is_after_sim_show : bool
-        ``True`` only if this configuration displays post-simulation animations.
-        Ignored if `is_after_sim` is `False`.
+        ``True`` only if this configuration displays and/or saves
+        post-simulation animations.
     is_after_sim_save : bool
         ``True`` only if this configuration saves post-simulation animations.
-        Ignored if `is_after_sim` is `False`.
+    is_after_sim_show : bool
+        ``True`` only if this configuration displays post-simulation animations.
+    after_sim_pipeline : SimConfList
+        List of all post-simulation animations to be animated. Ignored if both
+        :attr:``is_after_sim_save`` and :attr:``is_after_sim_show`` are both
+        ``False``.
 
     Attributes (Images)
     ----------
@@ -68,10 +58,10 @@ class SimConfAnimAll(SimConfABC):
         ``True`` only if this configuration saves animation frames as images.
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
-        `is_images_save` is `False`.
+        ``is_images_save`` is ``False``.
     image_dpi : int
         Dots per inch (DPI) of all image files saved by this configuration.
-        Ignored if `is_images_save` is `False`.
+        Ignored if ``is_images_save`` is ``False``.
 
     Attributes (Video)
     ----------
@@ -128,17 +118,34 @@ class SimConfAnimAll(SimConfABC):
           suite supporting *only* creation of animated GIFs.
     '''
 
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass with all passed parameters.
+        super().__init__(*args, **kwargs)
+
+        # Encapsulate low-level lists of dictionaries with high-level wrappers.
+        self.after_sim_pipeline = SimConfList(
+            confs=self._conf[
+                'results options']['after solving']['animations']['pipeline'],
+            conf_type=SimConfVisual,
+        )
+
+        # Validate all configured integers to be positive.
+        ints.die_unless_positive(
+            self.image_dpi,
+            self.video_bitrate,
+            self.video_dpi,
+            self.video_framerate,
+        )
+
     # ..................{ ALIASES ~ while                    }..................
-    is_while_sim = conf_alias(
-        "['results options']['while solving']['animations']['enabled']", bool)
     is_while_sim_save = conf_alias(
         "['results options']['while solving']['animations']['save']", bool)
     is_while_sim_show = conf_alias(
         "['results options']['while solving']['animations']['show']", bool)
 
     # ..................{ ALIASES ~ after                    }..................
-    is_after_sim = conf_alias(
-        "['results options']['after solving']['animations']['enabled']", bool)
     is_after_sim_save = conf_alias(
         "['results options']['after solving']['animations']['save']", bool)
     is_after_sim_show = conf_alias(
@@ -173,76 +180,26 @@ class SimConfAnimAll(SimConfABC):
         "['results options']['save']['animations']['video']['codecs']",
         SequenceTypes)
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, *args, **kwargs) -> None:
+    # ..................{ PROPERTIES ~ while                 }..................
+    @property
+    def is_while_sim(self) -> bool:
+        return self.is_while_sim_save or self.is_while_sim_show
 
-        # Initialize our superclass with all passed parameters.
-        super().__init__(*args, **kwargs)
 
-        # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.postsim_pipeline = SimConfList(
-            confs=self._conf[
-                'results options']['after solving']['animations']['pipeline'],
-            conf_type=SimConfAnimOne,
-        )
+    @is_while_sim.setter
+    @type_check
+    def is_while_sim(self, is_while_sim: bool) -> None:
+        self.is_while_sim_save = is_while_sim
+        self.is_while_sim_show = is_while_sim
 
-        #FIXME: Actually initialize to a valid "SimConfList", once the codebase
-        #supports general-purpose in-simulation animations.
-        self.insim_pipeline = []
+    # ..................{ PROPERTIES ~ after                 }..................
+    @property
+    def is_after_sim(self) -> bool:
+        return self.is_after_sim_save or self.is_after_sim_show
 
-        # Validate all configured integers to be positive.
-        ints.die_unless_positive(
-            self.image_dpi,
-            self.video_bitrate,
-            self.video_dpi,
-            self.video_framerate,
-        )
 
-# ....................{ SUBCLASSES ~ one                   }....................
-#FIXME: Rename to merely "SimConfAnim" *AFTER* eliminating the following
-#filehandling._preserve_backward_importability() assignment:
-#
-#    sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
-#        confanim.SimConfAnimAll)
-class SimConfAnimOne(SimConfListableABC):
-    '''
-    YAML-backed simulation animation subconfiguration, encapsulating the
-    configuration of a single animation (either in- or post-simulation) parsed
-    from the list of all such animations in the current YAML-formatted
-    simulation configuration file.
-
-    Attributes (General)
-    ----------
-    name : str
-        Lowercase alphanumeric string uniquely identifying the type of this
-        animation as a  (e.g., ``voltage_intra``, signifying an animation of
-        intracellular voltages). See the corresponding entry ``type`` of the
-        default simulation configuration file for further commentary.
-
-    Attributes (Colorbar)
-    ----------
-    color_max : NumericTypes
-        Maximum color value to be displayed by the colorbar. Ignored if
-        :attr:`is_color_autoscaled` is ``True``.
-    color_min : NumericTypes
-        Minimum color value to be displayed by the colorbar. Ignored if
-        :attr:`is_color_autoscaled` is ``True``.
-    is_color_autoscaled : bool
-        ``True`` if dynamically setting the minimum and maximum colorbar values
-        for this animation to the minimum and maximum values flattened from the
-        corresponding time series *or* ``False`` if statically setting these
-        values to :attr:`color_min` and :attr:`color_max`.
-    '''
-
-    # ..................{ ALIASES                            }..................
-    name = conf_alias("['type']", str)
-
-    # ..................{ ALIASES ~ colorbar                 }..................
-    is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)
-    color_min = conf_alias("['colorbar']['minimum']", NumericTypes)
-    color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
-
-    # ..................{ SUPERCLASS                         }..................
-    #FIXME: Actually implement this method.
-    def default(self) -> None:
-        raise BetseMethodUnimplementedException()
+    @is_after_sim.setter
+    @type_check
+    def is_after_sim(self, is_after_sim: bool) -> None:
+        self.is_after_sim_save = is_after_sim
+        self.is_after_sim_show = is_after_sim

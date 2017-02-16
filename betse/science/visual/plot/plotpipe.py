@@ -3,8 +3,8 @@
 # See "LICENSE" for further details.
 
 '''
-High-level facilities for displaying and/or saving all enabled plots _and_
-animations.
+High-level facilities for **pipelining** (i.e., iteratively displaying and/or
+exporting) post-simulation plots.
 '''
 
 #FIXME: For safety, most "== 1"-style tests in this module should be converted
@@ -39,130 +39,94 @@ animations.
 #* Manually destroy that local with either "figure = None" or "del figure".
 #
 #Undomesticated unicorns running into the carefree sunset!
+#FIXME: The above analysis for the following runtime "pyplot" warning is, sadly,
+#completely wrong.
+#
+#    pyplot.py:424: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
+#
+#The underlying cause of is simple. The pyplot.figure() function internally
+#caches created figures into a global cache of such figures. There are many
+#reasons why this is a bad idea, including the aforementioned warning as well as
+#the probably non-thread-safety of this approach. The solution, of course, is to
+#simply manually instantiate Figure() instances directly rather than call the
+#pyplot.figure() function: e.g.,
+#
+#    # Instead of this...
+#    plt.figure()
+#    subplot = plt.subplot()
+#
+#    # ...do this.
+#    fig = Figure()
+#    subplot = fig.subplot()  # does this work? no idea.
+#
+#The obvious downside of the above approach, of course, is proper creation of
+#non-blocking plots -- which will probably require creation and use of some sort
+#of thread-safe cache. Assuming a one-to-one mapping is preserved between each
+#non-blocking plot and each thread, the simplest mechanism would be to simply
+#cache that plot's figure as an attribute of that thread. Sweet, no?
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 import os
+import numpy as np
+from betse.exceptions import BetseSimConfigException
+from betse.science.simulate.simpipeabc import SimPipelayerABC
+from betse.science.visual.plot import plotutil as viz
+from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
-from betse.exceptions import BetseSimConfigException
-from betse.science.visual.plot import plotutil as viz
-from betse.science.visual.anim.animpipe import pipeline_anims
-from betse.util.io.log import logs
-from betse.util.type import types
 from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ PIPELINES                          }....................
-#FIXME: Refactor the "plot_type" parameter to be somewhat less crazy. This
-#parameter is passed by the "simrunner" submodule. Ideally, this parameter
-#should be a typesafe enum rather than a non-typesafe string or, preferably,
-#simply go away entirely. Related commentary follows on how to best achieve the
-#latter goal.
-#FIXME: I don't quite grok our usage of "sim.run_sim". This undocumented
-#attribute appears to be internally set by the Simulator.run_phase_sans_ecm()
-#method. That makes sense; however, what's the parallel "p.run_sim" attribute
-#for, then?  Interestingly, the "SimRunner" class sets "p.run_sim" as follows:
-#
-#* To "False" if an initialization is being performed.
-#* To "True" if a simulation is being performed.
-#
-#This doesn't seem quite ideal, however. Ideally, there would exist one and only
-#one attribute whose value is an instance of a multi-state "SimPhaseType" class
-#rather than two binary boolean attributes. Possible enum values might include:
-#
-#* "SimPhaseType.seed" when seeding a new cluster.
-#* "SimPhaseType.init" when initializing a seeded cluster.
-#* "SimPhaseType.sim" when simulating an initialized cluster.
-#
-#This attribute would probably exist in the "Simulator" class -- say, as
-#"sim.phase". In light of that, consider the following refactoring:
-#
-#* Define a new "SimPhaseType" class in the "sim" module with the above
-#  attributes.
-#* Define a new "Simulator.phase" attribute initialized to None.
-#* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
-#  "sim.phase" instead. Note that only the:
-#  * "SimRunner" class sets "p.run_sim".
-#  * "Simulator" class sets "sim.run_sim".
-#
-#Note also the:
-#
-#* "plot_type" parameter passed to the pipeline_plots() function by the
-#  "SimRunner" class.
-#* The seemingly duplicate "p.plot_type" attribute internally set by the
-#  pipeline_plots() function, which is frankly crazy.
-#
-#Both parameters should probably receive similar treatment and be replaced
-#entirely by use of the new "sim.phase" attribute.
-#
-#Wonder temptress at the speed of light and the sound of love!
 
-#FIXME: Shift this function into a new "betse.science.visual.visualpipe"
-#submodule.
-
-def pipeline_results(
-    sim: 'Simulator',
-    cells: 'Cells',
-    p: 'Parameters',
-    plot_type: str = 'init',
-) -> None:
+# ....................{ CLASSES                            }....................
+class PlotCellsPipelayer(SimPipelayerABC):
     '''
-    Serially (i.e., in series) display and/or save all enabled plots and
-    animations for the passed simulation phase (e.g., `init`, `sim`).
-
-    Parameters
-    ----------------------------
-    sim : Simulator
-        Current simulation.
-    cells : Cells
-        Current cell cluster.
-    p : Parameters
-        Current simulation configuration.
-    plot_type : str
-        String constant corresponding to the current simulation phase. Valid
-        values include:
-        * `init`, for plotting simulation initialization results.
-        * `sim`, for plotting simulation run results.
+    **Post-simulation plot pipeline** (i.e., class iteratively creating all
+    post-simulation plots requested by the current simulation configuration).
     '''
-    assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_cells(cells), types.assert_not_parameters(cells)
-    assert types.is_parameters(p), types.assert_not_parameters(p)
 
-    #FIXME: This is terrible. I don't even.
-    p.plot_type = plot_type
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, *args, **kwargs) -> None:
 
-    # Display and/or save all plots.
-    pipeline_plots(sim, cells, p)
+        # Initialize our superclass with all passed parameters.
+        super().__init__(
+            *args,
+            label_singular='plot',
+            label_plural='plots',
+            **kwargs)
 
-    # Display and/or save all animations.
-    pipeline_anims(sim, cells, p)
+    # ..................{ SUPERCLASS                         }..................
+    @property
+    def runner_names(self) -> SequenceTypes:
+        '''
+        Sequence of the names of all post-simulation animations enabled by this
+        simulation configuration.
+        '''
 
-    #FIXME: What is this? What requires showing? Are we finalizing some
-    #previously displayed visual artifact? We suspect this to be safely
-    #jettisoned deadweight, but... let's verify that, please.
+        return tuple(
+            anim.name for anim in self._phase.p.plot.after_sim_pipeline)
 
-    # If displaying plots and animations, display... something? I guess?
-    if p.turn_all_plots_off is False:
-        plt.show()
-    # Else, log the directory to which results were exported.
-    else:
-        #FIXME: This is terrible. I don't even. For one, this logic is
-        #duplicated below by the pipeline_plots() function. For another, the
-        #"p.sim_results" and "p.sim_results" parameters should probably simply
-        #be aggregated into a single "sim.export_dirname" parameter
-        #corresponding to the export directory for the current phase.
-        if p.plot_type == 'sim':
-            export_dirname = p.sim_results
-        elif p.plot_type == 'init':
-            export_dirname = p.init_results
+    # ..................{ RUNNERS ~ wut                      }..................
+    def run_wut(self) -> None:
+        '''
+        Plot the wut for the last time step.
+        '''
 
-        logs.log_info('Results exported to: %s', export_dirname)
+        # Log this animation attempt.
+        self._die_unless_intra()
 
-# ....................{ PIPELINES ~ plots                  }....................
+        # Plot this plot.
+        pass
+
+# ....................{ OBSOLETE                           }....................
+#FIXME: Replace *ALL* functionality defined below with the "PlotCellsPipelayer"
+#class defined above.
+@type_check
 def pipeline_plots(
-    sim: 'Simulator',
-    cells: 'Cells',
-    p: 'Parameters',
+    sim: 'betse.science.sim.Simulator',
+    cells: 'betse.science.cells.Cells',
+    p: 'betse.science.parameters.Parameters',
 ) -> None:
     '''
     Serially (i.e., in series) display and/or save all enabled plots for the
@@ -177,9 +141,18 @@ def pipeline_plots(
     p : Parameters
         Current simulation configuration.
     '''
-    assert types.is_simulator(sim), types.assert_not_simulator(sim)
-    assert types.is_cells(cells), types.assert_not_parameters(cells)
-    assert types.is_parameters(p), types.assert_not_parameters(p)
+
+    # Post-simulation animation pipeline producing all such animations.
+    # pipelayer = PlotCellsPipelayer(
+    #     phase=SimPhaseWeak(sim=sim, cells=cells, p=p))
+
+    #FIXME: Replace *ALL* logic below with the following single call:
+    #    pipelayer.run()
+    #FIXME: When doing so, note that *ALL* uses of hardcoded animation-specific
+    #parameter options (e.g., "self._phase.p.I_ani_min_clr") will need to be
+    #refactored to use the general-purpose settings for the current animation.
+    #FIXME: Likewise, refactor tests to exercise the new dynamic pipeline schema
+    #rather than the obsolete hardcoded schema.
 
     # If post-simulation plots are disabled, noop.
     if not p.plot.is_after_sim:
@@ -307,7 +280,7 @@ def pipeline_plots(
             plt.show(block=False)
 
         # plot rate of Na-K-ATPase pump vs time:
-        figNaK = plt.figure()
+        plt.figure()
         axNaK = plt.subplot()
 
         if p.sim_ECM is False:
@@ -372,7 +345,7 @@ def pipeline_plots(
 
         if np.mean(sim.P_cells_time) != 0.0:
             p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]
-            figOP = plt.figure()
+            plt.figure()
             axOP = plt.subplot(111)
             axOP.plot(sim.time, p_hydro)
             axOP.set_xlabel('Time [s]')
@@ -408,7 +381,7 @@ def pipeline_plots(
 
         if p.deform_osmo is True:
             p_osmo = [arr[p.plot_cell] for arr in sim.osmo_P_delta_time]
-            figOP = plt.figure()
+            plt.figure()
             axOP = plt.subplot(111)
             axOP.plot(sim.time, p_osmo)
             axOP.set_xlabel('Time [s]')
@@ -431,7 +404,7 @@ def pipeline_plots(
             # Get the total magnitude.
             disp = np.sqrt(dx**2 + dy**2)
 
-            figD = plt.figure()
+            plt.figure()
             axD = plt.subplot(111)
             axD.plot(sim.time, p.um*disp)
             axD.set_xlabel('Time [s]')

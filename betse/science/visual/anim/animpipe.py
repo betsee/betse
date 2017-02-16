@@ -3,7 +3,8 @@
 # See "LICENSE" for further details.
 
 '''
-High-level facilities for displaying and/or saving all enabled animations.
+High-level facilities for **pipelining** (i.e., iteratively displaying and/or
+exporting) post-simulation animations.
 '''
 
 #FIXME: This module would be a *GREAT* candidate for testing out Python 3.5-
@@ -35,14 +36,14 @@ from betse.science.visual.layer.field.layerfieldquiver import (
 from betse.science.visual.layer.vector import layervectorsurface
 from betse.science.visual.layer.vector.layervectorsurface import (
     LayerCellsVectorSurfaceContinuous)
-from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ CLASSES                            }....................
 class AnimCellsPipelayer(SimPipelayerABC):
     '''
     **Post-simulation animation pipeline** (i.e., class iteratively creating all
-    such animations requested by the current simulation configuration).
+    post-simulation animations requested by the current simulation
+    configuration).
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -57,14 +58,15 @@ class AnimCellsPipelayer(SimPipelayerABC):
             **kwargs)
 
     # ..................{ SUPERCLASS                         }..................
-    @property_cached
+    @property
     def runner_names(self) -> SequenceTypes:
         '''
         Sequence of the names of all post-simulation animations enabled by this
         simulation configuration.
         '''
 
-        return tuple(anim.name for anim in self._phase.p.anim.postsim_pipeline)
+        return tuple(
+            anim.name for anim in self._phase.p.anim.after_sim_pipeline)
 
     # ..................{ RUNNERS ~ current                  }..................
     def run_current_intra(self) -> None:

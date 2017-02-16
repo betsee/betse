@@ -11,7 +11,39 @@ simulation) functionality.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from betse.util.py import references
+from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check
+
+# ....................{ ENUMS                              }....................
+SimPhaseType = EnumOrdered('SimPhaseType', ('SEED', 'INIT', 'SIM',))
+'''
+Ordered enumeration of all possible simulation phases.
+
+Each member of this enumeration is arbitrarily comparable to each other member.
+Each member's value is less than that of another member's value if and only if
+the former simulation phase is performed _before_ the latter. Specifically,
+this enumeration is a total ordering such that:
+
+    >>> SimPhaseType.SEED < SimPhaseType.INIT < SimPhaseType.SIM
+    True
+
+Attributes
+----------
+SEED : enum
+    Seed simulation phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.seed` method. This phase creates
+    the cell cluster and caches this cluster to an output file.
+INIT : enum
+    Initialization simulation phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.init` method. This phase
+    initializes the previously created cell cluster from a cached input file
+    and caches this initialization to an output file.
+SIM : enum
+    Proper simulation phase, as implemented by the
+    :meth:`betse.science.simrunner.SimRunner.sim` method. This phase simulates
+    the previously initialized cell cluster from a cached input file and caches
+    this simulation to an output file.
+'''
 
 # ....................{ SUPERCLASSES                       }....................
 class SimPhaseABC(object, metaclass=ABCMeta):
@@ -44,9 +76,9 @@ class SimPhaseABC(object, metaclass=ABCMeta):
     @abstractmethod
     def __init__(
         self,
-        sim: 'betse.science.sim.Simulator',
+        sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
-        p: 'betse.science.parameters.Parameters',
+        p:     'betse.science.parameters.Parameters',
     ) -> None:
         '''
         Initialize this simulation phase instance.
@@ -84,9 +116,9 @@ class SimPhaseStrong(SimPhaseABC):
     @type_check
     def __init__(
         self,
-        sim: 'betse.science.sim.Simulator',
+        sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
-        p: 'betse.science.parameters.Parameters',
+        p:     'betse.science.parameters.Parameters',
     ) -> None:
 
         # Strongly classify all passed parameters.
@@ -125,9 +157,9 @@ class SimPhaseWeak(SimPhaseABC):
     @type_check
     def __init__(
         self,
-        sim: 'betse.science.sim.Simulator',
+        sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
-        p: 'betse.science.parameters.Parameters',
+        p:     'betse.science.parameters.Parameters',
     ) -> None:
 
         # Weakly classify all passed parameters.

@@ -10,6 +10,8 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
+
+import betse.science.visual.visualpipe
 from betse.exceptions import (
     BetseFileException, BetseSimException, BetseSimConfigException)
 from betse.science import filehandling as fh
@@ -19,7 +21,7 @@ from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator, SimPhaseType
-from betse.science.simulate.simphase import SimPhaseStrong
+from betse.science.simulate.simphase import SimPhaseStrong, SimPhaseType
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
 from betse.science.visual.plot import plotpipe
@@ -625,8 +627,9 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
+        # Log this plotting attempt.
         logs.log_info(
-            'Plotting initialization with configuration "%s".',
+            'Plotting initialization with configuration "%s"...',
             self._config_basename)
 
         # Simulation configuration.
@@ -634,7 +637,7 @@ class SimRunner(object):
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
 
         # Simulation simulator.
-        sim = Simulator(p)
+        sim = Simulator(p=p, phase=SimPhaseType.INIT)
 
         #FIXME: Bizarre logic. We create a "Simulator" instance above only to
         #test whether a single file exists and, if so, replace that instance
@@ -650,7 +653,7 @@ class SimRunner(object):
                 "Ooops! No such initialization file found to plot!")
 
         # Display and/or save all enabled plots and animations.
-        plotpipe.pipeline_results(sim, cells, p, plot_type='init')
+        betse.science.visual.visualpipe.pipeline_results(sim, cells, p, plot_type='init')
 
         #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
         #set up, it's not possible to readily fix it. Grrrrrr.....
@@ -718,8 +721,9 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
+        # Log this plotting attempt.
         logs.log_info(
-            'Plotting simulation with configuration "%s".',
+            'Plotting simulation with configuration "%s"...',
             self._config_basename)
 
         # Simulation configuration.
@@ -727,7 +731,7 @@ class SimRunner(object):
         p.set_time_profile(p.time_profile_sim)  # force the time profile to be simulation
 
         # Simulation simulator.
-        sim = Simulator(p)
+        sim = Simulator(p=p, phase=SimPhaseType.SIM)
 
         # If this simulation has yet to be run, fail.
         if not files.is_file(sim.savedSim):
@@ -740,7 +744,7 @@ class SimRunner(object):
         sim, cells, _ = fh.loadSim(sim.savedSim)
 
         # Display and/or save all enabled plots and animations.
-        plotpipe.pipeline_results(sim, cells, p, plot_type='sim')
+        betse.science.visual.visualpipe.pipeline_results(sim, cells, p, plot_type='sim')
 
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
