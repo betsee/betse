@@ -11,8 +11,6 @@ simulation objects.
 
 # ....................{ IMPORTS                            }....................
 import sys
-
-import betse.science.simulate.simphase
 from betse.lib.pickle import pickles
 from betse.util.type.types import type_check
 from collections.abc import Sequence
@@ -128,6 +126,7 @@ def _preserve_backward_importability() -> None:
     # Import all modules whose fully-qualified names have been modified.
     from betse.science import channels, sim
     from betse.science.math import finitediff
+    from betse.science.simulate import simphase
     from betse.science.tissue import tissuepick
     from betse.science.config.visual import confanim
     from betse.science.config.visual import confplot
@@ -144,7 +143,8 @@ def _preserve_backward_importability() -> None:
 
     # Alias obsolete to current class names.
     confanim.SimConfAnimOne = SimConfVisual
-    sim.SimPhase = betse.science.simulate.simphase.SimPhaseType
+    simphase.SimPhaseType = simphase.SimPhaseKind
+    sim.SimPhase = simphase.SimPhaseKind
     sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
         confanim.SimConfAnimAll)
     sys.modules['betse.science.config.visual.confplot'].SimConfPlot = (

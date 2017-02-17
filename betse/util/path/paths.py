@@ -597,22 +597,23 @@ def join(*pathnames) -> str:
 @type_check
 def canonicalize(pathname: str) -> str:
     '''
-    **Canonical form** (i.e., unique absolute pathname _after_ transitively
+    **Canonical form** (i.e., unique absolute pathname *after* transitively
     resolving all symbolic links) of the passed path.
 
-    Specifically (_in order_):
+    Specifically (in order):
 
     . Transitively resolve all symbolic links, producing a pathname that either
       does not exist _or_ does exist but is not a symbolic link.
-    . Perform **tilde expansion,** replacing a `~` character prefixing this
+    . Perform **tilde expansion,** replacing a ``~`` character prefixing this
       path by the absolute path of the current user's home directory.
     . Perform **path normalization,** thus (in no particular order):
-      * Collapsing redundant separators (e.g., converting `//` to `/`).
+      * Collapsing redundant separators (e.g., converting ``//`` to ``/``).
       * Converting explicit relative to absolute path components (e.g.,
-        converting `../` to the name of the parent directory of that component).
+        converting ``../`` to the name of the parent directory of that
+        component).
       * Converting implicit relative basenames to absolute pathnames (e.g.,
-        converting `sim_config.yaml` to `/tmp/sim_config.yaml` when the current
-        working directory is `/tmp`).
+        converting ``sim_config.yaml`` to ``/tmp/sim_config.yaml`` when the
+        current working directory is ``/tmp``).
     '''
 
     return path.realpath(path.expanduser(pathname))

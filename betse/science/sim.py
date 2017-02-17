@@ -23,7 +23,6 @@ from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
-from betse.science.simulate.simphase import SimPhaseType
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
@@ -37,15 +36,15 @@ from scipy.ndimage.filters import gaussian_filter
 # ....................{ CLASSES                            }....................
 class Simulator(object):
     '''
-    High-level tissue simulation.
+    Phase-specific simulator, simulating networked cell bioelectrical activity
+    for a specific phase (e.g., seed, initialization, simulation) and storing
+    the results of this activity.
 
-    This class simulates networked cell bioelectrical activity. For efficiency,
-    _all_ methods are implemented in terms of Numpy-based linear algebra.
+    For efficiency and scalability, *all* simulation methods are implemented in
+    terms of Numpy-based linear algebra.
 
     Methods
     -------
-    baseInit_all(cells,p)           Prepares core data structures necessary for initialization and sim runs
-
     update_V(cells,p,t)             Gets charge densities in cells and environment
                                       and calculates respective voltages.
 
@@ -73,14 +72,6 @@ class Simulator(object):
 
     get_ion(label)                          Supply the ion name as a string input ('Na', 'K', 'Ca', etc) and it outputs
                                             the sim index of that ion type.
-
-    initDenv(cells,p)                       Initializes the environmental diffusion matrix and corresponding weight
-                                            matrices, including tight and adherin junctions.
-
-    Attributes
-    ----------
-    _phase : SimPhaseType
-        Current simulation phase.
 
     Attributes (Counts)
     ----------
@@ -238,21 +229,7 @@ class Simulator(object):
     '''
 
     @type_check
-    def __init__(
-        self,
-        p: 'betse.science.parameters.Parameters',
-
-        #FIXME: Refactor this optional parameter to be mandatory.
-        #FIXME: After doing so, shift this parameter into the higher-level
-        #"SimPhaseABC" base class -- where it properly belongs. To support this
-        #move, however, we'll need to begin pickling and unpickling proper
-        #"SimPhaseABC" instances rather than 3-tuples "(sim, cells, p)".
-        #Unfortunately, of course, we'll also need to preserve backwards
-        #compatibility for previously pickled 3-tuples -- presumably by
-        #converting unpickled 3-tuples into "SimPhaseABC" instances to ensure a
-        #consistent API.
-        phase: SimPhaseType = None,
-    ) -> None:
+    def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
         '''
         Create this simulation.
 
@@ -260,12 +237,7 @@ class Simulator(object):
         ----------
         p : betse.science.parameters.Parameters
             Current simulation configuration.
-        phase : SimPhaseType
-            Current simulation phase.
         '''
-
-        # Classify all passed parameters.
-        self._phase = phase
 
         #FIXME: Define all other instance attributes as well.
         # Default all remaining attributes.
@@ -302,16 +274,16 @@ class Simulator(object):
 
     def baseInit_all(self, cells, p):
         """
-        Creates a host of initialized data matrices for the main simulation,
-        including intracellular and environmental concentrations, voltages, and specific
-        diffusion constants.
+        Prepare core data structures necessary for subsequent initialization and
+        simulation phases.
 
-        This method is only done once per world-creation, and therefore contains crucial
-        parameters, such as the type of ions included in the simulation, which can't be
+        This method creates a variety of initialized data matrices for the main
+        simulation, including intracellular and environmental concentrations,
+        voltages, specific diffusion constants, and types of ions included in
+        the simulation. This method is performed only once per seed (i.e., cell
+        cluster creation) and thus contains crucial parameters, which cannot be
         changed after running an initialization.
-
         """
-
 
         # initialize all extra substances related objects to None, to be filled in if desired later
         self.molecules = None
@@ -1856,9 +1828,19 @@ class Simulator(object):
         return ion
 
     def initDenv(self,cells,p):
+        '''
+        Initialize the environmental diffusion matrix and corresponding weight
+        matrices, including tight and adherin junctions.
+        '''
 
-        self.D_env_u = np.zeros((self.D_env.shape[0],cells.grid_obj.u_shape[0],cells.grid_obj.u_shape[1]))
-        self.D_env_v = np.zeros((self.D_env.shape[0],cells.grid_obj.v_shape[0],cells.grid_obj.v_shape[1]))
+        self.D_env_u = np.zeros((
+            self.D_env.shape[0],
+            cells.grid_obj.u_shape[0],
+            cells.grid_obj.u_shape[1]))
+        self.D_env_v = np.zeros((
+            self.D_env.shape[0],
+            cells.grid_obj.v_shape[0],
+            cells.grid_obj.v_shape[1]))
 
         for i, dmat in enumerate(self.D_env):
 
@@ -1945,25 +1927,6 @@ class Simulator(object):
             self.D_env_weight_v[:,-1] = 0
             self.D_env_weight_v[0,:] = 0
             self.D_env_weight_v[-1,:] = 0
-
-    # ..................{ PROPERTIES                         }..................
-    @property
-    def phase(self) -> SimPhaseType:
-        '''
-        Current simulation phase.
-        '''
-
-        return self._phase
-
-
-    @phase.setter
-    @type_check
-    def phase(self, phase: SimPhaseType) -> None:
-        '''
-        Set whether the current simulation phase.
-        '''
-
-        self._phase = phase
 
     # ..................{ PLOTTERS                           }..................
     def _plot_loop(

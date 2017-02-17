@@ -66,17 +66,16 @@ exporting) post-simulation plots.
 #cache that plot's figure as an attribute of that thread. Sweet, no?
 
 # ....................{ IMPORTS                            }....................
-import os
 import numpy as np
 from betse.exceptions import BetseSimConfigException
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.simulate.simpipeabc import SimPipelayerABC
 from betse.science.visual.plot import plotutil as viz
+from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
-
-# ....................{ PIPELINES                          }....................
 
 # ....................{ CLASSES                            }....................
 class PlotCellsPipelayer(SimPipelayerABC):
@@ -123,23 +122,15 @@ class PlotCellsPipelayer(SimPipelayerABC):
 #FIXME: Replace *ALL* functionality defined below with the "PlotCellsPipelayer"
 #class defined above.
 @type_check
-def pipeline_plots(
-    sim: 'betse.science.sim.Simulator',
-    cells: 'betse.science.cells.Cells',
-    p: 'betse.science.parameters.Parameters',
-) -> None:
+def pipeline(phase: SimPhaseABC) -> None:
     '''
-    Serially (i.e., in series) display and/or save all enabled plots for the
-    current simulation phase if animations are enabled _or_ noop otherwise.
+    Display and/or save all currently enabled plots for the passed simulation
+    phase.
 
     Parameters
     ----------------------------
-    sim : Simulator
-        Current simulation.
-    cells : Cells
-        Current cell cluster.
-    p : Parameters
-        Current simulation configuration.
+    phase: SimPhaseABC
+        Current simulation phase.
     '''
 
     # Post-simulation animation pipeline producing all such animations.
@@ -155,38 +146,38 @@ def pipeline_plots(
     #rather than the obsolete hardcoded schema.
 
     # If post-simulation plots are disabled, noop.
-    if not p.plot.is_after_sim:
+    if not phase.p.plot.is_after_sim:
        return
 
-    if p.autosave is True:
-        if p.plot_type == 'sim':
-            images_path = p.sim_results
-        elif p.plot_type == 'init':
-            images_path = p.init_results
+    # If saving these plots...
+    if phase.p.plot.is_after_sim_save:
+        # Create the top-level directory containing these plots if needed.
+        dirs.make_unless_dir(phase.save_dirname)
 
-        image_cache_dir = os.path.expanduser(images_path)
-        os.makedirs(image_cache_dir, exist_ok=True)
-        savedImg = os.path.join(image_cache_dir, 'fig_')
+        # Substring prefixing the absolute path of each plot created below.
+        savedImg = paths.join(phase.save_dirname, 'fig_')
 
     # check that the plot cell is in range of the available cell indices:
-    if p.plot_cell not in cells.cell_i:
+    if phase.p.plot_cell not in phase.cells.cell_i:
         raise BetseSimConfigException(
             'The "plot cell" defined in the "results" section of your '
             'configuration file does not exist in your cluster. '
             'Choose a plot cell number smaller than the maximum cell number.')
 
-    if p.sim_ECM is True:
-        plot_cell_ecm = cells.cell_to_mems[p.plot_cell][0]  # convert from cell to mem index
+    # If extracellular spaces are enabled, convert from cell to cell membrane
+    # indices.
+    if phase.p.sim_ECM is True:
+        plot_cell_ecm = phase.cells.cell_to_mems[phase.p.plot_cell][0]
     else:
-        plot_cell_ecm = p.plot_cell
+        plot_cell_ecm = phase.p.plot_cell
 
-    if p.exportData is True:
-        viz.exportData(cells, sim, p)
+    if phase.p.exportData:
+        viz.exportData(phase.cells, phase.sim, phase.p)
 
-    if p.exportData2D is True:
-        for i, t in enumerate(sim.time):
-            simdata = 1.0e3*sim.vm_ave_time[i]
-            viz.export2dData(i, simdata, cells, p)
+    if phase.p.exportData2D is True:
+        for i, t in enumerate(phase.sim.time):
+            simdata = 1.0e3 * phase.sim.vm_ave_time[i]
+            viz.export2dData(i, simdata, phase.cells, phase.p)
 
         # for i, t in enumerate(sim.time):
         #     simdata_x = 1.0e3*sim.pol_x_time[i]
@@ -198,6 +189,14 @@ def pipeline_plots(
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
     #-------------------------------------------------------------------------------------------------------------------
+
+    #FIXME: Replace these local variable placeholders with the equivalent
+    #"phase.sim", "phase.cells", and "phase.p". To do so, continue iteratively
+    #pushing these declarations further and further down this function until
+    #they are no longer required at all.
+    sim   = phase.sim
+    cells = phase.cells
+    p     = phase.p
 
     if p.plot_single_cell_graphs is True:
         # Plot cell sodium concentration versus time.
@@ -211,7 +210,7 @@ def pipeline_plots(
         titNa = 'Sodium concentration in cell ' + str(p.plot_cell)
         axConcsNa.set_title(titNa)
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename1 = savedImg + 'concNa_time' + '.png'
             plt.savefig(savename1, dpi=300, format='png', transparent=True)
 
@@ -226,7 +225,7 @@ def pipeline_plots(
         titK = 'Potassium concentration in cell ' + str(p.plot_cell)
         axConcsK.set_title(titK)
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename1 = savedImg + 'concK_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
@@ -246,7 +245,7 @@ def pipeline_plots(
         titM = 'M Anion concentration in cell ' + str(p.plot_cell)
         axConcsM.set_title(titM)
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename1 = savedImg + 'concM_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
@@ -259,7 +258,7 @@ def pipeline_plots(
         titV = 'Voltage (Vmem) in cell ' + str(p.plot_cell)
         axVt.set_title(titV)
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename2 = savedImg + 'Vmem_time' + '.png'
             plt.savefig(savename2,dpi=300,format='png',transparent=True)
 
@@ -272,7 +271,7 @@ def pipeline_plots(
         titFFT = 'Fourier transform of Vmem in cell ' + str(p.plot_cell)
         axFFT.set_title(titFFT)
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename = savedImg + 'FFT_time' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -294,7 +293,7 @@ def pipeline_plots(
         axNaK.set_ylabel('Pumping Rate of Na+ Out of Cell [mol/(m2 s)]')
         axNaK.set_title('Rate of NaK-ATPase pump in cell: ' + str(p.plot_cell) )
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename = savedImg + 'NaKATPaseRaTE_' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -332,7 +331,7 @@ def pipeline_plots(
         axI.set_xlabel('Time [s]')
         axI.set_ylabel('Current density [uA/cm2]')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename = savedImg + 'Imem_time' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -352,7 +351,7 @@ def pipeline_plots(
             axOP.set_ylabel('Hydrostatic Pressure [Pa]')
             axOP.set_title('Hydrostatic pressure in cell ' + str(p.plot_cell) )
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename = savedImg + 'HydrostaticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -371,7 +370,7 @@ def pipeline_plots(
             titCa = 'Cytosolic Ca2+ in cell index ' + str(p.plot_cell)
             axA.set_title(titCa)
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename3 = savedImg + 'cytosol_Ca_time' + '.png'
                 plt.savefig(savename3,dpi=300,format='png',transparent=True)
 
@@ -388,7 +387,7 @@ def pipeline_plots(
             axOP.set_ylabel('Osmotic Pressure [Pa]')
             axOP.set_title('Osmotic pressure in cell ' + str(p.plot_cell) )
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename = savedImg + 'OsmoticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -411,7 +410,7 @@ def pipeline_plots(
             axD.set_ylabel('Displacement [um]')
             axD.set_title('Displacement of cell ' + str(p.plot_cell) )
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename = savedImg + 'Displacement_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
@@ -440,7 +439,7 @@ def pipeline_plots(
         axV.set_ylabel('Spatial distance [um]')
         cbV.set_label('Voltage mV')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename5 = savedImg + 'final_Vmem_2D' + '.png'
             plt.savefig(savename5,format='png',transparent=True)
 
@@ -466,7 +465,7 @@ def pipeline_plots(
         axVa.set_ylabel('Spatial distance [um]')
         cbVa.set_label('Voltage [mV]')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename5 = savedImg + 'final_AverageVmem_2D' + '.png'
             plt.savefig(savename5, format='png', transparent=True)
 
@@ -489,7 +488,7 @@ def pipeline_plots(
             plt.colorbar()
             plt.title('Environmental Voltage [mV]')
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename10 = savedImg + 'Final_environmental_V' + '.png'
                 plt.savefig(savename10, format='png', transparent=True)
 
@@ -514,7 +513,7 @@ def pipeline_plots(
         axV_ghk.set_ylabel('Spatial distance [um]')
         cbV_ghk.set_label('Voltage [mV]')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename5 = savedImg + 'final_Vmem_GHK_2D' + '.png'
             plt.savefig(savename5,format='png',transparent=True)
 
@@ -536,7 +535,7 @@ def pipeline_plots(
         axCa.set_ylabel('Spatial distance [um]')
         cbCa.set_label('Concentration nmol/L')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename8 = savedImg + 'final_Ca_2D' + '.png'
             plt.savefig(savename8,format='png',transparent=True)
 
@@ -565,7 +564,7 @@ def pipeline_plots(
             plt.colorbar()
             plt.title('Environmental Calcium [mmol/L]')
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename10 = savedImg + 'Final_environmental_calcium' + '.png'
                 plt.savefig(savename10, format='png', transparent=True)
 
@@ -589,7 +588,7 @@ def pipeline_plots(
         axH.set_ylabel('Spatial distance [um]')
         cbH.set_label('pH')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename8 = savedImg + 'final_pH_2D' + '.png'
             plt.savefig(savename8,format='png',transparent=True)
 
@@ -607,7 +606,7 @@ def pipeline_plots(
     axPump.set_ylabel('Spatial distance [um]')
     cbPump.set_label('Pump Na+ Flux (nmol/m2*s)')
 
-    if p.autosave is True:
+    if p.plot.is_after_sim_save is True:
         savename8 = savedImg + 'final_NaKPump_2D' + '.png'
         plt.savefig(savename8, format='png', transparent=True)
 
@@ -636,7 +635,7 @@ def pipeline_plots(
         axI.set_ylabel('Spatial distance [um]')
         cbI.set_label('Current Density [uA/cm2]')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename10 = savedImg + 'Final_Current_gj' + '.png'
             plt.savefig(savename10,format='png',transparent=True)
 
@@ -663,7 +662,7 @@ def pipeline_plots(
             axI2.set_ylabel('Spatial distance [um]')
             cbI2.set_label('Extracellular Current Density [uA/cm2]')
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'
                 plt.savefig(savename11,format='png',transparent=True)
 
@@ -684,7 +683,7 @@ def pipeline_plots(
             if p.turn_all_plots_off is False:
                 plt.show(block=False)
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 if p.sim_ECM is True:
                     savename = savedImg + 'Final_Electric_Field_ECM' + '.png'
                     plt.savefig(savename,format='png',transparent=True)
@@ -698,7 +697,7 @@ def pipeline_plots(
             maxColor=p.Efield_max_clr,
         )
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename = savedImg + 'Final_Electric_Field_GJ' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 
@@ -716,7 +715,7 @@ def pipeline_plots(
         axP.set_ylabel('Spatial distance [um]')
         cbP.set_label('Pressure [Pa]')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename13 = savedImg + 'final_P_2D_gj' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -739,7 +738,7 @@ def pipeline_plots(
             maxColor=p.Deformation_ani_max_clr,
         )
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename13 = savedImg + 'final_displacement_2D' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -760,7 +759,7 @@ def pipeline_plots(
             maxColor=p.Vel_max_clr,
         )
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save is True:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
@@ -779,7 +778,7 @@ def pipeline_plots(
                 maxColor=p.Vel_max_clr,
             )
 
-            if p.autosave is True:
+            if p.plot.is_after_sim_save is True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
                 plt.savefig(savename13,format='png',transparent=True)
 
@@ -805,7 +804,7 @@ def pipeline_plots(
     ax_x.set_ylabel('Spatial y [um')
     ax_x.set_title('Final Gap Junction Relative Permeability')
 
-    if p.autosave is True:
+    if p.plot.is_after_sim_save is True:
         savename = savedImg + 'final_gjState' + '.png'
         plt.savefig(savename,format='png',transparent=True)
 
@@ -818,7 +817,7 @@ def pipeline_plots(
         plt.ylabel('Spatial Dimension [um]')
         plt.title('Membrane ion pump density factor')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save:
             savename = savedImg + 'final_pumps_2D' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 
@@ -830,7 +829,7 @@ def pipeline_plots(
         plt.ylabel('Spatial Dimension [um]')
         plt.title('Membrane ion channel density factor')
 
-        if p.autosave is True:
+        if p.plot.is_after_sim_save:
             savename = savedImg + 'final_channels_2D' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 

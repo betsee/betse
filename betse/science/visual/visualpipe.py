@@ -8,8 +8,9 @@ exporting) post-simulation plots and animations.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.visual.anim.animpipe import pipeline_anims
-from betse.science.visual.plot.plotpipe import pipeline_plots
+from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.visual.anim import animpipe
+from betse.science.visual.plot import plotpipe
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 from matplotlib import pyplot as plt
@@ -29,17 +30,17 @@ from matplotlib import pyplot as plt
 #* To "True" if a simulation is being performed.
 #
 #This doesn't seem quite ideal, however. Ideally, there would exist one and only
-#one attribute whose value is an instance of a multi-state "SimPhaseType" class
+#one attribute whose value is an instance of a multi-state "SimPhaseKind" class
 #rather than two binary boolean attributes. Possible enum values might include:
 #
-#* "SimPhaseType.seed" when seeding a new cluster.
-#* "SimPhaseType.init" when initializing a seeded cluster.
-#* "SimPhaseType.sim" when simulating an initialized cluster.
+#* "SimPhaseKind.seed" when seeding a new cluster.
+#* "SimPhaseKind.init" when initializing a seeded cluster.
+#* "SimPhaseKind.sim" when simulating an initialized cluster.
 #
 #This attribute would probably exist in the "Simulator" class -- say, as
 #"sim.phase". In light of that, consider the following refactoring:
 #
-#* Define a new "SimPhaseType" class in the "sim" module with the above
+#* Define a new "SimPhaseKind" class in the "sim" module with the above
 #  attributes.
 #* Define a new "Simulator.phase" attribute initialized to None.
 #* Replace all existing uses of the "p.run_sim" and "sim.run_sim" booleans with
@@ -61,24 +62,15 @@ from matplotlib import pyplot as plt
 
 #FIXME: Refactor to accept only a single "SimPhaseABC" instance.
 @type_check
-def pipeline_results(
-    sim: 'betse.science.sim.Simulator',
-    cells: 'betse.science.cells.Cells',
-    p: 'betse.science.parameters.Parameters',
-    plot_type: str,
-) -> None:
+def pipeline(phase: SimPhaseABC, plot_type: str) -> None:
     '''
-    Serially (i.e., in series) display and/or save all enabled plots and
-    animations for the passed simulation phase (e.g., `init`, `sim`).
+    Display and/or save all currently enabled plots and animations for the
+    passed simulation phase.
 
     Parameters
     ----------------------------
-    sim : Simulator
-        Current simulation.
-    cells : Cells
-        Current cell cluster.
-    p : Parameters
-        Current simulation configuration.
+    phase: SimPhaseABC
+        Current simulation phase.
     plot_type : str
         String constant corresponding to the current simulation phase. Valid
         values include:
@@ -87,31 +79,26 @@ def pipeline_results(
     '''
 
     #FIXME: This is terrible. I don't even.
-    p.plot_type = plot_type
-
-    # Display and/or save all plots.
-    pipeline_plots(sim, cells, p)
+    phase.p.plot_type = plot_type
 
     # Display and/or save all animations.
-    pipeline_anims(sim, cells, p)
+    animpipe.pipeline(phase)
+
+    #FIXME: Display plots *BEFORE* animations. Doing so safely will probably
+    #necessitate resolving why we're calling plt.show() below, however.
+
+    # Display and/or save all plots.
+    plotpipe.pipeline(phase)
 
     #FIXME: What is this? What requires showing? Are we finalizing some
     #previously displayed visual artifact? We suspect this to be safely
-    #jettisoned deadweight, but... let's verify that, please.
+    #jettisoned deadweight, but... let's verify that, please. If this *IS*
+    #required, it's probably only required for plots -- in which case this logic
+    #should be appended onto the plotpipe.pipeline() function.
 
     # If displaying plots and animations, display... something? I guess?
-    if p.turn_all_plots_off is False:
+    if phase.p.turn_all_plots_off is False:
         plt.show()
     # Else, log the directory to which results were exported.
     else:
-        #FIXME: This is terrible. I don't even. For one, this logic is
-        #duplicated below by the pipeline_plots() function. For another, the
-        #"p.sim_results" and "p.sim_results" parameters should probably simply
-        #be aggregated into a single "sim.export_dirname" parameter
-        #corresponding to the export directory for the current phase.
-        if p.plot_type == 'sim':
-            export_dirname = p.sim_results
-        elif p.plot_type == 'init':
-            export_dirname = p.init_results
-
-        logs.log_info('Results exported to: %s', export_dirname)
+        logs.log_info('Results exported to: %s', phase.save_dirname)

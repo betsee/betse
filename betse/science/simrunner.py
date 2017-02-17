@@ -10,8 +10,6 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection, PolyCollection
-
-import betse.science.visual.visualpipe
 from betse.exceptions import (
     BetseFileException, BetseSimException, BetseSimConfigException)
 from betse.science import filehandling as fh
@@ -20,11 +18,11 @@ from betse.science.config import confio
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import MasterOfMetabolism
 from betse.science.parameters import Parameters
-from betse.science.sim import Simulator, SimPhaseType
-from betse.science.simulate.simphase import SimPhaseStrong, SimPhaseType
+from betse.science.sim import Simulator
+from betse.science.simulate.simphase import SimPhaseStrong, SimPhaseKind
 from betse.science.tissue.handler import TissueHandler
+from betse.science.visual import visualpipe
 from betse.science.visual.plot import plotutil as viz
-from betse.science.visual.plot import plotpipe
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.type.call.callables import deprecated
@@ -63,7 +61,7 @@ class SimRunner(object):
         Seed this simulation with a new cell cluster and cache this cluster to
         an output file, specified by the current configuration file.
 
-        This method _must_ be called prior to the :meth:`init` and
+        This method *must* be called prior to the :meth:`init` and
         :meth:`plot_seed` methods, which consume this output as input.
 
         Returns
@@ -90,7 +88,7 @@ class SimRunner(object):
         p.I_overlay = False
 
         # Simulation simulator and cell cluster.
-        sim = Simulator(p=p, phase=SimPhaseType.SEED)
+        sim = Simulator(p=p)
         cells = Cells(p)  # create an instance of the Cells object
 
         logs.log_info('Cell cluster is being created...')
@@ -107,8 +105,6 @@ class SimRunner(object):
         # if the user wants a hole without TJ, we must unfortunately re-make everything
         if p.clipping_bitmap_hole is not None:
             dyna.removeCells(p.clipping_bitmap_hole, sim, cells, p, hole_tag=True)
-
-
 
         # make a laplacian and solver for discrete transfers on closed, irregular cell network
         logs.log_info('Creating cell network Poisson solver...')
@@ -133,7 +129,7 @@ class SimRunner(object):
         sim.sim_info_report(cells,p)
 
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
 
 
     def init(self) -> SimPhaseStrong:
@@ -201,7 +197,7 @@ class SimRunner(object):
                     "Please run 'betse seed' to try again.")
 
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhaseType.INIT)
+        sim = Simulator(p=p)
         sim.run_sim = False
 
         # Initialize simulation data structures, run, and save simulation phase
@@ -214,7 +210,7 @@ class SimRunner(object):
             round(time.time() - start_time, 2))
 
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
 
 
     def sim(self) -> SimPhaseStrong:
@@ -245,7 +241,7 @@ class SimRunner(object):
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
 
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhaseType.SIM)
+        sim = Simulator(p=p)
 
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
@@ -282,7 +278,7 @@ class SimRunner(object):
             round(time.time() - start_time, 2))
 
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
 
 
     #FIXME: Eliminate duplication. This and the sim_grn() methods are currently
@@ -352,12 +348,8 @@ class SimRunner(object):
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
-        #FIXME: Is "INIT" the proper phase here? The string "Now using cell
-        #cluster to run initialization." above and call to sim.baseInit_all()
-        #below suggest this is, indeed, an initialization.
-
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhaseType.INIT)
+        sim = Simulator(p=p)
 
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
@@ -376,8 +368,12 @@ class SimRunner(object):
             'Metabolic network test completed in %d seconds.',
             round(time.time() - start_time, 2))
 
+        #FIXME: Is "INIT" the proper phase here? The string "Now using cell
+        #cluster to run initialization." above and call to sim.baseInit_all()
+        #above suggest this is, indeed, an initialization.
+
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
 
 
     def sim_grn(self) -> SimPhaseStrong:
@@ -435,9 +431,8 @@ class SimRunner(object):
                     "Run terminated due to missing seed.\n"
                     "Please run 'betse seed' to try again.")
 
-        #FIXME: Is "INIT" the proper phase here? See sim_brn() for discussion.
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhaseType.INIT)
+        sim = Simulator(p=p)
 
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
@@ -456,8 +451,10 @@ class SimRunner(object):
             'Gene regulatory network test completed in %d seconds.',
             round(time.time() - start_time, 2))
 
+        #FIXME: Is "INIT" the proper phase here? See sim_brn() for discussion.
+
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
 
     # ..................{ PLOTTERS                           }..................
     #FIXME: Return "SimPhaseStrong" instances from all of the following methods.
@@ -611,7 +608,7 @@ class SimRunner(object):
                 self._config_basename)
 
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
 
 
     def plot_init(self) -> SimPhaseStrong:
@@ -637,7 +634,7 @@ class SimRunner(object):
         p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
 
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhaseType.INIT)
+        sim = Simulator(p=p)
 
         #FIXME: Bizarre logic. We create a "Simulator" instance above only to
         #test whether a single file exists and, if so, replace that instance
@@ -652,13 +649,21 @@ class SimRunner(object):
             raise BetseSimException(
                 "Ooops! No such initialization file found to plot!")
 
+        # Simulation phase.
+        phase = SimPhaseStrong(
+            kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
+
         # Display and/or save all enabled plots and animations.
-        betse.science.visual.visualpipe.pipeline_results(sim, cells, p, plot_type='init')
+        visualpipe.pipeline(phase=phase, plot_type='init')
 
-        #FIXME: All of the following crash if image saving is not turned on, but due to whatever way this is
-        #set up, it's not possible to readily fix it. Grrrrrr.....
-
-        # FIXME: Why not just stop each block from happening if image saving is off? Easy peasy!
+        #FIXME: All of the following crash if image saving is not turned on, but
+        #due to whatever way this is set up, it's not possible to readily fix
+        #it. Grrrrrr.....
+        #FIXME: Why not just stop each block from happening if image saving is
+        #off? Easy peasy!
+        #FIXME: Split each of the following blocks performing both plotting and
+        #animating into their appropriate plotpipe.pipeline() or
+        #animpipe.pipeline() functions, which should resolve the above concerns.
 
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
@@ -670,7 +675,6 @@ class SimRunner(object):
             sim.molecules.core.anim(sim, cells, p)
 
         if p.metabolism_enabled and sim.metabo is not None:
-
             configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
 
             # read the config file into a dictionary:
@@ -684,7 +688,6 @@ class SimRunner(object):
             sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
 
         if p.grn_enabled and sim.grn is not None:
-
             configPath = os.path.join(p.config_dirname, p.grn_config_filename)
 
             # read the config file into a dictionary:
@@ -704,8 +707,8 @@ class SimRunner(object):
         if p.turn_all_plots_off is False:
             plt.show()
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        # Return this simulation phase.
+        return phase
 
 
     def plot_sim(self) -> SimPhaseStrong:
@@ -731,7 +734,7 @@ class SimRunner(object):
         p.set_time_profile(p.time_profile_sim)  # force the time profile to be simulation
 
         # Simulation simulator.
-        sim = Simulator(p=p, phase=SimPhaseType.SIM)
+        sim = Simulator(p=p)
 
         # If this simulation has yet to be run, fail.
         if not files.is_file(sim.savedSim):
@@ -743,8 +746,16 @@ class SimRunner(object):
         # Load the simulation from the cache.
         sim, cells, _ = fh.loadSim(sim.savedSim)
 
+        # Simulation phase.
+        phase = SimPhaseStrong(
+            kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
+
         # Display and/or save all enabled plots and animations.
-        betse.science.visual.visualpipe.pipeline_results(sim, cells, p, plot_type='sim')
+        visualpipe.pipeline(phase=phase, plot_type='sim')
+
+        #FIXME: Split each of the following blocks performing both plotting and
+        #animating into their appropriate plotpipe.pipeline() or
+        #animpipe.pipeline() functions.
 
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
@@ -791,8 +802,8 @@ class SimRunner(object):
         if p.turn_all_plots_off is False:
             plt.show()
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        # Return this simulation phase.
+        return phase
 
 
     def plot_brn(self) -> SimPhaseStrong:
@@ -832,7 +843,7 @@ class SimRunner(object):
             plt.show()
 
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
 
 
     def plot_grn(self) -> SimPhaseStrong:
@@ -871,7 +882,7 @@ class SimRunner(object):
             plt.show()
 
         # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(cells=cells, p=p, sim=sim)
+        return SimPhaseStrong(kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
 
     # ..................{ UTILITIES                          }..................
     def _die_unless_seed_same(self, p_old, p) -> None:

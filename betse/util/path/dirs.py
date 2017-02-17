@@ -180,41 +180,19 @@ def list_basenames(dirname: str) -> list:
     return os.listdir(dirname)
 
 # ....................{ MAKERS                             }....................
-@type_check
-def make_unless_dir(dirname: str) -> None:
-    '''
-    Create the passed directory if this directory does *not* already exist.
-
-    All nonexistent parents of this directory will also be recursively created,
-    mimicking the action of the standard `mkdir -p` shell command.
-    '''
-
-    # If this directory does *NOT* already exist, create this directory. To
-    # support logging, this condition is explicitly tested for. To avoid race
-    # conditions (e.g., in the event this directory is created between testing
-    # and creating this directory), we preserve the makedirs() keyword argument
-    # "exist_ok = True" below.
-    if not is_dir(dirname):
-        # Log this creation.
-        logs.log_debug('Creating directory "%s".', dirname)
-
-        # Create this directory if still needed.
-        os.makedirs(dirname, exist_ok = True)
-
-
 def canonicalize_and_make_unless_dir(dirname: str) -> str:
     '''
     Get the **canonical form** (i.e., unique absolute path) of the passed
-    directory _and_ create this directory if this directory does *not* already
+    directory *and* create this directory if this directory does not already
     exist.
 
     This convenience function simply passes this directory to the
-    `paths.canonicalize()` and `dirs.make_unless_dir()` functions (in that
+    func:`paths.canonicalize` and :func:`make_unless_dir` functions (in that
     order) and then returns this directory.
 
     See Also
     -----------
-    make_unless_dir()
+    :func:`make_unless_dir`
         Further details.
     '''
 
@@ -225,13 +203,35 @@ def canonicalize_and_make_unless_dir(dirname: str) -> str:
     return dirname
 
 
-def make_parent_unless_dir(*pathnames) -> None:
+@type_check
+def make_unless_dir(dirname: str) -> None:
+    '''
+    Create the passed directory if this directory does *not* already exist.
+
+    All nonexistent parents of this directory will also be recursively created,
+    mimicking the action of the standard ``mkdir -p`` shell command.
+    '''
+
+    # If this directory does *NOT* already exist, create this directory. To
+    # support logging, this condition is explicitly tested for. To avoid race
+    # conditions (e.g., in the event this directory is created between testing
+    # and creating this directory), we preserve the makedirs() keyword argument
+    # "exist_ok=True" below.
+    if not is_dir(dirname):
+        # Log this creation.
+        logs.log_debug('Creating directory: %s', dirname)
+
+        # Create this directory if still needed.
+        os.makedirs(dirname, exist_ok=True)
+
+
+def make_parent_unless_dir(*pathnames: str) -> None:
     '''
     Create the parent directory of each passed path for any such directory that
-    does _not_ already exist.
+    does *not* already exist.
 
     All nonexistent parents of each such directory will also be recursively
-    created, mimicking the action of the standard `mkdir -p` shell command.
+    created, mimicking the action of the standard ``mkdir -p`` shell command.
     '''
 
     # Avoid circular import dependencies.

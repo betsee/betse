@@ -128,12 +128,6 @@ class Parameters(object):
         # Dictionary loaded from this YAML file.
         self._conf = confio.read(self.config_filename)
 
-        #FIXME: Excise this hack *AFTER* refactoring the codebase to use the
-        #preferable "self._config" attribute defined above. Since the
-        #conf_alias() data descriptor expects that private attribute rather
-        #than this public attribute, this public attribute is unhelpful now.
-        self.config = self._conf
-
         # Preserve backward compatibility with prior configuration formats.
         self._init_backward_compatibility()
 
@@ -688,7 +682,7 @@ class Parameters(object):
         self.turn_all_plots_off = not self.plot.is_after_sim_show
 
         #FIXME: Replace all instances of "p.autosave" in the codebase
-        #by "not p.plot.is_after_sim_save" and remove this attribute entirely.
+        #by "p.plot.is_after_sim_save" and remove this attribute entirely.
         self.autosave = self.plot.is_after_sim_save  # autosave all still images to a results directory
 
         self.plot_cutlines = ro['plot cutlines']
@@ -1243,6 +1237,12 @@ class Parameters(object):
         configuration into their modern equivalents.
         '''
 
+        #FIXME: Excise this hack *AFTER* refactoring the codebase to use the
+        #preferable "self._config" attribute defined above. Since the
+        #conf_alias() data descriptor expects that private attribute rather
+        #than this public attribute, this public attribute is unhelpful now.
+        self.config = self._conf
+
         # For convenience, localize configuration subdictionaries.
         results = self._conf['results options']
 
@@ -1394,7 +1394,7 @@ class Parameters(object):
     #FIXME: Refactor to accept an enumeration value rather than raw string --
     #or, better yet, to accept no parameter and leverage an enumeration value
     #identifying the current phase already set as an attribute of this object..
-    #FIXME: Right. Use the new "betse.science.sim.SimPhaseType" enumeration value.
+    #FIXME: Right. Use the new "betse.science.sim.SimPhaseKind" enumeration value.
 
     @type_check
     def set_time_profile(self, time_profile: str) -> None:

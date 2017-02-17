@@ -286,6 +286,13 @@ class BetseSimInstabilityException(BetseSimException):
     pass
 
 
+class BetseSimPhaseException(BetseSimException):
+    '''
+    Simulation phase-specific exception.
+    '''
+    pass
+
+
 #FIXME: For orthogonality, rename to "BetseSimVectorException".
 class BetseVectorException(BetseSimException):
     '''

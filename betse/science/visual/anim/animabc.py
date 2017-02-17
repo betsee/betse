@@ -319,6 +319,12 @@ class AnimCellsABC(VisualCellsABC):
         #of the current loop type until we sort out just what is going on with
         #this boolean and/or string enumeration elsewhere.
         #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #FIXME: Indeed, these local variables are now obseleted by corresponding
+        #attributes of the "SimPhaseABC" class. Specifically:
+        #
+        #* "plot_type" is obsoleted by "SimPhaseABC.kind".
+        #* "save_phase_dirname" is obsoleted by "SimPhaseABC.save_dirname".
+
         if hasattr(self._p, 'plot_type'):
             plot_type = self._p.plot_type
         else:
@@ -326,14 +332,14 @@ class AnimCellsABC(VisualCellsABC):
 
         # Path of the phase-specific parent directory of the subdirectory to
         # which these files will be saved.
-        loop_dirname = None
+        save_phase_dirname = None
         if plot_type == 'sim':
-            loop_dirname = self._p.sim_results
+            save_phase_dirname = self._p.sim_results
         elif plot_type == 'init':
-            loop_dirname = self._p.init_results
+            save_phase_dirname = self._p.init_results
         else:
             raise BetseSimConfigException(
-                'Animation saving unsupported during the "{}" loop.'.format(
+                'Animation saving unsupported during "{}" phase.'.format(
                     plot_type))
 
         # Animation configuration localized for convenience.
@@ -351,12 +357,10 @@ class AnimCellsABC(VisualCellsABC):
                 'transparent': True,
             }
 
-            #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
-
             # Path of the subdirectory to which these files will be saved,
             # creating this subdirectory and all parents thereof if needed.
             save_dirname = paths.join(
-                loop_dirname, save_dir_parent_basename, self._label)
+                save_phase_dirname, save_dir_parent_basename, self._label)
             save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
 
         # If saving animation frames as images, prepare to do so.

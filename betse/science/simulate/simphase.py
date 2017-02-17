@@ -8,14 +8,19 @@ High-level **simulation phase** (e.g., cell cluster seeding, initialization, and
 simulation) functionality.
 '''
 
+#FIXME: Is the "SimPhaseWeak" subclass genuinely required anymore? If not,
+#simply merge the "SimPhaseString" subclass into the "SimPhaseABC" superclass
+#and rename the resulting class "SimPhase".
+
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta  #, abstractmethod
+# from betse.exceptions import BetseSimPhaseException
 from betse.util.py import references
 from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check
 
 # ....................{ ENUMS                              }....................
-SimPhaseType = EnumOrdered('SimPhaseType', ('SEED', 'INIT', 'SIM',))
+SimPhaseKind = EnumOrdered('SimPhaseKind', ('SEED', 'INIT', 'SIM',))
 '''
 Ordered enumeration of all possible simulation phases.
 
@@ -24,7 +29,7 @@ Each member's value is less than that of another member's value if and only if
 the former simulation phase is performed _before_ the latter. Specifically,
 this enumeration is a total ordering such that:
 
-    >>> SimPhaseType.SEED < SimPhaseType.INIT < SimPhaseType.SIM
+    >>> SimPhaseKind.SEED < SimPhaseKind.INIT < SimPhaseKind.SIM
     True
 
 Attributes
@@ -64,18 +69,31 @@ class SimPhaseABC(object, metaclass=ABCMeta):
 
     Attributes
     ----------
+    kind : SimPhaseKind
+        Current simulation phase type.
+
+    Attributes (Objects)
+    ----------
     cells : betse.science.cells.Cells
         Current cell cluster.
     p : betse.science.parameters.Parameters
         Current simulation configuration.
     sim : betse.science.sim.Simulator
         Current simulation.
+
+    Attributes (Path)
+    ----------
+    save_dirname : StrOrNoneTypes
+        Absolute path of the top-level directory containing all exported results
+        (e.g., plots, animations, CSVs) for this simulation phase if this phase
+        is either an initialization or simulation *or* ``None`` otherwise (i.e.,
+        if this phase is a seed).
     '''
 
     # ..................{ INITIALIZORS                       }..................
-    @abstractmethod
     def __init__(
         self,
+        kind: SimPhaseKind,
         sim:   'betse.science.sim.Simulator',
         cells: 'betse.science.cells.Cells',
         p:     'betse.science.parameters.Parameters',
@@ -85,15 +103,29 @@ class SimPhaseABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
+        kind : SimPhaseKind
+            Current simulation phase type.
+        sim : Simulator
+            Current simulation.
         cells : Cells
             Current cell cluster.
         p : Parameters
             Current simulation configuration.
-        sim : Simulator
-            Current simulation.
         '''
 
-        pass
+        # Classify all passed parameters.
+        self.kind = kind
+        self.sim = sim
+        self.cells = cells
+        self.p = p
+
+        # Absolute path of the top-level exports directory for this phase.
+        if kind is SimPhaseKind.SIM:
+            self.save_dirname = p.sim_results
+        elif kind is SimPhaseKind.INIT:
+            self.save_dirname = p.init_results
+        else:
+            self.save_dirname = None
 
 # ....................{ SUBCLASSES                         }....................
 class SimPhaseStrong(SimPhaseABC):
@@ -112,19 +144,7 @@ class SimPhaseStrong(SimPhaseABC):
     memory allocation for long-running applications (e.g., the BETSE GUI).
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    @type_check
-    def __init__(
-        self,
-        sim:   'betse.science.sim.Simulator',
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
-    ) -> None:
-
-        # Strongly classify all passed parameters.
-        self.cells = cells
-        self.p = p
-        self.sim = sim
+    pass
 
 
 class SimPhaseWeak(SimPhaseABC):
@@ -155,14 +175,12 @@ class SimPhaseWeak(SimPhaseABC):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(
-        self,
-        sim:   'betse.science.sim.Simulator',
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
-    ) -> None:
+    def __init__(self, *args, **kwargs) -> None:
 
-        # Weakly classify all passed parameters.
-        self.cells = references.proxy_weak(cells)
-        self.p     = references.proxy_weak(p)
-        self.sim   = references.proxy_weak(sim)
+        # Initialize our superclass with all passed parameters.
+        self.__init__(*args, **kwargs)
+
+        # Reilassify the following attributes weakly.
+        self.cells = references.proxy_weak(kwargs['cells'])
+        self.p     = references.proxy_weak(kwargs['p'])
+        self.sim   = references.proxy_weak(kwargs['sim'])
