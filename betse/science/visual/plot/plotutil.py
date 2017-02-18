@@ -1038,17 +1038,23 @@ def clusterPlot(p, dyna, cells, clrmap=cm.jet):
 
     return fig, ax, ax_cb
 
+#FIXME: Shift this function into a new data-specific submodule -- say,
+#"betse.science.data.datacsv". Data is an appropriate terse noun encapsulating
+#the concept of both resulting data and exported data.
+#FIXME: Rename this function to save_cell_time_series().
+#FIXME: Refactor this function to accept only a single "SimPhaseABC" instance.
 def exportData(cells,sim,p):
 
-
+    #FIXME: Refactor the following five lines to simply read:
+    #
+    #    # Create the top-level directory containing these exports if needed.
+    #    dirs.make_unless_dir(phase.save_dirname)
     if p.plot_type is 'sim':
-
         results_path = p.sim_results
-
     elif p.plot_type is 'init':
         results_path = p.init_results
-
     os.makedirs(results_path, exist_ok=True)
+
     savedData = os.path.join(results_path, 'ExportedData.csv')
     savedData_FFT = os.path.join(results_path, 'ExportedData_FFT.csv')
 
@@ -1204,7 +1210,16 @@ def exportData(cells,sim,p):
     np.savetxt(savedData,dataM,delimiter = ',',header = headr)
     np.savetxt(savedData_FFT,dataFFT,delimiter = ',',header = headr2)
 
-def export2dData(i, simdata,cells,p, foldername = 'Vmem2D_TextExport', filebit = 'Vmem2D_'):
+#FIXME: Shift this function to the same "betse.science.data.datacsv" submodule.
+#FIXME: Rename this function to save_cells_vmem().
+def export2dData(
+    i,
+    simdata,
+    cells,
+    p,
+    foldername: str = 'Vmem2D_TextExport',
+    filebit: str = 'Vmem2D_',
+):
 
     if p.plot_type == 'sim':
         results_path =  p.sim_results

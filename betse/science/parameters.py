@@ -75,6 +75,11 @@ class Parameters(object):
         Subconfiguration encapsulating exported simulation animations.
     plot : SimConfPlotAll
         Subconfiguration encapsulating exported simulation plots.
+    plot_cell : int
+        0-based index of the cell to isolate all single-cell time plots to.
+        Defaults to 0, the index assigned to the first cell guaranteed to exist.
+        Note that cell indices are seed-specific and may be visualized via the
+        :attr:`enumerate_cells` boolean.
 
     Attributes (Tissue)
     ----------------------------

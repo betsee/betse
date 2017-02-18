@@ -14,8 +14,8 @@ exporting) post-simulation plots.
 #
 #    pyplot.py:424: RuntimeWarning: More than 20 figures have been opened. Figures created through the pyplot interface (`matplotlib.pyplot.figure`) are retained until explicitly closed and may consume too much memory. (To control this warning, see the rcParam `figure.max_open_warning`).
 #
-#The issue is that whenever we call a viz.plot* function below (e.g.,
-#viz.plotSingleCellCData()), we localize the figure returned by that function.
+#The issue is that whenever we call a plotutil.plot* function below (e.g.,
+#plotutil.plotSingleCellCData()), we localize the figure returned by that function.
 #That figure will then be garbage collected on whichever of the following
 #occurs last: (A) the corresponding local variable goes out of scope and (B)
 #the corresponding plot window is closed by the user. Normally, neither would
@@ -25,9 +25,9 @@ exporting) post-simulation plots.
 #function terminates -- which is pretty much unacceptable.
 #
 #There are a couple solutions, thankfully. The simplest would simply be to stop
-#localizing figures returned by viz.plot*() functions for all unused figure
+#localizing figures returned by plotutil.plot*() functions for all unused figure
 #locals. The harder but probably more ideal solution would be to refactor all
-#viz.plot*() functions to stop returning figures altogether. Since the current
+#plotutil.plot*() functions to stop returning figures altogether. Since the current
 #figure is *ALWAYS* accessible via the "matplotlib.pyplot.gcf()" getter (i.e.,
 #[g]et[c]urrent[f]igure), there's no nead to explicitly return figures at all.
 #
@@ -70,7 +70,7 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.simulate.simpipeabc import SimPipelayerABC
-from betse.science.visual.plot import plotutil as viz
+from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot as plt
@@ -149,6 +149,9 @@ def pipeline(phase: SimPhaseABC) -> None:
     if not phase.p.plot.is_after_sim:
        return
 
+    #FIXME: Shift the following setup logic and validation into the
+    #PlotCellsPipelayer.__init__() method.
+
     # If saving these plots...
     if phase.p.plot.is_after_sim_save:
         # Create the top-level directory containing these plots if needed.
@@ -164,27 +167,23 @@ def pipeline(phase: SimPhaseABC) -> None:
             'configuration file does not exist in your cluster. '
             'Choose a plot cell number smaller than the maximum cell number.')
 
-    # If extracellular spaces are enabled, convert from cell to cell membrane
-    # indices.
-    if phase.p.sim_ECM is True:
-        plot_cell_ecm = phase.cells.cell_to_mems[phase.p.plot_cell][0]
-    else:
-        plot_cell_ecm = phase.p.plot_cell
-
+    #FIXME: Shift into the visualpipe.pipeline() function. After doing so,
+    #consider shifting the entire "betse.science.visual.visualpipe" submodule to
+    #"betse.science.data.datapipe".
     if phase.p.exportData:
-        viz.exportData(phase.cells, phase.sim, phase.p)
+        plotutil.exportData(phase.cells, phase.sim, phase.p)
 
     if phase.p.exportData2D is True:
         for i, t in enumerate(phase.sim.time):
             simdata = 1.0e3 * phase.sim.vm_ave_time[i]
-            viz.export2dData(i, simdata, phase.cells, phase.p)
+            plotutil.export2dData(i, simdata, phase.cells, phase.p)
 
         # for i, t in enumerate(sim.time):
         #     simdata_x = 1.0e3*sim.pol_x_time[i]
-        #     viz.export2dData(i, simdata_x, cells, p, foldername = 'Polarization_x', filebit = 'Pol_x')
+        #     plotutil.export2dData(i, simdata_x, cells, p, foldername = 'Polarization_x', filebit = 'Pol_x')
         #
         #     simdata_y = 1.0e3 * sim.pol_y_time[i]
-        #     viz.export2dData(i, simdata_y, cells, p, foldername='Polarization_y', filebit='Pol_y')
+        #     plotutil.export2dData(i, simdata_y, cells, p, foldername='Polarization_y', filebit='Pol_y')
 
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
@@ -198,12 +197,11 @@ def pipeline(phase: SimPhaseABC) -> None:
     cells = phase.cells
     p     = phase.p
 
-    if p.plot_single_cell_graphs is True:
+    if p.plot_single_cell_graphs:
         # Plot cell sodium concentration versus time.
-
         mem_i = cells.cell_to_mems[p.plot_cell][0]
 
-        figConcsNa, axConcsNa = viz.plotSingleCellCData(
+        figConcsNa, axConcsNa = plotutil.plotSingleCellCData(
             sim.cc_time, sim.time, sim.iNa, p.plot_cell, fig=None,
             ax=None, lncolor='g', ionname='Na+')
 
@@ -218,7 +216,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             plt.show(block=False)
 
         # Plot cell potassium concentration versus time.
-        figConcsK, axConcsK = viz.plotSingleCellCData(
+        figConcsK, axConcsK = plotutil.plotSingleCellCData(
             sim.cc_time, sim.time, sim.iK, p.plot_cell, fig=None,
             ax=None, lncolor='b', ionname='K+')
 
@@ -234,7 +232,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         # plot-cell anion (bicarbonate) concentration vs time:
 
-        figConcsM, axConcsM = viz.plotSingleCellCData(
+        figConcsM, axConcsM = plotutil.plotSingleCellCData(
             sim.cc_time, sim.time, sim.iM, p.plot_cell,
             fig=None,
             ax=None,
@@ -253,7 +251,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             plt.show(block=False)
 
         # Plot single cell Vmem vs time.
-        figVt, axVt = viz.plotSingleCellVData(
+        figVt, axVt = plotutil.plotSingleCellVData(
             sim, mem_i, p, fig=None, ax=None, lncolor='k')
         titV = 'Voltage (Vmem) in cell ' + str(p.plot_cell)
         axVt.set_title(titV)
@@ -266,7 +264,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             plt.show(block=False)
 
         # Plot fast-Fourier-transform (fft) of Vmem.
-        figFFT, axFFT = viz.plotFFT(
+        figFFT, axFFT = plotutil.plotFFT(
             sim.time, sim.vm_time, mem_i, lab="Power")
         titFFT = 'Fourier transform of Vmem in cell ' + str(p.plot_cell)
         axFFT.set_title(titFFT)
@@ -282,11 +280,13 @@ def pipeline(phase: SimPhaseABC) -> None:
         plt.figure()
         axNaK = plt.subplot()
 
-        if p.sim_ECM is False:
-            pump_rate = [pump_array[p.plot_cell] for pump_array in sim.rate_NaKATP_time]
-
+        if p.sim_ECM:
+            plot_cell_ecm = phase.cells.cell_to_mems[phase.p.plot_cell][0]
+            pump_rate = [
+                pump_array[plot_cell_ecm] for pump_array in sim.rate_NaKATP_time]
         else:
-            pump_rate = [pump_array[plot_cell_ecm] for pump_array in sim.rate_NaKATP_time]
+            pump_rate = [
+                pump_array[p.plot_cell] for pump_array in sim.rate_NaKATP_time]
 
         axNaK.plot(sim.time, pump_rate)
         axNaK.set_xlabel('Time [s]')
@@ -360,7 +360,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         # Plot cell calcium vs time (if Ca enabled in ion profiles).
         if p.ions_dict['Ca'] ==1:
-            figA, axA = viz.plotSingleCellCData(
+            figA, axA = plotutil.plotSingleCellCData(
                 sim.cc_time, sim.time, sim.iCa, p.plot_cell,
                 fig=None,
                 ax=None,
@@ -423,7 +423,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     if p.plot_vm2d is True:
 
-        figV, axV, cbV = viz.plotPrettyPolyData(1000*sim.vm_time[-1],
+        figV, axV, cbV = plotutil.plotPrettyPolyData(1000*sim.vm_time[-1],
             sim, cells, p,
             clrAutoscale=p.autoscale_Vmem,
             clrMin=p.Vmem_min_clr,
@@ -446,7 +446,7 @@ def pipeline(phase: SimPhaseABC) -> None:
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-        figVa, axVa, cbVa = viz.plotPolyData(
+        figVa, axVa, cbVa = plotutil.plotPolyData(
             sim, cells, p,
             zdata=1000*sim.vm_ave,
             clrAutoscale=p.autoscale_Vmem,
@@ -496,7 +496,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 plt.show(block=False)
 
     if p.GHK_calc is True:
-        figV_ghk, axV_ghk, cbV_ghk = viz.plotPolyData(
+        figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(
             sim, cells, p,
             zdata=1000*sim.vm_GHK_time[-1],
             clrAutoscale=p.autoscale_Vmem,
@@ -525,7 +525,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     if p.plot_ca2d is True and p.ions_dict['Ca'] == 1:
 
 
-        figCa, axCa, cbCa = viz.plotPolyData(sim, cells, p, zdata=sim.cc_time[-1][sim.iCa]*1e6, number_cells=p.enumerate_cells,
+        figCa, axCa, cbCa = plotutil.plotPolyData(sim, cells, p, zdata=sim.cc_time[-1][sim.iCa]*1e6, number_cells=p.enumerate_cells,
                          clrAutoscale=p.autoscale_Ca, clrMin=p.Ca_min_clr, clrMax=p.Ca_max_clr,
                          clrmap=p.default_cm)
 
@@ -575,11 +575,11 @@ def pipeline(phase: SimPhaseABC) -> None:
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
         pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH])
 
-        figH, axH, cbH = viz.plotPolyData(sim, cells, p, zdata=pHdata, number_cells=p.enumerate_cells,
+        figH, axH, cbH = plotutil.plotPolyData(sim, cells, p, zdata=pHdata, number_cells=p.enumerate_cells,
                          clrAutoscale=p.autoscale_pH, clrMin=p.pH_min_clr, clrMax=p.pH_max_clr,
                          clrmap=p.default_cm)
 
-        # figH, axH, cbH = viz.plotPrettyPolyData(pHdata, sim,cells,p,
+        # figH, axH, cbH = plotutil.plotPrettyPolyData(pHdata, sim,cells,p,
         #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
         #     clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
 
@@ -598,7 +598,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     #----plot 2D pump data--------------------------------------------------------------------------------
     pumpData = sim.rate_NaKATP*1e9
 
-    figPump, axPump, cbPump = viz.plotPrettyPolyData(pumpData, sim, cells, p,
+    figPump, axPump, cbPump = plotutil.plotPrettyPolyData(pumpData, sim, cells, p,
         number_cells=p.enumerate_cells, clrmap=p.default_cm)
 
     axPump.set_title('Final Na/K-ATPase Pump Rate')
@@ -617,7 +617,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     if p.plot_I2d is True and p.calc_J is True:
 
-        figI, axI, cbI = viz.plotStreamField(
+        figI, axI, cbI = plotutil.plotStreamField(
             100*sim.J_cell_x, 100*sim.J_cell_y,
             cells,
             p,
@@ -644,7 +644,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.sim_ECM is True:
 
-            figI2, axI2, cbI2 = viz.plotStreamField(
+            figI2, axI2, cbI2 = plotutil.plotStreamField(
                 100 * sim.J_env_x, 100 * sim.J_env_y,
                 cells,
                 p,
@@ -675,7 +675,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.sim_ECM is True:
 
-            viz.plotVectField(sim.E_env_x,sim.E_env_y,cells,p,plot_ecm = True,
+            plotutil.plotVectField(sim.E_env_x,sim.E_env_y,cells,p,plot_ecm = True,
                 title='Final Electric Field', cb_title = 'Electric Field [V/m]',
                 colorAutoscale = p.autoscale_Efield, minColor = p.Efield_min_clr,
                 maxColor = p.Efield_max_clr)
@@ -688,7 +688,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                     savename = savedImg + 'Final_Electric_Field_ECM' + '.png'
                     plt.savefig(savename,format='png',transparent=True)
 
-        viz.plotVectField(
+        plotutil.plotVectField(
             sim.E_gj_x,sim.E_gj_y,cells,p,plot_ecm = False,
             title='Final Electric Field',
             cb_title='Electric Field [V/m]',
@@ -707,7 +707,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_P is True and np.mean(sim.P_cells_time) != 0.0:
 
-        figP, axP, cbP = viz.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
+        figP, axP, cbP = plotutil.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
         clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
 
         axP.set_title('Final Pressure in Cell Network')
@@ -725,7 +725,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     #------------------------------------------------------------------------------------------------------------------
 
     if p.deformation is True and sim.run_sim is True:
-        viz.plotStreamField(
+        plotutil.plotStreamField(
             p.um*sim.dx_cell_time[-1],
             p.um*sim.dy_cell_time[-1],
             cells, p,
@@ -747,7 +747,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
 
     if (p.plot_Vel is True and p.fluid_flow is True):
-        viz.plotStreamField(
+        plotutil.plotStreamField(
             (1e9)*sim.u_cells_x,
             (1e9)*sim.u_cells_y,
             cells, p,
@@ -767,7 +767,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             plt.show(block=False)
 
         if p.sim_ECM is True:
-            viz.plotStreamField(
+            plotutil.plotStreamField(
                 (1e6)*sim.u_env_x,
                 (1e6)*sim.u_env_y,
                 cells, p, plot_ecm=True,
@@ -786,7 +786,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 plt.show(block=False)
 
     # if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
-    # viz.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
+    # plotutil.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
     fig_x = plt.figure()
     ax_x = plt.subplot(111)
     con_segs = cells.nn_edges
@@ -812,7 +812,7 @@ def pipeline(phase: SimPhaseABC) -> None:
         plt.show(block=False)
 
     if p.sim_eosmosis is True and sim.run_sim is True:
-        viz.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
+        plotutil.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
         plt.ylabel('Spatial Dimension [um]')
         plt.title('Membrane ion pump density factor')
@@ -824,7 +824,7 @@ def pipeline(phase: SimPhaseABC) -> None:
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-        viz.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
+        plotutil.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
         plt.ylabel('Spatial Dimension [um]')
         plt.title('Membrane ion channel density factor')
