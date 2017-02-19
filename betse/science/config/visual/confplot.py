@@ -55,6 +55,7 @@ class SimConfPlotAll(SimConfABC):
 
         # Validate all passed integers to be positive.
         ints.die_unless_positive(self.image_dpi)
+        # print('is_after_sim_show: {}'.format(self.is_after_sim_show))
 
     # ..................{ ALIASES ~ after                    }..................
     is_after_sim_save = conf_alias(

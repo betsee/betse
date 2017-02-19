@@ -83,6 +83,15 @@ class Simulator(object):
     mdl : int
         Number of cell membranes in this simulated cluster.
 
+    Attributes (Time)
+    ----------
+    time : list
+        One-dimensional ordered list of all **sampled time steps** (i.e., time
+        steps at which data is sampled, substantially reducing data storage).
+        The length of this list governs the number of:
+        * Frames in each exported animation.
+        * Rows in each exported spreadsheet.
+
     Attributes (Current Density)
     ----------
     I_cell_x_time : list
@@ -218,7 +227,7 @@ class Simulator(object):
         element is the transmembrane voltage spatially situated across the cell
         membrane indexed by that element for the current time step.
     vm_time : ndarray
-        Two-dimensional Numpy array of the transmembrane voltage across all
+        Two-dimensional Numpy array of all transmembrane voltages across all
         cell membranes, whose:
         . First dimension indexes each time step.
         . Second dimension indexes each cell membrane such that each element is
@@ -226,6 +235,19 @@ class Simulator(object):
           indexed by that element for this time step.
         Equivalently, this array is the concatenation of all :attr:`vm` arrays
         over all time steps.
+    vm_ave : ndarray
+        One-dimensional Numpy array indexing each cell such that each element is
+        the transmembrane voltage spatially situated at the centre of the cell
+        indexed by that element for the current sampled time step.
+    vm_ave_time : list
+        Two-dimensional list of all transmembrane voltages averaged over all
+        cell membranes onto cell centres, whose:
+        . First dimension indexes each sampled time step.
+        . Second dimension indexes each cell such that each element is the
+          transmembrane voltage spatially situated at the centre of the cell
+          indexed by that element for this time step.
+        Equivalently, this array is the concatenation of all :attr:`vm_ave`
+        arrays over all time steps.
     '''
 
     @type_check

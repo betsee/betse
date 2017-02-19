@@ -68,7 +68,7 @@ exporting) post-simulation plots.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimConfigException
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.simulate.simpipeabc import SimPipelayerABC
 from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
@@ -99,12 +99,12 @@ class PlotCellsPipelayer(SimPipelayerABC):
     @property
     def runner_names(self) -> SequenceTypes:
         '''
-        Sequence of the names of all post-simulation animations enabled by this
+        Sequence of the names of all post-simulation plots enabled by this
         simulation configuration.
         '''
 
         return tuple(
-            anim.name for anim in self._phase.p.plot.after_sim_pipeline)
+            plot.name for plot in self._phase.p.plot.after_sim_pipeline)
 
     # ..................{ RUNNERS ~ wut                      }..................
     def run_wut(self) -> None:
@@ -134,8 +134,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     '''
 
     # Post-simulation animation pipeline producing all such animations.
-    # pipelayer = PlotCellsPipelayer(
-    #     phase=SimPhaseWeak(sim=sim, cells=cells, p=p))
+    # pipelayer = PlotCellsPipelayer(phase)
 
     #FIXME: Replace *ALL* logic below with the following single call:
     #    pipelayer.run()
@@ -160,30 +159,12 @@ def pipeline(phase: SimPhaseABC) -> None:
         # Substring prefixing the absolute path of each plot created below.
         savedImg = paths.join(phase.save_dirname, 'fig_')
 
-    # check that the plot cell is in range of the available cell indices:
+    # If the index of the cell to be plotted is invalid, raise an exception.
     if phase.p.plot_cell not in phase.cells.cell_i:
         raise BetseSimConfigException(
             'The "plot cell" defined in the "results" section of your '
             'configuration file does not exist in your cluster. '
             'Choose a plot cell number smaller than the maximum cell number.')
-
-    #FIXME: Shift into the visualpipe.pipeline() function. After doing so,
-    #consider shifting the entire "betse.science.visual.visualpipe" submodule to
-    #"betse.science.data.datapipe".
-    if phase.p.exportData:
-        plotutil.exportData(phase.cells, phase.sim, phase.p)
-
-    if phase.p.exportData2D is True:
-        for i, t in enumerate(phase.sim.time):
-            simdata = 1.0e3 * phase.sim.vm_ave_time[i]
-            plotutil.export2dData(i, simdata, phase.cells, phase.p)
-
-        # for i, t in enumerate(sim.time):
-        #     simdata_x = 1.0e3*sim.pol_x_time[i]
-        #     plotutil.export2dData(i, simdata_x, cells, p, foldername = 'Polarization_x', filebit = 'Pol_x')
-        #
-        #     simdata_y = 1.0e3 * sim.pol_y_time[i]
-        #     plotutil.export2dData(i, simdata_y, cells, p, foldername='Polarization_y', filebit='Pol_y')
 
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
@@ -212,7 +193,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename1 = savedImg + 'concNa_time' + '.png'
             plt.savefig(savename1, dpi=300, format='png', transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         # Plot cell potassium concentration versus time.
@@ -227,7 +208,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename1 = savedImg + 'concK_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         # plot-cell anion (bicarbonate) concentration vs time:
@@ -247,7 +228,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename1 = savedImg + 'concM_time' + '.png'
             plt.savefig(savename1,dpi=300,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         # Plot single cell Vmem vs time.
@@ -260,7 +241,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename2 = savedImg + 'Vmem_time' + '.png'
             plt.savefig(savename2,dpi=300,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         # Plot fast-Fourier-transform (fft) of Vmem.
@@ -273,7 +254,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename = savedImg + 'FFT_time' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         # plot rate of Na-K-ATPase pump vs time:
@@ -297,7 +278,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename = savedImg + 'NaKATPaseRaTE_' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         #--------------------------------------------------------
@@ -335,7 +316,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename = savedImg + 'Imem_time' + '.png'
             plt.savefig(savename,dpi=300,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         # optional 1D plots--------------------------------------------------------------------------------------------
@@ -355,7 +336,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename = savedImg + 'HydrostaticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
         # Plot cell calcium vs time (if Ca enabled in ion profiles).
@@ -374,7 +355,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename3 = savedImg + 'cytosol_Ca_time' + '.png'
                 plt.savefig(savename3,dpi=300,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
 
@@ -391,11 +372,11 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename = savedImg + 'OsmoticP_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
         # Total displacement in cell.
-        if p.deformation is True and sim.run_sim is True:
+        if phase.p.deformation is True and phase.kind is SimPhaseKind.SIM:
             # Extract time-series deformation data for the plot cell.
             dx = np.asarray([arr[p.plot_cell] for arr in sim.dx_cell_time])
             dy = np.asarray([arr[p.plot_cell] for arr in sim.dy_cell_time])
@@ -414,7 +395,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename = savedImg + 'Displacement_' + '.png'
                 plt.savefig(savename,dpi=300,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
     #-------------------------------------------------------------------------------------------------------------------
@@ -443,7 +424,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename5 = savedImg + 'final_Vmem_2D' + '.png'
             plt.savefig(savename5,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         figVa, axVa, cbVa = plotutil.plotPolyData(
@@ -469,7 +450,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename5 = savedImg + 'final_AverageVmem_2D' + '.png'
             plt.savefig(savename5, format='png', transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
 
@@ -492,7 +473,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename10 = savedImg + 'Final_environmental_V' + '.png'
                 plt.savefig(savename10, format='png', transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
     if p.GHK_calc is True:
@@ -517,7 +498,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename5 = savedImg + 'final_Vmem_GHK_2D' + '.png'
             plt.savefig(savename5,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
     #-------------------------------------------------------------------------------------------------------------------
@@ -539,7 +520,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename8 = savedImg + 'final_Ca_2D' + '.png'
             plt.savefig(savename8,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         if p.sim_ECM is True:
@@ -568,7 +549,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename10 = savedImg + 'Final_environmental_calcium' + '.png'
                 plt.savefig(savename10, format='png', transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
 
@@ -592,7 +573,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename8 = savedImg + 'final_pH_2D' + '.png'
             plt.savefig(savename8,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
     #----plot 2D pump data--------------------------------------------------------------------------------
@@ -610,7 +591,7 @@ def pipeline(phase: SimPhaseABC) -> None:
         savename8 = savedImg + 'final_NaKPump_2D' + '.png'
         plt.savefig(savename8, format='png', transparent=True)
 
-    if p.turn_all_plots_off is False:
+    if phase.p.plot.is_after_sim_show:
         plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
@@ -639,7 +620,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename10 = savedImg + 'Final_Current_gj' + '.png'
             plt.savefig(savename10,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         if p.sim_ECM is True:
@@ -666,7 +647,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'
                 plt.savefig(savename11,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
     #-------------------------------------------------------------------------------------------------------------------
@@ -680,7 +661,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 colorAutoscale = p.autoscale_Efield, minColor = p.Efield_min_clr,
                 maxColor = p.Efield_max_clr)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
             if p.plot.is_after_sim_save is True:
@@ -701,7 +682,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename = savedImg + 'Final_Electric_Field_GJ' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
@@ -719,12 +700,12 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename13 = savedImg + 'final_P_2D_gj' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
 
-    if p.deformation is True and sim.run_sim is True:
+    if p.deformation is True and phase.kind is SimPhaseKind.SIM:
         plotutil.plotStreamField(
             p.um*sim.dx_cell_time[-1],
             p.um*sim.dy_cell_time[-1],
@@ -742,7 +723,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename13 = savedImg + 'final_displacement_2D' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
 
@@ -763,7 +744,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
             plt.savefig(savename13,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         if p.sim_ECM is True:
@@ -782,7 +763,7 @@ def pipeline(phase: SimPhaseABC) -> None:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
                 plt.savefig(savename13,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if phase.p.plot.is_after_sim_show:
                 plt.show(block=False)
 
     # if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
@@ -798,7 +779,6 @@ def pipeline(phase: SimPhaseABC) -> None:
     plt.axis('equal')
     plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
 
-
     cb.set_label('Relative Permeability')
     ax_x.set_xlabel('Spatial x [um]')
     ax_x.set_ylabel('Spatial y [um')
@@ -808,10 +788,10 @@ def pipeline(phase: SimPhaseABC) -> None:
         savename = savedImg + 'final_gjState' + '.png'
         plt.savefig(savename,format='png',transparent=True)
 
-    if p.turn_all_plots_off is False:
+    if phase.p.plot.is_after_sim_show:
         plt.show(block=False)
 
-    if p.sim_eosmosis is True and sim.run_sim is True:
+    if p.sim_eosmosis is True and phase.kind is SimPhaseKind.SIM:
         plotutil.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
         plt.xlabel('Spatial Dimension [um]')
         plt.ylabel('Spatial Dimension [um]')
@@ -821,7 +801,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename = savedImg + 'final_pumps_2D' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
 
         plotutil.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
@@ -833,5 +813,15 @@ def pipeline(phase: SimPhaseABC) -> None:
             savename = savedImg + 'final_channels_2D' + '.png'
             plt.savefig(savename,format='png',transparent=True)
 
-        if p.turn_all_plots_off is False:
+        if phase.p.plot.is_after_sim_show:
             plt.show(block=False)
+
+    #FIXME: What is this? What requires showing? Are we finalizing some
+    #previously displayed visual artifact? We suspect this to be safely
+    #jettisoned deadweight, but... let's verify that, please. If this *IS*
+    #required, it's probably only required for plots -- in which case this logic
+    #should be appended onto the plotpipe.pipeline() function.
+
+    # If displaying plots and animations, display... something? I guess?
+    if phase.p.plot.is_after_sim_show:
+        plt.show()

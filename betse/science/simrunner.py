@@ -14,14 +14,14 @@ from betse.exceptions import (
     BetseFileException, BetseSimException, BetseSimConfigException)
 from betse.science import filehandling as fh
 from betse.science.cells import Cells
-from betse.science.config import confio
 from betse.science.chemistry.gene import MasterOfGenes
 from betse.science.chemistry.metabolism import MasterOfMetabolism
+from betse.science.config import confio
+from betse.science.export import exppipe
 from betse.science.parameters import Parameters
 from betse.science.sim import Simulator
 from betse.science.simulate.simphase import SimPhaseStrong, SimPhaseKind
 from betse.science.tissue.handler import TissueHandler
-from betse.science.visual import visualpipe
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import files, paths
@@ -653,8 +653,8 @@ class SimRunner(object):
         phase = SimPhaseStrong(
             kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
 
-        # Display and/or save all enabled plots and animations.
-        visualpipe.pipeline(phase=phase, plot_type='init')
+        # Display and/or save all initialization exports (e.g., animations).
+        exppipe.pipeline(phase)
 
         #FIXME: All of the following crash if image saving is not turned on, but
         #due to whatever way this is set up, it's not possible to readily fix
@@ -669,7 +669,7 @@ class SimRunner(object):
         if p.molecules_enabled and sim.molecules is not None:
             # reinit settings for plots, in case they've changed:
             sim.molecules.core.plot_init(p.network_config, p)
-            sim.molecules.core.init_saving(cells, p, plot_type = 'init')
+            sim.molecules.core.init_saving(cells, p, plot_type='init')
             sim.molecules.core.export_all_data(sim, cells, p)
             sim.molecules.core.plot(sim, cells, p)
             sim.molecules.core.anim(sim, cells, p)
@@ -682,10 +682,14 @@ class SimRunner(object):
             # reinitialize the plot settings:
             sim.metabo.core.plot_init(config_dic, p)
 
-            sim.metabo.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
-            sim.metabo.core.export_all_data(sim, cells, p, message = 'for metabolic molecules...')
-            sim.metabo.core.plot(sim, cells, p, message = 'for metabolic molecules...')
-            sim.metabo.core.anim(sim, cells, p, message = 'for metabolic molecules...')
+            sim.metabo.core.init_saving(
+                cells, p, plot_type='init', nested_folder_name='Metabolism')
+            sim.metabo.core.export_all_data(
+                sim, cells, p, message='for metabolic molecules...')
+            sim.metabo.core.plot(
+                sim, cells, p, message='for metabolic molecules...')
+            sim.metabo.core.anim(
+                sim, cells, p, message='for metabolic molecules...')
 
         if p.grn_enabled and sim.grn is not None:
             configPath = os.path.join(p.config_dirname, p.grn_config_filename)
@@ -695,13 +699,18 @@ class SimRunner(object):
             # reinitialize the plot settings:
             sim.grn.core.plot_init(config_dic, p)
 
-            sim.grn.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
-            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.init_saving(
+                cells, p, plot_type='init', nested_folder_name='GRN')
+            sim.grn.core.export_all_data(
+                sim, cells, p, message='for GRN molecules...')
+            sim.grn.core.plot(
+                sim, cells, p, message='for GRN molecules...')
+            sim.grn.core.anim(
+                sim, cells, p, message='for GRN molecules...')
 
         if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
-            sim.endo_retic.init_saving(cells, p, plot_type = 'init', nested_folder_name = 'ER')
+            sim.endo_retic.init_saving(
+                cells, p, plot_type='init', nested_folder_name='ER')
             sim.endo_retic.plot_er(sim, cells, p)
 
         if p.turn_all_plots_off is False:
@@ -750,8 +759,8 @@ class SimRunner(object):
         phase = SimPhaseStrong(
             kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
 
-        # Display and/or save all enabled plots and animations.
-        visualpipe.pipeline(phase=phase, plot_type='sim')
+        # Display and/or save all simulation exports (e.g., animations).
+        exppipe.pipeline(phase)
 
         #FIXME: Split each of the following blocks performing both plotting and
         #animating into their appropriate plotpipe.pipeline() or

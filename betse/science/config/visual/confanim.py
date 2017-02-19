@@ -13,7 +13,7 @@ YAML-backed simulation animation subconfigurations.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
-from betse.science.config.visual.confvisualabc import SimConfVisual
+from betse.science.config.visual.confvisabc import SimConfVisual
 from betse.util.type import ints
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
