@@ -19,16 +19,39 @@
 # effectively mandatory.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from collections import OrderedDict
 from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.py import interpreters, pys
+from betse.util.type.mappings import OrderedParamsDict
+from collections import OrderedDict
+
+# ....................{ GETTERS ~ metadata                 }....................
+def get_metadata() -> OrderedParamsDict:
+    '''
+    Ordered dictionary synopsizing the active Python interpreter.
+    '''
+
+    # Defer heavyweight imports.
+    from betse import pathtree
+    from betse.util.path.command import commands
+
+    # Return this dictionary.
+    return OrderedParamsDict(
+        'basename', commands.get_current_basename(),
+        'version', metadata.__version__,
+        'codename', metadata.CODENAME,
+        'authors', metadata.AUTHORS,
+        'license', metadata.LICENSE,
+        'home directory',  pathtree.get_home_dirname(),
+        'dot directory',   pathtree.get_dot_dirname(),
+        'data directory',  pathtree.get_data_dirname(),
+    )
 
 # ..................{ LOGGERS                                }..................
 def log_header() -> None:
     '''
-    Log a one-line synopsis of metadata logged by the `info` subcommand.
+    Log a one-line synopsis of metadata logged by the ``info`` subcommand.
     '''
 
     logs.log_info(
@@ -48,7 +71,7 @@ def log_header() -> None:
 # ..................{ OUTPUTTERS                             }..................
 def output_info() -> None:
     '''
-    Print all output for the `info` subcommand.
+    Print all output for the ``info`` subcommand.
     '''
 
     # Notify the current user of a possible wait *BEFORE* importing modules
@@ -57,9 +80,7 @@ def output_info() -> None:
         'Harvesting system information... (This may take a moment.)')
 
     # Defer heavyweight imports.
-    from betse import pathtree
     from betse.lib import libs
-    from betse.util.path.command import commands
     from betse.util.os import displays, kernels
 
     #FIXME: Shift into a more appropriate general-purpose submodule.
@@ -67,16 +88,7 @@ def output_info() -> None:
     # Tuple of BETSE-specific metadata.
     BETSE_METADATAS = (
         # Application metadata.
-        (metadata.NAME.lower(), OrderedDict((
-            ('basename', commands.get_current_basename()),
-            ('version', metadata.__version__),
-            ('codename', metadata.CODENAME),
-            ('authors', metadata.AUTHORS),
-            ('license', metadata.LICENSE),
-            ('home directory',  pathtree.get_home_dirname()),
-            ('dot directory',   pathtree.get_dot_dirname()),
-            ('data directory',  pathtree.get_data_dirname()),
-        ))),
+        (metadata.NAME.lower(), get_metadata()),
 
         # Logging metadata.
         ('logging', logconfig.get_metadata()),

@@ -30,21 +30,21 @@ class Parameters(object):
     from the user-defined YAML configuration file passed to this object on
     initialization.
 
-    Attributes (General)
+    Attributes (Private)
     ----------------------------
     _config : MappingType
         Low-level dictionary containing this entire simulation configuration,
         deserialized from this configuration's YAML-formatted file and safely
         deserializable back to the same file. This private dictionary should
-        *never* be accessed directly. For safety, the settings encapsulated by
-        this dictionary may be retrieved and modified by callers *only* via the
-        public :func:`conf_alias` data descriptors in this class.
+        *never* be accessed directly. Note that the settings encapsulated by
+        this dictionary are safely retrievable and modifiable by callers *only*
+        via the public :func:`conf_alias` data descriptors in this class.
 
     Attributes (General: Boolean)
     ----------------------------
     I_overlay : bool
-        `True` if overlaying either electric current or concentration flux
-        streamlines on appropriate plots and animations _or_ `False` otherwise.
+        ``True`` only if overlaying either electric current or concentration
+        flux streamlines on appropriate plots and animations.
 
     Attributes (General: Path)
     ----------------------------
@@ -60,14 +60,13 @@ class Parameters(object):
     Attributes (Phase: Time)
     ----------------------------
     dt : float
-        Duration in seconds of each time step for the current simulation phase
-        (e.g., `init`, `run`).
+        Duration in seconds of each time step for the current simulation phase.
     total_time : float
-        Duration in seconds of the current simulation phase (e.g., `init`,
-        `run`), unaccelerated by the current gap junction acceleration factor.
+        Duration in seconds of the current simulation phase, *not* accelerated
+        by the current gap junction acceleration factor.
     total_time_accelerated : float
-        Duration in seconds of the current simulation phase (e.g., `init`,
-        `run`), accelerated by the current gap junction acceleration factor.
+        Duration in seconds of the current simulation phase, accelerated by the
+        current gap junction acceleration factor.
 
     Attributes (Results)
     ----------------------------

@@ -88,9 +88,6 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from collections import OrderedDict
-from contextlib import contextmanager
-
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.os import displays, kernels, oses
@@ -98,7 +95,9 @@ from betse.util.path import dirs, paths
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.call.memoizers import property_cached
+from betse.util.type.mappings import OrderedParamsDict
 from betse.util.type.types import type_check, StrOrNoneTypes
+from contextlib import contextmanager
 
 # ....................{ CONSTANTS                          }....................
 RC_PARAMS = {
@@ -868,18 +867,17 @@ class MplConfig(object):
         return rcParams[param_name]
 
 
-    def get_metadata(self) -> OrderedDict:
+    def get_metadata(self) -> OrderedParamsDict:
         '''
         Ordered dictionary synopsizing the current matplotlib installation.
         '''
 
         # This dictionary.
-        metadata = OrderedDict((
-            ('rc file', self.rc_filename),
-            ('cache dir', self.cache_dirname),
-            ('current backend', self.backend_name),
-            # ('[backend] current', self.backend_name),
-        ))
+        metadata = OrderedParamsDict(
+            'rc file', self.rc_filename,
+            'cache dir', self.cache_dirname,
+            'current backend', self.backend_name,
+        )
 
         # For each available backend, add metadata synopsizing that backend.
         for backend_name in self.backend_names:

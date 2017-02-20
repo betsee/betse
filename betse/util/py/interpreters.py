@@ -16,7 +16,7 @@ functions _only_ where necessary.
 
 # ....................{ IMPORTS                            }....................
 import platform
-from collections import OrderedDict
+from betse.util.type.mappings import OrderedParamsDict
 
 # ....................{ TESTERS                            }....................
 def is_cpython() -> bool:
@@ -48,7 +48,7 @@ def get_name() -> str:
     return platform.python_implementation()
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedDict:
+def get_metadata() -> OrderedParamsDict:
     '''
     Ordered dictionary synopsizing the active Python interpreter's
     implementation.
@@ -58,12 +58,12 @@ def get_metadata() -> OrderedDict:
     '''
 
     # This dictionary.
-    metadata = OrderedDict((
-        ('name', get_name()),
-        ('vcs revision', platform.python_revision() or 'none'),
-        ('vcs branch', platform.python_branch() or 'none'),
-        ('compiler', platform.python_compiler()),
-    ))
+    metadata = OrderedParamsDict(
+        'name', get_name(),
+        'vcs revision', platform.python_revision() or 'none',
+        'vcs branch', platform.python_branch() or 'none',
+        'compiler', platform.python_compiler(),
+    )
 
     # 2-tuple providing this interpreter's build number and date as strings.
     python_build = platform.python_build()

@@ -77,7 +77,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
 
-# ....................{ CLASSES                            }....................
+# ....................{ SUBCLASSES                         }....................
 class PlotCellsPipelayer(SimPipelayerABC):
     '''
     **Post-simulation plot pipeline** (i.e., class iteratively creating all

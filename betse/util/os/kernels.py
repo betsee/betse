@@ -15,7 +15,7 @@ Caveats
 # ....................{ IMPORTS                            }....................
 import platform
 from betse.util.type.call.memoizers import callable_cached
-from collections import OrderedDict
+from betse.util.type.mappings import OrderedParamsDict
 
 # ....................{ GETTERS                            }....................
 @callable_cached
@@ -77,12 +77,13 @@ def get_version() -> str:
     return kernel_version
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedDict:
+def get_metadata() -> OrderedParamsDict:
     '''
     Ordered dictionary synopsizing the current kernel.
     '''
 
-    return OrderedDict((
-        ('name', get_name()),
-        ('version', get_version()),
-    ))
+    # Return this dictionary.
+    return OrderedParamsDict(
+        'name', get_name(),
+        'version', get_version(),
+    )

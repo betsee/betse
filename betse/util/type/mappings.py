@@ -218,22 +218,22 @@ class DynamicValueDict(MutableMappingType):
         return iter(self._key_to_dynamic_value)
 
 # ....................{ CLASSES ~ dict : ordered           }....................
-#FIXME: Supplant all existing usage of "OrderedDict" with this subclass.
-#FIXME: Unit test this.
+#FIXME: Rename to "OrderedArgsDict". "Params" implies the "Parameters" class.
 
 class OrderedParamsDict(OrderedDict):
     '''
     Ordered dictionary initialized by a sequence of key-value pairs.
 
-    The canonical :class:`OrderedDict` class providing ordered dictionaries in
-    Python is initialized by a sequence of 2-sequences (typically, tuple of
-    2-tuples) whose first element comprises the key and whose second element
-    comprises the value of each key-value pair of this dictionary. This subclass
-    of that class is initialized by a flat sequence of keys and values,
-    simplifying the burden of initializing ordered dictionaries.
+    The canonical :class:`OrderedDict` class implements ordered dictionaries in
+    Python. As is common practice throughout the stdlib, this class is
+    initialized with a sequence of 2-sequences (e.g., tuple of 2-tuples) whose
+    first elements comprise the keys and whose second elements comprise the
+    values of all key-value pairs of this dictionary.
 
-    In all other respects, this class is identical to the :class:`OrderedDict`
-    class.
+    This :class:`OrderedDict` subclass simplifies this initializing burden.
+    Specifically, this class is initialized with a flat sequence of keys and
+    values rather than a nested sequence of 2-sequences. In all other respects,
+    this class is identical to the :class:`OrderedDict` class.
 
     Examples
     ----------

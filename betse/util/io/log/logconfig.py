@@ -31,8 +31,8 @@ log strictly more messages than) levels assigned larger integers: e.g.,
 import logging, os, sys
 from betse import metadata
 from betse.exceptions import BetseFileException
+from betse.util.type.mappings import OrderedParamsDict
 from betse.util.type.types import type_check
-from collections import OrderedDict
 from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from logging.handlers import RotatingFileHandler
@@ -150,10 +150,10 @@ class LogConfig(object):
       is _not_ a terribly descriptive name, callers are encouraged to replace
       this by an application-specific name.
     * Printed to standard error if the logging level for this output is either
-      `WARNING`, `ERROR`, or `CRITICAL`.
+      ``WARNING``, ``ERROR``, or ``CRITICAL``.
     * Printed to standard output if the logging level for this output is
-      `INFO`. Together with the prior item, this suggests that output with a
-      logging level of `DEBUG` will _not_ be printed by default.
+      ``INFO``. Together with the prior item, this suggests that output with a
+      logging level of ``DEBUG`` will *not* be printed by default.
     * Appended to the user-specific file specified by the
       :func:`pathtree.get_log_default_filename` function, whose:
         * Level defaults to :data:`logger.ALL`. Hence, *all* messages will be
@@ -644,13 +644,13 @@ def get() -> LogConfig:
     return _config
 
 
-def get_metadata() -> OrderedDict:
+def get_metadata() -> OrderedParamsDict:
     '''
     Ordered dictionary synopsizing the current logging configuration.
     '''
 
-    return OrderedDict((
-        ('type', _config.log_type.name.lower()),
-        ('file', _config.filename),
-        ('verbose', str(_config.is_verbose).lower()),
-    ))
+    return OrderedParamsDict(
+        'type', _config.log_type.name.lower(),
+        'file', _config.filename,
+        'verbose', str(_config.is_verbose).lower(),
+    )

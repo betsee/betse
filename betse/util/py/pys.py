@@ -20,8 +20,8 @@ import platform, sys
 from betse import metadata
 from betse.exceptions import BetsePyException
 from betse.util.io.log import logs
+from betse.util.type.mappings import OrderedParamsDict
 from betse.util.type.types import type_check, SequenceTypes
-from collections import OrderedDict
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -180,7 +180,7 @@ def get_filename() -> str:
     return py_filename
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedDict:
+def get_metadata() -> OrderedParamsDict:
     '''
     Ordered dictionary synopsizing the active Python interpreter.
     '''
@@ -188,15 +188,12 @@ def get_metadata() -> OrderedDict:
     # Avoid circular import dependencies.
     from betse.util.py import freezers
 
-    # This dictionary.
-    metadata = OrderedDict((
-        ('version', get_version()),
-        ('wordsize', get_wordsize()),
-        ('is frozen', freezers.is_frozen()),
-    ))
-
     # Return this dictionary.
-    return metadata
+    return OrderedParamsDict(
+        'version', get_version(),
+        'wordsize', get_wordsize(),
+        'is frozen', freezers.is_frozen(),
+    )
 
 # ....................{ RUNNERS                            }....................
 @type_check

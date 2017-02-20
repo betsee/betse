@@ -12,8 +12,8 @@ from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, paths
 from betse.util.type import iterables, regexes, strs, modules
+from betse.util.type.mappings import OrderedParamsDict
 from betse.util.type.types import BoolOrNoneTypes
-from collections import OrderedDict
 from numpy import __config__ as numpy_config
 
 # ....................{ GLOBALS ~ opt_info                 }....................
@@ -244,7 +244,7 @@ def _init_globals() -> None:
 # ....................{ TESTERS                            }....................
 def is_blas_optimized() -> bool:
     '''
-    `True` only if the currently installed version of Numpy is linked against an
+    ``True`` only" if the currently installed version of Numpy is linked against an
     optimized BLAS (Basic Linear Algebra Subprograms) implementation, ideally
     but _not_ necessarily parallelized across multiple processors.
 
@@ -299,7 +299,7 @@ def is_blas_optimized() -> bool:
 # ....................{ TESTERS ~ private : opt_info       }....................
 def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
     '''
-    `True` only if the first element of the `libraries` list of the global
+    ``True`` only" if the first element of the `libraries` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary heuristically
     corresponds to that of an optimized BLAS implementation, `False` if a non-
     fatal error condition arises (e.g., due this list or dictionary being
@@ -367,7 +367,7 @@ def _is_blas_optimized_opt_info_libraries() -> BoolOrNoneTypes:
 
 def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
     '''
-    `True` only if the first element of the `library_dirs` list of the global
+    ``True`` only" if the first element of the `library_dirs` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary heuristically
     corresponds to that of an optimized BLAS implementation, `False` if a non-
     fatal error condition arises (e.g., due this list or dictionary being
@@ -416,14 +416,15 @@ def _is_blas_optimized_opt_info_library_dirs() -> BoolOrNoneTypes:
 
 def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
     '''
-    `True` only if the current platform is macOS _and_ the `extra_link_args`
-    list of the global :data:`numpy.__config__.blas_opt_info` dictionary both
-    exists _and_ heuristically corresponds to that of an optimized BLAS
-    implementation specific to macOS (e.g., Accelerate, vecLib), `False` if a
-    non-fatal error condition arises (e.g., due this list or dictionary being
-    undefined), _or_ `None` otherwise.
+    ``True`` only" if the current platform is macOS *and* the
+    ``extra_link_args`` list of the global
+    :data:`numpy.__config__.blas_opt_info` dictionary both exists *and*
+    heuristically corresponds to that of an optimized BLAS implementation
+    specific to macOS (e.g., Accelerate, vecLib), ``False`` if a non-fatal error
+    condition arises (e.g., due this list or dictionary being undefined), *or*
+    ``None`` otherwise.
 
-    This function returns `None` when unable to deterministically decide this
+    This function returns ``None`` when unable to deterministically decide this
     boolean, in which case a subsequent heuristic will attempt to do so.
 
     Unlike all other BLAS implementations, macOS-specific BLAS implementations
@@ -473,7 +474,7 @@ def _is_blas_optimized_opt_info_macos() -> BoolOrNoneTypes:
 # ....................{ TESTERS ~ private : linkage        }....................
 def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     '''
-    `True` only if the current platform is POSIX-compliant and hence supports
+    ``True`` only" if the current platform is POSIX-compliant and hence supports
     symbolic links _and_ the first element of the `libraries` list of the global
     :data:`numpy.__config__.blas_opt_info` dictionary is a symbolic link
     masquerading as either the unoptimized reference BLAS implementation but in
@@ -569,7 +570,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
 # ....................{ GETTERS                            }....................
 def get_metadatas() -> tuple:
     '''
-    Tuple of 2-tuples `(metedata_name, metadata_value`), describing all
+    Tuple of 2-tuples ``(metedata_name, metadata_value)``, describing all
     currently installed third-party dependencies against which Numpy was linked
     (e.g., BLAS, LAPACK).
     '''
@@ -580,16 +581,14 @@ def get_metadatas() -> tuple:
     )
 
 
-def get_blas_metadata() -> OrderedDict:
+def get_blas_metadata() -> OrderedParamsDict:
     '''
     Ordered dictionary synopsizing the current Numpy installation with respect
     to BLAS linkage.
     '''
 
     # This dictionary.
-    metadata = OrderedDict((
-        ('optimized', is_blas_optimized()),
-    ))
+    metadata = OrderedParamsDict('optimized', is_blas_optimized())
 
     # Set of all keys of the dictionary global synopsizing this metadata,
     # sorted in ascending lexicographic order for readability.

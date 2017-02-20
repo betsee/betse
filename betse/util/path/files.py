@@ -21,7 +21,7 @@ from os import path
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
     '''
-    Raise an exception unless the passed path is a non-directory file _after_
+    Raise an exception unless the passed path is a non-directory file *after*
     following symbolic links.
 
     See Also
@@ -37,7 +37,7 @@ def die_unless_file(pathname: str) -> None:
 # ....................{ EXCEPTIONS ~ if                    }....................
 def die_if_file(pathname: str) -> None:
     '''
-    Raise an exception if the passed path is a non-directory file _after_
+    Raise an exception if the passed path is a non-directory file *after*
     following symbolic links.
 
     See Also

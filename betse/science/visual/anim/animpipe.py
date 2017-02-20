@@ -38,7 +38,7 @@ from betse.science.visual.layer.vector.layervectorsurface import (
     LayerCellsVectorSurfaceContinuous)
 from betse.util.type.types import type_check, SequenceTypes
 
-# ....................{ CLASSES                            }....................
+# ....................{ SUBCLASSES                         }....................
 class AnimCellsPipelayer(SimPipelayerABC):
     '''
     **Post-simulation animation pipeline** (i.e., class iteratively creating all
@@ -464,7 +464,7 @@ def pipeline(phase: SimPhaseABC) -> None:
        return
 
     # Post-simulation animation pipeline producing all such animations.
-    pipelayer = AnimCellsPipelayer(phase=phase)
+    pipelayer = AnimCellsPipelayer(phase)
 
     #FIXME: Replace *ALL* logic below with the following single call:
     #    pipelayer.run()

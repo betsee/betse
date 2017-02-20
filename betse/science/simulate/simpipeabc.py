@@ -104,9 +104,14 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
     @type_check
     def __init__(
         self,
+
+        # Mandatory parameters.
         phase: SimPhaseABC,
         label_singular: str,
         label_plural: str,
+
+        # Optional parameters.
+        label_verb: str = 'Running',
     ) -> None:
         '''
         Initialize this pipeline.
@@ -115,12 +120,25 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
         ----------
         phase : SimPhaseABC
             Current simulation phase.
+        label_singular : str
+            Human-readable singular noun synopsizing the type of runners
+            implemented by this subclass (e.g., ``animation``, ``plot``),
+            ideally but *not* necessarily lowercase.
+        label_plural : str
+            Human-readable plural noun synopsizing the type of runners
+            implemented by this subclass (e.g., ``animations``, ``plots``),
+            ideally but *not* necessarily lowercase.
+        label_verb: optional[str]
+            Human-readable plural noun synopsizing the type of action performed
+            by runners implemented by this subclass (e.g., ``Saving``), ideally
+            but *not* necessarily capitalized. Defaults to ``Running``.
         '''
 
         # Classify all passed parameters.
         self._phase = phase
         self._label_singular_lowercase = label_singular
         self._label_plural_lowercase = label_plural
+        self._label_verb = label_verb
 
         # Human-readable capitalized singular noun.
         self._label_singular_uppercase = strs.uppercase_first_char(
@@ -136,7 +154,8 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
         '''
 
         # Log animation creation.
-        logs.log_info('Running %s...', self._label_plural_lowercase)
+        logs.log_info(
+            '%s %s...', self._label_verb, self._label_plural_lowercase)
 
         # For the name of each currently enabled runner in this pipeline...
         for runner_name in self.runner_names:
@@ -167,6 +186,15 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
                     self._label_singular_lowercase,
                     runner_name,
                     str(exception))
+
+    # ..................{ LOGGERS                            }..................
+    def _log_run(self) -> None:
+        '''
+        Log the current attempt to run the calling runner.
+        '''
+
+        # Defer to lower-level functionality to do so.
+        self._die_unless_intra()
 
     # ..................{ EXCEPTIONS                         }..................
     @type_check
@@ -219,9 +247,12 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
                     runner_name,
                     exception_reason))
 
-        # Log this animation attempt.
+        # Log this attempt to run the calling runner.
         logs.log_info(
-            'Running %s "%s"...', self._label_singular_lowercase, runner_name)
+            '%s %s "%s"...',
+            self._label_verb,
+            self._label_singular_lowercase,
+            runner_name)
 
     # ..................{ EXCEPTIONS ~ config                }..................
     def _die_unless_intra(self) -> None:

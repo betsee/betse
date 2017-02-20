@@ -23,6 +23,7 @@ This global caches the return value of the frequently called
 '''
 
 # ....................{ EXCEPTIONS                         }....................
+@type_check
 def die_unless_command(pathname: str) -> None:
     '''
     Raise an exception unless a command with the passed path exists.

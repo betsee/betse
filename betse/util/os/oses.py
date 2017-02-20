@@ -8,17 +8,13 @@ High-level operating system (OS) facilities.
 
 Caveats
 ----------
-**Operating system-specific logic is poor form.** Do so _only_ where necessary.
+**Operating system-specific logic is poor form.** Do so *only* where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-import os
-import platform
-import sys
-from collections import OrderedDict
-
+import os, platform, sys
 from betse.util.type.call.memoizers import callable_cached
-
+from betse.util.type.mappings import OrderedParamsDict
 
 # ....................{ TESTERS ~ posix                    }....................
 @callable_cached
@@ -200,13 +196,13 @@ def get_version() -> str:
     return os_version
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedDict:
+def get_metadata() -> OrderedParamsDict:
     '''
     Ordered dictionary synopsizing the current operating system.
     '''
 
-    # Return this metadata.
-    return OrderedDict((
-        ('name', get_name()),
-        ('version', get_version()),
-    ))
+    # Return this dictionary.
+    return OrderedParamsDict(
+        'name', get_name(),
+        'version', get_version(),
+    )

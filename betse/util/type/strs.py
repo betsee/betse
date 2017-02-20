@@ -166,7 +166,7 @@ def join(*texts) -> str:
     '''
     Concatenation of the passed strings with no separating delimiter.
 
-    This is a convenience function wrapping the standard `"".join((...))`
+    This is a convenience function wrapping the standard ``"".join((...))``
     method, whose syntax is arguably overly verbose.
     '''
 
@@ -185,11 +185,11 @@ def join_by_index(iterable: IterableTypes, subiterable_index: object) -> str:
         Iterable of subiterables to be summed.
     subiterable_index : object
         Object with which to index each subiterable of this iterable. The type
-        of this object _must_ be a type accepted by the `__getitem__()` special
-        method of each subiterable. Specifically, if each subiterable is a:
-        * **Mapping** (e.g., :class:`dict`), this object _must_ be hashable.
+        of this object *must* be a type accepted by the ``__getitem__()``
+        special method of each subiterable. If each subiterable is a:
+        * **Mapping** (e.g., :class:`dict`), this object *must* be hashable.
         * **Sequence** (e.g., :class:`list`, :class:`tuple`), this object
-          _must_ be either:
+          *must* be either:
           * An integer.
           * A :func:`slice` object.
 
@@ -209,7 +209,7 @@ def join_on_newline(*texts) -> str:
     Join the passed strings with newline as the separating delimiter.
 
     This is a convnience function wrapping the standard
-    `"\n".join((...))` method, whose syntax is arguably overly verbose.
+    ``"\n".join((...))`` method, whose syntax is arguably overly verbose.
     '''
 
     return join_on(*texts, delimiter='\n')
@@ -221,7 +221,7 @@ def join_on(*texts: IterableTypes, delimiter: str) -> str:
     Join the passed strings with the passed separating delimiter.
 
     This is a convenience function wrapping the standard
-    `"...".join((...))` method, whose syntax is arguably overly obfuscated.
+    ``"...".join((...))`` method, whose syntax is arguably overly obfuscated.
 
     Parameters
     ----------
