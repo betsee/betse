@@ -67,21 +67,57 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
     '''
 
     # ..................{ CONSTANTS                          }..................
+    # Ideally, the following class constants would instead be implemented as
+    # class properties. Unfortunately, there exists no @classproperty decorator
+    # and no feasible means of implementing that decorator thanks to subtle
+    # idiosyncracies in the design of Python's data descriptor protocol. While
+    # class properties can technically be manually implemented by a metaclass
+    # defining these properties, doing so is cumbersome and quite discouraged.
+
     _RUNNER_METHOD_NAME_PREFIX = 'run_'
     '''
     Substring prefixing the name of each runner defined by this pipeline.
+
+    This class variable is intended to be overridden by subclasses desiring a
+    less ambiguous prefix (e.g., ``export_`` for export pipelines).
     '''
 
     # ..................{ STATIC ~ iterators                 }..................
     @classmethod
+    def iter_runner_method_names(cls) -> GeneratorType:
+        '''
+        Generator yielding the name of each runner method defined by this
+        pipeline subclass.
+
+        For each subclass method whose name is prefixed by
+        :attr:`_RUNNER_METHOD_NAME_PREFIX`, this generator yields that method.
+
+        Yields
+        ----------
+        MethodType
+            Each runner method defined by this pipeline subclass.
+        '''
+
+        yield from classes.iter_methods_matching(
+            cls=cls, predicate=lambda method_name: method_name.startswith(
+                cls._RUNNER_METHOD_NAME_PREFIX))
+
+
+    #FIXME: Is this genuinely useful? We think not, actually. Defining an
+    #iterator mapping from each runner method to the human-readable metadata
+    #associated with that method would be far more useful.
+    @classmethod
     def iter_runner_names(cls) -> GeneratorType:
         '''
-        Generator yielding the name of each runner defined by this pipeline.
+        Generator yielding the name of each runner defined by this pipeline
+        subclass.
 
-        For each subclass method whose name is prefixed by ``run_``, this
-        generator yields that name excluding the prefixing ``run_``. For
-        example, if this subclass defines only two methods ``run_exhra`` and
-        ``run_intra`` whose names are prefixed by ``run_``, this generator first
+        For each subclass method whose name is prefixed by
+        :attr:`_RUNNER_METHOD_NAME_PREFIX`, this
+        generator yields that name excluding the prefixing
+        :attr:`_RUNNER_METHOD_NAME_PREFIX`. For example, if this subclass
+        defines only two methods ``run_exhra`` and ``run_intra`` whose names are
+        prefixed by :attr:`_RUNNER_METHOD_NAME_PREFIX`, this generator first
         yields the string ``extra`` and then the string ``intra`` (in that
         order).
 
@@ -91,12 +127,9 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
             Name of each runner defined by this pipeline.
         '''
 
-        # For each "run_"-prefixed method defined by this class...
-        for anim_method_name in classes.iter_methods_matching(
-            cls=cls,
-            predicate=lambda method_name: method_name.startswith(
-                cls._RUNNER_METHOD_NAME_PREFIX)):
-            # Yield the name of this method excluding the "run_" prefix.
+        # For runner method defined by this subclass...
+        for anim_method_name in cls.iter_runner_method_names():
+            # Yield the name of this method excluding the runner prefix.
             yield strs.remove_prefix(
                 text=anim_method_name, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
 
@@ -319,3 +352,26 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
         '''
 
         pass
+
+# ....................{ SUBCLASSES                         }....................
+#FIXME: Refactor all other "SimPipelayerABC" subclasses to inherit from this
+#class instead.
+class SimExportPipelayerABC(SimPipelayerABC):
+    '''
+    Abstract base class of all **simulation export pipelines** (i.e., subclasses
+    iteritavely exporting all variations on a single type of simulation export,
+    either in parallel *or* in series).
+    '''
+
+    # ..................{ SUPERCLASS ~ constants             }..................
+    _RUNNER_METHOD_NAME_PREFIX = 'export_'
+    '''
+    Substring prefixing the name of each runner defined by this pipeline.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass with all passed parameters and an
+        # exportation-specific verb.
+        self.__init__(*args, label_verb='Exporting', **kwargs)
