@@ -59,9 +59,9 @@ def from_sequence(sequence: SequenceTypes) -> ndarray:
     # guaranteed to be a sequence safely passable as is to this function.
     return np.asarray(sequence)
 
-# ....................{ SAVERS                             }....................
+# ....................{ WRITERS                            }....................
 @type_check
-def save_csv(filename: str, column_name_to_values: OrderedDict) -> None:
+def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
     '''
     Serialize each key-value pair of the passed ordered dictionary into a new
     column in comma-separated value (CSV) format to the plaintext file with the

@@ -8,7 +8,7 @@ Abstract base classes of all post-simulation plot subclasses.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.parameters import Parameters
-from betse.science.visual.visualabc import VisualCellsABC
+from betse.science.visual.visabc import VisualCellsABC
 from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................

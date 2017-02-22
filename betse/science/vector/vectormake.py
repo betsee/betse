@@ -7,9 +7,10 @@ Vector factories, producing instances of the :class:`VectorCells` class.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.science.export import expmath
 from betse.science.vector.vectorcls import VectorCells
-from betse.science.visual import visualutil
 from betse.util.type.types import type_check
+
 
 # ....................{ MAKERS                             }....................
 @type_check
@@ -39,5 +40,5 @@ def make_voltages_intra(
 
     return VectorCells(
         cells=cells, p=p,
-        times_membranes_midpoint=visualutil.upscale_cell_data(sim.vm_time),
+        times_membranes_midpoint=expmath.upscale_cell_data(sim.vm_time),
     )

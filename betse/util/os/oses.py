@@ -14,7 +14,7 @@ Caveats
 # ....................{ IMPORTS                            }....................
 import os, platform, sys
 from betse.util.type.call.memoizers import callable_cached
-from betse.util.type.mappings import OrderedParamsDict
+from betse.util.type.mappings import OrderedArgsDict
 
 # ....................{ TESTERS ~ posix                    }....................
 @callable_cached
@@ -196,13 +196,13 @@ def get_version() -> str:
     return os_version
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedParamsDict:
+def get_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the current operating system.
     '''
 
     # Return this dictionary.
-    return OrderedParamsDict(
+    return OrderedArgsDict(
         'name', get_name(),
         'version', get_version(),
     )

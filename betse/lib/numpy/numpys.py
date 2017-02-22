@@ -12,7 +12,7 @@ from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, paths
 from betse.util.type import iterables, regexes, strs, modules
-from betse.util.type.mappings import OrderedParamsDict
+from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import BoolOrNoneTypes
 from numpy import __config__ as numpy_config
 
@@ -581,14 +581,14 @@ def get_metadatas() -> tuple:
     )
 
 
-def get_blas_metadata() -> OrderedParamsDict:
+def get_blas_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the current Numpy installation with respect
     to BLAS linkage.
     '''
 
     # This dictionary.
-    metadata = OrderedParamsDict('optimized', is_blas_optimized())
+    metadata = OrderedArgsDict('optimized', is_blas_optimized())
 
     # Set of all keys of the dictionary global synopsizing this metadata,
     # sorted in ascending lexicographic order for readability.

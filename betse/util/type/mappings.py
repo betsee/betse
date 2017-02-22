@@ -218,9 +218,7 @@ class DynamicValueDict(MutableMappingType):
         return iter(self._key_to_dynamic_value)
 
 # ....................{ CLASSES ~ dict : ordered           }....................
-#FIXME: Rename to "OrderedArgsDict". "Params" implies the "Parameters" class.
-
-class OrderedParamsDict(OrderedDict):
+class OrderedArgsDict(OrderedDict):
     '''
     Ordered dictionary initialized by a sequence of key-value pairs.
 
@@ -237,9 +235,9 @@ class OrderedParamsDict(OrderedDict):
 
     Examples
     ----------
-    >>> from betse.util.type.mappings import OrderedParamsDict
+    >>> from betse.util.type.mappings import OrderedArgsDict
     >>> from collections import OrderedDict
-    >>> tuatha_de_danann = OrderedParamsDict(
+    >>> tuatha_de_danann = OrderedArgsDict(
     ...     'Nuada', 'Nodens',
     ...     'Lugh', 'Lugus',
     ...     'Brigit', 'Brigantia',

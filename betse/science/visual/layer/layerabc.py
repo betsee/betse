@@ -56,7 +56,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     Each subclass of this class plots the spatial distribution of a single
     modelled variable (e.g., membrane voltage) for one or more simulation time
     steps. Each instance of the higher-level
-    :class:`betse.science.visual.visualabc.VisualCellsABC` abstract base class
+    :class:`betse.science.visual.visabc.VisualCellsABC` abstract base class
     contains one or more instances of subclasses of this lower-level class.
 
     Separating low-level layer logic from high-level plot and animation logic
@@ -69,7 +69,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     Attributes
     ----------
     _is_layered : bool
-        `True` only if the :meth:`layer` method has been called at least once
+        ``True`` only if the :meth:`layer` method has been called at least once
         for this layer instance.
     _visual : VisualCellsABC
         Plot or animation to layer onto.
@@ -80,14 +80,14 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         '''
         Initialize this layer.
 
-        This method intentionally accepts _no_ parameters except constants
-        parametrizing this layer's behaviour. In particular, this method
-        accepts _no_ reference to the parent
-        :class:`betse.science.visual.visualabc.VisualCellsABC` instance
-        containing this layer instance _or_ to any other instances also
-        contained by that parent instance (e.g., Matplotlib figure or axes
-        objects). Why? Because plotters are instantiated by callers _before_
-        their parent `VisualCellsABC` instances are instantiated.
+        This method intentionally accepts *no* parameters except constants
+        parametrizing this layer's behaviour. In particular, this method accepts
+        references to neither the parent
+        :class:`betse.science.visual.visabc.VisualCellsABC` instance containing
+        this layer instance *nor* any other instances also contained by that
+        parent instance (e.g., Matplotlib figure or axes objects). Why? Because
+        plotters are instantiated by callers *before* their parent
+        :class:`VisualCellsABC` instances are instantiated.
 
         See Also
         ----------
@@ -102,7 +102,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
 
     @type_check
     def prep(
-        self, visual: 'betse.science.visual.visualabc.VisualCellsABC') -> None:
+        self, visual: 'betse.science.visual.visabc.VisualCellsABC') -> None:
         '''
         Prepare this layer to be layered onto the passed plot or animation.
 

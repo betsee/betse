@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests exercising the :class:`betse.util.type.mappings.OrderedParamsDict`
+Unit tests exercising the :class:`betse.util.type.mappings.OrderedArgsDict`
 type.
 '''
 
@@ -19,15 +19,15 @@ def test_orderedparamsdict_pass() -> None:
 
     Parameters
     ----------
-    betse_orderedparamsdict : OrderedParamsDict
+    betse_orderedparamsdict : OrderedArgsDict
         Instance of this type to be tested.
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.mappings import OrderedParamsDict
+    from betse.util.type.mappings import OrderedArgsDict
 
     # Custom ordered dictionary to be tested.
-    tuatha_de_danann = OrderedParamsDict(
+    tuatha_de_danann = OrderedArgsDict(
         'Nuada', 'Nodens',
         'Lugh', 'Lugus',
         'Brigit', 'Brigantia',
@@ -44,7 +44,7 @@ def test_orderedparamsdict_pass() -> None:
     assert tuatha_de_danann == tuath_de
 
     # Test whether initializing an empty custom ordered dictionary succeeds.
-    empty_dict = OrderedParamsDict()
+    empty_dict = OrderedArgsDict()
 
     # Test whether this dictionary is indeed empty.
     assert not empty_dict
@@ -52,17 +52,17 @@ def test_orderedparamsdict_pass() -> None:
 
 def test_orderedparamsdict_fail() -> None:
     '''
-    Test all aspects of the `OrderedParamsDict` type intended to fail.
+    Test all aspects of the `OrderedArgsDict` type intended to fail.
     '''
 
     # Defer heavyweight imports.
     from betse.exceptions import BetseDictException
-    from betse.util.type.mappings import OrderedParamsDict
+    from betse.util.type.mappings import OrderedArgsDict
 
     # Test whether initializing this dictionary with an odd rather than even
     # number of positional arguments fails.
     with pytest.raises(BetseDictException):
-        OrderedParamsDict(
+        OrderedArgsDict(
             'Danu', 'Don',
             'Dian Cecht',
         )

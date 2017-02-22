@@ -29,12 +29,18 @@ Matplotlib-based animation classes.
 #existing streamplot each animation frame instead. Investigate the aged pandas!
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from enum import Enum
+
+import numpy as np
+from matplotlib import animation
+from matplotlib import pyplot as plt
+from matplotlib.collections import LineCollection, PolyCollection
+from scipy import interpolate
+
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
-from betse.science.visual import visualutil
+from betse.science.export import expmath
 from betse.science.visual.anim.animafter import (
     AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.science.visual.plot.plotutil import (
@@ -44,10 +50,7 @@ from betse.science.visual.plot.plotutil import (
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
-from matplotlib import animation
-from matplotlib import pyplot as plt
-from matplotlib.collections import LineCollection, PolyCollection
-from scipy import interpolate
+
 
 #FIXME: There appears to be a largely ignorable aesthetic issue with
 #deformations. The first time step centers the cell cluster; all subsequent
@@ -243,7 +246,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Gap junction data series for the first frame plotted as lines.
         self._gapjunc_plot = LineCollection(
-            visualutil.upscale_cell_coordinates(self._cells.nn_edges),
+            expmath.upscale_cell_coordinates(self._cells.nn_edges),
             array=self._time_series[0],
             cmap=self._p.gj_cm,
             linewidths=2.0,

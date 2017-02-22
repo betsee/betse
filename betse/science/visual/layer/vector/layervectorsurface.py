@@ -15,7 +15,7 @@ Layer subclasses spatially shading the cell cluster.
 #* Rename this submodule to "layer.vector.layervectorsurface".
 
 # ....................{ IMPORTS                            }....................
-from betse.science.visual import visualutil
+from betse.science.export import expmath
 from betse.science.visual.layer.vector.layervectorabc import (
     LayerCellsVectorColorfulABC)
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
@@ -88,9 +88,9 @@ class LayerCellsVectorSurfaceContinuous(LayerCellsVectorColorfulABC):
 
         # X and Y coordinates of the centers of all polygonol regions of the
         # Voronoi diagram defining this cell cluster.
-        regions_centre_x = visualutil.upscale_cell_coordinates(
+        regions_centre_x = expmath.upscale_cell_coordinates(
             self._visual.cells.voronoi_centres[:,0])
-        regions_centre_y = visualutil.upscale_cell_coordinates(
+        regions_centre_y = expmath.upscale_cell_coordinates(
             self._visual.cells.voronoi_centres[:,1])
 
         # One-dimensional array of all region-centred data for this time step.
@@ -175,7 +175,7 @@ class LayerCellsVectorSurfaceDiscrete(LayerCellsVectorColorfulABC):
 
         # Three-dimensional array of all upscaled cell vertex coordinates. See
         # "Cells.cell_verts" documentation for further details.
-        cells_vertices_coords = visualutil.upscale_cell_coordinates(
+        cells_vertices_coords = expmath.upscale_cell_coordinates(
             self._visual.cells.cell_verts)
 
         # List of triangulation meshes created by iteration below.

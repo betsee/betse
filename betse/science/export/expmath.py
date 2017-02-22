@@ -21,7 +21,7 @@ def upscale_cell_data(
     Upscale the contents of the number or sequence of numbers whose units are
     assumed to be denominated in a milli- prefix (i.e., ``10**-3``).
 
-    This function does _not_ modify the passed object. If this object is:
+    This function does *not* modify the passed object. If this object is:
 
     * A scalar number (e.g., of type :class:`int` or :class:`float`), this
       function returns a new scalar number of the same type multiplied by a

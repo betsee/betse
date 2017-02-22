@@ -103,7 +103,7 @@ from betse.science.visual.layer.field.layerfieldabc import (
     LayerCellsFieldColorlessABC)
 from betse.science.visual.layer.field.layerfieldstream import (
     LayerCellsFieldStream)
-from betse.science.visual.visualabc import VisualCellsABC
+from betse.science.visual.visabc import VisualCellsABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type import iterables

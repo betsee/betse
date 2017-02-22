@@ -12,7 +12,7 @@ High-level operating system (OS)-specific display facilities.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.call.memoizers import callable_cached
-from betse.util.type.mappings import OrderedParamsDict
+from betse.util.type.mappings import OrderedArgsDict
 
 # ....................{ TESTERS                            }....................
 # For efficiency, cache the returned boolean for the duration of this process.
@@ -76,12 +76,12 @@ def is_headless() -> bool:
     return not is_headfull()    # Makes sense.
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedParamsDict:
+def get_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the current display.
     '''
 
     # Return this dictionary.
-    return OrderedParamsDict(
+    return OrderedArgsDict(
         'headless', is_headless(),
     )

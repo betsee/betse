@@ -95,7 +95,7 @@ from betse.util.path import dirs, paths
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.mappings import OrderedParamsDict
+from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import type_check, StrOrNoneTypes
 from contextlib import contextmanager
 
@@ -140,13 +140,19 @@ _KERNEL_NAME_TO_BACKEND_NAMES_PREFERRED = {
     # * "TkAgg", a GUI backend with adequate (albeit not particularly
     #   impressive) aesthetics and superior performance by compare to
     #   less preferable backends. Tcl/Tk: who would have ever thought?
-    # * "Qt5Agg", a GUI backend with (arguably) superior aesthetics but
-    #   (inarguably) significant performance *AND* reliability concerns
-    #   by compare to more preferable backends. It could be worse.
     # * "Qt4Agg", a GUI backend with (arguably) inferior aesthetics and
     #   (inarguably) significant performance concerns by compare to
-    #   more preferable backends. Something is better than nothing.
-    'Linux': ('TkAgg', 'Qt5Agg', 'Qt4Agg',),
+    #   more preferable backends. Unlike all less preferable backends (e.g.,
+    #   "Qt5Agg"), however, this backend has no remaining stability concerns.
+    #   Since stability trumps aesthetics and performance, this backend is
+    #   preferable to all remaining backends. It could be worse.
+    # * "Qt5Agg", a GUI backend with (arguably) superior aesthetics but
+    #   (inarguably) significant performance *AND* stability concerns by compare
+    #   to more preferable backends. In particular, enabling the experimental
+    #   non-blocking behaviour with "pyplot.show(block=False)" reliably induces
+    #   low-level segmentation faults with no high-level exception traceback
+    #   under at least Windows. Something is better than nothing, though.
+    'Linux': ('TkAgg', 'Qt4Agg', 'Qt5Agg',),
 
     # Preferred backends for the following platforms reuse the the
     # preferred backends for Linux defined above.
@@ -810,8 +816,9 @@ class MplConfig(object):
           parameter to the :func:`matplotlib.pyplot.show` method.
         * ``False``, the experimental ``block=False`` parameter must *not* be
           passed to the :func:`matplotlib.pyplot.show` function. Doing so will
-          silently hide plots and animations with no warnings or errors.
-          Instead, fallback to the following approach:
+          either silently hide plots and animations with no warnings or errors
+          *or* raise a low-level segmentation fault with no high-level exception
+          traceback. Instead, consider falling back to the following approach:
 
           .. code:: python
 
@@ -839,10 +846,10 @@ class MplConfig(object):
         While verbose, this warning appears to be safely ignorable.
         '''
 
-        # For safety, we adhere to a whitelist approach. That is, we assume
-        # that only backends explicitly known to support the experimental
-        # "pyplot.show(block=False)" behavior do so; all other backends are
-        # assumed to *NOT* support this behavior.
+        # For safety, a whitelist approach is preferred. That is, only backends
+        # explicitly known to support experimental "pyplot.show(block=False)"
+        # behavior are assumed to do so; all other backends are assumed to *NOT*
+        # support this behavior.
         return backend_name == 'TkAgg'
 
 
@@ -867,13 +874,13 @@ class MplConfig(object):
         return rcParams[param_name]
 
 
-    def get_metadata(self) -> OrderedParamsDict:
+    def get_metadata(self) -> OrderedArgsDict:
         '''
         Ordered dictionary synopsizing the current matplotlib installation.
         '''
 
         # This dictionary.
-        metadata = OrderedParamsDict(
+        metadata = OrderedArgsDict(
             'rc file', self.rc_filename,
             'cache dir', self.cache_dirname,
             'current backend', self.backend_name,

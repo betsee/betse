@@ -15,12 +15,20 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
+from matplotlib import pyplot
+from matplotlib.axes import Axes
+from matplotlib.cm import ScalarMappable
+from matplotlib.collections import PolyCollection
+from matplotlib.colors import Colormap
+from matplotlib.image import AxesImage
+from matplotlib.patches import FancyArrowPatch
+from matplotlib.streamplot import StreamplotSet
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
-from betse.science.visual import visualutil
+from betse.science.export import expmath
 from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
@@ -36,14 +44,6 @@ from betse.util.type.types import (
     NumericTypes, NumericOrNoneTypes,
     SequenceTypes, SequenceOrNoneTypes,
 )
-from matplotlib import pyplot
-from matplotlib.axes import Axes
-from matplotlib.cm import ScalarMappable
-from matplotlib.collections import PolyCollection
-from matplotlib.colors import Colormap
-from matplotlib.image import AxesImage
-from matplotlib.patches import FancyArrowPatch
-from matplotlib.streamplot import StreamplotSet
 
 # ....................{ SUPERCLASSES                       }....................
 class VisualCellsABC(object, metaclass=ABCMeta):
@@ -1389,7 +1389,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=visualutil.upscale_cell_coordinates(self._cells.cell_verts),
+            verts=expmath.upscale_cell_coordinates(self._cells.cell_verts),
             cmap=self._colormap,
             edgecolors='none',
         )

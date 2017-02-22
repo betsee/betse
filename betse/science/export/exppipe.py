@@ -46,14 +46,16 @@ def pipeline(phase: SimPhaseABC) -> None:
     elif phase.kind is SimPhaseKind.SIM:
         phase.p.plot_type = 'sim'
 
-    # Display and/or save all animations.
-    animpipe.pipeline(phase)
+    # Save all CSV files *BEFORE* visualizations (e.g., plots), as the former is
+    # considerably faster than the latter.
+    csvpipe.pipeline(phase)
 
-    # Display and/or save all plots.
+    # Display and/or save all plots *BEFORE* animations, as the former is again
+    # considerably faster than the latter (particularly, when encoding video).
     plotpipe.pipeline(phase)
 
-    # Display and/or save all spreadsheets.
-    csvpipe.pipeline(phase)
+    # Display and/or save all animations.
+    animpipe.pipeline(phase)
 
     # Log the directory to which all results were exported.
     logs.log_info('Results exported to: %s', phase.save_dirname)

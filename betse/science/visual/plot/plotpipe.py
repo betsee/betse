@@ -69,7 +69,7 @@ exporting) post-simulation plots.
 import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
-from betse.science.simulate.simpipeabc import SimPipelayerABC
+from betse.science.simulate.simpipeabc import SimPipelinerABC
 from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
@@ -78,7 +78,7 @@ from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ SUBCLASSES                         }....................
-class PlotCellsPipelayer(SimPipelayerABC):
+class PlotCellsPipeliner(SimPipelinerABC):
     '''
     **Post-simulation plot pipeline** (i.e., class iteratively creating all
     post-simulation plots requested by the current simulation configuration).
@@ -97,7 +97,7 @@ class PlotCellsPipelayer(SimPipelayerABC):
 
     # ..................{ SUPERCLASS                         }..................
     @property
-    def runner_names(self) -> SequenceTypes:
+    def runner_enabled_names(self) -> SequenceTypes:
         '''
         Sequence of the names of all post-simulation plots enabled by this
         simulation configuration.
@@ -119,7 +119,7 @@ class PlotCellsPipelayer(SimPipelayerABC):
         pass
 
 # ....................{ OBSOLETE                           }....................
-#FIXME: Replace *ALL* functionality defined below with the "PlotCellsPipelayer"
+#FIXME: Replace *ALL* functionality defined below with the "PlotCellsPipeliner"
 #class defined above.
 @type_check
 def pipeline(phase: SimPhaseABC) -> None:
@@ -134,10 +134,10 @@ def pipeline(phase: SimPhaseABC) -> None:
     '''
 
     # Post-simulation animation pipeline producing all such animations.
-    # pipelayer = PlotCellsPipelayer(phase)
+    # pipeliner = PlotCellsPipeliner(phase)
 
     #FIXME: Replace *ALL* logic below with the following single call:
-    #    pipelayer.run()
+    #    pipeliner.run()
     #FIXME: When doing so, note that *ALL* uses of hardcoded animation-specific
     #parameter options (e.g., "self._phase.p.I_ani_min_clr") will need to be
     #refactored to use the general-purpose settings for the current animation.
@@ -149,7 +149,7 @@ def pipeline(phase: SimPhaseABC) -> None:
        return
 
     #FIXME: Shift the following setup logic and validation into the
-    #PlotCellsPipelayer.__init__() method.
+    #PlotCellsPipeliner.__init__() method.
 
     # If saving these plots...
     if phase.p.plot.is_after_sim_save:

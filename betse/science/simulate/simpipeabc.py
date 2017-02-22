@@ -23,7 +23,7 @@ from betse.util.type.obj import objects
 from betse.util.type.types import type_check, GeneratorType, SequenceTypes
 
 # ....................{ SUPERCLASSES                       }....................
-class SimPipelayerABC(object, metaclass=ABCMeta):
+class SimPipelinerABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **simulation pipelines** (i.e., subclasses
     iteritavely running all implementations of a single simulation activity,
@@ -40,12 +40,12 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
       method should:
       * Accept exactly one parameter: ``self``.
       * Return nothing (i.e.,``None``).
-    * The abstract :meth:`runner_names` property returning a sequence of the
+    * The abstract :meth:`runner_enabled_names` property returning a sequence of the
       names of all runners currently enabled by this pipeline (e.g.,
       ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
 
     The :meth:`run` method defined by this base class then dynamically
-    implements this pipeline by iterating over the :meth:`runner_names` property
+    implements this pipeline by iterating over the :meth:`runner_enabled_names` property
     and, for each enabled runner, calling that runner's method.
 
     Attributes (Private)
@@ -191,7 +191,7 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
             '%s %s...', self._label_verb, self._label_plural_lowercase)
 
         # For the name of each currently enabled runner in this pipeline...
-        for runner_name in self.runner_names:
+        for runner_name in self.runner_enabled_names:
             # Name of the method implementing this runner.
             runner_method_name = self._RUNNER_METHOD_NAME_PREFIX + runner_name
 
@@ -342,7 +342,7 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
 
     # ..................{ SUBCLASS                           }..................
     @abstractproperty
-    def runner_names(self) -> SequenceTypes:
+    def runner_enabled_names(self) -> SequenceTypes:
         '''
         Sequence of the names of all currently enabled runners in this pipeline.
 
@@ -354,9 +354,9 @@ class SimPipelayerABC(object, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Refactor all other "SimPipelayerABC" subclasses to inherit from this
+#FIXME: Refactor all other "SimPipelinerABC" subclasses to inherit from this
 #class instead.
-class SimExportPipelayerABC(SimPipelayerABC):
+class SimPipelinerExportABC(SimPipelinerABC):
     '''
     Abstract base class of all **simulation export pipelines** (i.e., subclasses
     iteritavely exporting all variations on a single type of simulation export,
@@ -374,4 +374,4 @@ class SimExportPipelayerABC(SimPipelayerABC):
 
         # Initialize our superclass with all passed parameters and an
         # exportation-specific verb.
-        self.__init__(*args, label_verb='Exporting', **kwargs)
+        super().__init__(*args, label_verb='Exporting', **kwargs)

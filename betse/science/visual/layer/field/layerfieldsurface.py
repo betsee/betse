@@ -8,7 +8,7 @@ interpolated surfaces (e.g., contour maps, heat maps) onto the cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.visual import visualutil
+from betse.science.export import expmath
 from betse.science.visual.layer.field.layerfieldabc import (
     LayerCellsFieldColoredABC)
 from betse.util.type.types import type_check, IterableTypes
@@ -53,7 +53,7 @@ class LayerCellsFieldSurface(LayerCellsFieldColoredABC):
 
         # 4-tuple of the upscaled minimum and maximum X and Y coordinates for
         # this environmental grid.
-        cells_extent = visualutil.upscale_cells_coordinates(
+        cells_extent = expmath.upscale_cells_coordinates(
             self._visual.cells.xmin,
             self._visual.cells.xmax,
             self._visual.cells.ymin,

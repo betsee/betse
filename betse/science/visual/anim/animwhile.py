@@ -10,12 +10,13 @@
 # ....................{ IMPORTS                            }....................
 import matplotlib
 import numpy as np
-from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.visual import visualutil
-from betse.science.visual.anim.animabc import AnimCellsABC
-# from betse.util.io.log import logs
-from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot
+
+from betse.lib.matplotlib.matplotlibs import mpl_config
+from betse.science.export import expmath
+from betse.science.visual.anim.animabc import AnimCellsABC
+from betse.util.type.types import type_check, SequenceTypes
+
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Rename "_cell_data_plot" to "_cell_body_plot".
@@ -145,7 +146,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         cell_data_current = vm_o
 
         # Upscaled cell data for the first frame.
-        cell_data = visualutil.upscale_cell_data(cell_data_current)
+        cell_data = expmath.upscale_cell_data(cell_data_current)
 
         # Collection of cell polygons with animated voltage data.
         #
@@ -218,7 +219,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
     def _plot_frame_figure(self) -> None:
 
         # Upscaled cell data for the current time step.
-        cell_data = visualutil.upscale_cell_data(
+        cell_data = expmath.upscale_cell_data(
             self._cell_time_series[self._time_step])
 
         #FIXME: Duplicated from above. What we probably want to do is define a

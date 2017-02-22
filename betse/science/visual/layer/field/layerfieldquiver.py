@@ -8,7 +8,7 @@ cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.visual import visualutil
+from betse.science.export import expmath
 from betse.science.visual.layer.field.layerfieldabc import LayerCellsFieldColorlessABC
 from betse.util.type.types import type_check
 
@@ -49,9 +49,9 @@ class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
         field = self._field.times_cells_centre
 
         # Arrays of the upscaled X and Y coordinates of all cell centres.
-        cells_centre_x = visualutil.upscale_cell_coordinates(
+        cells_centre_x = expmath.upscale_cell_coordinates(
             self._visual.cells.cell_centres[:,0])
-        cells_centre_y = visualutil.upscale_cell_coordinates(
+        cells_centre_y = expmath.upscale_cell_coordinates(
             self._visual.cells.cell_centres[:,1])
 
         # Ouiver plot of all vector components plotted for this time step. See

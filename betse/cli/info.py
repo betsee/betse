@@ -23,11 +23,11 @@ from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.py import interpreters, pys
-from betse.util.type.mappings import OrderedParamsDict
+from betse.util.type.mappings import OrderedArgsDict
 from collections import OrderedDict
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedParamsDict:
+def get_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the active Python interpreter.
     '''
@@ -37,7 +37,7 @@ def get_metadata() -> OrderedParamsDict:
     from betse.util.path.command import commands
 
     # Return this dictionary.
-    return OrderedParamsDict(
+    return OrderedArgsDict(
         'basename', commands.get_current_basename(),
         'version', metadata.__version__,
         'codename', metadata.CODENAME,

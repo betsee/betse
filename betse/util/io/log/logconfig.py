@@ -31,7 +31,7 @@ log strictly more messages than) levels assigned larger integers: e.g.,
 import logging, os, sys
 from betse import metadata
 from betse.exceptions import BetseFileException
-from betse.util.type.mappings import OrderedParamsDict
+from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import type_check
 from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
@@ -644,12 +644,12 @@ def get() -> LogConfig:
     return _config
 
 
-def get_metadata() -> OrderedParamsDict:
+def get_metadata() -> OrderedArgsDict:
     '''
     Ordered dictionary synopsizing the current logging configuration.
     '''
 
-    return OrderedParamsDict(
+    return OrderedArgsDict(
         'type', _config.log_type.name.lower(),
         'file', _config.filename,
         'verbose', str(_config.is_verbose).lower(),

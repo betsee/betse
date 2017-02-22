@@ -14,7 +14,7 @@ exporting) post-simulation animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.simulate.simphase import SimPhaseABC
-from betse.science.simulate.simpipeabc import SimPipelayerABC
+from betse.science.simulate.simpipeabc import SimPipelinerABC
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -39,7 +39,7 @@ from betse.science.visual.layer.vector.layervectorsurface import (
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ SUBCLASSES                         }....................
-class AnimCellsPipelayer(SimPipelayerABC):
+class AnimCellsPipeliner(SimPipelinerABC):
     '''
     **Post-simulation animation pipeline** (i.e., class iteratively creating all
     post-simulation animations requested by the current simulation
@@ -59,7 +59,7 @@ class AnimCellsPipelayer(SimPipelayerABC):
 
     # ..................{ SUPERCLASS                         }..................
     @property
-    def runner_names(self) -> SequenceTypes:
+    def runner_enabled_names(self) -> SequenceTypes:
         '''
         Sequence of the names of all post-simulation animations enabled by this
         simulation configuration.
@@ -445,7 +445,7 @@ class AnimCellsPipelayer(SimPipelayerABC):
         )
 
 # ....................{ OBSOLETE                           }....................
-#FIXME: Replace *ALL* functionality defined below with the "AnimCellsPipelayer"
+#FIXME: Replace *ALL* functionality defined below with the "AnimCellsPipeliner"
 #class defined above.
 @type_check
 def pipeline(phase: SimPhaseABC) -> None:
@@ -464,10 +464,10 @@ def pipeline(phase: SimPhaseABC) -> None:
        return
 
     # Post-simulation animation pipeline producing all such animations.
-    pipelayer = AnimCellsPipelayer(phase)
+    pipeliner = AnimCellsPipeliner(phase)
 
     #FIXME: Replace *ALL* logic below with the following single call:
-    #    pipelayer.run()
+    #    pipeliner.run()
     #FIXME: When doing so, note that *ALL* uses of hardcoded animation-specific
     #parameter options (e.g., "self._phase.p.I_ani_min_clr") will need to be
     #refactored to use the general-purpose settings for the current animation.
@@ -475,60 +475,60 @@ def pipeline(phase: SimPhaseABC) -> None:
     #rather than the obsolete hardcoded schema.
 
     if phase.p.ani_ca2d and phase.p.ions_dict['Ca'] == 1:
-        pipelayer.run_ion_calcium()
+        pipeliner.run_ion_calcium()
 
     if phase.p.ani_pH2d and phase.p.ions_dict['H'] == 1:
-        pipelayer.run_ion_hydrogen()
+        pipeliner.run_ion_hydrogen()
 
     # If animating cell membrane voltage, do so.
     if phase.p.ani_vm2d:
-        pipelayer.run_voltage_intra()
+        pipeliner.run_voltage_intra()
 
     # Animate environment voltage if requested.
     if phase.p.ani_venv and phase.p.sim_ECM:
-        pipelayer.run_voltage_total()
+        pipeliner.run_voltage_total()
 
     # If animating gap junction states, do so.
     if phase.p.ani_vmgj2d:
-        pipelayer.run_gap_junction()
+        pipeliner.run_gap_junction()
 
     # If animating current density, do so.
     if phase.p.ani_I:
         # Always animate intracellular current density.
-        pipelayer.run_current_intra()
+        pipeliner.run_current_intra()
 
         # Animate extracellular spaces current if desired as well.
         if phase.p.sim_ECM:
-            pipelayer.run_current_total()
+            pipeliner.run_current_total()
 
     if phase.p.ani_Efield:
         # Always animate the gap junction electric field.
-        pipelayer.run_electric_intra()
+        pipeliner.run_electric_intra()
 
         # Also animate the extracellular spaces electric field if desired.
         if phase.p.sim_ECM:
-            pipelayer.run_electric_total()
+            pipeliner.run_electric_total()
 
     if phase.p.ani_Pcell:
         if phase.p.scheduled_options['pressure'] != 0:
-            pipelayer.run_pressure_mechanical()
+            pipeliner.run_pressure_mechanical()
 
         if phase.p.deform_osmo:
-            pipelayer.run_pressure_osmotic()
+            pipeliner.run_pressure_osmotic()
 
     # Display and/or save animations specific to the "sim" simulation phase.
     if phase.p.ani_Velocity and phase.p.fluid_flow:
         # Always animate the gap junction fluid velocity.
-        pipelayer.run_fluid_intra()
+        pipeliner.run_fluid_intra()
 
         # Also animate the extracellular spaces fluid velocity if desired.
         if phase.p.sim_ECM:
-            pipelayer.run_fluid_total()
+            pipeliner.run_fluid_total()
 
     # Animate deformation if desired.
     if phase.p.ani_Deformation and phase.p.deformation:
-        pipelayer.run_deform()
+        pipeliner.run_deform()
 
     # Animate the cell membrane pump density factor as a function of time.
     if phase.p.ani_mem and phase.p.sim_eosmosis:
-        pipelayer.run_pump_density()
+        pipeliner.run_pump_density()
