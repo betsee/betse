@@ -19,6 +19,7 @@ from betse.util.io.log import logs
 from betse.util.type import strs
 from betse.util.type.call import callers
 from betse.util.type.cls import classes
+from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.obj import objects
 from betse.util.type.types import type_check, GeneratorType, SequenceTypes
 
@@ -141,9 +142,9 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         # Mandatory parameters.
         phase: SimPhaseABC,
         label_singular: str,
-        label_plural: str,
 
         # Optional parameters.
+        label_plural: str = None,
         label_verb: str = 'Running',
     ) -> None:
         '''
@@ -157,15 +158,20 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             Human-readable singular noun synopsizing the type of runners
             implemented by this subclass (e.g., ``animation``, ``plot``),
             ideally but *not* necessarily lowercase.
-        label_plural : str
+        label_plural : optional[str]
             Human-readable plural noun synopsizing the type of runners
             implemented by this subclass (e.g., ``animations``, ``plots``),
-            ideally but *not* necessarily lowercase.
+            ideally but *not* necessarily lowercase. Defaults to the passed
+            ``label_singular`` parameter suffixed by an ``s`` character.
         label_verb: optional[str]
             Human-readable plural noun synopsizing the type of action performed
             by runners implemented by this subclass (e.g., ``Saving``), ideally
             but *not* necessarily capitalized. Defaults to ``Running``.
         '''
+
+        # Default all unpassed parameters.
+        if label_plural is None:
+            label_plural = label_singular + 's'
 
         # Classify all passed parameters.
         self._phase = phase
@@ -354,8 +360,6 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Refactor all other "SimPipelinerABC" subclasses to inherit from this
-#class instead.
 class SimPipelinerExportABC(SimPipelinerABC):
     '''
     Abstract base class of all **simulation export pipelines** (i.e., subclasses
@@ -375,3 +379,24 @@ class SimPipelinerExportABC(SimPipelinerABC):
         # Initialize our superclass with all passed parameters and an
         # exportation-specific verb.
         super().__init__(*args, label_verb='Exporting', **kwargs)
+
+# ....................{ DECORATORS                         }....................
+class piperunner(MethodDecorator):
+    '''
+    Decorator for annotating simulation pipeline **runners** (i.e., methods of
+    :class:`SimPipelinerABC` subclasses with names prefixed by
+    :attr:`SimPipelinerABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+
+    Caveats
+    ----------
+    **This decorator is strictly optional.** Runners *not* decorated by this
+    decorator are still runnable from simulation pipelines. Since this decorator
+    annotates runners with metadata, however, unannotated runners will *not* be
+    usable by external callers expecting this metadata -- typically, GUIs
+    populating interactive widget fields with this metadata.
+    '''
+
+    pass
+
+    # ..................{ INITIALIZERS                       }..................
+    # def __init__(self, *args, **kwargs) -> None:

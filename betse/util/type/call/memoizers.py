@@ -83,6 +83,23 @@ def callable_cached_arged(
     return local_attrs['callable_cached_arged']
 
 
+#FIXME: Reimplement this to leverage this far more efficient alternative
+#overwriting itself with the value returned by the decorated function:
+#
+#    https://stackoverflow.com/a/36684652/2809027
+#
+#Quite clever and *MUCH* more succinct than the approach pursued below. Note
+#that this approach does change the type of this property from a callable to an
+#instance variable. For this reason, this approach *CANNOT* be used to similarly
+#improve the callable_cached() decorator defined above. In this case, however,
+#doing so is perfectly safe: a property should only ever be treated as an
+#instance variable, so there exists no harm in dynamically changing the type of
+#the former to the latter. (Awesome.)
+#
+#In fact, the above approach is essentially what Django does (albeit with a more
+#cumbersome class decorator than a function decorator). Which means, in turn,
+#that this is indeed the canonical solution to caching properties.
+
 # Note that, for unknown reasons, the "property_method" parameter cannot be
 # assumed to be a method. Property methods appear to be of type function rather
 # than method, presumably due to being decorated *BEFORE* being bound to a class

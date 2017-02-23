@@ -69,7 +69,7 @@ exporting) post-simulation plots.
 import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
-from betse.science.simulate.simpipeabc import SimPipelinerABC
+from betse.science.simulate.simpipeabc import SimPipelinerExportABC
 from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
@@ -78,7 +78,7 @@ from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ SUBCLASSES                         }....................
-class PlotCellsPipeliner(SimPipelinerABC):
+class PlotCellsPipeliner(SimPipelinerExportABC):
     '''
     **Post-simulation plot pipeline** (i.e., class iteratively creating all
     post-simulation plots requested by the current simulation configuration).
@@ -89,11 +89,7 @@ class PlotCellsPipeliner(SimPipelinerABC):
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
-        super().__init__(
-            *args,
-            label_singular='plot',
-            label_plural='plots',
-            **kwargs)
+        super().__init__(*args, label_singular='plot', **kwargs)
 
     # ..................{ SUPERCLASS                         }..................
     @property
@@ -107,7 +103,7 @@ class PlotCellsPipeliner(SimPipelinerABC):
             plot.name for plot in self._phase.p.plot.after_sim_pipeline)
 
     # ..................{ RUNNERS ~ wut                      }..................
-    def run_wut(self) -> None:
+    def export_wut(self) -> None:
         '''
         Plot the wut for the last time step.
         '''

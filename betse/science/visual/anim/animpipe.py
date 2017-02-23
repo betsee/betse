@@ -14,11 +14,10 @@ exporting) post-simulation animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.simulate.simphase import SimPhaseABC
-from betse.science.simulate.simpipeabc import SimPipelinerABC
+from betse.science.simulate.simpipeabc import SimPipelinerExportABC
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
-# from betse.science.visual import visualutil
 from betse.science.visual.anim.anim import (
     AnimCurrent,
     AnimateDeformation,
@@ -39,7 +38,7 @@ from betse.science.visual.layer.vector.layervectorsurface import (
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ SUBCLASSES                         }....................
-class AnimCellsPipeliner(SimPipelinerABC):
+class AnimCellsPipeliner(SimPipelinerExportABC):
     '''
     **Post-simulation animation pipeline** (i.e., class iteratively creating all
     post-simulation animations requested by the current simulation
@@ -51,11 +50,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
-        super().__init__(
-            *args,
-            label_singular='animation',
-            label_plural='animations',
-            **kwargs)
+        super().__init__(*args, label_singular='animation', **kwargs)
 
     # ..................{ SUPERCLASS                         }..................
     @property
@@ -69,7 +64,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
             anim.name for anim in self._phase.p.anim.after_sim_pipeline)
 
     # ..................{ RUNNERS ~ current                  }..................
-    def run_current_intra(self) -> None:
+    def export_current_intra(self) -> None:
         '''
         Animate the intracellular current density for all time steps.
         '''
@@ -90,7 +85,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
 
-    def run_current_total(self) -> None:
+    def export_current_total(self) -> None:
         '''
         Animate the total current density (i.e., both intra- and extracellular)
         for all time steps.
@@ -112,7 +107,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ deformation              }..................
-    def run_deform(self) -> None:
+    def export_deform(self) -> None:
         '''
         Animate physical cellular deformations for all time steps.
         '''
@@ -130,7 +125,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ electric                 }..................
-    def run_electric_intra(self) -> None:
+    def export_electric_intra(self) -> None:
         '''
         Animate the intracellular electric field for all time steps.
         '''
@@ -173,7 +168,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
 
-    def run_electric_total(self) -> None:
+    def export_electric_total(self) -> None:
         '''
         Animate the total electric field (i.e., both intra- and extracellular)
         for all time steps.
@@ -196,7 +191,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ fluid                    }..................
-    def run_fluid_intra(self) -> None:
+    def export_fluid_intra(self) -> None:
         '''
         Animate the intracellular fluid field for all time steps.
         '''
@@ -218,7 +213,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
 
-    def run_fluid_total(self) -> None:
+    def export_fluid_total(self) -> None:
         '''
         Animate the total fluid field (i.e., both intra- and extracellular)
         for all time steps.
@@ -244,7 +239,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ gap junction             }..................
-    def run_gap_junction(self) -> None:
+    def export_gap_junction(self) -> None:
         '''
         Animate all intracellular voltages overlayed by gap junction connection
         states for all time steps.
@@ -266,7 +261,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ ion                      }..................
-    def run_ion_calcium(self) -> None:
+    def export_ion_calcium(self) -> None:
         '''
         Animate all calcium (i.e., Ca2+) ion concentrations for all time steps.
         '''
@@ -291,7 +286,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
 
-    def run_ion_hydrogen(self) -> None:
+    def export_ion_hydrogen(self) -> None:
         '''
         Animate all hydrogen (i.e., H+) ion concentrations for all time steps,
         scaled to correspond exactly to pH.
@@ -319,7 +314,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ pressure                 }..................
-    def run_pressure_mechanical(self) -> None:
+    def export_pressure_mechanical(self) -> None:
         '''
         Animate the cellular mechanical pressure for all time steps.
         '''
@@ -342,7 +337,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
 
-    def run_pressure_osmotic(self) -> None:
+    def export_pressure_osmotic(self) -> None:
         '''
         Animate the cellular osmotic pressure for all time steps.
         '''
@@ -365,7 +360,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ pump                     }..................
-    def run_pump_density(self) -> None:
+    def export_pump_density(self) -> None:
         '''
         Animate the cellular membrane pump density factor for all time steps.
         '''
@@ -388,7 +383,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
     # ..................{ RUNNERS ~ voltage                  }..................
-    def run_voltage_intra(self) -> None:
+    def export_voltage_intra(self) -> None:
         '''
         Animate all intracellular voltages for all time steps.
         '''
@@ -417,7 +412,7 @@ class AnimCellsPipeliner(SimPipelinerABC):
         )
 
 
-    def run_voltage_total(self) -> None:
+    def export_voltage_total(self) -> None:
         '''
         Animate all voltages (i.e., both intra- and extracellular) for all time
         steps.
@@ -475,60 +470,60 @@ def pipeline(phase: SimPhaseABC) -> None:
     #rather than the obsolete hardcoded schema.
 
     if phase.p.ani_ca2d and phase.p.ions_dict['Ca'] == 1:
-        pipeliner.run_ion_calcium()
+        pipeliner.export_ion_calcium()
 
     if phase.p.ani_pH2d and phase.p.ions_dict['H'] == 1:
-        pipeliner.run_ion_hydrogen()
+        pipeliner.export_ion_hydrogen()
 
     # If animating cell membrane voltage, do so.
     if phase.p.ani_vm2d:
-        pipeliner.run_voltage_intra()
+        pipeliner.export_voltage_intra()
 
     # Animate environment voltage if requested.
     if phase.p.ani_venv and phase.p.sim_ECM:
-        pipeliner.run_voltage_total()
+        pipeliner.export_voltage_total()
 
     # If animating gap junction states, do so.
     if phase.p.ani_vmgj2d:
-        pipeliner.run_gap_junction()
+        pipeliner.export_gap_junction()
 
     # If animating current density, do so.
     if phase.p.ani_I:
         # Always animate intracellular current density.
-        pipeliner.run_current_intra()
+        pipeliner.export_current_intra()
 
         # Animate extracellular spaces current if desired as well.
         if phase.p.sim_ECM:
-            pipeliner.run_current_total()
+            pipeliner.export_current_total()
 
     if phase.p.ani_Efield:
         # Always animate the gap junction electric field.
-        pipeliner.run_electric_intra()
+        pipeliner.export_electric_intra()
 
         # Also animate the extracellular spaces electric field if desired.
         if phase.p.sim_ECM:
-            pipeliner.run_electric_total()
+            pipeliner.export_electric_total()
 
     if phase.p.ani_Pcell:
         if phase.p.scheduled_options['pressure'] != 0:
-            pipeliner.run_pressure_mechanical()
+            pipeliner.export_pressure_mechanical()
 
         if phase.p.deform_osmo:
-            pipeliner.run_pressure_osmotic()
+            pipeliner.export_pressure_osmotic()
 
     # Display and/or save animations specific to the "sim" simulation phase.
     if phase.p.ani_Velocity and phase.p.fluid_flow:
         # Always animate the gap junction fluid velocity.
-        pipeliner.run_fluid_intra()
+        pipeliner.export_fluid_intra()
 
         # Also animate the extracellular spaces fluid velocity if desired.
         if phase.p.sim_ECM:
-            pipeliner.run_fluid_total()
+            pipeliner.export_fluid_total()
 
     # Animate deformation if desired.
     if phase.p.ani_Deformation and phase.p.deformation:
-        pipeliner.run_deform()
+        pipeliner.export_deform()
 
     # Animate the cell membrane pump density factor as a function of time.
     if phase.p.ani_mem and phase.p.sim_eosmosis:
-        pipeliner.run_pump_density()
+        pipeliner.export_pump_density()

@@ -165,7 +165,7 @@ as a convenience to callers preferring to avoid importing that class.
 ArgParserType = ArgumentParser
 '''
 Argument parser parsing all command-line arguments for either the top-level
-command _or_ subcommand of that command.
+command *or* subcommand of that command.
 
 This class is a synonym of the :class:`argparse.ArgumentParser` class,
 permitting callers to avoid importing that class.
@@ -175,7 +175,7 @@ permitting callers to avoid importing that class.
 ArgSubparsersType = _SubParsersAction
 '''
 Container of all argument subparsers parsing subcommands for a parent argument
-parser parsing either the top-level command _or_ subcommand of that command.
+parser parsing either the top-level command *or* subcommand of that command.
 
 This class is a synonym of the :class:`argparse._SubParsersAction` class,
 permitting callers to avoid importing that private class.
@@ -279,7 +279,7 @@ to _not_ supporting integer index-based lookup; `OrderedDict` implements both,
 due to supporting such lookup.
 
 For generality, this tuple contains classes matching both pure-Python sequences
-_and_ non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
+*and* non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
 subclass `collections.abc.Sequence` despite implementing the entirety of that
 that API.
 '''
@@ -326,14 +326,14 @@ except:
 MappingOrSequenceTypes = (MappingType,) + SequenceTypes
 '''
 Tuple of all container base classes conforming to (but _not_ necessarily
-subclassing) the canonical `collections.abc.Mapping` _or_
+subclassing) the canonical `collections.abc.Mapping` *or*
 `collections.abc.Sequence` APIs.
 '''
 
 
 NumericOrSequenceTypes = NumericTypes + SequenceTypes
 '''
-Tuple of all numeric types _and_ all container base classes conforming to (but
+Tuple of all numeric types *and* all container base classes conforming to (but
 _not_ necessarily subclassing) the canonical `collections.abc.Sequence` API.
 '''
 
@@ -474,7 +474,7 @@ if __debug__:
     def type_check(func: CallableTypes) -> CallableTypes:
         '''
         Decorate the passed **callable** (e.g., function, method) to validate
-        both all annotated parameters passed to this callable _and_ the
+        both all annotated parameters passed to this callable *and* the
         annotated value returned by this callable if any.
 
         This decorator performs rudimentary type checking based on Python 3.x
@@ -832,7 +832,7 @@ def _check_type_annotation(
         Human-readable label describing this annotation, interpolated into
         exceptions raised by this function.
     is_str_valid : optional[bool]
-        `True` only if this function accepts string annotations as valid.
+        ``True`` only if this function accepts string annotations as valid.
         Defaults to `True`. If this boolean is:
         * `True`, this annotation is valid if this annotation's value is either
           a new-style class, tuple of such classes, or string containing one or
@@ -913,7 +913,7 @@ def _check_type_annotation(
 
 def is_bool(obj: object) -> bool:
     '''
-    `True` only if the passed object is **boolean** (i.e., either `True` or
+    ``True`` only if the passed object is **boolean** (i.e., either `True` or
     `False`).
     '''
     return isinstance(obj, bool)
@@ -921,7 +921,7 @@ def is_bool(obj: object) -> bool:
 
 def is_char(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **character** (i.e., string of length
+    ``True`` only if the passed object is a **character** (i.e., string of length
     1).
     '''
     return is_str(obj) and len(obj) == 1
@@ -929,14 +929,14 @@ def is_char(obj: object) -> bool:
 
 def is_nonnone(obj: object) -> bool:
     '''
-    `True` only if the passed object is _not_ `None`.
+    ``True`` only if the passed object is _not_ `None`.
     '''
     return obj is not None
 
 # ....................{ TESTERS ~ callable                 }....................
 def is_callable(obj: object) -> bool:
     '''
-    `True` only if the passed object is **callable** (e.g., function, method,
+    ``True`` only if the passed object is **callable** (e.g., function, method,
     class defining the special `__call__()` method).
     '''
 
@@ -945,7 +945,7 @@ def is_callable(obj: object) -> bool:
 # ....................{ TESTERS ~ class                    }....................
 def is_class(obj: object) -> bool:
     '''
-    `True` only if the passed object is a class.
+    ``True`` only if the passed object is a class.
     '''
 
     return isinstance(obj, ClassType)
@@ -959,7 +959,7 @@ def is_class(obj: object) -> bool:
 # code duplication is a negligible price to pay for type check validation.
 def is_class_new(obj: object) -> bool:
     '''
-    `True` only if the passed class is a new- rather than old-style class.
+    ``True`` only if the passed class is a new- rather than old-style class.
     '''
 
     return is_class(obj)
@@ -967,7 +967,7 @@ def is_class_new(obj: object) -> bool:
 # ....................{ TESTERS ~ collection               }....................
 def is_mapping(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **mapping** (i.e., indexable by
+    ``True`` only if the passed object is a **mapping** (i.e., indexable by
     strings).
 
     Customary mappings include `dict` and `OrderedDict` instances.
@@ -977,8 +977,8 @@ def is_mapping(obj: object) -> bool:
 # ....................{ TESTERS ~ collection               }....................
 def is_container(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **container** (i.e., implements the
-    `__contains__` special method returning `True` only if that container
+    ``True`` only if the passed object is a **container** (i.e., implements the
+    `__contains__` special method returning ``True`` only if that container
     contains the passed element).
 
     Most collections of interest (e.g., `dict`, `list`, `set`) are containers.
@@ -988,15 +988,15 @@ def is_container(obj: object) -> bool:
 
 def is_container_nonstr(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **non-string container** (i.e.,
-    implements the `__contains__` special method _and_ is not a string).
+    ``True`` only if the passed object is a **non-string container** (i.e.,
+    implements the `__contains__` special method *and* is not a string).
     '''
     return is_container(obj) and not is_str(obj)
 
 # ....................{ TESTERS ~ collection : iterable    }....................
 def is_iterable(obj: object) -> bool:
     '''
-    `True` only if the passed object is an **iterable**.
+    ``True`` only if the passed object is an **iterable**.
 
     Iterables are objects capable of returning their members one at a time.
     Equivalently, iterables implement the abstract base class
@@ -1007,8 +1007,8 @@ def is_iterable(obj: object) -> bool:
 
 def is_iterable_nonstr(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **non-string iterable** (i.e.,
-    implements the abstract base class `collections.Iterable` _and_ is not a
+    ``True`` only if the passed object is a **non-string iterable** (i.e.,
+    implements the abstract base class `collections.Iterable` *and* is not a
     string).
     '''
     return is_iterable(obj) and not is_str(obj)
@@ -1016,49 +1016,45 @@ def is_iterable_nonstr(obj: object) -> bool:
 # ....................{ TESTERS ~ sequence                 }....................
 def is_sequence(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **sequence**.
+    ``True`` only if the passed object is a **sequence**.
 
     Sequences are iterables supporting efficient element access via integer
     indices. Equivalently, sequences implement the abstract base class
-    `collections.abc.Sequence` and hence define the `__getitem__()` and
-    `__len__()` methods (among numerous others).
+    :class:`collections.abc.Sequence` and hence define the ``__getitem__()`` and
+    ``__len__()`` methods (among numerous others).
 
     While all sequences are iterables, not all iterables are sequences.
     Generally speaking, sequences correspond to the proper subset of iterables
-    whose elements are ordered. `dict` and `OrderedDict` are the canonical
-    examples. `dict` implements `collections.Iterable` but _not_
-    `collections.abc.Sequence`, due to _not_ supporting integer index-based
-    lookup; `OrderedDict` implements both, due to supporting such lookup.
+    whose elements are ordered. :class:`dict` and :class:`OrderedDict` are the
+    canonical examples. :class:`dict` implements :class:`collections.Iterable`
+    but *not* :class:`collections.abc.Sequence`, due to *not* supporting integer
+    index-based lookup; :class:`OrderedDict` implements both, due to supporting
+    such lookup.
     '''
 
-    return isinstance(obj, Sequence)
+    return isinstance(obj, SequenceTypes)
 
 
 def is_sequence_nonstr(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **non-string sequence** (i.e.,
-    implements the abstract base class `collections.abc.Sequence` _and_ is not
-    a string).
+    ``True`` only if the passed object is a **non-string sequence** (i.e.,
+    implements the abstract :class:`collections.abc.Sequence` base class *and*
+    is not a string).
 
-    For generality, this functions returns `True` for both pure-Python
-    non-string sequences _and_ non-Pythonic Fortran-based `numpy` arrays and
-    matrices (which fail to subclass the `collections.abc.Sequence` API despite
-    implementing all methods defined by that subclass).
+    For generality, this functions returns ``True`` for both pure-Python
+    non-string sequences *and* non-Pythonic Fortran-based `numpy` arrays and
+    matrices (which fail to subclass the :class:`collections.abc.Sequence` API
+    despite implementing all methods defined by that subclass).
     '''
 
-    return (
-        # Is this a pure-Python non-string sequence?
-        (is_sequence(obj) and not is_str(obj)) or
-        # Is this a non-Pythonic Fortran-based numpy array or matrix?
-        is_numpy_array(obj)
-    )
+    return is_sequence(obj) and not is_str(obj)
 
 
 def is_sequence_nonstr_nonempty(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **nonempty non-string sequence**
-    (i.e., implements the abstract base class `collections.abc.Sequence`, is
-    not a string, _and_ contains at least one element).
+    ``True`` only if the passed object is a **nonempty non-string sequence**
+    (i.e., implements the abstract :class:`collections.abc.Sequence` base class,
+    is not a string, *and* contains at least one element).
 
     '''
     return is_sequence_nonstr(obj) and len(obj)
@@ -1066,14 +1062,14 @@ def is_sequence_nonstr_nonempty(obj: object) -> bool:
 # ....................{ TESTERS ~ enum                     }....................
 def is_enum(obj: object) -> bool:
     '''
-    `True` only if the passed object is an enumeration.
+    ``True`` only if the passed object is an enumeration.
     '''
     return isinstance(obj, EnumMeta)
 
 
 def is_in_enum(obj: object, enum: Enum) -> bool:
     '''
-    `True` only if the passed object is in the passed enumeration.
+    ``True`` only if the passed object is in the passed enumeration.
 
     While trivial, this tester is provided for orthogonality with the
     `assert_not_in_enum()` function.
@@ -1085,7 +1081,7 @@ def is_in_enum(obj: object, enum: Enum) -> bool:
 # ....................{ TESTERS ~ error                    }....................
 def is_exception(obj: object) -> bool:
     '''
-    `True` only if the passed object is an **exception**.
+    ``True`` only if the passed object is an **exception**.
     '''
 
     return isinstance(obj, Exception)
@@ -1093,7 +1089,7 @@ def is_exception(obj: object) -> bool:
 # ....................{ TESTERS ~ betse : science          }....................
 def is_cells(obj: object) -> bool:
     '''
-    `True` only if the passed object is an instance of the BETSE-specific
+    ``True`` only if the passed object is an instance of the BETSE-specific
     `Cells` class.
     '''
 
@@ -1104,7 +1100,7 @@ def is_cells(obj: object) -> bool:
 
 def is_parameters(obj: object) -> bool:
     '''
-    `True` only if the passed object is an instance of the BETSE-specific
+    ``True`` only if the passed object is an instance of the BETSE-specific
     `Parameters` class.
     '''
 
@@ -1115,7 +1111,7 @@ def is_parameters(obj: object) -> bool:
 
 def is_simulator(obj: object) -> bool:
     '''
-    `True` only if the passed object is an instance of the BETSE-specific
+    ``True`` only if the passed object is an instance of the BETSE-specific
     `Simulator` class.
     '''
 
@@ -1125,7 +1121,7 @@ def is_simulator(obj: object) -> bool:
 
 def is_simrunner(obj: object) -> bool:
     '''
-    `True` only if the passed object is an instance of the BETSE-specific
+    ``True`` only if the passed object is an instance of the BETSE-specific
     `SimRunner` class.
     '''
     from betse.science.simrunner import SimRunner
@@ -1134,7 +1130,7 @@ def is_simrunner(obj: object) -> bool:
 # ....................{ TESTERS ~ lib : matplotlib         }....................
 def is_matplotlib_mappable(obj: object) -> bool:
     '''
-    `True` only if the passed object is a Matplotlib mappable.
+    ``True`` only if the passed object is a Matplotlib mappable.
     '''
 
     # Avoid importing third-party packages at the top level.
@@ -1144,7 +1140,7 @@ def is_matplotlib_mappable(obj: object) -> bool:
 
 def is_matplotlib_polycollection(obj: object) -> bool:
     '''
-    `True` only if the passed object is a Matplotlib **polygon collection**
+    ``True`` only if the passed object is a Matplotlib **polygon collection**
     (i.e., an instance of the `PolyCollection` class).
     '''
 
@@ -1155,7 +1151,7 @@ def is_matplotlib_polycollection(obj: object) -> bool:
 
 def is_matplotlib_trimesh(obj: object) -> bool:
     '''
-    `True` only if the passed object is a Matplotlib **triangle mesh** (i.e., an
+    ``True`` only if the passed object is a Matplotlib **triangle mesh** (i.e., an
     instance of the `matplotlib.collections.TriMesh` class).
     '''
 
@@ -1167,7 +1163,7 @@ def is_matplotlib_trimesh(obj: object) -> bool:
 #FIXME: Rename to is_np_array().
 def is_numpy_array(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **Numpy array or matrix** (i.e.,
+    ``True`` only if the passed object is a **Numpy array or matrix** (i.e.,
     instance of the `numpy.ndarray` superclass).
     '''
 
@@ -1178,7 +1174,7 @@ def is_numpy_array(obj: object) -> bool:
 # ....................{ TESTERS ~ lib : py                 }....................
 def is_py_path_local(obj: object) -> bool:
     '''
-    `True` only if the passed object is a `py.path.local` instance.
+    ``True`` only if the passed object is a `py.path.local` instance.
     '''
 
     # Avoid importing third-party packages at the top level.
@@ -1188,7 +1184,7 @@ def is_py_path_local(obj: object) -> bool:
 # ....................{ TESTERS ~ lib : numpy              }....................
 def is_pytest_fixture(obj: object) -> bool:
     '''
-    `True` only if the passed object is a `py.test` fixture.
+    ``True`` only if the passed object is a `py.test` fixture.
     '''
 
     # Avoid importing third-party packages at the top level.
@@ -1198,7 +1194,7 @@ def is_pytest_fixture(obj: object) -> bool:
 # ....................{ TESTERS ~ numeric                  }....................
 def is_int(obj: object) -> bool:
     '''
-    `True` only if the passed object is an integer.
+    ``True`` only if the passed object is an integer.
     '''
 
     return isinstance(obj, int)
@@ -1206,7 +1202,7 @@ def is_int(obj: object) -> bool:
 
 def is_int_ge(obj: object, ge: int) -> bool:
     '''
-    `True` only if the passed object is an integer greater than or equal to the
+    ``True`` only if the passed object is an integer greater than or equal to the
     second passed integer.
     '''
 
@@ -1216,7 +1212,7 @@ def is_int_ge(obj: object, ge: int) -> bool:
 
 def is_int_gt(obj: object, gt: int) -> bool:
     '''
-    `True` only if the passed object is an integer strictly greater than the
+    ``True`` only if the passed object is an integer strictly greater than the
     second passed integer.
     '''
 
@@ -1226,7 +1222,7 @@ def is_int_gt(obj: object, gt: int) -> bool:
 
 def is_int_positive(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **positive integer** (i.e., is
+    ``True`` only if the passed object is a **positive integer** (i.e., is
     strictly greater than 0).
     '''
 
@@ -1235,7 +1231,7 @@ def is_int_positive(obj: object) -> bool:
 
 def is_numeric(obj: object) -> bool:
     '''
-    `True` only if the passed object is **numeric** (i.e., instance of either
+    ``True`` only if the passed object is **numeric** (i.e., instance of either
     the `int` or `float` types).
     '''
 
@@ -1244,7 +1240,7 @@ def is_numeric(obj: object) -> bool:
 # ....................{ TESTERS ~ str                      }....................
 def is_str(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **string** (i.e., instance of the
+    ``True`` only if the passed object is a **string** (i.e., instance of the
     `str` class).
     '''
 
@@ -1253,7 +1249,7 @@ def is_str(obj: object) -> bool:
 
 def is_str_or_none(obj: object) -> bool:
     '''
-    `True` only if the passed object is either a string _or_ `None`.
+    ``True`` only if the passed object is either a string *or* `None`.
     '''
 
     return isinstance(obj, str) or obj is None
@@ -1261,7 +1257,7 @@ def is_str_or_none(obj: object) -> bool:
 
 def is_str_nonempty(obj: object) -> bool:
     '''
-    `True` only if the passed object is a **nonempty string* (i.e., string
+    ``True`` only if the passed object is a **nonempty string* (i.e., string
     comprising one or more characters and hence _not_ the empty string).
     '''
 
@@ -1270,7 +1266,7 @@ def is_str_nonempty(obj: object) -> bool:
 
 def is_str_nonempty_or_none(obj: object) -> bool:
     '''
-    `True` only if the passed object is either a nonempty string _or_ `None`.
+    ``True`` only if the passed object is either a nonempty string *or* `None`.
     '''
 
     return is_str_nonempty(obj) or obj is None

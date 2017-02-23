@@ -38,11 +38,7 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
-        super().__init__(
-            *args,
-            label_singular='CSV',
-            label_plural='CSVs',
-            **kwargs)
+        super().__init__(*args, label_singular='CSV', **kwargs)
 
     # ..................{ SUPERCLASS                         }..................
     #FIXME: Implement this property *AFTER* generalizing the configuration file
