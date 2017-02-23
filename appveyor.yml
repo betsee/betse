@@ -203,27 +203,25 @@ test_script:
 
   # Run the following multiline Powershell script.
   - ps: |
-    # Run the entire "py.test"-based test suite under the following options:
-    #
-    # * "--maxfail=3", halting testing on the third failure. For discussion, see
-    #   the "betse_setup.test" submodule.
-    py.test --maxfail=3
+      # Run the entire "py.test"-based test suite under the following options:
+      #
+      # * "--maxfail=3", halting testing on the third failure. For discussion, see
+      #   the "betse_setup.test" submodule.
+      py.test --maxfail=3
 
-    #FIXME: To assist in debugging this, also print a non-fatal warning with the
-    #actual exit status reported above.
+      #FIXME: To assist in debugging this, also print a non-fatal warning with the
+      #actual exit status reported above.
 
-    # If the exit status reported by "py.test" is non-zero but nonsensical,
-    # coerce this status to zero. For unknown reasons, some hellish combination
-    # of Appveyor, Python, "py.test", and our test suite causes successful runs
-    # to unpredictably report nonsensical non-zero exit status. To preserve
-    # developer sanity, these false negatives *MUST* be explicitly ignored.
-    # Happily, the exit status reported by these false negatives all reside in
-    # the same range of extremely negative integers.
-    #
-    # Note that Powershell sets the $LastExitCode integer global *ONLY* on
-    # running external commands. If statements do *NOT* trigger this behaviour.
-    # Hence, the current value of this global is preserved if this if statement
-    # evaluates to False.
-    if ($LastExitCode -le -1000000000) { $host.SetShouldExit(0) }
-  # - cmd: py.test --maxfail=3
-  # - cmd: py.test --maxfail=3 -s
+      # If the exit status reported by "py.test" is non-zero but nonsensical,
+      # coerce this status to zero. For unknown reasons, some hellish combination
+      # of Appveyor, Python, "py.test", and our test suite causes successful runs
+      # to unpredictably report nonsensical non-zero exit status. To preserve
+      # developer sanity, these false negatives *MUST* be explicitly ignored.
+      # Happily, the exit status reported by these false negatives all reside in
+      # the same range of extremely negative integers.
+      #
+      # Note that Powershell sets the $LastExitCode integer global *ONLY* on
+      # running external commands. If statements do *NOT* trigger this behaviour.
+      # Hence, the current value of this global is preserved if this if statement
+      # evaluates to False.
+      if ($LastExitCode -le -1000000000) { $host.SetShouldExit(0) }
