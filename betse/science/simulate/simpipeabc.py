@@ -21,7 +21,8 @@ from betse.util.type.call import callers
 from betse.util.type.cls import classes
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.obj import objects
-from betse.util.type.types import type_check, GeneratorType, SequenceTypes
+from betse.util.type.types import (
+    type_check, CallableTypes, GeneratorType, SequenceTypes)
 
 # ....................{ SUPERCLASSES                       }....................
 class SimPipelinerABC(object, metaclass=ABCMeta):
@@ -381,22 +382,125 @@ class SimPipelinerExportABC(SimPipelinerABC):
         super().__init__(*args, label_verb='Exporting', **kwargs)
 
 # ....................{ DECORATORS                         }....................
-class piperunner(MethodDecorator):
+@type_check
+def piperunner(categories: SequenceTypes) -> CallableTypes:
     '''
-    Decorator for annotating simulation pipeline **runners** (i.e., methods of
+    Decorator annotating simulation pipeline **runners** (i.e., methods of
     :class:`SimPipelinerABC` subclasses with names prefixed by
     :attr:`SimPipelinerABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+
+    All such runners decorated by this decorator are guaranteed to be instances
+    of the :class:`SimPipelineRunner` class, which provides all metadata passed
+    to this decorator as instance variables of the same name.
 
     Caveats
     ----------
     **This decorator is strictly optional.** Runners *not* decorated by this
     decorator are still runnable from simulation pipelines. Since this decorator
     annotates runners with metadata, however, unannotated runners will *not* be
-    usable by external callers expecting this metadata -- typically, GUIs
-    populating interactive widget fields with this metadata.
+    usable by external interfaces expecting this metadata -- typically, GUIs
+    populating interactive widget fields by this metadata.
+
+    Parameters
+    ----------
+    categories : SequenceTypes
+        Sequence of one or more human-readable strings iteratively naming all
+        arbitrary categories to which this runner belongs (in descending order
+        of hierarchical taxonomy). Categories are arbitrary labels accessed
+        *only* by external interfaces and are otherwise ignored by the core
+        codebase. Specifically:
+        * The first string in this sequence names an arbitrary **root category**
+          (e.g., root node in a tree view), intended to be shared between
+          multiple runners. This string is typically a broadly applicable label
+          such as ``Voltage Plots``.
+        * The last string in this sequence names an arbitrary **leaf category**
+          (e.g., leaf node in a tree view), intended to be unique to a single
+          runner. This string is typically a narrowly applicable label such as
+          ``Extracellular Voltage Plot``.
+        * All other strings in this sequence name arbitrary categories of
+          increasingly fine-grained depth, again intended to be shared between
+          multiple runners.
     '''
 
-    pass
+    @type_check
+    def _piperunner_closure(method: CallableTypes) -> SimPipelineRunner:
+        '''
+        Closure annotating simulation pipeline runners with custom metadata,
+        returning an instance of the class decorator exposing this metadata to
+        external interfaces.
+
+        See Also
+        ----------
+        :func:`piperunner`
+            Further details.
+        '''
+
+        # Return
+        return SimPipelineRunner(method=method, categories=categories)
+
+    # Return the closure accepting the method to be decorated.
+    return _piperunner_closure
+
+
+class SimPipelineRunner(MethodDecorator):
+    '''
+    Class decorator annotating simulation pipeline runners with custom metadata.
+
+    All such runners decorated by the :func:`piperunner` decorator are
+    guaranteed to be instances of this class, which provides all metadata passed
+    to this decorator as instance variables of the same name.
+
+    Attributes
+    ----------
+    categories : SequenceTypes
+        Sequence of one or more human-readable strings iteratively naming all
+        arbitrary categories to which this runner belongs (in descending order
+        of hierarchical taxonomy).
+    description : str
+        Human-readable description of this runner as a **single-line string**
+        (i.e., containing no newlines).
+
+    See Also
+    ----------
+    :func:`piperunner`
+        Further details.
+    '''
 
     # ..................{ INITIALIZERS                       }..................
-    # def __init__(self, *args, **kwargs) -> None:
+    @type_check
+    def __init__(
+        self, method: CallableTypes, categories: SequenceTypes) -> None:
+        '''
+        Initialize this class decorator.
+
+        Parameters
+        ----------
+        categories : SequenceTypes
+            Sequence of one or more human-readable category names.
+        method: CallableTypes
+            Unbound method (i.e., function) to be decorated.
+
+        Raises
+        ----------
+        BetseSimPipelineException
+            If this method has no docstring.
+        '''
+
+        # Initialize our superclass with the passed method.
+        super().__init__(method)
+
+        # Classify all remaining passed parameters.
+        self.categories = categories
+
+        # Default this runner's description to its docstring.
+        self.description = method.__doc__
+
+        # If this docstring is empty, raise an exception.
+        if not self.description:
+            raise BetseSimPipelineException(
+                'Runner method {}() has no docstring.'.format(method.__name__))
+        # Else, this docstring is non-empty.
+
+        # Reduce this docstring from a possibly multiline string to a
+        # single-line string containing no newlines.
+        self.description = strs.unwrap(self.description)

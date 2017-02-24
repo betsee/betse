@@ -22,11 +22,11 @@ if False: trim  # silence IDE warnings
 # ....................{ SINGLETONS                         }....................
 text_wrapper = TextWrapper()
 '''
-Singleton `TextWrapper` instance with which to wrap text.
+Singleton :class:`TextWrapper` instance with which to wrap text.
 
 Such singleton improves efficiency -- occasionally dramatically. *All* public
-functions provided by module `textwrap` implicitly instantiate temporary
-`TextWrapper` instances on each call to such functions.
+functions provided by the :mod:`textwrap` module implicitly instantiate
+temporary :class:`TextWrapper` instances on each call to such functions.
 '''
 
 # ....................{ EXCEPTIONS                         }....................
@@ -85,6 +85,7 @@ def die_unless_prefix(
         raise BetseStrException(exception_message)
 
 # ....................{ TESTERS ~ case                     }....................
+@type_check
 def is_lowercase(text: str) -> bool:
     '''
     ``True`` only if the passed string is strictly lowercase (i.e., this string
@@ -99,6 +100,7 @@ def is_lowercase(text: str) -> bool:
     return text.islower()
 
 
+@type_check
 def is_uppercase(text: str) -> bool:
     '''
     ``True`` only if the passed string is strictly uppercase (i.e., this string
@@ -636,7 +638,7 @@ def shell_quote(text: str) -> str:
         return shlex.quote(text)
 
 # ....................{ WRAPPERS                           }....................
-def wrap_lines(lines: list, **kwargs) -> str:
+def wrap_lines(lines: IterableTypes, **kwargs) -> str:
     '''
     Wrap the passed iterable of lines to the passed line width, prefixing each
     resulting wrapped line by the passed line prefix.
@@ -662,11 +664,11 @@ def wrap(
     wrapped line by the passed line prefix.
 
     This function accepts the following keyword arguments in addition to those
-    accepted by `textwrap.wrap()`:
+    accepted by the :func:`textwrap.wrap` function:
 
-    * `text_wrapper`, the object on which to call the `wrap()` function or
-      method. For safety, this defaults to module `textwrap`.
-    * `line_prefix`, the substring prefixing each wrapped output line.
+    * ``text_wrapper`, the object on which to call the ``wrap()`` function or
+      method. For safety, this defaults to the :mod:`textwrap` module.
+    * ``line_prefix``, the substring prefixing each wrapped output line.
 
     See Also
     ----------
@@ -694,6 +696,18 @@ def wrap(
     # attributes to sensible defaults, whereas the latter reuses existing such
     # attributes -- which may no longer retain sensible defaults.
     return join_on_newline(wrap_callable(text, **kwargs))
+
+# ....................{ WRAPPERS ~ un                      }....................
+@type_check
+def unwrap(text: str) -> str:
+    '''
+    Convert the passed possibly **multiline string** (i.e., string containing
+    one or more newlines) to a **single-line string** (i.e., string containing
+    no newlines).
+    '''
+
+    # Nice one, stdlib.
+    return text.replace('\n', ' ')
 
 # ....................{ (IN|DE)DENTERS                     }....................
 def dedent(*texts) -> str:

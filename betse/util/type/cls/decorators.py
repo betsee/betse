@@ -9,7 +9,7 @@ classes and callables at runtime) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta  #, abstractmethod
 from betse.util.type.types import (
     type_check, CallableTypes, ClassType, MethodType)
 
@@ -24,6 +24,8 @@ class MethodDecorator(object, metaclass=ABCMeta):
 
     Attributes
     ----------
+    _method: CallableTypes
+        Unbound method (i.e., function) to be decorated.
     _obj_id_to_method_bound : dict
         Dictionary mapping from the unique identifier associated with each
         class instance containing a method decorated by this subclass to the
@@ -38,12 +40,16 @@ class MethodDecorator(object, metaclass=ABCMeta):
         '''
         Initialize this method decorator.
 
-        Attributes
+        Parameters
         ----------
         method: CallableTypes
             Unbound method (i.e., function) to be decorated.
         '''
 
+        # Classify all passed parameters.
+        self._method = method
+
+        # Initialize all remaining instance variables.
         self._obj_id_to_method_bound = {}
 
     # ..................{ DESCRIPTORS                        }..................
@@ -73,11 +79,11 @@ class MethodDecorator(object, metaclass=ABCMeta):
             return method_bound
 
     # ..................{ SUBCLASS                           }..................
-    @abstractmethod
     def __call__(self, obj, *args, **kwargs) -> object:
         '''
-        Call the decorated method bound to the passed object with the passed
-        positional and keyword arguments.
+        Call the decorated method previously passed to the :meth:`__init__`
+        method bound to the passed object with the passed positional and keyword
+        arguments, returning the value returned by this call.
         '''
 
-        pass
+        return self._method(obj, *args, **kwargs)
