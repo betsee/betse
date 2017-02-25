@@ -20,7 +20,7 @@ from betse.util.type.mappings import OrderedArgsDict
 @callable_cached
 def is_posix() -> bool:
     '''
-    `True` only if the current operating system complies with POSIX standards
+    ``True`` only if the current operating system complies with POSIX standards
     (e.g., as required for POSIX-compliant symbolic link support).
 
     Typically, this implies this system to _not_ be vanilla Microsoft Windows
@@ -36,7 +36,7 @@ def is_posix() -> bool:
 @callable_cached
 def is_linux() -> bool:
     '''
-    `True` only if the current operating system is Linux.
+    ``True`` only if the current operating system is Linux.
     '''
 
     return platform.system() == 'Linux'
@@ -45,7 +45,7 @@ def is_linux() -> bool:
 @callable_cached
 def is_macos() -> bool:
     '''
-    `True` only if the current operating system is Apple macOS, the operating
+    ``True`` only if the current operating system is Apple macOS, the operating
     system previously known as "macOS."
     '''
 
@@ -55,7 +55,7 @@ def is_macos() -> bool:
 @callable_cached
 def is_windows() -> bool:
     '''
-    `True` only if the current operating system is Microsoft Windows.
+    ``True`` only if the current operating system is Microsoft Windows.
 
     This function reports `True` for both vanilla and Cygwin Microsoft Windows.
     '''
@@ -65,8 +65,8 @@ def is_windows() -> bool:
 @callable_cached
 def is_windows_cygwin() -> bool:
     '''
-    `True` only if the current operating system is **Cygwin Microsoft Windows**
-    (i.e., running the Cygwin POSIX compatibility layer).
+    ``True`` only if the current operating system is **Cygwin Microsoft
+    Windows** (i.e., running the Cygwin POSIX compatibility layer).
     '''
     return sys.platform == 'cygwin'
 
@@ -74,8 +74,8 @@ def is_windows_cygwin() -> bool:
 @callable_cached
 def is_windows_vanilla() -> bool:
     '''
-    `True` only if the current operating system is **vanilla Microsoft Windows**
-    (i.e., _not_ running the Cygwin POSIX compatibility layer).
+    ``True`` only if the current operating system is **vanilla Microsoft
+    Windows** (i.e., *not* running the Cygwin POSIX compatibility layer).
     '''
     return sys.platform == 'win32'
 

@@ -41,10 +41,10 @@ class SimConfPlotAll(SimConfABC):
     ----------
     image_filetype : str
         Filetype of all image files saved by this configuration. Ignored if
-        `is_after_sim_save` is `False`.
+        :attr:`is_after_sim_save` is ``False``.
     image_dpi : int
         Dots per inch (DPI) of all image files saved by this configuration.
-        Ignored if `is_after_sim_save` is `False`.
+        Ignored if :attr:`is_after_sim_save` is ``False``.
     '''
 
     # ..................{ INITIALIZERS                       }..................

@@ -92,6 +92,7 @@ from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.os import displays, kernels, oses
 from betse.util.path import dirs, paths
+# from betse.util.path.command import pathables
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.call.memoizers import property_cached
@@ -258,10 +259,10 @@ class MplConfig(object):
 
         This is utterly horrible. Since enabling arbitrary backends can have
         non-negligible side effects, the :mod:`matplotlib.__init__` submodule
-        _must_ be prevented from performing this logic. Since this submodule is
+        *must* be prevented from performing this logic. Since this submodule is
         imported only on the first importation of a matplotlib module, it
-        performing this preventation _only_ on the first importation of the
-        top-level :mod:`matplotlib` package by this method suffices to sanitize_snakecase
+        performing this preventation *only* on the first importation of the
+        top-level :mod:`matplotlib` package by this method suffices to sanitize
         matplotlib behaviour.
         '''
 
@@ -315,12 +316,11 @@ class MplConfig(object):
             #such *AFTER* importing matplotlib below.
 
             # Log this initialization.
-            logs.log_debug(
-                'Initializing matplotlib with options: %s', sys.argv)
+            logs.log_debug('Initializing matplotlib with options: %s', sys.argv)
 
-            # Import matplotlib *AFTER* setting all matplotlib-specific CLI
+            # Import matplotlib submodules *AFTER* setting all matplotlib CLI
             # options above, which this importation parses.
-            from matplotlib import rcParams, verbose
+            from matplotlib import rcParams, verbose  # , font_manager
 
             # Prevent the verbose.set_level() method from reducing to a noop,
             # as occurs when this private attribute is *NOT* nullified. waat?
@@ -333,6 +333,22 @@ class MplConfig(object):
 
         # Unconditionally enable settings defined by the "RC_PARAMS" global.
         rcParams.update(RC_PARAMS)
+
+        #FIXME: Sadly, the "font_manager.USE_FONTCONFIG" global is currently
+        #only modifiable by physically modifying the contents of the
+        #"matplotlib/font_manager.py" file at installation time. Yes, this is
+        #patently insane -- but such are the vagaries of a pale life.
+
+        # If the external "fc-match" command is in the current ${PATH}, the
+        # POSIX-compliant fontconfig subsystem for portably locating system
+        # fonts is available. Since fontconfig is the canonical means of
+        # performing font lookups under most POSIX-compliant platforms (e.g.,
+        # Linux, macOS), instruct matplotlib to do so. For unknown reasons,
+        # matplotlib's fontconfig support is labelled "experimental" and hence
+        # disabled by default. Since this support appears to be sufficiently
+        # robust for our limited use case, manually enable this support.
+        # if pathables.is_pathable('fc-match'):
+        #     font_manager.USE_FONTCONFIG = True
 
 
     #FIXME: Revise docstring in accordance with the iterative platform-specific

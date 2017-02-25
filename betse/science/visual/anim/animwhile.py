@@ -10,13 +10,11 @@
 # ....................{ IMPORTS                            }....................
 import matplotlib
 import numpy as np
-from matplotlib import pyplot
-
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.export import expmath
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
-
+from matplotlib import pyplot
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Rename "_cell_data_plot" to "_cell_body_plot".

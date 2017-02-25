@@ -128,17 +128,21 @@ def _preserve_backward_importability() -> None:
     from betse.science.math import finitediff
     from betse.science.simulate import simphase
     from betse.science.tissue import tissuepick
-    from betse.science.config.visual import confanim, confplot, confvisabc
+    from betse.science.config import export
+    from betse.science.config.export import confanim, confplot, confvisabc
 
     # Alias obsolete module names to current module objects.
-    sys.modules['betse.science.tissue.channels'] = channels
+    sys.modules['betse.science.config.visual'] = export
+    sys.modules['betse.science.config.visual.confanim'] = confanim
+    sys.modules['betse.science.config.visual.confplot'] = confplot
+    sys.modules['betse.science.config.visual.confvisualabc'] = confvisabc
     sys.modules['betse.science.finitediff'] = finitediff
+    sys.modules['betse.science.tissue.channels'] = channels
     sys.modules['betse.science.tissue.picker'] = tissuepick
     sys.modules['betse.science.plot.plotconfig'] = confplot
     sys.modules['betse.science.plot.anim.animconfig'] = confanim
     sys.modules['betse.science.visual.anim.animconfig'] = confanim
     sys.modules['betse.science.visual.plot.plotconfig'] = confplot
-    sys.modules['betse.science.config.visual.confvisualabc'] = confvisabc
 
     # Alias obsolete to current class names.
     confanim.SimConfAnimOne = confvisabc.SimConfVisual

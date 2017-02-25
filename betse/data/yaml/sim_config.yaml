@@ -746,8 +746,18 @@ results options:
       # Ignored if both "show" and "save" are False.
       pipeline:
         # Example intracellular voltage plot.
-        - type: voltage_intra  # Animation type. Supported types include:
-                               # * "?????????????"    (intracellular ???).
+        - type: voltage_intra  # Plot type. Supported single-cell types plotted
+                               # for the cell indexed by "plot_cell" include:
+                               # * "cell_ion_bicarbonate" (single-cell bicarbonate ion concentration).
+                               # * "cell_ion_potassium"   (single-cell potassium ion concentration).
+                               #   Ignored if potassium (K+) disabled by ion profile.
+                               # * "cell_ion_sodium"      (single-cell sodium ion concentration).
+                               #   Ignored if sodium (Na+) disabled by ion profile.
+                               # * "cell_voltage"         (single-cell voltage).
+                               # * "cell_voltage_fft"     (single-cell voltage Fourier transform).
+                               # Supported multi-cell types plotted for the
+                               # entire cell cluster include:
+
           colorbar:            # Plot colorbar settings.
             autoscale: True    # Automatically scale colorbar to minimum and
                                # maximum values of underlying data series?
@@ -766,31 +776,31 @@ results options:
       pipeline:
         # Example intracellular voltage animation.
         - type: voltage_intra  # Animation type. Supported types include:
-                               # * "current_intra"    (intracellular current density).
-                               # * "current_total"    (intra- and extracellular current density).
+                               # * "current_intra"       (intracellular current density).
+                               # * "current_total"       (intra- and extracellular current density).
                                #   Ignored if extracellular spaces disabled.
-                               # * "deform"           (deformation).
+                               # * "deform"              (deformation).
                                #   Ignored unless deformation disabled.
-                               # * "electric_intra"   (intracellular electric field).
-                               # * "electric_total"   (intra- and extracellular electric field).
+                               # * "electric_intra"      (intracellular electric field).
+                               # * "electric_total"      (intra- and extracellular electric field).
                                #   Ignored if extracellular spaces disabled.
-                               # * "fluid_intra"      (intracellular fluid flow).
+                               # * "fluid_intra"         (intracellular fluid flow).
                                #   Ignored if fluid flow disabled.
-                               # * "fluid_total"      (intra- and extracellular fluid flow).
+                               # * "fluid_total"         (intra- and extracellular fluid flow).
                                #   Ignored if fluid flow or extracellular spaces disabled.
-                               # * "gap_junction"     (gap junction connectivity state).
-                               # * "ion_calcium"      (calcium ion concentration: Ca2+).
+                               # * "ion_calcium"         (calcium ion concentration: Ca2+).
                                #   Ignored if calcium (Ca2+) disabled by ion profile.
-                               # * "ion_hydrogen"     (hydrogen ion concentration: pH, H+).
+                               # * "ion_hydrogen"        (hydrogen ion concentration: pH, H+).
                                #   Ignored if hydrogen (H+) disabled by ion profile.
+                               # * "membrane_gap_junction" (gap junction connectivity state).
+                               # * "membrane_pump_density" (cell membrane pump density factor).
+                               #   Ignored if channel electroosmosis disabled.
                                # * "pressure_mechanical" (cellular mechanical pressure).
                                #   Ignored if mechanical pressure event disabled.
-                               # * "pressure_osmotic" (cellular osmotic pressure).
+                               # * "pressure_osmotic"    (cellular osmotic pressure).
                                #   Ignored if osmotic pressure disabled.
-                               # * "pump_density"     (cellular membrane pump density factor)
-                               #   Ignored if channel electroosmosis disabled.
-                               # * "voltage_intra"    (intracellular voltage).
-                               # * "voltage_total"    (intra- and extracellular voltage).
+                               # * "voltage_intra"       (intracellular voltage).
+                               # * "voltage_total"       (intra- and extracellular voltage).
                                #   Ignored if extracellular spaces disabled.
           colorbar:            # Animation colorbar settings.
             autoscale: True    # Automatically scale colorbar to minimum and
@@ -858,16 +868,11 @@ results options:
         filetype: csv  # Data filetype. Supported filetypes include:
                        # "csv" (comma-separated values).
 
-  plot networks: True            # export any implemented regulatory networks to an interconnected graph image
-
   enumerate cells: False         # number the cells on 2D plots with their simulation index?
 
 
   plot cell index: 0              # State the cell index to use for single-cell time plots
                                   # the index of cells can be seen using enumerate cells feature.
-
-  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
-                                  # (the plot cell) as a function of simulation time
 
   show cells: True                # if True, plots and animations show individual cells,
                                   # each displayed with color-coded data.
@@ -906,6 +911,11 @@ results options:
 
   #-------2D plots---------------------------------------------------------------------------------------------------
   
+  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
+                                  # (the plot cell) as a function of simulation time
+
+  plot networks: True            # export any implemented regulatory networks to an interconnected graph image
+
   Vmem 2D:
     plot Vmem: True              # 2d plot of final vmem ?
     autoscale colorbar: True    # autoscale colorbar to min max of data set?

@@ -58,7 +58,7 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
         Save a plaintext file in comma-separated value (CSV) format containing
         several cell-specific time series (e.g., ion concentrations, membrane
         voltages, voltage-gated ion channel pump rates) for the single cell
-        whose index is given by the ``plot cell index`` entry for the current
+        whose index indexed by the ``plot cell index`` entry for the current
         simulation configuration.
         '''
 
@@ -188,9 +188,9 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
         the finite Fourier transform (FFT) of all transmembrane voltages for all
-        sampled time steps spatially situated at the centre of the cell whose
-        index is given by the ``plot cell index`` entry for the current
-        simulation configuration.
+        sampled time steps spatially situated at the centre of the cell indexed
+        by the ``plot cell index`` entry for the current simulation
+        configuration.
         '''
 
         # Prepare to serialize the current CSV file.
@@ -339,9 +339,9 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
     def _cell_times_vmems(self) -> ndarray:
         '''
         One-dimensional Numpy array of all transmembrane voltages for each
-        sampled time step spatially situated at the centre of the cell
-        whose index is given by the ``plot cell index`` entry for the current
-        simulation configuration.
+        sampled time step spatially situated at the centre of the single cell
+        indexed by the ``plot cell index`` entry for the current simulation
+        configuration.
         '''
 
         # 0-based index of the cell to serialize time data for.

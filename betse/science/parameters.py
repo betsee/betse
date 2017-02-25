@@ -10,8 +10,8 @@ from betse.science.config import confio #, confalias
 from betse.science.config.confabc import conf_alias
 from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
-from betse.science.config.visual.confanim import SimConfAnimAll
-from betse.science.config.visual.confplot import SimConfPlotAll
+from betse.science.config.export.confanim import SimConfAnimAll
+from betse.science.config.export.confplot import SimConfPlotAll
 from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
@@ -68,7 +68,24 @@ class Parameters(object):
         Duration in seconds of the current simulation phase, accelerated by the
         current gap junction acceleration factor.
 
-    Attributes (Results)
+    Attributes (Ions)
+    ----------------------------
+    ions_dict : dict
+        Dictionary mapping:
+        * From each of the following names of a supported core ion:
+          * ``Na``, the sodium ion Na+.
+          * ``K``, the potassium ion K+.
+          * ``Ca``, the calcium ion Ca2+.
+          * ``Cl``, the chloride ion Cl-.
+          * ``H``, the hydrogen ion H+.
+          * ``M``, the M anion bicarbonate HCO3-.
+          * ``P``, the anionic protein P-.
+        * To either:
+          * 0, if that ion is disabled by the ion profile in the current
+            simulation configuration.
+          * 1, if that ion is enabled by that ion profile.
+
+    Attributes (Exports)
     ----------------------------
     anim : SimConfAnimAll
         Subconfiguration encapsulating exported simulation animations.

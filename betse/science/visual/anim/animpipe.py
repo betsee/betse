@@ -14,7 +14,8 @@ exporting) post-simulation animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.simulate.simphase import SimPhaseABC
-from betse.science.simulate.simpipeabc import SimPipelinerExportABC
+from betse.science.simulate.simpipeabc import (
+    SimPipelinerExportABC, exporter_metadata)
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -63,7 +64,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         return tuple(
             anim.name for anim in self._phase.p.anim.after_sim_pipeline)
 
-    # ..................{ RUNNERS ~ current                  }..................
+    # ..................{ EXPORTERS ~ current                }..................
+    @exporter_metadata(categories=('Current Density', 'Intracellular'))
     def export_current_intra(self) -> None:
         '''
         Animate the intracellular current density for all time steps.
@@ -85,6 +87,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
+    @exporter_metadata(categories=('Current Density', 'Total'))
     def export_current_total(self) -> None:
         '''
         Animate the total current density (i.e., both intra- and extracellular)
@@ -106,7 +109,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             color_max=self._phase.p.I_ani_max_clr,
         )
 
-    # ..................{ RUNNERS ~ deformation              }..................
+    # ..................{ EXPORTERS ~ deform                 }..................
+    @exporter_metadata(categories=('Cellular Deformation', 'Physical'))
     def export_deform(self) -> None:
         '''
         Animate physical cellular deformations for all time steps.
@@ -124,7 +128,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             save=self._phase.p.anim.is_after_sim_save,
         )
 
-    # ..................{ RUNNERS ~ electric                 }..................
+    # ..................{ EXPORTERS ~ electric               }..................
+    @exporter_metadata(categories=('Electric Field', 'Intracellular'))
     def export_electric_intra(self) -> None:
         '''
         Animate the intracellular electric field for all time steps.
@@ -168,6 +173,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
+    @exporter_metadata(categories=('Electric Field', 'Total'))
     def export_electric_total(self) -> None:
         '''
         Animate the total electric field (i.e., both intra- and extracellular)
@@ -190,10 +196,11 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             color_max=self._phase.p.Efield_ani_max_clr,
         )
 
-    # ..................{ RUNNERS ~ fluid                    }..................
+    # ..................{ EXPORTERS ~ fluid                  }..................
+    @exporter_metadata(categories=('Fluid Flow', 'Intracellular'))
     def export_fluid_intra(self) -> None:
         '''
-        Animate the intracellular fluid field for all time steps.
+        Animate the intracellular fluid flow field for all time steps.
         '''
 
         # Raise an exception unless fluid flow is enabled.
@@ -213,9 +220,10 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
+    @exporter_metadata(categories=('Fluid Flow', 'Total'))
     def export_fluid_total(self) -> None:
         '''
-        Animate the total fluid field (i.e., both intra- and extracellular)
+        Animate the total fluid flow field (i.e., both intra- and extracellular)
         for all time steps.
         '''
 
@@ -238,29 +246,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             color_max=self._phase.p.Velocity_ani_max_clr,
         )
 
-    # ..................{ RUNNERS ~ gap junction             }..................
-    def export_gap_junction(self) -> None:
-        '''
-        Animate all intracellular voltages overlayed by gap junction connection
-        states for all time steps.
-        '''
-
-        # Log this animation attempt.
-        self._die_unless_intra()
-
-        # Animate this animation.
-        AnimGapJuncTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
-            time_series=self._phase.sim.gjopen_time,
-            label='Vmem_gj',
-            figure_title='Gap Junction State over Vmem',
-            colorbar_title='Voltage [mV]',
-            is_color_autoscaled=self._phase.p.autoscale_Vgj_ani,
-            color_min=self._phase.p.Vgj_ani_min_clr,
-            color_max=self._phase.p.Vgj_ani_max_clr,
-        )
-
-    # ..................{ RUNNERS ~ ion                      }..................
+    # ..................{ EXPORTERS ~ ion                    }..................
+    @exporter_metadata(categories=('Ion Concentration', 'Calcium'))
     def export_ion_calcium(self) -> None:
         '''
         Animate all calcium (i.e., Ca2+) ion concentrations for all time steps.
@@ -286,6 +273,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
+    @exporter_metadata(categories=('Ion Concentration', 'Hydrogen'))
     def export_ion_hydrogen(self) -> None:
         '''
         Animate all hydrogen (i.e., H+) ion concentrations for all time steps,
@@ -313,7 +301,54 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             color_max=self._phase.p.Ca_ani_max_clr,
         )
 
-    # ..................{ RUNNERS ~ pressure                 }..................
+    # ..................{ EXPORTERS ~ membrane               }..................
+    @exporter_metadata(categories=('Cellular Membrane', 'Gap Junctions'))
+    def export_membrane_gap_junction(self) -> None:
+        '''
+        Animate all gap junction connectivity states for all time steps.
+        '''
+
+        # Log this animation attempt.
+        self._die_unless_intra()
+
+        # Animate this animation.
+        AnimGapJuncTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=self._phase.sim.gjopen_time,
+            label='Vmem_gj',
+            figure_title='Gap Junction State over Vmem',
+            colorbar_title='Voltage [mV]',
+            is_color_autoscaled=self._phase.p.autoscale_Vgj_ani,
+            color_min=self._phase.p.Vgj_ani_min_clr,
+            color_max=self._phase.p.Vgj_ani_max_clr,
+        )
+
+
+    @exporter_metadata(categories=('Cellular Membrane', 'Pump Density'))
+    def export_membrane_pump_density(self) -> None:
+        '''
+        Animate all cellular membrane pump density factors for all time steps.
+        '''
+
+        # Raise an exception unless channel electroosmosis is enabled.
+        self._die_unless(
+            is_satisfied=self._phase.p.sim_eosmosis,
+            exception_reason='channel electroosmosis disabled')
+
+        # Animate this animation.
+        AnimMembraneTimeSeries(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            time_series=self._phase.sim.rho_pump_time,
+            label='rhoPump',
+            figure_title='Pump Density Factor',
+            colorbar_title='mol fraction/m2',
+            is_color_autoscaled=self._phase.p.autoscale_mem_ani,
+            color_min=self._phase.p.mem_ani_min_clr,
+            color_max=self._phase.p.mem_ani_max_clr,
+        )
+
+    # ..................{ EXPORTERS ~ pressure               }..................
+    @exporter_metadata(categories=('Cellular Pressure', 'Mechanical'))
     def export_pressure_mechanical(self) -> None:
         '''
         Animate the cellular mechanical pressure for all time steps.
@@ -337,6 +372,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
+    @exporter_metadata(categories=('Cellular Pressure', 'Osmotic'))
     def export_pressure_osmotic(self) -> None:
         '''
         Animate the cellular osmotic pressure for all time steps.
@@ -359,30 +395,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             color_max=self._phase.p.Pcell_ani_max_clr,
         )
 
-    # ..................{ RUNNERS ~ pump                     }..................
-    def export_pump_density(self) -> None:
-        '''
-        Animate the cellular membrane pump density factor for all time steps.
-        '''
-
-        # Raise an exception unless channel electroosmosis is enabled.
-        self._die_unless(
-            is_satisfied=self._phase.p.sim_eosmosis,
-            exception_reason='channel electroosmosis disabled')
-
-        # Animate this animation.
-        AnimMembraneTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
-            time_series=self._phase.sim.rho_pump_time,
-            label='rhoPump',
-            figure_title='Pump Density Factor',
-            colorbar_title='mol fraction/m2',
-            is_color_autoscaled=self._phase.p.autoscale_mem_ani,
-            color_min=self._phase.p.mem_ani_min_clr,
-            color_max=self._phase.p.mem_ani_max_clr,
-        )
-
-    # ..................{ RUNNERS ~ voltage                  }..................
+    # ..................{ EXPORTERS ~ voltage                }..................
+    @exporter_metadata(categories=('Voltage', 'Intracellular'))
     def export_voltage_intra(self) -> None:
         '''
         Animate all intracellular voltages for all time steps.
@@ -412,6 +426,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
+    @exporter_metadata(categories=('Voltage', 'Total'))
     def export_voltage_total(self) -> None:
         '''
         Animate all voltages (i.e., both intra- and extracellular) for all time
@@ -485,7 +500,7 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     # If animating gap junction states, do so.
     if phase.p.ani_vmgj2d:
-        pipeliner.export_gap_junction()
+        pipeliner.export_membrane_gap_junction()
 
     # If animating current density, do so.
     if phase.p.ani_I:
@@ -526,4 +541,4 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     # Animate the cell membrane pump density factor as a function of time.
     if phase.p.ani_mem and phase.p.sim_eosmosis:
-        pipeliner.export_pump_density()
+        pipeliner.export_membrane_pump_density()

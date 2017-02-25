@@ -30,9 +30,9 @@ def pipeline(phase: SimPhaseABC) -> None:
     '''
 
     #FIXME: This is atrocious, but unfortunately still required by "plotutil"
-    #utility functions called below. After refactoring all such plots to
-    #leverage the "PlotCellsABC" and "LayerCellsABC" APIs instead, remove this
-    #shameful kludgery.
+    #utility functions transitively called below. After refactoring all such
+    #plots to leverage the "PlotCellsABC" and "LayerCellsABC" APIs instead,
+    #remove this shameful kludgery.
 
     # String constant corresponding to the current simulation phase. Valid
     # values include:

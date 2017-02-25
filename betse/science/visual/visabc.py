@@ -948,10 +948,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Temporarily yield the time slice for the smallest amount of time
         # required by the current matplotlib backend to handle queued events in
-        # the GUI eventloop of the current process on the current platform.
-        # Failing to do so results in subtle (and hence non-trivial) issues
-        # with plot and animation display. Technically, doing so only appears
-        # to be required on one or more of the following edge-case conditions:
+        # the GUI-specific event loop of the current process. Failing to do so
+        # produces subtle issues with plot and animation display. Technically,
+        # doing so only appears to be required on one or more of the following
+        # edge-case conditions:
         #
         # * The current platform is Windows, whose POSIX-incompatible process
         #   model has special needs.

@@ -416,8 +416,8 @@ def get_root_dirname() -> str:
 
 def get_dirname(pathname: str) -> str:
     '''
-    **Dirname** (i.e., parent directory) of the passed path if such path has a
-    dirname _or_ raise an exception otherwise.
+    **Dirname** (i.e., parent directory) of the passed path if this path has a
+    dirname *or* raise an exception otherwise.
     '''
 
     # Raise an exception unless this path has a dirname.
@@ -436,7 +436,7 @@ def get_dirname(pathname: str) -> str:
 def get_dirname_or_current_dirname(pathname: str) -> str:
     '''
     **Dirname** (i.e., parent directory) of the passed path if this path has a
-    dirname _or_ the current working directory otherwise.
+    dirname *or* the current working directory otherwise.
     '''
 
     # Avoid circular import dependencies.
@@ -449,7 +449,7 @@ def get_dirname_or_current_dirname(pathname: str) -> str:
 def get_dirname_or_empty(pathname: str) -> str:
     '''
     **Dirname** (i.e., parent directory) of the passed path if this path has a
-    dirname _or_ the empty string otherwise.
+    dirname *or* the empty string otherwise.
     '''
 
     return path.dirname(pathname)
@@ -458,8 +458,8 @@ def get_dirname_or_empty(pathname: str) -> str:
 @type_check
 def get_pathname_sans_filetypes(pathname: str) -> str:
     '''
-    Passed path without all suffixing `.`-prefixed filetypes (including these
-    prefixes) if this path has any filetypes _or_ this path as is otherwise.
+    Passed path without all suffixing ``.``-prefixed filetypes (including these
+    prefixes) if this path has any filetypes *or* this path as is otherwise.
     '''
 
     # Avoid circular import dependencies.
@@ -486,8 +486,8 @@ def get_pathname_sans_filetypes(pathname: str) -> str:
 @type_check
 def get_pathname_sans_filetype(pathname: str) -> str:
     '''
-    Passed path without the last `.`-prefixed filetype (including this prefix)
-    if this path has a filetype _or_ this path as is otherwise.
+    Passed path without the last ``.``-prefixed filetype (including this prefix)
+    if this path has a filetype *or* this path as is otherwise.
     '''
 
     return path.splitext(pathname)[0]
@@ -496,12 +496,12 @@ def get_pathname_sans_filetype(pathname: str) -> str:
 @type_check
 def get_filetype_dotted_or_none(pathname: str) -> str:
     '''
-    `.`-prefixed **last filetype** (i.e., last `.`-prefixed substring of the
+    ``.``-prefixed **last filetype** (i.e., last ``.``-prefixed substring of the
     basename) of the passed pathname if this pathname is suffixed by a filetype
-    _or_ `None` otherwise.
+    *or* ``None`` otherwise.
 
     If this pathname is suffixed by two or more filetypes (e.g.,
-    `odium.reigns.tar.gz`), only the last such filetype is returned.
+    ``odium.reigns.tar.gz``), only the last such filetype is returned.
     '''
 
     # "."-prefixed filetype of this pathname.
@@ -514,13 +514,13 @@ def get_filetype_dotted_or_none(pathname: str) -> str:
 @type_check
 def get_filetype_undotted(pathname: str) -> str:
     '''
-    **Last filetype** (i.e., last `.`-prefixed substring of the basename
-    excluding this `.`) of the passed pathname.
+    **Last filetype** (i.e., last ``.``-prefixed substring of the basename
+    excluding this ``.``) of the passed pathname.
 
     Raises
     ----------
     :exc:`BetsePathException`
-        If this pathname is _not_ suffixed by a filetype.
+        If this pathname is *not* suffixed by a filetype.
 
     See Also
     ----------
@@ -542,9 +542,9 @@ def get_filetype_undotted(pathname: str) -> str:
 @type_check
 def get_filetype_undotted_or_none(pathname: str) -> str:
     '''
-    **Last filetype** (i.e., last `.`-prefixed substring of the basename
-    excluding this `.`) of the passed pathname if this pathname is suffixed by a
-    filetype _or_ `None` otherwise.
+    **Last filetype** (i.e., last ``.``-prefixed substring of the basename
+    excluding this ``.``) of the passed pathname if this pathname is suffixed by
+    a filetype *or* ``None`` otherwise.
 
     See Also
     ----------

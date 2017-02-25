@@ -227,7 +227,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
                     runner_name,
                     str(exception))
 
-    # ..................{ LOGGERS                            }..................
+    # ..................{ PRIVATE ~ loggers                  }..................
     def _log_run(self) -> None:
         '''
         Log the current attempt to run the calling runner.
@@ -236,7 +236,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         # Defer to lower-level functionality to do so.
         self._die_unless_intra()
 
-    # ..................{ EXCEPTIONS                         }..................
+    # ..................{ PRIVATE ~ exceptions               }..................
     @type_check
     def _die_unless(
         self,
@@ -294,7 +294,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             self._label_singular_lowercase,
             runner_name)
 
-    # ..................{ EXCEPTIONS ~ config                }..................
+    # ..................{ PRIVATE ~ exceptions : config      }..................
     def _die_unless_intra(self) -> None:
         '''
         Log an attempt to run the calling runner.
@@ -383,7 +383,7 @@ class SimPipelinerExportABC(SimPipelinerABC):
 
 # ....................{ DECORATORS                         }....................
 @type_check
-def piperunner(categories: SequenceTypes) -> CallableTypes:
+def runner_metadata(categories: SequenceTypes) -> CallableTypes:
     '''
     Decorator annotating simulation pipeline **runners** (i.e., methods of
     :class:`SimPipelinerABC` subclasses with names prefixed by
@@ -423,7 +423,8 @@ def piperunner(categories: SequenceTypes) -> CallableTypes:
     '''
 
     @type_check
-    def _piperunner_closure(method: CallableTypes) -> SimPipelineRunner:
+    def _runner_metadata_closure(
+        method: CallableTypes) -> SimPipelineRunnerMetadata:
         '''
         Closure annotating simulation pipeline runners with custom metadata,
         returning an instance of the class decorator exposing this metadata to
@@ -431,22 +432,22 @@ def piperunner(categories: SequenceTypes) -> CallableTypes:
 
         See Also
         ----------
-        :func:`piperunner`
+        :func:`runner_metadata`
             Further details.
         '''
 
         # Return
-        return SimPipelineRunner(method=method, categories=categories)
+        return SimPipelineRunnerMetadata(method=method, categories=categories)
 
     # Return the closure accepting the method to be decorated.
-    return _piperunner_closure
+    return _runner_metadata_closure
 
 
-class SimPipelineRunner(MethodDecorator):
+class SimPipelineRunnerMetadata(MethodDecorator):
     '''
     Class decorator annotating simulation pipeline runners with custom metadata.
 
-    All such runners decorated by the :func:`piperunner` decorator are
+    All such runners decorated by the :func:`runner_metadata` decorator are
     guaranteed to be instances of this class, which provides all metadata passed
     to this decorator as instance variables of the same name.
 
@@ -462,7 +463,7 @@ class SimPipelineRunner(MethodDecorator):
 
     See Also
     ----------
-    :func:`piperunner`
+    :func:`runner_metadata`
         Further details.
     '''
 
@@ -501,6 +502,25 @@ class SimPipelineRunner(MethodDecorator):
                 'Runner method {}() has no docstring.'.format(method.__name__))
         # Else, this docstring is non-empty.
 
-        # Reduce this docstring from a possibly multiline string to a
-        # single-line string containing no newlines.
-        self.description = strs.unwrap(self.description)
+        # Transform this docstring into a description by...
+        self.description = (
+            # Removing all leading and trailing whitespace.
+            strs.remove_whitespace_presuffix(
+            # Reducing from a (possibly) multi- to single-line string.
+            strs.unwrap(self.description)))
+
+# ....................{ DECORATORS ~ alias                 }....................
+# For each abstract "SimPipelineABC" subclass (e.g., "SimPipelinerExportABC"),
+# alias the @runner_metadata decorator to a name specific to that subclass.
+
+exporter_metadata = runner_metadata
+'''
+Decorator annotating simulation export pipeline **runners** (i.e., methods of
+:class:`SimPipelinerExportABC` subclasses with names prefixed by
+:attr:`SimPipelinerExportABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+
+See Also
+----------
+:func:`runner_metadata`
+    Further details.
+'''

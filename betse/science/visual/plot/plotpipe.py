@@ -52,8 +52,8 @@ exporting) post-simulation plots.
 #pyplot.figure() function: e.g.,
 #
 #    # Instead of this...
-#    plt.figure()
-#    subplot = plt.subplot()
+#    pyplot.figure()
+#    subplot = pyplot.subplot()
 #
 #    # ...do this.
 #    fig = Figure()
@@ -66,14 +66,18 @@ exporting) post-simulation plots.
 #cache that plot's figure as an attribute of that thread. Sweet, no?
 
 # ....................{ IMPORTS                            }....................
+import matplotlib
 import numpy as np
 from betse.exceptions import BetseSimConfigException
+from betse.lib.matplotlib import mplutil
+from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
-from betse.science.simulate.simpipeabc import SimPipelinerExportABC
+from betse.science.simulate.simpipeabc import (
+    SimPipelinerExportABC, exporter_metadata)
 from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as pyplot
 from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
 
@@ -82,6 +86,11 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     '''
     **Post-simulation plot pipeline** (i.e., class iteratively creating all
     post-simulation plots requested by the current simulation configuration).
+
+    Attributes
+    -----------
+    _cell_index : int
+        0-based index of the cell to plot.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -90,6 +99,24 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, label_singular='plot', **kwargs)
+
+        # 0-based index of the cell to plot.
+        self._cell_index = self._phase.p.plot_cell
+
+        # If this index is not that of an actual cell, raise an exception.
+        if self._cell_index not in self._phase.cells.cell_i:
+            raise BetseSimConfigException(
+                'Plot cell index {} invalid '
+                '(i.e., not in range [{}, {}]).'.format(
+                    self._cell_index,
+                    self._phase.cells.cell_i[0],
+                    self._phase.cells.cell_i[-1],
+                ))
+
+        # If saving post-simulation plots...
+        if self._phase.p.plot.is_after_sim_save:
+            # Create the top-level directory containing these plots if needed.
+            dirs.make_unless_dir(self._phase.save_dirname)
 
     # ..................{ SUPERCLASS                         }..................
     @property
@@ -102,17 +129,134 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         return tuple(
             plot.name for plot in self._phase.p.plot.after_sim_pipeline)
 
-    # ..................{ RUNNERS ~ wut                      }..................
-    def export_wut(self) -> None:
+    # ..................{ EXPORTERS ~ cell : ion             }..................
+    @exporter_metadata(categories=(
+        'Single Cell', 'Ion Concentration', 'Potassium'))
+    def export_cell_ion_potassium(self) -> None:
         '''
-        Plot the wut for the last time step.
+        Plot all potassium (i.e., K+) ion concentrations for all time steps for
+        the single cell indexed by the ``plot cell index`` entry for the current
+        simulation configuration.
         '''
 
-        # Log this animation attempt.
-        self._die_unless_intra()
+        # Raise an exception unless the potassium ion is enabled.
+        self._die_unless_ion('K')
 
-        # Plot this plot.
-        pass
+        figConcsK, axConcsK = plotutil.plotSingleCellCData(
+            self._phase.sim.cc_time,
+            self._phase.sim.time,
+            self._phase.sim.iK,
+            self._cell_index, fig=None, ax=None, lncolor='b', ionname='K+')
+        axConcsK.set_title(
+            'Potassium concentration in cell ' + str(self._cell_index))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='concK_time')
+
+
+    @exporter_metadata(categories=(
+        'Single Cell', 'Ion Concentration', 'Sodium'))
+    def export_cell_ion_sodium(self) -> None:
+        '''
+        Plot all sodium (i.e., Na+) ion concentrations for all time steps for
+        the single cell indexed by the ``plot cell index`` entry for the current
+        simulation configuration.
+        '''
+
+        # Raise an exception unless the sodium ion is enabled.
+        self._die_unless_ion('Na')
+
+        # Plot cell sodium concentration versus time.
+        figConcsNa, axConcsNa = plotutil.plotSingleCellCData(
+            self._phase.sim.cc_time,
+            self._phase.sim.time,
+            self._phase.sim.iNa,
+            self._cell_index, fig=None, ax=None, lncolor='g', ionname='Na+')
+        axConcsNa.set_title(
+            'Sodium concentration in cell ' + str(self._cell_index))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='concNa_time')
+
+    # ..................{ PRIVATE ~ lifecycle                }..................
+    def _die_unless(self, *args, **kwargs) -> None:
+
+        # Defer to all superclass handling.
+        super()._die_unless(*args, **kwargs)
+
+        #FIXME: DRY. This functionality perfectly duplicates the
+        #AnimCellsWhileSolving.__enter__() method, which is bad. To resolve
+        #this:
+        #
+        #* Shift that method into the "VisualCellsABC" superclass.
+        #* Refactor all plots to subclass that superclass.
+
+        # Id displaying this plot, do so in a non-blocking manner.
+        if self._phase.p.plot.is_after_sim_show:
+            # If the current matplotlib backend supports "true" non-blocking
+            # behavior, prefer this non-deprecated approach.
+            if mpl_config.is_backend_current_nonblockable():
+                pyplot.show(block=False)
+            # Else, fallback to the deprecated approach guaranteed to apply to
+            # all matplotlib backends.
+            else:
+                # pass
+                matplotlib.interactive(True)
+                # pyplot.show()
+
+
+    @type_check
+    def _export(self, basename: str) -> None:
+        '''
+        Export the current plot to the current screen if displaying plots and/or
+        to a file with the passed basename if saving plots.
+
+        Parameters
+        -----------
+        basename : str
+            Basename excluding filetype of the plot to be exported.
+        '''
+
+        #FIXME: DRY. This functionality perfectly duplicates the
+        #AnimCellsWhileSolving.__exit__() method, which is bad.
+
+        # Id displaying this plot *AND* the current matplotlib backend
+        # fails to support "true" non-blocking behavior...
+        if (self._phase.p.plot.is_after_sim_show and
+            not mpl_config.is_backend_current_nonblockable()):
+            # Update all artists displayed by this plot.
+            pyplot.draw()
+
+            #FIXME: DRY. This functionality perfectly duplicates the
+            #VisualCellsABC._show_frame(() method, which is also bad.
+
+            # Temporarily yield the time slice for the smallest amount of time
+            # required by the current matplotlib backend to handle queued events in
+            # the GUI-specific event loop of the current process.
+            with mplutil.deprecations_ignored():
+                pyplot.pause(0.0001)
+
+            # Disable the "fake" non-blocking behavior enabled by the prior
+            # _die_unless() call.
+            matplotlib.interactive(False)
+
+        # If saving this plot...
+        if self._phase.p.plot.is_after_sim_save:
+            # Filetype of the file to be saved.
+            filetype = self._phase.p.plot.image_filetype
+
+            # Absolute path of the file to be saved.
+            filename = paths.join(
+                self._phase.save_dirname,
+                'fig_{}.{}'.format(basename, filetype))
+
+            # Save this plot to this file.
+            pyplot.savefig(
+                filename,
+                dpi=self._phase.p.plot.image_dpi,
+                format=filetype,
+                transparent=True,
+            )
 
 # ....................{ OBSOLETE                           }....................
 #FIXME: Replace *ALL* functionality defined below with the "PlotCellsPipeliner"
@@ -124,13 +268,13 @@ def pipeline(phase: SimPhaseABC) -> None:
     phase.
 
     Parameters
-    ----------------------------
+    -----------
     phase: SimPhaseABC
         Current simulation phase.
     '''
 
     # Post-simulation animation pipeline producing all such animations.
-    # pipeliner = PlotCellsPipeliner(phase)
+    pipeliner = PlotCellsPipeliner(phase)
 
     #FIXME: Replace *ALL* logic below with the following single call:
     #    pipeliner.run()
@@ -144,23 +288,9 @@ def pipeline(phase: SimPhaseABC) -> None:
     if not phase.p.plot.is_after_sim:
        return
 
-    #FIXME: Shift the following setup logic and validation into the
-    #PlotCellsPipeliner.__init__() method.
-
-    # If saving these plots...
-    if phase.p.plot.is_after_sim_save:
-        # Create the top-level directory containing these plots if needed.
-        dirs.make_unless_dir(phase.save_dirname)
-
-        # Substring prefixing the absolute path of each plot created below.
-        savedImg = paths.join(phase.save_dirname, 'fig_')
-
-    # If the index of the cell to be plotted is invalid, raise an exception.
-    if phase.p.plot_cell not in phase.cells.cell_i:
-        raise BetseSimConfigException(
-            'The "plot cell" defined in the "results" section of your '
-            'configuration file does not exist in your cluster. '
-            'Choose a plot cell number smaller than the maximum cell number.')
+    #FIXME: Excise this once no longer required.
+    # Substring prefixing the absolute path of each plot created below.
+    savedImg = paths.join(phase.save_dirname, 'fig_')
 
     #-------------------------------------------------------------------------------------------------------------------
     #               SINGLE CELL DATA GRAPHS
@@ -175,40 +305,16 @@ def pipeline(phase: SimPhaseABC) -> None:
     p     = phase.p
 
     if p.plot_single_cell_graphs:
-        # Plot cell sodium concentration versus time.
-        mem_i = cells.cell_to_mems[p.plot_cell][0]
+        # If potassium is enabled, plot all cell potassium concentrations.
+        if phase.p.ions_dict['K'] == 1:
+            pipeliner.export_cell_ion_potassium()
 
-        figConcsNa, axConcsNa = plotutil.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iNa, p.plot_cell, fig=None,
-            ax=None, lncolor='g', ionname='Na+')
-
-        titNa = 'Sodium concentration in cell ' + str(p.plot_cell)
-        axConcsNa.set_title(titNa)
-
-        if p.plot.is_after_sim_save is True:
-            savename1 = savedImg + 'concNa_time' + '.png'
-            plt.savefig(savename1, dpi=300, format='png', transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
-
-        # Plot cell potassium concentration versus time.
-        figConcsK, axConcsK = plotutil.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iK, p.plot_cell, fig=None,
-            ax=None, lncolor='b', ionname='K+')
-
-        titK = 'Potassium concentration in cell ' + str(p.plot_cell)
-        axConcsK.set_title(titK)
-
-        if p.plot.is_after_sim_save is True:
-            savename1 = savedImg + 'concK_time' + '.png'
-            plt.savefig(savename1,dpi=300,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+        # If sodium is enabled, plot all cell sodium concentrations.
+        if phase.p.ions_dict['Na'] == 1:
+            pipeliner.export_cell_ion_sodium()
+        # return
 
         # plot-cell anion (bicarbonate) concentration vs time:
-
         figConcsM, axConcsM = plotutil.plotSingleCellCData(
             sim.cc_time, sim.time, sim.iM, p.plot_cell,
             fig=None,
@@ -222,12 +328,14 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename1 = savedImg + 'concM_time' + '.png'
-            plt.savefig(savename1,dpi=300,format='png',transparent=True)
+            pyplot.savefig(savename1,dpi=300,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         # Plot single cell Vmem vs time.
+        mem_i = phase.cells.cell_to_mems[pipeliner._cell_index][0]
+
         figVt, axVt = plotutil.plotSingleCellVData(
             sim, mem_i, p, fig=None, ax=None, lncolor='k')
         titV = 'Voltage (Vmem) in cell ' + str(p.plot_cell)
@@ -235,10 +343,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename2 = savedImg + 'Vmem_time' + '.png'
-            plt.savefig(savename2,dpi=300,format='png',transparent=True)
+            pyplot.savefig(savename2,dpi=300,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         # Plot fast-Fourier-transform (fft) of Vmem.
         figFFT, axFFT = plotutil.plotFFT(
@@ -248,14 +356,14 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename = savedImg + 'FFT_time' + '.png'
-            plt.savefig(savename,dpi=300,format='png',transparent=True)
+            pyplot.savefig(savename,dpi=300,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         # plot rate of Na-K-ATPase pump vs time:
-        plt.figure()
-        axNaK = plt.subplot()
+        pyplot.figure()
+        axNaK = pyplot.subplot()
 
         if p.sim_ECM:
             plot_cell_ecm = phase.cells.cell_to_mems[phase.p.plot_cell][0]
@@ -272,16 +380,16 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename = savedImg + 'NaKATPaseRaTE_' + '.png'
-            plt.savefig(savename,dpi=300,format='png',transparent=True)
+            pyplot.savefig(savename,dpi=300,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         #--------------------------------------------------------
 
         # Plot cell trans-membrane current vs time.
-        figI = plt.figure()
-        axI = plt.subplot(111)
+        figI = pyplot.figure()
+        axI = pyplot.subplot(111)
 
         if p.sim_ECM is False:
             Imem = [100*memArray[p.plot_cell] for memArray in sim.I_mem_time]
@@ -310,10 +418,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename = savedImg + 'Imem_time' + '.png'
-            plt.savefig(savename,dpi=300,format='png',transparent=True)
+            pyplot.savefig(savename,dpi=300,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         # optional 1D plots--------------------------------------------------------------------------------------------
 
@@ -321,8 +429,8 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if np.mean(sim.P_cells_time) != 0.0:
             p_hydro = [arr[p.plot_cell] for arr in sim.P_cells_time]
-            plt.figure()
-            axOP = plt.subplot(111)
+            pyplot.figure()
+            axOP = pyplot.subplot(111)
             axOP.plot(sim.time, p_hydro)
             axOP.set_xlabel('Time [s]')
             axOP.set_ylabel('Hydrostatic Pressure [Pa]')
@@ -330,10 +438,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
             if p.plot.is_after_sim_save is True:
                 savename = savedImg + 'HydrostaticP_' + '.png'
-                plt.savefig(savename,dpi=300,format='png',transparent=True)
+                pyplot.savefig(savename,dpi=300,format='png',transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
         # Plot cell calcium vs time (if Ca enabled in ion profiles).
         if p.ions_dict['Ca'] ==1:
@@ -349,16 +457,16 @@ def pipeline(phase: SimPhaseABC) -> None:
 
             if p.plot.is_after_sim_save is True:
                 savename3 = savedImg + 'cytosol_Ca_time' + '.png'
-                plt.savefig(savename3,dpi=300,format='png',transparent=True)
+                pyplot.savefig(savename3,dpi=300,format='png',transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
 
         if p.deform_osmo is True:
             p_osmo = [arr[p.plot_cell] for arr in sim.osmo_P_delta_time]
-            plt.figure()
-            axOP = plt.subplot(111)
+            pyplot.figure()
+            axOP = pyplot.subplot(111)
             axOP.plot(sim.time, p_osmo)
             axOP.set_xlabel('Time [s]')
             axOP.set_ylabel('Osmotic Pressure [Pa]')
@@ -366,10 +474,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
             if p.plot.is_after_sim_save is True:
                 savename = savedImg + 'OsmoticP_' + '.png'
-                plt.savefig(savename,dpi=300,format='png',transparent=True)
+                pyplot.savefig(savename,dpi=300,format='png',transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
         # Total displacement in cell.
         if phase.p.deformation is True and phase.kind is SimPhaseKind.SIM:
@@ -380,8 +488,8 @@ def pipeline(phase: SimPhaseABC) -> None:
             # Get the total magnitude.
             disp = np.sqrt(dx**2 + dy**2)
 
-            plt.figure()
-            axD = plt.subplot(111)
+            pyplot.figure()
+            axD = pyplot.subplot(111)
             axD.plot(sim.time, p.um*disp)
             axD.set_xlabel('Time [s]')
             axD.set_ylabel('Displacement [um]')
@@ -389,10 +497,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
             if p.plot.is_after_sim_save is True:
                 savename = savedImg + 'Displacement_' + '.png'
-                plt.savefig(savename,dpi=300,format='png',transparent=True)
+                pyplot.savefig(savename,dpi=300,format='png',transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
     #-------------------------------------------------------------------------------------------------------------------
     #                       2D Data Map Plotting
@@ -418,10 +526,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename5 = savedImg + 'final_Vmem_2D' + '.png'
-            plt.savefig(savename5,format='png',transparent=True)
+            pyplot.savefig(savename5,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         figVa, axVa, cbVa = plotutil.plotPolyData(
             sim, cells, p,
@@ -444,10 +552,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename5 = savedImg + 'final_AverageVmem_2D' + '.png'
-            plt.savefig(savename5, format='png', transparent=True)
+            pyplot.savefig(savename5, format='png', transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
 
         if p.sim_ECM is True:
@@ -455,22 +563,22 @@ def pipeline(phase: SimPhaseABC) -> None:
             vv = sim.v_env.reshape(cells.X.shape)
             vv = gaussian_filter(vv, 1, mode = 'constant')
 
-            plt.figure()
-            plt.imshow(
+            pyplot.figure()
+            pyplot.imshow(
                 1e3*vv,
                 origin='lower',
                 extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
                 cmap=p.default_cm,
             )
-            plt.colorbar()
-            plt.title('Environmental Voltage [mV]')
+            pyplot.colorbar()
+            pyplot.title('Environmental Voltage [mV]')
 
             if p.plot.is_after_sim_save is True:
                 savename10 = savedImg + 'Final_environmental_V' + '.png'
-                plt.savefig(savename10, format='png', transparent=True)
+                pyplot.savefig(savename10, format='png', transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
     if p.GHK_calc is True:
         figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(
@@ -492,10 +600,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename5 = savedImg + 'final_Vmem_GHK_2D' + '.png'
-            plt.savefig(savename5,format='png',transparent=True)
+            pyplot.savefig(savename5,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
     #-------------------------------------------------------------------------------------------------------------------
 
@@ -514,10 +622,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename8 = savedImg + 'final_Ca_2D' + '.png'
-            plt.savefig(savename8,format='png',transparent=True)
+            pyplot.savefig(savename8,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         if p.sim_ECM is True:
 
@@ -531,22 +639,22 @@ def pipeline(phase: SimPhaseABC) -> None:
                 cc_Ca = sim.cc_env[sim.iCa].reshape(cells.X.shape)
 
 
-            plt.figure()
-            plt.imshow(
+            pyplot.figure()
+            pyplot.imshow(
                 cc_Ca,
                 origin='lower',
                 extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
                 cmap=p.default_cm,
             )
-            plt.colorbar()
-            plt.title('Environmental Calcium [mmol/L]')
+            pyplot.colorbar()
+            pyplot.title('Environmental Calcium [mmol/L]')
 
             if p.plot.is_after_sim_save is True:
                 savename10 = savedImg + 'Final_environmental_calcium' + '.png'
-                plt.savefig(savename10, format='png', transparent=True)
+                pyplot.savefig(savename10, format='png', transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
 
     if p.plot_pH2d is True and p.ions_dict['H'] == 1:
@@ -567,10 +675,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename8 = savedImg + 'final_pH_2D' + '.png'
-            plt.savefig(savename8,format='png',transparent=True)
+            pyplot.savefig(savename8,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
     #----plot 2D pump data--------------------------------------------------------------------------------
     pumpData = sim.rate_NaKATP*1e9
@@ -585,10 +693,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     if p.plot.is_after_sim_save is True:
         savename8 = savedImg + 'final_NaKPump_2D' + '.png'
-        plt.savefig(savename8, format='png', transparent=True)
+        pyplot.savefig(savename8, format='png', transparent=True)
 
     if phase.p.plot.is_after_sim_show:
-        plt.show(block=False)
+        pyplot.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
 
@@ -614,10 +722,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename10 = savedImg + 'Final_Current_gj' + '.png'
-            plt.savefig(savename10,format='png',transparent=True)
+            pyplot.savefig(savename10,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         if p.sim_ECM is True:
 
@@ -641,10 +749,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
             if p.plot.is_after_sim_save is True:
                 savename11 = savedImg + 'Final_Current_extracellular' + '.png'
-                plt.savefig(savename11,format='png',transparent=True)
+                pyplot.savefig(savename11,format='png',transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
     #-------------------------------------------------------------------------------------------------------------------
 
@@ -658,12 +766,12 @@ def pipeline(phase: SimPhaseABC) -> None:
                 maxColor = p.Efield_max_clr)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
             if p.plot.is_after_sim_save is True:
                 if p.sim_ECM is True:
                     savename = savedImg + 'Final_Electric_Field_ECM' + '.png'
-                    plt.savefig(savename,format='png',transparent=True)
+                    pyplot.savefig(savename,format='png',transparent=True)
 
         plotutil.plotVectField(
             sim.E_gj_x,sim.E_gj_y,cells,p,plot_ecm = False,
@@ -676,10 +784,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename = savedImg + 'Final_Electric_Field_GJ' + '.png'
-            plt.savefig(savename,format='png',transparent=True)
+            pyplot.savefig(savename,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
     if p.plot_P is True and np.mean(sim.P_cells_time) != 0.0:
@@ -694,10 +802,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename13 = savedImg + 'final_P_2D_gj' + '.png'
-            plt.savefig(savename13,format='png',transparent=True)
+            pyplot.savefig(savename13,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
 
@@ -717,10 +825,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename13 = savedImg + 'final_displacement_2D' + '.png'
-            plt.savefig(savename13,format='png',transparent=True)
+            pyplot.savefig(savename13,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
 
     if (p.plot_Vel is True and p.fluid_flow is True):
@@ -738,10 +846,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         if p.plot.is_after_sim_save is True:
             savename13 = savedImg + 'final_vel_2D_gj' + '.png'
-            plt.savefig(savename13,format='png',transparent=True)
+            pyplot.savefig(savename13,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         if p.sim_ECM is True:
             plotutil.plotStreamField(
@@ -757,23 +865,23 @@ def pipeline(phase: SimPhaseABC) -> None:
 
             if p.plot.is_after_sim_save is True:
                 savename13 = savedImg + 'final_vel_2D_env' + '.png'
-                plt.savefig(savename13,format='png',transparent=True)
+                pyplot.savefig(savename13,format='png',transparent=True)
 
             if phase.p.plot.is_after_sim_show:
-                plt.show(block=False)
+                pyplot.show(block=False)
 
     # if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
     # plotutil.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
-    fig_x = plt.figure()
-    ax_x = plt.subplot(111)
+    fig_x = pyplot.figure()
+    ax_x = pyplot.subplot(111)
     con_segs = cells.nn_edges
     connects = p.um*np.asarray(con_segs)
     collection = LineCollection(connects, array=sim.gjopen, cmap= p.background_cm, linewidths=2.0)
     ax_x.add_collection(collection)
     # collection.set_clim(0, 1)
     cb = fig_x.colorbar(collection)
-    plt.axis('equal')
-    plt.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
+    pyplot.axis('equal')
+    pyplot.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
 
     cb.set_label('Relative Permeability')
     ax_x.set_xlabel('Spatial x [um]')
@@ -782,42 +890,32 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     if p.plot.is_after_sim_save is True:
         savename = savedImg + 'final_gjState' + '.png'
-        plt.savefig(savename,format='png',transparent=True)
+        pyplot.savefig(savename,format='png',transparent=True)
 
     if phase.p.plot.is_after_sim_show:
-        plt.show(block=False)
+        pyplot.show(block=False)
 
     if p.sim_eosmosis is True and phase.kind is SimPhaseKind.SIM:
         plotutil.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
-        plt.xlabel('Spatial Dimension [um]')
-        plt.ylabel('Spatial Dimension [um]')
-        plt.title('Membrane ion pump density factor')
+        pyplot.xlabel('Spatial Dimension [um]')
+        pyplot.ylabel('Spatial Dimension [um]')
+        pyplot.title('Membrane ion pump density factor')
 
         if p.plot.is_after_sim_save:
             savename = savedImg + 'final_pumps_2D' + '.png'
-            plt.savefig(savename,format='png',transparent=True)
+            pyplot.savefig(savename,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
+            pyplot.show(block=False)
 
         plotutil.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
-        plt.xlabel('Spatial Dimension [um]')
-        plt.ylabel('Spatial Dimension [um]')
-        plt.title('Membrane ion channel density factor')
+        pyplot.xlabel('Spatial Dimension [um]')
+        pyplot.ylabel('Spatial Dimension [um]')
+        pyplot.title('Membrane ion channel density factor')
 
         if p.plot.is_after_sim_save:
             savename = savedImg + 'final_channels_2D' + '.png'
-            plt.savefig(savename,format='png',transparent=True)
+            pyplot.savefig(savename,format='png',transparent=True)
 
         if phase.p.plot.is_after_sim_show:
-            plt.show(block=False)
-
-    #FIXME: What is this? What requires showing? Are we finalizing some
-    #previously displayed visual artifact? We suspect this to be safely
-    #jettisoned deadweight, but... let's verify that, please. If this *IS*
-    #required, it's probably only required for plots -- in which case this logic
-    #should be appended onto the plotpipe.pipeline() function.
-
-    # If displaying plots and animations, display... something? I guess?
-    if phase.p.plot.is_after_sim_show:
-        plt.show()
+            pyplot.show(block=False)

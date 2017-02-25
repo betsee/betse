@@ -509,6 +509,8 @@ class SimRunner(object):
         dyna = TissueHandler(sim,cells,p)
         dyna.tissueProfiles(sim,cells,p)
 
+        #FIXME: Shift everything below into a new seed-specific pipeline -- say,
+        #betse.science.export.exppipe.pipeline_seed().
         if p.autosave:
             images_path = p.init_results
             image_cache_dir = os.path.expanduser(images_path)
@@ -713,7 +715,10 @@ class SimRunner(object):
                 cells, p, plot_type='init', nested_folder_name='ER')
             sim.endo_retic.plot_er(sim, cells, p)
 
-        if p.turn_all_plots_off is False:
+        # If displaying plots, block on all previously plots previously
+        # displayed as non-blocking. If this is *NOT* done, these plots will
+        # effectively *NEVER* displayed be on most systems.
+        if p.plot.is_after_sim_show:
             plt.show()
 
         # Return this simulation phase.
@@ -808,7 +813,10 @@ class SimRunner(object):
             sim.endo_retic.init_saving(cells, p, plot_type = 'sim', nested_folder_name = 'ER')
             sim.endo_retic.plot_er(sim, cells, p)
 
-        if p.turn_all_plots_off is False:
+        # If displaying plots, block on all previously plots previously
+        # displayed as non-blocking. If this is *NOT* done, these plots will
+        # effectively *NEVER* displayed be on most systems.
+        if p.plot.is_after_sim_show:
             plt.show()
 
         # Return this simulation phase.
@@ -848,7 +856,10 @@ class SimRunner(object):
         MoM.core.plot(sim, cells, p, message='for metabolic molecules...')
         MoM.core.anim(sim, cells, p, message='for metabolic molecules...')
 
-        if p.turn_all_plots_off is False:
+        # If displaying plots, block on all previously plots previously
+        # displayed as non-blocking. If this is *NOT* done, these plots will
+        # effectively *NEVER* displayed be on most systems.
+        if p.plot.is_after_sim_show:
             plt.show()
 
         # Create and return an object encapsulating this phase.
@@ -887,7 +898,10 @@ class SimRunner(object):
         MoG.core.plot(sim, cells, p, message='for gene products...')
         MoG.core.anim(sim, cells, p, message='for gene products...')
 
-        if p.turn_all_plots_off is False:
+        # If displaying plots, block on all previously plots previously
+        # displayed as non-blocking. If this is *NOT* done, these plots will
+        # effectively *NEVER* displayed be on most systems.
+        if p.plot.is_after_sim_show:
             plt.show()
 
         # Create and return an object encapsulating this phase.

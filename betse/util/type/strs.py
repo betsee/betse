@@ -451,7 +451,7 @@ def remove_whitespace_presuffix(text: str) -> str:
 @type_check
 def remove_whitespace_suffix(text: str) -> str:
     '''
-    Passed string with all suffixing (but _not_ prefixing) whitespace removed.
+    Passed string with all suffixing (but *not* prefixing) whitespace removed.
     '''
 
     return text.rstrip()
