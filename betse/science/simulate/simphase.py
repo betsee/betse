@@ -178,9 +178,23 @@ class SimPhaseWeak(SimPhaseABC):
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass with all passed parameters.
-        self.__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Reilassify the following attributes weakly.
-        self.cells = references.proxy_weak(kwargs['cells'])
         self.p     = references.proxy_weak(kwargs['p'])
         self.sim   = references.proxy_weak(kwargs['sim'])
+
+        #FIXME: For currently unknown reasons, this object occasionally retains
+        #the only remaining reference to the passed "Cells" instance -- which
+        #*CANNOT* therefore be safely classified as a weak reference. This is
+        #highly unexpected, however, and should thus be investigated. In theory,
+        #this should remain a strong reference *ONLY* for non-blocking plots
+        #and animations (e.g., in-simulation); blocking plots and animations
+        #should be able to safely use a weak reference here..
+        #FIXME: Right. We believe this is due to deformations, which (when
+        #enabled) appear to destroy and recreate the entire "cells" object --
+        #ensuring that this reference is the only remaining reference, which
+        #must thus *NOT* be weak. Yet further evidence that this subclass is a
+        #fundamentally poor idea, really.
+        self.cells = kwargs['cells']
+        # self.cells = references.proxy_weak(kwargs['cells'])

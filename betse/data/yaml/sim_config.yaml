@@ -757,7 +757,6 @@ results options:
                                # * "cell_voltage_fft"     (single-cell voltage Fourier transform).
                                # Supported multi-cell types plotted for the
                                # entire cell cluster include:
-
           colorbar:            # Plot colorbar settings.
             autoscale: True    # Automatically scale colorbar to minimum and
                                # maximum values of underlying data series?
@@ -809,7 +808,7 @@ results options:
                                # "autoscale" is True.
             maximum:  10.0     # Maximum fixed colorbar value. Ignored if
                                # "autoscale" is True.
-        # Example intracellular electric field animation.
+        # Example intracellular electric field animation. (Details above.)
         - type: electric_intra
           colorbar:
             autoscale: True

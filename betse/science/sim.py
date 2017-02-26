@@ -23,6 +23,7 @@ from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
+from betse.science.simulate.simphase import SimPhaseWeak, SimPhaseKind
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
@@ -838,19 +839,26 @@ class Simulator(object):
                 #
                 # cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
-        if p.deformation is True:  # if user desires deformation:
+        if p.deformation:  # if user desires deformation:
 
             # initialize vectors for potential deformation:
             self.d_cells_x = np.zeros(self.cdl)
             self.d_cells_y = np.zeros(self.cdl)
 
             cells.deform_tools(p)
-            # create a copy of cells world, to apply deformations to for visualization purposes only:
+
+            #FIXME: Privatize the "cellso" attribute to the less ambiguous
+            #name "_cells_deformed". External callers should never access this.
+
+            # Deepy copy of the current cell cluster, to isolate deformations to
+            # for visualization purposes only.
             self.cellso = copy.deepcopy(cells)
 
-            if p.td_deform is True and cells.lapGJ is None or cells.lapGJ_P is None:
-
-                # make a laplacian and solver for discrete transfers on closed, irregular cell network
+            #FIXME: "td_deform" is currently forced to "False", implying this
+            #branch to currently reduce to a noop. Is this still desired?
+            if p.td_deform and (cells.lapGJ is None or cells.lapGJ_P is None):
+                # Make a laplacian and solver for discrete transfers on closed,
+                # irregular cell network.
                 logs.log_info('Creating cell network Poisson solver...')
                 cells.graphLaplacian(p)
 
@@ -892,6 +900,11 @@ class Simulator(object):
         # Get the net, unbalanced charge and corresponding voltage in each cell
         # to initialize values of voltages.
         self.update_V(cells, p)
+
+        #FIXME: "cellso" is pretty... wierd. Do we still need this and, if so,
+        #can we better document why? If we do ultimately need this, we'll
+        #probably want to store this "cellso" attribute on the current "phase"
+        #object rather than this simulator instead.
 
         # Display and/or save an animation during solving and calculate:
         #
@@ -1951,6 +1964,12 @@ class Simulator(object):
             self.D_env_weight_v[-1,:] = 0
 
     # ..................{ PLOTTERS                           }..................
+    #FIXME: Refactor to accept a single "SimPhaseABC" object instead.  Doing so
+    #will ultimately necessitate refactoring the parent "run_sim_core" method to
+    #accept the same object. Fortunately, that method is only called twice in
+    #the "simrunner" submodule. Unfortunately, doing so is complicated by our
+    #current use of a bizarre attribute of this object named "cellso"; see
+    #FIXME commentary elsewhere in this submodule for details.
     def _plot_loop(
         self,
         cells: 'betse.science.cells.Cells',
@@ -1978,12 +1997,21 @@ class Simulator(object):
               * Else, ``None``.
         '''
 
+        #FIXME: Replace "phase_kind" with "phase.kind" once we've refactored
+        #this method to accept a "SimPhaseABC" instance instead; then, remove
+        #this logic entirely.
+
+        # Type and maximum number of steps of the current run.
+        if p.run_sim is False:
+            phase_kind = SimPhaseKind.INIT
+        else:
+            phase_kind = SimPhaseKind.SIM
+
         #FIXME: Refactor these conditionally set local variables into
         #attributes of the "Parameters" object set instead by the
         #Parameters.set_time_profile() method.
 
-        # Type and maximum number of steps of the current run.
-        if p.run_sim is False:
+        if phase_kind is SimPhaseKind.INIT:
             phase_verb = 'Initializing'
             phase_noun = 'initialization'
             phase_time_step_count = p.init_tsteps
@@ -2022,10 +2050,15 @@ class Simulator(object):
         # enabled by this configuration or None otherwise.
         anim_cells = None
 
-        # If this animation is enabled, create this animation.
+        # If this animation is enabled...
         if p.anim.is_while_sim:
+            # Current simulation phase, weakly referencing all passed objects to
+            # avoid unpleasant circular references.
+            phase = SimPhaseWeak(kind=phase_kind, sim=self, cells=cells, p=p)
+
+            # Create this animation.
             anim_cells = AnimCellsWhileSolving(
-                sim=self, cells=cells, p=p,
+                phase=phase,
 
                 # Number of frames to animate, corresponding to the number of
                 # sampled time steps. The plot_frame() method of this animation

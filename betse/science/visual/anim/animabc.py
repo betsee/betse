@@ -252,7 +252,7 @@ class AnimCellsABC(VisualCellsABC):
 
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
-        if is_ecm_required and not self._p.sim_ECM:
+        if is_ecm_required and not self._phase.p.sim_ECM:
             raise BetseSimConfigException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
@@ -260,12 +260,12 @@ class AnimCellsABC(VisualCellsABC):
 
         # Default unpassed parameters.
         if is_current_overlayable is None:
-            is_current_overlayable = self._p.I_overlay
+            is_current_overlayable = self._phase.p.I_overlay
         if is_current_overlay_only_gj is None:
             is_current_overlay_only_gj = not (
-                self._p.sim_ECM and self._p.IecmPlot)
+                self._phase.p.sim_ECM and self._phase.p.IecmPlot)
         if time_step_count is None:
-            time_step_count = len(self._sim.time)
+            time_step_count = len(self._phase.sim.time)
 
         # Classify all remaining parameters.
         self._is_current_overlayable = is_current_overlayable
@@ -305,45 +305,17 @@ class AnimCellsABC(VisualCellsABC):
             return
 
         #FIXME: This is silly. Rather than prohibiting animation names
-        #containing such separators, simply sanitize_snakecase this animation's name by
-        #globally replacing all such separators by non-separator characters
-        #guaranteed to be permitted in pathnames for all platforms (e.g., "_"
-        #or "-" characters).
+        #containing directory separators, simply sanitize this animation's name
+        #by globally replacing all such separators with non-separator characters
+        #guaranteed to be permitted in pathnames for all platforms (e.g.,
+        #replacing "/" with "_" or "-" characters on POSIX systems).
 
         # If the human-readable name of this animation contains directory
         # separators and hence is *NOT* a valid basename, raise an exception.
         paths.die_unless_basename(self._label)
 
-        #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        #This is an utter travesty, but we have no choice but to hack detection
-        #of the current loop type until we sort out just what is going on with
-        #this boolean and/or string enumeration elsewhere.
-        #FIXME: !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        #FIXME: Indeed, these local variables are now obseleted by corresponding
-        #attributes of the "SimPhaseABC" class. Specifically:
-        #
-        #* "plot_type" is obsoleted by "SimPhaseABC.kind".
-        #* "save_phase_dirname" is obsoleted by "SimPhaseABC.save_dirname".
-
-        if hasattr(self._p, 'plot_type'):
-            plot_type = self._p.plot_type
-        else:
-            plot_type = 'sim' if self._p.run_sim else 'init'
-
-        # Path of the phase-specific parent directory of the subdirectory to
-        # which these files will be saved.
-        save_phase_dirname = None
-        if plot_type == 'sim':
-            save_phase_dirname = self._p.sim_results
-        elif plot_type == 'init':
-            save_phase_dirname = self._p.init_results
-        else:
-            raise BetseSimConfigException(
-                'Animation saving unsupported during "{}" phase.'.format(
-                    plot_type))
-
         # Animation configuration localized for convenience.
-        anim_config = self._p.anim
+        anim_config = self._phase.p.anim
 
         # If saving animation frames as either images or video, prepare to do
         # so in a manner common to both.
@@ -359,9 +331,11 @@ class AnimCellsABC(VisualCellsABC):
 
             # Path of the subdirectory to which these files will be saved,
             # creating this subdirectory and all parents thereof if needed.
-            save_dirname = paths.join(
-                save_phase_dirname, save_dir_parent_basename, self._label)
-            save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
+            save_dirname = dirs.canonicalize_and_make_unless_dir(paths.join(
+                self._phase.save_dirname,
+                save_dir_parent_basename,
+                self._label,
+            ))
 
         # If saving animation frames as images, prepare to do so.
         if anim_config.is_images_save:
@@ -529,7 +503,8 @@ class AnimCellsABC(VisualCellsABC):
             field_type = fieldmake.make_currents_intra_extra
 
         # Current density vector field to layer.
-        field = field_type(sim=self._sim, cells=self._cells, p=self._p)
+        field = field_type(
+            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
 
         # Append a layer overlaying this field.
         self._append_layer(LayerCellsFieldStream(field=field))

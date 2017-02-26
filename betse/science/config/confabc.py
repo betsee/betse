@@ -126,8 +126,9 @@ class SimConfList(MutableSequence):
             internal :attr:`_confs_wrap` list of such objects.
         '''
 
-        # Raise an exception unless the passed type subclasses the desired API.
-        classes.die_unless_subclass(subclass=conf_type, superclass=SimConfListableABC)
+        # Raise an exception unless the passed type implements the listable API.
+        classes.die_unless_subclass(
+            subclass=conf_type, superclass=SimConfListableABC)
 
         # Classify all passed parameters.
         self._confs_yaml = confs

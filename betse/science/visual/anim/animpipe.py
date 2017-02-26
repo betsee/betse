@@ -76,7 +76,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimCurrent(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             is_current_overlay_only_gj=True,
             label='current_gj',
             figure_title='Intracellular Current',
@@ -99,7 +99,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimCurrent(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             is_current_overlay_only_gj=False,
             label='current_ecm',
             figure_title='Extracellular Current',
@@ -123,7 +123,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimateDeformation(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             ani_repeat=True,
             save=self._phase.p.anim.is_after_sim_save,
         )
@@ -159,7 +159,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate these layers.
         AnimCellsAfterSolvingLayered(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             layers=layers,
             label='Efield_gj',
             figure_title='Intracellular E Field',
@@ -185,7 +185,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimFieldExtracellular(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             x_time_series=self._phase.sim.efield_ecm_x_time,
             y_time_series=self._phase.sim.efield_ecm_y_time,
             label='Efield_ecm',
@@ -210,7 +210,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimVelocityIntracellular(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             label='Velocity_gj',
             figure_title='Intracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [nm/s]',
@@ -237,7 +237,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimVelocityExtracellular(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             label='Velocity_ecm',
             figure_title='Extracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [um/s]',
@@ -262,7 +262,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimFlatCellsTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             time_series=time_series,
             label='Ca',
             figure_title='Cytosolic Ca2+',
@@ -291,7 +291,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimFlatCellsTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             time_series=time_series,
             label='pH',
             figure_title='Cytosolic pH',
@@ -313,7 +313,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimGapJuncTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             time_series=self._phase.sim.gjopen_time,
             label='Vmem_gj',
             figure_title='Gap Junction State over Vmem',
@@ -337,7 +337,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimMembraneTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             time_series=self._phase.sim.rho_pump_time,
             label='rhoPump',
             figure_title='Pump Density Factor',
@@ -361,7 +361,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimFlatCellsTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             time_series=self._phase.sim.P_cells_time,
             label='Pcell',
             figure_title='Pressure in Cells',
@@ -385,7 +385,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimFlatCellsTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             time_series=self._phase.sim.osmo_P_delta_time,
             label='Osmotic Pcell',
             figure_title='Osmotic Pressure in Cells',
@@ -415,7 +415,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate these layers.
         AnimCellsAfterSolvingLayered(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             layers=layers,
             label='Vmem',
             figure_title='Transmembrane Voltage',
@@ -444,7 +444,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Animate this animation.
         AnimEnvTimeSeries(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             time_series=venv_time_series,
             label='Venv',
             figure_title='Environmental Voltage',
@@ -473,14 +473,18 @@ def pipeline(phase: SimPhaseABC) -> None:
     if not phase.p.anim.is_after_sim:
        return
 
-    # Post-simulation animation pipeline producing all such animations.
+    # Pipeline displaying and/or saving all post-simulation animations.
     pipeliner = AnimCellsPipeliner(phase)
 
-    #FIXME: Replace *ALL* logic below with the following single call:
-    #    pipeliner.run()
-    #FIXME: When doing so, note that *ALL* uses of hardcoded animation-specific
-    #parameter options (e.g., "self._phase.p.I_ani_min_clr") will need to be
-    #refactored to use the general-purpose settings for the current animation.
+    #FIXME: Enable us up.
+    # Display and/or save all such animations enabled by this configuration.
+    # pipeliner.run()
+    # return
+
+    #FIXME: Remove *ALL* logic below. When doing so, note that *ALL* uses of
+    #hardcoded animation-specific parameter options (e.g.,
+    #"self._phase.p.I_ani_min_clr") will need to be refactored to use the
+    #general-purpose settings for the current animation.
     #FIXME: Likewise, refactor tests to exercise the new dynamic pipeline schema
     #rather than the obsolete hardcoded schema.
 

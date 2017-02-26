@@ -8,6 +8,7 @@
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
 
@@ -24,7 +25,7 @@ class AnimCellsAfterSolving(AnimCellsABC):
     @type_check
     def __init__(
         self,
-        p: 'betse.science.parameters.Parameters',
+        phase: SimPhaseABC,
         *args, **kwargs
     ) -> None:
         '''
@@ -32,27 +33,29 @@ class AnimCellsAfterSolving(AnimCellsABC):
 
         Parameters
         ----------
-        p : Parameters
-            Current simulation configuration.
+        phase: SimPhaseABC
+            Current simulation phase.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
 
         # Initialize our superclass.
         super().__init__(
-            # Pass this simulation configuration as is to our superclass.
-            p=p,
+            *args,
+
+            # Pass this simulation phase as is to our superclass.
+            phase=phase,
 
             # Save and show this post-simulation animation only if this
             # configuration enables doing so.
-            is_save=p.anim.is_after_sim_save,
-            is_show=p.anim.is_after_sim_show,
+            is_save=phase.p.anim.is_after_sim_save,
+            is_show=phase.p.anim.is_after_sim_show,
 
             # Save all post-simulation animations to the same parent directory.
             save_dir_parent_basename='anim',
 
             # Pass all remaining arguments as is to our superclass.
-            *args, **kwargs
+            **kwargs
         )
 
 
@@ -83,7 +86,7 @@ class AnimCellsAfterSolvingLayered(AnimCellsAfterSolving):
         '''
 
         # Initialize the superclass.
-        super().__init__(layers=layers, *args, **kwargs)
+        super().__init__(*args, layers=layers, **kwargs)
 
         # Display and/or save this animation.
         self._animate()
@@ -141,10 +144,12 @@ class AnimField(AnimCellsAfterSolving):
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
+            *args,
             # Since this class already plots a streamplot, prevent the
             # superclass from plotting another streamplot as an overlay.
             is_current_overlayable=False,
-            *args, **kwargs)
+            **kwargs
+        )
 
         # Classify all remaining parameters.
         self._x_time_series = x_time_series
@@ -156,7 +161,7 @@ class AnimField(AnimCellsAfterSolving):
         self._unit_y_time_series = []
 
         # Prefer an alternative colormap.
-        self._colormap = self._p.background_cm
+        self._colormap = self._phase.p.background_cm
 
 
 class AnimVelocity(AnimCellsAfterSolving):
@@ -169,10 +174,12 @@ class AnimVelocity(AnimCellsAfterSolving):
 
         # Pass all parameters *NOT* listed above to our superclass.
         super().__init__(
+            *args,
             # Since this class already plots a streamplot, prevent the
             # superclass from plotting another streamplot as an overlay.
             is_current_overlayable=False,
-            *args, **kwargs)
+            **kwargs
+        )
 
         # Prefer an alternative colormap.
-        self._colormap = self._p.background_cm
+        self._colormap = self._phase.p.background_cm

@@ -7,7 +7,7 @@ Abstract base classes of all post-simulation plot subclasses.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.parameters import Parameters
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.visabc import VisualCellsABC
 from betse.util.type.types import type_check
 
@@ -22,7 +22,7 @@ class PlotCellsAfterSolving(VisualCellsABC):
     @type_check
     def __init__(
         self,
-        p: Parameters, #'betse.science.parameters.Parameters',
+        phase: SimPhaseABC,
         *args, **kwargs
     ) -> None:
         '''
@@ -30,25 +30,27 @@ class PlotCellsAfterSolving(VisualCellsABC):
 
         Parameters
         ----------
-        p : Parameters
-            Current simulation configuration.
+        phase: SimPhaseABC
+            Current simulation phase.
 
         See the superclass `__init__()` method for all remaining parameters.
         '''
 
         # Initialize our superclass.
         super().__init__(
-            # Pass this simulation configuration as is to our superclass.
-            p=p,
+            *args,
+
+            # Pass this simulation phase as is to our superclass.
+            phase=phase,
 
             # Save and show this post-simulation plot only if this configuration
             # enables doing so.
-            is_save=p.plot.is_after_sim_save,
-            is_show=p.plot.is_after_sim_show,
+            is_save=phase.p.plot.is_after_sim_save,
+            is_show=phase.p.plot.is_after_sim_show,
 
             # Save all post-simulation plots to the same parent directory.
             save_dir_parent_basename='plot',
 
             # Pass all remaining arguments as is to our superclass.
-            *args, **kwargs
+            **kwargs
         )

@@ -15,20 +15,13 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
-from matplotlib import pyplot
-from matplotlib.axes import Axes
-from matplotlib.cm import ScalarMappable
-from matplotlib.collections import PolyCollection
-from matplotlib.colors import Colormap
-from matplotlib.image import AxesImage
-from matplotlib.patches import FancyArrowPatch
-from matplotlib.streamplot import StreamplotSet
 from betse.exceptions import BetseMethodException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
 from betse.science.export import expmath
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
@@ -44,6 +37,14 @@ from betse.util.type.types import (
     NumericTypes, NumericOrNoneTypes,
     SequenceTypes, SequenceOrNoneTypes,
 )
+from matplotlib import pyplot
+from matplotlib.axes import Axes
+from matplotlib.cm import ScalarMappable
+from matplotlib.collections import PolyCollection
+from matplotlib.colors import Colormap
+from matplotlib.image import AxesImage
+from matplotlib.patches import FancyArrowPatch
+from matplotlib.streamplot import StreamplotSet
 
 # ....................{ SUPERCLASSES                       }....................
 class VisualCellsABC(object, metaclass=ABCMeta):
@@ -62,12 +63,6 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     Attributes (Private)
     ----------
-    _cells : Cells
-        Current cell cluster.
-    _p : Parameters
-        Current simulation configuration.
-    _sim : Simulator
-        Current simulation.
     _label : str
         Basename of the subdirectory in the phase-specific results directory
         to which all files exported for this plot or animation are saved _and_
@@ -75,6 +70,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     _layers : list
         List of all :class:`LayerCellsABC` instances collectively composing
         this plot or animation.
+    _phase : SimPhaseABC
+        Current simulation phase.
 
     Attributes (Private: Figure)
     ----------
@@ -141,15 +138,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     def __init__(
         self,
 
-        #FIXME: Refactor the three "sim", "cells", and "p" parameters into a
-        #single "phase: betse.science.simulate.simphase.SimPhase" parameter.
-        #Note, however, that there may exist a complication in doing so. See
-        #the "FIXME: For currently unknown reasons," comment below.
-
         # Mandatory parameters.
-        sim:   'betse.science.sim.Simulator',
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
+        phase: SimPhaseABC,
         is_save: bool,
         is_show: bool,
         label: str,
@@ -173,18 +163,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        sim : Simulator
-            Current simulation.
-        cells : Cells
-            Current cell cluster.
-        p : Parameters
-            Current simulation configuration.
+        _phase : SimPhaseABC
+            Current simulation phase.
         is_save : bool
-            `True` only if non-interactively saving this plot or animation.
+            ``True`` only if non-interactively saving this plot or animation.
         is_show : bool
-            `True` only if interactively displaying this plot or animation.
+            ``True`` only if interactively displaying this plot or animation.
         label : str
-            Terse machine-readable string (e.g., `Vmem`) serving as both:
+            Terse machine-readable string (e.g., ``Vmem``) serving as both:
             * The basename of the subdirectory of the phase-specific results
               directory containing all files saved by this plot or animation.
             * The basename prefix of these files.
@@ -228,34 +214,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             plot or animation.
         '''
 
-        # Classify core parameters with weak rather than strong (the default)
-        # references, thus avoiding circular references and the resulting
-        # complications thereof (e.g., increased memory overhead). Since these
-        # objects necessarily live significantly longer than this plot, no
-        # complications arise. Ergo, these attributes *ALWAYS* yield these
-        # objects rather than non-deterministically yielding "None" if these
-        # objects are unexpectedly garbage-collected.
-        self._sim = references.proxy_weak(sim)
-        self._p = references.proxy_weak(p)
-
-        #FIXME: For currently unknown reasons, this object occasionally retains
-        #the only remaining reference to the passed "Cells" instance -- which
-        #*CANNOT* therefore be safely classified as a weak reference. This is
-        #highly unexpected, however, and should thus be investigated. In theory,
-        #this should remain a strong reference *ONLY* for non-blocking plots
-        #and animations (e.g., in-simulation); blocking plots and animations
-        #should be able to safely use a weak reference here..
-
-        # self.cells = references.proxy_weak(cells)
-        self._cells = cells
-
         # Default unpassed parameters.
         if colormap is None:
-            colormap = p.default_cm
+            colormap = phase.p.default_cm
         if layers is None:
             layers = ()
 
         # Classify *AFTER* validating parameters.
+        self._phase = phase
         self._axes_title = axes_title
         self._axes_x_label = axes_x_label
         self._axes_y_label = axes_y_label
@@ -346,10 +312,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Extent of the current 2D environment.
         self._axes_bounds = [
-            self._cells.xmin * self._p.um,
-            self._cells.xmax * self._p.um,
-            self._cells.ymin * self._p.um,
-            self._cells.ymax * self._p.um,
+            self._phase.cells.xmin * self._phase.p.um,
+            self._phase.cells.xmax * self._phase.p.um,
+            self._phase.cells.ymin * self._phase.p.um,
+            self._phase.cells.ymax * self._phase.p.um,
         ]
 
         # Bound these axes by this extent.
@@ -510,13 +476,16 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
+    #FIXME: Replace the following three properties with a single "phase"
+    #property returning "self._phase".
+
     @property
     def cells(self) -> 'betse.science.cells.Cells':
         '''
         Current cell cluster.
         '''
 
-        return self._cells
+        return self._phase.cells
 
 
     @property
@@ -525,7 +494,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Current simulation configuration.
         '''
 
-        return self._p
+        return self._phase.p
 
 
     @property
@@ -534,7 +503,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Current simulation.
         '''
 
-        return self._sim
+        return self._phase.sim
 
 
     @property
@@ -757,7 +726,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # If labelling each cell with its 0-based index, append a layer doing
         # so *AFTER* all lower layers (e.g., cell data) have been appended,
-        if self._p.enumerate_cells:
+        if self._phase.p.enumerate_cells:
             self._append_layer(LayerCellsIndex())
 
         # Prepare each layer *AFTER* appending all layers above.
@@ -828,14 +797,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # this index is assumed to be the last index of the current
         # simulation's array of time steps.
         if time_step == -1:
-            time_step_absolute = len(self._sim.time) - 1
+            time_step_absolute = len(self._phase.sim.time) - 1
         # Else, the passed index is already absolute and hence used as is.
         else:
             time_step_absolute = time_step
 
         # Log this animation frame.
         logs.log_debug(
-            'Plotting "%s" frame %d / %d...',
+            'Exporting "%s" frame %d / %d...',
             self._label, time_step_absolute, self._time_step_last)
 
         # Classify this time step for subsequent access by subclasses.
@@ -896,7 +865,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Duration in seconds of the current simulation phase (e.g., "init",
         # "run"), accelerated by the current gap junction acceleration factor.
-        time_len = self._p.total_time_accelerated
+        time_len = self._phase.p.total_time_accelerated
 
         # If this phase runs for less than or equal to 100ms, report
         # simulation time in milliseconds (i.e., units of 0.001s).
@@ -923,8 +892,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Current time adjusted for optional gap junction acceleration.
         time_accelerated = (
             time_unit_factor *
-            self._sim.time[self._time_step] *
-            self._p.gj_acceleration)
+            self._phase.sim.time[self._time_step] *
+            self._phase.p.gj_acceleration)
 
         # Update this figure with this time, rounded to one decimal place.
         self._axes.set_title('{} (time: {:.1f}{})'.format(
@@ -1171,9 +1140,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         if magnitude_max is None:
             magnitude_max = np.max(magnitude)
         if grid_x is None:
-            grid_x = self._cells.X * self._p.um
+            grid_x = self._phase.cells.X * self._phase.p.um
         if grid_y is None:
-            grid_y = self._cells.Y * self._p.um
+            grid_y = self._phase.cells.Y * self._phase.p.um
 
         # If a prior streamplot to be erased was passed, do so.
         if old_stream_plot is not None:
@@ -1198,9 +1167,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Plot and return this streamplot.
         return self._axes.streamplot(
             grid_x, grid_y, x, y,
-            density=self._p.stream_density,
+            density=self._phase.p.stream_density,
             linewidth=(3.0*magnitude/magnitude_max) + 0.5,
-            color=self._p.vcolor,
+            color=self._phase.p.vcolor,
             cmap=self._colormap,
             arrowsize=3.0,
 
@@ -1246,7 +1215,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             Plot produced by plotting the passed cell data.
         '''
 
-        if self._p.showCells is True:
+        if self._phase.p.showCells is True:
             return self._plot_cell_mosaic(*args, **kwargs)
         else:
             return self._plot_cell_mesh(*args, **kwargs)
@@ -1278,7 +1247,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             types.assert_not_sequence_nonstr(cell_data))
 
         # If plotting individuals cells, update this plot with this data as is.
-        if self._p.showCells:
+        if self._phase.p.showCells:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
             cell_plot.set_array(cell_data)
@@ -1345,14 +1314,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # If plotting individual cells, the passed cell plot *MUST* be a polygon
         # collection previously returned by the _plot_cell_mosaic() method.
-        if self._p.showCells is True:
+        if self._phase.p.showCells is True:
             assert types.is_matplotlib_polycollection(cell_plot), (
                 types.assert_not_matplotlib_polycollection(cell_plot))
 
             # Update this plot in-place.
             cell_plot.set_array(cell_data)
             cell_plot.set_verts(
-                arrays.from_sequence(self._cells.cell_verts) * self._p.um)
+                arrays.from_sequence(self._phase.cells.cell_verts) * self._phase.p.um)
 
             # Return the same plot.
             return cell_plot
@@ -1389,7 +1358,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=expmath.upscale_cell_coordinates(self._cells.cell_verts),
+            verts=expmath.upscale_cell_coordinates(self._phase.cells.cell_verts),
             cmap=self._colormap,
             edgecolors='none',
         )
@@ -1405,8 +1374,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
 
     #FIXME: This plots somewhat similarly to the presumably superior
-    #"LayerCellsVectorSurfaceDiscrete" subclass. Generalize this method into a new
-    #"LayerCellsGouraudContinuous" subclass of the same submodule.
+    #"LayerCellsVectorSurfaceDiscrete" subclass. Generalize this method into a
+    #new "LayerCellsGouraudContinuous" subclass of the same submodule.
     def _plot_cell_mesh(self, cell_data: np.ndarray) -> 'TriMesh':
         '''
         Plot and return a mesh plot of all cells with colours corresponding to
@@ -1431,13 +1400,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # If the passed cell data is defined on membrane midpoints, average that
         # to correspond to cell centres instead.
-        if len(cell_data) == len(self._cells.mem_i):
+        if len(cell_data) == len(self._phase.cells.mem_i):
             cell_data = np.dot(
-                self._cells.M_sum_mems, cell_data) / self._cells.num_mems
+                self._phase.cells.M_sum_mems, cell_data) / self._phase.cells.num_mems
 
         # Unstructured triangular grid assigned the passed cell data.
-        triangular_grid = np.zeros(len(self._cells.voronoi_centres))
-        triangular_grid[self._cells.cell_to_grid] = cell_data
+        triangular_grid = np.zeros(len(self._phase.cells.voronoi_centres))
+        triangular_grid[self._phase.cells.cell_to_grid] = cell_data
 
         # cmin = membranes_midpoint_data.min()
         # cmax = membranes_midpoint_data.max()
@@ -1450,8 +1419,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #
         # Behold! The ultimate examplar of nonsensical API design.
         return self._axes.tripcolor(
-            self._p.um * self._cells.cell_centres[:, 0],
-            self._p.um * self._cells.cell_centres[:, 1],
+            self._phase.p.um * self._phase.cells.cell_centres[:, 0],
+            self._phase.p.um * self._phase.cells.cell_centres[:, 1],
             cell_data,
             shading='gouraud',
             cmap=self._colormap

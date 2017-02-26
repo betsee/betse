@@ -105,9 +105,6 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
                 cls._RUNNER_METHOD_NAME_PREFIX))
 
 
-    #FIXME: Is this genuinely useful? We think not, actually. Defining an
-    #iterator mapping from each runner method to the human-readable metadata
-    #associated with that method would be far more useful.
     @classmethod
     def iter_runner_names(cls) -> GeneratorType:
         '''
@@ -130,10 +127,10 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         '''
 
         # For runner method defined by this subclass...
-        for anim_method_name in cls.iter_runner_method_names():
+        for runner_method_name in cls.iter_runner_method_names():
             # Yield the name of this method excluding the runner prefix.
             yield strs.remove_prefix(
-                text=anim_method_name, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
+                text=runner_method_name, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
@@ -348,14 +345,34 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             exception_reason='ion "{}" disabled'.format(ion_name))
 
     # ..................{ SUBCLASS                           }..................
+    #FIXME: Guess what? It's time to fundamentally refactor this as follows:
+    #
+    #* Move this submodule entirely to "betse.science.export.exppipeabc".
+    #* Refactor this method to return "SimConfList" sequences rather than
+    #  generic "SequenceTypes" sequences.
+    #* Refactor the "SimConfListableABC" class to *ALWAYS* provide a "name"
+    #  attribute. To do so, simply shift the existing
+    #  "betse.science.config.visual.confbisabc.name" attribute into the parent
+    #  "SimConfListableABC" class.
+    #* Refactor the run() method to iterate over "SimConfListableABC" instances
+    #  rather than runner names. Since each such instance now provides a name
+    #  attribute, simply use the value of this attribute as the current runner
+    #  name.
+    #* During iteration, pass the current "SimConfListableABC" instance to the
+    #  current runner method as the single parameter accepted by this method.
+    #  Runner methods currently accept no parameters. (Woops.)
+    #
+    #Clearly, this will necessitate a fairly copious refactoring across the
+    #codebase -- but there's really no sane alternative.
     @abstractproperty
     def runner_enabled_names(self) -> SequenceTypes:
         '''
-        Sequence of the names of all currently enabled runners in this pipeline.
+        Sequence of :class:``SimConfList`` instances of all currently enabled
+        runners in this pipeline.
 
-        Pipeline subclasses typically implement this property to return the
-        user-defined sequence of the names of all runners listed in the
-        simulation configuration file associated with the current phase.
+        Pipeline subclasses typically implement this property to return an
+        instance of the :class:``SimConfList`` class listing all runners enabled
+        by the simulation configuration file associated with the current phase.
         '''
 
         pass

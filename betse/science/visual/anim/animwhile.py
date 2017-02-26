@@ -12,6 +12,7 @@ import matplotlib
 import numpy as np
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.export import expmath
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot
@@ -50,13 +51,13 @@ class AnimCellsWhileSolving(AnimCellsABC):
         forces, cutting events) in the fundamental structure of the previously
         plotted cell cluster.
     _is_colorbar_autoscaling_telescoped : bool
-        `True` if colorbar autoscaling is permitted to increase but _not_
-        decrease the colorbar range _or_ `False` otherwise (i.e., if
+        ``True`` if colorbar autoscaling is permitted to increase but not
+        decrease the colorbar range *or* ``False`` otherwise (i.e., if
         colorbar autoscaling is permitted to both increase and decrease the
         colorbar range). Such telescoping assists in emphasizing stable
         long-term patterns in cell data at a cost of deemphasizing unstable
         short-term patterns. If colorbar autoscaling is disabled (i.e.,
-        `is_color_autoscaled` is `False`), this will be ignored.
+        ``is_color_autoscaled`` is ``False``), this will be ignored.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -65,7 +66,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         self,
 
         # Mandatory parameters.
-        p: 'betse.science.parameters.Parameters',
+        phase: SimPhaseABC,
 
         # Optional parameters.
 
@@ -82,8 +83,8 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         Parameters
         ----------
-        p : Parameters
-            Current simulation configuration.
+        phase: SimPhaseABC
+            Current simulation phase.
         is_colorbar_autoscaling_telescoped : optional[bool]
             `True` if colorbar autoscaling is permitted to increase but _not_
             decrease the colorbar range _or_ `False` otherwise (i.e., if
@@ -99,7 +100,10 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         # Initialize the superclass.
         super().__init__(
-            p=p,
+            *args,
+
+            # Pass this simulation phase as is to our superclass.
+            phase=phase,
 
             # Prevent the superclass from overlaying electric current or
             # concentration flux. Although this class does *NOT* animate a
@@ -109,8 +113,8 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
             # Save and show this mid-simulation animation only if this
             # configuration has enabled doing so.
-            is_save=p.anim.is_while_sim_save,
-            is_show=p.anim.is_while_sim_show,
+            is_save=phase.p.anim.is_while_sim_save,
+            is_show=phase.p.anim.is_while_sim_show,
 
             # Save this mid-simulation animation to a different parent
             # directory than that to which the corresponding post-simulation
@@ -118,7 +122,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
             save_dir_parent_basename='anim_while_solving',
 
             # Pass all remaining arguments as is to our superclass.
-            *args, **kwargs
+            **kwargs
         )
         # logs.log_debug('Showing mid-simulation animation: {}'.format(self._is_show))
 
@@ -127,7 +131,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
             is_colorbar_autoscaling_telescoped)
 
         # Unique identifier for the array of cell vertices. (See docstring.)
-        self._cell_verts_id = id(self._cells.cell_verts)
+        self._cell_verts_id = id(self._phase.cells.cell_verts)
 
         #FIXME: This is a temp change until we get this right.
         #FIXME: Refactor to call the new
@@ -135,10 +139,11 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         # average the voltage to the cell centre
         vm_o = np.dot(
-            self._cells.M_sum_mems, self._sim.vm) / self._cells.num_mems
+            self._phase.cells.M_sum_mems, self._phase.sim.vm) / (
+                self._phase.cells.num_mems)
 
         # self._cell_time_series = self.sim.vm_time
-        self._cell_time_series = self._sim.vm_ave_time
+        self._cell_time_series = self._phase.sim.vm_ave_time
 
         # cell_data_current = self.sim.vm
         cell_data_current = vm_o
@@ -227,7 +232,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         # If the unique identifier for the array of cell vertices has *NOT*
         # changed, the cell cluster has *NOT* fundamentally changed and need
         # only be updated with this time step's cell data.
-        if self._cell_verts_id == id(self._cells.cell_verts):
+        if self._cell_verts_id == id(self._phase.cells.cell_verts):
             # loggers.log_info(
             #     'Updating animation "{}" cell plots...'.format(self._type))
             self._update_cell_plots(cell_data)
@@ -239,7 +244,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
             # Prevent subsequent calls to this method from erroneously
             # recreating the cell cluster again.
-            self._cell_verts_id = id(self._cells.cell_verts)
+            self._cell_verts_id = id(self._phase.cells.cell_verts)
 
             # Recreate the cell cluster.
             self._revive_cell_plots(cell_data)
