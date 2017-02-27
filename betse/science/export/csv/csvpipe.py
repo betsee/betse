@@ -22,7 +22,7 @@ from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, paths
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mappings import OrderedArgsDict
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 from numpy import ndarray
 
 # ....................{ SUBCLASSES                         }....................
@@ -44,11 +44,7 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
     #FIXME: Implement this property *AFTER* generalizing the configuration file
     #format to support CSV pipelines..
     @property
-    def runner_enabled_names(self) -> SequenceTypes:
-        '''
-        Sequence of the names of all post-simulation animations enabled by this
-        simulation configuration.
-        '''
+    def runners_args_enabled(self) -> IterableTypes:
 
         raise BetseMethodUnimplementedException()
 

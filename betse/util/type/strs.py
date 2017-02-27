@@ -11,7 +11,7 @@ Low-level string facilities.
 import textwrap
 from betse.exceptions import BetseStrException
 from betse.util.type import types
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import type_check, IterableTypes, StrOrNoneTypes
 from textwrap import TextWrapper
 
 # For convenience, permit callers to import the general-purpose trim() function
@@ -31,7 +31,7 @@ temporary :class:`TextWrapper` instances on each call to such functions.
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
-def die_if_empty(text: str, exception_message: str = None) -> None:
+def die_if_empty(text: str, exception_message: StrOrNoneTypes = None) -> None:
     '''
     Raise an exception with the passed message (defaulting to a human-readable
     message) if the passed string is empty.
@@ -57,7 +57,7 @@ def die_if_empty(text: str, exception_message: str = None) -> None:
 
 @type_check
 def die_unless_prefix(
-    text: str, prefix: str, exception_message: str = None) -> None:
+    text: str, prefix: str, exception_message: StrOrNoneTypes = None) -> None:
     '''
     Raise an exception with the passed message (defaulting to a message
     synthesized from the passed arguments) if the second passed string does

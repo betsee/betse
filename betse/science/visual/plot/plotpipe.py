@@ -76,7 +76,7 @@ from betse.science.simulate.simpipeabc import (
     SimPipelinerExportABC, exporter_metadata)
 from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, IterableTypes
 from matplotlib import pyplot as pyplot
 from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
@@ -120,14 +120,9 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ SUPERCLASS                         }..................
     @property
-    def runner_enabled_names(self) -> SequenceTypes:
-        '''
-        Sequence of the names of all post-simulation plots enabled by this
-        simulation configuration.
-        '''
+    def runners_args_enabled(self) -> IterableTypes:
 
-        return tuple(
-            plot.name for plot in self._phase.p.plot.after_sim_pipeline)
+        return self._phase.p.anim.after_sim_pipeline
 
     # ..................{ EXPORTERS ~ cell : ion             }..................
     @exporter_metadata(categories=(

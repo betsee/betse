@@ -300,11 +300,14 @@ def iter_methods(obj: object) -> GeneratorType:
         :func:`iter_methods_custom_simple` generator excluding all properties.
     '''
 
-    # For the name and value of each attribute of this object...
-    for method_name, method_value in inspect.getmembers(obj):
-        # If this attribute is a method, yield this name and value.
-        if callable(method_value):
-            yield method_name, method_value
+    return (
+        # Yield this method's name and definition.
+        (attr_name, attr_value)
+        # For the name and value of each attribute of this object...
+        for attr_name, attr_value in inspect.getmembers(obj)
+        # If this attribute is a method...
+        if callable(attr_value)
+    )
 
 
 @type_check
@@ -335,11 +338,15 @@ def iter_methods_matching(
         Further details.
     '''
 
-    # For the name and value of each method of this object...
-    for method_name, method_value in iter_methods(obj):
-        # If this method matches this predicate, yield this name and value.
-        if predicate(method_name):
-            yield method_name, method_value
+    return (
+        # Yield this method's name and definition.
+        (method_name, method)
+        # For the name and definition of each method bound to this object...
+        for method_name, method in iter_methods(obj)
+        # If this method matches this predicate...
+        if predicate(method_name)
+    )
+
 
 
 def iter_methods_custom(obj: object) -> GeneratorType:

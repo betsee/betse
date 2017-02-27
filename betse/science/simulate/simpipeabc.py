@@ -4,7 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-High-level **simulation pipeline** (i.e., set of one or more processing ) functionality.
+High-level **simulation pipeline** (i.e., sequence of similar simulation
+activities to be iteratively run) functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -22,14 +23,18 @@ from betse.util.type.cls import classes
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.obj import objects
 from betse.util.type.types import (
-    type_check, CallableTypes, GeneratorType, SequenceTypes)
+    type_check, CallableTypes, GeneratorType, IterableTypes, SequenceTypes)
 
 # ....................{ SUPERCLASSES                       }....................
 class SimPipelinerABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all **simulation pipelines** (i.e., subclasses
-    iteritavely running all implementations of a single simulation activity,
-    either in parallel *or* in series).
+    Abstract base class of all subclasses running a **simulation pipeline**
+    (i.e., sequence of similar simulation activities to be iteratively run).
+
+    This class implements the infrastructure for iteratively running all
+    currently enabled simulation activities (referred to as "runners")
+    comprising the pipeline defined by this subclass, either in parallel *or* in
+    series.
 
     Design
     ----------
@@ -42,12 +47,12 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
       method should:
       * Accept exactly one parameter: ``self``.
       * Return nothing (i.e.,``None``).
-    * The abstract :meth:`runner_enabled_names` property returning a sequence of the
+    * The abstract :meth:`runners_args_enabled` property returning a sequence of the
       names of all runners currently enabled by this pipeline (e.g.,
       ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
 
     The :meth:`run` method defined by this base class then dynamically
-    implements this pipeline by iterating over the :meth:`runner_enabled_names` property
+    implements this pipeline by iterating over the :meth:`runners_args_enabled` property
     and, for each enabled runner, calling that runner's method.
 
     Attributes (Private)
@@ -86,10 +91,9 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
     # ..................{ STATIC ~ iterators                 }..................
     @classmethod
-    def iter_runner_method_names(cls) -> GeneratorType:
+    def iter_runner_methods(cls) -> GeneratorType:
         '''
-        Generator yielding the name of each runner method defined by this
-        pipeline subclass.
+        Generator yielding each runner method defined by this pipeline subclass.
 
         For each subclass method whose name is prefixed by
         :attr:`_RUNNER_METHOD_NAME_PREFIX`, this generator yields that method.
@@ -101,7 +105,8 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         '''
 
         yield from classes.iter_methods_matching(
-            cls=cls, predicate=lambda method_name: method_name.startswith(
+            cls=cls,
+            predicate=lambda method_name: method_name.startswith(
                 cls._RUNNER_METHOD_NAME_PREFIX))
 
 
@@ -126,11 +131,13 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             Name of each runner defined by this pipeline.
         '''
 
-        # For runner method defined by this subclass...
-        for runner_method_name in cls.iter_runner_method_names():
+        return (
             # Yield the name of this method excluding the runner prefix.
-            yield strs.remove_prefix(
+            strs.remove_prefix(
                 text=runner_method_name, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
+            # For the name of each runner method defined by this subclass...
+            for runner_method_name, _ in cls.iter_runner_methods()
+        )
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
@@ -194,10 +201,18 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         logs.log_info(
             '%s %s...', self._label_verb, self._label_plural_lowercase)
 
-        # For the name of each currently enabled runner in this pipeline...
-        for runner_name in self.runner_enabled_names:
+        # For the object encapsulating all input arguments to be passed to each
+        # currently enabled runner in this pipeline...
+        for runner_args in self.runners_args_enabled:
+            if not isinstance(runner_args, SimPipelineRunnerArgs):
+                raise BetseSimPipelineException(
+                    'runners_args_enabled() item {!r} '
+                    'not instance of "SimPipelineRunnerArgs".'.format(
+                        runner_args))
+
             # Name of the method implementing this runner.
-            runner_method_name = self._RUNNER_METHOD_NAME_PREFIX + runner_name
+            runner_method_name = (
+                self._RUNNER_METHOD_NAME_PREFIX + runner_args.name)
 
             # Method implementing this runner *OR* None if this runner is
             # unrecognized.
@@ -211,9 +226,9 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
                         self._label_singular_uppercase, runner_method_name))
             # Else, this runner is recognized.
 
-            # Attempt to run this runner.
+            # Attempt to pass this runner these arguments.
             try:
-                runner_method()
+                runner_method(runner_args)
             # If this runner's requirements are unsatisfied (e.g., due to the
             # current simulation configuration disabling extracellular spaces),
             # ignore this runner with a non-fatal warning and continue.
@@ -221,7 +236,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
                 logs.log_warn(
                     'Ignoring %s "%s", as:\n\t%s',
                     self._label_singular_lowercase,
-                    runner_name,
+                    runner_args.name,
                     str(exception))
 
     # ..................{ PRIVATE ~ loggers                  }..................
@@ -345,30 +360,12 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             exception_reason='ion "{}" disabled'.format(ion_name))
 
     # ..................{ SUBCLASS                           }..................
-    #FIXME: Guess what? It's time to fundamentally refactor this as follows:
-    #
-    #* Move this submodule entirely to "betse.science.export.exppipeabc".
-    #* Refactor this method to return "SimConfList" sequences rather than
-    #  generic "SequenceTypes" sequences.
-    #* Refactor the "SimConfListableABC" class to *ALWAYS* provide a "name"
-    #  attribute. To do so, simply shift the existing
-    #  "betse.science.config.visual.confbisabc.name" attribute into the parent
-    #  "SimConfListableABC" class.
-    #* Refactor the run() method to iterate over "SimConfListableABC" instances
-    #  rather than runner names. Since each such instance now provides a name
-    #  attribute, simply use the value of this attribute as the current runner
-    #  name.
-    #* During iteration, pass the current "SimConfListableABC" instance to the
-    #  current runner method as the single parameter accepted by this method.
-    #  Runner methods currently accept no parameters. (Woops.)
-    #
-    #Clearly, this will necessitate a fairly copious refactoring across the
-    #codebase -- but there's really no sane alternative.
     @abstractproperty
-    def runner_enabled_names(self) -> SequenceTypes:
+    def runners_args_enabled(self) -> IterableTypes:
         '''
-        Sequence of :class:``SimConfList`` instances of all currently enabled
-        runners in this pipeline.
+        Iterable of all currently enabled :class:`SimPipelineRunnerArgs`
+        instances, each encapsulating all input parameters to be passed to the
+        method implementing a currently enabled runner in this pipeline.
 
         Pipeline subclasses typically implement this property to return an
         instance of the :class:``SimConfList`` class listing all runners enabled
@@ -398,6 +395,33 @@ class SimPipelinerExportABC(SimPipelinerABC):
         # exportation-specific verb.
         super().__init__(*args, label_verb='Exporting', **kwargs)
 
+# ....................{ INTERFACES                         }....................
+class SimPipelineRunnerArgs(object, metaclass=ABCMeta):
+    '''
+    Abstract base class of all subclasses defining a type of **simulation
+    pipeline runner arguments** (i.e., simple object encapsulating all input
+    parameters to be passed to a method implementing a runner in a
+    :class:`SimPipelinerABC` pipeline).
+
+    This class is suitable for use as a multiple-inheritance mixin. To preserve
+    the expected method resolution order (MRO) semantics, this class should
+    typically be the *last* rather than *first* base class inherited from.
+
+    See Also
+    ----------
+    :class:`betse.science.config.confabc.SimConfListableABC`
+        Class subclassing this base class via multiple inheritance.
+    '''
+
+    # ..................{ SUBCLASS                           }..................
+    @abstractproperty
+    def name(self) -> None:
+        '''
+        Lowercase alphanumeric string uniquely identifying the runner these
+        arguments apply to in the parent simulation pipeline (e.g.,
+        ``voltage_intra``, signifying an intracellular voltage runner).
+        '''
+
 # ....................{ DECORATORS                         }....................
 @type_check
 def runner_metadata(categories: SequenceTypes) -> CallableTypes:
@@ -417,6 +441,11 @@ def runner_metadata(categories: SequenceTypes) -> CallableTypes:
     annotates runners with metadata, however, unannotated runners will *not* be
     usable by external interfaces expecting this metadata -- typically, GUIs
     populating interactive widget fields by this metadata.
+
+    **Runner methods decorated by this decorator should not be decorated by
+    other decorators.** In particular, decorated methods should *not* also be
+    decorated by :func:`@type_check`, which this decorator already internally
+    decorates all decorated methods by.
 
     Parameters
     ----------
@@ -443,9 +472,20 @@ def runner_metadata(categories: SequenceTypes) -> CallableTypes:
     def _runner_metadata_closure(
         method: CallableTypes) -> SimPipelineRunnerMetadata:
         '''
-        Closure annotating simulation pipeline runners with custom metadata,
-        returning an instance of the class decorator exposing this metadata to
-        external interfaces.
+        Closure both type-checking *and* annotating the passed simulation
+        pipeline runner method with the metadata passed to the outer decorator
+        defining this closure, returning an instance of the class decorator
+        exposing this metadata to external interfaces.
+
+        Parameters
+        ----------
+        method : CallableTypes
+            Unbound method (i.e., function) to be decorated by (in order):
+            #. The :func:`@type_check` decorator, type checking this method.
+               For efficiency, callers should ensure this method is *not*
+               externally decorated by this decorator.
+            #. The :class:`SimPipelineRunnerMetadata` class decorator,
+               annotating this method with this metadata.
 
         See Also
         ----------
@@ -453,8 +493,12 @@ def runner_metadata(categories: SequenceTypes) -> CallableTypes:
             Further details.
         '''
 
-        # Return
-        return SimPipelineRunnerMetadata(method=method, categories=categories)
+        # Return an instance of the class decorator exposing this metadata.
+        return SimPipelineRunnerMetadata(
+            # As a caller convenience, ensure this method is type-checked.
+            method=type_check(method),
+            categories=categories,
+        )
 
     # Return the closure accepting the method to be decorated.
     return _runner_metadata_closure
@@ -493,10 +537,10 @@ class SimPipelineRunnerMetadata(MethodDecorator):
 
         Parameters
         ----------
-        categories : SequenceTypes
-            Sequence of one or more human-readable category names.
         method: CallableTypes
             Unbound method (i.e., function) to be decorated.
+        categories : SequenceTypes
+            Sequence of one or more human-readable category names.
 
         Raises
         ----------

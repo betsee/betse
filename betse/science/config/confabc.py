@@ -9,6 +9,7 @@ well as functionality pertaining to such classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
+from betse.science.simulate.simpipeabc import SimPipelineRunnerArgs
 from betse.util.type.cls import classes
 from betse.util.type.cls.descriptors import expr_alias, expr_enum_alias
 from betse.util.type.obj import objects
@@ -63,22 +64,35 @@ class SimConfABC(object, metaclass=ABCMeta):
         return self._conf
 
 
-class SimConfListableABC(SimConfABC):
+class SimConfListableABC(SimPipelineRunnerArgs, SimConfABC):
     '''
     Abstract base class of all simulation configuration subclasses intended to
-    be added as elements of lists of type :class:`SimConfList`.
+    be added to :class:`SimConfList` lists.
+
+    Design
+    ----------
+    This class subclasses the :class:`SimPipelineRunnerArgs` mixin, allowing all
+    instances of:
+
+    * This class to be used as **simulation pipeline runner arguments** (i.e.,
+      simple objects encapsulating all input parameters to be passed to a method
+      implementing a runner in a :class:`SimPipelinerABC` pipeline).
+    * The :class:`SimConfList` class to be used as sequences of these arguments
+      and hence returned from the abstract
+      :class:`SimPipelinerABC.runners_args_enabled` property.
     '''
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ CLASS                              }..................
+    @classmethod
     @abstractmethod
-    def default(self) -> None:
+    def make_default(self):
         '''
-        Initialize the dictionary associated with this simulation configuration
-        to default values.
+        Create and return an instance of this class encapsulating a new
+        dictionary containing default configuration settings.
 
         This method is principally intended to be called by the
-        :meth:`SimConfList.append_default` method, appending a new instance of
-        this class (initialized by this method) to a list of these instances.
+        :meth:`SimConfList.append_default` method, appending this instance to an
+        existing list of such instances.
         '''
 
         pass
@@ -199,8 +213,8 @@ class SimConfList(MutableSequence):
     # ..................{ APPENDERS                          }..................
     def append_default(self) -> SimConfListableABC:
         '''
-        Append a new simulation configuration instance initialized to default
-        values immediately *after* the last such instance.
+        Append a new simulation configuration list item initialized to default
+        values to this list and return this list item.
 
         Returns
         ----------
@@ -210,16 +224,13 @@ class SimConfList(MutableSequence):
             dictionary appended to the low-level :attr:`_confs_yaml` list.
         '''
 
-        # YAML-backed dictionary underlying the new instance to be appended.
-        conf_yaml = {}
+        # Default simulation configuration list item.
+        conf_wrap = self._conf_type.make_default()
 
-        # Instance wrapping this dictionary.
-        conf_wrap = self._conf_type(conf=conf_yaml)
+        # Append this list item to this list.
+        self.append(conf_wrap)
 
-        # Initialize this instance to default values.
-        conf_wrap.default()
-
-        # Return this instance.
+        # Return this list item.
         return conf_wrap
 
 # ....................{ DESCRIPTORS                        }....................

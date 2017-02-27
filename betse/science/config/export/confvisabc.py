@@ -7,12 +7,11 @@ YAML-backed simulation visualization subconfigurations.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseMethodUnimplementedException
 from betse.science.config.confabc import SimConfListableABC, conf_alias
 from betse.util.type.types import NumericTypes
 
 # ....................{ SUBCLASSES                         }....................
-class SimConfVisual(SimConfListableABC):
+class SimConfListableVisual(SimConfListableABC):
     '''
     YAML-backed simulation visualization subconfiguration, encapsulating the
     configuration of a single visualization (either in- or post-simulation plot
@@ -42,10 +41,19 @@ class SimConfVisual(SimConfListableABC):
         values to :attr:`color_min` and :attr:`color_max`.
     '''
 
-    # ..................{ SUPERCLASS                         }..................
-    #FIXME: Actually implement this method.
-    def default(self) -> None:
-        raise BetseMethodUnimplementedException()
+    # ..................{ CLASS                              }..................
+    @classmethod
+    def make_default(self) -> SimConfListableABC:
+
+        # Duplicate the default animation listed first in our default YAML file.
+        return SimConfListableVisual(conf={
+            'type': 'voltage_intra',
+            'colorbar': {
+                'autoscale': True,
+                'minimum': -70.0,
+                'maximum':  10.0,
+            },
+        })
 
     # ..................{ ALIASES                            }..................
     name = conf_alias("['type']", str)

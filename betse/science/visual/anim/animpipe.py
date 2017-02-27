@@ -7,12 +7,19 @@ High-level facilities for **pipelining** (i.e., iteratively displaying and/or
 exporting) post-simulation animations.
 '''
 
+#FIXME: Force all optional "anim_conf: SimConfListableVisual = None" parameters
+#below to be mandatory.
+#FIXME: Refactor the "VisualCellsABC" superclass to accept a single
+#"SimConfListableVisual" parameter in lieu of the three current
+#"is_color_autoscaled", "color_min", and "color_max" parameters.
+
 #FIXME: This module would be a *GREAT* candidate for testing out Python 3.5-
 #based asynchronicity and parallelization. Ideally, we'd be able to segregate
 #the generation of each animation to its own Python process. Verdant shimmers!
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from betse.science.config.export.confvisabc import SimConfListableVisual
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.simulate.simpipeabc import (
     SimPipelinerExportABC, exporter_metadata)
@@ -36,7 +43,7 @@ from betse.science.visual.layer.field.layerfieldquiver import (
 from betse.science.visual.layer.vector import layervectorsurface
 from betse.science.visual.layer.vector.layervectorsurface import (
     LayerCellsVectorSurfaceContinuous)
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUBCLASSES                         }....................
 class AnimCellsPipeliner(SimPipelinerExportABC):
@@ -55,24 +62,28 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ SUPERCLASS                         }..................
     @property
-    def runner_enabled_names(self) -> SequenceTypes:
-        '''
-        Sequence of the names of all post-simulation animations enabled by this
-        simulation configuration.
-        '''
+    def runners_args_enabled(self) -> IterableTypes:
 
-        return tuple(
-            anim.name for anim in self._phase.p.anim.after_sim_pipeline)
+        return self._phase.p.anim.after_sim_pipeline
 
     # ..................{ EXPORTERS ~ current                }..................
     @exporter_metadata(categories=('Current Density', 'Intracellular'))
-    def export_current_intra(self) -> None:
+    def export_current_intra(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the intracellular current density for all time steps.
         '''
 
         # Log this animation attempt.
         self._die_unless_intra()
+
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_I_ani
+            color_min=self._phase.p.I_ani_min_clr
+            color_max=self._phase.p.I_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
 
         # Animate this animation.
         AnimCurrent(
@@ -81,14 +92,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='current_gj',
             figure_title='Intracellular Current',
             colorbar_title='Current Density [uA/cm2]',
-            is_color_autoscaled=self._phase.p.autoscale_I_ani,
-            color_min=self._phase.p.I_ani_min_clr,
-            color_max=self._phase.p.I_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
 
     @exporter_metadata(categories=('Current Density', 'Total'))
-    def export_current_total(self) -> None:
+    def export_current_total(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the total current density (i.e., both intra- and extracellular)
         for all time steps.
@@ -97,6 +108,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         # Raise an exception unless extracellular spaces are enabled.
         self._die_unless_extra()
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_I_ani
+            color_min=self._phase.p.I_ani_min_clr
+            color_max=self._phase.p.I_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimCurrent(
             phase=self._phase,
@@ -104,14 +124,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='current_ecm',
             figure_title='Extracellular Current',
             colorbar_title='Current Density [uA/cm2]',
-            is_color_autoscaled=self._phase.p.autoscale_I_ani,
-            color_min=self._phase.p.I_ani_min_clr,
-            color_max=self._phase.p.I_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
     # ..................{ EXPORTERS ~ deform                 }..................
     @exporter_metadata(categories=('Cellular Deformation', 'Physical'))
-    def export_deform(self) -> None:
+    def export_deform(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate physical cellular deformations for all time steps.
         '''
@@ -130,7 +150,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ EXPORTERS ~ electric               }..................
     @exporter_metadata(categories=('Electric Field', 'Intracellular'))
-    def export_electric_intra(self) -> None:
+    def export_electric_intra(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the intracellular electric field for all time steps.
         '''
@@ -157,6 +177,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             LayerCellsFieldQuiver(field=field),
         )
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Efield_ani
+            color_min=self._phase.p.Efield_ani_min_clr
+            color_max=self._phase.p.Efield_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate these layers.
         AnimCellsAfterSolvingLayered(
             phase=self._phase,
@@ -164,9 +193,9 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Efield_gj',
             figure_title='Intracellular E Field',
             colorbar_title='Electric Field [V/m]',
-            is_color_autoscaled=self._phase.p.autoscale_Efield_ani,
-            color_min=self._phase.p.Efield_ani_min_clr,
-            color_max=self._phase.p.Efield_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
 
             # Prefer an alternative colormap.
             colormap=self._phase.p.background_cm,
@@ -174,7 +203,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
 
     @exporter_metadata(categories=('Electric Field', 'Total'))
-    def export_electric_total(self) -> None:
+    def export_electric_total(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the total electric field (i.e., both intra- and extracellular)
         for all time steps.
@@ -182,6 +211,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
         # Raise an exception unless extracellular spaces are enabled.
         self._die_unless_extra()
+
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Efield_ani
+            color_min=self._phase.p.Efield_ani_min_clr
+            color_max=self._phase.p.Efield_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
 
         # Animate this animation.
         AnimFieldExtracellular(
@@ -191,14 +229,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Efield_ecm',
             figure_title='Extracellular E Field',
             colorbar_title='Electric Field [V/m]',
-            is_color_autoscaled=self._phase.p.autoscale_Efield_ani,
-            color_min=self._phase.p.Efield_ani_min_clr,
-            color_max=self._phase.p.Efield_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
     # ..................{ EXPORTERS ~ fluid                  }..................
     @exporter_metadata(categories=('Fluid Flow', 'Intracellular'))
-    def export_fluid_intra(self) -> None:
+    def export_fluid_intra(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the intracellular fluid flow field for all time steps.
         '''
@@ -208,20 +246,29 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             is_satisfied=self._phase.p.fluid_flow,
             exception_reason='fluid flow disabled')
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Velocity_ani
+            color_min=self._phase.p.Velocity_ani_min_clr
+            color_max=self._phase.p.Velocity_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimVelocityIntracellular(
             phase=self._phase,
             label='Velocity_gj',
             figure_title='Intracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [nm/s]',
-            is_color_autoscaled=self._phase.p.autoscale_Velocity_ani,
-            color_min=self._phase.p.Velocity_ani_min_clr,
-            color_max=self._phase.p.Velocity_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
 
     @exporter_metadata(categories=('Fluid Flow', 'Total'))
-    def export_fluid_total(self) -> None:
+    def export_fluid_total(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the total fluid flow field (i.e., both intra- and extracellular)
         for all time steps.
@@ -235,20 +282,29 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             exception_reason=(
                 'fluid flow and/or extracellular spaces disabled'))
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Velocity_ani
+            color_min=self._phase.p.Velocity_ani_min_clr
+            color_max=self._phase.p.Velocity_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimVelocityExtracellular(
             phase=self._phase,
             label='Velocity_ecm',
             figure_title='Extracellular Fluid Velocity',
             colorbar_title='Fluid Velocity [um/s]',
-            is_color_autoscaled=self._phase.p.autoscale_Velocity_ani,
-            color_min=self._phase.p.Velocity_ani_min_clr,
-            color_max=self._phase.p.Velocity_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
     # ..................{ EXPORTERS ~ ion                    }..................
     @exporter_metadata(categories=('Ion Concentration', 'Calcium'))
-    def export_ion_calcium(self) -> None:
+    def export_ion_calcium(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate all calcium (i.e., Ca2+) ion concentrations for all time steps.
         '''
@@ -260,6 +316,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         time_series = [
             1e6*arr[self._phase.sim.iCa] for arr in self._phase.sim.cc_time]
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Ca_ani
+            color_min=self._phase.p.Ca_ani_min_clr
+            color_max=self._phase.p.Ca_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimFlatCellsTimeSeries(
             phase=self._phase,
@@ -267,14 +332,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Ca',
             figure_title='Cytosolic Ca2+',
             colorbar_title='Concentration [nmol/L]',
-            is_color_autoscaled=self._phase.p.autoscale_Ca_ani,
-            color_min=self._phase.p.Ca_ani_min_clr,
-            color_max=self._phase.p.Ca_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
 
     @exporter_metadata(categories=('Ion Concentration', 'Hydrogen'))
-    def export_ion_hydrogen(self) -> None:
+    def export_ion_hydrogen(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate all hydrogen (i.e., H+) ion concentrations for all time steps,
         scaled to correspond exactly to pH.
@@ -289,6 +354,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             for arr in self._phase.sim.cc_time
         ]
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_pH_ani
+            color_min=self._phase.p.pH_ani_min_clr
+            color_max=self._phase.p.pH_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimFlatCellsTimeSeries(
             phase=self._phase,
@@ -296,20 +370,29 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='pH',
             figure_title='Cytosolic pH',
             colorbar_title='pH',
-            is_color_autoscaled=self._phase.p.autoscale_Ca_ani,
-            color_min=self._phase.p.Ca_ani_min_clr,
-            color_max=self._phase.p.Ca_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
     # ..................{ EXPORTERS ~ membrane               }..................
     @exporter_metadata(categories=('Cellular Membrane', 'Gap Junctions'))
-    def export_membrane_gap_junction(self) -> None:
+    def export_membrane_gap_junction(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate all gap junction connectivity states for all time steps.
         '''
 
         # Log this animation attempt.
         self._die_unless_intra()
+
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Vgj_ani
+            color_min=self._phase.p.Vgj_ani_min_clr
+            color_max=self._phase.p.Vgj_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
 
         # Animate this animation.
         AnimGapJuncTimeSeries(
@@ -318,14 +401,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Vmem_gj',
             figure_title='Gap Junction State over Vmem',
             colorbar_title='Voltage [mV]',
-            is_color_autoscaled=self._phase.p.autoscale_Vgj_ani,
-            color_min=self._phase.p.Vgj_ani_min_clr,
-            color_max=self._phase.p.Vgj_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
 
     @exporter_metadata(categories=('Cellular Membrane', 'Pump Density'))
-    def export_membrane_pump_density(self) -> None:
+    def export_membrane_pump_density(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate all cellular membrane pump density factors for all time steps.
         '''
@@ -335,6 +418,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             is_satisfied=self._phase.p.sim_eosmosis,
             exception_reason='channel electroosmosis disabled')
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_mem_ani
+            color_min=self._phase.p.mem_ani_min_clr
+            color_max=self._phase.p.mem_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimMembraneTimeSeries(
             phase=self._phase,
@@ -342,14 +434,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='rhoPump',
             figure_title='Pump Density Factor',
             colorbar_title='mol fraction/m2',
-            is_color_autoscaled=self._phase.p.autoscale_mem_ani,
-            color_min=self._phase.p.mem_ani_min_clr,
-            color_max=self._phase.p.mem_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
     # ..................{ EXPORTERS ~ pressure               }..................
     @exporter_metadata(categories=('Cellular Pressure', 'Mechanical'))
-    def export_pressure_mechanical(self) -> None:
+    def export_pressure_mechanical(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the cellular mechanical pressure for all time steps.
         '''
@@ -359,6 +451,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             is_satisfied=self._phase.p.scheduled_options['pressure'] != 0,
             exception_reason='mechanical pressure event disabled')
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Pcell_ani
+            color_min=self._phase.p.Pcell_ani_min_clr
+            color_max=self._phase.p.Pcell_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimFlatCellsTimeSeries(
             phase=self._phase,
@@ -366,14 +467,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Pcell',
             figure_title='Pressure in Cells',
             colorbar_title='Pressure [Pa]',
-            is_color_autoscaled=self._phase.p.autoscale_Pcell_ani,
-            color_min=self._phase.p.Pcell_ani_min_clr,
-            color_max=self._phase.p.Pcell_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
 
     @exporter_metadata(categories=('Cellular Pressure', 'Osmotic'))
-    def export_pressure_osmotic(self) -> None:
+    def export_pressure_osmotic(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate the cellular osmotic pressure for all time steps.
         '''
@@ -383,6 +484,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             is_satisfied=self._phase.p.deform_osmo,
             exception_reason='osmotic pressure disabled')
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Pcell_ani
+            color_min=self._phase.p.Pcell_ani_min_clr
+            color_max=self._phase.p.Pcell_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimFlatCellsTimeSeries(
             phase=self._phase,
@@ -390,14 +500,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Osmotic Pcell',
             figure_title='Osmotic Pressure in Cells',
             colorbar_title='Pressure [Pa]',
-            is_color_autoscaled=self._phase.p.autoscale_Pcell_ani,
-            color_min=self._phase.p.Pcell_ani_min_clr,
-            color_max=self._phase.p.Pcell_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
     # ..................{ EXPORTERS ~ voltage                }..................
     @exporter_metadata(categories=('Voltage', 'Intracellular'))
-    def export_voltage_intra(self) -> None:
+    def export_voltage_intra(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate all intracellular voltages for all time steps.
         '''
@@ -413,6 +523,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         # as a Gouraud-shaded surface.
         layers = (layervectorsurface.make(p=self._phase.p, vector=vector),)
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_Vmem_ani
+            color_min=self._phase.p.Vmem_ani_min_clr
+            color_max=self._phase.p.Vmem_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate these layers.
         AnimCellsAfterSolvingLayered(
             phase=self._phase,
@@ -420,14 +539,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Vmem',
             figure_title='Transmembrane Voltage',
             colorbar_title='Voltage [mV]',
-            is_color_autoscaled=self._phase.p.autoscale_Vmem_ani,
-            color_min=self._phase.p.Vmem_ani_min_clr,
-            color_max=self._phase.p.Vmem_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
 
     @exporter_metadata(categories=('Voltage', 'Total'))
-    def export_voltage_total(self) -> None:
+    def export_voltage_total(self, anim_conf: SimConfListableVisual = None) -> None:
         '''
         Animate all voltages (i.e., both intra- and extracellular) for all time
         steps.
@@ -442,6 +561,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             for venv in self._phase.sim.venv_time
         ]
 
+        if anim_conf is None:
+            is_color_autoscaled=self._phase.p.autoscale_venv_ani
+            color_min=self._phase.p.venv_ani_min_clr
+            color_max=self._phase.p.venv_ani_max_clr
+        else:
+            is_color_autoscaled=anim_conf.is_color_autoscaled
+            color_min=anim_conf.color_min
+            color_max=anim_conf.color_max
+
         # Animate this animation.
         AnimEnvTimeSeries(
             phase=self._phase,
@@ -449,9 +577,9 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             label='Venv',
             figure_title='Environmental Voltage',
             colorbar_title='Voltage [mV]',
-            is_color_autoscaled=self._phase.p.autoscale_venv_ani,
-            color_min=self._phase.p.venv_ani_min_clr,
-            color_max=self._phase.p.venv_ani_max_clr,
+            is_color_autoscaled=is_color_autoscaled,
+            color_min=color_min,
+            color_max=color_max,
         )
 
 # ....................{ OBSOLETE                           }....................
@@ -476,10 +604,9 @@ def pipeline(phase: SimPhaseABC) -> None:
     # Pipeline displaying and/or saving all post-simulation animations.
     pipeliner = AnimCellsPipeliner(phase)
 
-    #FIXME: Enable us up.
     # Display and/or save all such animations enabled by this configuration.
-    # pipeliner.run()
-    # return
+    pipeliner.run()
+    return
 
     #FIXME: Remove *ALL* logic below. When doing so, note that *ALL* uses of
     #hardcoded animation-specific parameter options (e.g.,

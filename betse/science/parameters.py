@@ -1353,18 +1353,31 @@ class Parameters(object):
             }
 
         after_solving_anims = results['after solving']['animations']
+        after_solving_plots = results['after solving']['plots']
 
         if 'pipeline' not in after_solving_anims:
             # Log a non-fatal warning.
             logs.log_warning(
-                'Config file post-animation results option '
-                '"pipeline" not found. '
+                'Config file setting "results options" -> "after solving" -> '
+                '"animations" -> "pipeline" not found. '
                 'Repairing to preserve backward compatibility. '
                 'Consider upgrading to the newest config file format!',
             )
 
             # Default the value for this dictionary key to the empty list.
             after_solving_anims['pipeline'] = []
+
+        if 'pipeline' not in after_solving_plots:
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Config file setting "results options" -> "after solving" -> '
+                '"plots" -> "pipeline" not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
+
+            # Default the value for this dictionary key to the empty list.
+            after_solving_plots['pipeline'] = []
 
 
     def _init_tissue_and_cut_profiles(self) -> None:

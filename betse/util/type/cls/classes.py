@@ -42,7 +42,7 @@ def die_unless_subclass(subclass: ClassType, superclass: ClassType) -> None:
 @type_check
 def iter_methods(cls: ClassType) -> GeneratorType:
     '''
-    Generator yielding a 2-tuple of the name and value of each method defined by
+    Generator yielding 2-tuples of the name and value of each method defined by
     the passed class (in ascending lexicographic order of method name).
 
     This generator *only* yields methods statically registered in the internal
@@ -72,7 +72,7 @@ def iter_methods(cls: ClassType) -> GeneratorType:
     from betse.util.type.obj import objects
 
     # Well, isn't that special?
-    yield from objects.iter_methods(cls)
+    yield from objects.iter_methods(obj=cls)
 
 
 @type_check
@@ -107,7 +107,7 @@ def iter_methods_matching(
     from betse.util.type.obj import objects
 
     # Well, isn't that special?
-    yield from objects.iter_methods_matching(cls)
+    yield from objects.iter_methods_matching(obj=cls, predicate=predicate)
 
 # ....................{ DEFINERS                           }....................
 @type_check

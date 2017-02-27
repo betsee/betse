@@ -28,6 +28,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 from betse.exceptions import BetseNumericException
 from betse.science.config import confdefault, confio
 from betse.science.parameters import Parameters
+from betse.science.visual.anim.animpipe import AnimCellsPipeliner
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.type.types import type_check, NumericTypes
@@ -641,7 +642,7 @@ class SimConfigTestWrapper(object):
         '''
         Enable all supported plots and animations, all features required by
         these plots and animations, and any additional features trivially
-        enabled _without_ substantially increasing time or space complexity.
+        enabled *without* substantially increasing time or space complexity.
 
         This method is intended to be called by non-interactive test suites
         exercising all plots and animations. Specifically, this method enables:
@@ -694,16 +695,23 @@ class SimConfigTestWrapper(object):
         results['Pressure 2D']['plot Pressure'] = True
         results['Velocity 2D']['plot Velocity'] = True
 
-        # Enable all animations.
-        results['Vmem Ani']['animate Vmem'] = True
-        results['Ca Ani']['animate Ca2+'] = True
-        results['pH Ani']['animate pH'] = True
-        results['Vmem GJ Ani']['animate Vmem with gj'] = True
-        results['Current Ani']['animate current'] = True
-        results['Membrane Ani']['animate membrane'] = True
-        results['Efield Ani']['animate Efield'] = True
-        results['Velocity Ani']['animate Velocity'] = True
-        results['Deformation Ani']['animate Deformation'] = True
+        # For each type of animation supported by the animation pipeline...
+        for runner_name in AnimCellsPipeliner.iter_runner_names():
+            # New default animation of this type appended to this pipeline.
+            runner_conf = self._p.anim.after_sim_pipeline.append_default()
+            runner_conf.name = runner_name
+
+        #FIXME: Remove this after transitioning to the pipelined approach.
+        # Disable all old-style animations.
+        results['Vmem Ani']['animate Vmem'] = False
+        results['Ca Ani']['animate Ca2+'] = False
+        results['pH Ani']['animate pH'] = False
+        results['Vmem GJ Ani']['animate Vmem with gj'] = False
+        results['Current Ani']['animate current'] = False
+        results['Membrane Ani']['animate membrane'] = False
+        results['Efield Ani']['animate Efield'] = False
+        results['Velocity Ani']['animate Velocity'] = False
+        results['Deformation Ani']['animate Deformation'] = False
 
         # Enable all features required by these plots and animations.
         self.is_ecm = True

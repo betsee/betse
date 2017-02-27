@@ -145,9 +145,10 @@ def _preserve_backward_importability() -> None:
     sys.modules['betse.science.visual.plot.plotconfig'] = confplot
 
     # Alias obsolete to current class names.
-    confanim.SimConfAnimOne = confvisabc.SimConfVisual
-    simphase.SimPhaseType = simphase.SimPhaseKind
+    confanim.SimConfAnimOne = confvisabc.SimConfListableVisual
+    confvisabc.SimConfVisual = confvisabc.SimConfListableVisual
     sim.SimPhase = simphase.SimPhaseKind
+    simphase.SimPhaseType = simphase.SimPhaseKind
     sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
         confanim.SimConfAnimAll)
     sys.modules['betse.science.config.visual.confplot'].SimConfPlot = (

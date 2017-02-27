@@ -13,7 +13,7 @@ YAML-backed simulation animation subconfigurations.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
-from betse.science.config.export.confvisabc import SimConfVisual
+from betse.science.config.export.confvisabc import SimConfListableVisual
 from betse.util.type import ints
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
@@ -128,7 +128,7 @@ class SimConfAnimAll(SimConfABC):
         self.after_sim_pipeline = SimConfList(
             confs=self._conf[
                 'results options']['after solving']['animations']['pipeline'],
-            conf_type=SimConfVisual,
+            conf_type=SimConfListableVisual,
         )
 
         # Validate all configured integers to be positive.
