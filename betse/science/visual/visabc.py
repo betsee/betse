@@ -20,6 +20,7 @@ from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
+from betse.science.config.export.confvisabc import SimConfVisualMixin
 from betse.science.export import expmath
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.layer.layerabc import (
@@ -34,7 +35,7 @@ from betse.util.type.types import (
     type_check,
     IterableOrNoneTypes,
     NoneType,
-    NumericTypes, NumericOrNoneTypes,
+    NumericOrNoneTypes,
     SequenceTypes, SequenceOrNoneTypes,
 )
 from matplotlib import pyplot
@@ -140,14 +141,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Mandatory parameters.
         phase: SimPhaseABC,
+        conf: SimConfVisualMixin,
         is_save: bool,
         is_show: bool,
         label: str,
         figure_title: str,
         colorbar_title: str,
-        is_color_autoscaled: bool,
-        color_min: NumericTypes,
-        color_max: NumericTypes,
 
         # Optional parameters.
         axes_title: (str, NoneType) = None,
@@ -163,8 +162,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        _phase : SimPhaseABC
+        phase : SimPhaseABC
             Current simulation phase.
+        conf : SimConfVisualMixin
+            Object encapsulating the configuration of this visualization, parsed
+            from the YAML-backed simulation configuration file for this phase.
         is_save : bool
             ``True`` only if non-interactively saving this plot or animation.
         is_show : bool
@@ -227,7 +229,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self._axes_y_label = axes_y_label
         self._colorbar_title = colorbar_title
         self._colormap = colormap
-        self._is_color_autoscaled = is_color_autoscaled
+        self._is_color_autoscaled = conf.is_color_autoscaled
         self._is_save = is_save
         self._is_show = is_show
         self._figure_title = figure_title
@@ -240,14 +242,17 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self._layers = []
         self._append_layer(*layers)
 
-        # If autoscaling colors, ignore the passed minimum and maximum.
-        if is_color_autoscaled:
+        # If autoscaling colors, ignore the passed minimum and maximum. To avoid
+        # propagating these changes back to the underlying configuration file,
+        # these changes are isolated to new instance variables; the passed
+        # "conf.color_max" and "conf.color_min" variables remain unchanged.
+        if self._is_color_autoscaled:
             self._color_max = None
             self._color_min = None
         # Else, classify the passed minimum and maximum.
         else:
-            self._color_max = color_max
-            self._color_min = color_min
+            self._color_max = conf.color_max
+            self._color_min = conf.color_min
 
         # Default all attributes to be subsequently defined.
         self._color_mappables = None

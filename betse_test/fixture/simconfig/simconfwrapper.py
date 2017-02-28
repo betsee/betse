@@ -701,18 +701,6 @@ class SimConfigTestWrapper(object):
             runner_conf = self._p.anim.after_sim_pipeline.append_default()
             runner_conf.name = runner_name
 
-        #FIXME: Remove this after transitioning to the pipelined approach.
-        # Disable all old-style animations.
-        results['Vmem Ani']['animate Vmem'] = False
-        results['Ca Ani']['animate Ca2+'] = False
-        results['pH Ani']['animate pH'] = False
-        results['Vmem GJ Ani']['animate Vmem with gj'] = False
-        results['Current Ani']['animate current'] = False
-        results['Membrane Ani']['animate membrane'] = False
-        results['Efield Ani']['animate Efield'] = False
-        results['Velocity Ani']['animate Velocity'] = False
-        results['Deformation Ani']['animate Deformation'] = False
-
         # Enable all features required by these plots and animations.
         self.is_ecm = True
         self.ion_profile = 'animal'

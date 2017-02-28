@@ -9,7 +9,7 @@ well as functionality pertaining to such classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
-from betse.science.simulate.simpipeabc import SimPipelineRunnerArgs
+from betse.science.simulate.simpipeabc import SimPipelineRunnerConf
 from betse.util.type.cls import classes
 from betse.util.type.cls.descriptors import expr_alias, expr_enum_alias
 from betse.util.type.obj import objects
@@ -63,15 +63,15 @@ class SimConfABC(object, metaclass=ABCMeta):
 
         return self._conf
 
-
-class SimConfListableABC(SimPipelineRunnerArgs, SimConfABC):
+# ....................{ SUPERCLASSES ~ listable            }....................
+class SimConfListableABC(SimPipelineRunnerConf, SimConfABC):
     '''
     Abstract base class of all simulation configuration subclasses intended to
     be added to :class:`SimConfList` lists.
 
     Design
     ----------
-    This class subclasses the :class:`SimPipelineRunnerArgs` mixin, allowing all
+    This class subclasses the :class:`SimPipelineRunnerConf` mixin, allowing all
     instances of:
 
     * This class to be used as **simulation pipeline runner arguments** (i.e.,
@@ -79,7 +79,7 @@ class SimConfListableABC(SimPipelineRunnerArgs, SimConfABC):
       implementing a runner in a :class:`SimPipelinerABC` pipeline).
     * The :class:`SimConfList` class to be used as sequences of these arguments
       and hence returned from the abstract
-      :class:`SimPipelinerABC.runners_args_enabled` property.
+      :class:`SimPipelinerABC._runners_conf_enabled` property.
     '''
 
     # ..................{ CLASS                              }..................
@@ -115,8 +115,8 @@ class SimConfList(MutableSequence):
         both loaded from and savable back to the current YAML-formatted
         simulation configuration file.
     _conf_type : ClassType
-        Subclass of the :class:`SimConfListableABC` abstract base class with which
-        to instantiate each simulation configuration object encapsulating
+        Subclass of the :class:`SimConfListableABC` abstract base class with
+        which to instantiate each simulation configuration object encapsulating
         each dictionary in the :attr:`_confs_yaml` list.
     '''
 
@@ -133,11 +133,12 @@ class SimConfList(MutableSequence):
             loaded from and savable back to the current YAML-formatted
             simulation configuration file.
         conf_type : ClassType
-            Subclass of the :class:`SimConfListableABC` abstract base class with which
-            to instantiate each simulation configuration object encapsulating
-            each dictionary in the passed ``confs`` list. Specifically, for each
-            such dictionary, a new object of this subclass is appended to the
-            internal :attr:`_confs_wrap` list of such objects.
+            Subclass of the :class:`SimConfListableABC` abstract base class
+            with which to instantiate each simulation configuration object
+            encapsulating each dictionary in the passed ``confs`` list.
+            Specifically, for each such dictionary, a new object of this type
+            is appended to the internal :attr:`_confs_wrap` list of these
+            objects.
         '''
 
         # Raise an exception unless the passed type implements the listable API.

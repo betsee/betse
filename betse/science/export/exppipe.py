@@ -11,7 +11,7 @@ spreadsheets.
 # ....................{ IMPORTS                            }....................
 from betse.science.export.csv import csvpipe
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
-from betse.science.visual.anim import animpipe
+from betse.science.visual.anim.animpipe import AnimCellsPipeliner
 from betse.science.visual.plot import plotpipe
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
@@ -54,8 +54,8 @@ def pipeline(phase: SimPhaseABC) -> None:
     # considerably faster than the latter (particularly, when encoding video).
     plotpipe.pipeline(phase)
 
-    # Display and/or save all animations.
-    animpipe.pipeline(phase)
+    # Display and/or save all animations enabled by this configuration.
+    AnimCellsPipeliner(phase).run()
 
     # Log the directory to which all results were exported.
     logs.log_info('Results exported to: %s', phase.save_dirname)

@@ -14,7 +14,7 @@ simulation) functionality.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta  #, abstractmethod
-# from betse.exceptions import BetseSimPhaseException
+from betse.exceptions import BetseSimPhaseException
 from betse.util.py import references
 from betse.util.type.enums import EnumOrdered
 from betse.util.type.types import type_check
@@ -119,13 +119,20 @@ class SimPhaseABC(object, metaclass=ABCMeta):
         self.cells = cells
         self.p = p
 
+        #FIXME: Isolate exports produced by the "seed" phase to their own
+        #directory; for simplicity, such exports currently reuse that of the
+        #"init" phase.
+
         # Absolute path of the top-level exports directory for this phase.
-        if kind is SimPhaseKind.SIM:
-            self.save_dirname = p.sim_results
+        if kind is SimPhaseKind.SEED:
+            self.save_dirname = p.init_results
         elif kind is SimPhaseKind.INIT:
             self.save_dirname = p.init_results
+        elif kind is SimPhaseKind.SIM:
+            self.save_dirname = p.sim_results
         else:
-            self.save_dirname = None
+            raise BetseSimPhaseException(
+                'Simulation phase {} unrecognized.'.format(kind.name))
 
 # ....................{ SUBCLASSES                         }....................
 class SimPhaseStrong(SimPhaseABC):

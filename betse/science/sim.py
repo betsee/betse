@@ -2059,6 +2059,7 @@ class Simulator(object):
             # Create this animation.
             anim_cells = AnimCellsWhileSolving(
                 phase=phase,
+                conf=phase.p.anim.while_sim,
 
                 # Number of frames to animate, corresponding to the number of
                 # sampled time steps. The plot_frame() method of this animation
@@ -2069,11 +2070,6 @@ class Simulator(object):
                 label='Vmem',
                 figure_title='Vmem while {}'.format(phase_verb),
                 colorbar_title='Voltage [mV]',
-
-                # Animation colors.
-                color_min=p.Vmem_min_clr,
-                color_max=p.Vmem_max_clr,
-                is_color_autoscaled=p.autoscale_Vmem,
             )
 
         # Return the 3-tuple of these objects to the caller.

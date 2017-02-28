@@ -120,9 +120,13 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ SUPERCLASS                         }..................
     @property
-    def runners_args_enabled(self) -> IterableTypes:
+    def is_enabled(self) -> bool:
+        return self._phase.p.plot.is_after_sim
 
-        return self._phase.p.anim.after_sim_pipeline
+
+    @property
+    def _runners_conf_enabled(self) -> IterableTypes:
+        return self._phase.p.plot.after_sim_pipeline
 
     # ..................{ EXPORTERS ~ cell : ion             }..................
     @exporter_metadata(categories=(
@@ -785,10 +789,17 @@ def pipeline(phase: SimPhaseABC) -> None:
             pyplot.show(block=False)
 
     #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P is True and np.mean(sim.P_cells_time) != 0.0:
+    if p.plot_P and np.mean(sim.P_cells_time) != 0.0:
 
-        figP, axP, cbP = plotutil.plotPolyData(sim, cells,p,zdata=sim.P_cells,number_cells=p.enumerate_cells,
-        clrAutoscale = p.autoscale_P, clrMin = p.P_min_clr, clrMax = p.P_max_clr, clrmap = p.default_cm)
+        figP, axP, cbP = plotutil.plotPolyData(
+            sim, cells, p,
+            zdata=sim.P_cells,
+            number_cells=p.enumerate_cells,
+            clrAutoscale=p.autoscale_P,
+            clrMin=p.P_min_clr,
+            clrMax=p.P_max_clr,
+            clrmap=p.default_cm,
+        )
 
         axP.set_title('Final Pressure in Cell Network')
         axP.set_xlabel('Spatial distance [um]')
@@ -804,7 +815,9 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     #------------------------------------------------------------------------------------------------------------------
 
-    if p.deformation is True and phase.kind is SimPhaseKind.SIM:
+    if (p.plot_Deformation and
+        p.deformation and
+        phase.kind is SimPhaseKind.SIM):
         plotutil.plotStreamField(
             p.um*sim.dx_cell_time[-1],
             p.um*sim.dy_cell_time[-1],
@@ -813,9 +826,9 @@ def pipeline(phase: SimPhaseABC) -> None:
             title='Final Displacement of Cell Collective',
             cb_title='Displacement [um]',
             show_cells=p.showCells,
-            colorAutoscale=p.autoscale_Deformation_ani,
-            minColor=p.Deformation_ani_min_clr,
-            maxColor=p.Deformation_ani_max_clr,
+            colorAutoscale=p.autoscale_Deformation,
+            minColor=p.Deformation_min_clr,
+            maxColor=p.Deformation_max_clr,
         )
 
         if p.plot.is_after_sim_save is True:
@@ -826,7 +839,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             pyplot.show(block=False)
 
 
-    if (p.plot_Vel is True and p.fluid_flow is True):
+    if p.plot_Vel and p.fluid_flow:
         plotutil.plotStreamField(
             (1e9)*sim.u_cells_x,
             (1e9)*sim.u_cells_y,

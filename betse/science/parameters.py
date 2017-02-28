@@ -777,78 +777,24 @@ class Parameters(object):
         self.Vel_min_clr = float(ro['Velocity 2D']['min val'])
         self.Vel_max_clr = float(ro['Velocity 2D']['max val'])
 
-        # Plot seed options:
+        self.plot_Deformation = ro['Deformation 2D']['plot Deformation']
+        self.autoscale_Deformation = ro['Deformation 2D']['autoscale colorbar']
+        self.Deformation_min_clr = float(ro['Deformation 2D']['min val'])
+        self.Deformation_max_clr = float(ro['Deformation 2D']['max val'])
+
+        # Plot seed options.
         self.plot_cell_cluster = ro.get('plot cell cluster', True)
-
         self.plot_cell_connectivity = ro.get('plot cell connectivity diagram', True)
-
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
 
         # ................{ ANIMATIONS                         }................
         # Animation subconfiguration.
         self.anim = SimConfAnimAll(conf=self._conf)
 
-        # specify desired animations:
-        self.ani_vm2d = ro['Vmem Ani']['animate Vmem']                # 2d animation of vmem with time?
-        self.autoscale_Vmem_ani = ro['Vmem Ani']['autoscale colorbar']
-        self.Vmem_ani_min_clr = float(ro['Vmem Ani']['min val'])
-        self.Vmem_ani_max_clr = float(ro['Vmem Ani']['max val'])
-
-
-        default_dic = {'animate Venv': False, 'autoscale colorbar': True, 'min val': 0.0, 'max val': 1.0}
-        Venv_dic = ro.get('Venv Ani', default_dic)
-
-        self.ani_venv = Venv_dic['animate Venv']                # 2d animation of venv with time?
-        self.autoscale_venv_ani = Venv_dic['autoscale colorbar']
-        self.venv_ani_min_clr = float(Venv_dic['min val'])
-        self.venv_ani_max_clr = float(Venv_dic['max val'])
-
-        self.ani_ca2d = ro['Ca Ani']['animate Ca2+']                # 2d animation of cell calcium with time ?
-        self.autoscale_Ca_ani = ro['Ca Ani']['autoscale colorbar']
-        self.Ca_ani_min_clr = float(ro['Ca Ani']['min val'])
-        self.Ca_ani_max_clr = float(ro['Ca Ani']['max val'])
-
-        self.ani_pH2d = ro['pH Ani']['animate pH']                # 2d animation of pH with time ?
-        self.autoscale_pH_ani = ro['pH Ani']['autoscale colorbar']
-        self.pH_ani_min_clr = float(ro['pH Ani']['min val'])
-        self.pH_ani_max_clr = float(ro['pH Ani']['max val'])
-
-        self.ani_vmgj2d = ro['Vmem GJ Ani']['animate Vmem with gj']     # 2d animation of vmem with superimposed gj network
-        self.autoscale_Vgj_ani = ro['Vmem GJ Ani']['autoscale colorbar']
-        self.Vgj_ani_min_clr = float(ro['Vmem GJ Ani']['min val'])
-        self.Vgj_ani_max_clr = float(ro['Vmem GJ Ani']['max val'])
-
-        self.ani_Pcell = ro['P cell Ani']['animate P cell']
-        self.autoscale_Pcell_ani = ro['P cell Ani']['autoscale colorbar']
-        self.Pcell_ani_min_clr = float(ro['P cell Ani']['min val'])
-        self.Pcell_ani_max_clr = float(ro['P cell Ani']['max val'])
-
-        self.ani_I = ro['Current Ani']['animate current']
-        self.autoscale_I_ani = ro['Current Ani']['autoscale colorbar']
-        self.I_ani_min_clr = float(ro['Current Ani']['min val'])
-        self.I_ani_max_clr = float(ro['Current Ani']['max val'])
-
-        self.ani_mem = ro['Membrane Ani']['animate Membrane']
-        self.autoscale_mem_ani = ro['Membrane Ani']['autoscale colorbar']
-        self.mem_ani_min_clr = float(ro['Membrane Ani']['min val'])
-        self.mem_ani_max_clr = float(ro['Membrane Ani']['max val'])
-
-        self.ani_Efield = ro['Efield Ani']['animate Efield']   # 2d animation of electric field
-        self.autoscale_Efield_ani = ro['Efield Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
-        self.Efield_ani_min_clr =float(ro['Efield Ani']['max val'])         # maximum colorbar value in V/m
-        self.Efield_ani_max_clr =float(ro['Efield Ani']['min val'])       # maximum colorbar value in V/m
-
-        self.ani_Velocity = ro['Velocity Ani']['animate Velocity']   # 2d animation of electric field
-        self.autoscale_Velocity_ani =ro['Velocity Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
-        self.Velocity_ani_min_clr =float(ro['Velocity Ani']['min val'])         # maximum colorbar value in V/m
-        self.Velocity_ani_max_clr =float(ro['Velocity Ani']['max val'])       # maximum colorbar value in V/m
-
-        self.ani_Deformation = ro['Deformation Ani']['animate Deformation']   # 2d animation of electric field
-        self.ani_Deformation_data =ro['Deformation Ani']['data type']   # data type can be 'Vmem' or 'Displacement'
+        #FIXME: Refactor the default "sim_config.yaml" file to properly
+        #integrate these "leftover" options into the animation pipeline list.
+        self.ani_Deformation_data = ro['Deformation Ani']['data type']   # data type can be 'Vmem' or 'Displacement'
         self.ani_Deformation_style = ro['Deformation Ani']['style']
-        self.autoscale_Deformation_ani =ro['Deformation Ani']['autoscale colorbar'] # autoscale colorbar to min max of data set?
-        self.Deformation_ani_min_clr =float(ro['Deformation Ani']['min val'])         # maximum colorbar value in V/m
-        self.Deformation_ani_max_clr =float(ro['Deformation Ani']['max val'])       # maximum colorbar value in V/m
 
         self.clip = 20e-6
 
@@ -1378,6 +1324,41 @@ class Parameters(object):
 
             # Default the value for this dictionary key to the empty list.
             after_solving_plots['pipeline'] = []
+
+        while_solving_anims = results['while solving']['animations']
+
+        if 'colorbar' not in while_solving_anims:
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Config file setting "results options" -> "while solving" -> '
+                '"animations" -> "colorbar" not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
+
+            # Default the value for this dictionary key to the typical settings.
+            while_solving_anims['colorbar'] = {
+                'autoscale': True,
+                'minimum': -70.0,
+                'maximum':  10.0,
+            }
+
+        if 'Deformation 2D' not in results:
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Config file setting "results options" -> "Deformation 2D" '
+                'not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
+
+            # Default the value for this dictionary key to the typical settings.
+            results['Deformation 2D'] = {
+                'plot Deformation': True,
+                'autoscale colorbar': True,
+                'max val': 15,
+                'min val': -15,
+            }
 
 
     def _init_tissue_and_cut_profiles(self) -> None:

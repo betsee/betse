@@ -13,7 +13,8 @@ YAML-backed simulation animation subconfigurations.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
-from betse.science.config.export.confvisabc import SimConfListableVisual
+from betse.science.config.export.confvisabc import (
+    SimConfVisualListable, SimConfVisualGeneric)
 from betse.util.type import ints
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
@@ -37,6 +38,9 @@ class SimConfAnimAll(SimConfABC):
         ``True`` only if this configuration saves in-simulation animations.
     is_while_sim_show : bool
         ``True`` only if this configuration displays in-simulation animations.
+    while_sim : SimConfVisualGeneric
+        Generic configuration applicable to all in-simulation animations. Ignored if
+        :attr:``is_while_sim`` is ``False``.
 
     Attributes (After)
     ----------
@@ -48,9 +52,8 @@ class SimConfAnimAll(SimConfABC):
     is_after_sim_show : bool
         ``True`` only if this configuration displays post-simulation animations.
     after_sim_pipeline : SimConfList
-        List of all post-simulation animations to be animated. Ignored if both
-        :attr:``is_after_sim_save`` and :attr:``is_after_sim_show`` are both
-        ``False``.
+        List of all post-simulation animations to be animated. Ignored if
+        :attr:``is_after_sim`` is ``False``.
 
     Attributes (Images)
     ----------
@@ -124,11 +127,16 @@ class SimConfAnimAll(SimConfABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
+        # Encapsulate low-level dictionaries with high-level wrappers.
+        self.while_sim = SimConfVisualGeneric(
+            conf=self._conf[
+                'results options']['while solving']['animations'])
+
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
         self.after_sim_pipeline = SimConfList(
             confs=self._conf[
                 'results options']['after solving']['animations']['pipeline'],
-            conf_type=SimConfListableVisual,
+            conf_type=SimConfVisualListable,
         )
 
         # Validate all configured integers to be positive.

@@ -42,9 +42,9 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
 
     # ..................{ SUPERCLASS                         }..................
     #FIXME: Implement this property *AFTER* generalizing the configuration file
-    #format to support CSV pipelines..
+    #format to support CSV pipelines.
     @property
-    def runners_args_enabled(self) -> IterableTypes:
+    def _runners_conf_enabled(self) -> IterableTypes:
 
         raise BetseMethodUnimplementedException()
 

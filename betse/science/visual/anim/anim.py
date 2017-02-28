@@ -33,6 +33,7 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
+from betse.science.config.export.confvisabc import SimConfVisualListable
 from betse.science.export import expmath
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.anim.animafter import (
@@ -569,7 +570,8 @@ class AnimVelocityIntracellular(AnimVelocity):
         '''
 
         cell_centres = (
-            self._phase.cells.cell_centres[:, 0], self._phase.cells.cell_centres[:, 1])
+            self._phase.cells.cell_centres[:, 0],
+            self._phase.cells.cell_centres[:, 1])
         cell_grid = (self._phase.cells.X, self._phase.cells.Y)
 
         #FIXME: Ugh. Duplicate code already performed by the superclass
@@ -988,15 +990,14 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):  # FIXME this doesn't actuall
                 showing_cells=self._phase.p.showCells)
 
 
-#FIXME: Obsoleted. Replace with the existing "AnimDeformTimeSeries" subclass.
-# FIXME: the AnimDeformTimeSeries does not actually deform the mesh while plotting! Therefore, this one is not
-# obsolete until the other one actually works :)
+#FIXME: Replace entirely with use of the new "LayerCellsABC" API.
 class AnimateDeformation(object):
 
     @type_check
     def __init__(
         self,
         phase: SimPhaseABC,
+        conf: SimConfVisualListable,
         ani_repeat: bool = True,
         save: bool = True,
         saveFolder: str = 'anim/Deformation',
@@ -1018,8 +1019,7 @@ class AnimateDeformation(object):
         if self.save is True:
             _setup_file_saving(self,p)
 
-        if p.autoscale_Deformation_ani is True:
-
+        if conf.is_color_autoscaled:
             if p.ani_Deformation_data == 'Displacement':
                 # first flatten the data (needed in case cells were cut)
                 all_z = []
@@ -1038,10 +1038,9 @@ class AnimateDeformation(object):
             self.cmin = np.min(all_z)
             self.cmax = np.max(all_z)
 
-        elif p.autoscale_Deformation_ani is False:
-
-            self.cmin = p.Deformation_ani_min_clr
-            self.cmax = p.Deformation_ani_max_clr
+        else:
+            self.cmin = conf.color_min
+            self.cmax = conf.color_max
 
         dx = self.sim.dx_cell_time[0]
         dy = self.sim.dy_cell_time[0]
@@ -1071,11 +1070,9 @@ class AnimateDeformation(object):
         elif p.ani_Deformation_style == 'streamline':
             vplot, self.ax = cell_stream(
                 dx,dy,self.ax,cells,p, showing_cells=False)
-        elif p.ani_Deformation_style == 'None':
-            pass
         else:
             raise BetseSimConfigException(
-                "Definition of 'style' in deformation animation\n"
+                "Definition of 'style' in deformation animation "
                 "must be either 'vector' or 'streamline'.")
 
         self.ax.axis('equal')
@@ -1110,22 +1107,10 @@ class AnimateDeformation(object):
             # basenames and hence contain no directory separators.
             paths.die_unless_basename(self._type)
 
-            # Path of the phase-specific parent directory of the subdirectory to
-            # which these files will be saved.
-            phase_dirname = None
-            if self.p.plot_type == 'sim':
-                phase_dirname = self.p.sim_results
-            elif self.p.plot_type == 'init':
-                phase_dirname = self.p.init_results
-            else:
-                raise BetseSimConfigException(
-                    'Anim saving unsupported during the "{}" phase.'.format(
-                        self.p.plot_type))
-
             # Path of the subdirectory to which these files will be saved, creating
             # this subdirectory and all parents thereof if needed.
             save_dirname = paths.join(
-                phase_dirname, 'anim', self._type)
+                phase.save_dirname, 'anim', self._type)
             save_dirname = dirs.canonicalize_and_make_unless_dir(save_dirname)
             save_frame_filetype = 'png'
 
@@ -1149,10 +1134,10 @@ class AnimateDeformation(object):
             frames=self.frames, interval=100, repeat=self.ani_repeat)
 
         try:
-            if p.turn_all_plots_off is False:
+            if self.p.anim.is_after_sim_show:
                 plt.show()
             # Else if saving animation frames, do so.
-            elif self.p.anim.is_images_save is True:
+            elif self.p.anim.is_after_sim_save and self.p.anim.is_images_save:
                 logs.log_info(
                     'Saving animation "{}" frames...'.format(self._type))
                 ani.save(

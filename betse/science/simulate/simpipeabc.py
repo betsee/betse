@@ -47,12 +47,12 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
       method should:
       * Accept exactly one parameter: ``self``.
       * Return nothing (i.e.,``None``).
-    * The abstract :meth:`runners_args_enabled` property returning a sequence of the
+    * The abstract :meth:`_runners_conf_enabled` property returning a sequence of the
       names of all runners currently enabled by this pipeline (e.g.,
       ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
 
     The :meth:`run` method defined by this base class then dynamically
-    implements this pipeline by iterating over the :meth:`runners_args_enabled` property
+    implements this pipeline by iterating over the :meth:`_runners_conf_enabled` property
     and, for each enabled runner, calling that runner's method.
 
     Attributes (Private)
@@ -191,28 +191,47 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
     # ..................{ RUNNERS                            }..................
     def run(self) -> None:
         '''
-        Run this pipeline.
+        Run all currently enabled pipeline runners if this pipeline itself is
+        currently enabled *or* noop otherwise.
 
-        Specifically, this method runs all currently enabled runners in this
-        pipeline.
+        Specifically:
+
+        * If the :meth:`is_enabled` property is ``True`` (implying this pipeline
+          to be currently enabled):
+          * For each :class:`SimPipelineRunnerConf` instance (corresponding to
+            the configuration of a currently enabled pipeline runner) in the
+            sequence of these instances provided by the
+            :meth:`_runners_conf_enabled` property:
+            * Call this method, passed this configuration.
+            * If this method reports this runner's requirements to be
+              unsatisfied (e.g., due to the current simulation configuration
+              disabling extracellular spaces), this runner is ignored with a
+              non-fatal warning.
+        * Else, log an informative message and return immediately.
         '''
 
-        # Log animation creation.
+        # If this pipeline is disabled, log this fact and return immediately.
+        if not self.is_enabled:
+            logs.log_info('Ignoring %s...', self._label_plural_lowercase)
+            return
+        # Else, this pipeline is enabled.
+
+        # Log this pipeline run.
         logs.log_info(
             '%s %s...', self._label_verb, self._label_plural_lowercase)
 
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
-        for runner_args in self.runners_args_enabled:
-            if not isinstance(runner_args, SimPipelineRunnerArgs):
+        for runner_conf in self._runners_conf_enabled:
+            if not isinstance(runner_conf, SimPipelineRunnerConf):
                 raise BetseSimPipelineException(
-                    'runners_args_enabled() item {!r} '
-                    'not instance of "SimPipelineRunnerArgs".'.format(
-                        runner_args))
+                    '_runners_conf_enabled() item {!r} '
+                    'not instance of "SimPipelineRunnerConf".'.format(
+                        runner_conf))
 
             # Name of the method implementing this runner.
             runner_method_name = (
-                self._RUNNER_METHOD_NAME_PREFIX + runner_args.name)
+                self._RUNNER_METHOD_NAME_PREFIX + runner_conf.name)
 
             # Method implementing this runner *OR* None if this runner is
             # unrecognized.
@@ -228,7 +247,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
             # Attempt to pass this runner these arguments.
             try:
-                runner_method(runner_args)
+                runner_method(runner_conf)
             # If this runner's requirements are unsatisfied (e.g., due to the
             # current simulation configuration disabling extracellular spaces),
             # ignore this runner with a non-fatal warning and continue.
@@ -236,8 +255,27 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
                 logs.log_warn(
                     'Ignoring %s "%s", as:\n\t%s',
                     self._label_singular_lowercase,
-                    runner_args.name,
+                    runner_conf.name,
                     str(exception))
+
+    # ..................{ PROPERTIES                         }..................
+    @property
+    def is_enabled(self) -> bool:
+        '''
+        ``True`` only if the :meth:`run` method should run this pipeline.
+
+        Specifically, if this boolean is:
+
+        * ``False``, the :meth:`run` method reduces to a noop.
+        * ``True``, this method behaves as expected (i.e., calls all currently
+          enabled runner methods).
+
+        Defaults to ``True``. Pipeline subclasses typically override this
+        property to return a boolean derived from the simulation configuration
+        file associated with the current phase.
+        '''
+
+        return True
 
     # ..................{ PRIVATE ~ loggers                  }..................
     def _log_run(self) -> None:
@@ -359,11 +397,11 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             is_satisfied=self._phase.p.ions_dict[ion_name] != 0,
             exception_reason='ion "{}" disabled'.format(ion_name))
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ PRIVATE ~ subclass                 }..................
     @abstractproperty
-    def runners_args_enabled(self) -> IterableTypes:
+    def _runners_conf_enabled(self) -> IterableTypes:
         '''
-        Iterable of all currently enabled :class:`SimPipelineRunnerArgs`
+        Iterable of all currently enabled :class:`SimPipelineRunnerConf`
         instances, each encapsulating all input parameters to be passed to the
         method implementing a currently enabled runner in this pipeline.
 
@@ -396,7 +434,7 @@ class SimPipelinerExportABC(SimPipelinerABC):
         super().__init__(*args, label_verb='Exporting', **kwargs)
 
 # ....................{ INTERFACES                         }....................
-class SimPipelineRunnerArgs(object, metaclass=ABCMeta):
+class SimPipelineRunnerConf(object, metaclass=ABCMeta):
     '''
     Abstract base class of all subclasses defining a type of **simulation
     pipeline runner arguments** (i.e., simple object encapsulating all input
