@@ -400,8 +400,11 @@ class AnimCellsABC(VisualCellsABC):
             writer_video_filename = paths.join(
                 save_dirname, save_video_basename)
 
-            # Object writing animation frames as video.
-            self._writer_video = VideoWriterClass(
+            # Object writing animation frames as video. Matplotlib animation
+            # writer classes must *NOT* be manually instantiated, as doing so
+            # fails to apply the monkey-patching applied by this function.
+            self._writer_video = mplvideo.make_writer(
+                cls=VideoWriterClass,
                 bitrate=anim_config.video_bitrate,
                 codec=video_codec_name,
                 fps=anim_config.video_framerate,

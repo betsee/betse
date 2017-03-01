@@ -862,6 +862,7 @@ results options:
         # encode video (in descending order of preference). The reserved name
         # "auto" implies the best codec provided by the current video encoder.
         codecs: ['auto']
+        #codecs: ['libvpx', 'libtheora', 'libx264', 'libxvid', 'mpeg4', 'h263', 'mpeg2video', 'hevc', 'auto']  # example listing all preferred codecs before defaulting to "auto"
 
     data:              # Saving options for spreadsheet-compatible data.
       all:             # All data points for all cells for all time steps.
