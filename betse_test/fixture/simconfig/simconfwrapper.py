@@ -44,17 +44,18 @@ class SimConfigTestWrapper(object):
 
     This wrapper superficially wraps this dictionary with convenience methods
     safely modifying this dictionary. This wrapper is lower level than the
-    high-level `Parameters` simulation configuration, which transforms this
-    dictionary into numerous high-level objects rather than merely wrapping this
-    dictionary. While the `Parameters` configuration is principally used by
-    backend simulation modelling in the `betse.science` package, this wrapper is
-    principally used by frontend logic modifying simulation configurations on
-    behalf of either interactive users (e.g., BETSE's GUI) or automated tests.
+    high-level :class:`Parameters` simulation configuration, which transforms
+    this dictionary into numerous high-level objects rather than merely wrapping
+    this dictionary. While the :class:`Parameters` configuration is principally
+    used by backend simulation modelling in the `betse.science` package, this
+    wrapper is principally used by frontend logic modifying simulation
+    configurations on behalf of either interactive users (e.g., BETSE's GUI) or
+    automated tests.
 
     Attributes
     ----------
     _config : dict
-        Low-level dictionary deserialized from `_filename`.
+        Low-level dictionary deserialized from :attr:`_filename`.
     _basename : str
         Basename of :attr:`_filename`.
     _dirname : str
@@ -228,50 +229,6 @@ class SimConfigTestWrapper(object):
 
         self._p._conf['general options']['simulate extracellular spaces'] = (
             is_ecm)
-
-    # ..................{ PROPERTIES ~ bool : networks       }..................
-    @property
-    def is_brn(self) -> bool:
-        '''
-        `True` only if the biochemical reaction network (BRN) is simulated by
-        this configuration.
-        '''
-
-        return self._p._conf['metabolism settings']['metabolism simulated']
-
-
-    @property
-    def is_grn(self) -> bool:
-        '''
-        `True` only if the gene regulatory network (GRN) is simulated by
-        this configuration.
-        '''
-
-        return self._p._conf['gene regulatory network settings']\
-            ['gene regulatory network simulated']
-
-
-    @is_brn.setter
-    @type_check
-    def is_brn(self, is_brn: bool) -> None:
-        '''
-        Set whether the biochemical reaction network (BRN) is simulated by this
-        configuration.
-        '''
-
-        self._p._conf['metabolism settings']['metabolism simulated'] = is_brn
-
-
-    @is_grn.setter
-    @type_check
-    def is_grn(self, is_grn: bool) -> None:
-        '''
-        Set whether the gene regulatory network (GRN) is simulated by this
-        configuration.
-        '''
-
-        self._p._conf['gene regulatory network settings']\
-            ['gene regulatory network simulated'] = is_grn
 
     # ..................{ PROPERTIES ~ float                 }..................
     @property
@@ -571,8 +528,9 @@ class SimConfigTestWrapper(object):
         Enable both biochemical reaction and gene regulatory networks.
         '''
 
-        self.is_brn = True
-        self.is_grn = True
+        self._p._conf['metabolism settings']['metabolism simulated'] = True
+        self._p._conf['gene regulatory network settings'][
+            'gene regulatory network simulated'] = True
 
 
     def enable_vg_ion_channels_all(self) -> None:

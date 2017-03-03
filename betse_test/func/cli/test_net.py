@@ -31,6 +31,11 @@ def test_cli_brn(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
+    # Enable the saving of visuals, preventing the "plot sim-brn" subcommand
+    # tested below from silently reducing to a noop.
+    betse_cli_sim.sim_state.config.enable_visuals_save()
+
+    # Test all BRN-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands(
         ('seed',), ('sim-brn',), ('plot', 'sim-brn',),)
 
@@ -47,6 +52,11 @@ def test_cli_grn(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
+    # Enable the saving of visuals, preventing the "plot sim-grn" subcommand
+    # tested below from silently reducing to a noop.
+    betse_cli_sim.sim_state.config.enable_visuals_save()
+
+    # Test all GRN-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands(
         ('seed',), ('sim-grn',), ('plot', 'sim-grn',),)
 
@@ -54,7 +64,7 @@ def test_cli_grn(betse_cli_sim: 'CLISimTester') -> None:
 @skip_unless_networkable
 def test_cli_sim_brn_grn(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test simulating the default biochemical reaction network (BRN) _and_
+    Test simulating the default biochemical reaction network (BRN) *and*
     gene regulatory network (GRN) alongside all bioelectrical phenomena.
 
     Parameters

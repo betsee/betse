@@ -2,19 +2,18 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# ....................{ IMPORTS                            }....................
 import csv
 import math
 import os
 import os.path
-from collections import OrderedDict
-
 import matplotlib.pyplot as plt
 import numpy as np
+from collections import OrderedDict
 from matplotlib import cm
 from matplotlib import colors
 from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import basinhopping
-
 from betse.exceptions import BetseSimConfigException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
@@ -31,21 +30,21 @@ from betse.science.config.export.confvisabc import SimConfVisualMolecule
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
-from betse.science.simulate.simphase import SimPhaseWeak, SimPhaseKind
+from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
+from betse.util.type.types import type_check
 
-
+# ....................{ CLASSES                            }....................
 class MasterOfNetworks(object):
 
     def __init__(self, sim, cells, config_substances, p, mit_enabled = False):
-
         """
-         Initializes the MasterOfNetworks object.
+        Initializes the MasterOfNetworks object.
 
         sim:                An instance of simulator
         config_settings     List of dictionaries storing key settings (p.molecules_config)
@@ -99,16 +98,14 @@ class MasterOfNetworks(object):
         self.globals = globals()
         self.locals = locals()
 
-
     #------------Initializers-------------------------------------------------------------------------------------------
     def read_substances(self, sim, cells, config_substances, p):
-
         """
-            Initializes all core data structures and concentration variables
-            for all molecules included in the simulation, as well as any ions present in sim.
+        Initialize all core data structures and concentration variables for all
+        molecules included in the simulation, as well as any ions present in
+        sim.
 
-            config_substances:  dictionary containing BETSE biomolecule template fields
-
+        config_substances:  dictionary containing BETSE biomolecule template fields
         """
 
         logs.log_info("Reading additional substance data...")
@@ -1927,9 +1924,8 @@ class MasterOfNetworks(object):
             echem_terms_list_tex = []
 
             if reaction_zone == 'cell':
-
-                tex_in = ""
-                tex_out = "_{env}"
+                # tex_in = ""
+                # tex_out = "_{env}"
 
                 type_out = 'env_concs'
 
@@ -1970,9 +1966,8 @@ class MasterOfNetworks(object):
                                                                 reaction_zone='mem')
 
             elif reaction_zone == 'mit' and self.mit_enabled is True:
-
-                tex_in = "_{mit}"
-                tex_out = ""
+                # tex_in = "_{mit}"
+                # tex_out = ""
 
                 vmem_tex = "V_{mit}"
 
@@ -3168,36 +3163,35 @@ class MasterOfNetworks(object):
 
         logs.log_info("-------------------------------------------------------------------")
 
-    def export_all_data(self, sim, cells, p, message='for auxiliary molecules...'):
-
+    @type_check
+    def export_all_data(self, sim, cells, p, message: str):
         """
-
         Exports concentration data from each molecule to a file for a single cell
         (plot cell defined in params) as a function of time.
-
         """
-        logs.log_info('Exporting raw data for ' + message)
+
+        logs.log_info('Exporting raw data for %s...', message)
+
         # get the name of the specific substance:
         for name in self.molecules:
             obj = self.molecules[name]
-
             obj.export_data(sim, cells, p, self.resultsPath)
 
+        # FIXME we should also save vmit to a file? and pH and vm?
         if self.mit_enabled:
-            # FIXME we should also save vmit to a file? and pH and vm?
             pass
 
         # write all network model LaTeX equations to a text file:
         self.export_equations(p)
         self.export_eval_strings(p)
 
-    def plot(self, sim, cells, p, message='for auxiliary molecules...'):
+    @type_check
+    def plot(self, sim, cells, p, message: str):
         """
         Creates plots for each molecule included in the simulation.
-
         """
 
-        logs.log_info('Plotting 1D and 2D data for ' + message)
+        logs.log_info('Plotting 1D and 2D data for %s...', message)
 
         # network plot
         if p.plot_network is True:
@@ -3223,8 +3217,8 @@ class MasterOfNetworks(object):
                 obj.plot_env(sim, cells, p, self.imagePath)
 
         # ---------------cell everything plot---------------------------------------------
-        data_all1D = []
-        fig_all1D = plt.figure()
+        # data_all1D = []
+        plt.figure()
         ax_all1D = plt.subplot(111)
 
         # set up the color vector (for plotting complex line graphs)
@@ -3241,7 +3235,7 @@ class MasterOfNetworks(object):
 
             ax_all1D.plot(sim.time, c_cells, color=c_names.to_rgba(i), linewidth=2.0, label=name)
 
-        legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+        ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
         ax_all1D.set_xlabel('Time [s]')
         ax_all1D.set_ylabel('Concentration [mmol/L]')
@@ -3255,8 +3249,8 @@ class MasterOfNetworks(object):
             plt.show(block=False)
 
         # -------------environment everything plot-------------------------------------------------
-        data_all1D = []
-        fig_all1D = plt.figure()
+        # data_all1D = []
+        plt.figure()
         ax_all1D = plt.subplot(111)
 
         # get a random selection of our chosen colors in the length of our data set:
@@ -3276,7 +3270,7 @@ class MasterOfNetworks(object):
 
             ax_all1D.plot(sim.time, c_env, color=c_names.to_rgba(i), linewidth=2.0, label=name)
 
-        legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+        ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
         ax_all1D.set_xlabel('Time [s]')
         ax_all1D.set_ylabel('Concentration [mmol/L]')
@@ -3295,7 +3289,7 @@ class MasterOfNetworks(object):
             # 1 D plot of mitochondrial voltage--------------------------------------------------------
             vmit = [1e3 * arr[p.plot_cell] for arr in self.vmit_time]
 
-            figVmit = plt.figure()
+            plt.figure()
             axVmit = plt.subplot(111)
 
             axVmit.plot(sim.time, vmit)
@@ -3329,9 +3323,8 @@ class MasterOfNetworks(object):
                 plt.show(block=False)
 
             # plot of all substances in the mitochondria:----------------------------------------------
-
-            data_all1D = []
-            fig_all1D = plt.figure()
+            # data_all1D = []
+            plt.figure()
             ax_all1D = plt.subplot(111)
 
             # get a random selection of our chosen colors in the length of our data set:
@@ -3343,7 +3336,7 @@ class MasterOfNetworks(object):
 
                 ax_all1D.plot(sim.time, c_mit, color=c_names.to_rgba(i), linewidth=2.0, label=name)
 
-            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+            ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
             ax_all1D.set_xlabel('Time [s]')
             ax_all1D.set_ylabel('Concentration [mmol/L]')
@@ -3375,8 +3368,8 @@ class MasterOfNetworks(object):
 
             react_dataM.append(sim.time)
 
-            data_all1D = []
-            fig_all1D = plt.figure()
+            # data_all1D = []
+            plt.figure()
             ax_all1D = plt.subplot(111)
 
             # set up the color vector (for plotting complex line graphs)
@@ -3398,7 +3391,7 @@ class MasterOfNetworks(object):
                     react_dataM.append(r_rate)
                     react_header = react_header + name + ' [mM/s]' + ','
 
-            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+            ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
             ax_all1D.set_xlabel('Time [s]')
             ax_all1D.set_ylabel('Rate [mM/s]')
@@ -3455,8 +3448,8 @@ class MasterOfNetworks(object):
                     else:
                         t_rate = np.zeros(len(sim.time))
 
-                    data_all1D = []
-                    fig_all1D = plt.figure()
+                    # data_all1D = []
+                    plt.figure()
                     ax_all1D = plt.subplot(111)
 
                     ax_all1D.plot(sim.time, t_rate, color=c_names.to_rgba(i), linewidth=2.0, label=name)
@@ -3464,7 +3457,7 @@ class MasterOfNetworks(object):
                     transp_dataM.append(t_rate)
                     transp_header = transp_header + name + ' [mM/s]' + ','
 
-            legend = ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
+            ax_all1D.legend(loc='upper right', shadow=False, frameon=False)
 
             ax_all1D.set_xlabel('Time [s]')
             ax_all1D.set_ylabel('Rate [mM/s]')
@@ -3489,7 +3482,7 @@ class MasterOfNetworks(object):
         # 1 D plot of mitochondrial voltage--------------------------------------------------------
         chio = [arr[p.plot_cell] for arr in self.chi_time]
 
-        figChi = plt.figure()
+        plt.figure()
         axChi = plt.subplot(111)
 
         axChi.plot(sim.time, chio)
@@ -3506,9 +3499,6 @@ class MasterOfNetworks(object):
             plt.show(block=False)
 
         # ---2D plot--------------------------------------------------------------------
-
-
-
         fig, ax, cb = viz.plotPolyData(sim, cells, p,
             zdata=self.chi, number_cells=p.enumerate_cells, clrmap=p.default_cm)
 
@@ -3524,25 +3514,25 @@ class MasterOfNetworks(object):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    def anim(self, sim, cells, p, message='for auxiliary molecules...'):
+    @type_check
+    def anim(self, phase: SimPhaseABC, message: str) -> None:
         """
         Animates 2D data for each molecule in the simulation.
         """
 
-        logs.log_info('Animating data for %s', message)
+        logs.log_info('Animating data for %s...', message)
 
         # get the name of the specific substance:
         for name in self.molecules:
-
             obj = self.molecules[name]
 
-            if p.anim.is_after_sim and obj.make_ani is True:
+            if phase.p.anim.is_after_sim and obj.make_ani:
                 # create 2D animations for the substance in cells
-                obj.anim_cells(sim, cells, p)
+                obj.anim_cells(phase)
 
                 # create 2D animations for the substance in the environment
-                if p.sim_ECM:
-                    obj.anim_env(sim, cells, p)
+                if phase.p.sim_ECM:
+                    obj.anim_env(phase)
 
     def default_zones(self, zone_tags_a, zone_tags_i, a_list, i_list):
 
@@ -3638,21 +3628,24 @@ class MasterOfNetworks(object):
 
         # If PyDot is unimportable, raise an exception.
         libs.die_unless_runtime_optional('pydot')
-        # reserve import of pydot in case the user doesn't have it and needs to turn this functionality off:
+
+        # Delay import of pydot in case the user doesn't have it and needs to
+        # turn this functionality off.
         import pydot
 
         # alpha value to decrease saturation of graph node colors
-        alpha_val = 0.5
+        # alpha_val = 0.5
 
         # define some basic colormap scaling properties for the dataset:
         vals = np.asarray([v.c_cells.mean() for (c, v) in self.molecules.items()])
         minc = vals.min()
         maxc = vals.max()
-        normc = colors.Normalize(vmin=minc, vmax=maxc)
+        colors.Normalize(vmin=minc, vmax=maxc)
 
         # create a graph object
-        graphicus_maximus = pydot.Dot(graph_type='digraph', concentrate = True, nodesep = 0.1, ranksep = 0.3,
-            overlap = 'compress', splines = True)
+        graphicus_maximus = pydot.Dot(
+            graph_type='digraph', concentrate=True, nodesep=0.1, ranksep=0.3,
+            overlap='compress', splines=True)
 
         # # add Vmem to the graph
         # nde = pydot.Node('Vmem', style='filled', shape=self.vmem_shape)
@@ -4989,13 +4982,12 @@ class Molecule(object):
 
     def plot_1D(self, sim, p, saveImagePath):
         """
-        Create 1D plot of concentration in cell and environment for a single cell (params plot cell)
-        as a function of simulation time.
-
+        Create 1D plot of concentration in cell and environment for a single
+        cell (params plot cell) as a function of simulation time.
         """
 
         c_cells = [arr[p.plot_cell] for arr in self.c_cells_time]
-        fig = plt.figure()
+        plt.figure()
         ax = plt.subplot(111)
         ax.plot(sim.time, c_cells)
         ax.set_xlabel('Time [s]')
@@ -5010,9 +5002,8 @@ class Molecule(object):
             plt.show(block=False)
 
         if self.mit_enabled:
-
             c_mit = [arr[p.plot_cell] for arr in self.c_mit_time]
-            fig = plt.figure()
+            plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, c_mit)
             ax.set_xlabel('Time [s]')
@@ -5082,19 +5073,14 @@ class Molecule(object):
     def plot_env(self, sim, cells, p, saveImagePath):
         """
         Create 2D plot of environmental concentration.
-
         """
-
 
         fig = plt.figure()
         ax = plt.subplot(111)
 
         if p.smooth_level == 0.0:
-
             dyeEnv = gaussian_filter(self.c_env.reshape(cells.X.shape), 1.0)
-
         else:
-
             dyeEnv = (self.c_env).reshape(cells.X.shape)
 
         xmin = cells.xmin*p.um
@@ -5104,14 +5090,12 @@ class Molecule(object):
 
         bkgPlot = ax.imshow(dyeEnv,origin='lower',extent=[xmin,xmax,ymin,ymax], cmap=p.default_cm)
 
-
         if self.plot_autoscale is False:
             bkgPlot.set_clim(self.plot_min, self.plot_max)
 
         cb = fig.colorbar(bkgPlot)
 
         ax.axis('equal')
-
         ax.axis([xmin,xmax,ymin,ymax])
 
         ax.set_title('Final ' + self.name + ' Concentration in Environment')
@@ -5126,17 +5110,16 @@ class Molecule(object):
         if p.turn_all_plots_off is False:
             plt.show(block=False)
 
-    def anim_cells(self, sim, cells, p):
+    #FIXME: Ideally, this method should be refactored to comply with the
+    #new pipeline API.
+    @type_check
+    def anim_cells(self, phase: SimPhaseABC) -> None:
         """
         Create 2D animation of cell concentration.
         """
 
-        #FIXME: Ideally, this phase should be passed into this method.
-        #FIXME: Ideally, this method should be refactored to comply with the
-        #new pipeline API.
-        phase = SimPhaseWeak(
-            sim=sim, cells=cells, p=p,
-            kind=SimPhaseKind.SIM if p.run_sim else SimPhaseKind.SIM)
+        #FIXME: To support GUI modification, refactor this class to access the
+        #underlying YAML-based subconfiguration.
         conf = SimConfVisualMolecule(
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
@@ -5150,24 +5133,23 @@ class Molecule(object):
             figure_title='Cytosolic ' + self.name,
             colorbar_title='Concentration [mmol/L]')
 
-    def anim_env(self, sim, cells, p):
+    #FIXME: Ideally, this method should be refactored to comply with the
+    #new pipeline API.
+    @type_check
+    def anim_env(self, phase: SimPhaseABC) -> None:
         """
         Create 2D animation of env concentration.
         """
 
-        # FIXME: Ideally, this phase should be passed into this method.
-        #FIXME: Ideally, this method should be refactored to comply with the
-        #new pipeline API.
-        phase = SimPhaseWeak(
-            sim=sim, cells=cells, p=p,
-            kind=SimPhaseKind.SIM if p.run_sim else SimPhaseKind.SIM)
+        #FIXME: To support GUI modification, refactor this class to access the
+        #underlying YAML-based subconfiguration.
         conf = SimConfVisualMolecule(
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
 
         env_time_series = [
-            env.reshape(cells.X.shape) for env in self.c_env_time]
+            env.reshape(phase.cells.X.shape) for env in self.c_env_time]
         AnimEnvTimeSeries(
             phase=phase,
             conf=conf,
@@ -5175,6 +5157,7 @@ class Molecule(object):
             label=self.name + '_env',
             figure_title='Environmental ' + self.name,
             colorbar_title='Concentration [mmol/L]')
+
 
 class Reaction(object):
 
@@ -5210,7 +5193,7 @@ class Reaction(object):
         if self.reaction_zone == 'cell':
 
             r_rate = [arr[p.plot_cell] for arr in self.rate_time]
-            fig = plt.figure()
+            plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, r_rate)
             ax.set_xlabel('Time [s]')
@@ -5220,7 +5203,7 @@ class Reaction(object):
         elif self.reaction_zone == 'mit' and self.mit_enabled is True:
 
             r_rate = [arr[p.plot_cell] for arr in self.rate_time]
-            fig = plt.figure()
+            plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, r_rate)
             ax.set_xlabel('Time [s]')
@@ -5310,14 +5293,12 @@ class Transporter(object):
         if len(self.flux_time) > 0:
 
             if len(self.flux_time[0]) == sim.cdl:
-
                 r_rate = [arr[p.plot_cell] for arr in self.flux_time]
-
             else:
                 mem_i = cells.cell_to_mems[p.plot_cell][0]
                 r_rate = [arr[mem_i] for arr in self.flux_time]
 
-            fig = plt.figure()
+            plt.figure()
             ax = plt.subplot(111)
             ax.plot(sim.time, r_rate)
             ax.set_xlabel('Time [s]')

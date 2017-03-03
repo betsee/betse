@@ -753,18 +753,18 @@ results options:
       # List of all plots to be exported after simulation computation.
       # Ignored if both "show" and "save" are False.
       pipeline:
-        # Example intracellular voltage plot.
-        - type: voltage_intra  # Plot type. Supported single-cell types plotted
-                               # for the cell indexed by "plot_cell" include:
-                               # * "cell_ion_bicarbonate" (single-cell bicarbonate ion concentration).
-                               # * "cell_ion_potassium"   (single-cell potassium ion concentration).
-                               #   Ignored if potassium (K+) disabled by ion profile.
-                               # * "cell_ion_sodium"      (single-cell sodium ion concentration).
-                               #   Ignored if sodium (Na+) disabled by ion profile.
-                               # * "cell_voltage"         (single-cell voltage).
-                               # * "cell_voltage_fft"     (single-cell voltage Fourier transform).
-                               # Supported multi-cell types plotted for the
-                               # entire cell cluster include:
+        # Example average cell voltage plot.
+        - type: cell_voltage   # Plot type.
+          # Supported single-cell types plotted for the "plot_cell" include:
+          # * "cell_ion_bicarbonate" (single-cell bicarbonate ion concentration).
+          # * "cell_ion_potassium"   (single-cell potassium ion concentration).
+          #   Ignored if potassium (K+) disabled by ion profile.
+          # * "cell_ion_sodium"      (single-cell sodium ion concentration).
+          #   Ignored if sodium (Na+) disabled by ion profile.
+          # * "cell_voltage"         (single-cell voltage average).
+          # * "cell_voltage_fft"     (single-cell voltage Fourier transform).
+          # Supported multi-cell types plotted for the cell cluster include:
+
           colorbar:            # Plot colorbar settings.
             autoscale: True    # Automatically scale colorbar to minimum and
                                # maximum values of underlying data series?
@@ -781,34 +781,35 @@ results options:
       # List of all animations to be produced after simulation computation.
       # Ignored if both "show" and "save" are False.
       pipeline:
-        # Example intracellular voltage animation.
-        - type: voltage_intra  # Animation type. Supported types include:
-                               # * "current_intra"       (intracellular current density).
-                               # * "current_total"       (intra- and extracellular current density).
-                               #   Ignored if extracellular spaces disabled.
-                               # * "deform"              (deformation).
-                               #   Ignored unless deformation disabled.
-                               # * "electric_intra"      (intracellular electric field).
-                               # * "electric_total"      (intra- and extracellular electric field).
-                               #   Ignored if extracellular spaces disabled.
-                               # * "fluid_intra"         (intracellular fluid flow).
-                               #   Ignored if fluid flow disabled.
-                               # * "fluid_total"         (intra- and extracellular fluid flow).
-                               #   Ignored if fluid flow or extracellular spaces disabled.
-                               # * "ion_calcium"         (calcium ion concentration: Ca2+).
-                               #   Ignored if calcium (Ca2+) disabled by ion profile.
-                               # * "ion_hydrogen"        (hydrogen ion concentration: pH, H+).
-                               #   Ignored if hydrogen (H+) disabled by ion profile.
-                               # * "membrane_gap_junction" (gap junction connectivity state).
-                               # * "membrane_pump_density" (cell membrane pump density factor).
-                               #   Ignored if channel electroosmosis disabled.
-                               # * "pressure_mechanical" (cellular mechanical pressure).
-                               #   Ignored if mechanical pressure event disabled.
-                               # * "pressure_osmotic"    (cellular osmotic pressure).
-                               #   Ignored if osmotic pressure disabled.
-                               # * "voltage_intra"       (intracellular voltage).
-                               # * "voltage_total"       (intra- and extracellular voltage).
-                               #   Ignored if extracellular spaces disabled.
+        # Example transmembrane voltage (Vmem) animation.
+        - type: voltage_membrane  # Animation type. Supported types include:
+          # * "current_intra"       (intracellular current density).
+          # * "current_total"       (intra- and extracellular current density).
+          #   Ignored if extracellular spaces disabled.
+          # * "deform"              (deformation).
+          #   Ignored unless deformation disabled.
+          # * "electric_intra"      (intracellular electric field).
+          # * "electric_total"      (intra- and extracellular electric field).
+          #   Ignored if extracellular spaces disabled.
+          # * "fluid_intra"         (intracellular fluid flow).
+          #   Ignored if fluid flow disabled.
+          # * "fluid_total"         (intra- and extracellular fluid flow).
+          #   Ignored if fluid flow or extracellular spaces disabled.
+          # * "ion_calcium"         (calcium ion concentration: Ca2+).
+          #   Ignored if calcium (Ca2+) disabled by ion profile.
+          # * "ion_hydrogen"        (hydrogen ion concentration: pH, H+).
+          #   Ignored if hydrogen (H+) disabled by ion profile.
+          # * "membrane_gap_junction" (gap junction connectivity state).
+          # * "membrane_pump_density" (cell membrane pump density factor).
+          #   Ignored if channel electroosmosis disabled.
+          # * "pressure_mechanical" (cellular mechanical pressure).
+          #   Ignored if mechanical pressure event disabled.
+          # * "pressure_osmotic"    (cellular osmotic pressure).
+          #   Ignored if osmotic pressure disabled.
+          # * "voltage_membrane"    (Vmem transmembrane voltage).
+          # * "voltage_total"       (intra- and extracellular voltage).
+          #   Ignored if extracellular spaces disabled.
+
           colorbar:            # Animation colorbar settings.
             autoscale: True    # Automatically scale colorbar to minimum and
                                # maximum values of underlying data series?
@@ -816,6 +817,7 @@ results options:
                                # "autoscale" is True.
             maximum:  10.0     # Maximum fixed colorbar value. Ignored if
                                # "autoscale" is True.
+
         # Example intracellular electric field animation. (Details above.)
         - type: electric_intra
           colorbar:

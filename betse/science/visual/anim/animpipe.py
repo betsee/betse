@@ -376,13 +376,11 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             colorbar_title='Pressure [Pa]',
         )
 
-    # FIXME can we change to voltage_mem
-
     # ..................{ EXPORTERS ~ voltage                }..................
     @exporter_metadata(categories=('Voltage', 'Intracellular'))
-    def export_voltage_intra(self, conf: SimConfVisualListable) -> None:
+    def export_voltage_membrane(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all intracellular voltages for all time steps.
+        Animate all transmembrane voltages (i.e., Vmem) for all time steps.
         '''
 
         # Log this animation attempt.

@@ -91,6 +91,10 @@ class SimRunner(object):
         sim = Simulator(p=p)
         cells = Cells(p)  # create an instance of the Cells object
 
+        # Simulation phase.
+        phase = SimPhaseStrong(
+            kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
+
         logs.log_info('Cell cluster is being created...')
         cells.makeWorld(p)  # call function to create the world
         dyna = TissueHandler(sim, cells, p)
@@ -128,8 +132,8 @@ class SimRunner(object):
 
         sim.sim_info_report(cells,p)
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
 
     def init(self) -> SimPhaseStrong:
@@ -138,7 +142,7 @@ class SimRunner(object):
         to the :meth:`seed` method and cache this initialization to an output
         file, specified by the current configuration file.
 
-        This method _must_ be called prior to the :meth:`sim` and
+        This method *must* be called prior to the :meth:`sim` and
         :meth:`plot_init` methods, which consume this output as input.
 
         Returns
@@ -154,14 +158,20 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.INIT
+
         #FIXME: The Parameters.__init__() method should *REQUIRE* that a time
         #profile type be passed. The current approach leaves critical attributes
         #undefined in the event that the optional Parameters.set_time_profile()
         #method is left uncalled, which is pretty unacceptable.
+        #FIXME: Actually, no. All logic performed by the set_time_profile()
+        #method should be shifted into the SimPhaseABC.__init__() method. See a
+        #FIXME comment preceding the set_time_profile() method for details.
 
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
-        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False # let the simulator know we're just running an initialization
 
         # Simulation cell cluster.
@@ -198,6 +208,10 @@ class SimRunner(object):
 
         # Simulation simulator.
         sim = Simulator(p=p)
+
+        # Simulation phase, created *AFTER* unpickling these objects above.
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
+
         sim.run_sim = False
 
         # Initialize simulation data structures, run, and save simulation phase
@@ -209,8 +223,8 @@ class SimRunner(object):
             'Initialization completed in %d seconds.',
             round(time.time() - start_time, 2))
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
 
     def sim(self) -> SimPhaseStrong:
@@ -235,9 +249,12 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.SIM
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
-        p.set_time_profile(p.time_profile_sim)  # force the time profile to be initialize
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
 
         # Simulation simulator.
@@ -265,6 +282,9 @@ class SimRunner(object):
                     'Simulation terminated due to missing initialization. '
                     'Please run an initialization and try again.')
 
+        # Simulation phase, created *AFTER* unpickling these objects above.
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
+
         # Reinitialize save and load directories in case params defines new ones
         # for this sim.
         sim.fileInit(p)
@@ -277,8 +297,8 @@ class SimRunner(object):
             'Simulation completed in %d seconds.',
             round(time.time() - start_time, 2))
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
 
     #FIXME: Eliminate duplication. This and the sim_grn() methods are currently
@@ -293,6 +313,8 @@ class SimRunner(object):
     #
     #    def sim_brn(self) -> SimPhaseStrong:
     #        return self._sim_network(master_type=MasterOfMolecules)
+    #FIXME: The above may not necessarily be the case, anymore. Additional minor
+    #differences between the two appear to have cropped up. *shrug*
     def sim_brn(self) -> SimPhaseStrong:
         '''
         Initialize and simulate a pure bioenergetics reaction network (BRN)
@@ -316,9 +338,16 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
+        #FIXME: Is "INIT" the proper phase here? The string "Now using cell
+        #cluster to run initialization." above and call to sim.baseInit_all()
+        #above suggest this is, indeed, an initialization.
+
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.INIT
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
-        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
         # Simulation cell cluster.
@@ -351,6 +380,9 @@ class SimRunner(object):
         # Simulation simulator.
         sim = Simulator(p=p)
 
+        # Simulation phase.
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
+
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
 
@@ -368,12 +400,8 @@ class SimRunner(object):
             'Metabolic network test completed in %d seconds.',
             round(time.time() - start_time, 2))
 
-        #FIXME: Is "INIT" the proper phase here? The string "Now using cell
-        #cluster to run initialization." above and call to sim.baseInit_all()
-        #above suggest this is, indeed, an initialization.
-
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
 
     def sim_grn(self) -> SimPhaseStrong:
@@ -399,9 +427,14 @@ class SimRunner(object):
 
         start_time = time.time()  # get a start value for timing the simulation
 
+        #FIXME: Is "INIT" the proper phase here? See sim_brn() for discussion.
+
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.INIT
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
-        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
         # Simulation cell cluster.
@@ -434,6 +467,9 @@ class SimRunner(object):
         # Simulation simulator.
         sim = Simulator(p=p)
 
+        # Simulation phase.
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
+
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
 
@@ -451,13 +487,10 @@ class SimRunner(object):
             'Gene regulatory network test completed in %d seconds.',
             round(time.time() - start_time, 2))
 
-        #FIXME: Is "INIT" the proper phase here? See sim_brn() for discussion.
-
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Return "SimPhaseStrong" instances from all of the following methods.
     #FIXME: Shift the low-level matplotlib plotting performed by this method
     #into a new "betse.science.visual.seedpipe" submodule.
 
@@ -504,6 +537,10 @@ class SimRunner(object):
         else:
             raise BetseSimException(
                 "Ooops! No such cell cluster file found to load!")
+
+        # Simulation phase, created *AFTER* unpickling these objects above
+        phase = SimPhaseStrong(
+            kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
 
         sim.baseInit_all(cells,p)
         dyna = TissueHandler(sim,cells,p)
@@ -609,8 +646,8 @@ class SimRunner(object):
                 'defined in configuration file "%s".',
                 self._config_basename)
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
 
     def plot_init(self) -> SimPhaseStrong:
@@ -631,9 +668,12 @@ class SimRunner(object):
             'Plotting initialization with configuration "%s"...',
             self._config_basename)
 
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.INIT
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
-        p.set_time_profile(p.time_profile_init)  # force the time profile to be initialize
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         # Simulation simulator.
         sim = Simulator(p=p)
@@ -651,9 +691,8 @@ class SimRunner(object):
             raise BetseSimException(
                 "Ooops! No such initialization file found to plot!")
 
-        # Simulation phase.
-        phase = SimPhaseStrong(
-            kind=SimPhaseKind.INIT, cells=cells, p=p, sim=sim)
+        # Simulation phase, created *AFTER* unpickling these objects above
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
 
         # Display and/or save all initialization exports (e.g., animations).
         exppipe.pipeline(phase)
@@ -663,6 +702,9 @@ class SimRunner(object):
         #it. Grrrrrr.....
         #FIXME: Why not just stop each block from happening if image saving is
         #off? Easy peasy!
+
+        #FIXME: Reduce duplication. The following logic is effectively a copy of
+        #similar logic in the plot_sim() method.
         #FIXME: Split each of the following blocks performing both plotting and
         #animating into their appropriate plotpipe.pipeline() or
         #animpipe.pipeline() functions, which should resolve the above concerns.
@@ -672,9 +714,9 @@ class SimRunner(object):
             # reinit settings for plots, in case they've changed:
             sim.molecules.core.plot_init(p.network_config, p)
             sim.molecules.core.init_saving(cells, p, plot_type='init')
-            sim.molecules.core.export_all_data(sim, cells, p)
-            sim.molecules.core.plot(sim, cells, p)
-            sim.molecules.core.anim(sim, cells, p)
+            sim.molecules.core.export_all_data(sim, cells, p, message='auxiliary molecules')
+            sim.molecules.core.plot(sim, cells, p, message='auxiliary molecules')
+            sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.metabolism_enabled and sim.metabo is not None:
             configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
@@ -686,12 +728,9 @@ class SimRunner(object):
 
             sim.metabo.core.init_saving(
                 cells, p, plot_type='init', nested_folder_name='Metabolism')
-            sim.metabo.core.export_all_data(
-                sim, cells, p, message='for metabolic molecules...')
-            sim.metabo.core.plot(
-                sim, cells, p, message='for metabolic molecules...')
-            sim.metabo.core.anim(
-                sim, cells, p, message='for metabolic molecules...')
+            sim.metabo.core.export_all_data(sim, cells, p, message='metabolic molecules')
+            sim.metabo.core.plot(sim, cells, p, message='metabolic molecules')
+            sim.metabo.core.anim(phase=phase, message='metabolic molecules')
 
         if p.grn_enabled and sim.grn is not None:
             configPath = os.path.join(p.config_dirname, p.grn_config_filename)
@@ -703,14 +742,12 @@ class SimRunner(object):
 
             sim.grn.core.init_saving(
                 cells, p, plot_type='init', nested_folder_name='GRN')
-            sim.grn.core.export_all_data(
-                sim, cells, p, message='for GRN molecules...')
-            sim.grn.core.plot(
-                sim, cells, p, message='for GRN molecules...')
-            sim.grn.core.anim(
-                sim, cells, p, message='for GRN molecules...')
+            sim.grn.core.export_all_data(sim, cells, p, message='GRN molecules')
+            sim.grn.core.plot(sim, cells, p, message='GRN molecules')
+            sim.grn.core.anim(phase=phase, message='GRN molecules')
 
-        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
+        #FIXME: Integrate into the plot pipeline.
+        if p.Ca_dyn and p.ions_dict['Ca'] == 1:
             sim.endo_retic.init_saving(
                 cells, p, plot_type='init', nested_folder_name='ER')
             sim.endo_retic.plot_er(sim, cells, p)
@@ -721,7 +758,7 @@ class SimRunner(object):
         if p.plot.is_after_sim_show:
             plt.show()
 
-        # Return this simulation phase.
+        # Return this phase.
         return phase
 
 
@@ -743,9 +780,12 @@ class SimRunner(object):
             'Plotting simulation with configuration "%s"...',
             self._config_basename)
 
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.SIM
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
-        p.set_time_profile(p.time_profile_sim)  # force the time profile to be simulation
+        p.set_time_profile(phase_kind)  # force the time profile to be simulation
 
         # Simulation simulator.
         sim = Simulator(p=p)
@@ -760,9 +800,8 @@ class SimRunner(object):
         # Load the simulation from the cache.
         sim, cells, _ = fh.loadSim(sim.savedSim)
 
-        # Simulation phase.
-        phase = SimPhaseStrong(
-            kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
+        # Simulation phase, created *AFTER* unpickling these objects above
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
 
         # Display and/or save all simulation exports (e.g., animations).
         exppipe.pipeline(phase)
@@ -776,13 +815,12 @@ class SimRunner(object):
             # reinit settings for plots, in case they've changed:
             # sim.molecules.core.plot_init(p.molecules_config)
 
-            sim.molecules.core.init_saving(cells, p, plot_type = 'sim')
-            sim.molecules.core.export_all_data(sim, cells, p)
-            sim.molecules.core.plot(sim, cells, p)
-            sim.molecules.core.anim(sim, cells, p)
+            sim.molecules.core.init_saving(cells, p, plot_type='sim')
+            sim.molecules.core.export_all_data(sim, cells, p, message='auxiliary molecules')
+            sim.molecules.core.plot(sim, cells, p, message='auxiliary molecules')
+            sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.metabolism_enabled and sim.metabo is not None:
-
             configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
 
             # read the config file into a dictionary:
@@ -791,12 +829,11 @@ class SimRunner(object):
             sim.metabo.core.plot_init(config_dic, p)
 
             sim.metabo.core.init_saving(cells, p, plot_type='sim')
-            sim.metabo.core.export_all_data(sim, cells, p)
-            sim.metabo.core.plot(sim, cells, p)
-            sim.metabo.core.anim(sim, cells, p)
+            sim.metabo.core.export_all_data(sim, cells, p, message='auxiliary molecules')
+            sim.metabo.core.plot(sim, cells, p, message='auxiliary molecules')
+            sim.metabo.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.grn_enabled and sim.grn is not None:
-
             configPath = os.path.join(p.config_dirname, p.grn_config_filename)
 
             # read the config file into a dictionary:
@@ -805,12 +842,14 @@ class SimRunner(object):
             sim.grn.core.plot_init(config_dic, p)
 
             sim.grn.core.init_saving(cells, p, plot_type='sim', nested_folder_name='GRN')
-            sim.grn.core.export_all_data(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.plot(sim, cells, p, message = 'for GRN molecules...')
-            sim.grn.core.anim(sim, cells, p, message = 'for GRN molecules...')
+            sim.grn.core.export_all_data(sim, cells, p, message='GRN molecules')
+            sim.grn.core.plot(sim, cells, p, message='GRN molecules')
+            sim.grn.core.anim(phase=phase, message='GRN molecules')
 
-        if p.Ca_dyn is True and p.ions_dict['Ca'] == 1:
-            sim.endo_retic.init_saving(cells, p, plot_type = 'sim', nested_folder_name = 'ER')
+        #FIXME: Integrate into the plot pipeline.
+        if p.Ca_dyn and p.ions_dict['Ca'] == 1:
+            sim.endo_retic.init_saving(
+                cells, p, plot_type='sim', nested_folder_name='ER')
             sim.endo_retic.plot_er(sim, cells, p)
 
         # If displaying plots, block on all previously plots previously
@@ -819,7 +858,7 @@ class SimRunner(object):
         if p.plot.is_after_sim_show:
             plt.show()
 
-        # Return this simulation phase.
+        # Return this phase.
         return phase
 
 
@@ -837,24 +876,30 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.INIT
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         MoM = MasterOfMetabolism(p)
         MoM, cells, _ = fh.loadSim(MoM.savedMoM)
 
         # Simulation simulator.
         sim = Simulator(p)
+
+        # Simulation phase.
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
+
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
         sim.time = MoM.time
 
-        MoM.core.init_saving(
-            cells, p, plot_type='init', nested_folder_name='Metabolism')
-        MoM.core.export_all_data(
-            sim, cells, p, message='for metabolic molecules...')
-        MoM.core.plot(sim, cells, p, message='for metabolic molecules...')
-        MoM.core.anim(sim, cells, p, message='for metabolic molecules...')
+        MoM.core.init_saving(cells, p, plot_type='init', nested_folder_name='Metabolism')
+        MoM.core.export_all_data(sim, cells, p, message='metabolic molecules')
+        MoM.core.plot(sim, cells, p, message='metabolic molecules')
+        MoM.core.anim(phase=phase, message='metabolic molecules')
 
         # If displaying plots, block on all previously plots previously
         # displayed as non-blocking. If this is *NOT* done, these plots will
@@ -862,8 +907,8 @@ class SimRunner(object):
         if p.plot.is_after_sim_show:
             plt.show()
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
 
     def plot_grn(self) -> SimPhaseStrong:
@@ -880,23 +925,30 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
+        # Simulation phase type.
+        phase_kind = SimPhaseKind.INIT
+
         # Simulation configuration.
         p = Parameters(config_filename=self._config_filename)
+        p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         MoG = MasterOfGenes(p)
         MoG, cells, _ = fh.loadSim(MoG.savedMoG)
 
         # Simulation simulator.
         sim = Simulator(p)
+
+        # Simulation phase.
+        phase = SimPhaseStrong(kind=phase_kind, cells=cells, p=p, sim=sim)
+
         # Initialize simulation data structures
         sim.baseInit_all(cells, p)
         sim.time = MoG.time
 
-        MoG.core.init_saving(
-            cells, p, plot_type='init', nested_folder_name='GRN')
-        MoG.core.export_all_data(sim, cells, p, message='for gene products...')
-        MoG.core.plot(sim, cells, p, message='for gene products...')
-        MoG.core.anim(sim, cells, p, message='for gene products...')
+        MoG.core.init_saving(cells, p, plot_type='init', nested_folder_name='GRN')
+        MoG.core.export_all_data(sim, cells, p, message='gene products')
+        MoG.core.plot(sim, cells, p, message='gene products')
+        MoG.core.anim(phase=phase, message='gene products')
 
         # If displaying plots, block on all previously plots previously
         # displayed as non-blocking. If this is *NOT* done, these plots will
@@ -904,8 +956,8 @@ class SimRunner(object):
         if p.plot.is_after_sim_show:
             plt.show()
 
-        # Create and return an object encapsulating this phase.
-        return SimPhaseStrong(kind=SimPhaseKind.SIM, cells=cells, p=p, sim=sim)
+        # Return this phase.
+        return phase
 
     # ..................{ UTILITIES                          }..................
     def _die_unless_seed_same(self, p_old, p) -> None:

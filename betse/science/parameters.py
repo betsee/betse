@@ -4,7 +4,7 @@
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
 from betse.lib.matplotlib import mplutil
 from betse.science.config import confio #, confalias
 from betse.science.config.confabc import conf_alias
@@ -12,6 +12,7 @@ from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
 from betse.science.config.export.confanim import SimConfAnimAll
 from betse.science.config.export.confplot import SimConfPlotAll
+from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
@@ -192,11 +193,6 @@ class Parameters(object):
         #---------------------------------------------------------------------------------------------------------------
         # INIT & SIM SETTINGS
         #---------------------------------------------------------------------------------------------------------------
-
-        #FIXME: Replace with a single typesafe enumeration.
-        # set time profile from yaml
-        self.time_profile_init = 'custom init' # time profile for initialization run
-        self.time_profile_sim = 'custom sim'   # time profile for sim run
 
         #FIXME: Redundant. The set_time_profile() method already sets the more
         #appropriately named "self.init_end", "self.sim_end", and
@@ -1408,31 +1404,31 @@ class Parameters(object):
     # ..................{ SETTERS                            }..................
     #FIXME: Refactor to accept an enumeration value rather than raw string --
     #or, better yet, to accept no parameter and leverage an enumeration value
-    #identifying the current phase already set as an attribute of this object..
-    #FIXME: Right. Use the new "betse.science.sim.SimPhaseKind" enumeration value.
+    #identifying the current phase already set as an attribute of this object.
+    #Ideally, use the new "betse.science.sim.SimPhaseKind" enumeration value.
+    #FIXME: Actually, this method makes little sense here; clearly, this method
+    #sets phase-specific attributes. All phase-specific attributes should reside
+    #directly in the "SimPhaseABC" API rather than in this class, which is
+    #supposed to be phase-agnostic and hence reusable between phases.
 
     @type_check
-    def set_time_profile(self, time_profile: str) -> None:
+    def set_time_profile(self, phase_kind: SimPhaseKind) -> None:
         '''
-        Set attributes of this `Parameters` instance specific to the current
-        simulation phase (e.g., `init`, `sim`) identified by the passed name.
+        Set temporal attributes specific to the passed simulation phase type.
 
         These attributes include:
 
-        * `dt`, the duration in seconds of each time step for this phase.
-        * `total_time`, the duration in seconds of this phase.
+        * ``dt``, the duration in seconds of each time step for this phase.
+        * ``total_time``, the duration in seconds of this phase.
 
         Parameters
         ----------
-        time_profile : str
-            Configuration file-derived string specifying the type of time
-            profile to set. Recognized strings include:
-            * `custom init` for simulation initializations.
-            * `custom sim` for simulation runs.
+        phase_kind : SimPhaseKind
+            Current simulation phase type.
         '''
 
         # If this simulation phase is an initialization...
-        if time_profile == 'custom init':
+        if phase_kind is SimPhaseKind.INIT:
             self.dt = float(self._conf['init time settings']['time step'])
             self.init_end = float(self._conf['init time settings']['total time'])
             self.init_tsteps = self.init_end/self.dt
@@ -1441,9 +1437,8 @@ class Parameters(object):
 
             # Duration in seconds of the current simulation phase.
             self.total_time = self.init_end
-
-        # Else, this simulation phase is a simulation.
-        else:   # if time_profile == 'custom sim':
+        # Else if this simulation phase is a simulation.
+        elif phase_kind is SimPhaseKind.SIM:
             self.dt = float(self._conf['sim time settings']['time step'])
             self.sim_end = float(self._conf['sim time settings']['total time'])
             self.sim_tsteps = self.sim_end/self.dt
@@ -1452,13 +1447,13 @@ class Parameters(object):
 
             # Duration in seconds of the current simulation phase.
             self.total_time = self.sim_end
+        else:
+            raise BetseSimPhaseException(
+                'Simulation phase "{}" unsupported.'.format(phase_kind.name))
 
         # Duration in seconds of the current simulation phase accelerated by
         # the current gap junction acceleration factor.
         self.total_time_accelerated = self.total_time * self.gj_acceleration
-
-        #FIXME: ...what is this? Dare we even conjecture.
-        self.method = 0
 
 # ....................{ HELPERS                            }....................
 #FIXME: Shift this into a more appropriate math-oriented module. Funny sunning!
