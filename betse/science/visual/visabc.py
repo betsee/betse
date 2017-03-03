@@ -20,7 +20,7 @@ from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
-from betse.science.config.export.confvisabc import SimConfVisualMixin
+from betse.science.config.export.confvisabc import SimConfVisualABC
 from betse.science.export import expmath
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.layer.layerabc import (
@@ -141,7 +141,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Mandatory parameters.
         phase: SimPhaseABC,
-        conf: SimConfVisualMixin,
+        conf: SimConfVisualABC,
         is_save: bool,
         is_show: bool,
         label: str,

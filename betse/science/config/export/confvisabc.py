@@ -7,12 +7,57 @@ YAML-backed simulation visualization subconfigurations.
 '''
 
 # ....................{ IMPORTS                            }....................
+#from abc import ABCMeta
+from betse.exceptions import BetseMethodUnimplementedException
 from betse.science.config.confabc import (
     SimConfABC, SimConfListableABC, conf_alias)
-from betse.util.type.types import NumericTypes
+from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUPERCLASSES                       }....................
-class SimConfVisualMixin(object):
+#FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored
+#to leverage the YAML format specified by "SimConfVisualMixin".
+class SimConfVisualABC(object):
+    '''
+    Abstract base class generalizing logic common to all YAML-backed simulation
+    visualization subconfiguration subclasses.
+
+    This mix-in encapsulates the configuration of a single visualization (either
+    in- or post-simulation plot or animation) parsed from the current
+    YAML-formatted simulation configuration file. For generality, this mix-in
+    provides no support for a YAML ``type`` key or corresponding :attr:`name`
+    property.
+
+    Attributes (Colorbar)
+    ----------
+    color_max : NumericTypes
+        Maximum color value to be displayed by this visualization's colorbar.
+        Ignored if :attr:`is_color_autoscaled` is ``True``.
+    color_min : NumericTypes
+        Minimum color value to be displayed by this visualization's colorbar.
+        Ignored if :attr:`is_color_autoscaled` is ``True``.
+    is_color_autoscaled : bool
+        ``True`` if dynamically setting the minimum and maximum colorbar values
+        for this visualization to the minimum and maximum values flattened from
+        the corresponding time series *or* ``False`` if statically setting these
+        values to :attr:`color_min` and :attr:`color_max`.
+    '''
+
+    # ..................{ PROPERTIES                         }..................
+    #FIXME: Docstring us up.
+    @property
+    def is_color_autoscaled(self) -> bool:
+        raise BetseMethodUnimplementedException()
+
+    @property
+    def color_min(self) -> NumericTypes:
+        raise BetseMethodUnimplementedException()
+
+    @property
+    def color_max(self) -> NumericTypes:
+        raise BetseMethodUnimplementedException()
+
+
+class SimConfVisualMixin(SimConfVisualABC):
     '''
     Abstract mix-in generalizing logic common to all YAML-backed simulation
     visualization subconfiguration subclasses.
@@ -42,6 +87,38 @@ class SimConfVisualMixin(object):
     is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)
     color_min = conf_alias("['colorbar']['minimum']", NumericTypes)
     color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
+
+
+class SimConfVisualMolecule(SimConfVisualABC):
+    '''
+    Networks molecule-specific visualization subconfiguration subclasses.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(
+        self,
+        is_color_autoscaled: bool,
+        color_min: NumericTypes,
+        color_max: NumericTypes,
+    ) -> None:
+
+        self._is_color_autoscaled = is_color_autoscaled
+        self._color_min = color_min
+        self._color_max = color_max
+
+    # ..................{ PROPERTIES                         }..................
+    @property
+    def is_color_autoscaled(self) -> bool:
+        return self._is_color_autoscaled
+
+    @property
+    def color_min(self) -> NumericTypes:
+        return self._color_min
+
+    @property
+    def color_max(self) -> NumericTypes:
+        return self._color_max
 
 # ....................{ SUBCLASSES                         }....................
 class SimConfVisualGeneric(SimConfVisualMixin, SimConfABC):

@@ -18,6 +18,7 @@ from betse_test.util.mark.skip import skip_unless_lib_runtime_optional
 skip_unless_networkable = skip_unless_lib_runtime_optional('networkx', 'pydot')
 
 # ....................{ TESTS                              }....................
+#FIXME: Enable plots and animations for these tests.
 @skip_unless_networkable
 def test_cli_brn(betse_cli_sim: 'CLISimTester') -> None:
     '''

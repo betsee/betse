@@ -27,9 +27,11 @@ from betse.science.channels import vg_kir as vgkir
 from betse.science.channels import vg_na as vgna
 from betse.science.channels import vg_nap as vgnap
 from betse.science.chemistry.netplot import plot_master_network, set_net_opts
+from betse.science.config.export.confvisabc import SimConfVisualMolecule
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
+from betse.science.simulate.simphase import SimPhaseWeak, SimPhaseKind
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
@@ -4730,7 +4732,6 @@ class Molecule(object):
                                                                 ignoreGJ = self.ignoreGJ,
                                                                 rho = sim.rho_channel)
 
-
     def updateC(self, flux, sim, cells, p):
         """
 
@@ -5130,32 +5131,50 @@ class Molecule(object):
         Create 2D animation of cell concentration.
         """
 
-        AnimFlatCellsTimeSeries(
+        #FIXME: Ideally, this phase should be passed into this method.
+        #FIXME: Ideally, this method should be refactored to comply with the
+        #new pipeline API.
+        phase = SimPhaseWeak(
             sim=sim, cells=cells, p=p,
-            time_series=self.c_cells_time,
-            label=self.name + '_cells',
-            figure_title='Cytosolic ' + self.name,
-            colorbar_title='Concentration [mmol/L]',
+            kind=SimPhaseKind.SIM if p.run_sim else SimPhaseKind.SIM)
+        conf = SimConfVisualMolecule(
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
+
+        AnimFlatCellsTimeSeries(
+            phase=phase,
+            conf=conf,
+            time_series=self.c_cells_time,
+            label=self.name + '_cells',
+            figure_title='Cytosolic ' + self.name,
+            colorbar_title='Concentration [mmol/L]')
 
     def anim_env(self, sim, cells, p):
         """
         Create 2D animation of env concentration.
         """
 
-        env_time_series = [
-            env.reshape(cells.X.shape) for env in self.c_env_time]
-        AnimEnvTimeSeries(
+        # FIXME: Ideally, this phase should be passed into this method.
+        #FIXME: Ideally, this method should be refactored to comply with the
+        #new pipeline API.
+        phase = SimPhaseWeak(
             sim=sim, cells=cells, p=p,
-            time_series=env_time_series,
-            label=self.name + '_env',
-            figure_title='Environmental ' + self.name,
-            colorbar_title='Concentration [mmol/L]',
+            kind=SimPhaseKind.SIM if p.run_sim else SimPhaseKind.SIM)
+        conf = SimConfVisualMolecule(
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
+
+        env_time_series = [
+            env.reshape(cells.X.shape) for env in self.c_env_time]
+        AnimEnvTimeSeries(
+            phase=phase,
+            conf=conf,
+            time_series=env_time_series,
+            label=self.name + '_env',
+            figure_title='Environmental ' + self.name,
+            colorbar_title='Concentration [mmol/L]')
 
 class Reaction(object):
 

@@ -376,6 +376,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             colorbar_title='Pressure [Pa]',
         )
 
+    # FIXME can we change to voltage_mem
+
     # ..................{ EXPORTERS ~ voltage                }..................
     @exporter_metadata(categories=('Voltage', 'Intracellular'))
     def export_voltage_intra(self, conf: SimConfVisualListable) -> None:
