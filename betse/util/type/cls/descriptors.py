@@ -12,8 +12,15 @@ defined at class scope) facilities.
 #embedding type validation in the data descriptor classes defined below.
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseEnumException, BetseTypeException
-from betse.util.type.types import type_check, EnumType, TestableTypes
+from betse.exceptions import (
+    BetseDescriptorException, BetseEnumException, BetseTypeException)
+from betse.util.type.types import (
+    type_check,
+    CallableOrNoneTypes,
+    EnumType,
+    StrOrNoneTypes,
+    TestableOrNoneTypes,
+)
 
 if False: BetseTypeException   # squelch IDE warnings
 
@@ -24,15 +31,23 @@ Unique arbitrary identifier with which to uniquify the class name of the next
 :func:`expr_alias` descriptor.
 '''
 
-# ....................{ DESCRIPTORS ~ alias                }....................
+# ....................{ DESCRIPTORS                        }....................
+#FIXME: Unit test the "predicate_expr" parameter.
 @type_check
-def expr_alias(expr: str, cls: TestableTypes = None) -> object:
+def expr_alias(
+    expr: str,
+    cls: TestableOrNoneTypes = None,
+    predicate: CallableOrNoneTypes = None,
+    predicate_expr: StrOrNoneTypes = None,
+    predicate_label: StrOrNoneTypes = None,
+) -> object:
     '''
     Expression alias **data descriptor** (i.e., object satisfying the data
     descriptor protocol), dynamically aliasing a target variable of the passed
-    type bound to instances of the class instantiating this descriptor to an
-    arbitrarily complex source Python expression suitable for use as both the
-    left- and right-hand sides of Python assignment statements.
+    type and/or satisfying the passed predicate bound to instances of the class
+    instantiating this descriptor to an arbitrarily complex source Python
+    expression suitable for use as both the left- and right-hand sides of Python
+    assignment statements.
 
     This function (in order):
 
@@ -118,16 +133,33 @@ def expr_alias(expr: str, cls: TestableTypes = None) -> object:
           ``['variable settings']['noise']['dynamic noise']``).
     cls: optional[TestableTypes]
         Either:
-        * A class, in which case setting this variable to a value *not* an
-          instance of this class raises an exception.
-        * A tuple of classes, in which case setting this variable to a value
-          *not* an instance of at least one class in this tuple raises an
-          exception.
-        * A callable, in which case setting this variable to a value passes this
-          value to this callable first, which may then raise an exception of
-          arbitrary type.
-        Defaults to ``None``, in which case this variable is permissively
-        settable to any arbitrary value.
+        * A class, in which case an exception is raised if the value of this
+          expression is *not* an instance of this class.
+        * A tuple of classes, in which case an exception is raised if the value
+          of this expression is *not* an instance of at least one class in this
+          tuple.
+        Defaults to ``None``, in which case no such validation is performed.
+    predicate: optional[CallableTypes]
+        Callable passed the value of this expression as its first and only
+        parameter and returning a boolean ``True`` only if this value satisfies
+        arbitrary caller requirements and ``False`` otherwise. For uniformity,
+        this callable should ideally return boolean values rather than raise
+        type exceptions. If this callable returns ``False``, an exception is
+        raised on behalf of this callable. If the ``predicate_label``
+        parameter is *not* also passed, an exception is raised. Defaults to
+        ``None``, in which case no such validation is performed.
+    predicate_expr: StrOrNoneTypes = None,
+        Arbitrarily complex Python expression suitable for use as the condition
+        of an if statement evaluating to a boolean ``True`` only if the value of
+        this expression satisfies arbitrary caller requirements and ``False``
+        otherwise. If this expression evaluates to ``False``, an exception is
+        raised on behalf of this expression. If the ``predicate_label``
+        parameter is *not* also passed, an exception is raised. Defaults to
+        ``None``, in which case no such validation is performed.
+    predicate_label: optional[str]
+        Human-readable adjective or adjectival phrase describing the passed
+        callable predicate if any. Defaults to ``None``, in which case this
+        string is synthesized from the name of this callable if needed.
 
     Returns
     ----------
@@ -146,16 +178,125 @@ def expr_alias(expr: str, cls: TestableTypes = None) -> object:
     #   descriptor class defined below.
     # * "__set__", whose value is the __set__() special method for this
     #   descriptor class defined below.
-    expr_alias_class_methods = {
-        # Type of all values accepted by this __set__() method if any.
+    class_method_name_to_func = {
+        # Passed validational class if any.
         '__expr_alias_cls': cls,
+
+        # Passed validational predicate if any.
+        '__expr_alias_predicate': predicate,
     }
 
-    # Snippet of Python expr declaring these special methods.
-    expr_alias_class_method_defs = None
+    # Python code snippet listing all optional arguments to be accepted by this
+    # data descriptor's __init__() method.
+    class_init_args = ''
 
-    # If *NOT* validating the type of this variable, define this data descriptor
-    # to permissively accept all possible values.
+    # Python code snippet implementing the body of this data descriptor's
+    # __init__(), __get__(), and __set__() methods respectively.
+    class_init_body = ''
+    class_get_body = ''
+    class_set_body = ''
+
+    # Python code snippet validating the value this expression evaluates to.
+    value_test_block = ''
+
+    # If a validational class was passed...
+    if cls is not None:
+        # Pass this class to this method.
+        class_init_args += ', __expr_alias_cls=__expr_alias_cls'
+
+        # Classify this passed class in this method.
+        class_init_body += '''
+    self_descriptor.__expr_alias_cls = __expr_alias_cls'''
+
+        # Raise an exception unless the value to which this expression evaluates
+        # is of the expected type(s). While this type validation could also be
+        # performed by decorating the __get__() and __set__() methods defined
+        # below by the @type_check decorator, doing so would impose additional
+        # overhead for little gain.
+        value_test_block += '''
+    if not isinstance(value, self_descriptor.__expr_alias_cls):
+        raise BetseTypeException(
+            'Expression alias value {{!r}} not a {{!r}}.'.format(
+                value, self_descriptor.__expr_alias_cls))
+    '''
+
+    # If a validational predicate was passed...
+    if predicate is not None:
+        # If no predicate label was passed, raise an exception.
+        if predicate_label is None:
+            raise BetseDescriptorException(
+                'Parameter "predicate_expr" but not "predicate_label" passed.')
+
+        # Pass this predicate to this method.
+        class_init_args += ', __expr_alias_predicate=__expr_alias_predicate'
+
+        # Classify this passed predicate in this method.
+        class_init_body += '''
+    self_descriptor.__expr_alias_predicate = __expr_alias_predicate'''
+
+        # Raise an exception unless the value to which this expression evaluates
+        # satisfies the same predicate.
+        value_test_block += '''
+    if not self_descriptor.__expr_alias_predicate(value):
+        raise BetseTypeException(
+            'Expression alias value {{!r}} not {predicate_label}.'.format(value))
+    '''.format(predicate_label=predicate_label)
+
+    # If a validational predicate expression was passed...
+    if predicate_expr is not None:
+        # If no predicate label was passed, raise an exception.
+        if predicate_label is None:
+            raise BetseDescriptorException(
+                'Parameter "predicate_expr" but not "predicate_label" passed.')
+
+        # Raise an exception unless the value to which this expression evaluates
+        # satisfies the same predicate.
+        value_test_block += '''
+    if not ({predicate_expr}):
+        raise BetseTypeException(
+            'Expression alias value {{!r}} not {predicate_label}.'.format(value))
+    '''.format(predicate_expr=predicate_expr, predicate_label=predicate_label)
+
+    # If the __init__() method's body remains empty, implement this body as a
+    # noop to ensure syntactic validity.
+    if not class_init_body:
+        class_init_body = '''
+    pass'''
+
+    # If this expression is validated...
+    if value_test_block:
+        # Implement the __get__() method body to validate this expression.
+        class_get_body = '''
+    # Value to which this expression evaluates to be returned.
+    value = {expr}
+
+    # Validate this value.
+    {value_test_block}
+
+    # Return this value.
+    return value'''.format(expr=expr, value_test_block=value_test_block)
+
+        # Implement the __set__() method body to validate this expression.
+        class_set_body = '''
+    # Validate this value.
+    {value_test_block}
+
+    # Set this expression to this value.
+    {expr} = value'''.format(expr=expr, value_test_block=value_test_block)
+    # Else, this expression is unvalidated. For efficiency, reduce the
+    # __get__() and __set__() method bodies to the expected one-liners.
+    else:
+        class_get_body = '''
+    return {expr}'''.format(expr=expr)
+        class_set_body = '''
+    {expr} = value'''.format(expr=expr)
+
+    #FIXME: Improve exception handling to report the name of the data descriptor
+    #in question. To do so, we'll need to implement the data descriptor method
+    #passing this data descriptor its name. Only available under Python 3.6,
+    #we believe, but that's quite alright. (See below for method signature.)
+
+    # Python code snippet declaring these special methods.
     #
     # Note the differentiation between the "self_descriptor" parameter referring
     # to the current descriptor and the "self" parameter referring to the object
@@ -178,70 +319,40 @@ def expr_alias(expr: str, cls: TestableTypes = None) -> object:
     #   compatible with older Python 3.x versions. Since deletion of this
     #   descriptor is non-essential (and arguably undesirable), this descriptor
     #   class leaves this special method unimplemented.
-    if cls is None:
-        expr_alias_class_method_defs = '''
-def __get__(self_descriptor, self, cls):
-    return {expr}
-
-def __set__(self_descriptor, self, value):
-    {expr} = value
-'''.format(expr=expr)
-    # Else...
-    else:
-        # Snippet raising an exception unless the value to which this expression
-        # evaluates is of the expected type(s). While this type validation could
-        # also be performed by decorating the __get__() and __set__() methods
-        # defined below by the @type_check decorator, doing so would impose
-        # additional overhead for little gain.
-        die_unless_value_type = '''
-    if not isinstance(value, self_descriptor.__expr_alias_cls):
-        raise BetseTypeException(
-            'Expression alias value {{!r}} not a {{!r}}.'.format(
-                value, self_descriptor.__expr_alias_cls))
-'''
-
-        # Define this data descriptor to validate the type of this variable.
-        expr_alias_class_method_defs = '''
-def __init__(self_descriptor, __expr_alias_cls=__expr_alias_cls):
-    self_descriptor.__expr_alias_cls = __expr_alias_cls
-
+    class_body = '''
+def __init__(self_descriptor{init_args}):
+    {init_body}
 
 def __get__(self_descriptor, self, cls):
-    # Value to which this expression evaluates to be returned.
-    value = {expr}
-
-    # Raise an exception unless this value is of the expected type(s).
-    {die_unless_value_type}
-
-    # Return this value.
-    return value
-
+    {get_body}
 
 def __set__(self_descriptor, self, value):
-    # Raise an exception unless this value is of the expected type(s).
-    {die_unless_value_type}
-
-    {expr} = value
-'''.format(expr=expr, die_unless_value_type=die_unless_value_type)
-    # print('expr_alias code:\n' + expr_alias_class_method_defs)
+    {set_body}
+'''.format(
+    init_args=class_init_args,
+    init_body=class_init_body,
+    get_body=class_get_body,
+    set_body=class_set_body,
+)
 
     # Define these methods and this dictionary containing these methods.
-    exec(expr_alias_class_method_defs, globals(), expr_alias_class_methods)
+    exec(class_body, globals(), class_method_name_to_func)
 
     # Prevent input parameters passed into this snippet by this exec() call from
     # polluting the attribute namespace of this class.
-    del expr_alias_class_methods['__expr_alias_cls']
+    del class_method_name_to_func['__expr_alias_cls']
+    del class_method_name_to_func['__expr_alias_predicate']
 
     # Descriptor class with this name containing only these methods.
     expr_alias_class = classes.define_class(
         class_name=_get_expr_alias_class_name(),
-        class_attr_name_to_value=expr_alias_class_methods,
+        class_attr_name_to_value=class_method_name_to_func,
     )
 
     # Instantiate and return the singleton descriptor for this class.
     return expr_alias_class()
 
-
+# ....................{ DESCRIPTORS ~ enum                 }....................
 @type_check
 def expr_enum_alias(expr: str, enum_type: EnumType) -> object:
     '''

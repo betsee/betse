@@ -92,6 +92,13 @@ class BetseDecoratorException(BetseCallableException):
     pass
 
 
+class BetseDescriptorException(BetseCallableException):
+    '''
+    Descriptor-specific exception.
+    '''
+    pass
+
+
 class BetseFunctionException(BetseCallableException):
     '''
     Function-specific exception.

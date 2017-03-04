@@ -351,20 +351,19 @@ tuples of types containing this type.
 
 BoolOrNoneTypes = (bool, NoneType)
 '''
-Tuple of both the boolean type and the type of the singleton ``None`` object.
+Tuple of both the boolean type *and* the type of the singleton ``None`` object.
 '''
 
 
 CallableOrNoneTypes = CallableTypes + NoneTypes
 '''
-Tuple of all callable classes as well as the type of the singleton ``None``
-object.
+Tuple of all callable classes *and* the type of the singleton ``None`` object.
 '''
 
 
 IntOrNoneTypes = (int, NoneType)
 '''
-Tuple of both the integer type and the type of the singleton ``None`` object.
+Tuple of both the integer type *and* the type of the singleton ``None`` object.
 '''
 
 
@@ -394,13 +393,19 @@ type of the singleton `None` object.
 
 NumericOrNoneTypes = NumericTypes + NoneTypes
 '''
-Tuple of all numeric types as well as the type of the singleton `None` object.
+Tuple of all numeric types *and* the type of the singleton `None` object.
 '''
 
 
 StrOrNoneTypes = (str, NoneType)
 '''
 Tuple of both the string type *and* the type of the singleton ``None`` object.
+'''
+
+
+TestableOrNoneTypes = TestableTypes + NoneTypes
+'''
+Tuple of all testable types *and* the type of the singleton ``None`` object.
 '''
 
 # ....................{ TUPLES ~ regex                     }....................

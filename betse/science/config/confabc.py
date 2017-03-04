@@ -14,7 +14,12 @@ from betse.util.type.cls import classes
 from betse.util.type.cls.descriptors import expr_alias, expr_enum_alias
 from betse.util.type.obj import objects
 from betse.util.type.types import (
-    type_check, ClassType, EnumType, MappingType, SequenceTypes, TestableTypes)
+    type_check,
+    ClassType,
+    EnumType,
+    MappingType,
+    SequenceTypes,
+)
 from collections.abc import MutableSequence
 
 # ....................{ SUPERCLASSES                       }....................
@@ -236,7 +241,7 @@ class SimConfList(MutableSequence):
 
 # ....................{ DESCRIPTORS                        }....................
 @type_check
-def conf_alias(keys: str, cls: TestableTypes = None) -> object:
+def conf_alias(keys: str, *args, **kwargs) -> object:
     '''
     Expression alias **data descriptor** (i.e., object satisfying the data
     descriptor protocol) specific to simulation configurations, dynamically
@@ -253,11 +258,9 @@ def conf_alias(keys: str, cls: TestableTypes = None) -> object:
         typically consisting of one or more ``[``- and ``]``-delimited key
         lookups into this same dictionary (e.g.,
         ``['variable settings']['noise']['dynamic noise']``).
-    cls: optional[ClassType]
-        Either the expected type or tuple of the expected types of this variable
-        *or* a callable validating the values to which this variable is to be
-        set. Defaults to ``None``, in which case this variable is permissively
-        settable to *any* values.
+
+    All remaining parameters are passed as is to the :func:`expr_alias`
+    function.
 
     Returns
     ----------
@@ -270,7 +273,7 @@ def conf_alias(keys: str, cls: TestableTypes = None) -> object:
         Further details.
     '''
 
-    return expr_alias(expr='self._conf' + keys, cls=cls)
+    return expr_alias('self._conf' + keys, *args, **kwargs)
 
 
 @type_check
@@ -306,3 +309,23 @@ def conf_enum_alias(keys: str, enum_type: EnumType) -> object:
     '''
 
     return expr_enum_alias(expr='self._conf' + keys, enum_type=enum_type)
+
+# ....................{ DESCRIPTORS ~ prediate             }....................
+def conf_alias_int_positive(keys: str) -> object:
+    '''
+    Simulation configuration expression alias data descriptor, dynamically
+    aliasing a target integer variable with values constrained to be
+    **positive** (i.e., strictly greater than 0).
+
+    See Also
+    ----------
+    :func:`conf_alias`
+        Further details.
+    '''
+
+    return conf_enum_alias(
+        keys=keys,
+        cls=int,
+        predicate_expr='value > 0',
+        cate_label='positive',
+    )

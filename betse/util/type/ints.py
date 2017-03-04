@@ -113,7 +113,7 @@ def die_unless_positive(*numbers: int, label: str = 'Integer') -> None:
 @type_check
 def is_even(number: int) -> bool:
     '''
-    `True` only if the passed integer is even.
+    ``True`` only if the passed integer is even.
     '''
 
     return number % 2 == 0
@@ -122,7 +122,7 @@ def is_even(number: int) -> bool:
 @type_check
 def is_odd(number: int) -> bool:
     '''
-    `True` only if the passed integer is odd.
+    ``True`` only if the passed integer is odd.
     '''
 
     return number % 2 == 1

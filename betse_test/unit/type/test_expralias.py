@@ -39,9 +39,28 @@ def betse_expralias() -> object:
 
     # Class containing instances of this descriptor.
     class SongOfAragorn(object):
-        # Descriptor aliasing an existing dictionary entry with typing.
+        # Descriptor aliasing an existing dictionary entry with class typing.
         line_four = expr_alias(
             expr='self._deep_roots["are not"]["reached by"]', cls=str)
+
+        # Descriptor aliasing an existing dictionary entry with predicate
+        # typing.
+        line_one = expr_alias(
+            expr='self._deep_roots["All that is"]["gold does not"]',
+            predicate=lambda value:
+                value in ('glamour,', 'glimmer,','glitter,', 'glisten,',),
+            predicate_label='adjectival',
+        )
+
+        # Descriptor aliasing an existing dictionary entry with both class and
+        # predicate expression typing.
+        line_six = expr_alias(
+            expr='self._deep_roots["A light from"]["the shadows shall"]',
+            cls=str,
+            predicate_expr=(
+                "value in ('spring;', 'summer;', 'autumn;', 'winter;',)"),
+            predicate_label='seasonal',
+        )
 
         # Descriptor aliasing an existing dictionary entry without typing.
         line_five = expr_alias(
@@ -64,7 +83,7 @@ def betse_expralias() -> object:
         # whose corresponding value is defined below to be of a non-enumeration
         # member.
         line_seven = expr_enum_alias(
-            expr='self._deep_roots["A light from"]["the shadows"]',
+            expr='self._deep_roots["Renewed shall be"]["blade that was"]',
             enum_type=_ElendilsOath)
 
         # Descriptor aliasing a non-existing dictionary entry with typing.
@@ -77,6 +96,9 @@ def betse_expralias() -> object:
                 "are not": {
                     "reached by": "the frost.",
                 },
+                "All that is": {
+                    "gold does not": "glitter,",
+                },
                 "Not all those": {
                     "who wander": 0xA3E01054,
                 },
@@ -87,7 +109,10 @@ def betse_expralias() -> object:
                     "a fire shall": "be woken,",
                 },
                 "A light from": {
-                    "the shadows": "shall spring,",
+                    "the shadows shall": "spring;",
+                },
+                "Renewed shall be": {
+                    "blade that was": "broken,",
                 },
             }
 
@@ -106,24 +131,45 @@ def test_expralias_pass(betse_expralias) -> None:
         Instance of this type to be tested.
     '''
 
-    # Test the typed non-enumeration data descriptor's __get__() implementation.
+    # Test the class-typed data descriptor's __get__() implementation.
     assert betse_expralias.line_four == "the frost."
 
-    # Test the typed enumeration data descriptor's __get__() implementation.
+    # Test the predicate-typed data descriptor's __get__() implementation.
+    assert betse_expralias.line_one == "glitter,"
+
+    # Test the class- and predicate-typed data descriptor's __get__()
+    # implementation.
+    assert betse_expralias.line_six == "spring;"
+
+    # Test the enumeration-typed data descriptor's __get__() implementation.
     assert betse_expralias.line_three is _ElendilsOath.HILDINYAR
 
     # Test the untyped data descriptor's __get__() implementation.
     assert betse_expralias.line_five == "be woken,"
 
-    # Test passing the typed non-enumeration data descriptor's __set__()
-    # implementation a valid string type.
+    # Test passing the class-typed data descriptor's __set__()
+    # implementation another string value.
     merchant_of_venice = "Gilded tombs do worms enfold."
     betse_expralias.line_four = merchant_of_venice
     assert betse_expralias.line_four == merchant_of_venice
     assert betse_expralias._deep_roots["are not"]["reached by"] == (
         merchant_of_venice)
 
-    # Test passing the typed enumeration data descriptor's __set__()
+    # Test passing the predicate-typed data descriptor's __set__()
+    # implementation another string value.
+    betse_expralias.line_one              = 'glisten,'
+    assert betse_expralias.line_one      == 'glisten,'
+    assert betse_expralias._deep_roots[
+        "All that is"]["gold does not"] == ('glisten,')
+
+    # Test passing the class- and predicate-typed data descriptor's __set__()
+    # implementation another string value.
+    betse_expralias.line_six                   = 'winter;'
+    assert betse_expralias.line_six           == 'winter;'
+    assert betse_expralias._deep_roots[
+        "A light from"]["the shadows shall"] == ('winter;')
+
+    # Test passing the enumeration-typed data descriptor's __set__()
     # implementation a valid enumeration member.
     betse_expralias.line_three = _ElendilsOath.MARUVAN
     assert betse_expralias.line_three == _ElendilsOath.MARUVAN
@@ -154,36 +200,48 @@ def test_expralias_fail(betse_expralias) -> None:
     from betse.exceptions import BetseEnumException, BetseTypeException
     from betse.util.type.cls.descriptors import expr_enum_alias
 
-    # Test instantiating the typed enumeration data descriptor with an
+    # Test instantiating the enumeration-typed data descriptor with an
     # enumeration type failing to satisfy this descriptor's requirements.
     with pytest.raises(BetseEnumException):
         expr_enum_alias(
             expr='wherein the stars tremble in the song of her voice,',
             enum_type=_Namarie)
 
-    # Test calling the typed data descriptor's __get__() implementation as a
-    # class rather than instance variable. Since this implementation expects to
-    # be called only as an instance variable, an exception is raised.
+    # Test calling the class-typed data descriptor's __get__() implementation as
+    # a class rather than instance variable. Since this implementation expects
+    # to be called only as an instance variable, an exception is raised.
     with pytest.raises(AttributeError):
         betse_expralias.__class__.line_four
 
-    # Test passing the typed non-enumeration data descriptor's __set__()
-    # implementation a non-string type.
+    # Test passing the class-typed data descriptor's __set__() implementation a
+    # non-string value.
     with pytest.raises(BetseTypeException):
         betse_expralias.line_four = 0xFEEDBABE
 
-    # Test passing the typed enumeration data descriptor's __set__()
+    # Test passing the predicate-typed data descriptor's __set__()
+    # implementation an unrecognized string value.
+    with pytest.raises(BetseTypeException):
+        betse_expralias.line_one = 'expurgate,'
+
+    # Test passing the class- and -predicate-typed data descriptor's __set__()
+    # implementation both a non-string value and an unrecognized string value.
+    with pytest.raises(BetseTypeException):
+        betse_expralias.line_six = 0xFEEDFACE
+    with pytest.raises(BetseTypeException):
+        betse_expralias.line_six = 'extenuate;'
+
+    # Test passing the enumeration-typed data descriptor's __set__()
     # implementation a non-enumeration member.
     with pytest.raises(BetseEnumException):
         betse_expralias.line_three = _Namarie.TINTILAR
 
-    # Test an invalid typed non-enumeration data descriptor's __get__()
-    # implementation, aliased to access an existing key of an existing
-    # dictionary whose value has an unexpected type.
+    # Test an invalid class-typed data descriptor's __get__() implementation,
+    # aliased to access an existing key of an existing dictionary whose value
+    # has an unexpected type.
     with pytest.raises(BetseTypeException):
         betse_expralias.line_two
 
-    # Test an invalid typed enumeration data descriptor's __get__()
+    # Test an invalid enumeration-typed data descriptor's __get__()
     # implementation, aliased to access an existing key of an existing
     # dictionary whose value is *NOT* the lowercase name of an enumeration
     # member.
