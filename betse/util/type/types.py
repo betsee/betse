@@ -377,17 +377,23 @@ type of the singleton ``None`` object.
 
 MappingOrNoneTypes = (MappingType,) + NoneTypes
 '''
-Tuple of all container base classes conforming to (but _not_ necessarily
+Tuple of all container base classes conforming to (but *not* necessarily
 subclassing) the canonical :class:`collections.abc.Mapping` API as well as the
-type of the singleton `None` object.
+type of the singleton ``None`` object.
 '''
 
 
 SequenceOrNoneTypes = SequenceTypes + NoneTypes
 '''
-Tuple of all container base classes conforming to (but _not_ necessarily
+Tuple of all container base classes conforming to (but *not* necessarily
 subclassing) the canonical :class:`collections.abc.Sequence` API as well as the
-type of the singleton `None` object.
+type of the singleton ``None`` object.
+'''
+
+
+SetOrNoneTypes = (SetType, NoneType)
+'''
+Tuple of both the set type *and* the type of the singleton ``None`` object.
 '''
 
 

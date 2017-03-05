@@ -43,9 +43,9 @@ class Parameters(object):
 
     Attributes (General: Boolean)
     ----------------------------
-    I_overlay : bool
-        ``True`` only if overlaying either electric current or concentration
-        flux streamlines on appropriate plots and animations.
+    sim_ECM : bool
+        ``True`` only if this simulation enables the extracellular matrix (ECM),
+        commonly referred to as extracellular spaces.
 
     Attributes (General: Path)
     ----------------------------
@@ -97,6 +97,9 @@ class Parameters(object):
         Defaults to 0, the index assigned to the first cell guaranteed to exist.
         Note that cell indices are seed-specific and may be visualized via the
         :attr:`enumerate_cells` boolean.
+    I_overlay : bool
+        ``True`` only if overlaying either electric current or concentration
+        flux streamlines on appropriate plots and animations.
 
     Attributes (Tissue)
     ----------------------------
@@ -112,23 +115,19 @@ class Parameters(object):
         to be associated with particular simulation constants and parameters).
     '''
 
-    # ..................{ ALIASES                            }..................
-    #FIXME: The following configuration aliases demonstrate use of the
-    #conf_alias() function, our new YAML-to-Python-object-mapping (YPOM).
-    #Luckily, the syntax is pretty breezy:
-    #
-    #* The first parameter to this function states the sequence of YAML
-    #  dictionary keys providing this configuration setting.
-    #* The second parameter states the expected type of this setting.
-    #
-    #Ideally, all or most of the variables parsed in the __init__() method
-    #below should be converted into aliases of this form. Brainy rainbows!
-
+    # ..................{ ALIASES ~ path                     }..................
     world_filename = conf_alias("['init file saving']['worldfile']", str)
     init_filename  = conf_alias("['init file saving']['file']", str)
     sim_filename   = conf_alias("['sim file saving']['file']", str)
 
+    # ..................{ ALIASES ~ feature                  }..................
+    sim_ECM = conf_alias(
+        "['general options']['simulate extracellular spaces']", bool)
+
     # ..................{ INITIALIZERS                       }..................
+    #FIXME: Convert all or most of the variables parsed in the __init__() method
+    #below should be converted into aliases of the above form. Brainy rainbows!
+
     @type_check
     def __init__(self, config_filename: str) -> None:
         '''
@@ -208,8 +207,6 @@ class Parameters(object):
 
         self.grid_size = int(self._conf['general options']['comp grid size'])
         self.plot_grid_size = int(self._conf['general options']['plot grid size'])
-          # boolean letting us know if extracellular spaces are included
-        self.sim_ECM = self._conf['general options']['simulate extracellular spaces']
 
        # set ion profile to be used: 'basic', 'basic_Ca', 'animal', 'xenopus', 'scratch'
         self.ion_profile = self._conf['general options']['ion profile']

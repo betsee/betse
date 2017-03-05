@@ -12,18 +12,19 @@ spreadsheets in comma-separated value (CSV) format.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from numpy import ndarray
+
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import arrays
 from betse.science.export import expmath
+from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
-from betse.science.simulate.simpipeabc import SimPipelinerExportABC
-# from betse.util.io.log import logs
 from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, paths
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
-from numpy import ndarray
+
 
 # ....................{ SUBCLASSES                         }....................
 class SimPipelinerExportCSV(SimPipelinerExportABC):

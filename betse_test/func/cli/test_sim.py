@@ -15,24 +15,30 @@ from betse_test.util.mark.skip import skip_unless_matplotlib_anim_writer
 from betse_test.util.mark.fail import xfail
 
 # ....................{ TESTS                              }....................
-def test_cli_sim_default(betse_cli_sim: 'CLISimTester') -> None:
+def test_cli_sim_ecmless(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test simulating the default simulation configuration.
+    Test exporting all available exports (e.g., CSVs, plots, animations) with
+    all simulation features required by these exports excluding extracellular
+    spaces enabled.
 
     Parameters
     ----------
     betse_cli_sim : CLISimTester
         Object running BETSE CLI simulation subcommands.
     '''
+
+    # Enable all exports and features required by these exports, excluding ECM.
+    betse_cli_sim.sim_state.config.enable_exports_ecmless()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()
 
 
-def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
+def test_cli_sim_ecm(betse_cli_sim: 'CLISimTester') -> None:
     '''
-    Test simulating all exported visuals (e.g., plots, animations) *and*
-    simulation features required by these visuals.
+    Test exporting all available exports (e.g., CSVs, plots, animations) with
+    all simulation features required by these exports including extracellular
+    spaces enabled.
 
     Parameters
     ----------
@@ -40,8 +46,8 @@ def test_cli_sim_visuals(betse_cli_sim: 'CLISimTester') -> None:
         Object running BETSE CLI simulation subcommands.
     '''
 
-    # Enable all exported visuals and features required by these visuals.
-    betse_cli_sim.sim_state.config.enable_visuals_all()
+    # Enable all exports and features required by these exports, including ECM.
+    betse_cli_sim.sim_state.config.enable_exports_ecm()
 
     # Test all default simulation-specific subcommands with this configuration.
     betse_cli_sim.run_subcommands_default()

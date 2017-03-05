@@ -863,7 +863,7 @@ def make_writer(*args, cls: ClassType, **kwargs) -> MovieWriter:
                return subcommand_method()
              File "/home/leycec/py/betse/betse/cli/clicli.py", line 230, in _do_init
                return self._sim_runner.init()
-             File "/home/leycec/py/betse/betse/science/simrunner.py", line 206, in init
+             File "/home/leycec/py/betse/betse/science/piperunner.py", line 206, in init
                sim.run_sim_core(cells, p)
              File "/home/leycec/py/betse/betse/science/sim.py", line 929, in run_sim_core
                cells, p, time_steps, time_steps_sampled, anim_cells)

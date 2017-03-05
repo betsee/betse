@@ -7,11 +7,84 @@ High-level facilities for **pipelining** (i.e., iteratively displaying and/or
 exporting) post-simulation animations.
 '''
 
-#FIXME: Force all optional "conf: SimConfVisualListable" parameters
-#below to be mandatory.
-#FIXME: Refactor the "VisualCellsABC" superclass to accept a single
-#"SimConfVisualListable" parameter in lieu of the three current
-#"is_color_autoscaled", "color_min", and "color_max" parameters.
+#FIXME: Generalize the current concept of exporter satisfaction to permit GUI
+#inspection. Consider a user attempting to enable an animation requiring one or
+#more simulation features to be enabled. Currently, the GUI would silently
+#permit this animation to be added to the pipeline without informing the user
+#that one or more simulation features required by this animation are disabled.
+#Clearly, this is non-ideal. Ideally, a GUI on adding an animation to a pipeline
+#would:
+#
+#* Dynamically query that animation to decide whether it has unmet requirements.
+#* If that animation does have unmet requirements:
+#  * Notify the user that this is the case.
+#  * Prompt the user, offering to automatically enable these requirements on
+#    behalf of the user.
+#
+#To support such dynamism, we need a means of associating exporter requirements
+#with exporters. Enter the existing @exporter_metadata decorator. Currently, we
+#implement exporters with requirements as follows:
+#
+#     @exporter_metadata(categories=('Fluid Flow', 'Total'))
+#     def export_fluid_total(self, conf: SimConfVisualListable) -> None:
+#         '''
+#         Animate the total fluid flow field (i.e., both intra- and extracellular)
+#         for all time steps.
+#         '''
+#
+#         # Raise an exception unless fluid flow and extracellular spaces are
+#         # enabled.
+#         self._die_unless(
+#             is_satisfied=(
+#                 self._phase.p.fluid_flow and self._phase.p.sim_ECM),
+#             exception_reason=(
+#                 'fluid flow and/or extracellular spaces disabled'))
+#
+#         ...
+#
+#This entails quite a bit of boilerplate, however. Each exporter's
+#implementation is prefixed by a similar self._die_unless*() method call.
+#Instead, the @exporter_metadata decorator should automatically handle the
+#validation of exporter requirements by accepting a sequence of all requirements
+#at exporter decoration time as follows:
+#
+#     @exporter_metadata(
+#         categories=('Fluid Flow', 'Total'),
+#         requirements={'fluid_flow', 'sim_ECM'},
+#     )
+#     def export_fluid_total(self, conf: SimConfVisualListable) -> None:
+#         '''
+#         Animate the total fluid flow field (i.e., both intra- and extracellular)
+#         for all time steps.
+#         '''
+#
+#         ...
+#
+#Significantly more concise. No explicit calls to _die_unless*() methods are
+#required. Why? Because the @exporter_metadata decorator decorates this method
+#to ensure that these requirements are met *BEFORE* this method is called. How?
+#By iterating over each string in the optional "requirements" parameter and, for
+#each such string, ensuring that the corresponding boolean of the "self._p"
+#object is True.
+#
+#Hence, the above "requirements=('fluid_flow', 'sim_ECM')" parameter would be
+#internally expanded by the @exporter_metadata decorator into an if conditional
+#resembling:
+#
+#    for requirement_name in requirements:
+#        requirement = getattr(self._p, requirement_name, None)
+#
+#        if requirement is None:
+#            raise BetseSimPipelineException(...)
+#
+#        if requirement is False:
+#            raise BetseSimPipelineRunnerUnsatisfiedException(...)
+#
+#    logs.log_info('Running {runner_name}...')
+#    call_decorated_method()
+#
+#Quite simple. No eval() hackery is required; merely a single getattr() for each
+#such requirement. *MAKE THIS HAPPEN.*
 
 #FIXME: This module would be a *GREAT* candidate for testing out Python 3.5-
 #based asynchronicity and parallelization. Ideally, we'd be able to segregate
@@ -19,9 +92,11 @@ exporting) post-simulation animations.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+
 from betse.science.config.export.confvisabc import SimConfVisualListable
-from betse.science.simulate.simpipeabc import (
-    SimPipelinerExportABC, exporter_metadata)
+from betse.science.simulate.pipe.piperunner import exporter_metadata
+from betse.science.simulate.pipe.pipeabc import (
+    SimPipelinerExportABC)
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -43,6 +118,7 @@ from betse.science.visual.layer.vector import layervectorsurface
 from betse.science.visual.layer.vector.layervectorsurface import (
     LayerCellsVectorSurfaceContinuous)
 from betse.util.type.types import type_check, IterableTypes
+
 
 # ....................{ SUBCLASSES                         }....................
 class AnimCellsPipeliner(SimPipelinerExportABC):

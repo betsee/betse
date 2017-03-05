@@ -68,18 +68,21 @@ exporting) post-simulation plots.
 # ....................{ IMPORTS                            }....................
 import matplotlib
 import numpy as np
-from betse.exceptions import BetseSimConfigException
-from betse.lib.matplotlib import mplutil
-from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
-from betse.science.simulate.simpipeabc import (
-    SimPipelinerExportABC, exporter_metadata)
-from betse.science.visual.plot import plotutil
-from betse.util.path import dirs, paths
-from betse.util.type.types import type_check, IterableTypes
 from matplotlib import pyplot as pyplot
 from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
+
+from betse.exceptions import BetseSimConfigException
+from betse.lib.matplotlib import mplutil
+from betse.lib.matplotlib.matplotlibs import mpl_config
+from betse.science.simulate.pipe.piperunner import exporter_metadata
+from betse.science.simulate.pipe.pipeabc import (
+    SimPipelinerExportABC)
+from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
+from betse.science.visual.plot import plotutil
+from betse.util.path import dirs, paths
+from betse.util.type.types import type_check, IterableTypes
+
 
 # ....................{ SUBCLASSES                         }....................
 class PlotCellsPipeliner(SimPipelinerExportABC):

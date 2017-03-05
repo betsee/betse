@@ -208,28 +208,6 @@ class SimConfigTestWrapper(object):
 
         confio.write(filename, self._p._conf)
 
-    # ..................{ PROPERTIES ~ bool                  }..................
-    @property
-    def is_ecm(self) -> bool:
-        '''
-        `True` only if the extracellular matrix (ECM) is simulated by this
-        configuration.
-        '''
-
-        return self._p._conf['general options']['simulate extracellular spaces']
-
-
-    @is_ecm.setter
-    @type_check
-    def is_ecm(self, is_ecm: bool) -> None:
-        '''
-        Set whether the extracellular matrix (ECM) is simulated by this
-        configuration.
-        '''
-
-        self._p._conf['general options']['simulate extracellular spaces'] = (
-            is_ecm)
-
     # ..................{ PROPERTIES ~ float                 }..................
     @property
     def environment_size(self) -> float:
@@ -423,11 +401,11 @@ class SimConfigTestWrapper(object):
         #FIXME: Uncommenting the following line reliably causes the following
         #test to fail with a computational instability during the "sim" phase:
         #
-        #    ./test -k test_cli_sim_visuals
+        #    ./test -k test_cli_sim_ecm
         #
         #Since it's unclear whether this behaviour is expected or not, this line
         #remains commented out. (If this behaviour is indeed unexpected, this
-        #line should be shifted into the enable_visuals_all() method and the
+        #line should be shifted into the enable_exports_all() method and the
         #more preferable global default retained above).
 
         # self.environment_size = min(self.environment_size, 250e-6)
@@ -454,7 +432,7 @@ class SimConfigTestWrapper(object):
 
     def disable_visuals(self) -> None:
         '''
-        Disable all visualizations, including displaying and saving of all in-
+        Disable all visual exports, including displaying and saving of all in-
         and post-simulation plots and animations.
         '''
 
@@ -479,50 +457,6 @@ class SimConfigTestWrapper(object):
         results['after solving']['animations']['show'] = False
 
     # ..................{ ENABLERS                           }..................
-    def enable_visuals_save(self) -> None:
-        '''
-        Enable the saving of all visualizations, including all in- and
-        post-simulation plots and animations.
-
-        This method does *not* enable specific visualizations or simulation
-        features required by specific visualizations.
-        '''
-
-        self._p.anim.is_while_sim_save = True
-        self._p.anim.is_after_sim_save = True
-        self._p.plot.is_after_sim_save = True
-
-
-    @type_check
-    def enable_anim_video(self, writer_name: str, filetype: str) -> None:
-        '''
-        Enable encoding of all enabled animations as compressed video of the
-        passed filetype with the preferred matplotlib animation writer of the
-        passed name.
-
-        Parameters
-        ----------
-        writer_name : str
-            Name of the matplotlib animation writer with which to encode video
-            (e.g., `ffmpeg`, `imagemagick`).
-        filetype : str
-            Filetype of videos to encode with this writer (e.g., `mkv`, `mp4`).
-        '''
-
-        # Enable animations and animation saving in the general sense.
-        self.enable_visuals_save()
-
-        # Localize nested dictionaries for convenience.
-        video = self._p._conf['results options']['save']['animations']['video']
-
-        # Enable encoding of the passed filetype with the passed writer type.
-        # For determinism, mandate that *ONLY* this writer (rather than two or
-        # more writers) be used to do so.
-        video['enabled'] = True
-        video['filetype'] = filetype
-        video['writers'] = [writer_name,]
-
-
     def enable_networks(self) -> None:
         '''
         Enable both biochemical reaction and gene regulatory networks.
@@ -559,7 +493,7 @@ class SimConfigTestWrapper(object):
         self.disable_visuals()
 
         # Enable all features required by these channels.
-        self.is_ecm = True
+        self._p.sim_ECM = True
         self.ion_profile = 'animal'
 
         # For stability, decrease both the time step and sampling rates.
@@ -595,56 +529,150 @@ class SimConfigTestWrapper(object):
         # voltage_gated_potassium_channel['max value'] = 5.0e-7
         voltage_gated_potassium_channel['apply to'] = ['all',]
 
-
-    def enable_visuals_all(self) -> None:
+    # ..................{ ENABLERS ~ export                  }..................
+    @type_check
+    def enable_anim_video(self, writer_name: str, filetype: str) -> None:
         '''
-        Enable all supported plots and animations, all features required by
-        these plots and animations, and any additional features trivially
-        enabled *without* substantially increasing time or space complexity.
+        Enable encoding of all enabled animations as compressed video of the
+        passed filetype with the preferred matplotlib animation writer of the
+        passed name.
 
-        This method is intended to be called by non-interactive test suites
-        exercising all plots and animations. Specifically, this method enables:
-
-        * Cell enumeration, labelling each cell by its 0-based index.
-        * Current overlays, displaying current density streamlines.
-        * The calcium (Ca) plot and animation by enabling:
-          * The mammalian ion profile (i.e., ``animal``), enabling all ions
-            including calcium.
-        * The deformation plot and animation by enabling:
-          * Galvanotaxis (i.e., deformations).
-        * The pH plot and animation dependent upon hydrogen (H) by enabling:
-          * The mammalian ion profile (i.e., ``animal``), enabling all ions
-            including hydrogen.
-        * The membrane pump density plot and animation by enabling:
-          * Membrane pump/channel movement via electrophoresis/osmosis.
-        * The electroosmotic pressure ("Osmotic Pcell"), osmotic pressure
-          ("Osmotic P"), and hydrostatic body force ("Force") plots and
-          animations respectively by enabling:
-          * Osmotic pressure.
-        * The mechanical pressure plot and animation ("Pcell") by enabling:
-          * The mechanical pressure event.
-        * The "Vcell", "Venv", and "Current" plots and animations of cellular
-          voltage, environmental voltage, and extracellular current by enabling:
-          * The extracellular matrix (ECM).
-        * The "Velocity" plot and animation of cluster fluid velocity by
-          enabling:
-          * Fluid flow.
-          * Electrostatic pressure.
+        Parameters
+        ----------
+        writer_name : str
+            Name of the matplotlib animation writer with which to encode video
+            (e.g., `ffmpeg`, `imagemagick`).
+        filetype : str
+            Filetype of videos to encode with this writer (e.g., `mkv`, `mp4`).
         '''
 
         # Enable animations and animation saving in the general sense.
         self.enable_visuals_save()
 
         # Localize nested dictionaries for convenience.
+        video = self._p._conf['results options']['save']['animations']['video']
+
+        # Enable encoding of the passed filetype with the passed writer type.
+        # For determinism, mandate that *ONLY* this writer (rather than two or
+        # more writers) be used to do so.
+        video['enabled'] = True
+        video['filetype'] = filetype
+        video['writers'] = [writer_name,]
+
+
+    def enable_visuals_save(self) -> None:
+        '''
+        Enable saving of all visual exports, including all in- and
+        post-simulation plots and animations.
+
+        This method does *not* enable specific visual exports or simulation
+        features required by specific visual exports.
+        '''
+
+        self._p.anim.is_while_sim_save = True
+        self._p.anim.is_after_sim_save = True
+        self._p.plot.is_after_sim_save = True
+
+    # ..................{ ENABLERS ~ export : ecm            }..................
+    def enable_exports_ecmless(self) -> None:
+        '''
+        Enable all available exports (e.g., CSVs, plots, animations) excluding
+        those requiring extracellular spaces, all features required by these
+        plots and animations, and any additional features trivially enabled
+        *without* substantially increasing time or space complexity.
+
+        Specifically, this method enables all exports, features, and settings
+        enabled by the :meth:`_enable_visuals_common` method.
+        '''
+
+        # Enable all optional general settings supported by visual exports.
+        self._enable_visuals_common()
+
+        # Disable extracellular spaces.
+        self._p.sim_ECM = False
+
+        # For each type of export supported by the animation pipeline...
+        for runner_name in AnimCellsPipeliner.iter_runner_names():
+            #FIXME: Non-ideal. This should dynamically inspect the set of all
+            #requirements declared by this exporter at decoration time for a
+            #requirement equal to "sim_ECM".
+
+            # If this export requires extracellular spaces, ignore this export.
+            if runner_name.endswith('_total'):
+                continue
+            # Else, this export does *NOT* require extracellular spaces.
+
+            # New default export of this type appended to this pipeline.
+            runner_conf = self._p.anim.after_sim_pipeline.append_default()
+            runner_conf.name = runner_name
+
+
+    def enable_exports_ecm(self) -> None:
+        '''
+        Enable all available exports (e.g., CSVs, plots, animations) including
+        those requiring extracellular spaces, all features required by these
+        plots and animations, and any additional features trivially enabled
+        *without* substantially increasing time or space complexity.
+
+        Specifically, this method enables:
+
+        * All exports, features, and settings enabled by the
+          :meth:`_enable_visuals_common` method.
+        * The ``current_total``, ``electric_total``, ``fluid_total``, and
+          ``voltage_total`` plots and animations by enabling:
+          * The extracellular matrix (ECM).
+        '''
+
+        # Enable all optional general settings supported by visual exports.
+        self._enable_visuals_common()
+
+        # Enable extracellular spaces.
+        self._p.sim_ECM = True
+
+        # For each type of animation supported by the animation pipeline...
+        for runner_name in AnimCellsPipeliner.iter_runner_names():
+            # New default animation of this type appended to this pipeline.
+            runner_conf = self._p.anim.after_sim_pipeline.append_default()
+            runner_conf.name = runner_name
+
+
+    def _enable_visuals_common(self) -> None:
+        '''
+        Enable all visual exports (e.g., in- and post-simulation plots and
+        animations) and simulation features required by these exports *without*
+        enabling extracellular spaces.
+
+        This method additionally enables optional settings improving test
+        coverage but *not* explicitly required by these exports. Specifically,
+        this method enables:
+
+        * Saving of all visual exports.
+        * Cell enumeration, labelling each cell by its 0-based index.
+        * Current overlays, displaying current density streamlines.
+        * All ion concentration plots and animations (e.g., calcium (Ca+),
+          hydrogen (H+; pH)) by enabling:
+          * The mammalian ion profile (i.e., ``animal``), enabling all ions.
+        * The deformation plot and animation by enabling:
+          * Galvanotaxis (i.e., deformations).
+        * The ``fluid_intra`` plot and animation by enabling:
+          * Fluid flow.
+        * The ``pressure_mechanical`` plot and animation by enabling:
+          * The mechanical pressure event.
+        * The ``pressure_osmotic`` plot and animation by enabling:
+          * Osmotic pressure.
+        * The ``pump_density`` plot and animation by enabling:
+          * Channel electroosmosis.
+        * All other plots and animations *not* requiring extracellular spaces.
+        '''
+
+        # Enable saving of these exports.
+        self.enable_visuals_save()
+
+        # Localize nested dictionaries for convenience.
         results = self._p._conf['results options']
         variable = self._p._conf['variable settings']
 
-        # Enable optional features improving test coverage but *NOT* required by
-        # the plots and animations enabled below.
-        results['enumerate cells'] = True
-        results['overlay currents'] = True
-
-        # Enable all plots.
+        # Enable all plots *NOT* requiring extracellular spaces.
         results['Vmem 2D']['plot Vmem'] = True
         results['Ca 2D']['plot Ca'] = True
         results['pH 2D']['plot pH'] = True
@@ -653,17 +681,14 @@ class SimConfigTestWrapper(object):
         results['Pressure 2D']['plot Pressure'] = True
         results['Velocity 2D']['plot Velocity'] = True
 
-        # For each type of animation supported by the animation pipeline...
-        for runner_name in AnimCellsPipeliner.iter_runner_names():
-            # New default animation of this type appended to this pipeline.
-            runner_conf = self._p.anim.after_sim_pipeline.append_default()
-            runner_conf.name = runner_name
-
-        # Enable all features required by these plots and animations.
-        self.is_ecm = True
+        # Enable all simulation features required by these exports.
         self.ion_profile = 'animal'
         self._p._conf['apply pressure']['event happens'] = True
         variable['channel electroosmosis']['turn on'] = True
         variable['deformation']['turn on'] = True
         variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include osmotic pressure'] = True
+
+        # Enable all optional settings supported by these exports.
+        results['enumerate cells'] = True
+        results['overlay currents'] = True
