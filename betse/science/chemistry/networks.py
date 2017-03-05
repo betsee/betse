@@ -3979,10 +3979,38 @@ class MasterOfNetworks(object):
 
                     direct_string_a += "self.mit_concs['{}']".format(name)
 
+                elif reaction_zone == 'env':
+
+                    if zone_tag == 'cell':
+
+                        tex_name = name
+
+                        numo_string_a += "1"
+
+                        denomo_string_a += "1"
+
+                        direct_string_a += "1"
+
+                        # numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                        # denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                        #
+                        # direct_string_a += "self.cell_concs['{}']".format(name)
+                        #
+                        # tex_name = name
+
+                    elif zone_tag == 'env':
+
+                        tex_name = name + '_{env}'
+
+                        numo_string_a += "((self.env_concs['{}']/{})**{})".format(name, Km, n)
+                        denomo_string_a += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+
+                        direct_string_a += "self.env_concs['{}']".format(name)
+
                 else:
-                    raise BetseSimConfigException("You've asked for a reaction zone (probably mitochondria)"
-                                                   "that doesn't exist. Enable mitochondria or ensure all"
-                                                   "reaction and transporter zones are 'cell'.")
+                    raise BetseSimConfigException("You've asked for a reaction zone"
+                                                   "that doesn't exist. Enable mitochondria or ensure all "
+                                                   "reaction and transporter zones are 'cell' or 'env'.")
 
                 numo_tex_a = r"\left(\frac{[%s]}{K_{%s}^{a}}\right)^{n_{%s}^{a}}" % (tex_name, tex_name, tex_name)
                 denomo_tex_a = r"1+\left(\frac{[%s]}{K_{%s}^{a}}\right)^{n_{%s}^{a}}" % (tex_name, tex_name, tex_name)
@@ -4121,6 +4149,31 @@ class MasterOfNetworks(object):
                     denomo_string_i += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
 
                     direct_string_i += "-self.mit_concs['{}']".format(name)
+
+                elif reaction_zone == 'env':
+
+                    if zone_tag == 'cell':
+
+                        tex_name = name
+
+                        numo_string_i += "1"
+
+                        denomo_string_i += "1"
+
+                        direct_string_i += "1"
+
+                        # numo_string_i += "1"
+                        # denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                        #
+                        # direct_string_i += "-self.cell_concs['{}']".format(name)
+
+                    elif zone_tag == 'env':
+
+                        tex_name = name + '_{env}'
+
+                        numo_string_i += "1"
+                        denomo_string_i += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+                        direct_string_i += "-self.env_concs['{}']".format(name)
 
                 numo_tex_i = "1"
                 denomo_tex_i = r"1+\left(\frac{[%s]}{K_{%s}^{i}}\right)^{n_{%s}^{i}}" % (tex_name, tex_name, tex_name)
@@ -5158,7 +5211,6 @@ class Molecule(object):
             figure_title='Environmental ' + self.name,
             colorbar_title='Concentration [mmol/L]')
 
-
 class Reaction(object):
 
     def __init__(self, sim, cells, p):
@@ -5291,6 +5343,27 @@ class Transporter(object):
     def plot_1D(self, sim, cells, p, saveImagePath):
 
         if len(self.flux_time) > 0:
+
+            fig, ax, cb = viz.plotPrettyPolyData(self.flux_time[-1],
+                sim, cells, p,
+                number_cells=p.enumerate_cells,
+                clrAutoscale=True,
+                clrMin=0,
+                clrMax=1,
+                clrmap=p.default_cm)
+
+            tit = 'Final Rate ' + self.name
+
+            fig.suptitle(tit, fontsize=14, fontweight='bold')
+            ax.set_xlabel('Spatial distance [um]')
+            ax.set_ylabel('Spatial distance [um]')
+            cb.set_label('Flux [mmol/s]')
+
+            if p.autosave is True:
+                savename = saveImagePath + 'TransporterRate2D_' + self.name + '.png'
+                plt.savefig(savename, format='png', transparent=True)
+
+
 
             if len(self.flux_time[0]) == sim.cdl:
                 r_rate = [arr[p.plot_cell] for arr in self.flux_time]

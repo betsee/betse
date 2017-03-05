@@ -189,6 +189,12 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
         configuration.
         '''
 
+        #FIXME: This exporter appears to currently be broken for the non-ECM
+        #case, despite working for the ECM case. The exception being raised is:
+        #
+        #    BetseSequenceException: Column "FFT_Vmem" length 9 differs from length 5 of prior columns.
+        raise BetseMethodUnimplementedException()
+
         # Prepare to serialize the current CSV file.
         self._prep_run()
 
@@ -210,6 +216,8 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
         #
         #    fft_data = np.absolute(fft_data_o)
         fft_data = np.sqrt(np.real(fft_data_o)**2 + np.imag(fft_data_o)**2)
+        print('f_axis: {}'.format(f_axis))
+        print('fft_data: {}'.format(fft_data))
 
         # Ordered dictionary mapping from CSV column names to data arrays.
         csv_column_name_to_values = OrderedArgsDict(
@@ -373,7 +381,9 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     if phase.p.exportData:
         pipeliner.export_cell_data_all()
-        pipeliner.export_cell_vmem_fft()
+
+        #FIXME: Reenable after correcting for non-ECM usage.
+        # pipeliner.export_cell_vmem_fft()
 
     if phase.p.exportData2D:
         pipeliner.export_cells_vmems()
