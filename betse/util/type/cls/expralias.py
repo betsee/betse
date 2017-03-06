@@ -4,7 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **descriptor** (i.e., objects satisfying the descriptor protocol
+Low-level **expression alias** (i.e.,
+objects satisfying the descriptor protocol
 defined at class scope) facilities.
 '''
 
@@ -31,23 +32,222 @@ Unique arbitrary identifier with which to uniquify the class name of the next
 :func:`expr_alias` descriptor.
 '''
 
+# ....................{ CLASSES                            }....................
+class ExprAliasBound(object):
+    '''
+    Expression alias, dynamically referring to an arbitrarily complex source
+    Python expression suitable for use as both the left- and right-hand sides of
+    Python assignment statements of the passed type and/or satisfying the passed
+    predicate.
+
+    This alias requires the parent object in this expression to be passed to the
+    :meth:`__init__` method and hence is effectively "bound" to that object at
+    instantiation, implying that each instance of this alias may service
+    exactly one object.
+
+    Motivation
+    ----------
+    This alias is principally intended to circumvent the conflict between
+    immutable types in Python (e.g., :class:`int`, :class:`str`) and Python's
+    pass-by-reference semantics.
+
+    Consider two similar scenarios:
+
+    * Passing an integer variable to a function as an integer parameter. In this
+      case, modifying the latter does *not* modify the former.
+    * Passing an instance of this class encapsulating an integer variable to a
+      function as a parameter expecting only an instance of this class. In this
+      case, modifying this instance actually modifies the integer variable
+      encapsulated by this instance -- thereby circumventing this conflict.
+
+    Caveats
+    ----------
+    This class is intended to be instantiated *only* when the expression to be
+    aliased is only dynamically known at runtime. When this expression is
+    instead statically known at class definition time, the lower-level
+    :func:`expr_alias` function should be called instead.
+
+    Attributes
+    ----------
+    _expr_alias : object
+        Expression alias data descriptor of dynamically defined type created and
+        returned by the :func:`expr_alias` function.
+    _obj : object
+        Object to be bound to the variable in this expression whose name is the
+        ``obj_name`` parameter passed to the :meth:`__init__` method of this
+        class, defaulting to ``self``.
+
+    See Also
+    ----------
+    :class:`ExprAliasUnbound`
+        Expression alias *not* bound to its parent object at instantiation time.
+    :func:`expr_alias`
+        Lower-level function creating the data descriptor encapsulated by this
+        higher-level class, intended to be used where declaring a descriptor at
+        class scope is appropriate (e.g., where the expression to be aliased is
+        known at class definition time).
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, obj: object, *args, **kwargs) -> None:
+        '''
+        Initialize this expression alias.
+
+        Parameters
+        ----------
+        obj : object
+            Object to be bound to the variable in this expression whose name is
+            the passed ``obj_name`` parameter, defaulting to ``self``.
+
+        All remaining parameters are passed as is to the :func:`expr_alias`
+        function.
+        '''
+
+        # Expression alias data descriptor passed all passed parameters. While
+        # instantiating descriptors outside of class scope is feasible, doing so
+        # circumvents Python's default object.__getattribute__() implementation
+        # transforming every attribute access "b.x" where "x" is a data
+        # descriptor declared at class scope  into
+        # "type(b).__dict__['x'].__get__(b, type(b))". Circumventing this
+        # machinery typically defeats the purpose of instantiating a descriptor.
+        # but is warranted in this case.
+        #
+        # Why? Because this class neither requires nor desires this descriptor
+        # to ever be accessed via special machinery. Moreover, this descriptor
+        # is only instantiated by this class to avoid code duplication. Since
+        # the __get__() and __set__() methods defined by this descriptor
+        # already implement all functionality required by this class, calling
+        # these methods suffices to implement this class. Nice, yeah?
+        self._expr_alias = expr_alias(*args, **kwargs)
+
+        # Classify all remaining parameters.
+        self._obj = obj
+
+    # ..................{ GETTERS                            }..................
+    def get(self) -> object:
+        '''
+        Value this expression currently evaluates to.
+        '''
+
+        # Yes, the descriptor protocol explicitly supports direct method calls.
+        # In particular, the "Invoking Descriptors" subsection of the official
+        # "Descriptor HowTo Guide" notes:
+        #
+        #     A descriptor can be called directly by its method name. For
+        #     example, d.__get__(obj).
+        #
+        # Since this data descriptor is accessed with respect to an instance
+        # variable rather than a class, the second parameter passed to this
+        # method call is "None".
+        #
+        # See: https://docs.python.org/3/howto/descriptor.html
+        return self._expr_alias.__get__(self._obj, None)
+
+    # ..................{ SETTERS                            }..................
+    def set(self, value: object) -> None:
+        '''
+        Set this expression's current value to the passed value.
+        '''
+
+        self._expr_alias.__set__(self._obj, value)
+
+
+class ExprAliasUnbound(object):
+    '''
+    Expression alias, dynamically referring to an arbitrarily complex source
+    Python expression suitable for use as both the left- and right-hand sides of
+    Python assignment statements of the passed type and/or satisfying the passed
+    predicate.
+
+    This alias requires the parent object in this expression to be passed to the
+    :meth:`get` and :meth:`set` methods, implying that each instance of this
+    alias may service multiple different objects.
+
+    Attributes
+    ----------
+    _expr_alias : object
+        Expression alias data descriptor of dynamically defined type created and
+        returned by the :func:`expr_alias` function.
+
+    See Also
+    ----------
+    :class:`ExprAliasBound`
+        Expression alias bound to its parent object at instantiation time.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+        '''
+        Initialize this expression alias.
+
+        Parameters
+        ----------
+        All remaining parameters are passed as is to the :func:`expr_alias`
+        function.
+        '''
+
+        # Expression alias data descriptor passed all passed parameters.
+        self._expr_alias = expr_alias(*args, **kwargs)
+
+    # ..................{ GETTERS                            }..................
+    def get(self, obj: object) -> object:
+        '''
+        Value this expression currently evaluates to.
+
+        Parameters
+        ----------
+        obj : optional[object]
+            Object to be bound to the variable in this expression whose name was
+            defined as the ``obj_name`` parameter passed to the :meth:`__init__`
+            method of this class, defaulting to ``self``.
+
+        Returns
+        ----------
+        object
+            This expression's current value.
+        '''
+
+        return self._expr_alias.__get__(obj, None)
+
+    # ..................{ SETTERS                            }..................
+    def set(self, obj: object, value: object) -> None:
+        '''
+        Set this expression's current value to the passed value.
+
+        Parameters
+        ----------
+        obj : object
+            Object to be bound to the variable in this expression whose name was
+            defined as the ``obj_name`` parameter passed to the :meth:`__init__`
+            method of this class, defaulting to ``self``.
+        value : object
+            Value to set this expression to.
+        '''
+
+        self._expr_alias.__set__(obj, value)
+
 # ....................{ DESCRIPTORS                        }....................
-#FIXME: Unit test the "predicate_expr" parameter.
 @type_check
 def expr_alias(
+    # Mandatory parameters.
     expr: str,
+
+    # Optional parameters. For caller convenience, the second parameter passed
+    # to this function is required to be the "cls" parameter; doing so permits
+    # callers to concisely call this function with positional parameters only.
     cls: TestableOrNoneTypes = None,
     predicate: CallableOrNoneTypes = None,
     predicate_expr: StrOrNoneTypes = None,
     predicate_label: StrOrNoneTypes = None,
+    obj_name: StrOrNoneTypes = 'self',
 ) -> object:
     '''
     Expression alias **data descriptor** (i.e., object satisfying the data
-    descriptor protocol), dynamically aliasing a target variable of the passed
-    type and/or satisfying the passed predicate bound to instances of the class
-    instantiating this descriptor to an arbitrarily complex source Python
-    expression suitable for use as both the left- and right-hand sides of Python
-    assignment statements.
+    descriptor protocol, usually defined at class scope), dynamically aliasing a
+    target variable of the passed type and/or satisfying the passed predicate
+    bound to instances of the class instantiating this descriptor to an
+    arbitrarily complex source Python expression suitable for use as both the
+    left- and right-hand sides of Python assignment statements.
 
     This function (in order):
 
@@ -80,7 +280,8 @@ def expr_alias(
     variables:
 
     * ``self``, the current instance of the class instantiating this descriptor.
-      If this descriptor is retrieved:
+      Callers preferring an alternate name for this local variable may pass the
+      optional ``obj_name`` parameter. If this descriptor is retrieved:
       * As an **instance variable** (i.e., from the current instance of this
         class), this local is that instance.
       * As a **class variable** (i.e., from this class), this local is `None`.
@@ -111,7 +312,11 @@ def expr_alias(
     **class scope** (i.e., directly from within the body of a class) in a manner
     assigning the descriptor returned by this function to a class variable of
     arbitrary name. While feasible, calling this function from any other scope
-    is highly discouraged.
+    is highly discouraged. In turn, this implies this function is intended to be
+    called *only* when the expression to be aliased is statically known at class
+    definition time. When this is *not* the case (e.g., when this expression is
+    only dynamically known at runtime), the higher-level :class:`ExprAlias`
+    class should be instantiated instead.
 
     Additionally, the instance variable bound by the descriptor returned by this
     function is *not* deletable via the :func:`del` builtin. Attempting to do so
@@ -160,15 +365,39 @@ def expr_alias(
         Human-readable adjective or adjectival phrase describing the passed
         callable predicate if any. Defaults to ``None``, in which case this
         string is synthesized from the name of this callable if needed.
+    obj_name: optional[str]
+        Name of the variable in this expression whose value is the current
+        instance of the class instantiating this descriptor. If this name is
+        already reserved for internal use by this descriptor, an exception is
+        raised; reserved names include ``cls``, ``self_descriptor``, and
+        ``value``. Defaults to ``self``.
 
     Returns
     ----------
     object
         Expression alias data descriptor as detailed above.
+
+    See Also
+    ----------
+    :class:`ExprAlias`
+        Higher-level class encapsulating the data descriptor returned by this
+        lower-level function, intended to be used where declaring a descriptor
+        at class scope is inappropriate (e.g., where the expression to be
+        aliased is unknown at class definition time).
     '''
 
     # Avoid circular import dependencies.
     from betse.util.type.cls import classes
+
+    # Set of the names of all parameters hard-coded into the implementations of
+    # either the __get__() or __set__() methods defined below and hence reserved
+    # for internal use by this descriptor.
+    RESERVED_ARG_NAMES = {'cls', 'self_descriptor', 'value',}
+
+    # If the passed object name is already reserved, raise an exception.
+    if obj_name in RESERVED_ARG_NAMES:
+        raise BetseDescriptorException(
+            'Object name "{}" reserved for internal use.'.format(obj_name))
 
     # Dictionary eventually containing only the following three keys:
     #
@@ -323,16 +552,17 @@ def expr_alias(
 def __init__(self_descriptor{init_args}):
     {init_body}
 
-def __get__(self_descriptor, self, cls):
+def __get__(self_descriptor, {obj_name}, cls):
     {get_body}
 
-def __set__(self_descriptor, self, value):
+def __set__(self_descriptor, {obj_name}, value):
     {set_body}
 '''.format(
     init_args=class_init_args,
     init_body=class_init_body,
     get_body=class_get_body,
     set_body=class_set_body,
+    obj_name=obj_name,
 )
 
     # Define these methods and this dictionary containing these methods.

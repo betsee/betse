@@ -10,8 +10,10 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPipelineException
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.util.type import strs
 from betse.util.type.cls.decorators import MethodDecorator
+from betse.util.type.cls.expralias import ExprAliasUnbound
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes, SetOrNoneTypes,)
 
@@ -50,6 +52,23 @@ from betse.util.type.types import (
 #  should instead accept a set of "SimPipelineRunnerRequirementType" instances.
 #
 #Awesome, eh? Extremely efficient, typesafe, and sensible. Let's do this.
+#FIXME: Actually, let's simplify the above. The above certainly works, but is
+#somewhat cumbersome due to the duplication between the "is_satisfied" and
+#"set_satisfied" parameters. Instead, simply pass a string that is then used to
+#dynamically declare the appropriate functions: e.g.,
+#
+#    class SimPipelineRunnerRequirementType(Enum):
+#        ECM = SimPipelineRunnerRequirement(
+#            name='extracellular spaces',
+#            expr='phase.p.sim_ECM',
+#        )
+#
+#As the name of the "expr" parameter implies, this parameter should be
+#implemented by reusing the existing expralias() data descriptor. Since that
+#function is only intended to be called when creating descriptors, however,
+#consider wrapping that function with a new "ExprAlias" class. The "expr"
+#parameter passed above may then be implemented by classifying an instance of
+#the "ExprAlias" class. Sweet, no?
 
 @type_check
 def runner_metadata(
@@ -157,7 +176,23 @@ def runner_metadata(
     # Return the closure accepting the method to be decorated.
     return _runner_metadata_closure
 
+# ....................{ DECORATORS ~ alias                 }....................
+# For each abstract "SimPipelineABC" subclass (e.g., "SimPipelinerExportABC"),
+# alias the @runner_metadata decorator to a name specific to that subclass.
 
+exporter_metadata = runner_metadata
+'''
+Decorator annotating simulation export pipeline **runners** (i.e., methods of
+:class:`SimPipelinerExportABC` subclasses with names prefixed by
+:attr:`SimPipelinerExportABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+
+See Also
+----------
+:func:`runner_metadata`
+    Further details.
+'''
+
+# ....................{ CLASSES                            }....................
 class SimPipelineRunnerMetadata(MethodDecorator):
     '''
     Class decorator annotating simulation pipeline runners with custom metadata.
@@ -239,18 +274,91 @@ class SimPipelineRunnerMetadata(MethodDecorator):
             # Reducing from a (possibly) multi- to single-line string.
             strs.unwrap(self.description)))
 
-# ....................{ DECORATORS ~ alias                 }....................
-# For each abstract "SimPipelineABC" subclass (e.g., "SimPipelinerExportABC"),
-# alias the @runner_metadata decorator to a name specific to that subclass.
 
-exporter_metadata = runner_metadata
-'''
-Decorator annotating simulation export pipeline **runners** (i.e., methods of
-:class:`SimPipelinerExportABC` subclasses with names prefixed by
-:attr:`SimPipelinerExportABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+class SimPipelineRunnerRequirement(object):
+    '''
+    Object encapsulating the current boolean state of a simulation feature
+    (e.g., extracellular spaces) required by simulation pipeline runners.
 
-See Also
-----------
-:func:`runner_metadata`
-    Further details.
-'''
+    Attributes
+    ----------
+    name : str
+        Human-readable name of this requirement (e.g., ``fluid flow``).
+    _expr_alias : ExprAliasUnbound
+        Expression alias, dynamically referring to an arbitrarily complex source
+        Python expression relative to the current simulation phase evaluating to
+        this requirement's boolean state (e.g., ``phase.p.sim_ECM``). Since each
+        instance of this class is shared amongst all phases rather than bound to
+        a single phase, this alias is unbound rather than bound.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, name: str, expr: str) -> None:
+        '''
+        Initialize this requirement.
+
+        Parameters
+        ----------
+        name : str
+            Human-readable name of this requirement (e.g., ``fluid flow``).
+        expr : str
+            Arbitrarily complex Python expression relative to the current
+            simulation phase evaluating to this requirement's boolean state
+            (e.g., ``phase.p.sim_ECM``). This expression may (and typically
+            should) refer to the ``phase`` variable, bound to the current
+            simulation phase.
+        '''
+
+        # Expression alias encapsulating the passed Python expression. Since
+        # this alias is only ever accessed with the public methods defined below
+        # that are already type-checked, this alias avoids additional validation
+        # (e.g., a "cls=bool" parameter).
+        self._expr_alias = ExprAliasUnbound(expr=expr, obj_name='phase')
+
+        # Classify all remaining parameters.
+        self._name = name
+
+    # ..................{ TESTERS                            }..................
+    @type_check
+    def is_satisfied(self, phase: SimPhaseABC) -> bool:
+        '''
+        ``True`` only if the passed simulation phase satisfies this requirement.
+
+        Specifically, this method returns the current boolean state of the
+        simulation feature encapsulated by this requirement.
+
+        Parameters
+        ----------
+        phase : SimPhaseABC
+            Current simulation phase.
+
+        Returns
+        ----------
+        bool
+            ``True`` only if this phase satisfies this requirement.
+        '''
+
+        return self._expr_alias.get(phase)
+
+    # ..................{ SETTERS                            }..................
+    @type_check
+    def set_satisfied(self, phase: SimPhaseABC, is_satisfied: bool) -> bool:
+        '''
+        Force the passed simulation phase to either satisfy or *not* satisfy
+        this requirement.
+
+        Specifically, this method sets the current boolean state of the
+        simulation feature encapsulated by this requirement to this boolean.
+
+        Parameters
+        ----------
+        phase : SimPhaseABC
+            Current simulation phase.
+        is_satisfied : bool
+            ``True`` only if this phase is to satisfy this requirement.
+        '''
+
+        return self._expr_alias.set(phase, is_satisfied)
+
+# ....................{ ENUMERATIONS                       }....................

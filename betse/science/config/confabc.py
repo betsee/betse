@@ -13,7 +13,7 @@ from collections.abc import MutableSequence
 
 from betse.science.simulate.pipe.pipeabc import SimPipelineRunnerConf
 from betse.util.type.cls import classes
-from betse.util.type.cls.descriptors import expr_alias, expr_enum_alias
+from betse.util.type.cls.expralias import expr_alias, expr_enum_alias
 from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check,
