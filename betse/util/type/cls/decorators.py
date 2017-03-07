@@ -78,12 +78,15 @@ class MethodDecorator(object, metaclass=ABCMeta):
                 self.__call__, obj)
             return method_bound
 
-    # ..................{ SUBCLASS                           }..................
+    # ..................{ CALLERS                            }..................
     def __call__(self, obj, *args, **kwargs) -> object:
         '''
         Call the decorated method previously passed to the :meth:`__init__`
         method bound to the passed object with the passed positional and keyword
         arguments, returning the value returned by this call.
+
+        This special method is typically overriden by subclass implementations
+        wrapping the decorated method with additional functionality.
         '''
 
         return self._method(obj, *args, **kwargs)

@@ -7,96 +7,17 @@ High-level facilities for **pipelining** (i.e., iteratively displaying and/or
 exporting) post-simulation animations.
 '''
 
-#FIXME: Generalize the current concept of exporter satisfaction to permit GUI
-#inspection. Consider a user attempting to enable an animation requiring one or
-#more simulation features to be enabled. Currently, the GUI would silently
-#permit this animation to be added to the pipeline without informing the user
-#that one or more simulation features required by this animation are disabled.
-#Clearly, this is non-ideal. Ideally, a GUI on adding an animation to a pipeline
-#would:
-#
-#* Dynamically query that animation to decide whether it has unmet requirements.
-#* If that animation does have unmet requirements:
-#  * Notify the user that this is the case.
-#  * Prompt the user, offering to automatically enable these requirements on
-#    behalf of the user.
-#
-#To support such dynamism, we need a means of associating exporter requirements
-#with exporters. Enter the existing @exporter_metadata decorator. Currently, we
-#implement exporters with requirements as follows:
-#
-#     @exporter_metadata(categories=('Fluid Flow', 'Total'))
-#     def export_fluid_total(self, conf: SimConfVisualListable) -> None:
-#         '''
-#         Animate the total fluid flow field (i.e., both intra- and extracellular)
-#         for all time steps.
-#         '''
-#
-#         # Raise an exception unless fluid flow and extracellular spaces are
-#         # enabled.
-#         self._die_unless(
-#             is_satisfied=(
-#                 self._phase.p.fluid_flow and self._phase.p.sim_ECM),
-#             exception_reason=(
-#                 'fluid flow and/or extracellular spaces disabled'))
-#
-#         ...
-#
-#This entails quite a bit of boilerplate, however. Each exporter's
-#implementation is prefixed by a similar self._die_unless*() method call.
-#Instead, the @exporter_metadata decorator should automatically handle the
-#validation of exporter requirements by accepting a sequence of all requirements
-#at exporter decoration time as follows:
-#
-#     @exporter_metadata(
-#         categories=('Fluid Flow', 'Total'),
-#         requirements={'fluid_flow', 'sim_ECM'},
-#     )
-#     def export_fluid_total(self, conf: SimConfVisualListable) -> None:
-#         '''
-#         Animate the total fluid flow field (i.e., both intra- and extracellular)
-#         for all time steps.
-#         '''
-#
-#         ...
-#
-#Significantly more concise. No explicit calls to _die_unless*() methods are
-#required. Why? Because the @exporter_metadata decorator decorates this method
-#to ensure that these requirements are met *BEFORE* this method is called. How?
-#By iterating over each string in the optional "requirements" parameter and, for
-#each such string, ensuring that the corresponding boolean of the "self._p"
-#object is True.
-#
-#Hence, the above "requirements=('fluid_flow', 'sim_ECM')" parameter would be
-#internally expanded by the @exporter_metadata decorator into an if conditional
-#resembling:
-#
-#    for requirement_name in requirements:
-#        requirement = getattr(self._p, requirement_name, None)
-#
-#        if requirement is None:
-#            raise BetseSimPipelineException(...)
-#
-#        if requirement is False:
-#            raise BetseSimPipelineRunnerUnsatisfiedException(...)
-#
-#    logs.log_info('Running {runner_name}...')
-#    call_decorated_method()
-#
-#Quite simple. No eval() hackery is required; merely a single getattr() for each
-#such requirement. *MAKE THIS HAPPEN.*
-
 #FIXME: This module would be a *GREAT* candidate for testing out Python 3.5-
 #based asynchronicity and parallelization. Ideally, we'd be able to segregate
 #the generation of each animation to its own Python process. Verdant shimmers!
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-
 from betse.science.config.export.confvisabc import SimConfVisualListable
-from betse.science.simulate.pipe.piperunner import exporter_metadata
 from betse.science.simulate.pipe.pipeabc import (
     SimPipelinerExportABC)
+from betse.science.simulate.pipe.piperunner import (
+    exporter_metadata, exporter_requirement)
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -119,7 +40,6 @@ from betse.science.visual.layer.vector.layervectorsurface import (
     LayerCellsVectorSurfaceContinuous)
 from betse.util.type.types import type_check, IterableTypes
 
-
 # ....................{ SUBCLASSES                         }....................
 class AnimCellsPipeliner(SimPipelinerExportABC):
     '''
@@ -141,7 +61,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         return self._phase.p.anim.is_after_sim
 
     @property
-    def _runners_conf_enabled(self) -> IterableTypes:
+    def _runners_conf(self) -> IterableTypes:
         return self._phase.p.anim.after_sim_pipeline
 
     # ..................{ EXPORTERS ~ current                }..................
@@ -150,9 +70,6 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         '''
         Animate the intracellular current density for all time steps.
         '''
-
-        # Log this animation attempt.
-        self._die_unless_intra()
 
         # Animate this animation.
         AnimCurrent(
@@ -165,15 +82,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(categories=('Current Density', 'Total'))
+    @exporter_metadata(
+        categories=('Current Density', 'Total'),
+        requirements={exporter_requirement.ECM,},
+    )
     def export_current_total(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the total current density (i.e., both intra- and extracellular)
         for all time steps.
         '''
-
-        # Raise an exception unless extracellular spaces are enabled.
-        self._die_unless_extra()
 
         # Animate this animation.
         AnimCurrent(
@@ -186,16 +103,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ deform                 }..................
-    @exporter_metadata(categories=('Cellular Deformation', 'Physical'))
+    @exporter_metadata(
+        categories=('Cellular Deformation', 'Physical'),
+        requirements={exporter_requirement.DEFORM,},
+    )
     def export_deform(self, conf: SimConfVisualListable) -> None:
         '''
         Animate physical cellular deformations for all time steps.
         '''
-
-        # Raise an exception unless deformation is enabled.
-        self._die_unless(
-            is_satisfied=self._phase.p.deformation,
-            exception_reason='deformation disabled')
 
         # Animate this animation.
         AnimateDeformation(
@@ -211,9 +126,6 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         '''
         Animate the intracellular electric field for all time steps.
         '''
-
-        # Log this animation attempt.
-        self._die_unless_intra()
 
         # Vector field cache of the intracellular electric field for all time steps.
         field = fieldmake.make_electric_intra(
@@ -248,15 +160,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(categories=('Electric Field', 'Total'))
+    @exporter_metadata(
+        categories=('Electric Field', 'Total'),
+        requirements={exporter_requirement.ECM,},
+    )
     def export_electric_total(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the total electric field (i.e., both intra- and extracellular)
         for all time steps.
         '''
-
-        # Raise an exception unless extracellular spaces are enabled.
-        self._die_unless_extra()
 
         # Animate this animation.
         AnimFieldExtracellular(
@@ -270,16 +182,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ fluid                  }..................
-    @exporter_metadata(categories=('Fluid Flow', 'Intracellular'))
+    @exporter_metadata(
+        categories=('Fluid Flow', 'Intracellular'),
+        requirements={exporter_requirement.FLUID,},
+    )
     def export_fluid_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the intracellular fluid flow field for all time steps.
         '''
-
-        # Raise an exception unless fluid flow is enabled.
-        self._die_unless(
-            is_satisfied=self._phase.p.fluid_flow,
-            exception_reason='fluid flow disabled')
 
         # Animate this animation.
         AnimVelocityIntracellular(
@@ -291,20 +201,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(categories=('Fluid Flow', 'Total'))
+    @exporter_metadata(
+        categories=('Fluid Flow', 'Total'),
+        requirements={exporter_requirement.FLUID, exporter_requirement.ECM,},
+    )
     def export_fluid_total(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the total fluid flow field (i.e., both intra- and extracellular)
         for all time steps.
         '''
-
-        # Raise an exception unless fluid flow and extracellular spaces are
-        # enabled.
-        self._die_unless(
-            is_satisfied=(
-                self._phase.p.fluid_flow and self._phase.p.sim_ECM),
-            exception_reason=(
-                'fluid flow and/or extracellular spaces disabled'))
 
         # Animate this animation.
         AnimVelocityExtracellular(
@@ -316,14 +221,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ ion                    }..................
-    @exporter_metadata(categories=('Ion Concentration', 'Calcium'))
+    @exporter_metadata(
+        categories=('Ion Concentration', 'Calcium'),
+        requirements={exporter_requirement.ION_CA,},
+    )
     def export_ion_calcium(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all calcium (i.e., Ca2+) ion concentrations for all time steps.
         '''
-
-        # Raise an exception unless the calcium ion is enabled.
-        self._die_unless_ion('Ca')
 
         # Array of all upscaled calcium ion concentrations.
         time_series = [
@@ -340,15 +245,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(categories=('Ion Concentration', 'Hydrogen'))
+    @exporter_metadata(
+        categories=('Ion Concentration', 'Hydrogen'),
+        requirements={exporter_requirement.ION_H,},
+    )
     def export_ion_hydrogen(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all hydrogen (i.e., H+) ion concentrations for all time steps,
         scaled to correspond exactly to pH.
         '''
-
-        # Raise an exception unless the hydrogen ion is enabled.
-        self._die_unless_ion('H')
 
         # Array of all upscaled calcium ion concentrations.
         time_series = [
@@ -373,9 +278,6 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         Animate all gap junction connectivity states for all time steps.
         '''
 
-        # Log this animation attempt.
-        self._die_unless_intra()
-
         # Animate this animation.
         AnimGapJuncTimeSeries(
             phase=self._phase,
@@ -387,16 +289,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(categories=('Cellular Membrane', 'Pump Density'))
+    @exporter_metadata(
+        categories=('Cellular Membrane', 'Pump Density'),
+        requirements={exporter_requirement.ELECTROOSMOSIS,},
+    )
     def export_membrane_pump_density(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all cellular membrane pump density factors for all time steps.
         '''
-
-        # Raise an exception unless channel electroosmosis is enabled.
-        self._die_unless(
-            is_satisfied=self._phase.p.sim_eosmosis,
-            exception_reason='channel electroosmosis disabled')
 
         # Animate this animation.
         AnimMembraneTimeSeries(
@@ -409,16 +309,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ pressure               }..................
-    @exporter_metadata(categories=('Cellular Pressure', 'Mechanical'))
+    @exporter_metadata(
+        categories=('Cellular Pressure', 'Mechanical'),
+        requirements={exporter_requirement.PRESSURE_MECHANICAL,},
+    )
     def export_pressure_mechanical(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the cellular mechanical pressure for all time steps.
         '''
-
-        # Raise an exception unless mechanical pressure is enabled.
-        self._die_unless(
-            is_satisfied=self._phase.p.scheduled_options['pressure'] != 0,
-            exception_reason='mechanical pressure event disabled')
 
         # Animate this animation.
         AnimFlatCellsTimeSeries(
@@ -431,16 +329,14 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(categories=('Cellular Pressure', 'Osmotic'))
+    @exporter_metadata(
+        categories=('Cellular Pressure', 'Osmotic'),
+        requirements={exporter_requirement.PRESSURE_OSMOTIC,},
+    )
     def export_pressure_osmotic(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the cellular osmotic pressure for all time steps.
         '''
-
-        # Raise an exception unless osmotic pressure is enabled.
-        self._die_unless(
-            is_satisfied=self._phase.p.deform_osmo,
-            exception_reason='osmotic pressure disabled')
 
         # Animate this animation.
         AnimFlatCellsTimeSeries(
@@ -453,14 +349,11 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ voltage                }..................
-    @exporter_metadata(categories=('Voltage', 'Intracellular'))
+    @exporter_metadata(categories=('Voltage', 'Transmembrane'))
     def export_voltage_membrane(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all transmembrane voltages (i.e., Vmem) for all time steps.
         '''
-
-        # Log this animation attempt.
-        self._die_unless_intra()
 
         # Vector of all cell membrane voltages for all time steps.
         vector = vectormake.make_voltages_intra(
@@ -481,15 +374,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(categories=('Voltage', 'Total'))
+    @exporter_metadata(
+        categories=('Voltage', 'Total'),
+        requirements={exporter_requirement.ECM,},
+    )
     def export_voltage_total(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all voltages (i.e., both intra- and extracellular) for all time
         steps.
         '''
-
-        # Raise an exception unless extracellular spaces are enabled.
-        self._die_unless_extra()
 
         # List of environment voltages, indexed by time step.
         venv_time_series = [

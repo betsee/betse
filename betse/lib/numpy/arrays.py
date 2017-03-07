@@ -13,6 +13,7 @@ Low-level Numpy array and matrix facilities.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSequenceException, BetseStrException
+from betse.util.path import dirs
 from betse.util.type import strs, types
 from betse.util.type.types import type_check, SequenceTypes
 from collections import OrderedDict
@@ -180,6 +181,9 @@ def write_csv(filename: str, column_name_to_values: OrderedDict) -> None:
     #   number of key-value pairs in the passed dictionary).
     # * Second dimension indexes each column data point for this time step
     columns_values = np.column_stack(column_name_to_values.values())
+
+    # Create the directory containing this file if needed.
+    dirs.make_parent_unless_dir(filename)
 
     # Serialize these sequences to this file in CSV format.
     np.savetxt(

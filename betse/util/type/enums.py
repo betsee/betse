@@ -112,6 +112,7 @@ class EnumOrdered(Enum):
             NotImplemented)
 
 # ....................{ EXCEPTIONS                         }....................
+#FIXME: Rename to die_unless_member().
 def die_unless_enum_member(
     enum_type: EnumType, enum_member: EnumMemberType) -> None:
     '''
@@ -122,7 +123,7 @@ def die_unless_enum_member(
     enum_type : EnumType
         Enumeration type to be inspected.
     enum_member: str
-        Member to test for.
+        Enumeration members to test for.
     '''
 
     if not is_enum_member(enum_type, enum_member):
@@ -131,6 +132,7 @@ def die_unless_enum_member(
                 enum_type.__name__, enum_member.name))
 
 
+#FIXME: Rename to die_unless_member_name().
 def die_unless_enum_member_name(
     enum_type: EnumType, enum_member_name: str) -> None:
     '''
@@ -151,6 +153,7 @@ def die_unless_enum_member_name(
                 enum_type.__name__, enum_member_name))
 
 # ....................{ TESTERS                            }....................
+#FIXME: Rename to is_member().
 @type_check
 def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
     '''
@@ -173,6 +176,7 @@ def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
     return enum_member in enum_type
 
 
+#FIXME: Rename to is_member_name().
 @type_check
 def is_enum_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     '''

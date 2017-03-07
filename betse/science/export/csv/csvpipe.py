@@ -12,19 +12,18 @@ spreadsheets in comma-separated value (CSV) format.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from numpy import ndarray
-
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import arrays
 from betse.science.export import expmath
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
+from betse.science.simulate.pipe.piperunner import exporter_metadata
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, paths
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
-
+from numpy import ndarray
 
 # ....................{ SUBCLASSES                         }....................
 class SimPipelinerExportCSV(SimPipelinerExportABC):
@@ -45,12 +44,13 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
     #FIXME: Implement this property *AFTER* generalizing the configuration file
     #format to support CSV pipelines.
     @property
-    def _runners_conf_enabled(self) -> IterableTypes:
+    def _runners_conf(self) -> IterableTypes:
 
         raise BetseMethodUnimplementedException()
 
-    # ..................{ RUNNERS ~ cell                     }..................
-    def export_cell_data_all(self) -> None:
+    # ..................{ EXPORTERS ~ cell                   }..................
+    @exporter_metadata(categories=('Single Cell', 'Raw Data'))
+    def export_cell_raw(self) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
         several cell-specific time series (e.g., ion concentrations, membrane
@@ -58,9 +58,6 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
         whose index indexed by the ``plot cell index`` entry for the current
         simulation configuration.
         '''
-
-        # Prepare to serialize the current CSV file.
-        self._prep_run()
 
         # 0-based index of the cell to serialize time data for.
         cell_index = self._phase.p.plot_cell
@@ -180,7 +177,14 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
             filename=csv_filename,
             column_name_to_values=csv_column_name_to_values)
 
-    # ..................{ RUNNERS ~ cell : vmem              }..................
+    # ..................{ EXPORTERS ~ cell : vmem            }..................
+    #FIXME: This exporter appears to currently be broken for the non-ECM
+    #case, despite working for the ECM case. The exception being raised is:
+    #
+    #    BetseSequenceException: Column "FFT_Vmem" length 9 differs from length
+    #    5 of prior columns.
+
+    @exporter_metadata(categories=('Single Cell', 'Vmem FFT'))
     def export_cell_vmem_fft(self) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
@@ -190,14 +194,8 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
         configuration.
         '''
 
-        #FIXME: This exporter appears to currently be broken for the non-ECM
-        #case, despite working for the ECM case. The exception being raised is:
-        #
-        #    BetseSequenceException: Column "FFT_Vmem" length 9 differs from length 5 of prior columns.
+        #FIXME: Remove this after correcting this exporter.
         raise BetseMethodUnimplementedException()
-
-        # Prepare to serialize the current CSV file.
-        self._prep_run()
 
         # Number of sampled time steps.
         sample_size = len(self._phase.sim.time)
@@ -235,16 +233,14 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
             filename=csv_filename,
             column_name_to_values=csv_column_name_to_values)
 
-    # ..................{ RUNNERS ~ cells : vmem             }..................
+    # ..................{ EXPORTERS ~ cells : vmem           }..................
+    @exporter_metadata(categories=('Cell Cluster', 'Transmembrane Voltages'))
     def export_cells_vmems(self) -> None:
         '''
         Save one plaintext file in comma-separated value (CSV) format for each
         sequence of transmembrane voltages spatially situated at cell centres
         for each sampled time step of the current simulation phase.
         '''
-
-        # Prepare to serialize the current CSV file.
-        self._prep_run()
 
         # One-dimensional Numpy array of all upscaled cell voltages.
         cells_times_vmems = expmath.upscale_cell_data(
@@ -257,24 +253,6 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
             csv_dir_basename='Vmem2D_TextExport',
             csv_basename_prefix='Vmem2D_',
         )
-
-    # ..................{ PRIVATE ~ preparers                }..................
-    def _prep_run(self) -> None:
-        '''
-        Prepare to serialize the current CSV file.
-
-        Specifically, this method:
-
-        * Logs the current attempt to run the calling runner.
-        * Creates the directory containing the CSV file subsequently created by
-          this runner if needed.
-        '''
-
-        # Log the current attempt to run the calling runner.
-        self._log_run()
-
-        # Create the directory containing the current CSV file if needed.
-        dirs.make_unless_dir(self._phase.save_dirname)
 
     # ..................{ PRIVATE ~ exporters                }..................
     @type_check
@@ -381,7 +359,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     pipeliner = SimPipelinerExportCSV(phase)
 
     if phase.p.exportData:
-        pipeliner.export_cell_data_all()
+        pipeliner.export_cell_raw()
 
         #FIXME: Reenable after correcting for non-ECM usage.
         # pipeliner.export_cell_vmem_fft()

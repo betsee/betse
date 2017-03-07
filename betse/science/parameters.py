@@ -124,6 +124,24 @@ class Parameters(object):
     sim_ECM = conf_alias(
         "['general options']['simulate extracellular spaces']", bool)
 
+    # ..................{ ALIASES ~ event                    }..................
+    #FIXME: Define similar booleans for all remaining events.
+    #FIXME: Globally replace in the codebase all awkward non-boolean tests of
+    #"p.scheduled_options" dictionary values against 0 with boolean tests of
+    #the following boolean descriptors. As example, globally replace all
+    #instances of:
+    #
+    #* "if p.scheduled_options['pressure'] != 0:" with
+    #  "if p.is_event_pressure:".
+    #* "if p.scheduled_options['pressure'] == 0:" with
+    #  "if not p.is_event_pressure:".
+    #
+    #This is critical, as the latter are trivially usable in expression aliases
+    #expecting booleans whereas the former are not. See the
+    #"SimPipelineRunnerRequirementType.PRESSURE_MECHANICAL" enumeration member.
+
+    is_event_pressure = conf_alias("['apply pressure']['event happens']", bool)
+
     # ..................{ INITIALIZERS                       }..................
     #FIXME: Convert all or most of the variables parsed in the __init__() method
     #below should be converted into aliases of the above form. Brainy rainbows!
@@ -246,9 +264,7 @@ class Parameters(object):
         bool_Kmem = bool(self._conf['change K mem']['event happens'])
         bool_Clmem = bool(self._conf['change Cl mem']['event happens'])
         bool_Camem = bool(self._conf['change Ca mem']['event happens'])
-        bool_press = bool(self._conf['apply pressure']['event happens'])
         bool_ecmj = bool(self._conf['break ecm junctions']['event happens'])
-
 
         if bool_Namem is False:
             self.scheduled_options['Na_mem'] = 0
@@ -298,9 +314,7 @@ class Parameters(object):
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
 
-        if bool_press is False:
-            self.scheduled_options['pressure'] = 0
-        elif bool_press is True:
+        if self.is_event_pressure:
             on_p = float(self._conf['apply pressure']['change start'])
             off_p = float(self._conf['apply pressure']['change finish'])
             rate_p = float(self._conf['apply pressure']['change rate'])
@@ -310,6 +324,8 @@ class Parameters(object):
             pressure_ops = [on_p, off_p, rate_p, multi_p, apply_p,function]
 
             self.scheduled_options['pressure'] = pressure_ops
+        else:
+            self.scheduled_options['pressure'] = 0
 
         #FIXME: Rename this dictionary key from "extV" to "external voltage".
         #Thus spake Sessums!

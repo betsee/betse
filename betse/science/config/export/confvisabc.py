@@ -11,6 +11,7 @@ YAML-backed simulation visualization subconfigurations.
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.science.config.confabc import (
     SimConfABC, SimConfListableABC, conf_alias)
+from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUPERCLASSES                       }....................
@@ -155,6 +156,8 @@ class SimConfVisualListable(SimConfVisualMixin, SimConfListableABC):
 
     Attributes (General)
     ----------
+    is_enabled : bool
+        ``True`` only if this visualization is enabled.
     name : str
         Lowercase alphanumeric string uniquely identifying the type of this
         visualization (e.g., ``voltage_intra``, signifying a visualization of
@@ -169,6 +172,7 @@ class SimConfVisualListable(SimConfVisualMixin, SimConfListableABC):
         # Duplicate the default animation listed first in our default YAML file.
         return SimConfVisualListable(conf={
             'type': 'voltage_intra',
+            'enabled': True,
             'colorbar': {
                 'autoscale': True,
                 'minimum': -70.0,
@@ -177,4 +181,23 @@ class SimConfVisualListable(SimConfVisualMixin, SimConfListableABC):
         })
 
     # ..................{ ALIASES                            }..................
+    is_enabled = conf_alias("['enabled']", bool)
     name = conf_alias("['type']", str)
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass with all passed parameters.
+        super().__init__(*args, **kwargs)
+
+        # If newly defined configuration options are undefined...
+        if 'enabled' not in self._conf:
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Animation "%s" config setting "enabled" not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+                self.name)
+
+            # Preserve backwards compatibility.
+            self._conf['enabled'] = True

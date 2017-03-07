@@ -11,14 +11,13 @@ activities to be iteratively run) functionality.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
 from betse.exceptions import (
-    BetseSimConfigException,
     BetseSimPipelineException,
     BetseSimPipelineUnsatisfiedException,
 )
 from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.pipe.piperunner import SimPipelineRunnerMetadata
 from betse.util.io.log import logs
 from betse.util.type import strs
-from betse.util.type.call import callers
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
@@ -45,12 +44,12 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
       method should:
       * Accept exactly one parameter: ``self``.
       * Return nothing (i.e.,``None``).
-    * The abstract :meth:`_runners_conf_enabled` property returning a sequence of the
+    * The abstract :meth:`_runners_conf` property returning a sequence of the
       names of all runners currently enabled by this pipeline (e.g.,
       ``['voltage_intra', 'ion_hydrogen', 'electric_total']``).
 
     The :meth:`run` method defined by this base class then dynamically
-    implements this pipeline by iterating over the :meth:`_runners_conf_enabled` property
+    implements this pipeline by iterating over the :meth:`_runners_conf` property
     and, for each enabled runner, calling that runner's method.
 
     Attributes (Private)
@@ -186,6 +185,25 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         self._label_singular_uppercase = strs.uppercase_first_char(
             self._label_singular_lowercase)
 
+    # ..................{ PROPERTIES                         }..................
+    @property
+    def is_enabled(self) -> bool:
+        '''
+        ``True`` only if the :meth:`run` method should run this pipeline.
+
+        Specifically, if this boolean is:
+
+        * ``False``, the :meth:`run` method reduces to a noop.
+        * ``True``, this method behaves as expected (i.e., calls all currently
+          enabled runner methods).
+
+        Defaults to ``True``. Pipeline subclasses typically override this
+        property to return a boolean derived from the simulation configuration
+        file associated with the current phase.
+        '''
+
+        return True
+
     # ..................{ RUNNERS                            }..................
     def run(self) -> None:
         '''
@@ -199,7 +217,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
           * For each :class:`SimPipelineRunnerConf` instance (corresponding to
             the configuration of a currently enabled pipeline runner) in the
             sequence of these instances provided by the
-            :meth:`_runners_conf_enabled` property:
+            :meth:`_runners_conf` property:
             * Call this method, passed this configuration.
             * If this method reports this runner's requirements to be
               unsatisfied (e.g., due to the current simulation configuration
@@ -220,12 +238,21 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
-        for runner_conf in self._runners_conf_enabled:
+        for runner_conf in self._runners_conf:
             if not isinstance(runner_conf, SimPipelineRunnerConf):
                 raise BetseSimPipelineException(
-                    '_runners_conf_enabled() item {!r} '
+                    '_runners_conf() item {!r} '
                     'not instance of "SimPipelineRunnerConf".'.format(
                         runner_conf))
+
+            # If this runner is disabled, log this fact and ignore this runner.
+            if not runner_conf.is_enabled:
+                logs.log_debug(
+                    'Ignoring disabled %s "%s"...',
+                    self._label_singular_lowercase,
+                    runner_conf.name)
+                continue
+            # Else, this runner is enabled.
 
             # Name of the method implementing this runner.
             runner_method_name = (
@@ -256,155 +283,61 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
                     runner_conf.name,
                     str(exception))
 
-    # ..................{ PROPERTIES                         }..................
-    @property
-    def is_enabled(self) -> bool:
-        '''
-        ``True`` only if the :meth:`run` method should run this pipeline.
-
-        Specifically, if this boolean is:
-
-        * ``False``, the :meth:`run` method reduces to a noop.
-        * ``True``, this method behaves as expected (i.e., calls all currently
-          enabled runner methods).
-
-        Defaults to ``True``. Pipeline subclasses typically override this
-        property to return a boolean derived from the simulation configuration
-        file associated with the current phase.
-        '''
-
-        return True
-
-    # ..................{ PRIVATE ~ loggers                  }..................
-    def _log_run(self) -> None:
-        '''
-        Log the current attempt to run the calling runner.
-        '''
-
-        # Defer to lower-level functionality to do so.
-        self._die_unless_intra()
-
-    # ..................{ PRIVATE ~ exceptions               }..................
+    # ..................{ EXCEPTIONS                         }..................
     @type_check
-    def _die_unless(
-        self,
-        is_satisfied: bool,
-        exception_reason: str,
-    ) -> None:
+    def die_unless_runner_satisfied(
+        self, runner: SimPipelineRunnerMetadata) -> None:
         '''
-        Raise an exception containing the passed explanation if the passed
-        boolean is ``False`` *or* log an attempt to create this animation
-        otherwise.
+        Raise an exception if the passed runner is **unsatisfied** (i.e.,
+        requires one or more simulation features disabled for the current
+        simulation phase) *or* log an attempt to run this runner otherwise.
 
         Parameters
         ----------
-        is_satisfied : bool
-            ``True`` only if all simulation features required by this runner
-            (e.g., extracellular spaces) are currently available.
-        exception_reason : str
-            Uncapitalized human-readable string to be embedded in the messages
-            of exceptions raised by this method, typically explaining all
-            features required by this animation.
+        runner : SimPipelineRunnerMetadata
+            Simulation pipeline runner to be tested.
 
         Raises
         ----------
         BetseSimVisualUnsatisfiedException
-            If this boolean is ``False``.
+            If this runner is unsatisfied.
         '''
 
-        # Name of the runner method either directly or indirectly calling this
-        # method (e.g., "run_electric_extra").
-        runner_method_name = callers.get_caller_basename_matching(
-            predicate=lambda caller_basename:
-                caller_basename.startswith(self._RUNNER_METHOD_NAME_PREFIX))
-
-        # Strip the prefixing "run_" from this name, raising a human-readable
+        # Strip the prefixing verb from the name of this runner's method (e.g.,
+        # "export_" from "export_voltage_total"), raising a human-readable
         # exception if this name has no such prefix.
         runner_name = strs.remove_prefix(
-            text=runner_method_name,
+            text=runner.method_name,
             prefix=self._RUNNER_METHOD_NAME_PREFIX,
             exception_message=(
-                'Callable {}() not a "{}"-prefixed runner method.'.format(
-                    runner_method_name, self._RUNNER_METHOD_NAME_PREFIX)))
+                'Runner method name "{}" not prefixed by "{}".'.format(
+                    runner.method_name, self._RUNNER_METHOD_NAME_PREFIX)))
 
-        # If these animation requirements are unsatisfied, raise an exception.
-        if not is_satisfied:
-            raise BetseSimPipelineUnsatisfiedException(
-                '{} "{}" requirements unsatisfied (i.e., {}).'.format(
-                    self._label_singular_uppercase,
-                    runner_name,
-                    exception_reason))
+        # If any runner requirement is unsatisfied, raise an exception.
+        for requirement in runner.requirements:
+            if not requirement.is_satisfied(phase=self._phase):
+                raise BetseSimPipelineUnsatisfiedException(
+                    '{} "{}" requirement unsatisfied: {} disabled.'.format(
+                        self._label_singular_uppercase,
+                        runner_name,
+                        requirement.name))
+        # Else, all runner requirements are satisfied.
 
-        # Log this attempt to run the calling runner.
+        # Log the subsequent attempt to run this runner.
         logs.log_info(
             '%s %s "%s"...',
-            self._label_verb,
-            self._label_singular_lowercase,
-            runner_name)
-
-    # ..................{ PRIVATE ~ exceptions : config      }..................
-    def _die_unless_intra(self) -> None:
-        '''
-        Log an attempt to run the calling runner.
-
-        This method is intended to be called by runners requiring that only
-        intracellular spaces (i.e., a cell cluster) be enabled. As a cell
-        cluster *always* exists, this method reduces to logging this runner.
-        '''
-
-        # Log this animation attempt. Since all simulations *ALWAYS* enable
-        # support for intracellular spaces, no actual validation is required.
-        self._die_unless(
-            is_satisfied=True,
-            exception_reason='This exception should never be raised.')
-
-
-    def _die_unless_extra(self) -> None:
-        '''
-        Raise an exception unless extracellular spaces are enabled *or* log an
-        attempt to run the calling runner otherwise.
-        '''
-
-        self._die_unless(
-            is_satisfied=self._phase.p.sim_ECM,
-            exception_reason='extracellular spaces disabled')
-
-
-    @type_check
-    def _die_unless_ion(self, ion_name: str) -> None:
-        '''
-        Raise an exception unless the ion with the passed name is enabled by the
-        current ion profile *or* log an attempt to run the calling runner
-        otherwise.
-
-        Parameters
-        ----------
-        ion_name : str
-            Capitalized alphabetic name of the ion required by this animation
-            (e.g., ``Ca``, signifying calcium).
-        '''
-
-        # If this ion is unrecognized, raise a lower-level exception.
-        if ion_name not in self._phase.p.ions_dict:
-            raise BetseSimConfigException(
-                'Ion "{}" unrecognized.'.format(ion_name))
-        # Else, this ion is recognized.
-
-        # Validate whether this ion is enabled or not.
-        self._die_unless(
-            is_satisfied=self._phase.p.ions_dict[ion_name] != 0,
-            exception_reason='ion "{}" disabled'.format(ion_name))
+            self._label_verb, self._label_singular_lowercase, runner_name)
 
     # ..................{ PRIVATE ~ subclass                 }..................
     @abstractproperty
-    def _runners_conf_enabled(self) -> IterableTypes:
+    def _runners_conf(self) -> IterableTypes:
         '''
-        Iterable of all currently enabled :class:`SimPipelineRunnerConf`
-        instances, each encapsulating all input parameters to be passed to the
-        method implementing a currently enabled runner in this pipeline.
+        Iterable of all :class:`SimPipelineRunnerConf` instances for the current
+        pipeline, each encapsulating all input parameters to be passed to the
+        method implementing a runner currently contained in this pipeline.
 
         Pipeline subclasses typically implement this property to return an
-        instance of the :class:``SimConfList`` class listing all runners enabled
+        instance of the :class:``SimConfList`` class listing all runners listed
         by the simulation configuration file associated with the current phase.
         '''
 
@@ -432,6 +365,7 @@ class SimPipelinerExportABC(SimPipelinerABC):
         super().__init__(*args, label_verb='Exporting', **kwargs)
 
 # ....................{ INTERFACES                         }....................
+#FIXME: Shift into the "piperunner" submodule.
 class SimPipelineRunnerConf(object, metaclass=ABCMeta):
     '''
     Abstract base class of all subclasses defining a type of **simulation
@@ -451,7 +385,16 @@ class SimPipelineRunnerConf(object, metaclass=ABCMeta):
 
     # ..................{ SUBCLASS                           }..................
     @abstractproperty
-    def name(self) -> None:
+    def is_enabled(self) -> bool:
+        '''
+        ``True`` only if this runner is **enabled** (i.e., present in the
+        parent simulation pipeline *and* containing an ``enabled`` boolean set
+        to ``True``).
+        '''
+
+
+    @abstractproperty
+    def name(self) -> str:
         '''
         Lowercase alphanumeric string uniquely identifying the runner these
         arguments apply to in the parent simulation pipeline (e.g.,

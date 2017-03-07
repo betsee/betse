@@ -9,8 +9,6 @@ well as functionality pertaining to such classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
-from collections.abc import MutableSequence
-
 from betse.science.simulate.pipe.pipeabc import SimPipelineRunnerConf
 from betse.util.type.cls import classes
 from betse.util.type.cls.expralias import expr_alias, expr_enum_alias
@@ -22,7 +20,7 @@ from betse.util.type.types import (
     MappingType,
     SequenceTypes,
 )
-
+from collections.abc import MutableSequence
 
 # ....................{ SUPERCLASSES                       }....................
 class SimConfABC(object, metaclass=ABCMeta):
@@ -44,14 +42,15 @@ class SimConfABC(object, metaclass=ABCMeta):
     @type_check
     def __init__(self, conf: MappingType) -> None:
         '''
-        Associate this simulation configuration with the passed dictionary.
+        Associate this high-level simulation configuration with the passed
+        low-level dictionary.
 
         Attributes
         ----------
         conf : MappingType
-            Dictionary of related configuration settings both loaded from and
-            savable back to the current YAML-formatted simulation configuration
-            file.
+            Low-level dictionary of related configuration settings both loaded
+            from and savable back to the current YAML-formatted simulation
+            configuration file.
         '''
 
         # Classify all passed parameters.

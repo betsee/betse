@@ -11,65 +11,14 @@ run by its parent pipeline) functionality.
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSimPipelineException
 from betse.science.simulate.simphase import SimPhaseABC
-from betse.util.type import strs
+from betse.util.type import enums, strs
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.cls.expralias import ExprAliasUnbound
 from betse.util.type.types import (
     type_check, CallableTypes, SequenceTypes, SetOrNoneTypes,)
+from enum import Enum
 
 # ....................{ DECORATORS                         }....................
-#FIXME: Revise the "requirements" parameter docstring as follows:
-#
-#* Define a new "SimPipelineRunnerRequirement" class encapsulating as simple
-#  public instance variables all metadata pertaining to a type of simulation
-#  feature to be required by pipeline runner, including:
-#  * "SimPipelineRunnerRequirement.name", the human-readable lowercase name of
-#    that simulation feature (e.g., "extracellular spaces").
-#  Likewise, "SimPipelineRunnerRequirement" methods might include:
-#  * def is_satisfied(phase: SimPhaseABC) -> bool, returning "True" only if the
-#    passed phase enabled this feature. Note that, since a passed parameter is
-#    required, this cannot be reduced to a simple property.
-#  * def set_satisfied(phase: SimPhaseABC, is_satisfied: bool) -> None, setting
-#    the current state of this feature for the passed phase.
-#* Define a new "SimPipelineRunnerRequirementType" enumeration type in this
-#  submodule. Each member of this enumeration should be an instance of the
-#  aforementioned "SimPipelineRunnerRequirement" class, thus associating each
-#  requirement with its metadata. Each enumeration member then signifies a type
-#  of simulation feature to be required by pipeline runners: e.g.,
-#  * "SimPipelineRunnerRequirementType.ECM", signifying extracellular spaces.
-#  This type might be defined like so:
-#
-#    class SimPipelineRunnerRequirementType(Enum):
-#        ECM = SimPipelineRunnerRequirement(
-#            name='extracellular spaces',
-#            is_satisfied=lambda phase:
-#               phase.p.sim_ECM,
-#            set_satisfied=lambda phase, value:
-#               phase.p.__setattr__('sim_ECM', value),
-#        )
-#
-#* Rather than a set of attribute names (e.g., "{'sim_ECM',}"), this parameter
-#  should instead accept a set of "SimPipelineRunnerRequirementType" instances.
-#
-#Awesome, eh? Extremely efficient, typesafe, and sensible. Let's do this.
-#FIXME: Actually, let's simplify the above. The above certainly works, but is
-#somewhat cumbersome due to the duplication between the "is_satisfied" and
-#"set_satisfied" parameters. Instead, simply pass a string that is then used to
-#dynamically declare the appropriate functions: e.g.,
-#
-#    class SimPipelineRunnerRequirementType(Enum):
-#        ECM = SimPipelineRunnerRequirement(
-#            name='extracellular spaces',
-#            expr='phase.p.sim_ECM',
-#        )
-#
-#As the name of the "expr" parameter implies, this parameter should be
-#implemented by reusing the existing expralias() data descriptor. Since that
-#function is only intended to be called when creating descriptors, however,
-#consider wrapping that function with a new "ExprAlias" class. The "expr"
-#parameter passed above may then be implemented by classifying an instance of
-#the "ExprAlias" class. Sweet, no?
-
 @type_check
 def runner_metadata(
     # Mandatory metadata.
@@ -121,23 +70,16 @@ def runner_metadata(
           multiple runners.
     requirements : optional[SetType]
         Set of zero or more :class:`SimPipelineRunnerRequirementType` instances
-        specifying all simulation features required by this runner.
-        #FIXME: Obsoleted, sadly:
-        Set of one or more names of arbitrarily nested instance boolean
-        variables of the class:`Parameters` instance associated with this
-        pipeline, each signifying a simulation feature required by this runner
-        (e.g., ``{'sim_ECM',}``, expanding to the ``p.sim_ECM`` boolean
-        variable signifying a runner requiring only extracellular spaces). Each
-        name may contain one or more ``.`` delimiters, signifying a variable
-        contained within one or more parent objects contained within this
-        class:`Parameters` instance (e.g., ``{'anim.is_while_sim_save',}``).
-        This decorator then decorates this runner by performing the following
-        logic immediately *before* calling this runner:
-        * For each variable name in this set...
-          * If the value of this variable is ``False``, this runner is
-            unsatsified by this requirement. Since this constitutes a fatal
-            error, an :class:`BetseSimPipelineUnsatisfiedException` is raised.
-          * Else, this runner is called.
+        specifying all simulation features required by this runner. This
+        decorator then decorates this runner by performing the following logic
+        immediately *before* calling this runner:
+        * For each requirement in this set...
+          * If this requirement is unsatisfied by the current simulation phase
+            (e.g., as the configuration for this phase disables extracellular
+            spaces), this requirement (and hence this runner) is unsatisfied.
+            Since this constitutes a fatal error, an
+            :class:`BetseSimPipelineUnsatisfiedException` is raised.
+          * Else, this runner is run.
     '''
 
     @type_check
@@ -193,6 +135,7 @@ See Also
 '''
 
 # ....................{ CLASSES                            }....................
+#FIXME: Rename to simply "SimPipelineRunner".
 class SimPipelineRunnerMetadata(MethodDecorator):
     '''
     Class decorator annotating simulation pipeline runners with custom metadata.
@@ -207,8 +150,10 @@ class SimPipelineRunnerMetadata(MethodDecorator):
         Sequence of one or more human-readable strings iteratively naming all
         arbitrary categories to which this runner belongs (in descending order
         of hierarchical taxonomy).
-    requirements: SetType
-        Set of zero or more :class:`SimPipelineRunnerRequirementType` instances
+    method_name : str
+        Name of the method implementing this runner.
+    requirements : SetType
+        Set of zero or more :class:`SimPipelineRunnerRequirement` instances
         specifying all simulation features required by this runner.
     description : str
         Human-readable description of this runner as a **single-line string**
@@ -250,13 +195,25 @@ class SimPipelineRunnerMetadata(MethodDecorator):
         # Initialize our superclass with the passed method.
         super().__init__(method)
 
-        # Default all unpassed parameters to sane defaults.
-        if requirements is None:
-            requirements = set()
+        # Set of all requirements, converted from the passed set of enumeration
+        # members to the values encapsulated by these members.
+        self.requirements = set()
+
+        # For each enumeration member in this set (defaulting to the empty
+        # tuple for efficiency)...
+        for requirement in requirements or ():
+            # If this is *NOT* an enumeration member, raise an exception.
+            enums.die_unless_enum_member(
+                enum_type=SimPipelineRunnerRequirementType,
+                enum_member=requirement)
+
+            # Add the requirement encapsulated by this enumeration member to
+            # this set.
+            self.requirements.add(requirement.value)
 
         # Classify all remaining passed parameters.
         self.categories = categories
-        self.requirements = requirements
+        self.method_name = method.__name__
 
         # Default this runner's description to its docstring.
         self.description = method.__doc__
@@ -274,6 +231,26 @@ class SimPipelineRunnerMetadata(MethodDecorator):
             # Reducing from a (possibly) multi- to single-line string.
             strs.unwrap(self.description)))
 
+    # ..................{ CALLERS                            }..................
+    @type_check
+    def __call__(
+        self,
+
+        # To avoid circular import dependencies, this is type-checked as a
+        # fully-qualified class name resolved at runtime.
+        pipeline: 'betse.science.simulate.pipe.pipeabc.SimPipelinerABC',
+        *args,
+        **kwargs
+    ) -> object:
+
+        # If this runner is unsatisfied, raise an exception.
+        pipeline.die_unless_runner_satisfied(self)
+        # Else, this runner is satisfied. The prior call logged the attempt to
+        # run this runner; now actually do so.
+
+        # Defer to the superclass implementation to run this runner.
+        return super().__call__(pipeline, *args, **kwargs)
+
 
 class SimPipelineRunnerRequirement(object):
     '''
@@ -283,7 +260,8 @@ class SimPipelineRunnerRequirement(object):
     Attributes
     ----------
     name : str
-        Human-readable name of this requirement (e.g., ``fluid flow``).
+        Human-readable lowercase name of this requirement (e.g.,
+        ``extracellular spaces``).
     _expr_alias : ExprAliasUnbound
         Expression alias, dynamically referring to an arbitrarily complex source
         Python expression relative to the current simulation phase evaluating to
@@ -294,20 +272,21 @@ class SimPipelineRunnerRequirement(object):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, name: str, expr: str) -> None:
+    def __init__(self, expr: str, name: str) -> None:
         '''
         Initialize this requirement.
 
         Parameters
         ----------
-        name : str
-            Human-readable name of this requirement (e.g., ``fluid flow``).
         expr : str
             Arbitrarily complex Python expression relative to the current
             simulation phase evaluating to this requirement's boolean state
             (e.g., ``phase.p.sim_ECM``). This expression may (and typically
             should) refer to the ``phase`` variable, bound to the current
             simulation phase.
+        name : str
+            Human-readable lowercase name of this requirement (e.g.,
+            ``extracellular spaces``).
         '''
 
         # Expression alias encapsulating the passed Python expression. Since
@@ -317,11 +296,19 @@ class SimPipelineRunnerRequirement(object):
         self._expr_alias = ExprAliasUnbound(expr=expr, obj_name='phase')
 
         # Classify all remaining parameters.
-        self._name = name
+        self.name = name
 
     # ..................{ TESTERS                            }..................
+    #FIXME: Annotate this method as strictly returning values of type "bool".
+    #Sadly, due to the following design deficiencies elsewhere in the codebase,
+    #this method occasionally returns non-boolean types:
+    #
+    #* The ion requirements (e.g., "ION_NA") return integers retrieved from the
+    #  "phase.p.ions_dict" dictionary (e.g., 'phase.p.ions_dict["Na"]'), which
+    #  are guaranteed to be either 0 or 1 and hence are effectively boolean.
+
     @type_check
-    def is_satisfied(self, phase: SimPhaseABC) -> bool:
+    def is_satisfied(self, phase: SimPhaseABC):
         '''
         ``True`` only if the passed simulation phase satisfies this requirement.
 
@@ -362,3 +349,89 @@ class SimPipelineRunnerRequirement(object):
         return self._expr_alias.set(phase, is_satisfied)
 
 # ....................{ ENUMERATIONS                       }....................
+#FIXME: Sadly, this has turned out to be extreme overkill. An enumeration isn't
+#actually required anywhere; what *IS* required are the constants currently
+#embedded within the namespace of this enumeration. Hence, simplify this as
+#follows:
+#
+#* Rename this submodule to "piperun".
+#* Define a new "piperunreq" submodule.
+#* For each constant declared by this enumeration, shift that constant into that
+#  submodule with the same name (e.g., shift
+#  "SimPipelineRunnerRequirementType.ECM" to "piperunreq.ECM".
+#* Refactor the SimPipelineRunnerMetadata.__init__() method to accept a
+#  "requirements" parameter that is a set of "SimPipelineRunnerRequirement"
+#  instances rather than a set of "SimPipelineRunnerRequirementType" instances.
+#* Remove this enumeration.
+
+class SimPipelineRunnerRequirementType(Enum):
+    '''
+    Enumeration of all recognized requirements for simulation pipeline runners.
+
+    Each member of this enumeration is an instance of the
+    :class:`SimPipelineRunnerRequirement` class, ensuring that each requirement
+    is both efficiently testable as an enumeration member *and* associated with
+    additional metadata in a type-safe manner.
+
+    Attributes
+    ----------
+    DEFORM : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable cellular deformations.
+    ECM : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable the extracellular matrix
+        (ECM), also referred to as "extracellular spaces."
+    ELECTROOSMOSIS : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable electroosmotic flow (EOF).
+    FLUID : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable fluid flow.
+    ION_CA : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable calcium (Ca2+) ions.
+    ION_H : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable hydrogen (H+) ions.
+    ION_K : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable potassium (K+) ions.
+    ION_NA : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable sodium (Na+) ions.
+    PRESSURE_MECHANICAL : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable the mechanical pressure
+        intervention.
+    PRESSURE_OSMOTIC : SimPipelineRunnerRequirement
+        Requirement that a simulation phase enable the mechanical pressure
+        intervention.
+    '''
+
+    DEFORM = SimPipelineRunnerRequirement(
+        expr='phase.p.deformation', name='cellular deformation',)
+    ECM = SimPipelineRunnerRequirement(
+        expr='phase.p.sim_ECM', name='extracellular spaces',)
+    ELECTROOSMOSIS = SimPipelineRunnerRequirement(
+        expr='phase.p.sim_eosmosis', name='electroosmotic flow',)
+    FLUID = SimPipelineRunnerRequirement(
+        expr='phase.p.fluid_flow', name='fluid flow',)
+    ION_CA = SimPipelineRunnerRequirement(
+        expr='phase.p.ions_dict["Ca"]', name='calcium (Ca2+) ions',)
+    ION_H = SimPipelineRunnerRequirement(
+        expr='phase.p.ions_dict["H"]', name='hydrogen (H+) ions',)
+    ION_K = SimPipelineRunnerRequirement(
+        expr='phase.p.ions_dict["K"]', name='potassium (K+) ions',)
+    ION_NA = SimPipelineRunnerRequirement(
+        expr='phase.p.ions_dict["Na"]', name='sodium (Na+) ions',)
+    PRESSURE_MECHANICAL = SimPipelineRunnerRequirement(
+        expr='phase.p.is_event_pressure', name='mechanical pressure',)
+    PRESSURE_OSMOTIC = SimPipelineRunnerRequirement(
+        expr='phase.p.deform_osmo', name='osmotic pressure',)
+
+# ....................{ ENUMERATIONS ~ alias               }....................
+# For each abstract "SimPipelineABC" subclass (e.g., "SimPipelinerExportABC"),
+# alias the @runner_metadata decorator to a name specific to that subclass.
+
+exporter_requirement = SimPipelineRunnerRequirementType
+'''
+Enumeration of all recognized requirements for simulation export pipeline
+runners.
+
+See Also
+----------
+:class:`SimPipelineRunnerRequirementType`
+    Further details.
+'''

@@ -68,21 +68,19 @@ exporting) post-simulation plots.
 # ....................{ IMPORTS                            }....................
 import matplotlib
 import numpy as np
-from matplotlib import pyplot as pyplot
-from matplotlib.collections import LineCollection
-from scipy.ndimage.filters import gaussian_filter
-
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.simulate.pipe.piperunner import exporter_metadata
-from betse.science.simulate.pipe.pipeabc import (
-    SimPipelinerExportABC)
+from betse.science.simulate.pipe.piperunner import (
+    exporter_metadata, exporter_requirement)
+from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, IterableTypes
-
+from matplotlib import pyplot as pyplot
+from matplotlib.collections import LineCollection
+from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ SUBCLASSES                         }....................
 class PlotCellsPipeliner(SimPipelinerExportABC):
@@ -128,12 +126,14 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
 
     @property
-    def _runners_conf_enabled(self) -> IterableTypes:
+    def _runners_conf(self) -> IterableTypes:
         return self._phase.p.plot.after_sim_pipeline
 
     # ..................{ EXPORTERS ~ cell : ion             }..................
-    @exporter_metadata(categories=(
-        'Single Cell', 'Ion Concentration', 'Potassium'))
+    @exporter_metadata(
+        categories=('Single Cell', 'Ion Concentration', 'Potassium'),
+        requirements={exporter_requirement.ION_K,},
+    )
     def export_cell_ion_potassium(self) -> None:
         '''
         Plot all potassium (i.e., K+) ion concentrations for all time steps for
@@ -141,8 +141,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         simulation configuration.
         '''
 
-        # Raise an exception unless the potassium ion is enabled.
-        self._die_unless_ion('K')
+        # Prepare to export the current plot.
+        self._export_prep()
 
         figConcsK, axConcsK = plotutil.plotSingleCellCData(
             self._phase.sim.cc_time,
@@ -156,8 +156,10 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='concK_time')
 
 
-    @exporter_metadata(categories=(
-        'Single Cell', 'Ion Concentration', 'Sodium'))
+    @exporter_metadata(
+        categories=('Single Cell', 'Ion Concentration', 'Sodium'),
+        requirements={exporter_requirement.ION_NA,},
+    )
     def export_cell_ion_sodium(self) -> None:
         '''
         Plot all sodium (i.e., Na+) ion concentrations for all time steps for
@@ -165,8 +167,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         simulation configuration.
         '''
 
-        # Raise an exception unless the sodium ion is enabled.
-        self._die_unless_ion('Na')
+        # Prepare to export the current plot.
+        self._export_prep()
 
         # Plot cell sodium concentration versus time.
         figConcsNa, axConcsNa = plotutil.plotSingleCellCData(
@@ -180,11 +182,11 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         # Export this plot to disk and/or display.
         self._export(basename='concNa_time')
 
-    # ..................{ PRIVATE ~ lifecycle                }..................
-    def _die_unless(self, *args, **kwargs) -> None:
-
-        # Defer to all superclass handling.
-        super()._die_unless(*args, **kwargs)
+    # ..................{ PRIVATE ~ preparers                }..................
+    def _export_prep(self) -> None:
+        '''
+        Prepare to export the current plot.
+        '''
 
         #FIXME: DRY. This functionality perfectly duplicates the
         #AnimCellsWhileSolving.__enter__() method, which is bad. To resolve
@@ -239,7 +241,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
                 pyplot.pause(0.0001)
 
             # Disable the "fake" non-blocking behavior enabled by the prior
-            # _die_unless() call.
+            # _export_prep() call.
             matplotlib.interactive(False)
 
         # If saving this plot...
