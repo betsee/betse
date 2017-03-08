@@ -112,8 +112,7 @@ class EnumOrdered(Enum):
             NotImplemented)
 
 # ....................{ EXCEPTIONS                         }....................
-#FIXME: Rename to die_unless_member().
-def die_unless_enum_member(
+def die_unless_member(
     enum_type: EnumType, enum_member: EnumMemberType) -> None:
     '''
     Raise an exception unless the passed enumeration contains the passed member.
@@ -126,14 +125,13 @@ def die_unless_enum_member(
         Enumeration members to test for.
     '''
 
-    if not is_enum_member(enum_type, enum_member):
+    if not is_member(enum_type, enum_member):
         raise BetseEnumException(
             'Enumeration {} member "{}" not found.'.format(
                 enum_type.__name__, enum_member.name))
 
 
-#FIXME: Rename to die_unless_member_name().
-def die_unless_enum_member_name(
+def die_unless_member_name(
     enum_type: EnumType, enum_member_name: str) -> None:
     '''
     Raise an exception unless the passed enumeration contains an enumeration
@@ -147,15 +145,14 @@ def die_unless_enum_member_name(
         Name of the member to test for.
     '''
 
-    if not is_enum_member_name(enum_type, enum_member_name):
+    if not is_member_name(enum_type, enum_member_name):
         raise BetseEnumException(
             'Enumeration {} member "{}" not found.'.format(
                 enum_type.__name__, enum_member_name))
 
 # ....................{ TESTERS                            }....................
-#FIXME: Rename to is_member().
 @type_check
-def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
+def is_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
     '''
     ``True`` only if the passed enumeration contains the passed member.
 
@@ -176,9 +173,8 @@ def is_enum_member(enum_type: EnumType, enum_member: EnumMemberType) -> bool:
     return enum_member in enum_type
 
 
-#FIXME: Rename to is_member_name().
 @type_check
-def is_enum_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
+def is_member_name(enum_type: EnumType, enum_member_name: str) -> bool:
     '''
     ``True`` only if the passed enumeration contains an enumeration member with
     the passed name.
@@ -212,7 +208,7 @@ def get_converter_name_to_uppercase_enum_member(
     '''
     Callable accepting one string parameter returning the member of the passed
     enumeration whose name is that string uppercased, raising an exception if
-    this string uppercased is _not_ the name of a member of this enumeration.
+    this string uppercased is *not* the name of a member of this enumeration.
 
     The callable returned by this function is principally intended to be passed
     as the `type` parameter to the :meth:`ArgumentParser.add_argument` method,
@@ -252,7 +248,7 @@ def get_converter_name_to_uppercase_enum_member(
         enum_member_name_upper = enum_member_name.upper()
 
         # Raise an exception unless this member exists.
-        die_unless_enum_member_name(enum_type, enum_member_name_upper)
+        die_unless_member_name(enum_type, enum_member_name_upper)
 
         # Return this member.
         return enum_type[enum_member_name_upper]

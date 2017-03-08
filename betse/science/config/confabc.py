@@ -9,7 +9,7 @@ well as functionality pertaining to such classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
-from betse.science.simulate.pipe.pipeabc import SimPipelineRunnerConf
+from betse.science.simulate.pipe.piperun import SimPipelineRunnerConf
 from betse.util.type.cls import classes
 from betse.util.type.cls.expralias import expr_alias, expr_enum_alias
 from betse.util.type.obj import objects

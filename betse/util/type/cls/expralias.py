@@ -686,7 +686,7 @@ def __get__(self_descriptor, self, cls):
 
     # If this uppercase name is *NOT* that of a member of this enumeration,
     # raise an exception. For both efficiency and readability, this logic
-    # duplicates that of the enums.is_enum_member_name() function.
+    # duplicates that of the enums.is_member_name() function.
     if enum_member_name not in (
         self_descriptor.__expr_enum_alias_type.__members__):
         raise BetseEnumException(
@@ -703,7 +703,7 @@ def __get__(self_descriptor, self, cls):
 def __set__(self_descriptor, self, enum_member):
     # If the passed value is *NOT* a member of this enumeration, raise an
     # exception. For both efficiency and readability, this logic duplicates that
-    # of the enums.is_enum_member() function.
+    # of the enums.is_member() function.
     if enum_member not in self_descriptor.__expr_enum_alias_type:
         raise BetseEnumException(
             'Expression alias value {{!r}} unrecognized (i.e., not an '

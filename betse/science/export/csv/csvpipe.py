@@ -16,7 +16,7 @@ from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import arrays
 from betse.science.export import expmath
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
-from betse.science.simulate.pipe.piperunner import exporter_metadata
+from betse.science.simulate.pipe.piperun import exporter_metadata
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, paths

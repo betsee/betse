@@ -71,9 +71,9 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.simulate.pipe.piperunner import (
-    exporter_metadata, exporter_requirement)
+from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
+from betse.science.simulate.pipe.piperun import exporter_metadata
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.visual.plot import plotutil
 from betse.util.path import dirs, paths
@@ -132,7 +132,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ cell : ion             }..................
     @exporter_metadata(
         categories=('Single Cell', 'Ion Concentration', 'Potassium'),
-        requirements={exporter_requirement.ION_K,},
+        requirements={piperunreq.ION_K,},
     )
     def export_cell_ion_potassium(self) -> None:
         '''
@@ -158,7 +158,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Single Cell', 'Ion Concentration', 'Sodium'),
-        requirements={exporter_requirement.ION_NA,},
+        requirements={piperunreq.ION_NA,},
     )
     def export_cell_ion_sodium(self) -> None:
         '''

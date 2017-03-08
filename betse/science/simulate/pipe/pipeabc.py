@@ -14,8 +14,9 @@ from betse.exceptions import (
     BetseSimPipelineException,
     BetseSimPipelineUnsatisfiedException,
 )
+from betse.science.simulate.pipe.piperun import (
+    SimPipelineRunner, SimPipelineRunnerConf)
 from betse.science.simulate.simphase import SimPhaseABC
-from betse.science.simulate.pipe.piperunner import SimPipelineRunnerMetadata
 from betse.util.io.log import logs
 from betse.util.type import strs
 from betse.util.type.cls import classes
@@ -286,7 +287,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
     # ..................{ EXCEPTIONS                         }..................
     @type_check
     def die_unless_runner_satisfied(
-        self, runner: SimPipelineRunnerMetadata) -> None:
+        self, runner: SimPipelineRunner) -> None:
         '''
         Raise an exception if the passed runner is **unsatisfied** (i.e.,
         requires one or more simulation features disabled for the current
@@ -294,7 +295,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        runner : SimPipelineRunnerMetadata
+        runner : SimPipelineRunner
             Simulation pipeline runner to be tested.
 
         Raises
@@ -363,40 +364,3 @@ class SimPipelinerExportABC(SimPipelinerABC):
         # Initialize our superclass with all passed parameters and an
         # exportation-specific verb.
         super().__init__(*args, label_verb='Exporting', **kwargs)
-
-# ....................{ INTERFACES                         }....................
-#FIXME: Shift into the "piperunner" submodule.
-class SimPipelineRunnerConf(object, metaclass=ABCMeta):
-    '''
-    Abstract base class of all subclasses defining a type of **simulation
-    pipeline runner arguments** (i.e., simple object encapsulating all input
-    parameters to be passed to a method implementing a runner in a
-    :class:`SimPipelinerABC` pipeline).
-
-    This class is suitable for use as a multiple-inheritance mixin. To preserve
-    the expected method resolution order (MRO) semantics, this class should
-    typically be the *last* rather than *first* base class inherited from.
-
-    See Also
-    ----------
-    :class:`betse.science.config.confabc.SimConfListableABC`
-        Class subclassing this base class via multiple inheritance.
-    '''
-
-    # ..................{ SUBCLASS                           }..................
-    @abstractproperty
-    def is_enabled(self) -> bool:
-        '''
-        ``True`` only if this runner is **enabled** (i.e., present in the
-        parent simulation pipeline *and* containing an ``enabled`` boolean set
-        to ``True``).
-        '''
-
-
-    @abstractproperty
-    def name(self) -> str:
-        '''
-        Lowercase alphanumeric string uniquely identifying the runner these
-        arguments apply to in the parent simulation pipeline (e.g.,
-        ``voltage_intra``, signifying an intracellular voltage runner).
-        '''

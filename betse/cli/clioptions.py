@@ -354,7 +354,7 @@ class CLIOptionArgEnum(CLIOptionArgABC):
         from betse.util.type import enums
 
         # If this default is *NOT* a member of this enumeration, fail.
-        enums.die_unless_enum_member(enum_type, enum_default)
+        enums.die_unless_member(enum_type, enum_default)
 
         # Initialize our superclass with the passed arguments.
         super().__init__(

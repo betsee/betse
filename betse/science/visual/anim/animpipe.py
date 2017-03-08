@@ -14,10 +14,9 @@ exporting) post-simulation animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.config.export.confvisabc import SimConfVisualListable
-from betse.science.simulate.pipe.pipeabc import (
-    SimPipelinerExportABC)
-from betse.science.simulate.pipe.piperunner import (
-    exporter_metadata, exporter_requirement)
+from betse.science.simulate.pipe import piperunreq
+from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
+from betse.science.simulate.pipe.piperun import exporter_metadata
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -84,7 +83,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Current Density', 'Total'),
-        requirements={exporter_requirement.ECM,},
+        requirements={piperunreq.ECM,},
     )
     def export_current_total(self, conf: SimConfVisualListable) -> None:
         '''
@@ -105,7 +104,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ deform                 }..................
     @exporter_metadata(
         categories=('Cellular Deformation', 'Physical'),
-        requirements={exporter_requirement.DEFORM,},
+        requirements={piperunreq.DEFORM,},
     )
     def export_deform(self, conf: SimConfVisualListable) -> None:
         '''
@@ -162,7 +161,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Electric Field', 'Total'),
-        requirements={exporter_requirement.ECM,},
+        requirements={piperunreq.ECM,},
     )
     def export_electric_total(self, conf: SimConfVisualListable) -> None:
         '''
@@ -184,7 +183,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ fluid                  }..................
     @exporter_metadata(
         categories=('Fluid Flow', 'Intracellular'),
-        requirements={exporter_requirement.FLUID,},
+        requirements={piperunreq.FLUID,},
     )
     def export_fluid_intra(self, conf: SimConfVisualListable) -> None:
         '''
@@ -203,7 +202,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Fluid Flow', 'Total'),
-        requirements={exporter_requirement.FLUID, exporter_requirement.ECM,},
+        requirements={piperunreq.FLUID, piperunreq.ECM,},
     )
     def export_fluid_total(self, conf: SimConfVisualListable) -> None:
         '''
@@ -223,7 +222,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ ion                    }..................
     @exporter_metadata(
         categories=('Ion Concentration', 'Calcium'),
-        requirements={exporter_requirement.ION_CA,},
+        requirements={piperunreq.ION_CA,},
     )
     def export_ion_calcium(self, conf: SimConfVisualListable) -> None:
         '''
@@ -247,7 +246,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Ion Concentration', 'Hydrogen'),
-        requirements={exporter_requirement.ION_H,},
+        requirements={piperunreq.ION_H,},
     )
     def export_ion_hydrogen(self, conf: SimConfVisualListable) -> None:
         '''
@@ -291,7 +290,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Cellular Membrane', 'Pump Density'),
-        requirements={exporter_requirement.ELECTROOSMOSIS,},
+        requirements={piperunreq.ELECTROOSMOSIS,},
     )
     def export_membrane_pump_density(self, conf: SimConfVisualListable) -> None:
         '''
@@ -311,7 +310,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ pressure               }..................
     @exporter_metadata(
         categories=('Cellular Pressure', 'Mechanical'),
-        requirements={exporter_requirement.PRESSURE_MECHANICAL,},
+        requirements={piperunreq.PRESSURE_MECHANICAL,},
     )
     def export_pressure_mechanical(self, conf: SimConfVisualListable) -> None:
         '''
@@ -331,7 +330,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Cellular Pressure', 'Osmotic'),
-        requirements={exporter_requirement.PRESSURE_OSMOTIC,},
+        requirements={piperunreq.PRESSURE_OSMOTIC,},
     )
     def export_pressure_osmotic(self, conf: SimConfVisualListable) -> None:
         '''
@@ -376,7 +375,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     @exporter_metadata(
         categories=('Voltage', 'Total'),
-        requirements={exporter_requirement.ECM,},
+        requirements={piperunreq.ECM,},
     )
     def export_voltage_total(self, conf: SimConfVisualListable) -> None:
         '''
