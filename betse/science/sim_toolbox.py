@@ -1272,17 +1272,17 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         # midpoint concentration:
         cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
-        # # electroosmotic fluid velocity:
-        # if p.fluid_flow is True:
-        #     ux = sim.u_cells_x[cells.mem_to_cells]
-        #     uy = sim.u_cells_y[cells.mem_to_cells]
-        #
-        # else:
-        #     ux = 0
-        #     uy = 0
+        # electroosmotic fluid velocity:
+        if p.fluid_flow is True:
+            ux = sim.u_cells_x[cells.mem_to_cells]
+            uy = sim.u_cells_y[cells.mem_to_cells]
 
-        ux = np.ones(sim.mdl)*1e-7
-        uy = np.zeros(sim.mdl)
+        else:
+            ux = 0
+            uy = 0
+
+        # ux = np.ones(sim.mdl)*1e-7
+        # uy = np.zeros(sim.mdl)
 
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
