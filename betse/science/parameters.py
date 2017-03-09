@@ -839,7 +839,8 @@ class Parameters(object):
         self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
 
         # gap junction acceleration for molecular substances:
-        self.gj_acceleration = float(iu['time acceleration'])
+        # self.gj_acceleration = float(iu['time acceleration'])
+        self.gj_acceleration = 1.0
 
         # ATP charge in the cell (for metabolism mode off)
         # FIXME add these as options to the config

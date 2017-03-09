@@ -1063,7 +1063,7 @@ internal parameters:
 
   tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m) 50.0 not uncommon see link above
 
-  time acceleration: 1.0 # factor accelerating time for slow process of GJ diffusion
+#  time acceleration: 1.0 # factor accelerating time for slow process of GJ diffusion
 
 
 # Configuration file version that this file conforms to. For reliable

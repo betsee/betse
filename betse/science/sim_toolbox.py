@@ -1264,13 +1264,6 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     if ignoreGJ is False:
         # Update dye concentration in the gj connected cell network:
 
-        # Intracellular voltage gradient:
-        # grad_vgj = ((sim.vm[cells.nn_i]- sim.vm[cells.mem_i])/cells.gj_len)*p.gj_acceleration
-
-        # grad_vgj = (sim.vgj/cells.gj_len)*p.gj_acceleration
-
-        # vgj = (sim.vm[cells.nn_i]- sim.vm[cells.mem_i])*p.gj_acceleration
-
         grad_cgj = (cX_mems[cells.nn_i] - cX_mems[cells.mem_i]) / cells.gj_len
 
         gcx = grad_cgj*cells.mem_vects_flat[:, 2]
@@ -1279,19 +1272,22 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         # midpoint concentration:
         cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
-        # electroosmotic fluid velocity:
-        if p.fluid_flow is True:
-            ux = sim.u_cells_x[cells.mem_to_cells]
-            uy = sim.u_cells_y[cells.mem_to_cells]
+        # # electroosmotic fluid velocity:
+        # if p.fluid_flow is True:
+        #     ux = sim.u_cells_x[cells.mem_to_cells]
+        #     uy = sim.u_cells_y[cells.mem_to_cells]
+        #
+        # else:
+        #     ux = 0
+        #     uy = 0
 
-        else:
-            ux = 0
-            uy = 0
+        ux = np.ones(sim.mdl)*1e-7
+        uy = np.zeros(sim.mdl)
 
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
                                           -sim.E_gj_y, ux, uy,
-                                           Do*p.gj_surface, z, sim.T, p)
+                                          sim.gjopen*Do*p.gj_surface*1e3, z, sim.T, p)
 
         fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
@@ -1304,7 +1300,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
 
         # Calculate the final concentration change (the acceleration effectively speeds up time):
-        cX_cells = cX_cells + p.dt*delta_cco*p.gj_acceleration
+        cX_cells = cX_cells + p.dt*delta_cco
 
 
     else:
