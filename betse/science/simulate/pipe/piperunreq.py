@@ -117,6 +117,7 @@ DEFORM = SimPipelineRunnerRequirement(
 Requirement that a simulation phase enable cellular deformations.
 '''
 
+
 ECM = SimPipelineRunnerRequirement(
     expr='phase.p.sim_ECM', name='extracellular spaces',)
 '''
@@ -124,11 +125,13 @@ Requirement that a simulation phase enable the extracellular matrix (ECM), also
 referred to as "extracellular spaces."
 '''
 
+
 ELECTROOSMOSIS = SimPipelineRunnerRequirement(
     expr='phase.p.sim_eosmosis', name='electroosmotic flow',)
 '''
 Requirement that a simulation phase enable electroosmotic flow (EOF).
 '''
+
 
 FLUID = SimPipelineRunnerRequirement(
     expr='phase.p.fluid_flow', name='fluid flow',)
@@ -136,11 +139,13 @@ FLUID = SimPipelineRunnerRequirement(
 Requirement that a simulation phase enable fluid flow.
 '''
 
+
 ION_CA = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["Ca"]', name='calcium (Ca2+) ions',)
 '''
 Requirement that a simulation phase enable calcium (Ca2+) ions.
 '''
+
 
 ION_H = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["H"]', name='hydrogen (H+) ions',)
@@ -148,11 +153,20 @@ ION_H = SimPipelineRunnerRequirement(
 Requirement that a simulation phase enable hydrogen (H+) ions.
 '''
 
+
 ION_K = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["K"]', name='potassium (K+) ions',)
 '''
 Requirement that a simulation phase enable potassium (K+) ions.
 '''
+
+
+ION_M = SimPipelineRunnerRequirement(
+    expr='phase.p.ions_dict["M"]', name='M anion (M-) ions',)
+'''
+Requirement that a simulation phase enable M anion (M-) ions.
+'''
+
 
 ION_NA = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["Na"]', name='sodium (Na+) ions',)
@@ -160,11 +174,13 @@ ION_NA = SimPipelineRunnerRequirement(
 Requirement that a simulation phase enable sodium (Na+) ions.
 '''
 
+
 PRESSURE_MECHANICAL = SimPipelineRunnerRequirement(
     expr='phase.p.is_event_pressure', name='mechanical pressure',)
 '''
 Requirement that a simulation phase enable the mechanical pressure intervention.
 '''
+
 
 PRESSURE_OSMOTIC = SimPipelineRunnerRequirement(
     expr='phase.p.deform_osmo', name='osmotic pressure',)

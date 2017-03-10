@@ -71,9 +71,6 @@ class Simulator(object):
     eosmosis(cells,p)                       Calculates lateral movement of membrane pumps and channels via tangential
                                             forces exerted by endogenous electric fields and electroosmotic flows.
 
-    get_ion(label)                          Supply the ion name as a string input ('Na', 'K', 'Ca', etc) and it outputs
-                                            the sim index of that ion type.
-
     Attributes (Counts)
     ----------
     cdl : int
@@ -199,6 +196,33 @@ class Simulator(object):
           for the :attr:`E_gj_y` array.
         Equivalently, this list is the concatenation of all :attr:`E_gj_y`
         arrays for all time steps.
+
+    Attributes (Ion: Index)
+    ----------
+    The following ion indices are dynamically defined by the
+    :meth:`baseInit_all` method.
+
+    iCa : int
+        0-based index of the calcium ion if enabled by this simulation's ion
+        profile *or* undefined otherwise.
+    iCl : int
+        0-based index of the chloride ion if enabled by this simulation's ion
+        profile *or* undefined otherwise.
+    iH : int
+        0-based index of the hydrogen ion if enabled by this simulation's ion
+        profile *or* undefined otherwise.
+    iNa : int
+        0-based index of the sodium ion if enabled by this simulation's ion
+        profile *or* undefined otherwise.
+    iK : int
+        0-based index of the potassium ion if enabled by this simulation's ion
+        profile *or* undefined otherwise.
+    iM : int
+        0-based index of the bioarbonate ion if enabled by this simulation's ion
+        profile *or* undefined otherwise.
+    iP : int
+        0-based index of all anionic proteins if enabled by this simulation's
+        ion profile *or* undefined otherwise.
 
     Attributes (Mechanical Pressure)
     ----------
@@ -406,28 +430,29 @@ class Simulator(object):
 
             self.Phi_env = np.zeros(self.edl) # Voltage difference across the outer electrical double layer
 
-
         else:  # items specific to simulation *without* extracellular spaces:
             # Initialize environmental volume:
             self.envV = np.zeros(self.mdl)
             self.envV[:] = p.vol_env
 
-
         ion_names = list(p.ions_dict.keys())
 
         i = -1  # dynamic index
 
-        for name in ion_names:  # go through ion list/dictionary and initialize all sim structures
-
+        # Go through ion list/dictionary and initialize all sim structures.
+        for name in ion_names:
+            # If this ion is enabled...
             if p.ions_dict[name] == 1:
-
+                # Do H+ separately below as it's complicated by the bicarbonate
+                # buffer.
                 if name != 'H':
 
                     i = i+1 # update the dynamic index
 
                     str1 = 'i' + name  # create the ion index
 
-                    setattr(self, str1, i)  # dynamically add this field to the object
+                    # Dynamically add this field to the object.
+                    setattr(self, str1, i)
 
                     self.ionlabel[vars(self)[str1]] = p.ion_long_name[name]
 
@@ -518,8 +543,7 @@ class Simulator(object):
                         self.z_er.append(p.z_M)
                         self.z_array_er.append(self.zM_er)
 
-        # Do H+ separately as it's complicated by the bicarbonate buffer
-
+        # Do H+ separately as it's complicated by the bicarbonate buffer.
         if p.ions_dict['H'] == 1 and p.ion_profile != 'customized':
 
             i = i + 1
@@ -1822,42 +1846,59 @@ class Simulator(object):
 
         self.cc_env[i] = cenv.ravel()
 
-    def get_ion(self,label):
-        """
-        Given a string input, returns the simulation index of the appropriate ion.
+    #FIXME: Ideally, this should be refactored for efficiency to perform a
+    #dictionary lookup. To do so, consider defining this dictionary in the
+    #baseInit_all() method: e.g.,
+    #
+    #    def baseInit_all(self):
+    #            .
+    #            .
+    #            .
+    #        self._ION_NAME_TO_INDEX = {
+    #           'Na': self.iNa,
+    #           'K': self.iK,
+    #           'Ca': self.iCa,
+    #           'Cl': self.iCl,
+    #           'M': self.iM,
+    #           'H': self.iH,
+    #           'P': self.iP,
+    #        }
+    #
+    #    def get_ion(self, ion_name: str) -> int:
+    #        return self._ION_NAME_TO_INDEX[ion_name]
+    #FIXME: Unrelatedly, why is the empty list [] returned when the passed ion
+    #is disabled by the current ion profile? For consistency, either a fatal
+    #exception should be raised (ideal) *OR* a garbage integer guaranteed to
+    #raise exceptions elsewhere should be returned -- say, 66666666666666667
+    #(non-ideal). Or, something.
+    def get_ion(self, ion_name: str) -> int:
+        '''
+        0-based index assigned to the ion with the passed name (e.g., ``Na``) if
+        this ion is enabled by this simulation *or* the empty list otherwise.
 
-        """
+        This index is guaranteed to uniquely (but arbitrarily) identify this ion
+        with respect to this simulation.
+        '''
 
-        if label == 'Na':
-
+        if ion_name == 'Na':
             ion = self.iNa
-
-        elif label == 'K':
-
+        elif ion_name == 'K':
             ion = self.iK
-
-        elif label == 'Ca':
-
+        elif ion_name == 'Ca':
             ion = self.iCa
-
-        elif label == 'Cl':
-
+        elif ion_name == 'Cl':
             ion = self.iCl
-
-        elif label == 'M':
-
+        elif ion_name == 'M':
             ion = self.iM
-
-        elif label == 'H':
-
+        elif ion_name == 'H':
             ion = self.iH
-
-        elif label == 'P':
-
+        elif ion_name == 'P':
             ion = self.iP
-
         else:
-            logs.warning('Oops! Molecule gated ion channel target not found!')
+            #FIXME: Shouldn't a fatal exception be raised instead?
+            logs.warning(
+                'Oops! Molecule gated ion "%s" channel target not found!',
+                ion_name)
             ion = []
 
         return ion

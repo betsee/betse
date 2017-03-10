@@ -87,11 +87,6 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     '''
     **Post-simulation plot pipeline** (i.e., class iteratively creating all
     post-simulation plots requested by the current simulation configuration).
-
-    Attributes
-    -----------
-    _cell_index : int
-        0-based index of the cell to plot.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -101,15 +96,12 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, label_singular='plot', **kwargs)
 
-        # 0-based index of the cell to plot.
-        self._cell_index = self._phase.p.plot_cell
-
         # If this index is not that of an actual cell, raise an exception.
-        if self._cell_index not in self._phase.cells.cell_i:
+        if self._phase.p.plot_cell not in self._phase.cells.cell_i:
             raise BetseSimConfigException(
                 'Plot cell index {} invalid '
                 '(i.e., not in range [{}, {}]).'.format(
-                    self._cell_index,
+                    self._phase.p.plot_cell,
                     self._phase.cells.cell_i[0],
                     self._phase.cells.cell_i[-1],
                 ))
@@ -131,6 +123,36 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ EXPORTERS ~ cell : ion             }..................
     @exporter_metadata(
+        categories=('Single Cell', 'Ion Concentration', 'M anion'),
+        requirements={piperunreq.ION_M,},
+    )
+    def export_cell_ion_m_anion(self) -> None:
+        '''
+        Plot all M anion (i.e., M-) ion concentrations for all time steps for
+        the single cell indexed by the ``plot cell index`` entry for the current
+        simulation configuration.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figConcsM, axConcsM = plotutil.plotSingleCellCData(
+            self._phase.sim.cc_time,
+            self._phase.sim.time,
+            self._phase.sim.iM,
+            self._phase.p.plot_cell,
+            fig=None, ax=None,
+            lncolor='r',
+            ionname='M-',
+        )
+        axConcsM.set_title(
+            'M Anion concentration in cell {}'.format(self._phase.p.plot_cell))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='concM_time')
+
+
+    @exporter_metadata(
         categories=('Single Cell', 'Ion Concentration', 'Potassium'),
         requirements={piperunreq.ION_K,},
     )
@@ -148,9 +170,14 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
             self._phase.sim.cc_time,
             self._phase.sim.time,
             self._phase.sim.iK,
-            self._cell_index, fig=None, ax=None, lncolor='b', ionname='K+')
+            self._phase.p.plot_cell,
+            fig=None, ax=None,
+            lncolor='b',
+            ionname='K+',
+        )
         axConcsK.set_title(
-            'Potassium concentration in cell ' + str(self._cell_index))
+            'Potassium concentration in cell {}'.format(
+                self._phase.p.plot_cell))
 
         # Export this plot to disk and/or display.
         self._export(basename='concK_time')
@@ -175,12 +202,44 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
             self._phase.sim.cc_time,
             self._phase.sim.time,
             self._phase.sim.iNa,
-            self._cell_index, fig=None, ax=None, lncolor='g', ionname='Na+')
+            self._phase.p.plot_cell,
+            fig=None,
+            ax=None,
+            lncolor='g',
+            ionname='Na+',
+        )
         axConcsNa.set_title(
-            'Sodium concentration in cell ' + str(self._cell_index))
+            'Sodium concentration in cell {}'.format(self._phase.p.plot_cell))
 
         # Export this plot to disk and/or display.
         self._export(basename='concNa_time')
+
+    # ..................{ EXPORTERS ~ cell : voltage         }..................
+    @exporter_metadata(categories=('Single Cell', 'Transmembrane Voltage'))
+    def export_cell_voltage_membrane(self) -> None:
+        '''
+        Plot all transmembrane voltages for all time steps for the single cell
+        indexed by the ``plot cell index`` entry for the current simulation
+        configuration.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        # Plot single cell Vmem vs time.
+        mem_i = self._phase.cells.cell_to_mems[self._phase.p.plot_cell][0]
+
+        figVt, axVt = plotutil.plotSingleCellVData(
+            self._phase.sim,
+            mem_i,
+            self._phase.p,
+            fig=None, ax=None,
+            lncolor='k',
+        )
+        axVt.set_title('Voltage (Vmem) in cell ' + str(self._phase.p.plot_cell))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Vmem_time')
 
     # ..................{ PRIVATE ~ preparers                }..................
     def _export_prep(self) -> None:
@@ -282,9 +341,9 @@ def pipeline(phase: SimPhaseABC) -> None:
 
     #FIXME: Replace *ALL* logic below with the following single call:
     #    pipeliner.run()
-    #FIXME: When doing so, note that *ALL* uses of hardcoded animation-specific
+    #FIXME: When doing so, note that *ALL* uses of hardcoded plot-specific
     #parameter options (e.g., "self._phase.p.I_ani_min_clr") will need to be
-    #refactored to use the general-purpose settings for the current animation.
+    #refactored to use the general-purpose settings for the current plot.
     #FIXME: Likewise, refactor tests to exercise the new dynamic pipeline schema
     #rather than the obsolete hardcoded schema.
 
@@ -309,6 +368,13 @@ def pipeline(phase: SimPhaseABC) -> None:
     p     = phase.p
 
     if p.plot_single_cell_graphs:
+        # Plot all cell transmembrane voltages.
+        pipeliner.export_cell_voltage_membrane()
+
+        # If M anions are enabled, plot all cell M anion concentrations.
+        if phase.p.ions_dict['M'] == 1:
+            pipeliner.export_cell_ion_m_anion()
+
         # If potassium is enabled, plot all cell potassium concentrations.
         if phase.p.ions_dict['K'] == 1:
             pipeliner.export_cell_ion_potassium()
@@ -316,43 +382,13 @@ def pipeline(phase: SimPhaseABC) -> None:
         # If sodium is enabled, plot all cell sodium concentrations.
         if phase.p.ions_dict['Na'] == 1:
             pipeliner.export_cell_ion_sodium()
-        # return
-
-        # plot-cell anion (bicarbonate) concentration vs time:
-        figConcsM, axConcsM = plotutil.plotSingleCellCData(
-            sim.cc_time, sim.time, sim.iM, p.plot_cell,
-            fig=None,
-            ax=None,
-            lncolor='r',
-            ionname='M-',
-        )
-
-        titM = 'M Anion concentration in cell ' + str(p.plot_cell)
-        axConcsM.set_title(titM)
-
-        if p.plot.is_after_sim_save is True:
-            savename1 = savedImg + 'concM_time' + '.png'
-            pyplot.savefig(savename1,dpi=300,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-        # Plot single cell Vmem vs time.
-        mem_i = phase.cells.cell_to_mems[pipeliner._cell_index][0]
-
-        figVt, axVt = plotutil.plotSingleCellVData(
-            sim, mem_i, p, fig=None, ax=None, lncolor='k')
-        titV = 'Voltage (Vmem) in cell ' + str(p.plot_cell)
-        axVt.set_title(titV)
-
-        if p.plot.is_after_sim_save is True:
-            savename2 = savedImg + 'Vmem_time' + '.png'
-            pyplot.savefig(savename2,dpi=300,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
 
         # Plot fast-Fourier-transform (fft) of Vmem.
+
+        #FIXME: Duplicate array also produced by the
+        #export_cell_voltage_membrane() exporter.
+        mem_i = phase.cells.cell_to_mems[phase.p.plot_cell][0]
+
         figFFT, axFFT = plotutil.plotFFT(
             sim.time, sim.vm_time, mem_i, lab="Power")
         titFFT = 'Fourier transform of Vmem in cell ' + str(p.plot_cell)

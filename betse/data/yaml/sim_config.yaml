@@ -756,7 +756,8 @@ results options:
         # Example average cell voltage plot.
         - type: cell_voltage   # Plot type.
           # Supported single-cell types plotted for the "plot_cell" include:
-          # * "cell_ion_bicarbonate" (single-cell bicarbonate ion concentration).
+          # * "cell_ion_m_anion" (single-cell M anion concentration).
+          #   Ignored if M anion (M-) disabled by ion profile.
           # * "cell_ion_potassium"   (single-cell potassium ion concentration).
           #   Ignored if potassium (K+) disabled by ion profile.
           # * "cell_ion_sodium"      (single-cell sodium ion concentration).
@@ -796,9 +797,9 @@ results options:
           #   Ignored if fluid flow disabled.
           # * "fluid_total"         (intra- and extracellular fluid flow).
           #   Ignored if fluid flow or extracellular spaces disabled.
-          # * "ion_calcium"         (calcium ion concentration: Ca2+).
+          # * "ion_calcium"         (calcium ion concentration).
           #   Ignored if calcium (Ca2+) disabled by ion profile.
-          # * "ion_hydrogen"        (hydrogen ion concentration: pH, H+).
+          # * "ion_hydrogen"        (hydrogen ion concentration as pH).
           #   Ignored if hydrogen (H+) disabled by ion profile.
           # * "membrane_gap_junction" (gap junction connectivity state).
           # * "membrane_pump_density" (cell membrane pump density factor).
