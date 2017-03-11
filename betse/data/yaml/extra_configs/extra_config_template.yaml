@@ -39,6 +39,7 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     env conc: 1.0e-3        # initial concentration in the environment [mmol/L]
     cell conc: 1.5     # initial concentration in the cytoplasm [mmol/L]
     mit conc: 0.0             # initial concentration in the mitochondria [mmol/L] (if mit enabled!)
+    initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
     TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
     GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
     TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
@@ -46,8 +47,6 @@ biomolecules:  # specify the properties of all molecules participating in metabo
     growth and decay:    # settings for production/decay of substances (standard GRN model)
       production rate: 1.0    # maximum rate at which molecule is produced in the cytoplasm
       decay rate: 0.5          # maximum rate at which molecule is degraded in the cytoplasm
-      Km: 1.0                  # Half-maximum value for decay [mmol/L]
-      n: 1.0                   # Hill exponent for decay
       apply to: ['spot']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
       modulator function: gradient_x  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
       activators: None         # list of defined substances or simulation ions activating expression

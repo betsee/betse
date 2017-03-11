@@ -1208,7 +1208,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
-                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1):
+                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, mtubes = None):
 
     """
     Transports a generic molecule across the membrane,
@@ -1272,22 +1272,29 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         # midpoint concentration:
         cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
-        # electroosmotic fluid velocity:
-        if p.fluid_flow is True:
-            ux = sim.u_cells_x[cells.mem_to_cells]
-            uy = sim.u_cells_y[cells.mem_to_cells]
+        # # electroosmotic fluid velocity:
+        # if p.fluid_flow is True:
+        #     ux = sim.u_cells_x[cells.mem_to_cells]
+        #     uy = sim.u_cells_y[cells.mem_to_cells]
+        #
+        # else:
+        #     ux = 0
+        #     uy = 0
+
+        if mtubes is not None:
+
+            ux = np.ones(sim.mdl)*mtubes['transport rate']
+            uy = np.zeros(sim.mdl)
 
         else:
+
             ux = 0
             uy = 0
-
-        # ux = np.ones(sim.mdl)*1e-7
-        # uy = np.zeros(sim.mdl)
 
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
                                           -sim.E_gj_y, ux, uy,
-                                          sim.gjopen*Do*p.gj_surface*1e3, z, sim.T, p)
+                                          sim.gjopen*Do*p.gj_surface*1e4, z, sim.T, p)
 
         fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 

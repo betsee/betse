@@ -973,7 +973,6 @@ class Simulator(object):
             logs.log_error('Simulation prematurely halted due to instability.')
             raise exception_instability
 
-
     @type_check
     def _run_sim_core_loop(
         self,

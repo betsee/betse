@@ -181,11 +181,22 @@ class MasterOfNetworks(object):
 
             mol.c_envo = mol_dic['env conc']  # initial concentration in the environment [mmol/L]
             mol.c_cello = mol_dic['cell conc']  # initial concentration in the cytoplasm [mmol/L]
-
             mol.c_mito = mol_dic.get('mit conc', None)  # initialized to None if optional fields not present
 
+            # determine if the user has requested an asymmetric initial condition:
+            init_asym = mol_dic.get('initial asymmetry', None)
+
+            if init_asym != 'None' and init_asym is not None:
+
+                mol.init_asym, _ = getattr(mods, init_asym)(cells.cell_i, cells, p)
+
+            else:
+
+                mol.init_asym = np.ones(sim.cdl)
+
+
             # create concentration data arrays:
-            mol.c_cells = np.ones(sim.cdl) * mol.c_cello
+            mol.c_cells = np.ones(sim.cdl) * mol.c_cello*mol.init_asym
             # mol.c_mems = np.ones(sim.mdl) * mol.c_cello
 
             #FIXME: Add explicit checks to avoid name conflicts between
@@ -286,6 +297,19 @@ class MasterOfNetworks(object):
 
                 mol.TJ_factor = float(mol_dic['TJ factor'])
 
+                # factors describing potential transport along current-aligned microtubules
+                mtt = mol_dic.get('microtubule transport', None)
+
+                if mtt != 'None' and mtt is not None:
+
+                    mol.mtt = {}
+
+                    mol.mtt = mtt
+
+                else:
+                    mol.mtt = None
+
+
                 # factors involving growth and decay (gad) in the cytoplasm
                 gad = mol_dic.get('growth and decay', None)
 
@@ -295,8 +319,8 @@ class MasterOfNetworks(object):
 
                     mol.r_production = gad['production rate']
                     mol.r_decay = gad['decay rate']
-                    mol.Kgd = gad['Km']
-                    mol.n_decay = gad['n']
+                    # mol.Kgd = gad['Km']
+                    # mol.n_decay = gad['n']
 
                     mol.growth_profiles_list = gad['apply to']
 
@@ -1017,25 +1041,24 @@ class MasterOfNetworks(object):
                 gad_tex_var_list = []
 
 
-                cc = "(self.molecules['{}'].c_cells / self.molecules['{}'].Kgd)**self.molecules['{}'].n_decay".\
-                                                                                    format(mol_name, mol_name, mol_name)
+                cc = "(self.molecules['{}'].c_cells)".format(mol_name)
 
-                cc_tex = r"\left(\frac{[%s]}{K_{%s}^{decay}}\right)^{n_{%s}^{decay}}" % (mol_name, mol_name, mol_name)
+                cc_tex = r"[%s]" % (mol_name)
 
-                Kgd = self.molecules[mol_name].Kgd
-                n_d = self.molecules[mol_name].n_decay
+                # Kgd = self.molecules[mol_name].Kgd
+                # n_d = self.molecules[mol_name].n_decay
 
                 # write fixed parameter values to LaTeX:
-                kval = tex_val(Kgd)
-                Kgd_tex = "K_{%s}^{decay} & =" % (mol_name)
-                Kgd_tex += kval
+                # kval = tex_val(Kgd)
+                # Kgd_tex = "K_{%s}^{decay} & =" % (mol_name)
+                # Kgd_tex += kval
 
-                nval = tex_val(n_d)
-                n_d_tex = "n_{%s}^{decay} & =" % (mol_name)
-                n_d_tex += nval
+                # nval = tex_val(n_d)
+                # n_d_tex = "n_{%s}^{decay} & =" % (mol_name)
+                # n_d_tex += nval
 
-                gad_tex_var_list.append(Kgd_tex)
-                gad_tex_var_list.append(n_d_tex)
+                # gad_tex_var_list.append(Kgd_tex)
+                # gad_tex_var_list.append(n_d_tex)
 
                 # get activators and inhibitors and associated data:
                 a_list = self.molecules[mol_name].growth_activators_list
@@ -1065,9 +1088,9 @@ class MasterOfNetworks(object):
                 # Formatting for LaTeX equation export ---------------------------------------
 
                 r_prod_tex = r"r_{%s}^{max}\," % mol_name
-                r_dec_tex = r" - \delta_{%s} \," % mol_name
+                r_dec_tex = r" - \delta_{%s}\," % mol_name
 
-                gad_tex_initial = "r_{%s}=" % mol_name
+                gad_tex_initial = r"r_{%s}=" % mol_name
 
                 gad_tex_string = gad_tex_initial + r_prod_tex + alpha_tex + r_dec_tex + cc_tex
 
@@ -1086,7 +1109,7 @@ class MasterOfNetworks(object):
                 #------------------------------------------------------------------------------
 
                 gad_eval_string_growth = all_alpha
-                gad_eval_string_decay = cc
+                gad_eval_string_decay = r_decay + "*" + cc
 
                 self.molecules[mol_name].gad_eval_string = gad_eval_string
 
@@ -4776,7 +4799,8 @@ class Molecule(object):
                                                                 smoothECM = p.smooth_concs,
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ,
-                                                                rho = sim.rho_channel)
+                                                                rho = sim.rho_channel,
+                                                                mtubes = self.mtt)
 
     def updateC(self, flux, sim, cells, p):
         """
