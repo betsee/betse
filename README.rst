@@ -55,15 +55,26 @@ Simple
 
 For new users, BETSE is readily installable as follows:
 
-#. Install the **Python 3.x** [#python2_not]_ (e.g., 3.5) variant of
+#. Install the **Python 3.x** [#python2_not]_ (e.g., 3.6) variant of
    Anaconda_. [#anaconda_not]_
-#. Run the following commands from a command-line terminal.
+#. Open a **terminal.** [#terminal]_
+#. Run the following commands in this terminal.
 
    #. **Install BETSE.**
 
       .. code:: bash
 
          pip3 install betse
+
+   #. (\ *Optional*\ ) **Install all recommended dependencies.** While *not*
+      required for basic usage, the following third-party packages are required
+      for advanced functionality (e.g., gene regulatory networks).
+
+      .. code:: bash
+
+         conda install -c anaconda graphviz \
+         conda install -c conda-forge ffmpeg networkx && \
+         pip3 install pydot
 
    #. (\ *Optional*\ ) **Test BETSE.** Run all modelling phases of a sample
       simulation from the current directory.
@@ -85,6 +96,26 @@ For new users, BETSE is readily installable as follows:
    installation of BETSE – which would be bad. Anaconda_ suffers no such issues
    and is guaranteed to produce a performance-optimized multicore installation
    of BETSE on *all* supported platforms – which is good.
+
+.. [#terminal]
+   Under:
+
+   - **Windows:**
+
+     #. Install `Bash on Ubuntu on Windows`_.
+     #. Open the *Start* menu.
+     #. Open *Bash on Ubuntu on Windows*.
+
+   - **macOS:**
+
+     #. Open the *Finder*.
+     #. Open the *Applications* folder.
+     #. Open the *Utilities* folder.
+     #. Open *Terminal.app*.
+
+   - **Ubuntu Linux:**
+
+     #. Type ``Ctrl``\ +\ ``Alt``\ +\ ``t``.
 
 Advanced
 --------
@@ -542,6 +573,8 @@ For prospective contributors:
    https://ci.appveyor.com/project/betse/betse/branch/master
 .. _APT:
    https://en.wikipedia.org/wiki/Advanced_Packaging_Tool
+.. _Bash on Ubuntu on Windows:
+   http://www.windowscentral.com/how-install-bash-shell-command-line-windows-10
 .. _BSD 2-clause license:
    https://opensource.org/licenses/BSD-2-Clause
 .. _FFmpeg:
