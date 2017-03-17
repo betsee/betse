@@ -60,11 +60,11 @@ For new users, BETSE is readily installable as follows:
 #. Open a **terminal.** [#terminal]_
 #. Run the following commands in this terminal.
 
-   #. **Install BETSE.**
+   #. **Install BETSE.** [#pip3_not]_
 
       .. code:: bash
 
-         pip3 install betse
+         python3 -m pip install betse
 
    #. (\ *Optional*\ ) **Install all recommended dependencies.** While *not*
       required for basic usage, the following third-party packages are required
@@ -72,9 +72,9 @@ For new users, BETSE is readily installable as follows:
 
       .. code:: bash
 
-         conda install -c anaconda graphviz \
+         conda install -c anaconda graphviz && \
          conda install -c conda-forge ffmpeg networkx && \
-         pip3 install pydot
+         python3 -m pip install pydot
 
    #. (\ *Optional*\ ) **Test BETSE.** Run all modelling phases of a sample
       simulation from the current directory.
@@ -90,15 +90,15 @@ For new users, BETSE is readily installable as follows:
 
 .. [#anaconda_not]
    If you prefer *not* to install Anaconda_, BETSE dependencies are `also
-   installable <Advanced_>`__ via your platform-specific package manager (e.g.,
-   Homebrew_ under macOS, APT_ under Ubuntu). Doing so is non-trivial and, if
-   done incorrectly, could produce a performance-crippled single-core
+   installable <Advanced_>`__ with your platform-specific package manager (e.g.,
+   Homebrew_ on macOS, APT_ on Ubuntu Linux). Doing so is non-trivial and, if
+   performed incorrectly, could produce a performance-crippled single-core
    installation of BETSE – which would be bad. Anaconda_ suffers no such issues
    and is guaranteed to produce a performance-optimized multicore installation
    of BETSE on *all* supported platforms – which is good.
 
 .. [#terminal]
-   Under:
+   To open a `POSIX`_\ -compatible terminal under:
 
    - **Windows:**
 
@@ -117,6 +117,15 @@ For new users, BETSE is readily installable as follows:
 
      #. Type ``Ctrl``\ +\ ``Alt``\ +\ ``t``.
 
+.. [#pip3_not]
+   Always run the ``python3 -m pip`` command to install Python packages into the
+   active Anaconda_ environment. *Never* run the ``pip`` or ``pip3`` commands,
+   which incorrectly refer to their non-\ Anaconda_ versions on some platforms
+   (e.g., macOS), which prevents BETSE from finding packages installed with
+   these commands – which is bad. The ``python3 -m pip`` command suffers no such
+   issues and is guaranteed to install packages in a BETSE-aware manner on *all*
+   supported platforms – which is good.
+
 Advanced
 --------
 
@@ -128,7 +137,7 @@ repository and prior stable releases – is manually installable as follows:
 
    - **Linux,** install `these dependencies <dependencies_>`__ via your
      distribution-specific package manager (e.g., APT_ under Debian-based
-     distributions). Do *not* use `pip`.\ [#pip_not]_
+     distributions). Do *not* use ``pip``.\ [#pip_not]_
    - **macOS,** either:
 
      - (\ *Recommended*\ ) Install the **Python 3.x** variant of Anaconda_.
@@ -137,11 +146,11 @@ repository and prior stable releases – is manually installable as follows:
        #. Install a third-party package manager (e.g., Homebrew_, MacPorts_).
           Apple does *not* provide a package manager out-of-the-box.
        #. Install `these dependencies <dependencies_>`__ via that package
-          manager. Do *not* use `pip`.\ [#pip_not]_
+          manager. Do *not* use ``pip``.\ [#pip_not]_
 
    - **Windows,** install the **Python 3.x** variant of Anaconda_.\ [#windows]_
 
-#. Open a command-line terminal.
+#. Open a **terminal.**
 #. **Download** either:
 
    - **The unstable BETSE repository** as follows:
@@ -209,14 +218,14 @@ repository and prior stable releases – is manually installable as follows:
 
 .. [#pip_not]
    Do *not* install scientific dependencies (e.g., NumPy_, SciPy_) with either
-   `pip` or `easy_install`; doing so typically degrades BETSE to single-core
+   ``pip`` or ``easy_install``; doing so typically degrades BETSE to single-core
    performance. To optimize BETSE across multiple cores, *always* install these
    dependencies with your platform-specific package manager (e.g., Homebrew_,
    APT_).
 
 .. [#windows]
    Unlike Linux and macOS, Anaconda_ is (\ *effectively*\ ) required under
-   Windows. Due to this platform's lack of support for POSIX-conformant
+   Windows. Due to Microsoft's lack of support for `POSIX`_\ -compliant
    toolchains, *no* reasonable alternatives for installing multicore-aware
    scientific dependencies exist.
 
@@ -597,6 +606,8 @@ For prospective contributors:
    http://www.numpy.org
 .. _MEncoder:
    https://en.wikipedia.org/wiki/MEncoder
+.. _POSIX:
+   https://en.wikipedia.org/wiki/POSIX
 .. _Python 3:
    https://www.python.org
 .. _py.test:
