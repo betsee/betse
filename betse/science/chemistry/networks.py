@@ -121,6 +121,7 @@ class MasterOfNetworks(object):
         self.Dmem = {}
         self.ED_eval_strings ={}
 
+
         # if mitochondria are enabled:
         if self.mit_enabled:
             self.mit = Mito(sim, cells, p)
