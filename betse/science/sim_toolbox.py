@@ -1207,7 +1207,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
     return cX_cell_1, cX_env_1, f_X
 
-def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, c_bound=1.0e-6,
+def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, c_bound=1.0e-6,
                    ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, mtubes = None):
 
     """
@@ -1294,7 +1294,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
                                           -sim.E_gj_y, ux, uy,
-                                          sim.gjopen*Do*p.gj_surface*1e4, z, sim.T, p)
+                                          sim.gjopen*Dgj, z, sim.T, p)
 
         fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 

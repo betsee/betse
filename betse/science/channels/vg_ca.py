@@ -293,61 +293,6 @@ class Ca_PQ(VgCaABC):
         self._hInf = 1.0
         self._hTau = 1.0
 
-class Ca_L2(VgCaABC):
-    '''
-
-    L-type calcium channel model Carlin et al. L-type channels are higher-voltage activating and very
-    persistent. They are commonly found in muscle or glands, where they induce activities such as hormone
-    release or muscle contraction in response to neural stimulation.
-
-
-    Reference: Carlin KP. et al. Characterization of calcium currents in functionally mature mouse spinal
-    motoneurons. Eur. J. Neurosci., 2000 May , 12 (1624-34).
-
-    '''
-
-    def _init_state(self, V, dyna, sim, p):
-        """
-
-        Run initialization calculation for m and h gates of the channel at starting Vmem value.
-
-        """
-
-        logs.log_info('You are using the vgCa channel type: Ca_L2')
-
-        self.vrev = 80.0     # reversal voltage used in model [mV]
-        Texpt = 36.0    # temperature of the model in degrees C
-        simT = sim.T - 273   # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
-
-        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_Ca = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        dyna.h_Ca = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-
-        # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 2
-        self._hpower = 1
-
-
-    def _calculate_state(self, V, dyna, sim, p):
-        """
-
-        Update the state of m and h gates of the channel given their present value and present
-        simulation Vmem.
-
-        """
-
-        # self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        # self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
-        # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-        # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
-        self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
-        self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
-        self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
-        self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
-
-
 class Ca_L_lv(VgCaABC):
     '''
 
@@ -403,6 +348,67 @@ class Ca_L_lv(VgCaABC):
         self._mTau = (5.0000 + 20.0000 / (1 + np.exp((V - -25.000) / 5)))
         self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
         self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
+
+class Ca_L2(VgCaABC):
+    '''
+
+    L-type calcium channel model Avery et al. L-type channels are higher-voltage activating and very
+    persistent. They are commonly found in muscle or glands, where they induce activities such as hormone
+    release or muscle contraction in response to neural stimulation.
+
+    This channel has been modified to activate at higher Vmem (peak at about -10 mV)
+
+
+    Reference: Avery RB. et al. Multiple channel types contribute to the low-voltage-activated calcium current in
+    hippocampal CA3 pyramidal neurons. J. Neurosci., 1996 Sep 15 , 16 (5567-82).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the vgCa channel type: Ca_L2')
+
+        self.vrev = 131.0     # reversal voltage used in model [mV]
+        Texpt = 36.0    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0  # FIXME implement this!
+
+        V = V - 10
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_Ca = 1.0000 / (1 + np.exp((V - -30.000) / -6))
+        dyna.h_Ca = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 2
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        # self._mInf = 1.0000 / (1 + np.exp(((V - 10) + 30.000) / -6))
+        # self._mTau = 5.0000 + 20.0000 / (1 + np.exp(((V - 10) + 25.000) / 5))
+        # self._hInf = 1.0000 / (1 + np.exp(((V - 10) + 80.000) / 6.4))
+        # self._hTau = 20.0000 + 50.0000 / (1 + np.exp(((V - 10) + 40.000) / 7))
+
+        V = V - 10
+        self._mInf = 1.0000 / (1 + np.exp((V - -30.000) / -6))
+        self._mTau = (5.0000 + 20.0000 / (1 + np.exp((V - -25.000) / 5)))
+        self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
+        self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
+
 
 class Ca_L3(VgCaABC):
     '''

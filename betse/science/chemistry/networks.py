@@ -285,6 +285,7 @@ class MasterOfNetworks(object):
 
                 mol.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
                 mol.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
+                mol.Dgj = mol_dic.get('Dgj', 1.0e-12)  # effective diffusion coefficient of substance through GJ
                 mol.z = mol_dic['z']  # charge (oxidation state)
 
                 self.zmol[name] = mol.z
@@ -4794,6 +4795,7 @@ class Molecule(object):
                                                                 z=self.z,
                                                                 Dm = self.Dm,
                                                                 Do = self.Do,
+                                                                Dgj = self.Dgj,
                                                                 c_bound = self.c_bound,
                                                                 ignoreECM = self.ignore_ECM_pump,
                                                                 smoothECM = p.smooth_concs,
