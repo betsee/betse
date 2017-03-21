@@ -20,7 +20,12 @@ from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 from betse.util.type import types
 from betse.util.type.types import (
-    type_check, ModuleType, NoneType, SetType, StrOrNoneTypes,)
+    type_check,
+    ModuleType,
+    ModuleOrStrTypes,
+    SetType,
+    StrOrNoneTypes,
+)
 from importlib import util as importlib_util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
@@ -33,12 +38,12 @@ MODULE_TO_VERSION_ATTR_NAME = collections.defaultdict(
     PIL = 'PILLOW_VERSION',
 )
 '''
-Dictionary mapping the fully-qualified name of a module or package (e.g., `PIL`)
-to the name of the attribute (e.g., `PILLOW_VERSION`) declared by that
-module or package, providing that module or package's version specifier.
+Dictionary mapping the fully-qualified name of a module or package (e.g.,
+:mod:``PIL``) to the name of the attribute (e.g., ``PILLOW_VERSION``) declared
+by that module or package, providing that module or package's version specifier.
 
 All modules and packages unmapped by this dictionary default to the canonical
-`__version__` attribute name.
+``__version__`` attribute name.
 '''
 
 # ....................{ EXCEPTIONS                         }....................
@@ -48,7 +53,7 @@ def die_unless_module(
     '''
     Raise an exception with the passed message (defaulting to a message
     synthesized from the passed module name) if the module with the passed name
-    is _not_ importable by the active Python interpreter.
+    is *not* importable by the active Python interpreter.
 
     If this module is a **submodule** (i.e., if this module's name contains one
     or more `.` characters), all transitive parent packages of this module will
@@ -71,13 +76,13 @@ def die_unless_module(
 @type_check
 def is_module(module_name: str) -> bool:
     '''
-    `True` only if the module with the passed fully-qualified name is importable
-    under the active Python interpreter.
+    ``True`` only if the module with the passed fully-qualified name is
+    importable under the active Python interpreter.
 
-    If this module is a **submodule** (i.e., contains a `.` character), all
+    If this module is a **submodule** (i.e., contains a ``.`` character), all
     parent modules of this module will be imported as a side effect of this
     function call. Likewise, if this module is _not_ importable via standard
-    mechanisms (e.g., the OS X-specific `PyObjCTools` package), the module
+    mechanisms (e.g., the OS X-specific :mod:`PyObjCTools` package), the module
     itself may also be imported as a side effect.
     '''
 
@@ -120,7 +125,7 @@ def is_module(module_name: str) -> bool:
 @type_check
 def is_imported(*module_names: str) -> bool:
     '''
-    `True` only if all modules with the passed fully-qualified names have
+    ``True`` only if all modules with the passed fully-qualified names have
     already been imported under the current Python process.
     '''
 
@@ -130,14 +135,14 @@ def is_imported(*module_names: str) -> bool:
 # ....................{ TESTERS ~ type                     }....................
 #FIXME: Add unit tests, as this is a fairly fragile tester.
 @type_check
-def is_c_extension(module: (str, ModuleType)) -> bool:
+def is_c_extension(module: ModuleOrStrTypes) -> bool:
     '''
-    `True` only if the passed module is a C extension implemented as a
+    ``True`` only if the passed module is a C extension implemented as a
     dynamically linked shared library specific to the current platform.
 
     Parameters
     ----------
-    module : str, ModuleType
+    module : ModuleOrStrTypes
         Either:
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
@@ -146,7 +151,7 @@ def is_c_extension(module: (str, ModuleType)) -> bool:
     Returns
     ----------
     bool
-        `True` only if this module is a C extension.
+        ``True`` only if this module is a C extension.
     '''
 
     # Avoid circular import dependencies.
@@ -181,14 +186,14 @@ def is_c_extension(module: (str, ModuleType)) -> bool:
 
 # ....................{ GETTERS ~ path                     }....................
 @type_check
-def get_dirname(module: (str, ModuleType)) -> str:
+def get_dirname(module: ModuleOrStrTypes) -> str:
     '''
     Absolute path of the directory containing the file providing the passed
     module or package.
 
     Parameters
     ----------
-    module : str, ModuleType
+    module : ModuleOrStrTypes
         Either:
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
@@ -212,16 +217,27 @@ def get_dirname(module: (str, ModuleType)) -> str:
 #archives). Consider generalizing this approach via the new setuptools-based
 #"betse.lib.setuptool.resources" submodule.
 @type_check
-def get_filename(module: (str, ModuleType)) -> str:
+def get_filename(module: ModuleOrStrTypes) -> str:
     '''
     Absolute path of the file providing the passed module or package.
 
     If the passed object signifies:
 
     * A package (e.g., directory), this is the absolute path of the file
-      providing this package's `__init__` submodule.
+      providing this package's ``__init__`` submodule.
     * A non-package (e.g., module, C extension), this is the absolute path of
       the file providing this non-package as is.
+
+    Caveats
+    ----------
+    Since effectively *all* modules and packages (except in-memory builtin
+    modules) are associated with a corresponding file, there intentionally
+    exists no corresponding ``get_filename_or_none()`` function.
+
+    Since *only* packages define the ``__path__`` attribute, there likewise
+    exists no corresponding ``get_pathname()`` function. Only the ``__file__``
+    attribute retrieved by this function is generally applicable to *all*
+    modules and packages regardless of type.
 
     Parameters
     ----------
@@ -239,7 +255,8 @@ def get_filename(module: (str, ModuleType)) -> str:
     Raises
     ----------
     BetseModuleException
-        If this module has no `__file__` attribute (e.g., is a builtin module).
+        If this module has no ``__file__`` attribute (e.g., is a builtin
+        module).
     '''
 
     # Resolve this module's object.
@@ -258,19 +275,19 @@ def get_filename(module: (str, ModuleType)) -> str:
 
 # ....................{ GETTERS ~ global                   }....................
 @type_check
-def get_global_names(module: (str, ModuleType)) -> SetType:
+def get_global_names(module: ModuleOrStrTypes) -> SetType:
     '''
     Set of the names of all global variables defined by the passed module.
 
     This function returns the set of the names of all attributes defined by this
     module, excluding:
 
-    * Special attributes reserved for use by Python (e.g., `__file__`).
+    * Special attributes reserved for use by Python (e.g., ``__file__``).
     * Callable attributes (e.g., functions, lambdas).
 
     Parameters
     ----------
-    module : str, ModuleType
+    module : ModuleOrStrTypes
         Either:
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
@@ -297,7 +314,7 @@ def get_global_names(module: (str, ModuleType)) -> SetType:
 
 # ....................{ GETTERS ~ version                  }....................
 @type_check
-def get_version(module: (str, ModuleType)) -> str:
+def get_version(module: ModuleOrStrTypes) -> str:
     '''
     Version specifier of the passed module.
 
@@ -322,14 +339,14 @@ def get_version(module: (str, ModuleType)) -> str:
 
 
 @type_check
-def get_version_or_none(module: (str, ModuleType)) -> (str, NoneType):
+def get_version_or_none(module: ModuleOrStrTypes) -> StrOrNoneTypes:
     '''
     Version specifier of the passed module if that module provides a version
-    specifier _or_ `None` otherwise.
+    specifier *or* ``None`` otherwise.
 
     Parameters
     ----------
-    module : str, ModuleType
+    module : ModuleOrStrTypes
         Either:
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.
@@ -337,8 +354,8 @@ def get_version_or_none(module: (str, ModuleType)) -> (str, NoneType):
 
     Returns
     ----------
-    str, NoneType
-        This module's version specifier if any _or_ `None` otherwise.
+    StrOrNoneTypes
+        This module's version specifier if any *or* ``None`` otherwise.
     '''
 
     # Resolve this module's object.
@@ -361,7 +378,7 @@ def get_version_or_none(module: (str, ModuleType)) -> (str, NoneType):
 # ....................{ IMPORTERS                          }....................
 @type_check
 def import_module(
-    module_name: str, exception_message: (str, NoneType) = None) -> ModuleType:
+    module_name: str, exception_message: StrOrNoneTypes = None) -> ModuleType:
     '''
     Dynamically import and return the module, package, or C extension with the
     passed fully-qualified name.
@@ -378,17 +395,17 @@ def import_module(
 
 # ....................{ PRIVATE ~ resolvers                }....................
 @type_check
-def _resolve_module(module : (str, ModuleType)) -> ModuleType:
+def _resolve_module(module : ModuleOrStrTypes) -> ModuleType:
     '''
     Dynamically import and return the module with the passed name if a string
-    is passed _or_ return the passed module as is otherwise.
+    is passed *or* return the passed module as is otherwise.
 
-    This utility function is intended _only_ to simplify the implementation of
+    This utility function is intended *only* to simplify the implementation of
     public functions defined by this submodule and is hence private.
 
     Parameters
     ----------
-    module : str, ModuleType
+    module : ModuleOrStrTypes
         Either:
         * The fully-qualified name of this module, in which case this function
           dynamically imports this module.

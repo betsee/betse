@@ -73,8 +73,8 @@ For new users, BETSE is readily installable as follows:
       .. code:: bash
 
          conda install -c anaconda graphviz && \
-         conda install -c conda-forge ffmpeg networkx && \
-         python3 -m pip install pydot
+         conda install -c conda-forge ffmpeg && \
+         python3 -m pip install networkx==1.10 pydot
 
    #. (\ *Optional*\ ) **Test BETSE.** Run all modelling phases of a sample
       simulation from the current directory.

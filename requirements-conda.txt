@@ -18,8 +18,8 @@
 #     $ conda list -e
 
 # ....................{ DEPENDENCIES ~ mandatory           }....................
-# All mandatory runtime dependencies of this application, manually converted from
-# the "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" global.
+# All mandatory runtime dependencies of this application, manually converted
+# from the "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" global.
 setuptools
 numpy
 pyyaml
@@ -31,16 +31,22 @@ six
 
 # All mandatory test dependencies of this application, manually converted from
 # the "betse.metadata.DEPENDENCIES_TESTTIME_MANDATORY" global.
-pytest 
+pytest
 
 # ....................{ DEPENDENCIES ~ optional            }....................
 # All optional runtime dependencies of this application, manually converted from
 # the "betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL" global.
 
+#FIXME: Install "ffmpeg" from the "conda-forge" channel. See our "Simple"
+#installation instructions in the "README.rst" file.
+
 #FIXME: Unfortunately, networkx 1.10 is unavailable under Python 3.5 under
 #Anaconda. Until networkx 1.12 is both released and made available under
 #Anaconda, networkx is currently ignored. Since pydot is ignored without
 #networkx, pydot is necessarily ignored as well.
+#FIXME: Note that even when networkx 1.12 is released, pydot support will also
+#require installing GraphViz from the "anaconda" channel. See our "Simple"
+#installation instructions in the "README.rst" file.
 
 #networkx
 #pydot

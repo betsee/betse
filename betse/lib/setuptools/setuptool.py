@@ -4,14 +4,16 @@
 # See "LICENSE" for further details.
 
 '''
-High-level support facilities for `pkg_resources`, a mandatory runtime
+High-level support facilities for :mod:`pkg_resources`, a mandatory runtime
 dependency simplifying inspection of application dependencies.
 '''
 
 # ....................{ IMPORTS                            }....................
 import pkg_resources
 from betse.exceptions import BetseLibException
+from betse.util.io.log import logs
 from betse.util.type import iterables, modules
+# from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import (
     type_check, GeneratorType, MappingType, ModuleType, NoneType, SequenceTypes)
 from collections import OrderedDict
@@ -143,14 +145,14 @@ def die_unless_requirement_str(*requirement_strs: str) -> None:
 @type_check
 def die_unless_requirement(requirement: Requirement) -> None:
     '''
-    Raise an exception unless the passed :mod:`setuptools`-specific requirement is
-    satisfiable, implying the corresponding third-party package to be both
+    Raise an exception unless the passed :mod:`setuptools`-specific requirement
+    is satisfiable, implying the corresponding third-party package to be both
     importable and of satisfactory version.
 
     Parameters
     ----------
     requirement : Requirement
-        Object describing this package or module's required name and version.
+        Object describing this module or package's required name and version.
 
     Raises
     ----------
@@ -193,9 +195,8 @@ def die_unless_requirement(requirement: Requirement) -> None:
     # Fully-qualified name of this requirement's package.
     package_name = get_requirement_module_name(requirement)
 
-    # Attempt to manually import this package.
+    # Attempt to manually import this requirement's package.
     try:
-        # print('Importing dependency: ' + module_name)
         package = import_requirement(requirement)
     # If a standard import exception is raised...
     except ImportError as root_exception:
@@ -237,17 +238,17 @@ def die_unless_requirement(requirement: Requirement) -> None:
 @type_check
 def is_requirement_str(*requirement_strs: str) -> bool:
     '''
-    `True` only if all passed :mod:`setuptools`-formatted requirements strings (e.g.,
-    `Numpy >= 1.8.0`) are satisfiable, implying the corresponding third-party
-    packages to be both importable and of satisfactory version.
+    ``True`` only if all passed :mod:`setuptools`-formatted requirements strings
+    (e.g., `Numpy >= 1.8.0`) are satisfiable, implying the corresponding
+    third-party packages to be both importable and of satisfactory version.
 
-    Equivalently, this function returns `False` if at least one such
+    Equivalently, this function returns ``False`` if at least one such
     requirement is unsatisfied. For importable unsatisfied dependencies with
-    :mod:`setuptools`-specific metadata (e.g., `.egg-info/`-suffixed subdirectories
-    of the `site-packages/` directory for the active Python 3 interpreter,
-    typically created by :mod:`setuptools` at install time), this function
-    additionally validates the versions of these dependencies to satisfy these
-    requirements.
+    :mod:`setuptools`-specific metadata (e.g., `.egg-info/`-suffixed
+    subdirectories of the ``site-packages/`` directory for the active Python 3
+    interpreter, typically created by :mod:`setuptools` at install time), this
+    function additionally validates the versions of these dependencies to
+    satisfy these requirements.
     '''
 
     # List of all requirement objects parsed from these requirement strings.
@@ -265,19 +266,19 @@ def is_requirement_str(*requirement_strs: str) -> bool:
 @type_check
 def is_requirement(requirement: Requirement) -> bool:
     '''
-    `True` only if the passed :mod:`setuptools`-specific requirement is satisfiable,
-    implying the corresponding third-party package to be both importable and of
-    satisfactory version.
+    ``True`` only if the passed :mod:`setuptools`-specific requirement is
+    satisfiable, implying the corresponding third-party package to be both
+    importable and of satisfactory version.
 
     Parameters
     ----------
     requirement : Requirement
-        Object describing this package or module's required name and version.
+        Object describing this module or package's required name and version.
 
     Returns
     ----------
     bool
-        `True` only if this requirement is satisfiable.
+        ``True`` only if this requirement is satisfiable.
     '''
 
     try:
@@ -304,9 +305,8 @@ def is_requirement(requirement: Requirement) -> bool:
     # dependency validation, the latter remains the default.
     # print('Validating dependency: ' + requirement.project_name)
 
-    # Attempt to import this package.
+    # Attempt to manually import this requirement's package.
     try:
-        # print('Importing dependency: ' + package_name)
         package = import_requirement(requirement)
     # If this package is unimportable, fail.
     except ImportError:
@@ -345,37 +345,38 @@ def get_requirements(*requirement_strs: str) -> GeneratorType:
 def get_requirement_distribution_or_none(
     requirement: Requirement) -> (Distribution, NoneType):
     '''
-    Get a :class:`Distribution` instance describing the currently installed
-    version of the top-level third-party package or module satisfying the passed
-    :mod:`setuptools`-specific requirement if any _or_ raise an exception if this
-    requirement is guaranteed to be unsatisfied (e.g., due to a version
-    mismatch) _or_ `None` if this requirement cannot be guaranteed to be
+    :class:`Distribution` instance describing the currently installed version of
+    the top-level third-party module or package satisfying the passed
+    :mod:`setuptools`-specific requirement if any *or* raise an exception if
+    this requirement is guaranteed to be unsatisfied (e.g., due to a version
+    mismatch) *or* ``None`` if this requirement cannot be guaranteed to be
     unsatisfied (e.g., due to this requirement being installed either without
-    :mod:`setuptools` or with the :mod:`setuptools` subcommand `develop`).
+    :mod:`setuptools` or with the :mod:`setuptools` subcommand ``develop``).
 
-    This high-level getter should _always_ be called in lieu of the low-level
+    This high-level getter should *always* be called in lieu of the low-level
     :func:`pkg_resources.get_distribution` function, which raises spurious
     exceptions in common non-erroneous edge cases (e.g., packages installed via
-    the :mod:`setuptools` subcommand `develop`) and is thus unsafe for
+    the :mod:`setuptools` subcommand ``develop``) and is thus unsafe for
     general-purpose use.
 
     Parameters
     ----------
     requirement : Requirement
-        Object describing this package or module's required name and version.
+        Object describing this module or package's required name and version.
 
     Returns
     ----------
     Distribution or NoneType
         Object describing the currently installed version of the package or
-        module satisfying this requirement if any _or_ `None` otherwise.
-        Specifically, `None` is returned in all of the following conditions --
+        module satisfying this requirement if any *or* ``None`` otherwise.
+        Specifically, ``None`` is returned in all of the following conditions --
         only one of which genuinely corresponds to an error:
-        * This requirement is _not_ installed at all. (**Error.**)
-        * This requirement was installed manually rather than with :mod:`setuptools`,
-          in which case no such :class:`Distribution` exists. (**Non-error.**)
+        * This requirement is *not* installed at all. (**Error.**)
+        * This requirement was installed manually rather than with
+          :mod:`setuptools`, in which case no such :class:`Distribution` exists.
+          (**Non-error.**)
         * This requirement was installed with the :mod:`setuptools` subcommand
-          `develop`, in which case a :class:`Distribution` technically exists
+          ``develop``, in which case a :class:`Distribution` technically exists
           but in a sufficiently inconsistent state that the low-level
           :func:`pkg_resources.get_distribution` function raises an exception on
           attempting to retrieve that object. (**Non-error.**)
@@ -385,12 +386,14 @@ def get_requirement_distribution_or_none(
     Raises
     ----------
     VersionConflict
-        If the currently installed version of this package or module fails to
+        If the currently installed version of this module or package fails to
         satisfy this requirement's version constraints.
     '''
 
     # If setuptools finds this requirement, return its distribution as is.
     try:
+        # logs.log_debug(
+        #     'Retrieving requirement "%r" distribution...', requirement)
         return pkg_resources.get_distribution(requirement)
     # If setuptools fails to find this requirement, this does *NOT* necessarily
     # imply this requirement to be unimportable as a package. Rather, this only
@@ -402,6 +405,8 @@ def get_requirement_distribution_or_none(
     # PyInstaller-frozen applications embed requirements without corresponding
     # setuptools-managed eggs. Hence, this edge-case *MUST* be handled.
     except DistributionNotFound:
+        # logs.log_debug(
+        #     'Requirement "%r" distribution not found.', requirement)
         return None
     # If setuptools fails to find the distribution-packaged version of this
     # requirement (e.g., due to having been editably installed with "sudo
@@ -414,23 +419,26 @@ def get_requirement_distribution_or_none(
     #
     #     ValueError: ("Missing 'Version:' header and/or PKG-INFO file", networkx [unknown version] (/home/leycec/py/networkx))
     except ValueError as version_missing:
-        # If this exception was *NOT*...
-        if not (
-            # ...instantiated with two arguments
+        # If this exception was...
+        if (
+            # ...instantiated with two arguments...
             len(version_missing.args) == 2 and
-            # ...whose second argument is suffixed by a suffix indicating the
+            # ...whose second argument is suffixed by a string indicating the
             # version of this distribution to have been ignored rather than
             # recorded during installation...
             str(version_missing.args[1]).endswith(' [unknown version]')
+        # ...this exception indicates an expected ignorable error condition.
+        # Silently ignore this edge case.
         ):
-            # Then this exception indicates an unexpected and hence
-            # non-ignorable error condition. Reraise this exception!
-            raise
+            # logs.log_debug(
+            #     'Requirement "%r" distribution version not found.', requirement)
+            return None
 
-        # Else, this exception indicates an expected ignorable error condition.
-        return None
+        # Else, this exception indicates an unexpected and hence
+        # non-ignorable error condition. Reraise this exception!
+        raise
 
-
+# ....................{ GETTERS ~ requirement : metadata   }....................
 @type_check
 def get_requirement_module_name(requirement: Requirement) -> str:
     '''
@@ -440,7 +448,7 @@ def get_requirement_module_name(requirement: Requirement) -> str:
     Parameters
     ----------
     requirement : Requirement
-        Object describing this package or module's required name and version.
+        Object describing this module or package's required name and version.
 
     Returns
     ----------
@@ -466,32 +474,34 @@ def get_requirement_module_name(requirement: Requirement) -> str:
     return SETUPTOOLS_TO_MODULE_NAME[requirement_name]
 
 
+#FIXME: Excise this.
 @type_check
-def get_requirement_version_readable(requirement: Requirement) -> str:
+def get_requirement_pathname_readable(requirement: Requirement) -> str:
     '''
-    Human-readable version string for the currently installed version of the
-    third-party module or package corresponding to (but _not_ necessarily
+    Human-readable pathname for the currently installed version of the
+    third-party module or package corresponding to (but *not* necessarily
     satisfying) the passed :mod:`setuptools`-specific requirement.
 
     This function is principally intended for use in printing package metadata
-    in a non-critical manner and hence is guaranteed to _never_ raise fatal
-    exceptions. If this package:
+    in a non-critical manner and hence is guaranteed to *never* raise fatal
+    exceptions. If this module or package:
 
     * Is importable but fails to satisfy this requirement, a string describing
       this conflict is returned.
-    * Is unimportable, the string `not installed` is returned.
-    * Has no `__version__` attribute, the string `unknown` is returned.
+    * Is unimportable, the string ``not installed`` is returned.
+    * Has no ``__path__`` attribute, the string ``unknown path`` is returned.
 
     Parameters
     ----------
     requirement : Requirement
-        Object describing this package or module's required name and version.
+        Object describing this module or package's required name and version.
 
     Returns
     ----------
     str
-        Version string for the currently installed version of this package if
-        any or the string `not installed` or `unknown` (as detailed above).
+        Absolute pathname for the currently installed version of this module or
+        package if any *or* the string ``not installed`` or ``unknown path``
+        otherwise (as detailed above).
     '''
 
     try:
@@ -500,9 +510,9 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
         # requirement cannot be guaranteed to be unsatisfied.
         distribution = get_requirement_distribution_or_none(requirement)
 
-        # If this requirement is satisfied, return its version.
+        # If this requirement is satisfied, return its pathname.
         if distribution is not None:
-            return distribution.version
+            return distribution.location
     # If setuptools found only requirements of insufficient version, return this
     # version regardless (with a suffix noting this to be the case).
     except VersionConflict as version_conflict:
@@ -511,25 +521,103 @@ def get_requirement_version_readable(requirement: Requirement) -> str:
             version_conflict.req)
     #FIXME: Handle the "UnknownExtra" exception as well.
 
-    # Attempt to import this package.
+    # Attempt to manually import this requirement's package.
     try:
-        # print('Importing dependency: ' + module_name)
         package = import_requirement(requirement)
     # If this package is unimportable, return an appropriate string.
     except ImportError:
         return 'not installed'
 
-    # Package version if any or "None" otherwise.
-    package_version = modules.get_version_or_none(package)
+    # Return this package's path as is.
+    return modules.get_filename(package)
 
-    # If this version exists, return this version.
-    if package_version is not None:
-        return package_version
-    # Else, return an appropriate string.
+
+@type_check
+def get_requirement_metadata(requirement: Requirement) -> str:
+    '''
+    Human-readable string describing the currently installed third-party
+    module or package corresponding to (but *not* necessarily satisfying) the
+    passed :mod:`setuptools`-specific requirement.
+
+    This function is principally intended for use in printing package metadata
+    in a non-critical manner and hence is guaranteed to *never* raise fatal
+    exceptions. If this module or package:
+
+    * Is unimportable, the string ``not installed`` is returned.
+    * Is importable and...
+      * Fails to satisfy this requirement, a string describing this conflict is
+        returned.
+      * Satisfies this requirement, the string ``{version} <{pathname}>`` is
+        returned, where:
+        * ``{pathname}`` is the absolute path of this module or package.
+        * ``{version}`` is either:
+          * If this module or package exports a version (e.g., via the
+            ``__version__`` attribute), this version as a `.`-delimited string.
+          * Else, the string ``unknown version``.
+
+    Parameters
+    ----------
+    requirement : Requirement
+        Object describing this module or package's required name and version.
+
+    Returns
+    ----------
+    str
+        Human-readable string describing this requirement.
+    '''
+
+    # Distribution satisfying this requirement if any or "None" otherwise.
+    distribution = None
+
+    try:
+        # Object describing the currently installed version of the package or
+        # module satisfying this requirement if any or "None" if this
+        # requirement cannot be guaranteed to be unsatisfied.
+        distribution = get_requirement_distribution_or_none(requirement)
+    # If setuptools found only requirements of insufficient version, return this
+    # version regardless (with a suffix noting this to be the case).
+    except VersionConflict as version_conflict:
+        return '{} [fails to satisfy {}]'.format(
+            version_conflict.dist.version, version_conflict.req)
+    #FIXME: Handle the "UnknownExtra" exception as well.
+
+    # Attempt to manually import this module or package.
+    try:
+        package = import_requirement(requirement)
+    # If this package is unimportable, return a human-readable string.
+    except ImportError:
+        return 'not installed'
+
+    # Pathname and version of this module or package.
+    package_pathname = modules.get_filename(package)
+    package_version = None
+
+    # If this requirement is satisfied, reuse the version provided by this
+    # requirement's high-level distribution -- which is guaranteed to be at
+    # least as precise as version metadata provided by this requirement's
+    # low-level module or package (if any).
+    #
+    # Unfortunately, although the "Distribution" class does provide a public
+    # "location" instance variable, this variable's value is typically the
+    # absolute path of the parent directory containing this module or package
+    # rather than the absolute path of the latter. The former is overly
+    # ambiguous and hence useless for our purposes. We have no recourse but to
+    # manually import this module or package and inspect its attributes. (*UGH*)
+    if distribution is not None:
+        package_version = distribution.version
+    # Else, this requirement is unsatisfied. Fallback to the version metadata
+    # provided by this requirement's low-level module or package.
     else:
-        return 'unknown'
+        package_version = modules.get_version_or_none(package)
 
-# ....................{ GETTERS ~ metadata                 }....................
+        # If no such version is provided, default to a human-readable string.
+        if package_version is None:
+            package_version = 'unknown version'
+
+    # Return the expected string in the event of success.
+    return '{} <{}>'.format(package_version, package_pathname)
+
+# ....................{ GETTERS ~ requirements : metadata  }....................
 @type_check
 def get_requirements_dict_metadata(
     requirements_dict: MappingType) -> OrderedDict:
@@ -540,13 +628,25 @@ def get_requirements_dict_metadata(
     each key and value of the passed dictionary (e.g., converting key ``Numpy``
     and value ``>= 1.8.0`` into requirements string ``Numpy >= 1.8.0``).
 
-    For readability, these strings will be lexicographically presorted in
-    ascending order.
-
     Parameters
     ----------
     requirements_dict : MappingType
         Dictionary of requirements strings to retrieve metadata for.
+
+    Returns
+    ----------
+    OrderedDict
+        Ordered dictionary lexicographically presorted on keys in ascending
+        order such that each:
+        * Key is a string of the form ``{{requirement_name}} version``.
+        * Value is either:
+          * The currently installed version specifier of this requirement
+            if this requirement is both installed and exports an
+            inspectable version at runtime (e.g., an ``__version__``
+            package attribute).
+          * The string ``not installed`` if this requirement is not found.
+          * The string ``unknown version`` if this requirement exports no
+            inspectable version at runtime.
     '''
 
     # Tuple of requirements strings converted by concatenating each key and
@@ -564,13 +664,17 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
     corresponding to (but *not* necessarily satisfying) the passed
     :mod:`setuptools`-formatted requirements strings (e.g., ``Numpy >= 1.8.0``).
 
-    For readability, these strings will be lexicographically presorted in
-    ascending order.
-
     Parameters
     ----------
     requirement_strs : Tuple[str]
         Tuple of requirements strings to retrieve metadata for.
+
+    Returns
+    ----------
+    OrderedDict
+        Ordered dictionary lexicographically presorted on keys in ascending
+        order (as detailed by the :func:`get_requirements_dict_metadata`
+        function).
     '''
 
     # Lexicographically sorted tuple of these strings.
@@ -579,30 +683,18 @@ def get_requirement_str_metadata(*requirement_strs: str) -> OrderedDict:
     # List of all requirement objects parsed from these requirement strings.
     requirements = get_requirements(*requirement_strs_sorted)
 
-    # Ordered dictionary synopsizing these requirements
-    metadata = OrderedDict()
-
-    # For each such requirement...
-    for requirement in requirements:
-        # Name of this requirement.
-        requirement_name = requirement.project_name
-
-        # Version of this requirement.
-        requirement_version = get_requirement_version_readable(requirement)
-
-        # Append metadata describing this requirement to this dictionary.
-        metadata[requirement_name + ' version'] = requirement_version
-
-    # Return this dictionary.
-    return metadata
+    # Ordered dictionary synopsizing these requirements.
+    return OrderedDict(
+        (requirement.project_name, get_requirement_metadata(requirement))
+        for requirement in requirements)
 
 # ....................{ CONVERTERS ~ tuple-to-dict         }....................
 @type_check
 def convert_requirements_tuple_to_dict(
     requirements_tuple: SequenceTypes) -> dict:
     '''
-    Convert the passed tuple of :mod:`setuptools`-specific requirements strings into
-    a dictionary of such strings.
+    Convert the passed tuple of :mod:`setuptools`-specific requirements strings
+    into a dictionary of such strings.
 
     This tuple is assumed to contain strings of the form
     ``{project_name} {project_specs}``, where:
@@ -776,7 +868,7 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     Parameters
     ----------
     requirement : Requirement
-        Object describing this package or module's required name and version.
+        Object describing this module or package's required name and version.
 
     Returns
     ----------
@@ -791,6 +883,9 @@ def import_requirement(requirement: Requirement) -> ModuleType:
 
     # Fully-qualified name of this requirement's package.
     package_name = get_requirement_module_name(requirement)
+
+    # Log this importation, which can often have unexpected side effects.
+    logs.log_debug('Importing third-party package "%s"...', package_name)
 
     # Import and return this package.
     return modules.import_module(package_name)

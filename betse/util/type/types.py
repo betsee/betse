@@ -249,6 +249,12 @@ built-in or user-defined methods).
 '''
 
 
+ModuleOrStrTypes = (str, ModuleType)
+'''
+Tuple of both the module *and* string type.
+'''
+
+
 NumericTypes = (int, float)
 '''
 Tuple of all **numeric classes** (i.e., classes whose instances are single

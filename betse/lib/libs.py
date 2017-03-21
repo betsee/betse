@@ -324,16 +324,20 @@ def get_metadatas() -> tuple:
     # Defer heavyweight imports.
     from betse.lib.matplotlib.matplotlibs import mpl_config
     from betse.lib.numpy import numpys
+    from betse.lib.setuptools import setuptool
 
     # Tuple of all dependency versions.
     LIB_VERSION_METADATA = (
         # Dependencies metadata.
         ('runtime dependencies (mandatory)',
-         get_runtime_mandatory_metadata()),
+         setuptool.get_requirements_dict_metadata(
+             metadata.DEPENDENCIES_RUNTIME_MANDATORY)),
         ('runtime dependencies (optional)',
-         get_runtime_optional_metadata()),
+         setuptool.get_requirements_dict_metadata(
+             metadata.DEPENDENCIES_RUNTIME_OPTIONAL)),
         ('testing dependencies (mandatory)',
-         get_testing_mandatory_metadata()),
+         setuptool.get_requirements_dict_metadata(
+            metadata.DEPENDENCIES_TESTING_MANDATORY)),
     )
 
     # Tuple of all dependency-specific metadata.
@@ -348,45 +352,3 @@ def get_metadatas() -> tuple:
         LIB_METADATA +
         numpys.get_metadatas()
     )
-
-
-def get_runtime_mandatory_metadata() -> OrderedDict:
-    '''
-    Ordered dictionary describing all currently installed third-party
-    dependencies required by core functionality at runtime.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Return this metadata.
-    return setuptool.get_requirements_dict_metadata(
-        metadata.DEPENDENCIES_RUNTIME_MANDATORY)
-
-
-def get_runtime_optional_metadata() -> OrderedDict:
-    '''
-    Ordered dictionary describing all currently installed third-party
-    dependencies required by optional functionality at runtime.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Return this metadata.
-    return setuptool.get_requirements_dict_metadata(
-        metadata.DEPENDENCIES_RUNTIME_OPTIONAL)
-
-
-def get_testing_mandatory_metadata() -> OrderedDict:
-    '''
-    Ordered dictionary describing all currently installed third-party
-    dependencies required by this application's test suite.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.lib.setuptools import setuptool
-
-    # Return this metadata.
-    return setuptool.get_requirements_dict_metadata(
-        metadata.DEPENDENCIES_TESTING_MANDATORY)
