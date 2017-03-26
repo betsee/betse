@@ -18,7 +18,7 @@ from betse.util.type.types import (
     ClassType,
     EnumType,
     MappingType,
-    SequenceTypes,
+    SequenceOrNoneTypes,
 )
 from collections.abc import MutableSequence
 
@@ -128,7 +128,8 @@ class SimConfList(MutableSequence):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, confs: SequenceTypes, conf_type: ClassType) -> None:
+    def __init__(
+        self, confs: SequenceOrNoneTypes, conf_type: ClassType) -> None:
         '''
         Initialize this simulation configuration sublist.
 
@@ -137,7 +138,9 @@ class SimConfList(MutableSequence):
         confs : MappingType
             List of all dictionaries of related configuration settings both
             loaded from and savable back to the current YAML-formatted
-            simulation configuration file.
+            simulation configuration file *or* ``None`` if the key defining this
+            list in this file has no corresponding value, in which case this
+            list defaults to the empty list.
         conf_type : ClassType
             Subclass of the :class:`SimConfListableABC` abstract base class
             with which to instantiate each simulation configuration object
@@ -150,6 +153,10 @@ class SimConfList(MutableSequence):
         # Raise an exception unless the passed type implements the listable API.
         classes.die_unless_subclass(
             subclass=conf_type, superclass=SimConfListableABC)
+
+        # If this list is unspecified, default this list to the empty list.
+        if confs is None:
+            confs = []
 
         # Classify all passed parameters.
         self._confs_yaml = confs

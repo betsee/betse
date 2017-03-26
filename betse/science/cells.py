@@ -90,34 +90,36 @@ class Cells(object):
     Attributes (Cell Membrane)
     ----------
     cell_to_mems : ndarray
-        Two-dimensional Numpy array of the indices of all membranes for each
-        cell, whose:
+        Two-dimensional Numpy array of the indices of all membranes for all
+        cells, whose:
         . First dimension indexes each cell.
-        . Second dimension indexes each membrane of the current cell.
+        . Second dimension indexes each membrane of the current cell such that
+          each element is the index of the corresponding membrane in
+          membrane-centric arrays (e.g., :attr:`mem_mids_flat`).
         For example:
-        * `cell_to_mems[0][0]` is the index of the first membrane contained by
-          the first cell -- which is _always_ `0`.
-        * `cell_to_mems[-1][-1]` is the index of the last membrane contained by
-          the last cell -- which is _always_ `mem_i[-1]`.
+        * ``cell_to_mems[0][0]`` is the index of the first cell's first membrane
+          -- which is *always* 0.
+        * ``cell_to_mems[-1][-1]`` is the index of the last cell's last membrane
+          -- which is *always* ``mem_i[-1]``.
     mem_to_cells : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
         that each element is the index of the cell containing the membrane
         indexed by that element. For example:
-        * `mem_to_cells[0]` is the index of the cell containing the first
+        * ``mem_to_cells[0]`` is the index of the cell containing the first
           membrane.
-        * `mem_to_cells[-1]` is the index of the cell containing the last
+        * ``mem_to_cells[-1]`` is the index of the cell containing the last
           membrane.
     mem_i : ndarray
         One-dimensional Numpy array of length the number of cell membranes such
         that each element is that cell membrane's index (i.e.,
-        `[0, 1, ..., m-2, m-1]` for the number of cell membranes `m`), required
-        for efficient Numpy slicing.
+        ``[0, 1, ..., m-2, m-1]`` for the number of cell membranes ``m``),
+        required for efficient Numpy slicing.
     mem_mids_flat : ndarray
         Two-dimensional Numpy array of the coordinates of the midpoints of all
         cell membranes, whose:
         . First dimension indexes each cell membrane.
         . Second dimension indexes each coordinate of the midpoint of the
-          current cell membrane, whose length is guaranteed to be 2 _and_
+          current cell membrane, whose length is guaranteed to be 2 *and*
           whose:
           . First element is the X coordinate of the current membrane midpoint.
           . Second element is the Y coordinate of the current membrane
@@ -127,10 +129,10 @@ class Cells(object):
         all cell membranes, whose:
         . First dimension indexes each cell membrane.
         . Second dimension indexes each coordinate of some vector describing
-          the current cell membrane, whose length is guaranteed to be 6 _and_
+          the current cell membrane, whose length is guaranteed to be 6 *and*
           whose:
           . First element is the X coordinate of the current membrane midpoint,
-            equivalent to :attr:`mem_mids_flat[mem_i,0]` where `mem_i` is the
+            equivalent to :attr:`mem_mids_flat[mem_i,0]` where ``mem_i`` is the
             index of the current membrane.
           . Second element is the Y coordinate of the current membrane
             midpoint, equivalent to :attr:`mem_mids_flat[mem_i,1]`.
@@ -146,19 +148,19 @@ class Cells(object):
         One-dimensional Numpy array indexing each cell such that each element
         is the number of cell membranes contained by the current cell.
     M_sum_mems : ndarray
-        Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
+        Numpy matrix (i.e., two-dimensional array) of size ``m x n``, where:
         * `m` is the total number of cells.
         * `n` is the total number of cell membranes.
-        For each cell `i` and membrane `j`, element `M_sum_mems[i, j]` is:
-        * 0 if this cell does _not_ contain this membrane. Since most cells do
-          _not_ contain most membranes, most entries of this matrix are zero,
-          implying this matrix to typically (but _not_ necessarily) be sparse.
+        For each cell ``i`` and membrane ``j``, element ``M_sum_mems[i, j]`` is:
+        * 0 if this cell does *not* contain this membrane. Since most cells do
+          *not* contain most membranes, most entries of this matrix are zero,
+          implying this matrix to typically (but *not* necessarily) be sparse.
         * 1 if this cell contains this membrane.
         The dot product of this matrix by a Numpy vector (i.e., one-dimensional
-        array) of size `n` containing cell membrane-specific data yields
-        another Numpy vector of size `m` containing cell-specific data
+        array) of size ``n`` containing cell membrane-specific data yields
+        another Numpy vector of size ``m`` containing cell-specific data
         totalized for each cell over all membranes this cell contains, where
-        `m` and `n` are as defined above.
+        ``m`` and ``n`` are as defined above.
 
     Attributes (Cell Membrane Vertices)
     ----------
@@ -243,6 +245,18 @@ class Cells(object):
         data spatially situated at these membranes by this array yields another
         array of the same length providing the corresponding data spatially
         situated at their adjacent membranes.
+
+    Attributes (Cell Surface Area)
+    ----------
+    cell_sa : ndarray
+        One-dimensional Numpy array of length the number of cells such that each
+        element is the surface area of the cell indexed by that element,
+        defined as the summation of the surface areas of all membranes
+        comprising that cell.
+    mem_sa : ndarray
+        One-dimensional Numpy array of length the number of cell membranes such
+        that each element is the surface area of the cell membrane indexed by
+        that element.
 
     Attributes (Extracellular Grid)
     ----------

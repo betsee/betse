@@ -754,17 +754,22 @@ results options:
       # Ignored if both "show" and "save" are False.
       pipeline:
         # Example average cell voltage plot.
-        - type: cell_voltage   # Plot type.
-          # Supported single-cell types plotted for the "plot_cell" include:
-          # * "cell_ion_m_anion" (single-cell M anion concentration).
+        - type: cell_voltage   # Plot type, including any following string:
+          #
+          # Single-cell plots for cell at "plot cell index" include:
+          # cell_current_membrane  ->  Single-cell transmembrane current density
+          # cell_ion_m_anion  ->  Single-cell M anion concentration
           #   Ignored if M anion (M-) disabled by ion profile.
-          # * "cell_ion_potassium"   (single-cell potassium ion concentration).
+          # cell_ion_potassium  ->  Single-cell potassium ion concentration
           #   Ignored if potassium (K+) disabled by ion profile.
-          # * "cell_ion_sodium"      (single-cell sodium ion concentration).
+          # cell_ion_sodium  ->  Single-cell sodium ion concentration
           #   Ignored if sodium (Na+) disabled by ion profile.
-          # * "cell_voltage"         (single-cell voltage average).
-          # * "cell_voltage_fft"     (single-cell voltage Fourier transform).
-          # Supported multi-cell types plotted for the cell cluster include:
+          # cell_pressure_total  ->  Single-cell total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # cell_pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
+          # cell_voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
+          # cell_voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) fast Fourier
+          #                                transform (FFT)
 
           enabled: True        # Enable this plot?
           colorbar:            # Plot colorbar settings.
@@ -784,32 +789,32 @@ results options:
       # Ignored if both "show" and "save" are False.
       pipeline:
         # Example transmembrane voltage (Vmem) animation.
-        - type: voltage_membrane  # Animation type. Supported types include:
-          # * "current_intra"       (intracellular current density).
-          # * "current_total"       (intra- and extracellular current density).
+        - type: voltage_membrane  # Animation type, including any following string:
+          # current_intra  ->  Intracellular current density
+          # current_total  ->  Intra- and extracellular current density
           #   Ignored if extracellular spaces disabled.
-          # * "deform"              (deformation).
+          # deform  ->  Deformation
           #   Ignored unless deformation disabled.
-          # * "electric_intra"      (intracellular electric field).
-          # * "electric_total"      (intra- and extracellular electric field).
+          # electric_intra  ->  Intracellular electric field
+          # electric_total  ->  Intra- and extracellular electric field
           #   Ignored if extracellular spaces disabled.
-          # * "fluid_intra"         (intracellular fluid flow).
+          # fluid_intra  ->  Intracellular fluid flow
           #   Ignored if fluid flow disabled.
-          # * "fluid_total"         (intra- and extracellular fluid flow).
+          # fluid_total  ->  Intra- and extracellular fluid flow
           #   Ignored if fluid flow or extracellular spaces disabled.
-          # * "ion_calcium"         (calcium ion concentration).
+          # ion_calcium  ->  Calcium ion concentration
           #   Ignored if calcium (Ca2+) disabled by ion profile.
-          # * "ion_hydrogen"        (hydrogen ion concentration as pH).
+          # ion_hydrogen  ->  Hydrogen ion concentration as pH
           #   Ignored if hydrogen (H+) disabled by ion profile.
-          # * "membrane_gap_junction" (gap junction connectivity state).
-          # * "membrane_pump_density" (cell membrane pump density factor).
+          # membrane_gap_junction  ->  Gap junction connectivity state
+          # membrane_pump_density  ->  Cell membrane pump density factor
           #   Ignored if channel electroosmosis disabled.
-          # * "pressure_mechanical" (cellular mechanical pressure).
-          #   Ignored if mechanical pressure event disabled.
-          # * "pressure_osmotic"    (cellular osmotic pressure).
+          # pressure_osmotic  ->  Cellular osmotic pressure
           #   Ignored if osmotic pressure disabled.
-          # * "voltage_membrane"    (Vmem transmembrane voltage).
-          # * "voltage_total"       (intra- and extracellular voltage).
+          # pressure_total  ->  Cellular total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # voltage_membrane  ->  Transmembrane voltage (Vmem)
+          # voltage_total  ->  Intra- and extracellular voltage
           #   Ignored if extracellular spaces disabled.
 
           enabled: True        # Enable this animation?

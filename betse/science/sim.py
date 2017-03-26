@@ -228,11 +228,12 @@ class Simulator(object):
     ----------
     P_cells : ndarray
         One-dimensional Numpy array indexing each cell such that each element is
-        the mechanical pressure spatially situated at the centre of the cell
-        indexed by that element for the current time step.
+        the **total pressure** (i.e., summation of the mechanical and osmotic
+        pressure) spatially situated at the centre of the cell indexed by that
+        element for the current time step.
     P_cells_time : list
-        Two-dimensional list of the mechanical pressures for all time steps,
-        whose:
+        Two-dimensional list of the **total pressure** (i.e., summation of the
+        mechanical and osmotic pressure) for all time steps, whose:
         * First dimension indexes each time step.
         * Second dimension indexes each cell such that each element is the
           mechanical pressure defined as for the :attr:`P_cells` array.

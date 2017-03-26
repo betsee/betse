@@ -11,7 +11,7 @@ simulation feature required by a runner) functionality.
 # ....................{ IMPORTS                            }....................
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.util.type.cls.expralias import ExprAliasUnbound
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ CLASSES                            }....................
 class SimPipelineRunnerRequirement(object):
@@ -34,7 +34,12 @@ class SimPipelineRunnerRequirement(object):
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, expr: str, name: str) -> None:
+    def __init__(
+        self,
+        expr: str,
+        name: str,
+        **kwargs
+    ) -> None:
         '''
         Initialize this requirement.
 
@@ -49,13 +54,17 @@ class SimPipelineRunnerRequirement(object):
         name : str
             Human-readable lowercase name of this requirement (e.g.,
             ``extracellular spaces``).
+
+        All remaining keyword parameters are passed as is to the
+        :meth:`ExprAliasUnbound.__init__` method.
         '''
 
         # Expression alias encapsulating the passed Python expression. Since
         # this alias is only ever accessed with the public methods defined below
         # that are already type-checked, this alias avoids additional validation
         # (e.g., a "cls=bool" parameter).
-        self._expr_alias = ExprAliasUnbound(expr=expr, obj_name='phase')
+        self._expr_alias = ExprAliasUnbound(
+            expr=expr, obj_name='phase', **kwargs)
 
         # Classify all remaining parameters.
         self.name = name
@@ -175,15 +184,21 @@ Requirement that a simulation phase enable sodium (Na+) ions.
 '''
 
 
-PRESSURE_MECHANICAL = SimPipelineRunnerRequirement(
-    expr='phase.p.is_event_pressure', name='mechanical pressure',)
-'''
-Requirement that a simulation phase enable the mechanical pressure intervention.
-'''
-
-
 PRESSURE_OSMOTIC = SimPipelineRunnerRequirement(
     expr='phase.p.deform_osmo', name='osmotic pressure',)
 '''
 Requirement that a simulation phase enable osmotic pressure.
+'''
+
+
+PRESSURE_TOTAL = SimPipelineRunnerRequirement(
+    # For simplicity, define this requirement to be settable by enabling osmotic
+    # pressure. While the mechanical pressure event could also be enabled, doing
+    # so is less trivial than the former.
+    expr         ='phase.p.deform_osmo or phase.p.is_event_pressure',
+    expr_settable='phase.p.deform_osmo',
+    name='total pressure',)
+'''
+Requirement that a simulation phase enable at least one pressure feature
+(namely, osmotic pressure and/or the mechanical pressure intervention).
 '''

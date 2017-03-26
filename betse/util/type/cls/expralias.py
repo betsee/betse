@@ -236,6 +236,7 @@ def expr_alias(
     # to this function is required to be the "cls" parameter; doing so permits
     # callers to concisely call this function with positional parameters only.
     cls: TestableOrNoneTypes = None,
+    expr_settable: StrOrNoneTypes = None,
     predicate: CallableOrNoneTypes = None,
     predicate_expr: StrOrNoneTypes = None,
     predicate_label: StrOrNoneTypes = None,
@@ -327,8 +328,8 @@ def expr_alias(
     Parameters
     ----------
     expr : str
-        Arbitrarily complex Python expression suitable for use as both the left-
-        and right-hand sides of Python assignment statements, typically
+        Arbitrarily complex Python expression suitable for use as at least the
+        right-hand side of Python assignment statements, typically
         evaluating to the value of an arbitrarily nested dictionary key:
         * Prefixed by the name of the instance variable to which this dictionary
           is bound in instances of the class containing this descriptor (e.g.,
@@ -336,7 +337,19 @@ def expr_alias(
         * Suffixed by one or more ``[``- and ``]``-delimited key lookups into
           the same dictionary (e.g.,
           ``['variable settings']['noise']['dynamic noise']``).
-    cls: optional[TestableTypes]
+        If this expression is unsuitable for use as the left-hand side of Python
+        assignment statements (e.g., due to expanding to a complex expression
+        comprising multiple variables rather than to a single simple variable),
+        the ``expr_settable`` parameter *must* be passed as well.
+    expr_settable : optional[str]
+        Arbitrarily complex Python expression suitable for use as the left-hand
+        side of Python assignment statements, producing a data descriptor whose:
+        * ``__get__()`` implementation embeds the value of the passed ``expr``
+          parameter.
+        * ``__set__()`` implementation embeds the value of this parameter.
+        Defaults to ``None``, in which case this parameter defaults to the
+        value of the ``expr`` parameter.
+    cls : optional[TestableTypes]
         Either:
         * A class, in which case an exception is raised if the value of this
           expression is *not* an instance of this class.
@@ -344,7 +357,7 @@ def expr_alias(
           of this expression is *not* an instance of at least one class in this
           tuple.
         Defaults to ``None``, in which case no such validation is performed.
-    predicate: optional[CallableTypes]
+    predicate : optional[CallableTypes]
         Callable passed the value of this expression as its first and only
         parameter and returning a boolean ``True`` only if this value satisfies
         arbitrary caller requirements and ``False`` otherwise. For uniformity,
@@ -353,7 +366,7 @@ def expr_alias(
         raised on behalf of this callable. If the ``predicate_label``
         parameter is *not* also passed, an exception is raised. Defaults to
         ``None``, in which case no such validation is performed.
-    predicate_expr: StrOrNoneTypes = None,
+    predicate_expr : optional[str]
         Arbitrarily complex Python expression suitable for use as the condition
         of an if statement evaluating to a boolean ``True`` only if the value of
         this expression satisfies arbitrary caller requirements and ``False``
@@ -361,11 +374,11 @@ def expr_alias(
         raised on behalf of this expression. If the ``predicate_label``
         parameter is *not* also passed, an exception is raised. Defaults to
         ``None``, in which case no such validation is performed.
-    predicate_label: optional[str]
+    predicate_label : optional[str]
         Human-readable adjective or adjectival phrase describing the passed
         callable predicate if any. Defaults to ``None``, in which case this
         string is synthesized from the name of this callable if needed.
-    obj_name: optional[str]
+    obj_name : optional[str]
         Name of the variable in this expression whose value is the current
         instance of the class instantiating this descriptor. If this name is
         already reserved for internal use by this descriptor, an exception is
@@ -414,6 +427,13 @@ def expr_alias(
         # Passed validational predicate if any.
         '__expr_alias_predicate': predicate,
     }
+
+    # Expression to be embedded in this data descriptor's __get__() method
+    expr_gettable = expr
+
+    # Expression to be embedded in this data descriptor's __set__() method
+    if expr_settable is None:
+        expr_settable = expr_gettable
 
     # Python code snippet listing all optional arguments to be accepted by this
     # data descriptor's __init__() method.
@@ -497,13 +517,14 @@ def expr_alias(
         # Implement the __get__() method body to validate this expression.
         class_get_body = '''
     # Value to which this expression evaluates to be returned.
-    value = {expr}
+    value = {expr_gettable}
 
     # Validate this value.
     {value_test_block}
 
     # Return this value.
-    return value'''.format(expr=expr, value_test_block=value_test_block)
+    return value'''.format(
+        expr_gettable=expr_gettable, value_test_block=value_test_block)
 
         # Implement the __set__() method body to validate this expression.
         class_set_body = '''
@@ -511,14 +532,15 @@ def expr_alias(
     {value_test_block}
 
     # Set this expression to this value.
-    {expr} = value'''.format(expr=expr, value_test_block=value_test_block)
+    {expr_settable} = value'''.format(
+        expr_settable=expr_settable, value_test_block=value_test_block)
     # Else, this expression is unvalidated. For efficiency, reduce the
     # __get__() and __set__() method bodies to the expected one-liners.
     else:
         class_get_body = '''
-    return {expr}'''.format(expr=expr)
+    return {expr_gettable}'''.format(expr_gettable=expr_gettable)
         class_set_body = '''
-    {expr} = value'''.format(expr=expr)
+    {expr_settable} = value'''.format(expr_settable=expr_settable)
 
     #FIXME: Improve exception handling to report the name of the data descriptor
     #in question. To do so, we'll need to implement the data descriptor method
