@@ -32,9 +32,9 @@ def runner_metadata(
     :class:`SimPipelinerABC` subclasses with names prefixed by
     :attr:`SimPipelinerABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
 
-    All such runners decorated by this decorator are guaranteed to be instances
-    of the :class:`SimPipelineRunner` class, which provides all metadata passed
-    to this decorator as instance variables of the same name.
+    All methods decorated by this decorator are guaranteed to be instances of
+    the :class:`SimPipelineRunner` class, which provides all metadata passed to
+    this decorator as instance variables of the same name.
 
     Caveats
     ----------
@@ -84,8 +84,7 @@ def runner_metadata(
     '''
 
     @type_check
-    def _runner_metadata_closure(
-        method: CallableTypes) -> SimPipelineRunner:
+    def _runner_metadata_closure(method: CallableTypes) -> SimPipelineRunner:
         '''
         Closure both type-checking *and* annotating the passed simulation
         pipeline runner method with the metadata passed to the outer decorator
@@ -246,6 +245,15 @@ class SimPipelineRunner(MethodDecorator):
 
         # Defer to the superclass implementation to run this runner.
         return super().__call__(pipeline, *args, **kwargs)
+
+# ....................{ TYPES                              }....................
+SimPipelineRunnerTypes = (SimPipelineRunner,) + CallableTypes
+'''
+Tuple of all callable classes *and* the simulation pipeline runner type.
+
+This tuple may be used to efficiently match both undecorated runners *and*
+runners decorated by the :func:`runner_metadata` decorator.
+'''
 
 # ....................{ INTERFACES                         }....................
 class SimPipelineRunnerConf(object, metaclass=ABCMeta):

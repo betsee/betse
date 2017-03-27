@@ -258,7 +258,44 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
 
+# ....................{ ITERATORS ~ attributes             }....................
+@type_check
+def iter_attrs_matching(
+    obj: object, predicate: CallableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each attribute bound to
+    the passed object whose name and/or value matches the passed predicate (in
+    ascending lexicographic order of attribute name).
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all matching attribute of.
+    predicate : CallableTypes
+        Callable iteratively passed both the name and value of each attribute
+        bound to this object, returning ``True`` only if that name and/or value
+        matches this predicate.
+
+    Yields
+    ----------
+    (str, object)
+        2-tuple ``(attr_name, attr_value)`` of the name and value of each
+        matching attribute bound to this object (in ascending lexicographic
+        order of attribute name).
+    '''
+
+    # Return a generator comprehension...
+    return (
+        # Yielding this attribute's name and value...
+        (attr_name, attr_value)
+        # For the name and definition of each attribute bound to this object...
+        for attr_name, attr_value in inspect.getmembers(obj)
+        # If this attribute matches this predicate.
+        if predicate(attr_name, attr_value)
+    )
+
 # ....................{ ITERATORS ~ methods                }....................
+#FIXME: Reimplement in terms of iter_attrs_matching().
 def iter_methods(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each method bound to
@@ -300,16 +337,20 @@ def iter_methods(obj: object) -> GeneratorType:
         :func:`iter_methods_custom_simple` generator excluding all properties.
     '''
 
+    # Return a generator comprehension...
     return (
-        # Yield this method's name and definition.
+        # Yielding this method's name and definition...
         (attr_name, attr_value)
         # For the name and value of each attribute of this object...
         for attr_name, attr_value in inspect.getmembers(obj)
-        # If this attribute is a method...
+        # If this attribute is a method.
         if callable(attr_value)
     )
 
 
+#FIXME: Reimplement in terms of iter_attrs_matching().
+#FIXME: Generalize the passed predicate to accept two rather than one
+#parameters, as with the predicate accepted by iter_attrs_matching().
 @type_check
 def iter_methods_matching(
     obj: object, predicate: CallableTypes) -> GeneratorType:
@@ -338,15 +379,15 @@ def iter_methods_matching(
         Further details.
     '''
 
+    # Return a generator comprehension...
     return (
-        # Yield this method's name and definition.
+        # Yielding this method's name and definition...
         (method_name, method)
         # For the name and definition of each method bound to this object...
         for method_name, method in iter_methods(obj)
-        # If this method matches this predicate...
+        # If this method matches this predicate.
         if predicate(method_name)
     )
-
 
 
 def iter_methods_custom(obj: object) -> GeneratorType:
@@ -378,6 +419,7 @@ def iter_methods_custom(obj: object) -> GeneratorType:
             method_name.startswith('__') and method_name.endswith('__')))
 
 # ....................{ ITERATORS ~ vars                   }....................
+#FIXME: Reimplement in terms of iter_attrs_matching().
 def iter_vars(obj: object) -> GeneratorType:
     '''
     Generator yielding a 2-tuple of the name and value of each variable bound to
@@ -416,14 +458,18 @@ def iter_vars(obj: object) -> GeneratorType:
         :func:`iter_vars_simple_custom` generator excluding all properties.
     '''
 
-    # For the name and value of each attribute of this object...
-    for var_name, var_value in inspect.getmembers(obj):
+    # Return a generator comprehension...
+    return (
+        # Yielding this variable's name and definition...
+        (var_name, var_value)
+        # For the name and value of each attribute of this object...
+        for var_name, var_value in inspect.getmembers(obj)
         # If this attribute is *NOT* a method, yield this name and value.
-        if not callable(var_value):
-            yield var_name, var_value
+        if not callable(var_value)
+    )
 
 
-
+#FIXME: Reimplement in terms of iter_attrs_matching().
 def iter_vars_custom(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin

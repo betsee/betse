@@ -127,8 +127,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         'Single Cell', 'Transmembrane Current Density',))
     def export_cell_current_membrane(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot all transmembrane current densities for all time steps for the
-        single cell indexed by the current simulation configuration.
+        Plot all transmembrane current densities for the single cell indexed by
+        the current simulation configuration over all time steps.
         '''
 
         # Prepare to export the current plot.
@@ -186,15 +186,80 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         # Export this plot to disk and/or display.
         self._export(basename='Imem_time')
 
+    # ..................{ EXPORTERS ~ deform                 }..................
+    @exporter_metadata(
+        categories=('Single Cell', 'Deformation',),
+        requirements={piperunreq.DEFORM,},
+    )
+    def export_cell_deform(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot the physical cellular deformation for the single cell indexed by
+        the current simulation configuration over all time steps.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        # Extract time-series deformation data for the plot cell.
+        dx = np.asarray([
+            arr[self._phase.p.plot_cell]
+            for arr in self._phase.sim.dx_cell_time])
+        dy = np.asarray([
+            arr[self._phase.p.plot_cell]
+            for arr in self._phase.sim.dy_cell_time])
+
+        # Get the total magnitude.
+        disp = np.sqrt(dx**2 + dy**2)
+
+        pyplot.figure()
+        axD = pyplot.subplot(111)
+        axD.plot(self._phase.sim.time, self._phase.p.um*disp)
+        axD.set_xlabel('Time [s]')
+        axD.set_ylabel('Displacement [um]')
+        axD.set_title('Displacement of cell {}'.format(self._phase.p.plot_cell))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Displacement_time')
+
     # ..................{ EXPORTERS ~ cell : ion             }..................
+    @exporter_metadata(
+        categories=('Single Cell', 'Ion Concentration', 'Calcium'),
+        requirements={piperunreq.ION_CA,},
+    )
+    def export_cell_ion_calcium(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all calcium (i.e., Ca2+) ion concentrations for the single cell
+        indexed by the current simulation configuration over all time steps.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figA, axA = plotutil.plotSingleCellCData(
+            self._phase.sim.cc_time,
+            self._phase.sim.time,
+            self._phase.sim.iCa,
+            self._phase.p.plot_cell,
+            fig=None,
+            ax=None,
+            lncolor='g',
+            ionname='Ca2+ cell',
+        )
+        axA.set_title('Cytosolic Ca2+ in cell {}'.format(
+            self._phase.p.plot_cell))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='cytosol_Ca_time')
+
+
     @exporter_metadata(
         categories=('Single Cell', 'Ion Concentration', 'M anion'),
         requirements={piperunreq.ION_M,},
     )
     def export_cell_ion_m_anion(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot all M anion (i.e., M-) ion concentrations for all time steps for
-        the single cell indexed by the current simulation configuration.
+        Plot all M anion (i.e., M-) ion concentrations for the single cell
+        indexed by the current simulation configuration over all time steps.
         '''
 
         # Prepare to export the current plot.
@@ -222,8 +287,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     )
     def export_cell_ion_potassium(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot all potassium (i.e., K+) ion concentrations for all time steps for
-        the single cell indexed by the current simulation configuration.
+        Plot all potassium (i.e., K+) ion concentrations for the single cell
+        indexed by the current simulation configuration over all time steps.
         '''
 
         # Prepare to export the current plot.
@@ -252,8 +317,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     )
     def export_cell_ion_sodium(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot all sodium (i.e., Na+) ion concentrations for all time steps for
-        the single cell indexed by the current simulation configuration.
+        Plot all sodium (i.e., Na+) ion concentrations for the single cell
+        indexed by the current simulation configuration over all time steps.
         '''
 
         # Prepare to export the current plot.
@@ -278,14 +343,43 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ EXPORTERS ~ pressure               }..................
     @exporter_metadata(
-        categories=('Single Cell', 'Pressure Total',),
+        categories=('Single Cell', 'Pressure', 'Osmotic',),
+        requirements={piperunreq.PRESSURE_OSMOTIC,},
+    )
+    def export_cell_pressure_osmotic(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot the osmotic cellular pressure for the single cell indexed by the
+        current simulation configuration over all time steps.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        p_osmo = tuple(
+            arr[self._phase.p.plot_cell]
+            for arr in self._phase.sim.osmo_P_delta_time)
+
+        pyplot.figure()
+        axOP = pyplot.subplot(111)
+        axOP.plot(self._phase.sim.time, p_osmo)
+        axOP.set_xlabel('Time [s]')
+        axOP.set_ylabel('Osmotic Pressure [Pa]')
+        axOP.set_title(
+            'Osmotic pressure in cell {}'.format(self._phase.p.plot_cell))
+
+        # Export this plot to disk and/or display.
+        self._export(basename='OsmoticP_time')
+
+
+    @exporter_metadata(
+        categories=('Single Cell', 'Pressure', 'Total',),
         requirements={piperunreq.PRESSURE_TOTAL,},
     )
     def export_cell_pressure_total(self, conf: SimConfVisualListable = None) -> None:
         '''
         Plot the **total cellular pressure** (i.e., summation of the cellular
-        mechanical and osmotic pressure) for all time steps for the single cell
-        indexed by the current simulation configuration.
+        mechanical and osmotic pressure) for the single cell indexed by the
+        current simulation configuration over all time steps.
         '''
 
         # Prepare to export the current plot.
@@ -313,9 +407,9 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         'Single Cell', 'Na-K-ATPase Pump Rate',))
     def export_cell_pump_nakatpase(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot the averages of the Na-K-ATPase membrane pump rates for all time
-        steps for the single cell indexed by the current simulation
-        configuration.
+        Plot the averages of the Na-K-ATPase membrane pump rates for the single
+        cell indexed by the current simulation configuration over all time
+        steps.
         '''
 
         # Prepare to export the current plot.
@@ -352,8 +446,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         'Single Cell', 'Transmembrane Voltages', 'Average',))
     def export_cell_voltage_membrane(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot the averages of all transmembrane voltages for all time steps for
-        the single cell indexed by the current simulation configuration.
+        Plot the averages of all transmembrane voltages for the single cell
+        indexed by the current simulation configuration over all time steps.
         '''
 
         # Prepare to export the current plot.
@@ -388,8 +482,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self, conf: SimConfVisualListable = None) -> None:
         '''
         Plot the fast Fourier transform (FFT) of the averages of all
-        transmembrane voltages for all time steps for the single cell indexed by
-        the current simulation configuration.
+        transmembrane voltages for the single cell indexed by the current
+        simulation configuration over all time steps.
         '''
 
         # Prepare to export the current plot.
@@ -406,6 +500,112 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
         # Export this plot to disk and/or display.
         self._export(basename='Vmem_FFT_time')
+
+    # ..................{ EXPORTERS ~ cells : voltage        }..................
+    @exporter_metadata(
+        categories=('Cell Cluster', 'Voltage', 'Transmembrane', 'Accurate',))
+    def export_cells_voltage_membrane(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all transmembrane voltages (Vmem) for all cell membranes at the
+        last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figV, axV, cbV = plotutil.plotPrettyPolyData(
+            1000*self._phase.sim.vm_time[-1],
+            self._phase.sim, self._phase.cells, self._phase.p,
+            clrAutoscale=self._phase.p.autoscale_Vmem,
+            clrMin=self._phase.p.Vmem_min_clr,
+            clrMax=self._phase.p.Vmem_max_clr,
+            number_cells=self._phase.p.enumerate_cells,
+            clrmap=self._phase.p.default_cm,
+            current_overlay=False,
+            plotIecm=self._phase.p.IecmPlot,
+        )
+
+        figV.suptitle('Final Vmem', fontsize=14, fontweight='bold')
+        axV.set_xlabel('Spatial distance [um]')
+        axV.set_ylabel('Spatial distance [um]')
+        cbV.set_label('Voltage mV')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_Vmem_2D')
+
+
+    @exporter_metadata(
+        categories=('Cell Cluster', 'Voltage', 'Transmembrane', 'Average',))
+    def export_cells_voltage_membrane_average(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot the averages of all transmembrane voltages (Vmem) for all cells
+        at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figVa, axVa, cbVa = plotutil.plotPolyData(
+            self._phase.sim, self._phase.cells, self._phase.p,
+            zdata=1000*self._phase.sim.vm_ave,
+            clrAutoscale=self._phase.p.autoscale_Vmem,
+            clrMin=self._phase.p.Vmem_min_clr,
+            clrMax=self._phase.p.Vmem_max_clr,
+            number_cells=self._phase.p.enumerate_cells,
+            clrmap=self._phase.p.default_cm,
+            current_overlay=False,
+            plotIecm=self._phase.p.IecmPlot,
+        )
+
+        # axVa.quiver(
+        #     p.um*cells.cell_centres[:,0],
+        #     p.um*cells.cell_centres[:,1], sim.pol_cell_x, sim.pol_cell_y)
+
+        figVa.suptitle('Final Average Vmem', fontsize=14, fontweight='bold')
+        axVa.set_xlabel('Spatial distance [um]')
+        axVa.set_ylabel('Spatial distance [um]')
+        cbVa.set_label('Voltage [mV]')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_AverageVmem_2D')
+
+
+    @exporter_metadata(
+        categories=('Cell Cluster', 'Voltage', 'Extracellular',),
+        requirements={piperunreq.ECM,},
+    )
+    def export_cells_voltage_extra(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all extracellular voltages for the cell cluster environment at the
+        last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        vv = self._phase.sim.v_env.reshape(self._phase.cells.X.shape)
+        vv = gaussian_filter(vv, 1, mode='constant')
+
+        pyplot.figure()
+        pyplot.imshow(
+            1e3*vv,
+            origin='lower',
+            extent=[
+                self._phase.p.um*self._phase.cells.xmin,
+                self._phase.p.um*self._phase.cells.xmax,
+                self._phase.p.um*self._phase.cells.ymin,
+                self._phase.p.um*self._phase.cells.ymax
+            ],
+            cmap=self._phase.p.default_cm,
+        )
+        pyplot.colorbar()
+        pyplot.title('Environmental Voltage [mV]')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_environmental_V')
 
     # ..................{ PRIVATE ~ preparers                }..................
     def _export_prep(self) -> None:
@@ -517,23 +717,23 @@ def pipeline(phase: SimPhaseABC) -> None:
     if not phase.p.plot.is_after_sim:
        return
 
-    #FIXME: Excise this once no longer required.
-    # Substring prefixing the absolute path of each plot created below.
-    savedImg = paths.join(phase.save_dirname, 'fig_')
+    #FIXME: Consider shifting all single-cell plots into a separate plot
+    #pipeline associated with a different YAML key for the following reasons:
+    #
+    #* Single-cell plots require a different YAML configuration from
+    #  multi-cell plots. Specifically:
+    #  * Single-cell plots require a "cell index" key.
+    #  * Multi-cell plots require a "colorbar" key.
+    #* Separating this conjoined pipeline into two distinct pipelines permits
+    #  each associated "SimConfList" to be assigned a unique
+    #  "SimConfVisualListable" subclass.
+    #* Attempting to construct a GUI around the current conjoined pipeline will
+    #  be awkward at best, due to the different configuration needs of the two
+    #  types of plots.
+    #* This conjoined pipeline is already much too large. Attempting to document
+    #  this conjoined pipeline in the YAML file is cumbersome and error-prone.
 
-    #-------------------------------------------------------------------------------------------------------------------
-    #               SINGLE CELL DATA GRAPHS
-    #-------------------------------------------------------------------------------------------------------------------
-
-    #FIXME: Replace these local variable placeholders with the equivalent
-    #"phase.sim", "phase.cells", and "phase.p". To do so, continue iteratively
-    #pushing these declarations further and further down this function until
-    #they are no longer required at all.
-    sim   = phase.sim
-    cells = phase.cells
-    p     = phase.p
-
-    if p.plot_single_cell_graphs:
+    if phase.p.plot_single_cell_graphs:
         # Plot all cell transmembrane voltages.
         pipeliner.export_cell_voltage_membrane()
         pipeliner.export_cell_voltage_membrane_fft()
@@ -543,6 +743,10 @@ def pipeline(phase: SimPhaseABC) -> None:
 
         # Plot all Na-K-ATPase pump rates.
         pipeliner.export_cell_pump_nakatpase()
+
+        # If calcium is enabled, plot all cell calcium concentrations.
+        if phase.p.ions_dict['Ca'] == 1:
+            pipeliner.export_cell_ion_calcium()
 
         # If M anions are enabled, plot all cell M anion concentrations.
         if phase.p.ions_dict['M'] == 1:
@@ -556,149 +760,41 @@ def pipeline(phase: SimPhaseABC) -> None:
         if phase.p.ions_dict['Na'] == 1:
             pipeliner.export_cell_ion_sodium()
 
-        # If pressure is enabled, plot all cell pressure totals.
+        # If deformations are enabled, plot all cell deformations.
+        if phase.p.deformation:
+            pipeliner.export_cell_deform()
+
+        # If osmotic pressure is enabled, plot all cell osmotic pressures.
+        if phase.p.deform_osmo:
+            pipeliner.export_cell_pressure_osmotic()
+
+        # If any pressure is enabled, plot all cell pressure totals.
         if piperunreq.PRESSURE_TOTAL.is_satisfied(phase):
             pipeliner.export_cell_pressure_total()
-
-        # optional 1D plots--------------------------------------------------------------------------------------------
-
-
-        # Plot cell calcium vs time (if Ca enabled in ion profiles).
-        if p.ions_dict['Ca'] ==1:
-            figA, axA = plotutil.plotSingleCellCData(
-                sim.cc_time, sim.time, sim.iCa, p.plot_cell,
-                fig=None,
-                ax=None,
-                lncolor='g',
-                ionname='Ca2+ cell',
-            )
-            titCa = 'Cytosolic Ca2+ in cell index ' + str(p.plot_cell)
-            axA.set_title(titCa)
-
-            if p.plot.is_after_sim_save is True:
-                savename3 = savedImg + 'cytosol_Ca_time' + '.png'
-                pyplot.savefig(savename3,dpi=300,format='png',transparent=True)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
-
-
-        if p.deform_osmo is True:
-            p_osmo = [arr[p.plot_cell] for arr in sim.osmo_P_delta_time]
-            pyplot.figure()
-            axOP = pyplot.subplot(111)
-            axOP.plot(sim.time, p_osmo)
-            axOP.set_xlabel('Time [s]')
-            axOP.set_ylabel('Osmotic Pressure [Pa]')
-            axOP.set_title('Osmotic pressure in cell ' + str(p.plot_cell) )
-
-            if p.plot.is_after_sim_save is True:
-                savename = savedImg + 'OsmoticP_' + '.png'
-                pyplot.savefig(savename,dpi=300,format='png',transparent=True)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
-
-        # Total displacement in cell.
-        if phase.p.deformation is True and phase.kind is SimPhaseKind.SIM:
-            # Extract time-series deformation data for the plot cell.
-            dx = np.asarray([arr[p.plot_cell] for arr in sim.dx_cell_time])
-            dy = np.asarray([arr[p.plot_cell] for arr in sim.dy_cell_time])
-
-            # Get the total magnitude.
-            disp = np.sqrt(dx**2 + dy**2)
-
-            pyplot.figure()
-            axD = pyplot.subplot(111)
-            axD.plot(sim.time, p.um*disp)
-            axD.set_xlabel('Time [s]')
-            axD.set_ylabel('Displacement [um]')
-            axD.set_title('Displacement of cell ' + str(p.plot_cell) )
-
-            if p.plot.is_after_sim_save is True:
-                savename = savedImg + 'Displacement_' + '.png'
-                pyplot.savefig(savename,dpi=300,format='png',transparent=True)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
 
     #-------------------------------------------------------------------------------------------------------------------
     #                       2D Data Map Plotting
     #-------------------------------------------------------------------------------------------------------------------
 
-    if p.plot_vm2d is True:
+    # If plotting Vmem, do so.
+    if phase.p.plot_vm2d:
+        pipeliner.export_cells_voltage_membrane()
+        pipeliner.export_cells_voltage_membrane_average()
 
-        figV, axV, cbV = plotutil.plotPrettyPolyData(1000*sim.vm_time[-1],
-            sim, cells, p,
-            clrAutoscale=p.autoscale_Vmem,
-            clrMin=p.Vmem_min_clr,
-            clrMax=p.Vmem_max_clr,
-            number_cells=p.enumerate_cells,
-            clrmap=p.default_cm,
-            current_overlay=False,
-            plotIecm=p.IecmPlot,
-        )
+        if phase.p.sim_ECM:
+            pipeliner.export_cells_voltage_extra()
 
-        figV.suptitle('Final Vmem',fontsize=14, fontweight='bold')
-        axV.set_xlabel('Spatial distance [um]')
-        axV.set_ylabel('Spatial distance [um]')
-        cbV.set_label('Voltage mV')
+    #FIXME: Excise this once no longer required.
+    # Substring prefixing the absolute path of each plot created below.
+    savedImg = paths.join(phase.save_dirname, 'fig_')
 
-        if p.plot.is_after_sim_save is True:
-            savename5 = savedImg + 'final_Vmem_2D' + '.png'
-            pyplot.savefig(savename5,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-        figVa, axVa, cbVa = plotutil.plotPolyData(
-            sim, cells, p,
-            zdata=1000*sim.vm_ave,
-            clrAutoscale=p.autoscale_Vmem,
-            clrMin=p.Vmem_min_clr,
-            clrMax=p.Vmem_max_clr,
-            number_cells=p.enumerate_cells,
-            clrmap=p.default_cm,
-            current_overlay=False,
-            plotIecm=p.IecmPlot,
-        )
-
-        # axVa.quiver(p.um*cells.cell_centres[:,0], p.um*cells.cell_centres[:,1], sim.pol_cell_x, sim.pol_cell_y)
-
-        figVa.suptitle('Final Average Vmem', fontsize=14, fontweight='bold')
-        axVa.set_xlabel('Spatial distance [um]')
-        axVa.set_ylabel('Spatial distance [um]')
-        cbVa.set_label('Voltage [mV]')
-
-        if p.plot.is_after_sim_save is True:
-            savename5 = savedImg + 'final_AverageVmem_2D' + '.png'
-            pyplot.savefig(savename5, format='png', transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-
-        if p.sim_ECM is True:
-
-            vv = sim.v_env.reshape(cells.X.shape)
-            vv = gaussian_filter(vv, 1, mode = 'constant')
-
-            pyplot.figure()
-            pyplot.imshow(
-                1e3*vv,
-                origin='lower',
-                extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
-                cmap=p.default_cm,
-            )
-            pyplot.colorbar()
-            pyplot.title('Environmental Voltage [mV]')
-
-            if p.plot.is_after_sim_save is True:
-                savename10 = savedImg + 'Final_environmental_V' + '.png'
-                pyplot.savefig(savename10, format='png', transparent=True)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
+    #FIXME: Replace these local variable placeholders with the equivalent
+    #"phase.sim", "phase.cells", and "phase.p". To do so, continue iteratively
+    #pushing these declarations further and further down this function until
+    #they are no longer required at all.
+    sim   = phase.sim
+    cells = phase.cells
+    p     = phase.p
 
     if p.GHK_calc is True:
         figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(

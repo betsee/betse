@@ -754,25 +754,37 @@ results options:
       # Ignored if both "show" and "save" are False.
       pipeline:
         # Example average cell voltage plot.
-        - type: cell_voltage   # Plot type, including any following string:
-          #
-          # Single-cell plots for cell at "plot cell index" include:
+        - type: cell_voltage   # Plot type, as any following string:
           # cell_current_membrane  ->  Single-cell transmembrane current density
+          # cell_deform  ->  Cellular physical displacement
+          #   Ignored unless deformation disabled.
+          # cell_ion_calcium  ->  Single-cell calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
           # cell_ion_m_anion  ->  Single-cell M anion concentration
-          #   Ignored if M anion (M-) disabled by ion profile.
+          #   Ignored if M anion ions (M-) disabled by ion profile.
           # cell_ion_potassium  ->  Single-cell potassium ion concentration
-          #   Ignored if potassium (K+) disabled by ion profile.
+          #   Ignored if potassium ions (K+) disabled by ion profile.
           # cell_ion_sodium  ->  Single-cell sodium ion concentration
-          #   Ignored if sodium (Na+) disabled by ion profile.
+          #   Ignored if sodium ions (Na+) disabled by ion profile.
+          # cell_pressure_osmotic  ->  Single-cell osmotic pressure
+          #   Ignored if osmotic pressure disabled.
           # cell_pressure_total  ->  Single-cell total pressure = osmotic + mechanical
           #   Ignored if osmotic pressure or mechanical pressure event disabled.
           # cell_pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
           # cell_voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
           # cell_voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) fast Fourier
           #                                transform (FFT)
+          # cells_voltage_membrane  ->  Cell cluster last time step transmembrane voltage (Vmem)
+          # cells_voltage_membrane_average  ->  Cell cluster last time step transmembrane voltage (Vmem) average
+          # cells_voltage_extra  ->  Cell cluster last time step extracellular voltage
+          #   Ignored if extracellular spaces disabled.
+          #
+          # Plot types prefixed by "cell_" are single-cell plots specific to the
+          # cell selected by the "plot cell index" setting.
 
           enabled: True        # Enable this plot?
-          colorbar:            # Plot colorbar settings.
+          colorbar:            # Plot colorbar settings. Ignored for single-cell
+                               # plots (i.e., plot types prefixed by "cell_").
             autoscale: True    # Automatically scale colorbar to minimum and
                                # maximum values of underlying data series?
             minimum: -70.0     # Minimum fixed colorbar value. Ignored if
@@ -793,7 +805,7 @@ results options:
           # current_intra  ->  Intracellular current density
           # current_total  ->  Intra- and extracellular current density
           #   Ignored if extracellular spaces disabled.
-          # deform  ->  Deformation
+          # deform  ->  Cellular physical displacement
           #   Ignored unless deformation disabled.
           # electric_intra  ->  Intracellular electric field
           # electric_total  ->  Intra- and extracellular electric field
@@ -803,9 +815,9 @@ results options:
           # fluid_total  ->  Intra- and extracellular fluid flow
           #   Ignored if fluid flow or extracellular spaces disabled.
           # ion_calcium  ->  Calcium ion concentration
-          #   Ignored if calcium (Ca2+) disabled by ion profile.
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
           # ion_hydrogen  ->  Hydrogen ion concentration as pH
-          #   Ignored if hydrogen (H+) disabled by ion profile.
+          #   Ignored if hydrogen ions (H+) disabled by ion profile.
           # membrane_gap_junction  ->  Gap junction connectivity state
           # membrane_pump_density  ->  Cell membrane pump density factor
           #   Ignored if channel electroosmosis disabled.
@@ -814,7 +826,7 @@ results options:
           # pressure_total  ->  Cellular total pressure = osmotic + mechanical
           #   Ignored if osmotic pressure or mechanical pressure event disabled.
           # voltage_membrane  ->  Transmembrane voltage (Vmem)
-          # voltage_total  ->  Intra- and extracellular voltage
+          # voltage_extra  ->  Intra- and extracellular voltage
           #   Ignored if extracellular spaces disabled.
 
           enabled: True        # Enable this animation?

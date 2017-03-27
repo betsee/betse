@@ -19,7 +19,6 @@ from betse.science.simulate.pipe.piperun import (
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.util.io.log import logs
 from betse.util.type import strs
-from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
 
@@ -89,53 +88,43 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
     # ..................{ STATIC ~ iterators                 }..................
     @classmethod
-    def iter_runner_methods(cls) -> GeneratorType:
+    def iter_runners(cls) -> GeneratorType:
         '''
-        Generator yielding each runner method defined by this pipeline subclass.
+        Generator yielding a 2-tuple ``(runner_name, runner)`` describing each
+        **runner** (i.e., :class:`SimPipelineRunner` instance produced by the
+        :func:`runner_metadata` decorator decorating this runner's method)
+        defined by this pipeline subclass.
 
-        For each subclass method whose name is prefixed by
-        :attr:`_RUNNER_METHOD_NAME_PREFIX`, this generator yields that method.
+        This generator excludes all methods defined by this pipeline subclass
+        *not* decorated by this decorator.
 
         Yields
         ----------
-        MethodType
-            Each runner method defined by this pipeline subclass.
+        (str, SimPipelineRunner)
+            2-tuple ``(runner_name, runner)`` where:
+            * ``runner_name`` is the name of this runner's underlying method
+              excluding the substring :attr:`_RUNNER_METHOD_NAME_PREFIX`
+              prefixing this name.
+            * ``runner`` is each runner's :class:`SimPipelineRunner` instance.
         '''
 
-        yield from classes.iter_methods_matching(
-            cls=cls,
-            predicate=lambda method_name: method_name.startswith(
-                cls._RUNNER_METHOD_NAME_PREFIX))
-
-
-    @classmethod
-    def iter_runner_names(cls) -> GeneratorType:
-        '''
-        Generator yielding the name of each runner defined by this pipeline
-        subclass.
-
-        For each subclass method whose name is prefixed by
-        :attr:`_RUNNER_METHOD_NAME_PREFIX`, this
-        generator yields that name excluding the prefixing
-        :attr:`_RUNNER_METHOD_NAME_PREFIX`. For example, if this subclass
-        defines only two methods ``run_exhra`` and ``run_intra`` whose names are
-        prefixed by :attr:`_RUNNER_METHOD_NAME_PREFIX`, this generator first
-        yields the string ``extra`` and then the string ``intra`` (in that
-        order).
-
-        Yields
-        ----------
-        str
-            Name of each runner defined by this pipeline.
-        '''
-
+        # Return a generator comprehension...
         return (
-            # Yield the name of this method excluding the runner prefix.
-            strs.remove_prefix(
-                text=runner_method_name, prefix=cls._RUNNER_METHOD_NAME_PREFIX)
-            # For the name of each runner method defined by this subclass...
-            for runner_method_name, _ in cls.iter_runner_methods()
-        )
+            # Yielding a 2-tuple of:
+            #
+            # * The name of this runner's method excluding runner prefix.
+            # * Each "SimPipelineRunner" instance defined on this class.
+            (
+                strs.remove_prefix(
+                    text=runner_method_name,
+                    prefix=cls._RUNNER_METHOD_NAME_PREFIX),
+                runner
+            )
+            # For each such runner's method name and instance.
+            for runner_method_name, runner in objects.iter_attrs_matching(
+                obj=cls,
+                predicate=lambda attr_name, attr_value: (
+                    isinstance(attr_value, SimPipelineRunner))))
 
     # ..................{ INITIALIZERS                       }..................
     @type_check

@@ -103,7 +103,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ EXPORTERS ~ deform                 }..................
     @exporter_metadata(
-        categories=('Cellular Deformation', 'Physical',),
+        categories=('Cellular Deformation',),
         requirements={piperunreq.DEFORM,},
     )
     def export_deform(self, conf: SimConfVisualListable) -> None:
@@ -352,7 +352,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     @exporter_metadata(categories=('Voltage', 'Transmembrane',))
     def export_voltage_membrane(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all transmembrane voltages (i.e., Vmem) for all time steps.
+        Animate all transmembrane voltages (Vmem) for all time steps.
         '''
 
         # Vector of all cell membrane voltages for all time steps.
@@ -375,13 +375,13 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
 
     @exporter_metadata(
-        categories=('Voltage', 'Total',),
+        categories=('Voltage', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_voltage_total(self, conf: SimConfVisualListable) -> None:
+    def export_voltage_extra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all voltages (i.e., both intra- and extracellular) for all time
-        steps.
+        Animate all extracellular voltages for the cell cluster environment over
+        all time steps.
         '''
 
         # List of environment voltages, indexed by time step.

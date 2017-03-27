@@ -28,6 +28,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 from betse.exceptions import BetseNumericException
 from betse.science.config import confdefault, confio
 from betse.science.parameters import Parameters
+from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.anim.animpipe import AnimCellsPipeliner
 from betse.util.io.log import logs
 from betse.util.path import files, paths
@@ -591,20 +592,22 @@ class SimConfigTestWrapper(object):
         # Disable extracellular spaces.
         self._p.sim_ECM = False
 
-        # For each type of export supported by the animation pipeline...
-        for runner_name in AnimCellsPipeliner.iter_runner_names():
+        # For each animation pipeline exporter...
+        for anim_exporter_name, anim_exporter in (
+            AnimCellsPipeliner.iter_runners()):
             #FIXME: Non-ideal. This should dynamically inspect the set of all
             #requirements declared by this exporter at decoration time for a
             #requirement equal to "sim_ECM".
 
             # If this export requires extracellular spaces, ignore this export.
-            if runner_name.endswith('_total'):
+            if piperunreq.ECM in anim_exporter.requirements:
                 continue
             # Else, this export does *NOT* require extracellular spaces.
 
             # New default export of this type appended to this pipeline.
-            runner_conf = self._p.anim.after_sim_pipeline.append_default()
-            runner_conf.name = runner_name
+            anim_exporter_conf = (
+                self._p.anim.after_sim_pipeline.append_default())
+            anim_exporter_conf.name = anim_exporter_name
 
 
     def enable_exports_ecm(self) -> None:
@@ -630,10 +633,11 @@ class SimConfigTestWrapper(object):
         self._p.sim_ECM = True
 
         # For each type of animation supported by the animation pipeline...
-        for runner_name in AnimCellsPipeliner.iter_runner_names():
+        for anim_exporter_name, _ in AnimCellsPipeliner.iter_runners():
             # New default animation of this type appended to this pipeline.
-            runner_conf = self._p.anim.after_sim_pipeline.append_default()
-            runner_conf.name = runner_name
+            anim_exporter_conf = (
+                self._p.anim.after_sim_pipeline.append_default())
+            anim_exporter_conf.name = anim_exporter_name
 
 
     def _enable_visuals_common(self) -> None:

@@ -33,8 +33,8 @@ def from_sequence(sequence: SequenceTypes) -> ndarray:
     ----------
     **This high-level function should always be called in lieue of the low-level
     :func:`np.asarray` function,** which is fundamentally unsafe and should
-    _never_ be called directly. Unlike this function, the :func:`np.asarray`
-    function unsafely converts _any_ arbitrary non-sequence into a Numpy array.
+    *never* be called directly. Unlike this function, the :func:`np.asarray`
+    function unsafely converts *any* arbitrary non-sequence into a Numpy array.
     This function safely wraps the unsafe :func:`np.asarray` function with type
     and sanity checking, preventing that function's overly permissive design
     imperatives from corrupting the fragile purity of this codebase: e.g.,
