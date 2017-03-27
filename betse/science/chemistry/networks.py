@@ -22,9 +22,7 @@ from betse.science.channels import vg_ca as vgca
 from betse.science.channels import vg_cl as vgcl
 from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
-from betse.science.channels import vg_kir as vgkir
 from betse.science.channels import vg_na as vgna
-from betse.science.channels import vg_nap as vgnap
 from betse.science.chemistry.netplot import plot_master_network, set_net_opts
 from betse.science.config.export.confvisabc import SimConfVisualMolecule
 from betse.science.math import modulate as mods
@@ -5448,12 +5446,6 @@ class Channel(object):
             self.dummy_dyna.targets_vgNa = self.channel_targets_mem
             class_string = vgna
 
-        elif ion_string == 'NaP':
-
-            self.dummy_dyna.maxDmNaP = max_val
-            self.dummy_dyna.targets_vgNaP = self.channel_targets_mem
-            class_string = vgnap
-
         elif ion_string == 'K':
 
             self.dummy_dyna.maxDmK = max_val
@@ -5465,12 +5457,6 @@ class Channel(object):
             self.dummy_dyna.maxDmCl = max_val
             self.dummy_dyna.targets_vgCl = self.channel_targets_mem
             class_string = vgcl
-
-        elif ion_string == 'Kir':
-
-            self.dummy_dyna.maxDmKir = max_val
-            self.dummy_dyna.targets_vgKir = self.channel_targets_mem
-            class_string = vgkir
 
         elif ion_string == 'Ca':
 

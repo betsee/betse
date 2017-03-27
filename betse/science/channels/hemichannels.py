@@ -2,8 +2,13 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+# FIXME this module is entirely incomplete and should not be used!
+
 '''
-Cation leak channel classes.
+Hemichannel classes representing gap junction hemichannels (connecting
+cytosol to extracellular space), connexin, and pannexin channels.
+These hemichannels typically release ATP4- into the environmental
+space, but may form a non-selective pore for many small molecules.
 '''
 
 # .................... IMPORTS                            ....................
@@ -16,9 +21,9 @@ from betse.util.io.log import logs
 
 
 # .................... BASE                               ....................
-class CationABC(ChannelsABC, metaclass=ABCMeta):
+class HemiABC(ChannelsABC, metaclass=ABCMeta):
     '''
-    Abstract base class of all non-selective cation channel classes.
+    Abstract base class of all ATP-selective hemichannel channel classes.
 
     Attributes
     ----------
@@ -98,9 +103,7 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         z_K = sim.zs[sim.iK] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCat * P * 1.0e-9*self.modulator
-
-        self.Dmem_time = Dchan   # save the membrane state of the channel
+        Dchan = dyna.maxDmCat * P * 1.0e-9
 
         # calculate specific ion flux contribution for this channel:
         delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
@@ -129,7 +132,7 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASS                           }....................
-class CatLeak(CationABC):
+class CatLeak(HemiABC):
     '''
 
     Membrane leak channel letting Na+, K+ and Ca2+ into the cell

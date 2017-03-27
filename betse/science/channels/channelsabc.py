@@ -57,7 +57,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         targets = np.asarray(targets) # convert targets into an array so we can index with it
 
-        delta_Q = delta_Q*self.modulator*sim.rho_channel
+        delta_Q = delta_Q*sim.rho_channel
 
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the GHK flux equation.

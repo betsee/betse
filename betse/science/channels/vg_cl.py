@@ -100,7 +100,9 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
         z_ion = sim.zs[sim.iCl] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCl*P*1.0e-9    # 1.0e-9 multiplier to approximately convert from conductivity
+        Dchan = dyna.maxDmCl*P*1.0e-9*self.modulator    # 1.0e-9 multiplier to approximately convert from conductivity
+
+        self.Dmem_time = Dchan   # save the membrane state of the channel
 
         # calculate specific ion flux contribution for this channel:
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
@@ -140,7 +142,7 @@ class ClLeak(VgClABC):
 
         """
 
-        logs.log_info('You are using a substance-modulated Cl- channel')
+        logs.log_info('You are using a Cl- leak channel')
 
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:

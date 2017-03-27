@@ -99,7 +99,9 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         z_ion = sim.zs[sim.iCa] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCa*P*1.0e-9
+        Dchan = dyna.maxDmCa*P*1.0e-9*self.modulator
+
+        self.Dmem_time = Dchan   # save the membrane state of the channel
 
         # calculate specific ion flux contribution for this channel:
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
@@ -409,7 +411,6 @@ class Ca_L2(VgCaABC):
         self._hInf = 1.0000 / (1 + np.exp((V - -80.000) / 6.4))
         self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
 
-
 class Ca_L3(VgCaABC):
     '''
 
@@ -471,7 +472,6 @@ class Ca_L3(VgCaABC):
         self._hTau = (20.0000 + 50.0000 / (1 + np.exp((V - -40.000) / 7)))
         # V = V - 10
 
-
 class CaLeak(VgCaABC):
 
     '''
@@ -495,8 +495,8 @@ class CaLeak(VgCaABC):
         self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_Ca = 1
-        dyna.h_Ca = 1
+        dyna.m_Ca = np.ones(sim.mdl)
+        dyna.h_Ca = np.ones(sim.mdl)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0

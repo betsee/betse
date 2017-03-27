@@ -112,7 +112,9 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
             z_Ca = sim.zs[sim.iCa] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmFun*P*1.0e-9
+        Dchan = dyna.maxDmFun*P*1.0e-9*self.modulator
+
+        self.Dmem_time = Dchan   # save the membrane state of the channel
 
         # calculate specific ion flux contribution for this channel:
         delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)

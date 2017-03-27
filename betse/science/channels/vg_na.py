@@ -96,7 +96,9 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         z_ion = sim.zs[sim.iNa] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmNa*P*1.0e-9
+        Dchan = dyna.maxDmNa*P*1.0e-9*self.modulator
+
+        self.Dmem_time = Dchan   # save the membrane state of the channel
 
         # calculate specific ion flux contribution for this channel:
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
@@ -372,7 +374,7 @@ class NaLeak(VgNaABC):
 
         """
 
-        logs.log_info('You are using a substance-modulated Na+ channel')
+        logs.log_info('You are using an Na+ leak channel')
 
 
         self.vrev = 50     # reversal voltage used in model [mV]
@@ -381,8 +383,8 @@ class NaLeak(VgNaABC):
         self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_Na = 1
-        dyna.h_Na = 1
+        dyna.m_Na = np.ones(sim.mdl)
+        dyna.h_Na = np.ones(sim.mdl)
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
