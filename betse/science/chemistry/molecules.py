@@ -207,7 +207,7 @@ class MasterOfMolecules(object):
         for t in tt:
 
             if self.transporters:
-                self.core.run_loop_transporters(t, sim, self.core, cells, p)
+                self.core.run_loop_transporters(t, sim, cells, p)
 
             # if self.modulators:
             #     self.core.run_loop_modulators(sim, self.core, cells, p)

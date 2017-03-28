@@ -1149,15 +1149,15 @@ class Simulator(object):
 
                 if self.molecules.transporters:
 
-                    self.molecules.core.run_loop_transporters(t, self, self.molecules, cells, p)
+                    self.molecules.core.run_loop_transporters(t, self, cells, p)
 
                 if self.molecules.channels:
 
-                    self.molecules.core.run_loop_channels(self, self.molecules, cells, p)
+                    self.molecules.core.run_loop_channels(self, cells, p)
 
                 if self.molecules.modulators:
 
-                    self.molecules.core.run_loop_modulators(self, self.molecules, cells, p)
+                    self.molecules.core.run_loop_modulators(self, cells, p)
 
                 self.molecules.core.run_loop(t, self, cells, p)
 
@@ -1166,15 +1166,15 @@ class Simulator(object):
             if p.metabolism_enabled:
 
                 if self.metabo.transporters:
-                    self.metabo.core.run_loop_transporters(t, self, self.metabo.core, cells, p)
+                    self.metabo.core.run_loop_transporters(t, self, cells, p)
 
                 if self.metabo.channels:
 
-                    self.metabo.core.run_loop_channels(self, self.metabo.core, cells, p)
+                    self.metabo.core.run_loop_channels(self, cells, p)
 
                 if self.metabo.modulators:
 
-                    self.metabo.core.run_loop_modulators(self, self.metabo.core, cells, p)
+                    self.metabo.core.run_loop_modulators(self, cells, p)
 
                 self.metabo.core.run_loop(t, self, cells, p)
 
@@ -1183,13 +1183,13 @@ class Simulator(object):
             if p.grn_enabled:
 
                 if self.grn.transporters:
-                    self.grn.core.run_loop_transporters(t, self, self.grn.core, cells, p)
+                    self.grn.core.run_loop_transporters(t, self, cells, p)
 
                 if self.grn.channels and p.run_sim is True:
-                    self.grn.core.run_loop_channels(self, self.grn.core, cells, p)
+                    self.grn.core.run_loop_channels(self, cells, p)
 
                 if self.grn.modulators:
-                    self.grn.core.run_loop_modulators(self, self.grn.core, cells, p)
+                    self.grn.core.run_loop_modulators(self, cells, p)
 
                 # update the main gene regulatory network:
                 self.grn.core.run_loop(t, self, cells, p)

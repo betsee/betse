@@ -630,6 +630,13 @@ class MasterOfNetworks(object):
         for trans_name in self.transporters:
             self.react_handler[trans_name] = self.transporters[trans_name].transporter_eval_string + div_string
 
+
+        # FIXME this don't work in practice!
+
+        # for chan_name in self.channels:
+        #
+        #     self.react_handler[chan_name] = "self.channels[{}].channel_core.chan_flux.mean()".format(chan_name) + div_string
+
         self.react_handler_index = {}
 
         for i, rea_name in enumerate(self.react_handler):
@@ -2757,7 +2764,7 @@ class MasterOfNetworks(object):
             self.mit.extra_rho = self.extra_rho_mit[:]
             self.mit.update(sim, cells, p)
 
-    def run_loop_transporters(self, t, sim, sim_metabo, cells, p):
+    def run_loop_transporters(self, t, sim, cells, p):
 
         # call statement to evaluate:
         for name in self.transporters:
@@ -2873,7 +2880,7 @@ class MasterOfNetworks(object):
 
             # print("---------------------------------")
 
-    def run_loop_channels(self, sim, sim_metabo, cells, p):
+    def run_loop_channels(self, sim, cells, p):
 
         # get the object corresponding to the specific transporter:
         for i, name in enumerate(self.channels):
@@ -2887,7 +2894,7 @@ class MasterOfNetworks(object):
 
             self.channels[name].channel_core.run(self.channels[name].dummy_dyna, sim, cells, p)
 
-    def run_loop_modulators(self, sim, sim_metabo, cells, p):
+    def run_loop_modulators(self, sim, cells, p):
 
         # get the object corresponding to the specific transporter:
         for i, name in enumerate(self.modulators):
@@ -3853,6 +3860,69 @@ class MasterOfNetworks(object):
                         graphicus_maximus.add_edge(pydot.Edge(name, prod_name, arrowhead='normal', coeff = prod_coeff,
                                                               ))
 
+        # if there are any channels, plot them on the graph:
+        if len(self.channels) > 0:
+
+            for ch_k, ch_v in self.channels.items():
+
+                nde = pydot.Node(ch_k, style='filled', shape=self.channel_shape)
+                graphicus_maximus.add_node(nde)
+
+                ch_type = ch_v.channel_class
+
+                if ch_type == 'K':
+
+                    graphicus_maximus.add_edge(pydot.Edge('K', ch_k, arrowhead='normal', coeff=1.0,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'K_env', arrowhead='normal', coeff=1.0,
+                                                          ))
+
+                elif ch_type == 'Na':
+
+                    graphicus_maximus.add_edge(pydot.Edge('Na', ch_k, arrowhead='normal', coeff=1.0,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'Na_env', arrowhead='normal', coeff=1.0,
+                                                          ))
+
+                elif ch_type == 'Cl':
+
+                    graphicus_maximus.add_edge(pydot.Edge('Cl', ch_k, arrowhead='normal', coeff=1.0,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'Cl_env', arrowhead='normal', coeff=1.0,
+                                                          ))
+
+                elif ch_type == 'Fun':
+
+                    graphicus_maximus.add_edge(pydot.Edge('K', ch_k, arrowhead='normal', coeff=1.0,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'K_env', arrowhead='normal', coeff=1.0,
+                                                          ))
+
+                    graphicus_maximus.add_edge(pydot.Edge('Na', ch_k, arrowhead='normal', coeff=0.2,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'Na_env', arrowhead='normal', coeff=0.2,
+                                                          ))
+
+                elif ch_type == 'Cat':
+
+                    graphicus_maximus.add_edge(pydot.Edge('K', ch_k, arrowhead='normal', coeff=1.0,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'K_env', arrowhead='normal', coeff=1.0,
+                                                          ))
+
+                    graphicus_maximus.add_edge(pydot.Edge('Na', ch_k, arrowhead='normal', coeff=1.0,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'Na_env', arrowhead='normal', coeff=1.0,
+                                                          ))
+
+                elif ch_type == 'Ca':
+
+                    graphicus_maximus.add_edge(pydot.Edge('Ca', ch_k, arrowhead='normal', coeff=1.0,
+                                                          ))
+                    graphicus_maximus.add_edge(pydot.Edge(ch_k, 'Ca_env', arrowhead='normal', coeff=1.0,
+                                                          ))
+
+
         return graphicus_maximus
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
@@ -4329,10 +4399,12 @@ class MasterOfNetworks(object):
             self.opti_method, self.opti_N)
         logs.log_info(mssg)
 
-        # set the vmem and Vmit to generalized values common to many cell types:
+        # set the Vmem to target value requested by user:
         sim.vm = self.target_vmem
 
         if self.mit_enabled:
+
+        # set Vmit to standard value
             self.mit.Vmit[:] = -150.0e-3
 
         self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
@@ -4354,6 +4426,13 @@ class MasterOfNetworks(object):
         self.net_graph = network
 
         self.build_indices(sim, cells, p)
+
+        # Initialize channels, if there are any:
+        if len(self.channels):
+
+            sim.rho_channel = 1
+
+            self.run_loop_channels(sim, cells, p)
 
         # Optimization Matrix for Concentrations:----------------------------------------------------------------------
 
@@ -4424,6 +4503,7 @@ class MasterOfNetworks(object):
 
         # restructure the optimization matrix, first by removing the environmental values as we'll assume they're constant:
         MM = []
+        self.output_handler = OrderedDict({})
 
         for i, (k, v) in enumerate(self.conc_handler.items()):
 
@@ -4436,8 +4516,15 @@ class MasterOfNetworks(object):
             else:
                 MM.append(self.network_opt_M[i, :].tolist())
 
+                name_tag = 'd/dt ' + str(k)
+                self.output_handler[name_tag] = v
+
         # next define a current expression as the final row:
         Jrow = [0 for nn in self.react_handler]
+
+        # current scaling factor for dV/dt:
+        # ff = -(1/p.cm)
+        ff = -1.0
 
         for i, (k, v) in enumerate(self.react_handler.items()):
 
@@ -4445,21 +4532,22 @@ class MasterOfNetworks(object):
 
                 kk = k[:-3]  # get the proper keyname...
                 z = self.zmol[kk]  # get the charge value...
-                Jrow[i] = z * p.F
+                Jrow[i] = z*ff
 
             if k in self.transporters:
 
                 for li in self.transporters[k].transport_in_list:
                     z = self.zmol[li]
                     coeff = self.net_graph.edge[k][li][0]['coeff']
-                    Jrow[i] += -coeff * z * p.F
+                    Jrow[i] += -coeff * z *ff
 
                 for lo in self.transporters[k].transport_out_list:
                     z = self.zmol[lo]
                     coeff = self.net_graph.edge[lo][k][0]['coeff']
-                    Jrow[i] += coeff * z * p.F
+                    Jrow[i] += coeff * z *ff
 
         MM.append(Jrow)
+        self.output_handler['d/dt Vmem'] = 0
 
         MM = np.array(MM)
 
@@ -4567,29 +4655,76 @@ class MasterOfNetworks(object):
         iK = self.react_handler_index['K_ed']
         iM = self.react_handler_index['M_ed']
 
+        if 'Cl_ed' in self.react_handler_index:
+
+            iCl = self.react_handler_index['Cl_ed']
+
+
+        else:
+
+            iCl = None
+
 
         # define an optimization function: this one solves for Vmem using the Goldman equation and the present
         # fit's value of Pmem adjustments. It then recalculates r_base and optimizes steady-state by
         # finding minimum concentration changes,
         # zero transmembrane currents, and target Vmem values:
+        self.channel_test = []
 
         def opt_funk(v_base_o):
 
-            sim.vm = ((p.R * sim.T / p.F) * np.log(
-                (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
-                 np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env'] +
-                 np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M']) /
-                (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
-                 np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K'] +
-                 np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M_env'])))
+            # FIXME add in the effect of channels by evaluating the channel string and determining self.Dmem_time for
+            # each ion???
+
+            if iCl is None:
+
+                # sim.vm = ((p.R * sim.T / p.F) * np.log(
+                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
+                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env'] +
+                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M']) /
+                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
+                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K'] +
+                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M_env'])))
+
+                sim.vm = (p.R * sim.T / p.F) * np.log(
+                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
+                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env']
+                    ) /
+                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
+                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K']
+                     ))
+
+            else:
+
+                # sim.vm = (p.R * sim.T / p.F) * np.log(
+                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
+                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env'] +
+                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M'] +
+                #     np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl'])/
+                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
+                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K'] +
+                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M_env']+
+                #      np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl_env'])
+                # )
+
+                sim.vm = (p.R * sim.T / p.F) * np.log(
+                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
+                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env'] +
+                    np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl'])/
+                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
+                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K'] +
+                     np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl_env'])
+                )
+
+            self.channel_test.append(sim.vm*1)
 
             r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
 
             delta_c = (np.dot(MM, np.abs(v_base_o) * r_base)) ** 2
 
-            cc2 = ((sim.vm - self.target_vmem) * 1e3) ** 2
+            cc2 = ((sim.vm - self.target_vmem)*1e3) ** 2
 
-            chi_sqr = (1/ci)*np.sum(delta_c) + np.sum(cc2)
+            chi_sqr = np.sum(delta_c) + np.sum(cc2)
 
             return chi_sqr
 
@@ -4872,7 +5007,7 @@ class Molecule(object):
                     cells, p, Df=self.Do, z=self.z, pump_into_cell=self.pump_to_cell, alpha_max=self.pump_max_val,
                     Km_X=self.pump_Km, Keq= 1.0, ignoreECM = self.ignore_ECM_pump, rho = sim.rho_pump)
 
-    def gating(self, sim, sim_metabo, cells, p):
+    def gating(self, sim, cells, p):
         """
         Uses the molecule concentration to open an ion channel in the cell membranes.
 

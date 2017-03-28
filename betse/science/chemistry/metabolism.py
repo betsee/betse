@@ -268,7 +268,7 @@ class MasterOfMetabolism(object):
         for t in tt:
 
             if self.transporters:
-                self.core.run_loop_transporters(t, sim, self.core, cells, p)
+                self.core.run_loop_transporters(t, sim, cells, p)
 
             # if self.channels:
             #     self.core.run_loop_channels(sim, self.core, cells, p)
