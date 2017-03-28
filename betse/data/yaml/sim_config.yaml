@@ -718,8 +718,8 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
-  use Goldman calculator: True   # calculate alternative Vmem using the Goldman
-                                  # equation for comparison purposes?
+  use Goldman calculator: True   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK) 
+                                 # voltage equation for comparison purposes?
 
 # ----------------------------------------------------------------------------------------------------------------------
 # RESULTS
@@ -774,9 +774,21 @@ results options:
           # cell_voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
           # cell_voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) fast Fourier
           #                                transform (FFT)
-          # cells_voltage_membrane  ->  Cell cluster last time step transmembrane voltage (Vmem)
-          # cells_voltage_membrane_average  ->  Cell cluster last time step transmembrane voltage (Vmem) average
-          # cells_voltage_extra  ->  Cell cluster last time step extracellular voltage
+          # cells_ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+          # cells_ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
+          #   disabled.
+          # cells_ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
+          #   Ignored if hydrogen ions (H+) disabled by ion profile.
+          # cells_pump_nakatpase  ->  Final cell cluster Na-K-ATPase pump rate
+          # cells_voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
+          # cells_voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem)
+          #                                     average
+          # cells_voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem)
+          #                                 calculated by Goldman-Hodgkin-Katz (GHK) equation 
+          #   Ignored if GHK calculation disabled.
+          # cells_voltage_extra  ->  Final cell cluster extracellular voltage
           #   Ignored if extracellular spaces disabled.
           #
           # Plot types prefixed by "cell_" are single-cell plots specific to the

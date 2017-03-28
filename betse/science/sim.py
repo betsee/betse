@@ -197,6 +197,24 @@ class Simulator(object):
         Equivalently, this list is the concatenation of all :attr:`E_gj_y`
         arrays for all time steps.
 
+    Attributes (Ion)
+    ----------
+    cc_cells : ndarray
+        Two-dimensional Numpy array of all cellular ion concentrations for the
+        current time step, whose:
+        * First dimension indexes each ion enabled by the current ion profile.
+        * Second dimension indexes each cell such that each element is the
+          concentration of that ion in that cell.
+    cc_time : list
+        Three-dimensional list of all cellular ion concentrations for all time
+        steps, whose:
+        * First dimension indexes each time step.
+        * Second dimension indexes each ion such that each element is the array
+          of all cellular concentrations of that ion, defined as for the
+          :attr:`cc_cells` array.
+        Equivalently, this list is the concatenation of all :attr:`cc_cells`
+        arrays for all time steps.
+
     Attributes (Ion: Index)
     ----------
     The following ion indices are dynamically defined by the
@@ -228,15 +246,16 @@ class Simulator(object):
     ----------
     P_cells : ndarray
         One-dimensional Numpy array indexing each cell such that each element is
-        the **total pressure** (i.e., summation of the mechanical and osmotic
-        pressure) spatially situated at the centre of the cell indexed by that
-        element for the current time step.
+        the **total cellular pressure** (i.e., summation of the mechanical and
+        osmotic cellular pressure) spatially situated at the centre of the cell
+        indexed by that element for the current time step.
     P_cells_time : list
-        Two-dimensional list of the **total pressure** (i.e., summation of the
-        mechanical and osmotic pressure) for all time steps, whose:
+        Two-dimensional list of all **total cellular pressures** (i.e.,
+        summation of all mechanical and osmotic cellular pressures) for all time
+        steps, whose:
         * First dimension indexes each time step.
         * Second dimension indexes each cell such that each element is the
-          mechanical pressure defined as for the :attr:`P_cells` array.
+          total pressure for that cell defined as for the :attr:`P_cells` array.
         Equivalently, this list is the concatenation of all :attr:`P_cells`
         arrays for all time steps.
 

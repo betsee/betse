@@ -20,7 +20,7 @@ from betse.util.type.types import (
 
 # ....................{ DECORATORS                         }....................
 @type_check
-def runner_metadata(
+def piperunner(
     # Mandatory metadata.
     categories: SequenceTypes,
 
@@ -84,7 +84,7 @@ def runner_metadata(
     '''
 
     @type_check
-    def _runner_metadata_closure(method: CallableTypes) -> SimPipelineRunner:
+    def _piperunner_closure(method: CallableTypes) -> SimPipelineRunner:
         '''
         Closure both type-checking *and* annotating the passed simulation
         pipeline runner method with the metadata passed to the outer decorator
@@ -103,7 +103,7 @@ def runner_metadata(
 
         See Also
         ----------
-        :func:`runner_metadata`
+        :func:`piperunner`
             Further details.
         '''
 
@@ -116,30 +116,14 @@ def runner_metadata(
         )
 
     # Return the closure accepting the method to be decorated.
-    return _runner_metadata_closure
-
-# ....................{ DECORATORS ~ alias                 }....................
-# For each abstract "SimPipelineABC" subclass (e.g., "SimPipelinerExportABC"),
-# alias the @runner_metadata decorator to a name specific to that subclass.
-
-exporter_metadata = runner_metadata
-'''
-Decorator annotating simulation export pipeline **runners** (i.e., methods of
-:class:`SimPipelinerExportABC` subclasses with names prefixed by
-:attr:`SimPipelinerExportABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
-
-See Also
-----------
-:func:`runner_metadata`
-    Further details.
-'''
+    return _piperunner_closure
 
 # ....................{ CLASSES                            }....................
 class SimPipelineRunner(MethodDecorator):
     '''
     Class decorator annotating simulation pipeline runners with custom metadata.
 
-    All such runners decorated by the :func:`runner_metadata` decorator are
+    All such runners decorated by the :func:`piperunner` decorator are
     guaranteed to be instances of this class, which provides all metadata passed
     to this decorator as instance variables of the same name.
 
@@ -160,7 +144,7 @@ class SimPipelineRunner(MethodDecorator):
 
     See Also
     ----------
-    :func:`runner_metadata`
+    :func:`piperunner`
         Further details.
     '''
 
@@ -252,7 +236,7 @@ SimPipelineRunnerTypes = (SimPipelineRunner,) + CallableTypes
 Tuple of all callable classes *and* the simulation pipeline runner type.
 
 This tuple may be used to efficiently match both undecorated runners *and*
-runners decorated by the :func:`runner_metadata` decorator.
+runners decorated by the :func:`piperunner` decorator.
 '''
 
 # ....................{ INTERFACES                         }....................

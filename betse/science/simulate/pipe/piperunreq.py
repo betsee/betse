@@ -74,7 +74,7 @@ class SimPipelineRunnerRequirement(object):
     #Sadly, due to the following design deficiencies elsewhere in the codebase,
     #this method occasionally returns non-boolean types:
     #
-    #* The ion requirements (e.g., "ION_NA") return integers retrieved from the
+    #* The ion requirements (e.g., "ION_SODIUM") return integers retrieved from the
     #  "phase.p.ions_dict" dictionary (e.g., 'phase.p.ions_dict["Na"]'), which
     #  are guaranteed to be either 0 or 1 and hence are effectively boolean.
 
@@ -149,35 +149,43 @@ Requirement that a simulation phase enable fluid flow.
 '''
 
 
-ION_CA = SimPipelineRunnerRequirement(
+GHK = SimPipelineRunnerRequirement(
+    expr='phase.p.GHK_calc', name='Goldman calculation',)
+'''
+Requirement that a simulation phase enable alternative calculation of
+transmembrane voltages (Vmem) given the Goldman-Hodgkin-Katz (GHK) equation.
+'''
+
+
+ION_CALCIUM = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["Ca"]', name='calcium (Ca2+) ions',)
 '''
 Requirement that a simulation phase enable calcium (Ca2+) ions.
 '''
 
 
-ION_H = SimPipelineRunnerRequirement(
+ION_HYDROGEN = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["H"]', name='hydrogen (H+) ions',)
 '''
 Requirement that a simulation phase enable hydrogen (H+) ions.
 '''
 
 
-ION_K = SimPipelineRunnerRequirement(
+ION_POTASSIUM = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["K"]', name='potassium (K+) ions',)
 '''
 Requirement that a simulation phase enable potassium (K+) ions.
 '''
 
 
-ION_M = SimPipelineRunnerRequirement(
-    expr='phase.p.ions_dict["M"]', name='M anion (M-) ions',)
+ION_M_ANION = SimPipelineRunnerRequirement(
+    expr='phase.p.ions_dict["M"]', name='M anions (M-)',)
 '''
-Requirement that a simulation phase enable M anion (M-) ions.
+Requirement that a simulation phase enable M anions (M-).
 '''
 
 
-ION_NA = SimPipelineRunnerRequirement(
+ION_SODIUM = SimPipelineRunnerRequirement(
     expr='phase.p.ions_dict["Na"]', name='sodium (Na+) ions',)
 '''
 Requirement that a simulation phase enable sodium (Na+) ions.

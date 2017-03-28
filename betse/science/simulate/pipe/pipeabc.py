@@ -90,9 +90,9 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
     @classmethod
     def iter_runners(cls) -> GeneratorType:
         '''
-        Generator yielding a 2-tuple ``(runner_name, runner)`` describing each
+        Generator yielding the 2-tuple ``(runner_name, runner)`` for each
         **runner** (i.e., :class:`SimPipelineRunner` instance produced by the
-        :func:`runner_metadata` decorator decorating this runner's method)
+        :func:`piperunner` decorator decorating this runner's method)
         defined by this pipeline subclass.
 
         This generator excludes all methods defined by this pipeline subclass

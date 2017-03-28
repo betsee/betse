@@ -16,7 +16,7 @@ import numpy as np
 from betse.science.config.export.confvisabc import SimConfVisualListable
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
-from betse.science.simulate.pipe.piperun import exporter_metadata
+from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.vector import vectormake
 from betse.science.vector.field import fieldmake
 from betse.science.vector.vectorcls import VectorCells
@@ -64,7 +64,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         return self._phase.p.anim.after_sim_pipeline
 
     # ..................{ EXPORTERS ~ current                }..................
-    @exporter_metadata(categories=('Current Density', 'Intracellular',))
+    @piperunner(categories=('Current Density', 'Intracellular',))
     def export_current_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the intracellular current density for all time steps.
@@ -81,7 +81,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Current Density', 'Total',),
         requirements={piperunreq.ECM,},
     )
@@ -102,7 +102,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ deform                 }..................
-    @exporter_metadata(
+    @piperunner(
         categories=('Cellular Deformation',),
         requirements={piperunreq.DEFORM,},
     )
@@ -120,7 +120,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ electric               }..................
-    @exporter_metadata(categories=('Electric Field', 'Intracellular',))
+    @piperunner(categories=('Electric Field', 'Intracellular',))
     def export_electric_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Animate the intracellular electric field for all time steps.
@@ -159,7 +159,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Electric Field', 'Total',),
         requirements={piperunreq.ECM,},
     )
@@ -181,7 +181,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ fluid                  }..................
-    @exporter_metadata(
+    @piperunner(
         categories=('Fluid Flow', 'Intracellular',),
         requirements={piperunreq.FLUID,},
     )
@@ -200,7 +200,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Fluid Flow', 'Total',),
         requirements={piperunreq.FLUID, piperunreq.ECM,},
     )
@@ -220,9 +220,9 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ ion                    }..................
-    @exporter_metadata(
+    @piperunner(
         categories=('Ion Concentration', 'Calcium',),
-        requirements={piperunreq.ION_CA,},
+        requirements={piperunreq.ION_CALCIUM, },
     )
     def export_ion_calcium(self, conf: SimConfVisualListable) -> None:
         '''
@@ -244,9 +244,9 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Ion Concentration', 'Hydrogen',),
-        requirements={piperunreq.ION_H,},
+        requirements={piperunreq.ION_HYDROGEN, },
     )
     def export_ion_hydrogen(self, conf: SimConfVisualListable) -> None:
         '''
@@ -271,7 +271,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ membrane               }..................
-    @exporter_metadata(categories=('Cellular Membrane', 'Gap Junctions',))
+    @piperunner(categories=('Cellular Membrane', 'Gap Junctions',))
     def export_membrane_gap_junction(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all gap junction connectivity states for all time steps.
@@ -288,7 +288,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Cellular Membrane', 'Pump Density',),
         requirements={piperunreq.ELECTROOSMOSIS,},
     )
@@ -308,7 +308,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ pressure               }..................
-    @exporter_metadata(
+    @piperunner(
         categories=('Cellular Pressure', 'Total',),
         requirements={piperunreq.PRESSURE_TOTAL,},
     )
@@ -329,7 +329,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Cellular Pressure', 'Osmotic',),
         requirements={piperunreq.PRESSURE_OSMOTIC,},
     )
@@ -349,7 +349,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
     # ..................{ EXPORTERS ~ voltage                }..................
-    @exporter_metadata(categories=('Voltage', 'Transmembrane',))
+    @piperunner(categories=('Voltage', 'Transmembrane',))
     def export_voltage_membrane(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all transmembrane voltages (Vmem) for all time steps.
@@ -374,7 +374,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         )
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Voltage', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )

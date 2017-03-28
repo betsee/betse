@@ -16,7 +16,7 @@ from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import arrays
 from betse.science.export import expmath
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
-from betse.science.simulate.pipe.piperun import exporter_metadata
+from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, paths
@@ -49,7 +49,7 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
         raise BetseMethodUnimplementedException()
 
     # ..................{ EXPORTERS ~ cell                   }..................
-    @exporter_metadata(categories=('Single Cell', 'Raw Data'))
+    @piperunner(categories=('Single Cell', 'Raw Data'))
     def export_cell_raw(self) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
@@ -184,7 +184,7 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
     #    BetseSequenceException: Column "FFT_Vmem" length 9 differs from length
     #    5 of prior columns.
 
-    @exporter_metadata(categories=('Single Cell', 'Vmem FFT'))
+    @piperunner(categories=('Single Cell', 'Vmem FFT'))
     def export_cell_vmem_fft(self) -> None:
         '''
         Save a plaintext file in comma-separated value (CSV) format containing
@@ -234,7 +234,7 @@ class SimPipelinerExportCSV(SimPipelinerExportABC):
             column_name_to_values=csv_column_name_to_values)
 
     # ..................{ EXPORTERS ~ cells : vmem           }..................
-    @exporter_metadata(categories=('Cell Cluster', 'Transmembrane Voltages'))
+    @piperunner(categories=('Cell Cluster', 'Transmembrane Voltages'))
     def export_cells_vmems(self) -> None:
         '''
         Save one plaintext file in comma-separated value (CSV) format for each

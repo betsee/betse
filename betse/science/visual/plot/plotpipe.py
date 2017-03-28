@@ -72,10 +72,12 @@ from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.config.export.confvisabc import SimConfVisualListable
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
-from betse.science.simulate.pipe.piperun import exporter_metadata
+from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.visual.plot import plotutil
+from betse.util.io.log import logs
 from betse.util.path import dirs, paths
+from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableTypes
 from matplotlib import pyplot as pyplot
 from matplotlib.collections import LineCollection
@@ -123,7 +125,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ cell : current         }..................
     #FIXME: Force every currently optional "conf" parameter to be mandatory.
     #Specifically, excise "= None" everywhere below.
-    @exporter_metadata(categories=(
+    @piperunner(categories=(
         'Single Cell', 'Transmembrane Current Density',))
     def export_cell_current_membrane(self, conf: SimConfVisualListable = None) -> None:
         '''
@@ -187,7 +189,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='Imem_time')
 
     # ..................{ EXPORTERS ~ deform                 }..................
-    @exporter_metadata(
+    @piperunner(
         categories=('Single Cell', 'Deformation',),
         requirements={piperunreq.DEFORM,},
     )
@@ -222,9 +224,9 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='Displacement_time')
 
     # ..................{ EXPORTERS ~ cell : ion             }..................
-    @exporter_metadata(
+    @piperunner(
         categories=('Single Cell', 'Ion Concentration', 'Calcium'),
-        requirements={piperunreq.ION_CA,},
+        requirements={piperunreq.ION_CALCIUM, },
     )
     def export_cell_ion_calcium(self, conf: SimConfVisualListable = None) -> None:
         '''
@@ -252,9 +254,9 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='cytosol_Ca_time')
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Single Cell', 'Ion Concentration', 'M anion'),
-        requirements={piperunreq.ION_M,},
+        requirements={piperunreq.ION_M_ANION, },
     )
     def export_cell_ion_m_anion(self, conf: SimConfVisualListable = None) -> None:
         '''
@@ -281,9 +283,9 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='concM_time')
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Single Cell', 'Ion Concentration', 'Potassium'),
-        requirements={piperunreq.ION_K,},
+        requirements={piperunreq.ION_POTASSIUM, },
     )
     def export_cell_ion_potassium(self, conf: SimConfVisualListable = None) -> None:
         '''
@@ -311,9 +313,9 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='concK_time')
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Single Cell', 'Ion Concentration', 'Sodium'),
-        requirements={piperunreq.ION_NA,},
+        requirements={piperunreq.ION_SODIUM, },
     )
     def export_cell_ion_sodium(self, conf: SimConfVisualListable = None) -> None:
         '''
@@ -342,7 +344,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='concNa_time')
 
     # ..................{ EXPORTERS ~ pressure               }..................
-    @exporter_metadata(
+    @piperunner(
         categories=('Single Cell', 'Pressure', 'Osmotic',),
         requirements={piperunreq.PRESSURE_OSMOTIC,},
     )
@@ -371,7 +373,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='OsmoticP_time')
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Single Cell', 'Pressure', 'Total',),
         requirements={piperunreq.PRESSURE_TOTAL,},
     )
@@ -403,7 +405,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ cell : pump            }..................
     #FIXME: Actually plot the average of these rates. Currently, this method
     #only plots rates for a single arbitrarily selected membrane of this cell.
-    @exporter_metadata(categories=(
+    @piperunner(categories=(
         'Single Cell', 'Na-K-ATPase Pump Rate',))
     def export_cell_pump_nakatpase(self, conf: SimConfVisualListable = None) -> None:
         '''
@@ -442,8 +444,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     # ..................{ EXPORTERS ~ cell : voltage         }..................
     #FIXME: Actually plot the average of these Vmems. Currently, this method
     #only plots Vmems for a single arbitrarily selected membrane of this cell.
-    @exporter_metadata(categories=(
-        'Single Cell', 'Transmembrane Voltages', 'Average',))
+    @piperunner(categories=(
+        'Single Cell', 'Voltage', 'Transmembrane', 'Average',))
     def export_cell_voltage_membrane(self, conf: SimConfVisualListable = None) -> None:
         '''
         Plot the averages of all transmembrane voltages for the single cell
@@ -473,9 +475,10 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
     #FIXME: Actually plot the average of these Vmems. Currently, this method
     #only plots Vmems for a single arbitrarily selected membrane of this cell.
-    @exporter_metadata(categories=(
+    @piperunner(categories=(
         'Single Cell',
-        'Transmembrane Voltages',
+        'Voltage',
+        'Transmembrane',
         'Fast Fourier Transform (FFT)',
     ))
     def export_cell_voltage_membrane_fft(
@@ -501,9 +504,193 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         # Export this plot to disk and/or display.
         self._export(basename='Vmem_FFT_time')
 
+    # ..................{ EXPORTERS ~ cells : ion : calcium  }..................
+    @piperunner(
+        categories=(
+            'Cell Cluster',
+            'Ion Concentration',
+            'Calcium',
+            'Intracellular',
+        ),
+        requirements={piperunreq.ION_CALCIUM,},
+    )
+    def export_cells_ion_calcium_intra(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all intracellular calcium (i.e., Ca2+) ion concentrations for the
+        cell cluster at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figCa, axCa, cbCa = plotutil.plotPolyData(
+            self._phase.sim, self._phase.cells, self._phase.p,
+            zdata=self._phase.sim.cc_time[-1][self._phase.sim.iCa]*1e6,
+            number_cells=self._phase.p.enumerate_cells,
+            clrAutoscale=self._phase.p.autoscale_Ca,
+            clrMin=self._phase.p.Ca_min_clr,
+            clrMax=self._phase.p.Ca_max_clr,
+            clrmap=self._phase.p.default_cm,
+        )
+
+        axCa.set_title('Final cytosolic Ca2+')
+        axCa.set_xlabel('Spatial distance [um]')
+        axCa.set_ylabel('Spatial distance [um]')
+        cbCa.set_label('Concentration nmol/L')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_Ca_2D')
+
+
+    @piperunner(
+        categories=(
+            'Cell Cluster',
+            'Ion Concentration',
+            'Calcium',
+            'Extracellular',
+        ),
+        requirements={piperunreq.ION_CALCIUM, piperunreq.ECM,},
+    )
+    def export_cells_ion_calcium_extra(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all extracellular calcium (i.e., Ca2+) ion concentrations for the
+        cell cluster environment at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        if self._phase.p.smooth_level == 0.0:
+            cc_Ca = gaussian_filter(
+                self._phase.sim.cc_env[
+                    self._phase.sim.iCa].reshape(self._phase.cells.X.shape),
+                1.0)
+        else:
+            cc_Ca = self._phase.sim.cc_env[self._phase.sim.iCa].reshape(
+                self._phase.cells.X.shape)
+
+        pyplot.figure()
+        pyplot.imshow(
+            cc_Ca,
+            origin='lower',
+            extent=self._cells_extent,
+            cmap=self._phase.p.default_cm,
+        )
+        pyplot.colorbar()
+        pyplot.title('Environmental Calcium [mmol/L]')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_environmental_calcium')
+
+    # ..................{ EXPORTERS ~ cells : ion : hydrogen }..................
+    @piperunner(
+        categories=(
+            'Cell Cluster',
+            'Ion Concentration',
+            'Hydrogen',
+            'Intracellular',
+        ),
+        requirements={piperunreq.ION_HYDROGEN,},
+    )
+    def export_cells_ion_hydrogen_intra(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all intracellular hydrogen (i.e., H+) ion concentrations for the
+        cell cluster at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        pHdata = -np.log10(1e-3*self._phase.sim.cc_time[-1][self._phase.sim.iH])
+
+        figH, axH, cbH = plotutil.plotPolyData(
+            self._phase.sim, self._phase.cells, self._phase.p,
+            zdata=pHdata,
+            number_cells=self._phase.p.enumerate_cells,
+            clrAutoscale=self._phase.p.autoscale_pH,
+            clrMin=self._phase.p.pH_min_clr,
+            clrMax=self._phase.p.pH_max_clr,
+            clrmap=self._phase.p.default_cm,
+        )
+
+        # figH, axH, cbH = plotutil.plotPrettyPolyData(pHdata, sim,cells,p,
+        #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
+        #     clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
+
+        axH.set_title('Final cytosolic pH')
+        axH.set_xlabel('Spatial distance [um]')
+        axH.set_ylabel('Spatial distance [um]')
+        cbH.set_label('pH')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_pH_2D')
+
+    # ..................{ EXPORTERS ~ cells : pump           }..................
+    @piperunner(categories=(
+        'Cell Cluster', 'Na-K-ATPase Pump Rate',))
+    def export_cells_pump_nakatpase(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all Na-K-ATPase membrane pump rates for the cell cluster at the
+        last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        pumpData = self._phase.sim.rate_NaKATP*1e9
+
+        figPump, axPump, cbPump = plotutil.plotPrettyPolyData(
+            pumpData,
+            self._phase.sim, self._phase.cells, self._phase.p,
+            number_cells=self._phase.p.enumerate_cells,
+            clrmap=self._phase.p.default_cm,
+        )
+
+        axPump.set_title('Final Na/K-ATPase Pump Rate')
+        axPump.set_xlabel('Spatial distance [um]')
+        axPump.set_ylabel('Spatial distance [um]')
+        cbPump.set_label('Pump Na+ Flux (nmol/m2*s)')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_NaKPump_2D')
+
     # ..................{ EXPORTERS ~ cells : voltage        }..................
-    @exporter_metadata(
-        categories=('Cell Cluster', 'Voltage', 'Transmembrane', 'Accurate',))
+    @piperunner(
+        categories=('Cell Cluster', 'Voltage', 'Extracellular',),
+        requirements={piperunreq.ECM,},
+    )
+    def export_cells_voltage_extra(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all extracellular voltages for the cell cluster environment at the
+        last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        vv = self._phase.sim.v_env.reshape(self._phase.cells.X.shape)
+        vv = gaussian_filter(vv, 1, mode='constant')
+
+        pyplot.figure()
+        pyplot.imshow(
+            1e3*vv,
+            origin='lower',
+            extent=self._cells_extent,
+            cmap=self._phase.p.default_cm,
+        )
+        pyplot.colorbar()
+        pyplot.title('Environmental Voltage [mV]')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_environmental_V')
+
+    # ..................{ EXPORTERS ~ cells : voltage : vmem }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Voltage', 'Transmembrane', 'Actual',))
     def export_cells_voltage_membrane(
         self, conf: SimConfVisualListable = None) -> None:
         '''
@@ -535,7 +722,7 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='final_Vmem_2D')
 
 
-    @exporter_metadata(
+    @piperunner(
         categories=('Cell Cluster', 'Voltage', 'Transmembrane', 'Average',))
     def export_cells_voltage_membrane_average(
         self, conf: SimConfVisualListable = None) -> None:
@@ -572,40 +759,62 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         self._export(basename='final_AverageVmem_2D')
 
 
-    @exporter_metadata(
-        categories=('Cell Cluster', 'Voltage', 'Extracellular',),
-        requirements={piperunreq.ECM,},
+    @piperunner(
+        categories=('Cell Cluster', 'Voltage', 'Transmembrane', 'GHK',),
+        requirements={piperunreq.GHK,},
     )
-    def export_cells_voltage_extra(
+    def export_cells_voltage_membrane_ghk(
         self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot all extracellular voltages for the cell cluster environment at the
-        last time step.
+        Plot all transmembrane voltages (Vmem) calculated by the
+        Goldman-Hodgkin-Katz (GHK) equation for all cells at the last time step.
         '''
 
         # Prepare to export the current plot.
         self._export_prep()
 
-        vv = self._phase.sim.v_env.reshape(self._phase.cells.X.shape)
-        vv = gaussian_filter(vv, 1, mode='constant')
-
-        pyplot.figure()
-        pyplot.imshow(
-            1e3*vv,
-            origin='lower',
-            extent=[
-                self._phase.p.um*self._phase.cells.xmin,
-                self._phase.p.um*self._phase.cells.xmax,
-                self._phase.p.um*self._phase.cells.ymin,
-                self._phase.p.um*self._phase.cells.ymax
-            ],
-            cmap=self._phase.p.default_cm,
+        figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(
+            self._phase.sim, self._phase.cells, self._phase.p,
+            zdata=1000*self._phase.sim.vm_GHK_time[-1],
+            clrAutoscale=self._phase.p.autoscale_Vmem,
+            clrMin=self._phase.p.Vmem_min_clr,
+            clrMax=self._phase.p.Vmem_max_clr,
+            number_cells=self._phase.p.enumerate_cells,
+            clrmap=self._phase.p.default_cm,
+            current_overlay = False,
+            plotIecm=self._phase.p.IecmPlot,
         )
-        pyplot.colorbar()
-        pyplot.title('Environmental Voltage [mV]')
+
+        figV_ghk.suptitle(
+            'Final Vmem using Goldman Equation', fontsize=14, fontweight='bold')
+        axV_ghk.set_xlabel('Spatial distance [um]')
+        axV_ghk.set_ylabel('Spatial distance [um]')
+        cbV_ghk.set_label('Voltage [mV]')
 
         # Export this plot to disk and/or display.
-        self._export(basename='Final_environmental_V')
+        self._export(basename='final_Vmem_GHK_2D')
+
+    # ..................{ PRIVATE ~ properties               }..................
+    #FIXME: Fairly confident we calculate this elsewhere as well. Centralize all
+    #such locations to a central property in the "Cells" class.
+    @property_cached
+    def _cells_extent(self) -> tuple:
+        '''
+        Boundary coordinates for the current cell cluster environment as the
+        4-tuple ``(xmin, xmax, ymin, ymax)`` where:
+
+        * ``xmin`` is the leftmost X coordinate defining this environment.
+        * ``xmax`` is the rightmost X coordinate defining this environment.
+        * ``ymin`` is the bottommost Y coordinate defining this environment.
+        * ``ymax`` is the topmost Y coordinate defining this environment.
+        '''
+
+        return (
+            self._phase.p.um*self._phase.cells.xmin,
+            self._phase.p.um*self._phase.cells.xmax,
+            self._phase.p.um*self._phase.cells.ymin,
+            self._phase.p.um*self._phase.cells.ymax,
+        )
 
     # ..................{ PRIVATE ~ preparers                }..................
     def _export_prep(self) -> None:
@@ -671,13 +880,15 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
         # If saving this plot...
         if self._phase.p.plot.is_after_sim_save:
-            # Filetype of the file to be saved.
+            # Filetype and basename of the file to be saved.
             filetype = self._phase.p.plot.image_filetype
+            basename = 'fig_{}.{}'.format(basename, filetype)
 
             # Absolute path of the file to be saved.
-            filename = paths.join(
-                self._phase.save_dirname,
-                'fig_{}.{}'.format(basename, filetype))
+            filename = paths.join(self._phase.save_dirname, basename)
+
+            # Log this saving attempt.
+            logs.log_debug('Exporting plot image "%s"...', basename)
 
             # Save this plot to this file.
             pyplot.savefig(
@@ -717,6 +928,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     if not phase.p.plot.is_after_sim:
        return
 
+    # ..................{ EXPORTERS ~ cell                   }..................
     #FIXME: Consider shifting all single-cell plots into a separate plot
     #pipeline associated with a different YAML key for the following reasons:
     #
@@ -772,17 +984,28 @@ def pipeline(phase: SimPhaseABC) -> None:
         if piperunreq.PRESSURE_TOTAL.is_satisfied(phase):
             pipeliner.export_cell_pressure_total()
 
-    #-------------------------------------------------------------------------------------------------------------------
-    #                       2D Data Map Plotting
-    #-------------------------------------------------------------------------------------------------------------------
+    # ..................{ EXPORTERS ~ cells                  }..................
+    pipeliner.export_cells_pump_nakatpase()
 
-    # If plotting Vmem, do so.
+    # If plotting voltages, do so.
     if phase.p.plot_vm2d:
         pipeliner.export_cells_voltage_membrane()
         pipeliner.export_cells_voltage_membrane_average()
 
+        if phase.p.GHK_calc:
+            pipeliner.export_cells_voltage_membrane_ghk()
+
         if phase.p.sim_ECM:
             pipeliner.export_cells_voltage_extra()
+
+    if phase.p.plot_ca2d and phase.p.ions_dict['Ca'] == 1:
+        pipeliner.export_cells_ion_calcium_intra()
+
+        if phase.p.sim_ECM:
+            pipeliner.export_cells_ion_calcium_extra()
+
+    if phase.p.plot_pH2d and phase.p.ions_dict['H'] == 1:
+        pipeliner.export_cells_ion_hydrogen_intra()
 
     #FIXME: Excise this once no longer required.
     # Substring prefixing the absolute path of each plot created below.
@@ -796,141 +1019,21 @@ def pipeline(phase: SimPhaseABC) -> None:
     cells = phase.cells
     p     = phase.p
 
-    if p.GHK_calc is True:
-        figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(
-            sim, cells, p,
-            zdata=1000*sim.vm_GHK_time[-1],
-            clrAutoscale=p.autoscale_Vmem,
-            clrMin=p.Vmem_min_clr,
-            clrMax=p.Vmem_max_clr,
-            number_cells=p.enumerate_cells,
-            clrmap=p.default_cm,
-            current_overlay = False,
-            plotIecm=p.IecmPlot,
-        )
-
-        figV_ghk.suptitle('Final Vmem using Goldman Equation',fontsize=14, fontweight='bold')
-        axV_ghk.set_xlabel('Spatial distance [um]')
-        axV_ghk.set_ylabel('Spatial distance [um]')
-        cbV_ghk.set_label('Voltage [mV]')
-
-        if p.plot.is_after_sim_save is True:
-            savename5 = savedImg + 'final_Vmem_GHK_2D' + '.png'
-            pyplot.savefig(savename5,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-    #-------------------------------------------------------------------------------------------------------------------
-
-    if p.plot_ca2d is True and p.ions_dict['Ca'] == 1:
-
-
-        figCa, axCa, cbCa = plotutil.plotPolyData(sim, cells, p, zdata=sim.cc_time[-1][sim.iCa]*1e6, number_cells=p.enumerate_cells,
-                         clrAutoscale=p.autoscale_Ca, clrMin=p.Ca_min_clr, clrMax=p.Ca_max_clr,
-                         clrmap=p.default_cm)
-
-
-        axCa.set_title('Final cytosolic Ca2+')
-        axCa.set_xlabel('Spatial distance [um]')
-        axCa.set_ylabel('Spatial distance [um]')
-        cbCa.set_label('Concentration nmol/L')
-
-        if p.plot.is_after_sim_save is True:
-            savename8 = savedImg + 'final_Ca_2D' + '.png'
-            pyplot.savefig(savename8,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-        if p.sim_ECM is True:
-
-
-            if p.smooth_level == 0.0:
-
-                cc_Ca = gaussian_filter(sim.cc_env[sim.iCa].reshape(cells.X.shape), 1.0)
-
-            else:
-
-                cc_Ca = sim.cc_env[sim.iCa].reshape(cells.X.shape)
-
-
-            pyplot.figure()
-            pyplot.imshow(
-                cc_Ca,
-                origin='lower',
-                extent=[p.um * cells.xmin, p.um * cells.xmax, p.um * cells.ymin, p.um * cells.ymax],
-                cmap=p.default_cm,
-            )
-            pyplot.colorbar()
-            pyplot.title('Environmental Calcium [mmol/L]')
-
-            if p.plot.is_after_sim_save is True:
-                savename10 = savedImg + 'Final_environmental_calcium' + '.png'
-                pyplot.savefig(savename10, format='png', transparent=True)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
-
-
-    if p.plot_pH2d is True and p.ions_dict['H'] == 1:
-        pHdata = -np.log10(1e-3*sim.cc_time[-1][sim.iH])
-
-        figH, axH, cbH = plotutil.plotPolyData(sim, cells, p, zdata=pHdata, number_cells=p.enumerate_cells,
-                         clrAutoscale=p.autoscale_pH, clrMin=p.pH_min_clr, clrMax=p.pH_max_clr,
-                         clrmap=p.default_cm)
-
-        # figH, axH, cbH = plotutil.plotPrettyPolyData(pHdata, sim,cells,p,
-        #     number_cells= p.enumerate_cells, clrAutoscale = p.autoscale_pH,
-        #     clrMin = p.pH_min_clr, clrMax = p.pH_max_clr, clrmap = p.default_cm)
-
-        axH.set_title('Final cytosolic pH')
-        axH.set_xlabel('Spatial distance [um]')
-        axH.set_ylabel('Spatial distance [um]')
-        cbH.set_label('pH')
-
-        if p.plot.is_after_sim_save is True:
-            savename8 = savedImg + 'final_pH_2D' + '.png'
-            pyplot.savefig(savename8,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-    #----plot 2D pump data--------------------------------------------------------------------------------
-    pumpData = sim.rate_NaKATP*1e9
-
-    figPump, axPump, cbPump = plotutil.plotPrettyPolyData(pumpData, sim, cells, p,
-        number_cells=p.enumerate_cells, clrmap=p.default_cm)
-
-    axPump.set_title('Final Na/K-ATPase Pump Rate')
-    axPump.set_xlabel('Spatial distance [um]')
-    axPump.set_ylabel('Spatial distance [um]')
-    cbPump.set_label('Pump Na+ Flux (nmol/m2*s)')
-
-    if p.plot.is_after_sim_save is True:
-        savename8 = savedImg + 'final_NaKPump_2D' + '.png'
-        pyplot.savefig(savename8, format='png', transparent=True)
-
-    if phase.p.plot.is_after_sim_show:
-        pyplot.show(block=False)
-
     #------------------------------------------------------------------------------------------------------------------
-
-    if p.plot_I2d is True and p.calc_J is True:
-
+    if phase.p.plot_I2d and phase.p.calc_J:
         figI, axI, cbI = plotutil.plotStreamField(
-            100*sim.J_cell_x, 100*sim.J_cell_y,
+            100*sim.J_cell_x,
+            100*sim.J_cell_y,
             cells,
             p,
-            plot_ecm = False,
-            title = 'Intracellular Current Density',
-            cb_title = 'Current Density [uA/cm2]',
-            show_cells = False,
-            colorAutoscale = p.autoscale_I2d,
+            plot_ecm=False,
+            title='Intracellular Current Density',
+            cb_title='Current Density [uA/cm2]',
+            show_cells=False,
+            colorAutoscale=p.autoscale_I2d,
             minColor=p.I_min_clr,
             maxColor=p.I_max_clr,
         )
-
 
         axI.set_xlabel('Spatial distance [um]')
         axI.set_ylabel('Spatial distance [um]')
