@@ -85,13 +85,13 @@ class MasterOfNetworks(object):
         # colormap for plotting series of 1D lines:
         self.plot_cmap = 'viridis'
 
-        # shape identities for network:
-        # self.reaction_shape = 'rect'
-        # self.transporter_shape = 'diamond'
-        # self.channel_shape = 'pentagon'
-        # self.vmem_shape = 'ellipse'
-        # self.ed_shape = 'hexagon'
-        # self.conc_shape = 'oval'
+        # default shape identities for network:
+        self.reaction_shape = 'rect'
+        self.transporter_shape = 'diamond'
+        self.channel_shape = 'pentagon'
+        self.vmem_shape = 'ellipse'
+        self.ed_shape = 'hexagon'
+        self.conc_shape = 'oval'
 
         self.globals = globals()
         self.locals = locals()
@@ -2713,7 +2713,7 @@ class MasterOfNetworks(object):
 
                 if obj.ion_channel_gating:
                     obj.gating_mod = eval(obj.gating_mod_eval_string, self.globals, self.locals)
-                    obj.gating(sim, self, cells, p)
+                    obj.gating(sim, cells, p)
 
                 if p.run_sim is True:
                     # update the global boundary (if desired)
@@ -2723,8 +2723,8 @@ class MasterOfNetworks(object):
                 # transport the molecule through gap junctions and environment:
                 obj.transport(sim, cells, p)
 
-                # update the substance on the inside of the cell:
-                obj.updateIntra(sim, self, cells, p)
+                # # update the substance on the inside of the cell:
+                # obj.updateIntra(sim, self, cells, p)
 
                 # ensure no negs:
                 stb.no_negs(obj.c_cells)
@@ -5282,8 +5282,6 @@ class MasterOfNetworks(object):
 
             self.iCl = None
 
-
-
     def quickSim(self, sim, cells, p):
 
         r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
@@ -5309,7 +5307,7 @@ class MasterOfNetworks(object):
             for dmK, jK in zip(self.Dm_extra['K'], self.channel_index['K']):
                 DmK_dyn += dmK
 
-            sim.vm = (p.R * sim.T / p.F) * np.log(
+            vm = (p.R * sim.T / p.F) * np.log(
                 (DmNa_dyn * self.conc_handler['Na_env'] +
                  DmK_dyn * self.conc_handler['K_env']
                  + gg) /
@@ -5334,7 +5332,7 @@ class MasterOfNetworks(object):
             for dmCl, jCl in zip(self.Dm_extra['Cl'], self.channel_index['Cl']):
                 DmCl_dyn += dmCl
 
-            sim.vm = (p.R * sim.T / p.F) * np.log(
+            vm = (p.R * sim.T / p.F) * np.log(
                 (DmNa_dyn * self.conc_handler['Na_env'] +
                  DmK_dyn * self.conc_handler['K_env'] +
                  DmCl_dyn * self.conc_handler['Cl'] + gg) /
@@ -5344,9 +5342,7 @@ class MasterOfNetworks(object):
             )
 
 
-        return outputs
-
-
+        return outputs, vm
 
 
 class Molecule(object):
