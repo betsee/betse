@@ -417,7 +417,8 @@ class MasterOfNetworks(object):
                         mol.ion_inhibitors_list, mol.ion_inhibitors_Km,
                         mol.ion_inhibitors_n, reaction_zone='mem', tex_list = tex_vars,
                         zone_tags_a=mol.ion_activators_zone,
-                        zone_tags_i=mol.ion_inhibitors_zone)
+                        zone_tags_i=mol.ion_inhibitors_zone,
+                        in_mem_tag=True)
 
                     mol.gating_mod_eval_string = "(" + alpha_ion + ")"
 
@@ -955,7 +956,7 @@ class MasterOfNetworks(object):
                                                                     a_list, Km_a_list, n_a_list, i_list,
                                                                     Km_i_list, n_i_list, tex_list = tex_vars,
                                                                     reaction_zone='mem', zone_tags_a=zone_a,
-                                                                    zone_tags_i=zone_i)
+                                                                    zone_tags_i=zone_i, in_mem_tag=True)
 
             # FIXME this doesn't seem to work...! Maybe Sess broke it ??
 
@@ -1024,7 +1025,7 @@ class MasterOfNetworks(object):
                                                                     n_a_list, i_list,
                                                                     Km_i_list, n_i_list, tex_list=tex_vars,
                                                                     reaction_zone='mem', zone_tags_a = zone_a,
-                                                                    zone_tags_i=zone_i)
+                                                                    zone_tags_i=zone_i, in_mem_tag=False)
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
 
@@ -1078,7 +1079,7 @@ class MasterOfNetworks(object):
                 all_alpha, alpha_tex, gad_tex_var_list = \
                              self.get_influencers(a_list, Km_a_list, n_a_list,
                              i_list, Km_i_list, n_i_list, tex_list = gad_tex_var_list,reaction_zone='cell',
-                             zone_tags_a=zone_a, zone_tags_i=zone_i)
+                             zone_tags_a=zone_a, zone_tags_i=zone_i, in_mem_tag=False)
 
                 # define remaining portion of substance's growth and decay expression:
 
@@ -1360,7 +1361,7 @@ class MasterOfNetworks(object):
                                                                     i_list, Km_i_list, n_i_list,
                                                                     tex_list = rea_tex_var_list,
                                                                     reaction_zone= r_zone, zone_tags_a=zone_a,
-                                                                    zone_tags_i=zone_i)
+                                                                    zone_tags_i=zone_i, in_mem_tag= False)
 
             vmax = "self.reactions['{}'].vmax".format(reaction_name)
 
@@ -1613,7 +1614,7 @@ class MasterOfNetworks(object):
                                                                     i_list, Km_i_list, n_i_list,
                                                                     tex_list = rea_tex_var_list,
                                                                     reaction_zone= r_zone, zone_tags_a=zone_a,
-                                                                    zone_tags_i=zone_i)
+                                                                    zone_tags_i=zone_i, in_mem_tag=False)
 
             vmax = "self.reactions_mit['{}'].vmax".format(reaction_name)
 
@@ -1864,7 +1865,7 @@ class MasterOfNetworks(object):
                                                                           i_list, Km_i_list, n_i_list,
                                                                           tex_list=rea_tex_var_list,
                                                                           reaction_zone=r_zone, zone_tags_a=zone_a,
-                                                                          zone_tags_i=zone_i)
+                                                                          zone_tags_i=zone_i, in_mem_tag=False)
 
             vmax = "self.reactions_env['{}'].vmax".format(reaction_name)
 
@@ -1990,7 +1991,7 @@ class MasterOfNetworks(object):
                 all_alpha, alpha_tex, trans_tex_var_list = self.get_influencers(a_list, Km_a_list,
                                                                 n_a_list, i_list,
                                                                 Km_i_list, n_i_list, tex_list=trans_tex_var_list,
-                                                                reaction_zone='mem')
+                                                                reaction_zone='mem', in_mem_tag=False)
 
             elif reaction_zone == 'mit' and self.mit_enabled is True:
                 # tex_in = "_{mit}"
@@ -2021,7 +2022,7 @@ class MasterOfNetworks(object):
                 all_alpha, alpha_tex, trans_tex_var_list = self.get_influencers(a_list, Km_a_list,
                                                                 n_a_list, i_list,
                                                                 Km_i_list, n_i_list, reaction_zone='mit',
-                                                                tex_list=trans_tex_var_list)
+                                                                tex_list=trans_tex_var_list, in_mem_tag=False)
 
         # initialize list that will hold expression for calculating net concentration change
 
@@ -3923,7 +3924,7 @@ class MasterOfNetworks(object):
         return graphicus_maximus
 
     def get_influencers(self, a_list, Km_a_list, n_a_list, i_list, Km_i_list,
-        n_i_list, tex_list = None, reaction_zone='cell', zone_tags_a = None, zone_tags_i = None):
+        n_i_list, tex_list = None, reaction_zone='cell', zone_tags_a = None, zone_tags_i = None, in_mem_tag = False):
 
         """
         Given lists of activator and inhibitor names, with associated
@@ -3940,6 +3941,8 @@ class MasterOfNetworks(object):
         reaction_zone:   Where the reaction/transporter/growth takes place ('cell', 'mit', 'mem')
         zone_tags_a:     Place where the activator concentration works from ('cell' or 'env'). See *.
         zone_tags_i:     Place where the inhibitor concentration works from ('cell' or 'env'). See *.
+        in_mem_tag:      Flag to specify that the activator/inhibitors are acting on membrane-bound channels or
+                         transporters (in which case they're voltage sensitive due to interactions with Vmem).
 
         * zone tags only apply to reactions occurring in 'cell' or 'mem' regions. For 'mit', the activator and inhibitor
         concentrations are always assumed to be inside the mitochondria, so are always also 'mit.
@@ -3997,9 +4000,23 @@ class MasterOfNetworks(object):
             independent_terms_tex = []
 
             # Begin with construction of the activator effects term:
-            for i, (name, Km, n, zone_tag) in enumerate(zip(a_list, Km_a_list, n_a_list, zone_tags_a)):
+            for i, (name, Kmo, n, zone_tag) in enumerate(zip(a_list, Km_a_list, n_a_list, zone_tags_a)):
 
-                independence_tag = False
+                # First deal with the fact that Km may be voltage sensitive if the substance is charged:
+                # get the charge value for the substance:
+                za = self.molecules[name].z
+
+                if in_mem_tag is True:
+
+                    Kmc = '({}*np.exp(-(sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
+                    Kme = '({}*np.exp((sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
+
+                else:
+                    Kmc = '{}'.format(Kmo)
+                    Kme = '{}'.format(Kmo)
+
+
+                independence_tag = False  # force independence and direct tags to be false by default
                 direct_tag = False
 
                 # check and see if name ends with a bang (meaning it's an independently acting activator that
@@ -4024,8 +4041,8 @@ class MasterOfNetworks(object):
 
                     if zone_tag == 'cell':
 
-                        numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
-                        denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                        numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Kmc, n)
+                        denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Kmc, n)
 
                         direct_string_a += "self.cell_concs['{}']".format(name)
 
@@ -4035,17 +4052,17 @@ class MasterOfNetworks(object):
 
                         tex_name = name + '_{env}'
 
-                        numo_string_a += "((self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
-                        denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
+                        numo_string_a += "((self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Kme, n)
+                        denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Kme, n)
 
                         direct_string_a += "self.env_concs['{}'][cells.map_cell2ecm]".format(name)
 
-                elif reaction_zone == 'mem':     # FIXME deal with this!
+                elif reaction_zone == 'mem':
 
                     if zone_tag == 'cell':
 
-                        numo_string_a += "((self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Km, n)
-                        denomo_string_a += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Km, n)
+                        numo_string_a += "((self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Kmc, n)
+                        denomo_string_a += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Kmc, n)
 
                         direct_string_a += "self.cell_concs['{}'][cells.mem_to_cells]".format(name)
 
@@ -4055,8 +4072,8 @@ class MasterOfNetworks(object):
 
                         tex_name = name + '_{env}'
 
-                        numo_string_a += "((self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
-                        denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
+                        numo_string_a += "((self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Kme, n)
+                        denomo_string_a += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Kme, n)
 
                         direct_string_a += "self.env_concs['{}'][cells.map_mem2ecm]".format(name)
 
@@ -4064,8 +4081,8 @@ class MasterOfNetworks(object):
 
                     tex_name = name + '_{mit}'
 
-                    numo_string_a += "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
-                    denomo_string_a += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
+                    numo_string_a += "((self.mit_concs['{}']/{})**{})".format(name, Kmo, n)
+                    denomo_string_a += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Kmo, n)
 
                     direct_string_a += "self.mit_concs['{}']".format(name)
 
@@ -4081,19 +4098,12 @@ class MasterOfNetworks(object):
 
                         direct_string_a += "1"
 
-                        # numo_string_a += "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
-                        # denomo_string_a += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
-                        #
-                        # direct_string_a += "self.cell_concs['{}']".format(name)
-                        #
-                        # tex_name = name
-
                     elif zone_tag == 'env':
 
                         tex_name = name + '_{env}'
 
-                        numo_string_a += "((self.env_concs['{}']/{})**{})".format(name, Km, n)
-                        denomo_string_a += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+                        numo_string_a += "((self.env_concs['{}']/{})**{})".format(name, Kme, n)
+                        denomo_string_a += "(1 + (self.env_concs['{}']/{})**{})".format(name, Kme, n)
 
                         direct_string_a += "self.env_concs['{}']".format(name)
 
@@ -4113,8 +4123,8 @@ class MasterOfNetworks(object):
                 tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_a, denomo_tex_a)
 
                 # write fixed parameter values to LaTeX----------
-                kval = tex_val(Km)
-                Ka_tex = "K_{%s}^{a} & =" % (tex_name)
+                kval = tex_val(Kmo)
+                Ka_tex = "Ko_{%s}^{a} & =" % (tex_name)
                 Ka_tex += kval
 
                 nval = tex_val(n)
@@ -4175,9 +4185,20 @@ class MasterOfNetworks(object):
         if i_list is not None and i_list != 'None' and len(i_list) > 0:
 
             # Next, construct the inhibitors net effect term:
-            for i, (name, Km, n, zone_tag) in enumerate(zip(i_list, Km_i_list, n_i_list, zone_tags_i)):
+            for i, (name, Kmo, n, zone_tag) in enumerate(zip(i_list, Km_i_list, n_i_list, zone_tags_i)):
 
-                direct_tag = False
+                zi =self.molecules[name].z
+
+                if in_mem_tag is True:
+
+                    Kmc = '({}*np.exp(-(sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, zi)
+                    Kme = '({}*np.exp((sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, zi)
+
+                else:
+                    Kmc = '{}'.format(Kmo)
+                    Kme = '{}'.format(Kmo)
+
+                direct_tag = False # Force the "direct" tag to be false by default
 
                 if name.endswith('!'): # remove any bangs a user might specify; inhibitors always act multiplicatively
 
@@ -4199,7 +4220,7 @@ class MasterOfNetworks(object):
                         tex_name = name
 
                         numo_string_i += "1"
-                        denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
+                        denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Kmc, n)
 
                         direct_string_i += "-self.cell_concs['{}']".format(name)
 
@@ -4208,17 +4229,17 @@ class MasterOfNetworks(object):
                         tex_name = name + '_{env}'
 
                         numo_string_i += "1"
-                        denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Km, n)
+                        denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_cell2ecm]/{})**{})".format(name, Kme, n)
                         direct_string_i += "-self.env_concs['{}'][cells.map_cell2ecm]".format(name)
 
-                elif reaction_zone == 'mem':    # FIXME deal with mem_concs!
+                elif reaction_zone == 'mem':
 
                     if zone_tag == 'cell':
 
                         tex_name = name
 
                         numo_string_i += "1"
-                        denomo_string_i += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Km, n)
+                        denomo_string_i += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Kmc, n)
 
                         direct_string_i += "-self.cell_concs['{}'][cells.mem_to_cells]".format(name)
 
@@ -4227,7 +4248,7 @@ class MasterOfNetworks(object):
                         tex_name = name + '_{env}'
 
                         numo_string_i += "1"
-                        denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Km, n)
+                        denomo_string_i += "(1 + (self.env_concs['{}'][cells.map_mem2ecm]/{})**{})".format(name, Kme, n)
 
                         direct_string_i += "-self.env_concs['{}'][cells.map_mem2ecm]".format(name)
 
@@ -4236,7 +4257,7 @@ class MasterOfNetworks(object):
                     tex_name = name + '_{mit}'
 
                     numo_string_i += "1"
-                    denomo_string_i += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
+                    denomo_string_i += "(1 + (self.mit_concs['{}']/{})**{})".format(name, Kmo, n)
 
                     direct_string_i += "-self.mit_concs['{}']".format(name)
 
@@ -4252,17 +4273,12 @@ class MasterOfNetworks(object):
 
                         direct_string_i += "1"
 
-                        # numo_string_i += "1"
-                        # denomo_string_i += "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
-                        #
-                        # direct_string_i += "-self.cell_concs['{}']".format(name)
-
                     elif zone_tag == 'env':
 
                         tex_name = name + '_{env}'
 
                         numo_string_i += "1"
-                        denomo_string_i += "(1 + (self.env_concs['{}']/{})**{})".format(name, Km, n)
+                        denomo_string_i += "(1 + (self.env_concs['{}']/{})**{})".format(name, Kme, n)
                         direct_string_i += "-self.env_concs['{}']".format(name)
 
                 numo_tex_i = "1"
@@ -4275,8 +4291,9 @@ class MasterOfNetworks(object):
                 tex_term = r"\left(\frac{%s}{%s}\right)" % (numo_tex_i, denomo_tex_i)
 
                 # write fixed parameter values to LaTeX----------
-                kval = tex_val(Km)
-                Ki_tex = "K_{%s}^{i} & =" % (tex_name)
+                # FIXME differentiate between Kme and Kmc here
+                kval = tex_val(Kmo)
+                Ki_tex = "Ko_{%s}^{i} & =" % (tex_name)
                 Ki_tex += kval
 
                 nval = tex_val(n)
@@ -4352,8 +4369,6 @@ class MasterOfNetworks(object):
 
             alpha = alpha + "*" + direct_term_alpha
             alpha_tex = alpha_tex + r"\," + direct_term_alpha_tex
-
-        # print("ALPHA", alpha)
 
 
         return alpha, alpha_tex, tex_list

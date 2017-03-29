@@ -1290,7 +1290,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         if mtubes is not None:
 
-            ux = np.ones(sim.mdl)*mtubes['transport rate']
+            ux = np.zeros(sim.mdl)
             uy = np.zeros(sim.mdl)
 
         else:

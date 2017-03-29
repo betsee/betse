@@ -318,7 +318,6 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
-
     def fileInit(self, p):
         '''
         Initializes the pathnames of top-level files and directories comprising
