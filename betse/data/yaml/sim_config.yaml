@@ -774,6 +774,20 @@ results options:
           # cell_voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
           # cell_voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) fast Fourier
           #                                transform (FFT)
+          # cells_channel_density  ->  Final cell cluster cell membrane ion channel density factor
+          #   Ignored if channel electroosmosis disabled.
+          # cells_current_intra  ->  Final cell cluster intracellular current density
+          # cells_current_extra  ->  Final cell cluster extracellular current density
+          #   Ignored if extracellular spaces disabled.
+          # cells_deform  ->  Cellular physical displacement
+          #   Ignored unless deformation disabled.
+          # cells_electric_intra  ->  Final cell cluster intracellular electric field
+          # cells_electric_extra  ->  Final cell cluster extracellular electric field
+          #   Ignored if extracellular spaces disabled.
+          # cells_fluid_intra  ->  Final cell cluster intracellular fluid flow
+          #   Ignored if fluid flow disabled.
+          # cells_fluid_extra  ->  Final cell cluster extracellular fluid flow
+          #   Ignored if fluid flow or extracellular spaces disabled.
           # cells_ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
           #   Ignored if calcium ions (Ca2+) disabled by ion profile.
           # cells_ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
@@ -781,7 +795,12 @@ results options:
           #   disabled.
           # cells_ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
           #   Ignored if hydrogen ions (H+) disabled by ion profile.
-          # cells_pump_nakatpase  ->  Final cell cluster Na-K-ATPase pump rate
+          # cells_junction_state  ->  Final cell cluster gap junction connectivity state
+          # cells_pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # cells_pump_density  ->  Final cell cluster cell membrane ion pump density factor
+          #   Ignored if channel electroosmosis disabled.
+          # cells_pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
           # cells_voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
           # cells_voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem)
           #                                     average
@@ -815,30 +834,30 @@ results options:
         # Example transmembrane voltage (Vmem) animation.
         - type: voltage_membrane  # Animation type, including any following string:
           # current_intra  ->  Intracellular current density
-          # current_total  ->  Intra- and extracellular current density
+          # current_extra  ->  Extracellular current density
           #   Ignored if extracellular spaces disabled.
           # deform  ->  Cellular physical displacement
           #   Ignored unless deformation disabled.
           # electric_intra  ->  Intracellular electric field
-          # electric_total  ->  Intra- and extracellular electric field
+          # electric_extra  ->  Extracellular electric field
           #   Ignored if extracellular spaces disabled.
           # fluid_intra  ->  Intracellular fluid flow
           #   Ignored if fluid flow disabled.
-          # fluid_total  ->  Intra- and extracellular fluid flow
+          # fluid_extra  ->  Extracellular fluid flow
           #   Ignored if fluid flow or extracellular spaces disabled.
           # ion_calcium  ->  Calcium ion concentration
           #   Ignored if calcium ions (Ca2+) disabled by ion profile.
           # ion_hydrogen  ->  Hydrogen ion concentration as pH
           #   Ignored if hydrogen ions (H+) disabled by ion profile.
-          # membrane_gap_junction  ->  Gap junction connectivity state
-          # membrane_pump_density  ->  Cell membrane pump density factor
-          #   Ignored if channel electroosmosis disabled.
+          # junction_state  ->  Gap junction connectivity state
           # pressure_osmotic  ->  Cellular osmotic pressure
           #   Ignored if osmotic pressure disabled.
           # pressure_total  ->  Cellular total pressure = osmotic + mechanical
           #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # pump_density  ->  Cell membrane ion pump density factor
+          #   Ignored if channel electroosmosis disabled.
           # voltage_membrane  ->  Transmembrane voltage (Vmem)
-          # voltage_extra  ->  Intra- and extracellular voltage
+          # voltage_extra  ->  Extracellular voltage
           #   Ignored if extracellular spaces disabled.
 
           enabled: True        # Enable this animation?

@@ -576,11 +576,6 @@ class Parameters(object):
 
         self.T = float(self._conf['variable settings']['temperature'])  # system temperature
 
-        # current calculation---------------------------
-
-        # fIXME: Remove this parameter and boolean. Currents are mandatory now!
-        self.calc_J = True
-
         # electroosmotic fluid flow-----------------------------------------------------
         self.fluid_flow = self._conf['variable settings']['fluid flow']['include fluid flow']
         self.mu_water = float(self._conf['variable settings']['fluid flow']['water viscocity']) # visc water [Pa.s]

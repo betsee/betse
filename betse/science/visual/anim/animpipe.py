@@ -67,7 +67,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     @piperunner(categories=('Current Density', 'Intracellular',))
     def export_current_intra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the intracellular current density for all time steps.
+        Animate all intracellular current densities for the cell cluster for all
+        time steps.
         '''
 
         # Animate this animation.
@@ -82,13 +83,13 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
 
     @piperunner(
-        categories=('Current Density', 'Total',),
+        categories=('Current Density', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_current_total(self, conf: SimConfVisualListable) -> None:
+    def export_current_extra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the total current density (i.e., both intra- and extracellular)
-        for all time steps.
+        Animate all extracellular current densities for the cell cluster
+        environment over all time steps.
         '''
 
         # Animate this animation.
@@ -103,12 +104,13 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ EXPORTERS ~ deform                 }..................
     @piperunner(
-        categories=('Cellular Deformation',),
+        categories=('Physical Deformation',),
         requirements={piperunreq.DEFORM,},
     )
     def export_deform(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate physical cellular deformations for all time steps.
+        Animate all physical deformations for the cell cluster over all time
+        steps.
         '''
 
         # Animate this animation.
@@ -123,14 +125,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     @piperunner(categories=('Electric Field', 'Intracellular',))
     def export_electric_intra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the intracellular electric field for all time steps.
+        Animate all intracellular electric field lines for the cell cluster for
+        all time steps.
         '''
 
-        # Vector field cache of the intracellular electric field for all time steps.
+        # Vector field cache of the intracellular electric field over all time steps.
         field = fieldmake.make_electric_intra(
             sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
 
-        # Vector of all intracellular electric field magnitudes for all time steps,
+        # Vector of all intracellular electric field magnitudes over all time steps.
         # spatially situated at cell centres.
         field_magnitudes = VectorCells(
             cells=self._phase.cells, p=self._phase.p,
@@ -160,13 +163,13 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
 
     @piperunner(
-        categories=('Electric Field', 'Total',),
+        categories=('Electric Field', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_electric_total(self, conf: SimConfVisualListable) -> None:
+    def export_electric_extra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the total electric field (i.e., both intra- and extracellular)
-        for all time steps.
+        Animate all extracellular electric field lines for the cell cluster
+        environment over all time steps.
         '''
 
         # Animate this animation.
@@ -187,7 +190,8 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     )
     def export_fluid_intra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the intracellular fluid flow field for all time steps.
+        Animate all intracellular fluid flow field lines for the cell cluster
+        over all time steps.
         '''
 
         # Animate this animation.
@@ -201,13 +205,13 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
 
     @piperunner(
-        categories=('Fluid Flow', 'Total',),
+        categories=('Fluid Flow', 'Extracellular',),
         requirements={piperunreq.FLUID, piperunreq.ECM,},
     )
-    def export_fluid_total(self, conf: SimConfVisualListable) -> None:
+    def export_fluid_extra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the total fluid flow field (i.e., both intra- and extracellular)
-        for all time steps.
+        Animate all extracellular fluid flow field lines for the cell cluster
+        environment over all time steps.
         '''
 
         # Animate this animation.
@@ -226,7 +230,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     )
     def export_ion_calcium(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all calcium (i.e., Ca2+) ion concentrations for all time steps.
+        Animate all calcium (i.e., Ca2+) ion concentrations over all time steps.
         '''
 
         # Array of all upscaled calcium ion concentrations.
@@ -250,7 +254,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     )
     def export_ion_hydrogen(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all hydrogen (i.e., H+) ion concentrations for all time steps,
+        Animate all hydrogen (i.e., H+) ion concentrations over all time steps.
         scaled to correspond exactly to pH.
         '''
 
@@ -270,11 +274,13 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             colorbar_title='pH',
         )
 
-    # ..................{ EXPORTERS ~ membrane               }..................
-    @piperunner(categories=('Cellular Membrane', 'Gap Junctions',))
-    def export_membrane_gap_junction(self, conf: SimConfVisualListable) -> None:
+    # ..................{ EXPORTERS ~ junction               }..................
+    @piperunner(categories=('Gap Junction', 'Connectivity State',))
+    def export_junction_state(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all gap junction connectivity states for all time steps.
+        Animate all **gap junction connectivity states** (i.e., relative
+        permeabilities of the gap junctions connecting all cell membranes) for
+        the cell cluster over all time steps.
         '''
 
         # Animate this animation.
@@ -287,26 +293,6 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             colorbar_title='Voltage [mV]',
         )
 
-
-    @piperunner(
-        categories=('Cellular Membrane', 'Pump Density',),
-        requirements={piperunreq.ELECTROOSMOSIS,},
-    )
-    def export_membrane_pump_density(self, conf: SimConfVisualListable) -> None:
-        '''
-        Animate all cellular membrane pump density factors for all time steps.
-        '''
-
-        # Animate this animation.
-        AnimMembraneTimeSeries(
-            phase=self._phase,
-            conf=conf,
-            time_series=self._phase.sim.rho_pump_time,
-            label='rhoPump',
-            figure_title='Pump Density Factor',
-            colorbar_title='mol fraction/m2',
-        )
-
     # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
         categories=('Cellular Pressure', 'Total',),
@@ -314,8 +300,9 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     )
     def export_pressure_total(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the **total cellular pressure** (i.e., summation of the cellular
-        mechanical and osmotic pressure) for all time steps.
+        Animate all **cellular pressure totals** (i.e., summations of all
+        cellular mechanical and osmotic pressures) for the cell cluster over all
+        time steps.
         '''
 
         # Animate this animation.
@@ -335,7 +322,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     )
     def export_pressure_osmotic(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate the cellular osmotic pressure for all time steps.
+        Animate the cellular osmotic pressure over all time steps.
         '''
 
         # Animate this animation.
@@ -348,14 +335,35 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             colorbar_title='Pressure [Pa]',
         )
 
+    # ..................{ EXPORTERS ~ pump                   }..................
+    @piperunner(
+        categories=('Ion Pump', 'Density Factor',),
+        requirements={piperunreq.ELECTROOSMOSIS,},
+    )
+    def export_pump_density(self, conf: SimConfVisualListable) -> None:
+        '''
+        Animate all cell membrane ion pump density factors for the cell cluster
+        over all time steps.
+        '''
+
+        # Animate this animation.
+        AnimMembraneTimeSeries(
+            phase=self._phase,
+            conf=conf,
+            time_series=self._phase.sim.rho_pump_time,
+            label='rhoPump',
+            figure_title='Pump Density Factor',
+            colorbar_title='mol fraction/m2',
+        )
+
     # ..................{ EXPORTERS ~ voltage                }..................
     @piperunner(categories=('Voltage', 'Transmembrane',))
     def export_voltage_membrane(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all transmembrane voltages (Vmem) for all time steps.
+        Animate all transmembrane voltages (Vmem) over all time steps.
         '''
 
-        # Vector of all cell membrane voltages for all time steps.
+        # Vector of all cell membrane voltages over all time steps.
         vector = vectormake.make_voltages_intra(
             sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
 

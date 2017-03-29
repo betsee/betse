@@ -412,24 +412,31 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     # ..................{ DEINITIALIZERS                     }..................
     def close(self) -> None:
         '''
-        Destroy this plot and deallocate all memory associated with this plot.
+        Deallocate all resources associated with this plot or animation.
 
-        To reduce matplotlib's memory overhead, this method (in order):
+        To reduce resource overhead (namely memory), this method (in order):
 
-        . Explicitly closes this plot's figure.
-        . Explicitly breaks all circular references between this plot's figure
-          and related artist objects (e.g., between this figure and its axes).
-        . Explicitly nullifies _all_ attributes of the current object.
+        . Explicitly closes this plot or animation's figure.
+        . Explicitly breaks all circular references between this figure and
+          related artist objects (e.g., between this figure and its axes).
+        . Explicitly nullifies *all* attributes of the current object.
         . Explicitly garbage collects.
 
+        Caveats
+        ----------
         This method should only be called:
 
-        * When this plot is non-blocking (e.g., being non-interactively saved
-          rather than interactively displayed).
-        * As the last action of this plot's subclass or caller.
+        * If this plot or animation is blocking (e.g., saved non-interactively,
+          displayed interactively in a blocking manner). If this plot or
+          animation is non-blocking, the resources assigned this plot or
+          animation may be safely deallocated only *after* the end user closes
+          the corresponding GUI widget or window.
+        * As the last action of either:
+          * The current caller.
+          * The plot or animation subclass.
 
-        Attempting to subsequently call any other plot method _or_ access any
-        plot field will reliably result in raised exceptions.
+        Attempting to subsequently call any other method *or* access any other
+        variable bound to this object will reliably raise an exception.
         '''
 
         # If this figure still exists, explicitly close it.

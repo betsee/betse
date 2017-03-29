@@ -73,7 +73,7 @@ from betse.science.config.export.confvisabc import SimConfVisualListable
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
 from betse.science.simulate.pipe.piperun import piperunner
-from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.visual.plot import plotutil
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
@@ -188,14 +188,14 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         # Export this plot to disk and/or display.
         self._export(basename='Imem_time')
 
-    # ..................{ EXPORTERS ~ deform                 }..................
+    # ..................{ EXPORTERS ~ cell : deform          }..................
     @piperunner(
-        categories=('Single Cell', 'Deformation',),
+        categories=('Single Cell', 'Physical Deformation',),
         requirements={piperunreq.DEFORM,},
     )
     def export_cell_deform(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot the physical cellular deformation for the single cell indexed by
+        Plot all physical cellular deformations for the single cell indexed by
         the current simulation configuration over all time steps.
         '''
 
@@ -504,6 +504,247 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         # Export this plot to disk and/or display.
         self._export(basename='Vmem_FFT_time')
 
+    # ..................{ EXPORTERS ~ cells : channel        }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Ion Channel', 'Density Factor',),
+        requirements={piperunreq.ELECTROOSMOSIS,},
+    )
+    def export_cells_channel_density(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all cell membrane ion channel density factors for the cell cluster
+        at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        plotutil.plotMemData(
+            self._phase.cells,
+            self._phase.p,
+            zdata=self._phase.sim.rho_channel,
+            clrmap=self._phase.p.default_cm,
+        )
+        pyplot.xlabel('Spatial Dimension [um]')
+        pyplot.ylabel('Spatial Dimension [um]')
+        pyplot.title('Membrane ion channel density factor')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_channels_2D')
+
+    # ..................{ EXPORTERS ~ cells : current        }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Current Density', 'Intracellular',))
+    def export_cells_current_intra(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all intracellular current densities for the cell cluster at the
+        last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figI, axI, cbI = plotutil.plotStreamField(
+            100*self._phase.sim.J_cell_x,
+            100*self._phase.sim.J_cell_y,
+            self._phase.cells,
+            self._phase.p,
+            plot_ecm=False,
+            title='Intracellular Current Density',
+            cb_title='Current Density [uA/cm2]',
+            show_cells=False,
+            colorAutoscale=self._phase.p.autoscale_I2d,
+            minColor=self._phase.p.I_min_clr,
+            maxColor=self._phase.p.I_max_clr,
+        )
+
+        axI.set_xlabel('Spatial distance [um]')
+        axI.set_ylabel('Spatial distance [um]')
+        cbI.set_label('Current Density [uA/cm2]')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_Current_gj')
+
+
+    @piperunner(
+        categories=('Cell Cluster', 'Current Density', 'Extracellular',),
+        requirements={piperunreq.ECM,},
+    )
+    def export_cells_current_extra(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all extracellular current densities for the cell cluster
+        environment at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figI2, axI2, cbI2 = plotutil.plotStreamField(
+            100*self._phase.sim.J_env_x,
+            100*self._phase.sim.J_env_y,
+            self._phase.cells,
+            self._phase.p,
+            plot_ecm=True,
+            title='Extracellular Current Density',
+            cb_title='Current Density [uA/cm2]',
+            show_cells=False,
+            colorAutoscale=self._phase.p.autoscale_I2d,
+            minColor=self._phase.p.I_min_clr,
+            maxColor=self._phase.p.I_max_clr,
+        )
+
+        axI2.set_xlabel('Spatial distance [um]')
+        axI2.set_ylabel('Spatial distance [um]')
+        cbI2.set_label('Extracellular Current Density [uA/cm2]')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_Current_extracellular')
+
+    # ..................{ EXPORTERS ~ cells : deform         }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Physical Deformation',),
+        requirements={piperunreq.DEFORM,},
+    )
+    def export_cells_deform(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all physical deformations for the cell cluster at the last time
+        steps.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        plotutil.plotStreamField(
+            self._phase.p.um*self._phase.sim.dx_cell_time[-1],
+            self._phase.p.um*self._phase.sim.dy_cell_time[-1],
+            self._phase.cells, self._phase.p,
+            plot_ecm=False,
+            title='Final Displacement of Cell Collective',
+            cb_title='Displacement [um]',
+            show_cells=self._phase.p.showCells,
+            colorAutoscale=self._phase.p.autoscale_Deformation,
+            minColor=self._phase.p.Deformation_min_clr,
+            maxColor=self._phase.p.Deformation_max_clr,
+        )
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_displacement_2D')
+
+    # ..................{ EXPORTERS ~ cells : electric       }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Electric Field', 'Intracellular',))
+    def export_cells_electric_intra(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all intracellular electric field lines for the cell cluster at the
+        last time step.
+        '''
+
+        # Prepare to export the electric plot.
+        self._export_prep()
+
+        plotutil.plotVectField(
+            self._phase.sim.E_gj_x,
+            self._phase.sim.E_gj_y,
+            self._phase.cells,
+            self._phase.p,
+            plot_ecm=False,
+            title='Final Electric Field',
+            cb_title='Electric Field [V/m]',
+            colorAutoscale=self._phase.p.autoscale_Efield,
+            minColor=self._phase.p.Efield_min_clr,
+            maxColor=self._phase.p.Efield_max_clr,
+        )
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_Electric_Field_GJ')
+
+
+    @piperunner(
+        categories=('Cell Cluster', 'Electric Field', 'Extracellular',),
+        requirements={piperunreq.ECM,},
+    )
+    def export_cells_electric_extra(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all extracellular electric field lines for the cell cluster
+        environment at the last time step.
+        '''
+
+        # Prepare to export the electric plot.
+        self._export_prep()
+
+        plotutil.plotVectField(
+            self._phase.sim.E_env_x,
+            self._phase.sim.E_env_y,
+            self._phase.cells,
+            self._phase.p,
+            plot_ecm=True,
+            title='Final Electric Field',
+            cb_title='Electric Field [V/m]',
+            colorAutoscale=self._phase.p.autoscale_Efield,
+            minColor=self._phase.p.Efield_min_clr,
+            maxColor=self._phase.p.Efield_max_clr,
+        )
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_Electric_Field_ECM')
+
+    # ..................{ EXPORTERS ~ cells : fluid          }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Fluid Flow', 'Intracellular',),
+        requirements={piperunreq.FLUID,},
+    )
+    def export_cells_fluid_intra(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all intracellular fluid flow field lines for the cell cluster at
+        the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        plotutil.plotStreamField(
+            1e9*self._phase.sim.u_cells_x,
+            1e9*self._phase.sim.u_cells_y,
+            self._phase.cells, self._phase.p,
+            plot_ecm=False,
+            title='Final Fluid Velocity in Cell Collective',
+            cb_title='Velocity [nm/s]',
+            colorAutoscale=self._phase.p.autoscale_Vel,
+            minColor=self._phase.p.Vel_min_clr,
+            maxColor=self._phase.p.Vel_max_clr,
+        )
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_vel_2D_gj')
+
+
+    @piperunner(
+        categories=('Cell Cluster', 'Fluid Flow', 'Extracellular',),
+        requirements={piperunreq.FLUID, piperunreq.ECM,},
+    )
+    def export_cells_fluid_extra(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all extracellular fluid flow field lines for the cell cluster
+        environment at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        plotutil.plotStreamField(
+            1e6*self._phase.sim.u_env_x,
+            1e6*self._phase.sim.u_env_y,
+            self._phase.cells, self._phase.p,
+            plot_ecm=True,
+            title='Final Fluid Velocity in Cell Collective',
+            cb_title='Velocity [um/s]',
+            colorAutoscale=self._phase.p.autoscale_Vel,
+            minColor=self._phase.p.Vel_min_clr,
+            maxColor=self._phase.p.Vel_max_clr,
+        )
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_vel_2D_env')
+
     # ..................{ EXPORTERS ~ cells : ion : calcium  }..................
     @piperunner(
         categories=(
@@ -628,13 +869,79 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_pH_2D')
 
+    # ..................{ EXPORTERS ~ cells : junction       }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Gap Junction', 'Connectivity State',))
+    def export_cells_junction_state(
+        self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all **gap junction connectivity states** (i.e., relative
+        permeabilities of the gap junctions connecting all cell membranes) for
+        the cell cluster at the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        fig_x = pyplot.figure()
+        ax_x = pyplot.subplot(111)
+
+        con_segs = self._phase.cells.nn_edges
+        connects = self._phase.p.um*np.asarray(con_segs)
+        collection = LineCollection(
+            connects,
+            array=self._phase.sim.gjopen,
+            cmap=self._phase.p.background_cm,
+            linewidths=2.0,
+        )
+        # collection.set_clim(0, 1)
+
+        ax_x.add_collection(collection)
+        cb = fig_x.colorbar(collection)
+        pyplot.axis('equal')
+        pyplot.axis(self._cells_extent)
+
+        cb.set_label('Relative Permeability')
+        ax_x.set_xlabel('Spatial x [um]')
+        ax_x.set_ylabel('Spatial y [um')
+        ax_x.set_title('Final Gap Junction Relative Permeability')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_gjState')
+
     # ..................{ EXPORTERS ~ cells : pump           }..................
-    @piperunner(categories=(
-        'Cell Cluster', 'Na-K-ATPase Pump Rate',))
+    @piperunner(
+        categories=('Cell Cluster', 'Ion Pump', 'Density Factor',),
+        requirements={piperunreq.ELECTROOSMOSIS,},
+    )
+    def export_cells_pump_density(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all cell membrane ion pump density factors for the cell cluster at
+        the last time step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        plotutil.plotMemData(
+            self._phase.cells, self._phase.p,
+            zdata=self._phase.sim.rho_pump,
+            clrmap=self._phase.p.default_cm,
+        )
+        pyplot.xlabel('Spatial Dimension [um]')
+        pyplot.ylabel('Spatial Dimension [um]')
+        pyplot.title('Membrane ion pump density factor')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_pumps_2D')
+
+
+    @piperunner(
+        categories=('Cell Cluster', 'Ion Pump', 'Na-K-ATPase Pump Rate',))
     def export_cells_pump_nakatpase(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot all Na-K-ATPase membrane pump rates for the cell cluster at the
-        last time step.
+        Plot all cell membrane Na-K-ATPase pump rates for the cell cluster at
+        the last time step.
         '''
 
         # Prepare to export the current plot.
@@ -656,6 +963,39 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
         # Export this plot to disk and/or display.
         self._export(basename='final_NaKPump_2D')
+
+    # ..................{ EXPORTERS ~ cells : pressure       }..................
+    @piperunner(
+        categories=('Cell Cluster', 'Pressure', 'Total',),
+        requirements={piperunreq.PRESSURE_TOTAL,},
+    )
+    def export_cells_pressure_total(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all **cellular pressure totals** (i.e., summations of all cellular
+        mechanical and osmotic pressures) for the cell cluster  at the last time
+        step.
+        '''
+
+        # Prepare to export the current plot.
+        self._export_prep()
+
+        figP, axP, cbP = plotutil.plotPolyData(
+            self._phase.sim, self._phase.cells, self._phase.p,
+            zdata=self._phase.sim.P_cells,
+            number_cells=self._phase.p.enumerate_cells,
+            clrAutoscale=self._phase.p.autoscale_P,
+            clrMin=self._phase.p.P_min_clr,
+            clrMax=self._phase.p.P_max_clr,
+            clrmap=self._phase.p.default_cm,
+        )
+
+        axP.set_title('Final Pressure in Cell Network')
+        axP.set_xlabel('Spatial distance [um]')
+        axP.set_ylabel('Spatial distance [um]')
+        cbP.set_label('Pressure [Pa]')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='final_P_2D_gj')
 
     # ..................{ EXPORTERS ~ cells : voltage        }..................
     @piperunner(
@@ -858,8 +1198,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
         #FIXME: DRY. This functionality perfectly duplicates the
         #AnimCellsWhileSolving.__exit__() method, which is bad.
 
-        # Id displaying this plot *AND* the current matplotlib backend
-        # fails to support "true" non-blocking behavior...
+        # Id displaying this plot *AND* the current matplotlib backend fails to
+        # support "true" non-blocking behavior...
         if (self._phase.p.plot.is_after_sim_show and
             not mpl_config.is_backend_current_nonblockable()):
             # Update all artists displayed by this plot.
@@ -869,8 +1209,8 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
             #VisualCellsABC._show_frame(() method, which is also bad.
 
             # Temporarily yield the time slice for the smallest amount of time
-            # required by the current matplotlib backend to handle queued events in
-            # the GUI-specific event loop of the current process.
+            # required by the current matplotlib backend to handle queued events
+            # in the GUI-specific event loop of the current process.
             with mplutil.deprecations_ignored():
                 pyplot.pause(0.0001)
 
@@ -897,6 +1237,15 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
                 format=filetype,
                 transparent=True,
             )
+
+        #FIXME: Non-ideal. Under a threading scenario, this will introduce race
+        #conditions. Ideally, the figure associated with this plot should be
+        #explicitly passed to the pyplot.close() as is currently done by the
+        #VisualCellsABC.close() method.
+
+        # If *NOT* displaying this plot, close this plot to conserve resources.
+        if not self._phase.p.plot.is_after_sim_show:
+            pyplot.close()
 
 # ....................{ OBSOLETE                           }....................
 #FIXME: Replace *ALL* functionality defined below with the "PlotCellsPipeliner"
@@ -985,6 +1334,7 @@ def pipeline(phase: SimPhaseABC) -> None:
             pipeliner.export_cell_pressure_total()
 
     # ..................{ EXPORTERS ~ cells                  }..................
+    pipeliner.export_cells_junction_state()
     pipeliner.export_cells_pump_nakatpase()
 
     # If plotting voltages, do so.
@@ -998,252 +1348,39 @@ def pipeline(phase: SimPhaseABC) -> None:
         if phase.p.sim_ECM:
             pipeliner.export_cells_voltage_extra()
 
+    if phase.p.plot_I2d:
+        pipeliner.export_cells_current_intra()
+
+        if phase.p.sim_ECM:
+            pipeliner.export_cells_current_extra()
+
+    if phase.p.plot_Efield:
+        pipeliner.export_cells_electric_intra()
+
+        if phase.p.sim_ECM:
+            pipeliner.export_cells_electric_extra()
+
     if phase.p.plot_ca2d and phase.p.ions_dict['Ca'] == 1:
         pipeliner.export_cells_ion_calcium_intra()
 
         if phase.p.sim_ECM:
             pipeliner.export_cells_ion_calcium_extra()
 
+    if phase.p.plot_Vel and phase.p.fluid_flow:
+        pipeliner.export_cells_fluid_intra()
+
+        if phase.p.sim_ECM:
+            pipeliner.export_cells_fluid_extra()
+
+    if phase.p.sim_eosmosis:
+        pipeliner.export_cells_channel_density()
+        pipeliner.export_cells_pump_density()
+
     if phase.p.plot_pH2d and phase.p.ions_dict['H'] == 1:
         pipeliner.export_cells_ion_hydrogen_intra()
 
-    #FIXME: Excise this once no longer required.
-    # Substring prefixing the absolute path of each plot created below.
-    savedImg = paths.join(phase.save_dirname, 'fig_')
+    if phase.p.plot_P and piperunreq.PRESSURE_TOTAL.is_satisfied(phase):
+        pipeliner.export_cells_pressure_total()
 
-    #FIXME: Replace these local variable placeholders with the equivalent
-    #"phase.sim", "phase.cells", and "phase.p". To do so, continue iteratively
-    #pushing these declarations further and further down this function until
-    #they are no longer required at all.
-    sim   = phase.sim
-    cells = phase.cells
-    p     = phase.p
-
-    #------------------------------------------------------------------------------------------------------------------
-    if phase.p.plot_I2d and phase.p.calc_J:
-        figI, axI, cbI = plotutil.plotStreamField(
-            100*sim.J_cell_x,
-            100*sim.J_cell_y,
-            cells,
-            p,
-            plot_ecm=False,
-            title='Intracellular Current Density',
-            cb_title='Current Density [uA/cm2]',
-            show_cells=False,
-            colorAutoscale=p.autoscale_I2d,
-            minColor=p.I_min_clr,
-            maxColor=p.I_max_clr,
-        )
-
-        axI.set_xlabel('Spatial distance [um]')
-        axI.set_ylabel('Spatial distance [um]')
-        cbI.set_label('Current Density [uA/cm2]')
-
-        if p.plot.is_after_sim_save is True:
-            savename10 = savedImg + 'Final_Current_gj' + '.png'
-            pyplot.savefig(savename10,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-        if p.sim_ECM is True:
-
-            figI2, axI2, cbI2 = plotutil.plotStreamField(
-                100 * sim.J_env_x, 100 * sim.J_env_y,
-                cells,
-                p,
-                plot_ecm=True,
-                title='Extracellular Current Density',
-                cb_title='Current Density [uA/cm2]',
-                show_cells=False,
-                colorAutoscale=p.autoscale_I2d,
-                minColor=p.I_min_clr,
-                maxColor=p.I_max_clr,
-            )
-
-
-            axI2.set_xlabel('Spatial distance [um]')
-            axI2.set_ylabel('Spatial distance [um]')
-            cbI2.set_label('Extracellular Current Density [uA/cm2]')
-
-            if p.plot.is_after_sim_save is True:
-                savename11 = savedImg + 'Final_Current_extracellular' + '.png'
-                pyplot.savefig(savename11,format='png',transparent=True)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
-
-    #-------------------------------------------------------------------------------------------------------------------
-
-    if p.plot_Efield is True:
-
-        if p.sim_ECM is True:
-
-            plotutil.plotVectField(sim.E_env_x,sim.E_env_y,cells,p,plot_ecm = True,
-                title='Final Electric Field', cb_title = 'Electric Field [V/m]',
-                colorAutoscale = p.autoscale_Efield, minColor = p.Efield_min_clr,
-                maxColor = p.Efield_max_clr)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
-
-            if p.plot.is_after_sim_save is True:
-                if p.sim_ECM is True:
-                    savename = savedImg + 'Final_Electric_Field_ECM' + '.png'
-                    pyplot.savefig(savename,format='png',transparent=True)
-
-        plotutil.plotVectField(
-            sim.E_gj_x,sim.E_gj_y,cells,p,plot_ecm = False,
-            title='Final Electric Field',
-            cb_title='Electric Field [V/m]',
-            colorAutoscale=p.autoscale_Efield,
-            minColor=p.Efield_min_clr,
-            maxColor=p.Efield_max_clr,
-        )
-
-        if p.plot.is_after_sim_save is True:
-            savename = savedImg + 'Final_Electric_Field_GJ' + '.png'
-            pyplot.savefig(savename,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-    #------------------------------------------------------------------------------------------------------------------
-    if p.plot_P and np.mean(sim.P_cells_time) != 0.0:
-
-        figP, axP, cbP = plotutil.plotPolyData(
-            sim, cells, p,
-            zdata=sim.P_cells,
-            number_cells=p.enumerate_cells,
-            clrAutoscale=p.autoscale_P,
-            clrMin=p.P_min_clr,
-            clrMax=p.P_max_clr,
-            clrmap=p.default_cm,
-        )
-
-        axP.set_title('Final Pressure in Cell Network')
-        axP.set_xlabel('Spatial distance [um]')
-        axP.set_ylabel('Spatial distance [um]')
-        cbP.set_label('Pressure [Pa]')
-
-        if p.plot.is_after_sim_save is True:
-            savename13 = savedImg + 'final_P_2D_gj' + '.png'
-            pyplot.savefig(savename13,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-    #------------------------------------------------------------------------------------------------------------------
-
-    if (p.plot_Deformation and
-        p.deformation and
-        phase.kind is SimPhaseKind.SIM):
-        plotutil.plotStreamField(
-            p.um*sim.dx_cell_time[-1],
-            p.um*sim.dy_cell_time[-1],
-            cells, p,
-            plot_ecm=False,
-            title='Final Displacement of Cell Collective',
-            cb_title='Displacement [um]',
-            show_cells=p.showCells,
-            colorAutoscale=p.autoscale_Deformation,
-            minColor=p.Deformation_min_clr,
-            maxColor=p.Deformation_max_clr,
-        )
-
-        if p.plot.is_after_sim_save is True:
-            savename13 = savedImg + 'final_displacement_2D' + '.png'
-            pyplot.savefig(savename13,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-
-    if p.plot_Vel and p.fluid_flow:
-        plotutil.plotStreamField(
-            (1e9)*sim.u_cells_x,
-            (1e9)*sim.u_cells_y,
-            cells, p,
-            plot_ecm=False,
-            title='Final Fluid Velocity in Cell Collective',
-            cb_title='Velocity [nm/s]',
-            colorAutoscale=p.autoscale_Vel,
-            minColor=p.Vel_min_clr,
-            maxColor=p.Vel_max_clr,
-        )
-
-        if p.plot.is_after_sim_save is True:
-            savename13 = savedImg + 'final_vel_2D_gj' + '.png'
-            pyplot.savefig(savename13,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-        if p.sim_ECM is True:
-            plotutil.plotStreamField(
-                (1e6)*sim.u_env_x,
-                (1e6)*sim.u_env_y,
-                cells, p, plot_ecm=True,
-                title='Final Fluid Velocity in Cell Collective',
-                cb_title='Velocity [um/s]',
-                colorAutoscale=p.autoscale_Vel,
-                minColor=p.Vel_min_clr,
-                maxColor=p.Vel_max_clr,
-            )
-
-            if p.plot.is_after_sim_save is True:
-                savename13 = savedImg + 'final_vel_2D_env' + '.png'
-                pyplot.savefig(savename13,format='png',transparent=True)
-
-            if phase.p.plot.is_after_sim_show:
-                pyplot.show(block=False)
-
-    # if p.gj_flux_sensitive is True or p.v_sensitive_gj is True:
-    # plotutil.plotMemData(cells,p,zdata=sim.rho_gj,clrmap=p.default_cm)
-    fig_x = pyplot.figure()
-    ax_x = pyplot.subplot(111)
-    con_segs = cells.nn_edges
-    connects = p.um*np.asarray(con_segs)
-    collection = LineCollection(connects, array=sim.gjopen, cmap= p.background_cm, linewidths=2.0)
-    ax_x.add_collection(collection)
-    # collection.set_clim(0, 1)
-    cb = fig_x.colorbar(collection)
-    pyplot.axis('equal')
-    pyplot.axis([cells.xmin*p.um,cells.xmax*p.um,cells.ymin*p.um,cells.ymax*p.um])
-
-    cb.set_label('Relative Permeability')
-    ax_x.set_xlabel('Spatial x [um]')
-    ax_x.set_ylabel('Spatial y [um')
-    ax_x.set_title('Final Gap Junction Relative Permeability')
-
-    if p.plot.is_after_sim_save is True:
-        savename = savedImg + 'final_gjState' + '.png'
-        pyplot.savefig(savename,format='png',transparent=True)
-
-    if phase.p.plot.is_after_sim_show:
-        pyplot.show(block=False)
-
-    if p.sim_eosmosis is True and phase.kind is SimPhaseKind.SIM:
-        plotutil.plotMemData(cells,p,zdata=sim.rho_pump,clrmap=p.default_cm)
-        pyplot.xlabel('Spatial Dimension [um]')
-        pyplot.ylabel('Spatial Dimension [um]')
-        pyplot.title('Membrane ion pump density factor')
-
-        if p.plot.is_after_sim_save:
-            savename = savedImg + 'final_pumps_2D' + '.png'
-            pyplot.savefig(savename,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
-
-        plotutil.plotMemData(cells,p,zdata=sim.rho_channel,clrmap=p.default_cm)
-        pyplot.xlabel('Spatial Dimension [um]')
-        pyplot.ylabel('Spatial Dimension [um]')
-        pyplot.title('Membrane ion channel density factor')
-
-        if p.plot.is_after_sim_save:
-            savename = savedImg + 'final_channels_2D' + '.png'
-            pyplot.savefig(savename,format='png',transparent=True)
-
-        if phase.p.plot.is_after_sim_show:
-            pyplot.show(block=False)
+    if phase.p.plot_Deformation and phase.p.deformation:
+        pipeliner.export_cells_deform()
