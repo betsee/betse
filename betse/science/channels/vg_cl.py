@@ -107,6 +107,8 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
         # calculate specific ion flux contribution for this channel:
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
+        self.chan_flux = delta_Q
+
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 
         self.update_charge(sim.iCl, delta_Q, dyna.targets_vgCl, sim, cells, p)

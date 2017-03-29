@@ -120,6 +120,8 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
         delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
 
+        self.chan_flux = delta_Q_Na + delta_Q_K
+
         if p.ions_dict['Ca'] == 1:
             delta_Q_Ca = stb.electroflux(c_env_Ca, c_mem_Ca, Dchan, p.tm * IdM, z_Ca, sim.vm, sim.T, p, rho=sim.rho_channel)
 

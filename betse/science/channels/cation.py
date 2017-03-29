@@ -106,6 +106,9 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         delta_Q_Na = stb.electroflux(c_env_Na, c_mem_Na, Dchan, p.tm * IdM, z_Na, sim.vm, sim.T, p, rho=sim.rho_channel)
         delta_Q_K = stb.electroflux(c_env_K, c_mem_K, Dchan, p.tm * IdM, z_K, sim.vm, sim.T, p, rho=sim.rho_channel)
 
+        # save the delta_Q:
+        self.chan_flux = delta_Q_Na + delta_Q_K
+
         self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
         self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
 

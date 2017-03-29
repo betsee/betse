@@ -630,12 +630,9 @@ class MasterOfNetworks(object):
         for trans_name in self.transporters:
             self.react_handler[trans_name] = self.transporters[trans_name].transporter_eval_string + div_string
 
+        for chan_name in self.channels:
 
-        # FIXME this don't work in practice!
-
-        # for chan_name in self.channels:
-        #
-        #     self.react_handler[chan_name] = "self.channels[{}].channel_core.chan_flux.mean()".format(chan_name) + div_string
+            self.react_handler[chan_name] = "self.channels['{}'].channel_core.chan_flux".format(chan_name) + div_string
 
         self.react_handler_index = {}
 
@@ -4427,12 +4424,66 @@ class MasterOfNetworks(object):
 
         self.build_indices(sim, cells, p)
 
+        # initialize Dm_extra dictionary to handle channel effect on membrane (for Vmem calculation)
+        Dm_extra = {}
+        Dm_extra['K'] = []
+        Dm_extra['Na'] = []
+        Dm_extra['Cl'] = []
+
+        # initialize dictionary to hold index to channels in react_handler:
+        channel_index = {}
+        channel_index['K'] = []
+        channel_index['Na'] = []
+        channel_index['Cl'] = []
+
         # Initialize channels, if there are any:
         if len(self.channels):
 
             sim.rho_channel = 1
 
             self.run_loop_channels(sim, cells, p)
+
+            for ch_k, ch_v in self.channels.items():
+
+                chin = self.react_handler_index[ch_k]
+
+                if ch_v.channel_class == 'K':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+
+                elif ch_v.channel_class == 'Na':
+
+                    Dm_extra['Na'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['Na'].append(chin)
+
+                elif ch_v.channel_class == 'Cl':
+
+                    Dm_extra['Cl'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['Cl'].append(chin)
+
+                elif ch_v.channel_class == 'Fun':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+                    Dm_extra['Na'].append(0.2*ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+                    channel_index['Na'].append(chin)
+
+                elif ch_v.channel_class == 'Cat':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+                    Dm_extra['Na'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+                    channel_index['Na'].append(chin)
+
+        self.Dm_extra = Dm_extra
+        self.channel_index = channel_index
+
 
         # Optimization Matrix for Concentrations:----------------------------------------------------------------------
 
@@ -4497,6 +4548,22 @@ class MasterOfNetworks(object):
 
                 self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
 
+            elif node_type_a == self.conc_shape and node_type_b is self.channel_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.channel_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+        self.network_opt_M_full = self.network_opt_M*1
+
         # --------------------------------------------------
         # This is idiotic, but refine the above matrix, assuming environmental concentrations are constant, and
         # adding in a row to take care of zero transmembrane current at steady-state
@@ -4522,9 +4589,11 @@ class MasterOfNetworks(object):
         # next define a current expression as the final row:
         Jrow = [0 for nn in self.react_handler]
 
-        # current scaling factor for dV/dt:
-        # ff = -(1/p.cm)
-        ff = -1.0
+        # create another vector that will give total sum of pump/transporter currents only
+        self.Jpumps = [0 for nn in self.react_handler]
+
+        # current scaling factor requires conversion back to flux units:
+        ff = -1.0*(cells.cell_vol.mean()/cells.cell_sa.mean())*p.F
 
         for i, (k, v) in enumerate(self.react_handler.items()):
 
@@ -4540,14 +4609,33 @@ class MasterOfNetworks(object):
                     z = self.zmol[li]
                     coeff = self.net_graph.edge[k][li][0]['coeff']
                     Jrow[i] += -coeff * z *ff
+                    self.Jpumps[i] += -coeff * z *ff
 
                 for lo in self.transporters[k].transport_out_list:
                     z = self.zmol[lo]
                     coeff = self.net_graph.edge[lo][k][0]['coeff']
                     Jrow[i] += coeff * z *ff
+                    self.Jpumps[i] += coeff * z * ff
+
+            if k in self.channels:
+
+                chan_type = self.channels[k].channel_class
+
+                if chan_type == 'K' or chan_type == 'Na':
+
+                    Jrow[i] = ff
+
+                elif chan_type == 'Cl':
+
+                    Jrow[i] = -ff
+
+                elif chan_type == 'Fun' or chan_type == 'Cat':
+
+                    Jrow[i] = ff
+
 
         MM.append(Jrow)
-        self.output_handler['d/dt Vmem'] = 0
+        self.output_handler['Jmem'] = 0
 
         MM = np.array(MM)
 
@@ -4611,6 +4699,10 @@ class MasterOfNetworks(object):
 
                 origin_o[i] = self.transporters[rea_name].vmax
 
+            elif rea_name in self.channels:
+
+                origin_o[i] = self.channels[rea_name].channelMax
+
         logs.log_info("Initiating optimization with reaction rates: ")
         logs.log_info("-----------------------------------------")
 
@@ -4653,7 +4745,6 @@ class MasterOfNetworks(object):
         # define Pmem indices to access in the vmax vector:
         iNa = self.react_handler_index['Na_ed']
         iK = self.react_handler_index['K_ed']
-        iM = self.react_handler_index['M_ed']
 
         if 'Cl_ed' in self.react_handler_index:
 
@@ -4669,58 +4760,67 @@ class MasterOfNetworks(object):
         # fit's value of Pmem adjustments. It then recalculates r_base and optimizes steady-state by
         # finding minimum concentration changes,
         # zero transmembrane currents, and target Vmem values:
-        self.channel_test = []
 
         def opt_funk(v_base_o):
 
-            # FIXME add in the effect of channels by evaluating the channel string and determining self.Dmem_time for
-            # each ion???
+            r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
 
+            outputs = np.dot(MM, np.abs(v_base_o) * r_base)
+
+            pump_current = np.dot(self.Jpumps, np.abs(v_base_o)*r_base)
+
+            # Total current across the membrane for use in Goldman equation Vmem estimate:
+            gg = pump_current*p.tm*(1/p.F)
+
+            # recalculate Vmem:
             if iCl is None:
 
-                # sim.vm = ((p.R * sim.T / p.F) * np.log(
-                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
-                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env'] +
-                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M']) /
-                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
-                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K'] +
-                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M_env'])))
+                # remake the membrane diffusion constants
+
+                DmK_dyn = np.abs(v_base_o[iK]) * self.Dmem['K']
+                DmNa_dyn = np.abs(v_base_o[iNa]) * self.Dmem['Na']
+
+                for dmNa, jNa in zip(self.Dm_extra['Na'], self.channel_index['Na']):
+                    DmNa_dyn += dmNa * np.abs(v_base_o[jNa])
+
+                for dmK, jK in zip(self.Dm_extra['K'], self.channel_index['K']):
+                    DmK_dyn += dmK * np.abs(v_base_o[jK])
 
                 sim.vm = (p.R * sim.T / p.F) * np.log(
-                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
-                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env']
-                    ) /
-                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
-                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K']
+                    (DmNa_dyn * self.conc_handler['Na_env'] +
+                     DmK_dyn * self.conc_handler['K_env']
+                     + gg) /
+                    (DmNa_dyn * self.conc_handler['Na'] +
+                     DmK_dyn * self.conc_handler['K']
                      ))
 
             else:
 
-                # sim.vm = (p.R * sim.T / p.F) * np.log(
-                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
-                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env'] +
-                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M'] +
-                #     np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl'])/
-                #     (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
-                #      np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K'] +
-                #      np.abs(v_base_o[iM]) * self.Dmem['M'] * self.conc_handler['M_env']+
-                #      np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl_env'])
-                # )
+                # remake the membrane diffusion constants
+
+                DmK_dyn = np.abs(v_base_o[iK]) * self.Dmem['K']
+                DmNa_dyn = np.abs(v_base_o[iNa]) * self.Dmem['Na']
+                DmCl_dyn = np.abs(v_base_o[iCl]) * self.Dmem['Cl']
+
+                for dmNa, jNa in zip(self.Dm_extra['Na'], self.channel_index['Na']):
+                    DmNa_dyn += dmNa * np.abs(v_base_o[jNa])
+
+                for dmK, jK in zip(self.Dm_extra['K'], self.channel_index['K']):
+                    DmK_dyn += dmK * np.abs(v_base_o[jK])
+
+                for dmCl, jCl in zip(self.Dm_extra['Cl'], self.channel_index['Cl']):
+                    DmCl_dyn += dmCl * np.abs(v_base_o[jCl])
 
                 sim.vm = (p.R * sim.T / p.F) * np.log(
-                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na_env'] +
-                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K_env'] +
-                    np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl'])/
-                    (np.abs(v_base_o[iNa]) * self.Dmem['Na'] * self.conc_handler['Na'] +
-                     np.abs(v_base_o[iK]) * self.Dmem['K'] * self.conc_handler['K'] +
-                     np.abs(v_base_o[iCl]) * self.Dmem['Cl'] * self.conc_handler['Cl_env'])
+                    (DmNa_dyn * self.conc_handler['Na_env'] +
+                     DmK_dyn * self.conc_handler['K_env'] +
+                     DmCl_dyn * self.conc_handler['Cl'] + gg) /
+                    (DmNa_dyn * self.conc_handler['Na'] +
+                     DmK_dyn * self.conc_handler['K'] +
+                     DmCl_dyn * self.conc_handler['Cl_env'])
                 )
 
-            self.channel_test.append(sim.vm*1)
-
-            r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
-
-            delta_c = (np.dot(MM, np.abs(v_base_o) * r_base)) ** 2
+            delta_c = (outputs) ** 2
 
             cc2 = ((sim.vm - self.target_vmem)*1e3) ** 2
 
@@ -4806,6 +4906,7 @@ class MasterOfNetworks(object):
 
         # define the solution vector in a convenient way so we can save and print it:
         self.sol_x = np.abs(sol.x*origin_o)
+        self.sol_v = sol.x
 
         # Absolute path of the YAML file to write this solution to.
         saveData = paths.join(self.resultsPath, 'OptimizedReactionRates.csv')
@@ -4850,6 +4951,403 @@ class MasterOfNetworks(object):
 
 
         logs.log_info("-----------------------------------------")
+
+    def build_quickSim(self, sim, cells, p):
+        """
+        Runs an optimization routine returning reaction maximum rates (for
+        growth and decay, chemical reactions, and transporters) that match to a
+        user-specified set of target concentrations for all substances at
+        steady-state.
+
+        The optimization is performed using cell, environmental, and
+        mitochondrial concentrations defined in the network config file as
+        targets to fit to.
+
+        The optimization uses basin-hopping, a randomized function optimization
+        technique similar/analogous to genetic algorithm searching. The
+        optimization aims to find the global minimum of the network, which
+        represents the steady state. Specifically, it minimizes the chi-square
+        value of the set of calculated versus target concentrations given a
+        certain maximum rate vector.
+
+        Calling this method will write a CSV file containing the optimized
+        reaction rates to the results folder of the main simulation. It also
+        prints these values to the screen, and generates a graph of the
+        reaction network that has been optimized.
+        """
+
+        # FIXME option to set all reaction rates and D_mems automatically after a network optimization
+
+        #-----------------------------------------------------
+
+        # If either NetworkX or PyDot are unimportable, raise an exception.
+        libs.die_unless_runtime_optional('networkx', 'pydot')
+
+        # Import NetworkX and NetworkX's PyDot interface:
+        from networkx import nx_pydot
+
+        # set the Vmem to target value requested by user:
+        sim.vm = self.target_vmem
+
+        if self.mit_enabled:
+
+        # set Vmit to standard value
+            self.mit.Vmit[:] = -150.0e-3
+
+        self.init_saving(cells, p, plot_type='init', nested_folder_name='Quick_Sim')
+
+        # create the reaction and concentration handlers, which organize different kinds of reactions and
+        # concentrations:
+
+        # create a complete graph using pydot and the network plotting method:
+        grapha = self.build_reaction_network(p)
+
+        # if saving is enabled, export the graph of the network used in the quick sim:
+        if p.autosave is True and p.plot_network is True:
+            savename = self.imagePath + 'QuickSimNetworkGraph' + '.svg'
+            grapha.write_svg(savename, prog = 'dot')
+
+        # convert the graph into a networkx format so it's easy to manipulate:
+        network = nx_pydot.from_pydot(grapha)
+
+        self.net_graph = network
+
+        self.build_indices(sim, cells, p)
+
+        # initialize Dm_extra dictionary to handle channel effect on membrane (for Vmem calculation)
+        Dm_extra = {}
+        Dm_extra['K'] = []
+        Dm_extra['Na'] = []
+        Dm_extra['Cl'] = []
+
+        # initialize dictionary to hold index to channels in react_handler:
+        channel_index = {}
+        channel_index['K'] = []
+        channel_index['Na'] = []
+        channel_index['Cl'] = []
+
+        # Initialize channels, if there are any:
+        if len(self.channels):
+
+            sim.rho_channel = 1
+
+            self.run_loop_channels(sim, cells, p)
+
+            for ch_k, ch_v in self.channels.items():
+
+                chin = self.react_handler_index[ch_k]
+
+                if ch_v.channel_class == 'K':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+
+                elif ch_v.channel_class == 'Na':
+
+                    Dm_extra['Na'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['Na'].append(chin)
+
+                elif ch_v.channel_class == 'Cl':
+
+                    Dm_extra['Cl'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['Cl'].append(chin)
+
+                elif ch_v.channel_class == 'Fun':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+                    Dm_extra['Na'].append(0.2*ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+                    channel_index['Na'].append(chin)
+
+                elif ch_v.channel_class == 'Cat':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+                    Dm_extra['Na'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+                    channel_index['Na'].append(chin)
+
+        self.Dm_extra = Dm_extra
+        self.channel_index = channel_index
+
+
+        # Optimization Matrix for Concentrations:----------------------------------------------------------------------
+
+        # build a network matrix in order to easily organize reaction relationships needed for the optimization:
+        self.quick_sim_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
+
+        # build the reaction matrix based on the network reaction graph:
+        for node_a, node_b in network.edges():
+
+            # get the coefficient of stoichiometry used in the reaction relationship:
+            edge_coeff = network.edge[node_a][node_b][0]['coeff']
+
+            # when building the graph, the node shape was used to signify the item:
+            node_type_a = network.node[node_a].get('shape', None)
+            node_type_b = network.node[node_b].get('shape', None)
+
+            # if node a is a concentration and b is a reaction, we must be dealing with a reactant:
+            if node_type_a is self.conc_shape and node_type_b == self.reaction_shape:
+
+                # find the numerical index of the reactant (node_a) and reaction (node_b) in the handlers:
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                # add them to the optimization matrix:
+                self.network_opt_M[row_i, col_j] = -1 * edge_coeff
+
+            # perform a similar type of reasoning for the opposite relationship (indicating a product):
+            elif node_type_a == self.reaction_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1 * edge_coeff
+
+            # the next two blocks to do exactly the same thing as above, except with transporters, which
+            # have a diamond shape as they're treated differently:
+            elif node_type_a is self.conc_shape and node_type_b == self.transporter_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.transporter_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+            elif node_type_a == self.conc_shape and node_type_b is self.ed_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.ed_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+            elif node_type_a == self.conc_shape and node_type_b is self.channel_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.channel_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+        self.quick_sim_Mfull = self.network_opt_M*1
+
+        # --------------------------------------------------
+        # This is idiotic, but refine the above matrix, assuming environmental concentrations are constant, and
+        # adding in a row to take care of zero transmembrane current at steady-state
+
+        # restructure the optimization matrix, first by removing the environmental values as we'll assume they're constant:
+        MM = []
+        self.output_handler = OrderedDict({})
+
+        for i, (k, v) in enumerate(self.conc_handler.items()):
+
+            # Don't include environmental concentrations in the optimization (assume they're constant)
+
+            if k.endswith("_env"):
+
+                pass
+
+            else:
+                MM.append(self.network_opt_M[i, :].tolist())
+
+                name_tag = 'd/dt ' + str(k)
+                self.output_handler[name_tag] = v
+
+        # next define a current expression as the final row:
+        Jrow = [0 for nn in self.react_handler]
+
+        # create another vector that will give total sum of pump/transporter currents only
+        self.Jpumps = [0 for nn in self.react_handler]
+
+        # current scaling factor requires conversion back to flux units:
+        ff = -1.0*(cells.cell_vol.mean()/cells.cell_sa.mean())*p.F
+
+        for i, (k, v) in enumerate(self.react_handler.items()):
+
+            if k.endswith("_ed"):  # if we're dealing with an electrodiffusing item...
+
+                kk = k[:-3]  # get the proper keyname...
+                z = self.zmol[kk]  # get the charge value...
+                Jrow[i] = z*ff
+
+            if k in self.transporters:
+
+                for li in self.transporters[k].transport_in_list:
+                    z = self.zmol[li]
+                    coeff = self.net_graph.edge[k][li][0]['coeff']
+                    Jrow[i] += -coeff * z *ff
+                    self.Jpumps[i] += -coeff * z *ff
+
+                for lo in self.transporters[k].transport_out_list:
+                    z = self.zmol[lo]
+                    coeff = self.net_graph.edge[lo][k][0]['coeff']
+                    Jrow[i] += coeff * z *ff
+                    self.Jpumps[i] += coeff * z * ff
+
+            if k in self.channels:
+
+                chan_type = self.channels[k].channel_class
+
+                if chan_type == 'K' or chan_type == 'Na':
+
+                    Jrow[i] = ff
+
+                elif chan_type == 'Cl':
+
+                    Jrow[i] = -ff
+
+                elif chan_type == 'Fun' or chan_type == 'Cat':
+
+                    Jrow[i] = ff
+
+
+        MM.append(Jrow)
+        self.output_handler['Jmem'] = 0
+
+        MM = np.array(MM)
+
+        self.network_opt_M = MM
+
+        # initialize guess vector for initial conditions:
+        origin_o = np.ones(len(self.react_handler))
+
+        for i, rea_name in enumerate(self.react_handler):
+
+            if rea_name.endswith('_growth'):
+
+                name = rea_name[:-7]
+
+                origin_o[i] = self.molecules[name].r_production
+
+            elif rea_name.endswith('_decay'):
+
+                name = rea_name[:-6]
+
+                origin_o[i] = self.molecules[name].r_decay
+
+            elif rea_name.endswith('_ed'):
+
+                name = rea_name[:-3]
+
+                origin_o[i] = self.Dmem[name]
+
+            elif rea_name in self.reactions:
+
+                origin_o[i] = self.reactions[rea_name].vmax
+
+            elif rea_name in self.transporters:
+
+                origin_o[i] = self.transporters[rea_name].vmax
+
+            elif rea_name in self.channels:
+
+                origin_o[i] = self.channels[rea_name].channelMax
+
+
+        self.origin_o = origin_o
+
+        # define Pmem indices to access in the vmax vector:
+        self.iNa = self.react_handler_index['Na_ed']
+        self.iK = self.react_handler_index['K_ed']
+
+        if 'Cl_ed' in self.react_handler_index:
+
+            self.iCl = self.react_handler_index['Cl_ed']
+
+
+        else:
+
+            self.iCl = None
+
+
+
+    def quickSim(self, sim, cells, p):
+
+        r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
+
+        outputs = np.dot(self.network_opt_M, r_base)
+
+        pump_current = np.dot(self.Jpumps, r_base)
+
+        # Total current across the membrane for use in Goldman equation Vmem estimate:
+        gg = pump_current*p.tm*(1/p.F)
+
+        # recalculate Vmem:
+        if self.iCl is None:
+
+            # remake the membrane diffusion constants
+
+            DmK_dyn = self.Dmem['K']
+            DmNa_dyn = self.Dmem['Na']
+
+            for dmNa, jNa in zip(self.Dm_extra['Na'], self.channel_index['Na']):
+                DmNa_dyn += dmNa
+
+            for dmK, jK in zip(self.Dm_extra['K'], self.channel_index['K']):
+                DmK_dyn += dmK
+
+            sim.vm = (p.R * sim.T / p.F) * np.log(
+                (DmNa_dyn * self.conc_handler['Na_env'] +
+                 DmK_dyn * self.conc_handler['K_env']
+                 + gg) /
+                (DmNa_dyn * self.conc_handler['Na'] +
+                 DmK_dyn * self.conc_handler['K']
+                 ))
+
+        else:
+
+            # remake the membrane diffusion constants
+
+            DmK_dyn = self.Dmem['K']
+            DmNa_dyn = self.Dmem['Na']
+            DmCl_dyn = self.Dmem['Cl']
+
+            for dmNa, jNa in zip(self.Dm_extra['Na'], self.channel_index['Na']):
+                DmNa_dyn += dmNa
+
+            for dmK, jK in zip(self.Dm_extra['K'], self.channel_index['K']):
+                DmK_dyn += dmK
+
+            for dmCl, jCl in zip(self.Dm_extra['Cl'], self.channel_index['Cl']):
+                DmCl_dyn += dmCl
+
+            sim.vm = (p.R * sim.T / p.F) * np.log(
+                (DmNa_dyn * self.conc_handler['Na_env'] +
+                 DmK_dyn * self.conc_handler['K_env'] +
+                 DmCl_dyn * self.conc_handler['Cl'] + gg) /
+                (DmNa_dyn * self.conc_handler['Na'] +
+                 DmK_dyn * self.conc_handler['K'] +
+                 DmCl_dyn * self.conc_handler['Cl_env'])
+            )
+
+
+        return outputs
+
+
+
 
 class Molecule(object):
 

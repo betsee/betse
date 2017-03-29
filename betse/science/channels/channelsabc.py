@@ -59,9 +59,6 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         delta_Q = delta_Q*sim.rho_channel
 
-        # save the delta_Q:
-        self.chan_flux = delta_Q
-
         # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
         # which is described by the GHK flux equation.
 

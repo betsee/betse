@@ -922,6 +922,8 @@ def ghk_calculator(sim, cells, p):
 
     """
 
+
+    # FIXME the Goldman calculator should be altered to account for network pumps and channels!
     # begin by initializing all summation arrays for the cell network:
     sum_PmAnion_out = np.zeros(len(cells.cell_i))
     sum_PmAnion_in = np.zeros(len(cells.cell_i))
@@ -957,8 +959,13 @@ def ghk_calculator(sim, cells, p):
             sum_PmCation_out = sum_PmCation_out + Dm * conc_env * (1 / p.tm)
 
 
+    NaKrate = (np.dot(cells.M_sum_mems, sim.rate_NaKATP)/cells.num_mems)
+
+    # sum together contributions for Na and K flux across the membrane:
+    NaKflux = NaKrate - (2/3)*NaKrate
+
     sim.vm_GHK = ((p.R * sim.T) / p.F) * np.log(
-        (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
+        (sum_PmCation_out + sum_PmAnion_in - NaKflux) / (sum_PmCation_in + sum_PmAnion_out))
 
 def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
                  Km_ATP=1.0, met = None, n=1, ignoreECM = True, rho = 1.0):
