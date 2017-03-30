@@ -41,13 +41,11 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To avoid circular import dependencies, import only modules *NOT*
-# importing this module at the top-level. Currently, the following modules
-# import this module at the top-level and hence *CANNOT* be imported here:
-# "betse.util.os.processes".
-#
-# Since all other modules should *ALWAYS* be able to safely import this module
-# at any level, such circularities are best avoided here rather than elsewhere.
+# WARNING: To avoid circular import dependencies, avoid importing from *ANY*
+# application-specific modules at the top-level -- excluding those explicitly
+# known *NOT* to import from this module. Since all application-specific modules
+# must *ALWAYS* be able to safely import from this module at any level, these
+# circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, sys, traceback

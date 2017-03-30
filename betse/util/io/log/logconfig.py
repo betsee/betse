@@ -9,33 +9,31 @@ Low-level logging configuration.
 Logging Levels
 ----------
 Logging levels are integer-comparable according to the standard semantics of
-the `<` comparator. Levels assigned smaller integers are more inclusive (i.e.,
+the ``<`` comparator. Levels assigned smaller integers are more inclusive (i.e.,
 log strictly more messages than) levels assigned larger integers: e.g.,
 
-    # "DEBUG" is less than and hence more inclusive than "INFO".
+    # "DEBUG" is less and hence more inclusive than "INFO".
     >>> logging.DEBUG < logging.INFO
     True
 '''
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: To avoid circular import dependencies, import only modules *NOT*
-# importing this module at the top-level. Currently, the following modules
-# import this module at the top-level and hence *CANNOT* be imported here:
-# "betse.util.os.processes".
-#
-# Since all other modules should *ALWAYS* be able to safely import this module
-# at any level, such circularities are best avoided here rather than elsewhere.
+# WARNING: To avoid circular import dependencies, avoid importing from *ANY*
+# application-specific modules at the top-level -- excluding those explicitly
+# known *NOT* to import from this module. Since all application-specific modules
+# must *ALWAYS* be able to safely import from this module at any level, these
+# circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, os, sys
 from betse import metadata
 from betse.exceptions import BetseFileException
+from betse.util.io.log.loghandler import SafeRotatingFileHandler
 from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import type_check
 from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
-from logging.handlers import RotatingFileHandler
 from os import path
 
 # ....................{ CONSTANTS ~ int                    }....................
@@ -327,16 +325,23 @@ class LogConfig(object):
         os.makedirs(path.dirname(self._filename), exist_ok=True)
 
         # Root logger file handler, preconfigured as documented above.
-        self._logger_root_handler_file = RotatingFileHandler(
+        self._logger_root_handler_file = SafeRotatingFileHandler(
             filename=self._filename,
 
             # Append rather than overwrite this file.
             mode='a',
 
-            # Encode such file's contents as UTF-8.
+            # To reduce the likelihood (but *NOT* eliminate the probability) of
+            # race conditions with multiple BETSE processes attempting to
+            # concurrently rotate the same logfile, defer opening this file in a
+            # just-in-time manner (i.e., until the first call to this handler's
+            # emit() method is called to write the first log via this handler).
+            delay=True,
+
+            # Encode this file's contents as UTF-8.
             encoding='utf-8',
 
-            # Filesize at which to rotate this file.
+            # Maximum filesize in bytes at which to rotate this file.
             maxBytes=32 * ints.KiB,
 
             # Maximum number of rotated logfiles to maintain.
@@ -399,7 +404,7 @@ class LogConfig(object):
     @property
     def is_logging_file(self) -> bool:
         '''
-        `True` only if file logging is enabled (i.e., if the `log_type` property
+        ``True`` only if file logging is enabled (i.e., if the `log_type` property
         is `LogType.FILE`).
         '''
 
@@ -409,10 +414,10 @@ class LogConfig(object):
     @property
     def is_verbose(self) -> bool:
         '''
-        `True` only if _all_ messages are to be unconditionally logged to the
+        ``True`` only if _all_ messages are to be unconditionally logged to the
         stdout handler (and hence printed to stdout).
 
-        Equivalently, this method returns `True` only if the logging level for
+        Equivalently, this method returns ``True`` only if the logging level for
         the stdout handler is `ALL`.
 
         Note that this logging level is publicly retrievable by accessing the
@@ -454,14 +459,13 @@ class LogConfig(object):
         '''
         Set the type of logging to be performed.
 
-        If file logging is enabled (i.e., the passed log type is `FILE`):
+        If file logging is enabled (i.e., the passed log type is :data:`FILE`):
 
-        * If no log filename is defined (i.e., the `filename` property has _not_
-          been explicitly set by an external caller), an exception is raised.
+        * If no log filename is defined (i.e., the :func:`filename` property has
+          *not* been explicitly set by an external caller), an exception is
+          raised.
         * Else, the file handler is reconfigured to log to that file.
         '''
-        # assert types.is_in_enum(log_type, LogType), (
-        #     types.assert_not_in_enum(log_type, LogType))
 
         # Record this log_type *BEFORE* reconfiguring loggers or handlers, which
         # access this private attribute through its public property.
@@ -488,8 +492,8 @@ class LogConfig(object):
         handler.
 
         If file logging is enabled (i.e., the current log type is
-        `LogType.FILE`), this method reconfigures the file handler accordingly;
-        else, this filename is effectively ignored.
+        :attr:`LogType.FILE`), this method reconfigures the file handler
+        accordingly; else, this filename is effectively ignored.
         '''
 
         # Record this filename *BEFORE* reconfiguring the file handler, which
@@ -506,7 +510,7 @@ class LogConfig(object):
     def handler_file(self) -> logging.Handler:
         '''
         Root logger handler appending to the current logfile if file logging is
-        enabled _or_ `None` otherwise.
+        enabled *or* ``None`` otherwise.
         '''
 
         return self._logger_root_handler_file
@@ -533,21 +537,21 @@ class LogConfig(object):
 class LoggerFilterDebugNonBetse(Filter):
     '''
     Log filter ignoring all log records with logging levels less than or equal
-    to `DEBUG` _and_ names not prefixed by `betse`.
+    to :data:`DEBUG` *and* names not prefixed by ``betse``.
 
-    Equivalently, this log filter _only_ retains log records with either:
+    Equivalently, this log filter *only* retains log records with either:
 
-    * Logging levels greater than `DEBUG`.
-    * Names prefixed by `betse`.
+    * Logging levels greater than :data:`DEBUG`.
+    * Names prefixed by ``betse``.
 
     This log filter prevents ignorable debug messages logged by third-party
-    frameworks (e.g., Pillow) from polluting BETSE's debug output.
+    frameworks (e.g., Pillow) from polluting this application's debug output.
     '''
 
     @type_check
     def filter(self, log_record: LogRecord) -> bool:
         '''
-        `True` only if the passed log record is to be retained.
+        ``True`` only if the passed log record is to be retained.
         '''
 
         # print('log record name: {}'.format(log_record.name))
@@ -558,16 +562,17 @@ class LoggerFilterDebugNonBetse(Filter):
 
 class LoggerFilterMoreThanInfo(Filter):
     '''
-    Log filter ignoring all log records with logging levels greater than `INFO`.
+    Log filter ignoring all log records with logging levels greater than
+    :data:``INFO``.
 
-    Equivalently, this log filter _only_ retains log records with logging levels
-    less than or equal to `INFO`.
+    Equivalently, this log filter *only* retains log records with logging levels
+    less than or equal to :data:``INFO``.
     '''
 
     @type_check
     def filter(self, log_record: LogRecord) -> bool:
         '''
-        `True` only if the passed log record is to be retained.
+        ``True`` only if the passed log record is to be retained.
         '''
 
         return log_record.levelno <= INFO
@@ -633,11 +638,6 @@ def init() -> None:
 def get() -> LogConfig:
     '''
     Singleton logging configuration for the active Python process.
-
-    Returns
-    ----------
-    LogConfig
-        Such configuration.
     '''
 
     global _config

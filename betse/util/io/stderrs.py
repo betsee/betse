@@ -8,9 +8,7 @@ Low-level standard error facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import random
-import sys
-import traceback
+import random, sys, traceback
 
 # ....................{ CONSTANTS                          }....................
 HAIKU = [
@@ -92,9 +90,9 @@ def get_haiku_random() -> str:
 # ....................{ OUTPUTTERS                         }....................
 def output(*objects) -> None:
     '''
-    Print all passed objects to stderr _without_ logging these objects.
+    Print all passed objects to stderr *without* logging these objects.
 
-    This function is intentionally _not_ named `print()`. Doing so introduces
+    This function is intentionally *not* named `print()`. Doing so introduces
     subtle issues elsewhere.
     '''
 
@@ -103,7 +101,7 @@ def output(*objects) -> None:
 
 def output_exception(heading: str = None) -> None:
     '''
-    Print the currently caught exception to stderr _without_ logging this
+    Print the currently caught exception to stderr *without* logging this
     exception optionally preceded by the passed human-readable heading if any.
 
     Parameters
