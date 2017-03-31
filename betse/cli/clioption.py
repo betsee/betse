@@ -12,7 +12,7 @@ from abc import ABCMeta
 from betse import pathtree
 from betse.cli import cliutil
 from betse.exceptions import BetseCLIArgException
-from betse.util.io.log.logconfig import LogType
+from betse.util.io.log.logenum import LogLevel, LogType
 from betse.util.py import identifiers
 from betse.util.py.profilers import ProfileType
 from betse.util.type import strs
@@ -252,8 +252,8 @@ class CLIOptionArgABC(CLIOptionABC):
 # ....................{ SUBCLASSES ~ argless               }....................
 class CLIOptionBoolTrue(CLIOptionABC):
     '''
-    CLI option accepting _no_ arguments setting an instance variable to `True`
-    when passed and `False` when unpassed.
+    CLI option accepting *no* arguments setting an instance variable to ``True``
+    when passed and ``False`` when unpassed.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -276,7 +276,7 @@ class CLIOptionBoolTrue(CLIOptionABC):
 
 class CLIOptionVersion(CLIOptionABC):
     '''
-    CLI option accepting _no_ arguments printing a version specifier and halting
+    CLI option accepting *no* arguments printing a version specifier and halting
     the current process when passed.
     '''
 
@@ -401,7 +401,7 @@ def add_top(arg_parser: ArgParserType) -> None:
         CLIOptionBoolTrue(
             short_name='-v',
             long_name='--verbose',
-            synopsis='print low-level debugging messages',
+            synopsis='print and log all messages verbosely',
         ),
 
         CLIOptionVersion(
@@ -440,6 +440,16 @@ type of logging to perform (defaults to "{default}"):
             ),
             var_name='log_filename',
             default_value=pathtree.get_log_default_filename(),
+        ),
+
+        CLIOptionArgEnum(
+            long_name='--log-file-level',
+            synopsis=(
+                'minimum level of messages to log to "--log-file" '
+                '(defaults to "{default}") [overridden by "--verbose"]'
+            ),
+            enum_type=LogLevel,
+            enum_default=LogLevel.INFO,
         ),
 
         CLIOptionArgEnum(

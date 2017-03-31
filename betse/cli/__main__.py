@@ -15,7 +15,7 @@ This submodule is a thin wrapper intended to be:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.cli.clicli import CLICLI
+from betse.cli.climain import CLICLI
 from betse.util.path.command import exits
 
 # ....................{ MAIN                               }....................

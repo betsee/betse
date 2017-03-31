@@ -859,9 +859,9 @@ def make_writer(*args, cls: ClassType, **kwargs) -> MovieWriter:
                profile_filename=profile_filename,
              File "/home/leycec/py/betse/betse/util/py/profilers.py", line 146, in _profile_callable_none
                return call(*args, **kwargs)
-             File "/home/leycec/py/betse/betse/cli/clicli.py", line 157, in _do
+             File "/home/leycec/py/betse/betse/cli/climain.py", line 157, in _do
                return subcommand_method()
-             File "/home/leycec/py/betse/betse/cli/clicli.py", line 230, in _do_init
+             File "/home/leycec/py/betse/betse/cli/climain.py", line 230, in _do_init
                return self._sim_runner.init()
              File "/home/leycec/py/betse/betse/science/simrunner.py", line 206, in init
                sim.run_sim_core(cells, p)

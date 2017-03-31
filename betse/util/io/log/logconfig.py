@@ -5,17 +5,10 @@
 
 '''
 Low-level logging configuration.
-
-Logging Levels
-----------
-Logging levels are integer-comparable according to the standard semantics of
-the ``<`` comparator. Levels assigned smaller integers are more inclusive (i.e.,
-log strictly more messages than) levels assigned larger integers: e.g.,
-
-    # "DEBUG" is less and hence more inclusive than "INFO".
-    >>> logging.DEBUG < logging.INFO
-    True
 '''
+
+#FIXME: For disambiguity, embed the current process ID (PID) in each message
+#written to the logfile.
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -30,84 +23,11 @@ import logging, os, sys
 from betse import metadata
 from betse.exceptions import BetseFileException
 from betse.util.io.log.loghandler import SafeRotatingFileHandler
+from betse.util.io.log.logenum import LogLevel, LogType
 from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import type_check
-from enum import Enum
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from os import path
-
-# ....................{ CONSTANTS ~ int                    }....................
-# Originally, we attempted to dynamically copy such constants from the "logging"
-# to the current module. Such attempts succeeded in exposing such constants to
-# other modules importing this module but *NOT* to this module itself. Hence,
-# such constants are manually copied.
-
-DEBUG = logging.DEBUG
-'''
-Logging level suitable for debugging messages.
-'''
-
-
-INFO = logging.INFO
-'''
-Logging level suitable for informational messages.
-'''
-
-
-WARNING = logging.WARNING
-'''
-Logging level suitable for warning messages.
-'''
-
-
-ERROR = logging.ERROR
-'''
-Logging level suitable for error messages.
-'''
-
-
-CRITICAL = logging.CRITICAL
-'''
-Logging level suitable for critical messages.
-'''
-
-
-NONE = logging.CRITICAL + 1024
-'''
-Logging level signifying no messages to be logged.
-
-Since the `logging` module defines no constants encapsulating the concept of
-"none" (that is, of logging nothing), this is an ad-hoc constant expected to be
-larger than the largest constant defined by that module.
-'''
-
-
-ALL = logging.NOTSET
-'''
-Logging level signifying all messages to be logged.
-
-Since the `logging` module defines no constants encapsulating the concept of
-"all" (that is, of logging everything), this is an ad-hoc constant expected to
-be smaller than the smallest constant defined by that module.
-'''
-
-# ....................{ ENUMS                              }....................
-LogType = Enum('LogType', ('NONE', 'FILE'))
-'''
-Enumeration of all possible types of logging to perform, corresponding exactly
-to the `--log-type` CLI option.
-
-Attributes
-----------
-NONE : enum
-    Enumeration member redirecting all logging to standard file handles, in
-    which case:
-    * All `INFO` and `DEBUG` log messages will be printed to stdout.
-    * All `ERROR` and `WARNING` log messages will be printed to stderr.
-    * All uncaught exceptions will be printed to stderr.
-FILE : enum
-    Enumeration member redirecting all logging to the current logfile.
-'''
 
 # ....................{ GLOBALS                            }....................
 # See below for utility functions accessing this singleton.
@@ -132,10 +52,10 @@ class LogConfig(object):
 
     Caveats
     ----------
-    Since this class' `__init__()` method may raise exceptions, this class
+    Since this class' :meth:`__init__` method may raise exceptions, this class
     should be instantiated at application startup by an explicit call to the
-    module-level `init()` function _after_ establishing default exception
-    handling. Hence, this class is _not_ instantiated at the end of this module.
+    module-level :func:`init` function _after_ establishing default exception
+    handling. Hence, this class is *not* instantiated at the end of this module.
 
     Default Settings
     ----------
@@ -169,8 +89,21 @@ class LogConfig(object):
     Attributes
     ----------
     _logger_root_handler_file : Handler
-        Root logger handler appending to the current logfile if any _or_ `None`
-        otherwise.
+        Root logger handler appending to the current logfile if any *or*
+        ``None`` otherwise.
+    _logger_root_handler_file_level : LogLevel
+        Minimum level of messages to be logged to the
+        :attr:`_logger_root_handler_file`. Since this handler may not exist at
+        the time that the :meth:`file_level` property is set, this value
+        *cannot* be reliably stored in the
+        :attr:`_logger_root_handler_file.level` instance variable; hence, this
+        value is stored in this variable until this handler is set. (Note this
+        contrasts with both the :attr:`_logger_root_handler_stderr` and
+        :attr:`_logger_root_handler_stdout` handlers. Since these handlers are
+        guaranteed to exist, levels for these handlers *can* be reliably stored
+        directly in the ``level`` instance variable of each; hence, unique
+        variables are *not* required to store these handlers' levels.) Defaults
+        to :attr:`LogLevel.INFO`.
     _logger_root_handler_stderr : Handler
         Root logger handler printing to standard error.
     _logger_root_handler_stdout : Handler
@@ -196,6 +129,7 @@ class LogConfig(object):
         # Initialize all non-property attributes to sane defaults. To avoid
         # chicken-and-egg issues, properties should *NOT* be set here.
         self._logger_root_handler_file = None
+        self._logger_root_handler_file_level = LogLevel.INFO
         self._logger_root_handler_stderr = None
         self._logger_root_handler_stdout = None
         self._filename = None
@@ -208,7 +142,7 @@ class LogConfig(object):
 
     def _init_logging(self) -> None:
         '''
-        Initialize the root logger _and_ all root logger handlers.
+        Initialize the root logger *and* all root logger handlers.
         '''
 
         # Initialize root logger handlers.
@@ -239,7 +173,7 @@ class LogConfig(object):
         # Sadly, the "StreamHandler" constructor does *NOT* accept the customary
         # "level" attribute accepted by its superclass constructor.
         self._logger_root_handler_stdout = StreamHandler(sys.stdout)
-        self._logger_root_handler_stdout.setLevel(INFO)
+        self._logger_root_handler_stdout.setLevel(LogLevel.INFO)
         self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
 
         # Initialize the stderr handler to:
@@ -248,7 +182,7 @@ class LogConfig(object):
         # * Unconditionally ignore all informational and debug messages, which
         #   the stdout handler already logs.
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
-        self._logger_root_handler_stderr.setLevel(WARNING)
+        self._logger_root_handler_stderr.setLevel(LogLevel.WARNING)
 
         # Prevent third-party debug messages from being logged at all.
         self._logger_root_handler_stdout.addFilter(LoggerFilterDebugNonBetse())
@@ -287,14 +221,14 @@ class LogConfig(object):
         '''
         Reconfigure the file handler to log to the log filename if desired.
 
-        If file logging is disabled (i.e., the current log type is _not_
-        `LogType.FILE`), this method reduces to a noop. If no log filename is
-        defined (i.e., the `filename` property has _not_ been explicitly set by
-        an external caller), an exception is raised.
+        If file logging is disabled (i.e., the current log type is *not*
+        :attr:`LogType.FILE`), this method is a noop. If the log filename is
+        undefined (i.e., the :meth:`filename` property has *not* been explicitly
+        set by an external caller), an exception is raised.
 
-        Otherwise, this method necessarily destroys the existing file handler if
-        any and creates a new file handler. Why? Because file handlers are _not_
-        safely reconfigurable as is.
+        Else, this method necessarily destroys the existing file handler if any
+        and creates a new file handler. Thanks to the upstream :mod:`logging`
+        API, file handlers are *not* safely reconfigurable as is.
         '''
 
         # Avoid circular import dependencies.
@@ -309,9 +243,8 @@ class LogConfig(object):
         # If file handling is disabled, noop.
         if not self.is_logging_file:
             return
-
         # Else, file handling is enabled.
-        #
+
         # If no filename is set, raise an exception.
         if self._filename is None:
             raise BetseFileException('Log filename not set.')
@@ -341,13 +274,17 @@ class LogConfig(object):
             # Encode this file's contents as UTF-8.
             encoding='utf-8',
 
-            # Maximum filesize in bytes at which to rotate this file.
-            maxBytes=32 * ints.KiB,
+            # Maximum filesize in bytes at which to rotate this file, equivalent
+            # to 1 MB.
+            maxBytes=ints.MiB,
 
             # Maximum number of rotated logfiles to maintain.
             backupCount=8,
         )
-        self._logger_root_handler_file.setLevel(ALL)
+
+        # Initialize this handler's level to the previously established level.
+        self._logger_root_handler_file.setLevel(
+            self._logger_root_handler_file_level)
 
         # Prevent third-party debug messages from being logged to disk.
         self._logger_root_handler_file.addFilter(LoggerFilterDebugNonBetse())
@@ -383,7 +320,7 @@ class LogConfig(object):
         # requests will be delegated to the handlers defined below. By default,
         # this logger ignores all log requests with level less than "WARNING",
         # preventing handlers from receiving these requests.
-        self._logger_root.setLevel(ALL)
+        self._logger_root.setLevel(LogLevel.ALL)
 
         # For safety, remove all existing handlers from the root logger. While
         # this should *NEVER* be the case for conventional BETSE runs, this is
@@ -404,8 +341,8 @@ class LogConfig(object):
     @property
     def is_logging_file(self) -> bool:
         '''
-        ``True`` only if file logging is enabled (i.e., if the `log_type` property
-        is `LogType.FILE`).
+        ``True`` only if file logging is enabled (i.e., if the :meth:`log_type`
+        property is :attr:`LogType.FILE`).
         '''
 
         return self.log_type is LogType.FILE
@@ -414,17 +351,17 @@ class LogConfig(object):
     @property
     def is_verbose(self) -> bool:
         '''
-        ``True`` only if _all_ messages are to be unconditionally logged to the
+        ``True`` only if *all* messages are to be unconditionally logged to the
         stdout handler (and hence printed to stdout).
 
         Equivalently, this method returns ``True`` only if the logging level for
-        the stdout handler is `ALL`.
+        the stdout handler is :attr:`LogLevel.ALL`.
 
         Note that this logging level is publicly retrievable by accessing the
-        `handler_stdout.level` property.
+        :attr:`handler_stdout.level` property.
         '''
 
-        return self._logger_root_handler_stdout.level == ALL
+        return self._logger_root_handler_stdout.level == LogLevel.ALL
 
 
     @is_verbose.setter
@@ -435,19 +372,51 @@ class LogConfig(object):
 
         This method sets this handler's logging level to:
 
-        * If the passed boolean is `True`, `ALL` .
-        * If the passed boolean is `False`, `INFO`.
+        * If the passed boolean is ``True``, :attr:`LogLevel.ALL` .
+        * If the passed boolean is ``False``, :attr:`LogLevel.INFO`.
         '''
 
         # Convert the passed boolean to a logging level for the stdout handler.
-        self._logger_root_handler_stdout.setLevel(ALL if is_verbose else INFO)
+        self._logger_root_handler_stdout.setLevel(
+            LogLevel.ALL if is_verbose else LogLevel.INFO)
         # print('handler verbosity: {} ({})'.format(self._logger_root_handler_stdout.level, ALL))
 
-    # ..................{ PROPERTIES ~ type                  }..................
+    # ..................{ PROPERTIES ~ enum : level          }..................
+    @property
+    def file_level(self) -> LogLevel:
+        '''
+        Minimum level of messages to log to the **file logger** (i.e., root
+        logger handler appending to the current logfile).
+        '''
+
+        return self._logger_root_handler_file_level
+
+
+    @file_level.setter
+    @type_check
+    def file_level(self, file_level: LogLevel) -> None:
+        '''
+        Set the minimum level of messages to log to the **file logger** (i.e.,
+        root logger handler appending to the current logfile).
+        '''
+
+        # Record this value for subsequent access by the
+        # _init_logger_root_handler_file() method.
+        self._logger_root_handler_file_level = file_level
+
+        # If the file handler is defined, reconfigure this handler's level to
+        # this level *WITHOUT* reinitializing this handler from scratch.
+        if self._logger_root_handler_file is not None:
+            self._logger_root_handler_file.setLevel(file_level)
+        # Else, do nothing. If this handler is subsequently defined by a call to
+        # the _init_logger_root_handler_file() method, that method will
+        # internally initialize this handler's level to this level.
+
+    # ..................{ PROPERTIES ~ enum : type           }..................
     @property
     def log_type(self) -> LogType:
         '''
-        Type of logging to be performed.
+        Type of logging to perform.
         '''
 
         return self._log_type
@@ -457,17 +426,18 @@ class LogConfig(object):
     @type_check
     def log_type(self, log_type: LogType) -> None:
         '''
-        Set the type of logging to be performed.
+        Set the type of logging to perform.
 
-        If file logging is enabled (i.e., the passed log type is :data:`FILE`):
+        If file logging is enabled (i.e., the passed log type is
+        :attr:`LogType.FILE`):
 
         * If no log filename is defined (i.e., the :func:`filename` property has
-          *not* been explicitly set by an external caller), an exception is
+          *not* been explicitly set by an external caller), a fatal exception is
           raised.
         * Else, the file handler is reconfigured to log to that file.
         '''
 
-        # Record this log_type *BEFORE* reconfiguring loggers or handlers, which
+        # Classify this value *BEFORE* reconfiguring loggers or handlers, which
         # access this private attribute through its public property.
         self._log_type = log_type
 
@@ -537,11 +507,11 @@ class LogConfig(object):
 class LoggerFilterDebugNonBetse(Filter):
     '''
     Log filter ignoring all log records with logging levels less than or equal
-    to :data:`DEBUG` *and* names not prefixed by ``betse``.
+    to :attr:`LogLevel.DEBUG` *and* names not prefixed by ``betse``.
 
     Equivalently, this log filter *only* retains log records with either:
 
-    * Logging levels greater than :data:`DEBUG`.
+    * Logging levels greater than :attr:`LogLevel.DEBUG`.
     * Names prefixed by ``betse``.
 
     This log filter prevents ignorable debug messages logged by third-party
@@ -556,17 +526,17 @@ class LoggerFilterDebugNonBetse(Filter):
 
         # print('log record name: {}'.format(log_record.name))
         return (
-            log_record.levelno > DEBUG or
+            log_record.levelno > LogLevel.DEBUG or
             log_record.name.startswith(metadata.PACKAGE_NAME))
 
 
 class LoggerFilterMoreThanInfo(Filter):
     '''
     Log filter ignoring all log records with logging levels greater than
-    :data:``INFO``.
+    :attr:`LogLevel.INFO``.
 
     Equivalently, this log filter *only* retains log records with logging levels
-    less than or equal to :data:``INFO``.
+    less than or equal to :attr:`LogLevel.INFO``.
     '''
 
     @type_check
@@ -575,7 +545,7 @@ class LoggerFilterMoreThanInfo(Filter):
         ``True`` only if the passed log record is to be retained.
         '''
 
-        return log_record.levelno <= INFO
+        return log_record.levelno <= LogLevel.INFO
 
 # ....................{ CLASSES ~ formatter                }....................
 #FIXME: Unfortunately, this fundamentally fails to work. The reason why? The
@@ -602,6 +572,7 @@ class LoggerFormatterStream(Formatter):
     _text_wrapper : TextWrapper
         Object with which to wrap log messages, cached for efficiency.
     '''
+
     pass
     # def __init__(self, *args, **kwargs):
     #     super().__init__(*args, **kwargs)

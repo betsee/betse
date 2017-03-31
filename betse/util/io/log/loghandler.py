@@ -7,6 +7,9 @@
 Low-level logging handler subclasses.
 '''
 
+#FIXME: Transparently compress rotated logfiles with the standard ".gz"-style
+#compression format. (Surely, StackOverflow has already solved this.)
+
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*

@@ -60,7 +60,7 @@ def get(logger_name: str = None) -> logging.Logger:
     basename of the current process (e.g., `betse`) implying the **global
     logger** (i.e., the default application-wide logger).
 
-    This function expects the `LogConfig` class to have been previously
+    This function expects the :class:`LogConfig` class to have been previously
     instantiated, which globally configures logging.
 
     Logger Name
@@ -91,7 +91,7 @@ def log_debug(message: str, *args, **kwargs) -> None:
     Log the passed debug message with the root logger, formatted with the passed
     `%`-style positional and keyword arguments.
 
-    This function expects the `LogConfig` class to have been previously
+    This function expects the :class:`LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
 
@@ -104,7 +104,7 @@ def log_info(message: str, *args, **kwargs) -> None:
     Log the passed informational message with the root logger, formatted with
     the passed `%`-style positional and keyword arguments.
 
-    This function expects the `LogConfig` class to have been previously
+    This function expects the :class:`LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
 
@@ -117,7 +117,7 @@ def log_warning(message: str, *args, **kwargs) -> None:
     Log the passed warning message with the root logger, formatted with the
     passed `%`-style positional and keyword arguments.
 
-    This function expects the `LogConfig` class to have been previously
+    This function expects the :class:`LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
 
@@ -130,7 +130,7 @@ def log_error(message: str, *args, **kwargs) -> None:
     Log the passed error message with the root logger, formatted with the
     passed `%`-style positional and keyword arguments.
 
-    This function expects the `LogConfig` class to have been previously
+    This function expects the :class:`LogConfig` class to have been previously
     instantiated, which globally configures logging.
     '''
 

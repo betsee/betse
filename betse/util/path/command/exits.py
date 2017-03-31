@@ -25,15 +25,16 @@ FAILURE_DEFAULT = 1
 Exit status typically signifying a process to have terminated prematurely with a
 fatal error.
 
-While any exit status in the range `[1, 255]` signifies failure, this exit
+While any exit status in the range ``[1, 255]`` signifies failure, this exit
 status is the most common and hence preferred default.
 '''
 
 # ....................{ EXCEPTIONS                         }....................
 def raise_success() -> None:
     '''
-    Raise the `SystemExit` exception with the success exit status (i.e.,
-    `SUCCESS`), thus halting the current process with this status if uncaught.
+    Raise the :class:`SystemExit` exception with the success exit status (i.e.,
+    :data:`SUCCESS`), thus halting the current process with this status if
+    uncaught.
     '''
 
     raise SystemExit(SUCCESS)
@@ -43,7 +44,7 @@ def raise_success() -> None:
 @type_check
 def is_success(exit_status: int) -> bool:
     '''
-    `True` only if the passed exit status signifies success.
+    ``True`` only if the passed exit status signifies success.
     '''
 
     return exit_status == SUCCESS
@@ -52,7 +53,7 @@ def is_success(exit_status: int) -> bool:
 @type_check
 def is_failure(exit_status: int) -> bool:
     '''
-    `True` only if the passed exit status signifies failure.
+    ``True`` only if the passed exit status signifies failure.
     '''
 
     return exit_status != SUCCESS
@@ -60,9 +61,9 @@ def is_failure(exit_status: int) -> bool:
 # ....................{ EXITERS                            }....................
 def exit_with_success(error_message: str = '') -> None:
     '''
-    Halt the current process with the success exit status (i.e., `SUCCESS`),
-    logging the passed error message if nonempty _or_ exiting silently
-    otherwise.
+    Halt the current process with the success exit status (i.e.,
+    :data:`SUCCESS`), logging the passed error message if nonempty *or* exiting
+    silently otherwise.
     '''
 
     exit(exit_status=FAILURE_DEFAULT, exit_message=error_message)
@@ -71,7 +72,7 @@ def exit_with_success(error_message: str = '') -> None:
 def exit_with_failure(error_message: str = '') -> None:
     '''
     Halt the current process with the default exit status for failure (i.e.,
-    `FAILURE_DEFAULT`), logging the passed error message if nonempty _or_
+    :data:`FAILURE_DEFAULT`), logging the passed error message if nonempty *or*
     exiting silently otherwise.
     '''
 
@@ -85,12 +86,12 @@ def exit(
 ) -> None:
     '''
     Halt the current process with the passed exit status, logging the passed
-    message if nonempty _or_ exiting silently otherwise.
+    message if nonempty *or* exiting silently otherwise.
 
     This message will be logged with level:
 
-    * `INFO` if this exit status signifies success.
-    * `ERROR` otherwise.
+    * :attr:`LogLevel.INFO` if this exit status signifies success.
+    * :attr:`LogLevel.ERROR` otherwise.
     '''
 
     # Log this message if nonempty.

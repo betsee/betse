@@ -90,9 +90,9 @@ Footnote descriptions are as follows:
 import sys
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
+from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
 from betse.util.path import dirs, paths
-# from betse.util.path.command import pathables
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.call.memoizers import property_cached
@@ -111,11 +111,11 @@ RC_PARAMS = {
     # 'verbose.level': 'debug',
 }
 '''
-Dictionary mapping `matplotlibrc` option names to corresponding values.
+Dictionary mapping ``matplotlibrc`` option names to corresponding values.
 
 The :meth:`MplConfig.init` method subsequently updates
-the :attr:`matplotlib.rcParams` dictionary of default `matplotlibrc` options
-deserialized from the current `matplotlibrc` file with this dictionary. Ergo,
+the :attr:`matplotlib.rcParams` dictionary of default ``matplotlibrc`` options
+deserialized from the current ``matplotlibrc`` file with this dictionary. Ergo,
 the custom options specified by this dictionary override the default options
 defined by that file.
 '''
@@ -196,7 +196,7 @@ class MplConfig(object):
         system.
 
         On first importation, matplotlib configures itself by loading the
-        contents of the first `matplotlibrc` file found in any of several
+        contents of the first ``matplotlibrc`` file found in any of several
         candidate directories. Technically, BETSE _could_ supply an
         application-specific version of this file to force matplotlib to adopt
         application-specific configuration settings. Since synchronizing this
@@ -297,7 +297,7 @@ class MplConfig(object):
             # of matplotlib-specific logging. While matplotlib also supports
             # the "debug" and "debug-annoying" verbosity levels, both produce
             # far more effluvia than is helpful.
-            if log_level <= logconfig.DEBUG:
+            if log_level <= LogLevel.DEBUG:
                 verbosity_level_name = 'helpful'
             # Else, squelch all matplotlib-specific logging. Since matplotlib
             # supports no fine-grained verbosity levels between "helpful" and
@@ -464,7 +464,7 @@ class MplConfig(object):
     @property
     def rc_filename(self) -> str:
         '''
-        Absolute path of the currently selected `matplotlibrc` file
+        Absolute path of the currently selected ``matplotlibrc`` file
         establishing default matplotlib options.
         '''
 

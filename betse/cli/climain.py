@@ -15,9 +15,9 @@ BETSE's command line interface (CLI).
 # raise exceptions on importation and hence must *NOT* be imported here.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from betse.cli import clisubcommands, cliutil, info
+from betse.cli import clicommand, cliutil, info
 from betse.cli.cliabc import CLIABC
-from betse.cli.clisubcommands import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
+from betse.cli.clicommand import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
 from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
@@ -84,7 +84,7 @@ class CLICLI(CLIABC):
 
         # Dictionary mapping from the name of each top-level subcommand to the
         # argument subparser parsing that subcommand.
-        subcommand_name_to_subparser = clisubcommands.add_top(
+        subcommand_name_to_subparser = clicommand.add_top(
             arg_subparsers=self._arg_subparsers_top,
             arg_subparser_kwargs=self._arg_parser_kwargs)
 
@@ -112,7 +112,7 @@ class CLICLI(CLIABC):
 
         # Dictionary mapping from the name of each "plot" subcommand to the
         # argument subparser parsing that subcommand.
-        clisubcommands.add_plot(
+        clicommand.add_plot(
             arg_subparsers=self._arg_subparsers_plot,
             arg_subparser_kwargs=self._arg_parser_kwargs)
 

@@ -18,10 +18,10 @@ Abstract command line interface (CLI).
 import sys
 from abc import ABCMeta, abstractmethod
 from betse import ignition, metadata
-from betse.cli import info, clioptions
+from betse.cli import info, clioption
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
-from betse.util.io.log.logconfig import LogType
+from betse.util.io.log.logenum import LogLevel, LogType
 from betse.util.path.command import commands
 from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
@@ -64,20 +64,32 @@ class CLIABC(object, metaclass=ABCMeta):
         `True` only if low-level debugging messages are to be logged. Defaults
         to `False`.
     log_filename : str
-        Absolute or relative path of the file to log to if `log_type` is `file`
-        _or_ ignored otherwise. Defaults to the absolute path of BETSE's default
-        user-specific logfile.
+        Absolute or relative path of the file to log to if :attr:`log_type` is
+        ``file`` *or* ignored otherwise. Defaults to the absolute path of
+        BETSE's default user-specific logfile.
+    log_file_level : str
+        Minimum level of messages to be logged to :attr:`log_filename`,
+        formatted as the lowercased name of a :class:`LogLevel` enumeration
+        member. Defaults to ``info``.
     log_type : str
         Type of logging to be performed if any, formatted as the lowercased
-        name of a `LogType` enumeration member. Defaults to `none`.
+        name of a :class:`LogType` enumeration member. Defaults to ``none``.
+    stderr_level : str
+        Minimum level of messages to be redirected to stderr, formatted as the
+        lowercased name of a :class:`LogLevel` enumeration member. Defaults to
+        ``warning``.
+    stdout_level : str
+        Minimum level of messages to be redirected to stdout, formatted as the
+        lowercased name of a :class:`LogLevel` enumeration member. Defaults to
+        ``info``.
     profile_filename : str
         Absolute or relative path of the dumpfile to export a profile of the
-        current execution to if `profile_type` is `call` _or_ ignored otherwise.
-        Defaults to the absolute path of BETSE's default user-specific profile
-        dumpfile.
+        current execution to if :attr:`profile_type` is ``call`` *or* ignored
+        otherwise.  Defaults to the absolute path of BETSE's default
+        user-specific profile dumpfile.
     profile_type : str
         Type of profiling to be performed if any, formatted as the lowercased
-        name of a `ProfileType` enumeration member. Defaults to `none`.
+        name of a :class:`ProfileType` enumeration member. Defaults to ``none``.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -247,7 +259,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._arg_parser = ArgParserType(**arg_parser_top_kwargs)
 
         # Configure top-level options parsed by this parser.
-        clioptions.add_top(arg_parser=self._arg_parser)
+        clioption.add_top(arg_parser=self._arg_parser)
 
     # ..................{ ARGS ~ options                     }..................
     def _parse_options_top(self) -> None:
@@ -274,6 +286,11 @@ class CLIABC(object, metaclass=ABCMeta):
         # print('is verbose? {}'.format(self._args.is_verbose))
         log_config.is_verbose = self._args.is_verbose
         log_config.filename = self._args.log_filename
+        log_config.file_level = LogLevel[self._args.log_file_level.upper()]
+
+        #FIXME: Uncomment when working.
+        # log_config.stderr_level = LogType[self._args.stderr_level.upper()]
+        # log_config.stdout_level = LogType[self._args.stdout_level.upper()]
 
         # Configure logging type *AFTER* all other logging options. Attempting
         # to set a "log_type" of "FILE" before setting a "filename" will raise

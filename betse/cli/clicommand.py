@@ -306,17 +306,18 @@ directory:
 
         CLISubcommandNoArg(
             name='repl',
-            synopsis='drop into a REPL within an initialized BETSE environment',
+            synopsis='enter an interactive {program_name}-aware REPL',
             description='''
-Initialize the BETSE environment and immediately open a REPL. This allows
-interactive manipulation of the simulations and analyses.
+Initialize the {program_name} environment and immediately open a
+Read-Evaluate-Print Loop (REPL). This allows interactive manipulation of the
+simulations and analyses.
 ''',
         ),
 
         CLISubcommandNoArg(
             name='info',
             synopsis=(
-                'show information about {program_name} and the current system'),
+                'print metadata on {program_name} and the current system'),
             description='''
 Print informational metadata in ":"-delimited key-value format, including:
 
