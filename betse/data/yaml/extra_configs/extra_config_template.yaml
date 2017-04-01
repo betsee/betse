@@ -3,6 +3,16 @@
 # This file provides full examples of all features that can be used to define
 # Bioelectricity Integrated Gene and Reaction networks in BETSE
 
+# Note: All 'activator' or 'inhibitor' relationships between network substances and
+# other network elements are optional. Their gating relationship can further be specified
+# using character flags proceeding the network substance name:
+#   '*' means the gating relationship will be Vm-sensitive for channels and transporters (depending on substance charge)
+#   '!' means the gating relationship will be added to the total interaction term, rather than default multiplication
+#   '&' means the gating relationship will be specified by direct concentrations and no Hill function used.
+
+# If multiple end-flags are desired, they must be nested in order: substance_name&!*
+# Finally, do not name network substances with end-characters of '*', '&', '!', '_env', '_cell' or '_mit'.
+
 # A Note on YAML
 # ----------
 # This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup

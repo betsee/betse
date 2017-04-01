@@ -284,7 +284,7 @@ class MasterOfNetworks(object):
 
                 mol.Dm = mol_dic['Dm']  # membrane diffusion coefficient [m2/s]
                 mol.Do = mol_dic['Do']  # free diffusion constant in extra and intracellular spaces [m2/s]
-                mol.Dgj = mol_dic.get('Dgj', 1.0e-12)  # effective diffusion coefficient of substance through GJ
+                mol.Dgj = mol_dic.get('Dgj', 1.0e-16)  # effective diffusion coefficient of substance through GJ
                 mol.z = mol_dic['z']  # charge (oxidation state)
 
                 self.zmol[name] = mol.z
@@ -958,7 +958,6 @@ class MasterOfNetworks(object):
                                                                     reaction_zone='mem', zone_tags_a=zone_a,
                                                                     zone_tags_i=zone_i, in_mem_tag=True)
 
-            # FIXME this doesn't seem to work...! Maybe Sess broke it ??
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
 
@@ -4002,19 +4001,13 @@ class MasterOfNetworks(object):
             # Begin with construction of the activator effects term:
             for i, (name, Kmo, n, zone_tag) in enumerate(zip(a_list, Km_a_list, n_a_list, zone_tags_a)):
 
-                # First deal with the fact that Km may be voltage sensitive if the substance is charged:
-                # get the charge value for the substance:
-                za = self.molecules[name].z
-
-                if in_mem_tag is True:
-
-                    Kmc = '({}*np.exp(-(sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
-                    Kme = '({}*np.exp((sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
-
+                # check and see if the user requested voltage sensitivity using a '*' prefix to the name:
+                if name.endswith('*'):
+                    # capture the original name that will work in dictionaries:
+                    name = name[:-1]
+                    vs_request = True
                 else:
-                    Kmc = '{}'.format(Kmo)
-                    Kme = '{}'.format(Kmo)
-
+                    vs_request = False
 
                 independence_tag = False  # force independence and direct tags to be false by default
                 direct_tag = False
@@ -4030,6 +4023,23 @@ class MasterOfNetworks(object):
                 elif name.endswith('&'):
                     name = name[:-1]
                     direct_tag = True
+
+                # First deal with the fact that Km may be voltage sensitive if the substance is charged:
+                # get the charge value for the substance:
+                za = self.molecules[name].z
+
+                if in_mem_tag is True and za != 0.0 and vs_request is True:
+
+                    msg = "Vmem-sensitive gating used for activator: "+ name
+
+                    logs.log_info(msg)
+
+                    Kmc = '({}*np.exp(-(sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
+                    Kme = '({}*np.exp((sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
+
+                else:
+                    Kmc = '{}'.format(Kmo)
+                    Kme = '{}'.format(Kmo)
 
                 # initialize string expressions for activator and inhibitor, respectively
                 numo_string_a = ""
@@ -4187,9 +4197,32 @@ class MasterOfNetworks(object):
             # Next, construct the inhibitors net effect term:
             for i, (name, Kmo, n, zone_tag) in enumerate(zip(i_list, Km_i_list, n_i_list, zone_tags_i)):
 
+
+                # Check for and deal with accessory name tag flags:
+                if name.endswith('*'):
+                    # capture the original name that will work in dictionaries:
+                    name = name[:-1]
+                    vs_request = True
+                else:
+                    vs_request = False
+
+                direct_tag = False  # Force the "direct" tag to be false by default
+
+                if name.endswith('!'):  # remove any bangs a user might specify; inhibitors always act multiplicatively
+
+                    name = name[:-1]
+
+                elif name.endswith('&'):
+                    name = name[:-1]
+                    direct_tag = True
+
                 zi =self.molecules[name].z
 
-                if in_mem_tag is True:
+                if in_mem_tag is True and zi != 0.0 and vs_request is True:
+
+                    msg = "Vmem-sensitive gating used for inhibitor: " + name
+
+                    logs.log_info(msg)
 
                     Kmc = '({}*np.exp(-(sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, zi)
                     Kme = '({}*np.exp((sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, zi)
@@ -4198,15 +4231,7 @@ class MasterOfNetworks(object):
                     Kmc = '{}'.format(Kmo)
                     Kme = '{}'.format(Kmo)
 
-                direct_tag = False # Force the "direct" tag to be false by default
 
-                if name.endswith('!'): # remove any bangs a user might specify; inhibitors always act multiplicatively
-
-                    name = name[:-1]
-
-                elif name.endswith('&'):
-                    name = name[:-1]
-                    direct_tag = True
 
                 # initialize string expressions for activator and inhibitor, respectively
                 numo_string_i = ""
