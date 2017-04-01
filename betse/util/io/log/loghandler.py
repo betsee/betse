@@ -145,7 +145,7 @@ class SafeRotatingFileHandler(RotatingFileHandler):
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/bin/betse", line 63, in <module>
         #         sys.exit(entry_module.main())
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/lib/python3.6/site-packages/betse-0.4.2-py3.6.egg/betse/cli/__main__.py", line 45, in main
-        #         return CLICLI().run(arg_list)
+        #         return CLIMain().run(arg_list)
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/lib/python3.6/site-packages/betse-0.4.2-py3.6.egg/betse/cli/cliabc.py", line 156, in run
         #         matplotlib_backend_name=self._args.matplotlib_backend_name)
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/lib/python3.6/site-packages/betse-0.4.2-py3.6.egg/betse/lib/libs.py", line 258, in reinit
@@ -167,7 +167,7 @@ class SafeRotatingFileHandler(RotatingFileHandler):
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/bin/betse", line 63, in <module>
         #         sys.exit(entry_module.main())
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/lib/python3.6/site-packages/betse-0.4.2-py3.6.egg/betse/cli/__main__.py", line 45, in main
-        #         return CLICLI().run(arg_list)
+        #         return CLIMain().run(arg_list)
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/lib/python3.6/site-packages/betse-0.4.2-py3.6.egg/betse/cli/cliabc.py", line 156, in run
         #         matplotlib_backend_name=self._args.matplotlib_backend_name)
         #       File "/cluster/kappa/90-days-archive/levin/levinlab/sburck01/venv-betse/lib/python3.6/site-packages/betse-0.4.2-py3.6.egg/betse/lib/libs.py", line 258, in reinit

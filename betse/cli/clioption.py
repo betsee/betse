@@ -12,7 +12,8 @@ from abc import ABCMeta
 from betse import pathtree
 from betse.cli import cliutil
 from betse.exceptions import BetseCLIArgException
-from betse.util.io.log.logenum import LogLevel, LogType
+from betse.util.io.log import logconfig
+from betse.util.io.log.logenum import LogLevel
 from betse.util.py import identifiers
 from betse.util.py.profilers import ProfileType
 from betse.util.type import strs
@@ -28,8 +29,8 @@ from betse.util.type.types import (
 # ....................{ SUPERCLASSES                       }....................
 class CLIOptionABC(object, metaclass=ABCMeta):
     '''
-    **CLI option** (i.e., `-` and/or `--`-prefixed option passed to the external
-    `betse` command identifying an optional configuration setting).
+    **CLI option** (i.e., ``-`` and/or ``--``-prefixed option passed to the
+    external ``betse`` command identifying an optional configuration setting).
 
     This class encapsulates all metadata pertaining to this option, including:
 
@@ -392,6 +393,9 @@ def add_top(arg_parser: ArgParserType) -> None:
         Argument parser to add these arguments to.
     '''
 
+    # Singleton logging configuration for the current Python process.
+    log_config = logconfig.get()
+
     # Tuple of "CLIOptionABC" instances describing top-level options.
     #
     # Order is significant, defining the order that the "betse --help" command
@@ -421,35 +425,25 @@ def add_top(arg_parser: ArgParserType) -> None:
             default_value=None,
         ),
 
-        CLIOptionArgEnum(
-            long_name='--log-type',
-            synopsis='''
-type of logging to perform (defaults to "{default}"):
-;* "none", logging to stdout and stderr only
-;* "file", logging to stdout, stderr, and "--log-file"
-''',
-            enum_type=LogType,
-            enum_default=LogType.FILE,
-        ),
-
         CLIOptionArgStr(
             long_name='--log-file',
             synopsis=(
-                'file to log to when "--log-type=file" '
-                '(defaults to "{default}")'
+                'file to log to '
+                '(defaults to "{default}") '
             ),
             var_name='log_filename',
-            default_value=pathtree.get_log_default_filename(),
+            default_value=log_config.filename,
         ),
 
         CLIOptionArgEnum(
-            long_name='--log-file-level',
+            long_name='--log-level',
             synopsis=(
                 'minimum level of messages to log to "--log-file" '
-                '(defaults to "{default}") [overridden by "--verbose"]'
+                '(defaults to "{default}") '
+                '[overridden by "--verbose"]'
             ),
             enum_type=LogLevel,
-            enum_default=LogLevel.INFO,
+            enum_default=log_config.file_level,
         ),
 
         CLIOptionArgEnum(

@@ -233,7 +233,7 @@ setup_options = {
     'entry_points': {
         # CLI-specific scripts.
         'console_scripts': [
-            metadata.SCRIPT_NAME_CLI + ' = betse.cli.__main__:main',
+            metadata.SCRIPT_NAME_CLI + ' = betse.__main__:main',
         ],
 
         #FIXME: After creating a BETSE GUI, uncomment the following logic.

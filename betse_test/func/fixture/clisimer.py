@@ -11,7 +11,7 @@ BETSE CLI in the active Python interpreter.
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, SequenceTypes
 from betse_test.fixture.simconfig.simconfer import SimTestState
-from betse_test.func.cli.fixture.clier import CLITester
+from betse_test.func.fixture.clier import CLITester
 from pytest import fixture
 
 # ....................{ CLASSES ~ sim                      }....................

@@ -26,18 +26,18 @@ from betse.util.type.call.memoizers import property_cached
 from betse.util.type.obj import objects
 
 # ....................{ CLASS                              }....................
-class CLICLI(CLIABC):
+class CLIMain(CLIABC):
     '''
     BETSE's command line interface (CLI).
 
     Attributes
     ----------
     _arg_parser_plot : ArgParserType
-        Subparser parsing arguments passed to the `plot` subcommand.
+        Subparser parsing arguments passed to the ``plot`` subcommand.
     _arg_subparsers_top : ArgParserType
-        Subparsers parsing top-level subcommands (e.g., `plot`).
+        Subparsers parsing top-level subcommands (e.g., ``plot``).
     _arg_subparsers_plot : ArgParserType
-        Subparsers parsing `plot` subcommands (e.g., `plot seed`).
+        Subparsers parsing ``plot`` subcommands (e.g., ``plot seed``).
     '''
 
     # ..................{ INITIALIZERS                       }..................

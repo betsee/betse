@@ -17,7 +17,7 @@ High-level logging enumerations.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import enum, logging
-from enum import Enum, IntEnum
+from enum import IntEnum
 
 # ....................{ ENUMS ~ level                      }....................
 @enum.unique
@@ -90,24 +90,3 @@ class LogLevel(IntEnum):
     concept of "none" (i.e., of logging nothing), this is an ad-hoc constant
     expected to be larger than the largest constant defined by that module.
     '''
-
-# ....................{ ENUMS ~ type                       }....................
-LogType = Enum('LogType', ('NONE', 'FILE'))
-'''
-Enumeration of all possible types of logging to perform.
-
-This enumeration corresponds exactly to the ``--log-type`` CLI option.
-
-Attributes
-----------
-NONE : enum
-    Enumeration member redirecting all logging to standard file handles, in
-    which case:
-    * All :attr:`LogLevel.INFO` and :attr:`LogLevel.DEBUG` log messages will be
-      printed to stdout.
-    * All :attr:`LogLevel.ERROR` and :attr:`LogLevel.WARNING` log messages will
-      be printed to stderr.
-    * All uncaught exceptions will be printed to stderr.
-FILE : enum
-    Enumeration member redirecting all logging to the current logfile.
-'''

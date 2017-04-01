@@ -147,6 +147,7 @@ def log_exception(exception: Exception) -> None:
         # Avoid circular import dependencies.
         from betse.util.io import stderrs
         from betse.util.io.log import logconfig
+        from betse.util.io.log.logenum import LogLevel
         from betse.util.py import identifiers
         from betse.util.type import regexes, strs
 
@@ -335,11 +336,21 @@ def log_exception(exception: Exception) -> None:
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get()
 
-        # If logging to disk...
-        if log_config.is_logging_file:
+        # If the end user requested that nothing be logged to disk, respect this
+        # request by logging tracebacks to the error level and hence stderr.
+        # (Avoid printing the synopsis already embedded in these tracebacks.)
+        if log_config.file_level >= LogLevel.NONE:
+            log_error(exc_full)
+        # Else, the end user requested that at least something be logged to
+        # disk. For debuggability, the logging level of the file handler is
+        # temporarily decreased to the debug level, guaranteeing that tracebacks
+        # are *ALWAYS* at least logged to disk rather than (possibly) discarded.
+        # For readability, tracebacks are only logged to stderr if explicitly
+        # requested by the end user.
+        else:
             # If verbosity is disabled, output this synopsis to stderr;
             # else, tracebacks containing this synopsis are already
-            # output to stderr by logging performeb below.
+            # output to stderr by logging performed below.
             if not log_config.is_verbose:
                 # Append a reference to the file being logged to to the
                 # synopsis buffer.
@@ -352,16 +363,22 @@ def log_exception(exception: Exception) -> None:
                 # Print this synopsis.
                 stderrs.output(exc_iota)
 
-            # Log tracebacks to the debug level and hence *NOT* stderr
-            # by default, confining these tracebacks to the logfile.
-            # This is a Good Thing (TM). Tracebacks provide more detail
-            # than desirable by the typical user.
-            log_debug(exc_full)
-        # Else, standard file handles are being logged to. In this case,
-        # log tracebacks to the error level and hence stderr. Do *NOT*
-        # output the synopsis already output in these tracebacks.
-        else:
-            log_error(exc_full)
+            # Previous minimum level of messages to log to disk.
+            log_config_file_level = log_config.file_level
+
+            # Temporarily coerce this to the debug level, ensuring that
+            # tracebacks are *ALWAYS* at least logged to disk.
+            log_config.file_level = LogLevel.DEBUG
+
+            # Attempt to...
+            try:
+                # Log tracebacks to the debug level and hence *NOT* stderr by
+                # default, isolating tracebacks to disk. This is a Good Thing.
+                # Tracebacks supply more detail than desired by typical users.
+                log_debug(exc_full)
+            # Revert to the previous level even if an exception is raised.
+            finally:
+                log_config.file_level = log_config_file_level
     # If this handling raises an exception, catch and print this exception
     # via the standard Python library, guaranteed not to raise exceptions.
     except Exception:

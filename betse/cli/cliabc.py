@@ -21,7 +21,7 @@ from betse import ignition, metadata
 from betse.cli import info, clioption
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
-from betse.util.io.log.logenum import LogLevel, LogType
+from betse.util.io.log.logenum import LogLevel
 from betse.util.path.command import commands
 from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
@@ -53,27 +53,23 @@ class CLIABC(object, metaclass=ABCMeta):
         "Attributes (_args)" below for further details.
     _profile_filename : str
         Absolute or relative path of the dumpfile to export a profile of the
-        current execution to if `_profile_type` is `ProfileType.CALL` _or_
-        ignored otherwise.
+        current execution to if :attr:`_profile_type` is
+        :attr:`ProfileType.CALL` *or* ignored otherwise.
     _profile_type : ProfileType
         Type of profiling to be performed if any.
 
-    Attributes (of `_args`)
+    Attributes (of :attr:`_args`)
     ----------
     is_verbose : bool
-        `True` only if low-level debugging messages are to be logged. Defaults
-        to `False`.
+        ``True`` only if low-level debugging messages are to be logged. Defaults
+        to ``False``.
     log_filename : str
-        Absolute or relative path of the file to log to if :attr:`log_type` is
-        ``file`` *or* ignored otherwise. Defaults to the absolute path of
-        BETSE's default user-specific logfile.
-    log_file_level : str
+        Absolute or relative path of the file to log to. Defaults to the
+        absolute path of BETSE's default user-specific logfile.
+    log_level : str
         Minimum level of messages to be logged to :attr:`log_filename`,
         formatted as the lowercased name of a :class:`LogLevel` enumeration
         member. Defaults to ``info``.
-    log_type : str
-        Type of logging to be performed if any, formatted as the lowercased
-        name of a :class:`LogType` enumeration member. Defaults to ``none``.
     stderr_level : str
         Minimum level of messages to be redirected to stderr, formatted as the
         lowercased name of a :class:`LogLevel` enumeration member. Defaults to
@@ -174,6 +170,7 @@ class CLIABC(object, metaclass=ABCMeta):
                 profile_type=self._profile_type,
                 profile_filename=self._profile_filename,
             )
+            # raise ValueError('Test exception handling.')
 
             # Exit with successful exit status from the current process.
             # raise Exception('For testing exception handling.')
@@ -286,19 +283,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # print('is verbose? {}'.format(self._args.is_verbose))
         log_config.is_verbose = self._args.is_verbose
         log_config.filename = self._args.log_filename
-        log_config.file_level = LogLevel[self._args.log_file_level.upper()]
-
-        #FIXME: Uncomment when working.
-        # log_config.stderr_level = LogType[self._args.stderr_level.upper()]
-        # log_config.stdout_level = LogType[self._args.stdout_level.upper()]
-
-        # Configure logging type *AFTER* all other logging options. Attempting
-        # to set a "log_type" of "FILE" before setting a "filename" will raise
-        # an exception, as sanity demands. To do so, this logging type is
-        # converted from a lowercase string into an uppercase enumeration
-        # member. Since the former is guaranteed by the argument parsing
-        # configuration above to be valid, validation need *NOT* be performed.
-        log_config.log_type = LogType[self._args.log_type.upper()]
+        log_config.file_level = LogLevel[self._args.log_level.upper()]
 
         # Log a one-line synopsis of metadata logged by the "info" subcommand.
         info.log_header()

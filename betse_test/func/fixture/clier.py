@@ -64,14 +64,15 @@ BETSE CLI in the active Python interpreter.
 #to just call "betse config". Simple, if tedious.
 
 # ....................{ IMPORTS                            }....................
+from pytest import fixture
+
 from betse.util.path.command import exits
 from betse.util.type.types import type_check
-from pytest import fixture
 
 # ....................{ CONSTANTS                          }....................
 _CLI_OPTIONS_MANDATORY = (
     '--verbose',
-    '--log-type=none',
+    '--log-level=none',
     '--matplotlib-backend=agg',
 )
 '''
@@ -81,17 +82,17 @@ invocations of the BETSE CLI by functional tests.
 To improve debuggability for failing tests, these options are unconditionally
 passed by :class:`CLITester` instances created by the :func:`betse_cli` fixture:
 
-* `--verbose`, logging low-level debugging messages to stdout, which `py.test`
+* ``--verbose``, logging low-level debugging messages to stdout, which `py.test`
   captures for all tests and displays for all failing tests.
-* `--log-type=none`, redirecting all log messages to either stdout or stderr but
-  _not_ a logfile. While `py.test` can be configured to capture logfile
-  messages, doing so sanely is complicated by the fact that `py.test` already
+* ``--log-level=none``, redirecting all log messages to either stdout or stderr
+  but *not* a logfile. While ``py.test`` can be configured to capture logfile
+  messages, doing so sanely is complicated by the fact that ``py.test`` already
   captures both stdout and stderr by default. As there is no benefit in
   recapturing logfile messages already logged to either stdout or stderr, tests
   avoid doing so entirely.
-* `--matplotlib-backend=agg`, enabling the default non-interactive matplotlib
-  backend _guaranteed_ to be usable on all platforms. By default, matplotlib
-  enables an interactive backend (e.g., `Qt5Agg`) inhibiting sane test
+* ``--matplotlib-backend=agg``, enabling the default non-interactive matplotlib
+  backend *guaranteed* to be usable on all platforms. By default, matplotlib
+  enables an interactive backend (e.g., ``Qt5Agg``) inhibiting sane test
   automation.
 '''
 
@@ -150,7 +151,7 @@ class CLITester(object):
         '''
 
         # Defer heavyweight imports to their point of use.
-        from betse.cli.__main__ import main
+        from betse.__main__ import main
 
         # Prefixed this argument list by failure-friendly options.
         args_evolved = _CLI_OPTIONS_MANDATORY + args

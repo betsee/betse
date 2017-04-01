@@ -234,7 +234,7 @@ class test(Command):
 
     def _run_pytest(self) -> None:
         '''
-        Call the `pytest.main()` function in the active Python interpreter,
+        Call the :func:`pytest.main` function in the active Python interpreter,
         passed CLI options corresponding to the CLI options passed to this
         setuptools command.
         '''
