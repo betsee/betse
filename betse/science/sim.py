@@ -669,6 +669,12 @@ class Simulator(object):
 
         self.gj_funk = None  # initialize this to None; set in init_tissue
 
+        # Initialize matrices to store concentration gradient information for each ion:
+        self.cc_grad_x = np.zeros(self.cc_cells.shape)
+        self.cc_grad_y = np.zeros(self.cc_cells.shape)
+
+        self.cc_at_mem = np.zeros((self.cc_cells.shape[0],self.mdl))
+
     def init_tissue(self, cells, p):
         '''
         Prepares data structures pertaining to tissue profiles, dynamic
@@ -927,6 +933,10 @@ class Simulator(object):
         # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)
 
+        # Define rate constant for conc gradient change in terms of ion diffusion coefficients and cell geometry:
+        # (this is for cell polarizability)
+        self.alpha_cgrad = [Do / (cells.R * p.cell_height) for Do in self.D_free]
+
     def run_sim_core(self, cells, p) -> None:
         '''
         Perform the current phase (e.g., initialization, simulation), pickling
@@ -1146,6 +1156,9 @@ class Simulator(object):
                 if p.sim_ECM:
                     #update concentrations in the extracellular spaces:
                     self.update_ecm(cells, p, t, i)
+
+                # update concentration gradient to estimate concentrations at membranes:
+                self.update_cmem(cells, p, i)
 
                 # ensure no negative concentrations:
                 stb.no_negs(self.cc_cells[i])
@@ -1651,6 +1664,8 @@ class Simulator(object):
 
     def update_V(self,cells,p):
 
+
+
         # save the voltage as a placeholder:
         vmo = self.vm*1
         rhoo = self.rho_cells*1
@@ -1658,18 +1673,19 @@ class Simulator(object):
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
 
-        self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
+        self.get_rho_mem(cells, p)
+
+        # self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
 
         if p.sim_ECM is True:
 
             self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
-            # self.rho_env[cells.inds_env] = 0.0
 
         #----Capacitor based Vmem:-------------
         # surface charge density in cells interior membrane:
-        sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
+        # sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
 
-        self.vm = (1 / p.cm)*(sig_cell[cells.mem_to_cells])
+        self.vm = (1 / p.cm)*(self.rho_at_mem)
 
         if p.sim_ECM is True:
 
@@ -1681,19 +1697,6 @@ class Simulator(object):
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
-
-        Jcellx = np.dot(cells.M_sum_mems, self.Jn * cells.mem_vects_flat[:, 2] * cells.mem_sa) / cells.cell_sa
-        Jcelly = np.dot(cells.M_sum_mems, self.Jn * cells.mem_vects_flat[:, 3] * cells.mem_sa) / cells.cell_sa
-
-        Ecx = Jcellx*p.tissue_rho
-        Ecy = Jcelly*p.tissue_rho
-
-        Pcx = Ecx * p.eo * p.cell_polarizability
-        Pcy = Ecy * p.eo * p.cell_polarizability
-
-        sig_mem = Pcx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + Pcy[cells.mem_to_cells]*cells.mem_vects_flat[
-                                                                                                   :, 3]
-        self.vm = self.vm + (1 / p.cm)*sig_mem
 
     def acid_handler(self, cells, p) -> None:
         '''
@@ -1864,31 +1867,38 @@ class Simulator(object):
 
         self.cc_env[i] = cenv.ravel()
 
-    #FIXME: Ideally, this should be refactored for efficiency to perform a
-    #dictionary lookup. To do so, consider defining this dictionary in the
-    #baseInit_all() method: e.g.,
-    #
-    #    def baseInit_all(self):
-    #            .
-    #            .
-    #            .
-    #        self._ION_NAME_TO_INDEX = {
-    #           'Na': self.iNa,
-    #           'K': self.iK,
-    #           'Ca': self.iCa,
-    #           'Cl': self.iCl,
-    #           'M': self.iM,
-    #           'H': self.iH,
-    #           'P': self.iP,
-    #        }
-    #
-    #    def get_ion(self, ion_name: str) -> int:
-    #        return self._ION_NAME_TO_INDEX[ion_name]
-    #FIXME: Unrelatedly, why is the empty list [] returned when the passed ion
-    #is disabled by the current ion profile? For consistency, either a fatal
-    #exception should be raised (ideal) *OR* a garbage integer guaranteed to
-    #raise exceptions elsewhere should be returned -- say, 66666666666666667
-    #(non-ideal). Or, something.
+    def update_cmem(self, cells, p, i):
+
+        cav = self.cc_cells[i]
+        z = self.zs[i]
+
+        # calculate the equillibrium concentration gradients in terms of current and average concs:
+        ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x
+        ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y
+
+        cgrad_x = self.cc_grad_x[i]
+        cgrad_y = self.cc_grad_y[i]
+
+        # calculate update to the actual gradient concentration:
+        cgrad_x = cgrad_x - self.alpha_cgrad[i] * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability*0.1
+        cgrad_y = cgrad_y - self.alpha_cgrad[i] * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability*0.1
+
+        # calculate the actual concentration at membranes by unpacking to concentration vectors:
+
+        self.cc_at_mem[i] = (cav[cells.mem_to_cells] +
+                cgrad_x[cells.mem_to_cells] * cells.rads[:, 0] +
+                cgrad_y[cells.mem_to_cells] * cells.rads[:, 1])
+
+        # update the main matrices:
+        self.cc_grad_x[i] = cgrad_x * 1
+        self.cc_grad_y[i] = cgrad_y * 1
+
+    def get_rho_mem(self, cells, p):
+
+        self.rho_at_mem = np.dot(self.zs*p.F, self.cc_at_mem)*cells.diviterm[cells.mem_to_cells]
+
+        self.rho_cells = np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems
+
     def get_ion(self, ion_name: str) -> int:
         '''
         0-based index assigned to the ion with the passed name (e.g., ``Na``) if

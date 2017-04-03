@@ -1103,6 +1103,10 @@ class TissueHandler(object):
             'Dm_stretch',
             'Dm_custom',
             'D_gj',
+            'cc_grad_x',
+            'cc_grad_y',
+            'alpha_cgrad',
+            'cc_at_mem'
         ]
 
         if p.sim_ECM is True:

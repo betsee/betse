@@ -1134,6 +1134,9 @@ class Cells(object):
                 self.index_to_mem_verts.append([pt_ind1, pt_ind2])
         self.index_to_mem_verts = np.asarray(self.index_to_mem_verts)
 
+        # create radial vectors for each cell, defined from their centre to each membrane midpoint
+        self.rads = self.mem_mids_flat - self.cell_centres[self.mem_to_cells]
+
     def quickVerts(self, p):
 
         # calculate basic properties such as volume, surface area, normals, etc for the cell array
@@ -1313,6 +1316,9 @@ class Cells(object):
         self.cell_vol = np.dot(self.M_sum_mems, large_pie)
 
         self.R = ((3 / 4) * (self.cell_vol / math.pi)) ** (1 / 3)  # effective radius of each cell
+
+        # Finally, create an easy divergence inverse term for cells
+        self.diviterm = (self.cell_vol / self.cell_sa)
 
     def mem_processing(self,p):
         """

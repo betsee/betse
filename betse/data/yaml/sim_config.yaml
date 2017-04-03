@@ -1107,8 +1107,7 @@ internal parameters:
 
   media resistivity: 1.0  # electrical resistivity of bulk electrolyte (Ohms.m)
 
-  cell polarizability: 0.0  # constant defining cell polarizability in electric fields (100 to 1.0e8)
-                            # low f dielectric constant see: http://niremf.ifac.cnr.it/tissprop/htmlclie/htmlclie.php
+  cell polarizability: 0.0  # constant defining rate of cell polarizability change in electric fields (0.0 to 10.0)
 
   tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m) 50.0 not uncommon see link above
 
