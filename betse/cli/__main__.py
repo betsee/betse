@@ -9,7 +9,7 @@ backward compatibility with prior versions.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse import __main__
+from betse.__main__ import main
 from betse.util.path.command import exits
 
 # ....................{ MAIN                               }....................
@@ -17,4 +17,4 @@ from betse.util.path.command import exits
 # For POSIX compliance, the exit status returned by this function is propagated
 # to the caller as this script's exit status.
 if __name__ == '__main__':
-    exits.exit(__main__.main())
+    exits.exit(main())
