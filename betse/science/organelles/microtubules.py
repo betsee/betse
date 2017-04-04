@@ -72,7 +72,7 @@ class Mtubes(object):
         self.mtubes_x = self.mtubes_xo / mtcn
         self.mtubes_y = self.mtubes_yo / mtcn
 
-    def mtubes_to_cell(self, cells, p, umt = 1.0e-8):
+    def mtubes_to_cell(self, cells, p, umt = 1.0):
 
         # determine the microtubules base electroosmotic velocity:
         uxmto = umt*self.mtubes_x
@@ -81,7 +81,9 @@ class Mtubes(object):
         uxmt = umt*np.dot(cells.M_sum_mems, uxmto)/cells.num_mems
         uymt = umt*np.dot(cells.M_sum_mems, uymto)/cells.num_mems
 
-        return uxmt, uymt
+        uumt = np.sqrt(uxmt**2 + uymt**2)
+
+        return uxmt, uymt, uumt
 
     def remove_mtubes(self, target_inds_mem, cells, sim, p):
 

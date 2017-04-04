@@ -1215,7 +1215,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     return cX_cell_1, cX_env_1, f_X
 
 def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9, Dgj=1.0e-12, c_bound=1.0e-6,
-                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, mtubes = None):
+                   ignoreECM = False, smoothECM = False, ignoreTJ = False, ignoreGJ = False, rho = 1, cmems = None):
 
     """
     Transports a generic molecule across the membrane,
@@ -1245,12 +1245,15 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
-        cX_mems = cX_cells[cells.mem_to_cells]
-
-
     else:
         cX_env = cX_env_o[:]
+
+    if cmems is None:
+
         cX_mems = cX_cells[cells.mem_to_cells]
+
+    elif len(cmems) == sim.mdl:
+        cX_mems = cmems
 
     Dm_vect = np.ones(len(cX_mems))*Dm
 
@@ -1280,21 +1283,11 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         cX_mids = (cX_mems[cells.nn_i] + cX_mems[cells.mem_i]) / 2
 
         # # electroosmotic fluid velocity:
-        # if p.fluid_flow is True:
-        #     ux = sim.u_cells_x[cells.mem_to_cells]
-        #     uy = sim.u_cells_y[cells.mem_to_cells]
-        #
-        # else:
-        #     ux = 0
-        #     uy = 0
-
-        if mtubes is True:
-
-            ux = np.zeros(sim.mdl)
-            uy = np.zeros(sim.mdl)
+        if p.fluid_flow is True:
+            ux = sim.u_cells_x[cells.mem_to_cells]
+            uy = sim.u_cells_y[cells.mem_to_cells]
 
         else:
-
             ux = 0
             uy = 0
 

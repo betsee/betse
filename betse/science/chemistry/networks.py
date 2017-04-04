@@ -14,7 +14,7 @@ from matplotlib import cm
 from matplotlib import colors
 from scipy.ndimage.filters import gaussian_filter
 from scipy.optimize import basinhopping
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
 from betse.science.channels import cation as vgcat
@@ -3121,7 +3121,7 @@ class MasterOfNetworks(object):
 
             obj = self.molecules[name]
 
-            # obj.c_mems_time.append(obj.c_mems)
+            obj.c_mems_time.append(obj.cc_at_mem)
             obj.c_cells_time.append(obj.c_cells)
 
             # smooth env data if necessary:
@@ -5100,7 +5100,8 @@ class Molecule(object):
                                                                 smoothECM = p.smooth_concs,
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ,
-                                                                rho = sim.rho_channel)
+                                                                rho = sim.rho_channel,
+                                                                cmems=self.cc_at_mem)
 
     def updateC(self, flux, sim, cells, p):
         """
@@ -5117,35 +5118,39 @@ class Molecule(object):
         z = self.z
 
         # determine if there's a net dipole resulting from microtubules:
-        uxmt, uymt = sim.mtubes.mtubes_to_cell(cells, p, umt=self.u_mt)
+        uxmt, uymt, uumt = sim.mtubes.mtubes_to_cell(cells, p)
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
-
-        ceqm_x = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_x
-        ceqm_y = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_y
-
-        ceqm_ux = (uxmt/(self.Do))*cav
-        ceqm_uy = (uymt/(self.Do))*cav
+        ceqm_x = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_x + ((uxmt*self.u_mt)/(self.Do))*cav
+        ceqm_y = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_y + ((uymt*self.u_mt)/(self.Do))*cav
 
         cgrad_x = self.cc_grad_x
         cgrad_y = self.cc_grad_y
 
         # calculate update to the actual gradient concentration (0.1 assumes cytosol slows factor diffusion rate):
-        cgrad_x = cgrad_x - self.alpha_cgrad * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability*0.1 \
-                  - self.alpha_ugrad*(cgrad_x - ceqm_ux)*p.dt*1.0e-3
+        cgrad_x = cgrad_x - self.alpha_cgrad * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability
 
-        cgrad_y = cgrad_y - self.alpha_cgrad * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability*0.1 \
-                  - self.alpha_ugrad*(cgrad_y - ceqm_uy)*p.dt*1.0e-3
+        cgrad_y = cgrad_y - self.alpha_cgrad * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
 
         self.cc_at_mem = (cav[cells.mem_to_cells] + cgrad_x[cells.mem_to_cells] * cells.rads[:, 0] +
                 cgrad_y[cells.mem_to_cells] * cells.rads[:, 1])
 
+        # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
+        # self.cc_at_mem[self.cc_at_mem < 0.0] = 0.0
+
+        indsZ = (self.cc_at_mem < 0.0).nonzero()
+
+        if len(indsZ[0]):
+
+            raise BetseSimInstabilityException("Network concentration value on membrane below zero! Your simulation has"
+                                               "become unstable.")
+
+
         # update the main matrices:
         self.cc_grad_x = cgrad_x * 1
         self.cc_grad_y = cgrad_y * 1
-
 
     def pump(self, sim, cells, p):
 
@@ -5455,9 +5460,17 @@ class Molecule(object):
         #     clrMax=self.plot_max,
         #     clrmap=p.default_cm)
 
-        fig, ax, cb = viz.plotPolyData(sim, cells, p,
-                                       zdata=self.c_cells, number_cells=p.enumerate_cells, clrmap=p.default_cm,
-                                       clrMin=self.plot_min, clrMax=self.plot_max, clrAutoscale=self.plot_autoscale)
+        # fig, ax, cb = viz.plotPolyData(sim, cells, p,
+        #                                zdata=self.c_cells, number_cells=p.enumerate_cells, clrmap=p.default_cm,
+        #                                clrMin=self.plot_min, clrMax=self.plot_max, clrAutoscale=self.plot_autoscale)
+
+        fig, ax, cb = viz.plotPrettyPolyData(self.cc_at_mem,
+                                             sim, cells, p,
+                                             number_cells=p.enumerate_cells,
+                                             clrAutoscale=self.plot_autoscale,
+                                             clrMin=self.plot_min,
+                                             clrMax=self.plot_max,
+                                             clrmap=p.default_cm)
 
 
         ax.set_title('Final ' + self.name + ' Concentration in Cells')

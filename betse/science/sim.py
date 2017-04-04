@@ -1887,14 +1887,15 @@ class Simulator(object):
         z = self.zs[i]
         # Do = self.D_free[i]
 
-        # umt = -1.0e-7    # FIXME leave this until we figure out electroosmotic velocity along microtubule
+        # umt = -z*1.0e-9    # FIXME leave this until we figure out if there is an electroosmotic velocity along microtubule
         # umt = 0.0
 
-        # uxmt, uymt = self.mtubes.mtubes_to_cell(cells, p, umt=umt)
+        # determine if there's a net dipole resulting from microtubules:
+        # uxmt, uymt, uumt = self.mtubes.mtubes_to_cell(cells, p)
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
-        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x  + ((uxmt*cav)/Do)
-        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y + ((uymt*cav)/Do)
+        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x  + ((umt*uxmt*cav)/Do)
+        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y + ((umt*uymt*cav)/Do)
 
         ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x
         ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y
@@ -1911,6 +1912,16 @@ class Simulator(object):
         self.cc_at_mem[i] = (cav[cells.mem_to_cells] +
                 cgrad_x[cells.mem_to_cells] * cells.rads[:, 0] +
                 cgrad_y[cells.mem_to_cells] * cells.rads[:, 1])
+
+
+        # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
+        # self.cc_at_mem[self.cc_at_mem < 0.0] = 0.0
+        indsZ = (self.cc_at_mem < 0.0).nonzero()
+
+        if len(indsZ[0]):
+
+            raise BetseSimInstabilityException("Ion concentration value on membrane below zero! Your simulation has"
+                                               "become unstable.")
 
         # update the main matrices:
         self.cc_grad_x[i] = cgrad_x * 1
