@@ -24,20 +24,13 @@ def get_current(sim, cells, p):
     # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa
 
-    # components of GJ current:
-    Jnx = sim.Jgj * cells.nn_tx
-    Jny = sim.Jgj * cells.nn_ty
+    # components of membrane current:
+    Jnx = sim.Jn * cells.nn_tx
+    Jny = sim.Jn * cells.nn_ty
 
     # average intracellular current to cell centres:
     sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
     sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
-
-    # # calculate field in the cells resulting from intracellular current:
-    # sigma = np.dot((((sim.zs**2)*p.q*p.F*sim.D_free)/(p.kb*p.T)), sim.cc_cells)*p.tissue_rho
-    #
-    # divJc = np.dot(cells.M_sum_mems, (sim.Jgj/sigma[cells.mem_to_cells])*cells.mem_sa)/cells.cell_vol
-    #
-    # sim.v_cell = np.dot(cells.lapGJ_P_inv, -divJc)
 
 
     # Current in the environment --------------------------------------------------------------------------------------

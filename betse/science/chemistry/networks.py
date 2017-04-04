@@ -209,6 +209,11 @@ class MasterOfNetworks(object):
                 lambda name = name: self.molecules[name].c_cells,
                 lambda value, name = name: setattr(self.molecules[name], 'c_cells', value))
 
+            # initialize array for data stored at membranes:
+            mol.cc_at_mem = mol.c_cells[cells.mem_to_cells]
+            mol.cc_grad_x = np.zeros(sim.cdl)
+            mol.cc_grad_y = np.zeros(sim.cdl)
+
             # mem_concs_mapping[name] = DynamicValue(
             #     lambda name = name: self.molecules[name].c_mems,
             #     lambda value, name = name: setattr(self.molecules[name], 'c_mems', value))
@@ -288,6 +293,18 @@ class MasterOfNetworks(object):
                 mol.Dgj = mol_dic.get('Dgj', 1.0e-16)  # effective diffusion coefficient of substance through GJ
                 mol.z = mol_dic['z']  # charge (oxidation state)
 
+
+                # factors describing potential transport along current-aligned microtubules
+                mol.u_mt = float(mol_dic.get('u_mtube', 0.0))
+
+                if mol.u_mt > 0.0:
+
+                    mol.mtt = True
+
+                # rate of change of cell concentration gradient (simplified diffusion):
+                mol.alpha_cgrad = mol.Do / (2*cells.R * p.cell_height)
+                mol.alpha_ugrad = mol.u_mt / (2 * cells.R * p.cell_height)
+
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
 
@@ -298,17 +315,7 @@ class MasterOfNetworks(object):
 
                 mol.TJ_factor = float(mol_dic['TJ factor'])
 
-                # factors describing potential transport along current-aligned microtubules
-                mtt = mol_dic.get('microtubule transport', None)
 
-                if mtt != 'None' and mtt is not None:
-
-                    mol.mtt = {}
-
-                    mol.mtt = mtt
-
-                else:
-                    mol.mtt = None
 
 
                 # factors involving growth and decay (gad) in the cytoplasm
@@ -2630,6 +2637,10 @@ class MasterOfNetworks(object):
 
         for mol in self.molecules:
 
+            # calculate concentrations at membranes:
+            obj = self.molecules[mol]
+            obj.update_cmem(sim, cells, p)
+
             # calculate rates of growth/decay:
             gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, self.globals, self.locals))
 
@@ -3003,6 +3014,18 @@ class MasterOfNetworks(object):
                                                "affect Vmem' off, or try again.")
 
             self.mit.extra_rho = p.F*Q*np.ones(sim.cdl)
+
+    def get_rho_mem(self, cells, p):
+
+        # FIXME add this to if substances affect charge loop!!
+
+        self.rho_at_mem = np.zeros(len(cells.mem_mids_flat))
+
+        for ind, mol in self.molecules.items():
+
+            self.rho_at_mem += mol.z*p.F*mol.cc_at_mem*cells.diviterm[cells.mem_to_cells]
+
+        self.rho_cells = np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems
 
     def energy_charge(self, sim):
 
@@ -5077,8 +5100,7 @@ class Molecule(object):
                                                                 smoothECM = p.smooth_concs,
                                                                 ignoreTJ = self.ignoreTJ,
                                                                 ignoreGJ = self.ignoreGJ,
-                                                                rho = sim.rho_channel,
-                                                                mtubes = self.mtt)
+                                                                rho = sim.rho_channel)
 
     def updateC(self, flux, sim, cells, p):
         """
@@ -5089,20 +5111,41 @@ class Molecule(object):
         """
         self.c_mems, self.c_env = stb.update_Co(sim, self.c_mems, self.c_cells, flux, cells, p, ignoreECM=True)
 
-    def updateIntra(self, sim, sim_metabo, cells, p):
+    def update_cmem(self, sim, cells, p):
 
-        # self.c_mems, self.c_cells, _ = stb.update_intra(sim, cells, self.c_mems, self.c_cells, self.Do, self.z, p)
+        cav = self.c_cells
+        z = self.z
 
-        if self.mit_enabled:
+        # determine if there's a net dipole resulting from microtubules:
+        uxmt, uymt = sim.mtubes.mtubes_to_cell(cells, p, umt=self.u_mt)
 
-            IdCM = np.ones(sim.cdl)
+        # calculate the equillibrium concentration gradients in terms of current and average concs:
 
-            f_ED = stb.electroflux(self.c_cells, self.c_mit, self.Dm*IdCM, p.tm*IdCM, self.z*IdCM,
-                sim_metabo.mit.Vmit, sim.T, p, rho=1)
+        ceqm_x = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_x
+        ceqm_y = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_y
 
-            # update with flux
-            self.c_cells = self.c_cells - f_ED*(sim_metabo.mit.mit_sa/cells.cell_vol)*p.dt
-            self.c_mit = self.c_mit + f_ED*(sim_metabo.mit.mit_sa/sim_metabo.mit.mit_vol)*p.dt
+        ceqm_ux = (uxmt/(self.Do))*cav
+        ceqm_uy = (uymt/(self.Do))*cav
+
+        cgrad_x = self.cc_grad_x
+        cgrad_y = self.cc_grad_y
+
+        # calculate update to the actual gradient concentration (0.1 assumes cytosol slows factor diffusion rate):
+        cgrad_x = cgrad_x - self.alpha_cgrad * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability*0.1 \
+                  - self.alpha_ugrad*(cgrad_x - ceqm_ux)*p.dt*1.0e-3
+
+        cgrad_y = cgrad_y - self.alpha_cgrad * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability*0.1 \
+                  - self.alpha_ugrad*(cgrad_y - ceqm_uy)*p.dt*1.0e-3
+
+        # calculate the actual concentration at membranes by unpacking to concentration vectors:
+
+        self.cc_at_mem = (cav[cells.mem_to_cells] + cgrad_x[cells.mem_to_cells] * cells.rads[:, 0] +
+                cgrad_y[cells.mem_to_cells] * cells.rads[:, 1])
+
+        # update the main matrices:
+        self.cc_grad_x = cgrad_x * 1
+        self.cc_grad_y = cgrad_y * 1
+
 
     def pump(self, sim, cells, p):
 
@@ -5241,6 +5284,32 @@ class Molecule(object):
         ccells2 = np.delete(self.c_cells, target_inds_cell)
         # reassign the new data vector to the object:
         self.c_cells = ccells2[:]
+
+
+        # remove items from the mem concentration lists:
+        ccmem2 = np.delete(self.cc_at_mem, target_inds_mem)
+        # reassign the new data vector to the object:
+        self.cc_at_mem = ccmem2[:]
+
+        # remove cells from the cell gradient concentration list:
+        cgx2 = np.delete(self.cc_grad_x, target_inds_cell)
+        # reassign the new data vector to the object:
+        self.cc_grad_x = cgx2[:]
+
+        # remove cells from the cell gradient concentration list:
+        cgy2 = np.delete(self.cc_grad_y, target_inds_cell)
+        # reassign the new data vector to the object:
+        self.cc_grad_y = cgy2[:]
+
+        # remove cells from the alpha rate grad concentration list:
+        acg2 = np.delete(self.alpha_cgrad, target_inds_cell)
+        # reassign the new data vector to the object:
+        self.alpha_cgrad = acg2[:]
+
+        # remove cells from the alpha rate grad concentration list (mtubes):
+        aug2 = np.delete(self.alpha_ugrad, target_inds_cell)
+        # reassign the new data vector to the object:
+        self.alpha_ugrad = aug2[:]
 
         # # remove cells from the mems concentration list:
         # cmems2 = np.delete(self.c_mems, target_inds_mem)

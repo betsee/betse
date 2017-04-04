@@ -925,6 +925,10 @@ class Parameters(object):
 
         self.vm_ph = 0.1             # rate constant for bicarbonate buffer [mol/s] 5.0e-5 originally
 
+        self.mtube_noise = iu.get('microtubule noise', 1.0)
+
+        self.mt_dipole_moment = iu.get('microtubule dipole moment', 1750)
+
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':
 

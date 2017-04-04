@@ -1111,7 +1111,11 @@ internal parameters:
 
   tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m) 50.0 not uncommon see link above
 
-#  time acceleration: 1.0 # factor accelerating time for slow process of GJ diffusion
+  microtubule dipole moment: 1750     # dipole moment of tubulin dimer 1750 D, of whole microtubule 34000 D [D]
+
+  microtubule noise: 1.0  # noise factor scrambling microtubule alignment (0.0 to 1.0)
+
+
 
 
 # Configuration file version that this file conforms to. For reliable

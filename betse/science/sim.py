@@ -24,6 +24,7 @@ from betse.science.physics.ion_current import get_current
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
 from betse.science.simulate.simphase import SimPhaseWeak, SimPhaseKind
+from betse.science.organelles.microtubules import Mtubes
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
@@ -317,6 +318,7 @@ class Simulator(object):
         #Hence, this method should instead be called as the first statement in
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
+
 
     def fileInit(self, p):
         '''
@@ -675,6 +677,9 @@ class Simulator(object):
 
         self.cc_at_mem = np.zeros((self.cc_cells.shape[0],self.mdl))
 
+        # load in the microtubules object:
+        self.mtubes = Mtubes(cells, p, alpha_noise = p.mtube_noise)
+
     def init_tissue(self, cells, p):
         '''
         Prepares data structures pertaining to tissue profiles, dynamic
@@ -934,7 +939,6 @@ class Simulator(object):
         self.dyna.runAllInit(self,cells,p)
 
         # Define rate constant for conc gradient change in terms of ion diffusion coefficients and cell geometry:
-        # (this is for cell polarizability)
         self.alpha_cgrad = [Do / (cells.R * p.cell_height) for Do in self.D_free]
 
     def run_sim_core(self, cells, p) -> None:
@@ -1174,6 +1178,9 @@ class Simulator(object):
 
                 self.acid_handler(cells, p)
 
+            # update the microtubules:------------------------------------------------------------------------------
+            self.mtubes.update_mtubes(cells, self, p)
+
 
             # update the general molecules handler-----------------------------------------------------------------
             if p.molecules_enabled:
@@ -1377,6 +1384,10 @@ class Simulator(object):
 
         self.vm_ave_time = []
 
+        # microtubules:
+        self.mtubes_x_time = []
+        self.mtubes_y_time = []
+
         if p.deformation is True:
             self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
 
@@ -1470,6 +1481,10 @@ class Simulator(object):
 
         if p.deform_osmo is True:
             self.osmo_P_delta_time.append(self.osmo_P_delta)
+
+        # microtubules:
+        self.mtubes_x_time.append(self.mtubes.mtubes_x*1)
+        self.mtubes_y_time.append(self.mtubes.mtubes_y*1)
 
         if p.deformation is True:
 
@@ -1663,7 +1678,6 @@ class Simulator(object):
     #.................{  DOOERs & GETTERS  }............................................
 
     def update_V(self,cells,p):
-
 
 
         # save the voltage as a placeholder:
@@ -1871,8 +1885,17 @@ class Simulator(object):
 
         cav = self.cc_cells[i]
         z = self.zs[i]
+        # Do = self.D_free[i]
+
+        # umt = -1.0e-7    # FIXME leave this until we figure out electroosmotic velocity along microtubule
+        # umt = 0.0
+
+        # uxmt, uymt = self.mtubes.mtubes_to_cell(cells, p, umt=umt)
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
+        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x  + ((uxmt*cav)/Do)
+        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y + ((uymt*cav)/Do)
+
         ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x
         ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y
 

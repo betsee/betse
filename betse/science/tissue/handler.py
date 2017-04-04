@@ -1248,6 +1248,10 @@ class TissueHandler(object):
         logs.log_info('Re-creating cell network Poisson solver...')
         cells.graphLaplacian(p)
 
+        # if microtubules
+        if sim.mtubes is not None:
+            sim.mtubes.remove_mtubes(target_inds_mem, cells, sim, p)
+
         # if running voltage gated gap junctions, reinnitialize them:
         if p.v_sensitive_gj and sim.gj_funk is not None:
             sim.gj_funk.init(sim, cells, p)

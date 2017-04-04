@@ -1288,7 +1288,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
         #     ux = 0
         #     uy = 0
 
-        if mtubes is not None:
+        if mtubes is True:
 
             ux = np.zeros(sim.mdl)
             uy = np.zeros(sim.mdl)
