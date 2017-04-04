@@ -1137,6 +1137,13 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
     # ..................{ PRIVATE ~ properties               }..................
     #FIXME: Fairly confident we calculate this elsewhere as well. Centralize all
     #such locations to a central property in the "Cells" class.
+    #FIXME: Ah hah! We've found it -- or at least one instance, anyway. The
+    #LayerCellsFieldSurface._layer_first_color_mappables() method calculates the
+    #exact same tuple into a variable "cells_extent". Contemplate a more general
+    #home for this. Since this property pertains *ONLY* to visualizations, it
+    #fails to generalize to the "Cells" class itself. We have no idea what other
+    #class might be a suitably appropriate fit. *sigh*
+
     @property_cached
     def _cells_extent(self) -> tuple:
         '''

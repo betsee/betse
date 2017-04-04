@@ -41,11 +41,9 @@ plotting onto the cell cluster.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod, abstractproperty
-
 from betse.util.py import references
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
-
 
 # ....................{ SUPERCLASS                         }....................
 class LayerCellsABC(object, metaclass=ABCMeta):
@@ -71,8 +69,16 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     _is_layered : bool
         ``True`` only if the :meth:`layer` method has been called at least once
         for this layer instance.
+    _phase : SimPhaseABC
+        Current simulation phase *or* ``None`` if the :meth:`prep` method has
+        yet to be called. Note that this attribute is also accessible via the
+        :meth:`_visual.phase` property and is thus technically redundant. For
+        both convenience and orthogonality with similar ``_phase`` attributes
+        elsewhere in the codebase, this attribute is nonetheless defined and
+        should be used in place of the :meth:`_visual.phase` property.
     _visual : VisualCellsABC
-        Plot or animation to layer onto.
+        Plot or animation to layer onto *or* ``None`` if the :meth:`prep` method
+        has yet to be called.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -97,6 +103,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
 
         # Default instance attributes.
         self._is_layered = False
+        self._phase = None
         self._visual = None
 
 
@@ -120,6 +127,9 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         # *ALWAYS* yields this object (rather than non-deterministically
         # yielding "None" if this object is unexpectedly garbage-collected).
         self._visual = references.proxy_weak(visual)
+
+        # Alias the current simulation phase to a convenience variable.
+        self._phase = self._visual.phase
 
     # ..................{ LAYERS                             }..................
     def layer(self) -> None:

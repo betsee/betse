@@ -488,34 +488,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
-    #FIXME: Replace the following three properties with a single "phase"
-    #property returning "self._phase".
-
     @property
-    def cells(self) -> 'betse.science.cells.Cells':
+    def phase(self) -> SimPhaseABC:
         '''
-        Current cell cluster.
-        '''
-
-        return self._phase.cells
-
-
-    @property
-    def p(self) -> 'betse.science.parameters.Parameters':
-        '''
-        Current simulation configuration.
+        Current simulation phase.
         '''
 
-        return self._phase.p
-
-
-    @property
-    def sim(self) -> 'betse.science.sim.Simulator':
-        '''
-        Current simulation.
-        '''
-
-        return self._phase.sim
+        return self._phase
 
 
     @property

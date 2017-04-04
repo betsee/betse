@@ -23,7 +23,7 @@ class LayerCellsIndex(LayerCellsABC):
         # For the 0-based index and 2-tuple of X and Y coordinates of the center
         # of each cell, display this index centered at these coordinates.
         for cell_index, cell_center in enumerate(
-            self._visual.cells.cell_centres):
+            self._phase.cells.cell_centres):
             self._visual.axes.text(
                 # Text to be displayed.
                 s=cell_index,

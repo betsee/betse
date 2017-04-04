@@ -9,7 +9,8 @@ cell cluster.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.export import expmath
-from betse.science.visual.layer.field.layerfieldabc import LayerCellsFieldColorlessABC
+from betse.science.visual.layer.field.layerfieldabc import (
+    LayerCellsFieldColorlessABC)
 from betse.util.type.types import type_check
 
 # ....................{ SUBCLASSES                         }....................
@@ -50,9 +51,9 @@ class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
 
         # Arrays of the upscaled X and Y coordinates of all cell centres.
         cells_centre_x = expmath.upscale_cell_coordinates(
-            self._visual.cells.cell_centres[:,0])
+            self._phase.cells.cell_centres[:,0])
         cells_centre_y = expmath.upscale_cell_coordinates(
-            self._visual.cells.cell_centres[:,1])
+            self._phase.cells.cell_centres[:,1])
 
         # Ouiver plot of all vector components plotted for this time step. See
         # the matplotlib.quiver.quiver() docstring for further details.
@@ -74,7 +75,7 @@ class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
             # keyword arguments.
 
             # Matplotlib-specific color code of all vector arrows.
-            color=self._visual.p.vcolor,
+            color=self._phase.p.vcolor,
 
             # Multiples of the width and height (respectively) of vector arrow
             # shafts by which to scale the width and height of vector arrow

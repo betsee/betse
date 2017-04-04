@@ -54,10 +54,10 @@ class LayerCellsFieldSurface(LayerCellsFieldColoredABC):
         # 4-tuple of the upscaled minimum and maximum X and Y coordinates for
         # this environmental grid.
         cells_extent = expmath.upscale_cells_coordinates(
-            self._visual.cells.xmin,
-            self._visual.cells.xmax,
-            self._visual.cells.ymin,
-            self._visual.cells.ymax,
+            self._phase.cells.xmin,
+            self._phase.cells.xmax,
+            self._phase.cells.ymin,
+            self._phase.cells.ymax,
         )
 
         # Surface image plot of these magnitudes plotted for this time step. See

@@ -14,12 +14,12 @@ exporting) post-simulation animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.config.export.confvisabc import SimConfVisualListable
+from betse.science.math.vector import vectormake
+from betse.science.math.vector.field import fieldmake
+from betse.science.math.vector.vectorcls import VectorCells
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
 from betse.science.simulate.pipe.piperun import piperunner
-from betse.science.vector import vectormake
-from betse.science.vector.field import fieldmake
-from betse.science.vector.vectorcls import VectorCells
 from betse.science.visual.anim.anim import (
     AnimCurrent,
     AnimateDeformation,
@@ -38,6 +38,7 @@ from betse.science.visual.layer.vector import layervectorsurface
 from betse.science.visual.layer.vector.layervectorsurface import (
     LayerCellsVectorSurfaceContinuous)
 from betse.util.type.types import type_check, IterableTypes
+
 
 # ....................{ SUBCLASSES                         }....................
 class AnimCellsPipeliner(SimPipelinerExportABC):
@@ -130,13 +131,12 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         '''
 
         # Vector field cache of the intracellular electric field over all time steps.
-        field = fieldmake.make_electric_intra(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
+        field = fieldmake.make_electric_intra(phase=self._phase)
 
         # Vector of all intracellular electric field magnitudes over all time steps.
         # spatially situated at cell centres.
         field_magnitudes = VectorCells(
-            cells=self._phase.cells, p=self._phase.p,
+            phase=self._phase,
             times_cells_centre=field.times_cells_centre.magnitudes)
 
         # Sequence of layers consisting of...
@@ -364,8 +364,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         '''
 
         # Vector of all cell membrane voltages over all time steps.
-        vector = vectormake.make_voltages_intra(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
+        vector = vectormake.make_voltages_membrane(phase=self._phase)
 
         # Sequence of layers, consisting of only one layer animating these voltages
         # as a Gouraud-shaded surface.

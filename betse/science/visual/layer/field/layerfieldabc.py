@@ -8,7 +8,7 @@ plotting vector fields onto the cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.vector.field.fieldcls import VectorFieldCells
+from betse.science.math.vector.field.fieldcls import VectorFieldCells
 from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.util.type.types import type_check

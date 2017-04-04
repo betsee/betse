@@ -98,7 +98,7 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
-from betse.science.vector.field import fieldmake
+from betse.science.math.vector.field import fieldmake
 from betse.science.visual.layer.field.layerfieldabc import (
     LayerCellsFieldColorlessABC)
 from betse.science.visual.layer.field.layerfieldstream import (
@@ -495,19 +495,17 @@ class AnimCellsABC(VisualCellsABC):
         # Type of current density vector field to layer.
         field_type = None
 
-        # # If layering only intracellular current, do so.
+        # # If layering intracellular current, do so.
         if self._is_current_overlay_only_gj:
             logs.log_debug('Overlayering intracellular current...')
             field_type = fieldmake.make_currents_intra
-        # # Else, layer both intra- and extracellular current.
+        # # Else, layer extracellular current.
         else:
-            logs.log_debug(
-                'Overlayering intra- and extracellular current...')
-            field_type = fieldmake.make_currents_intra_extra
+            logs.log_debug('Overlayering extracellular current...')
+            field_type = fieldmake.make_currents_extra
 
         # Current density vector field to layer.
-        field = field_type(
-            sim=self._phase.sim, cells=self._phase.cells, p=self._phase.p)
+        field = field_type(phase=self._phase)
 
         # Append a layer overlaying this field.
         self._append_layer(LayerCellsFieldStream(field=field))

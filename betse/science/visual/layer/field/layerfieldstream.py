@@ -25,12 +25,11 @@ current cell cluster.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from matplotlib.patches import FancyArrowPatch
-
 from betse.science.export import expmath
-from betse.science.visual.layer.field.layerfieldabc import LayerCellsFieldColorlessABC
+from betse.science.visual.layer.field.layerfieldabc import (
+    LayerCellsFieldColorlessABC)
 from betse.util.type.types import type_check
-
+from matplotlib.patches import FancyArrowPatch
 
 # ....................{ SUBCLASSES                         }....................
 class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
@@ -71,8 +70,8 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
         '''
 
         # Arrays of the upscaled X and Y coordinates of all grid spaces.
-        grid_x = expmath.upscale_cell_coordinates(self._visual.cells.X)
-        grid_y = expmath.upscale_cell_coordinates(self._visual.cells.Y)
+        grid_x = expmath.upscale_cell_coordinates(self._phase.cells.X)
+        grid_y = expmath.upscale_cell_coordinates(self._phase.cells.Y)
 
         # Vector field whose X and Y components are spatially situated at grid
         # space centres.
@@ -104,10 +103,10 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
             v=field_unit_y,
 
             # Matplotlib-specific color code of all streamlines.
-            color=self._visual.p.vcolor,
+            color=self._phase.p.vcolor,
 
             # Density of streamlines in both the X and Y dimensions.
-            density=self._visual.p.stream_density,
+            density=self._phase.p.stream_density,
 
             # Line widths of all streamlines.
             linewidth=streamlines_width,

@@ -89,9 +89,9 @@ class LayerCellsVectorSurfaceContinuous(LayerCellsVectorColorfulABC):
         # X and Y coordinates of the centers of all polygonol regions of the
         # Voronoi diagram defining this cell cluster.
         regions_centre_x = expmath.upscale_cell_coordinates(
-            self._visual.cells.voronoi_centres[:,0])
+            self._phase.cells.voronoi_centres[:,0])
         regions_centre_y = expmath.upscale_cell_coordinates(
-            self._visual.cells.voronoi_centres[:,1])
+            self._phase.cells.voronoi_centres[:,1])
 
         # One-dimensional array of all region-centred data for this time step.
         regions_centre_data = self._vector.times_regions_centre[
@@ -176,7 +176,7 @@ class LayerCellsVectorSurfaceDiscrete(LayerCellsVectorColorfulABC):
         # Three-dimensional array of all upscaled cell vertex coordinates. See
         # "Cells.cell_verts" documentation for further details.
         cells_vertices_coords = expmath.upscale_cell_coordinates(
-            self._visual.cells.cell_verts)
+            self._phase.cells.cell_verts)
 
         # List of triangulation meshes created by iteration below.
         self._cell_tri_meshes = []
@@ -195,7 +195,7 @@ class LayerCellsVectorSurfaceDiscrete(LayerCellsVectorColorfulABC):
             # "C" in both the documentation and implementation of the
             # tripcolor() function. Why "C"? Because you will believe.
             cell_membranes_vertex_data = membranes_vertex_data[
-                self._visual.cells.cell_to_mems[cell_index]]
+                self._phase.cells.cell_to_mems[cell_index]]
 
             # Gouraud-shaded triangulation mesh for this cell, computed from
             # the Delaunay hull of the non-triangular vertices of this cell.
@@ -235,7 +235,7 @@ class LayerCellsVectorSurfaceDiscrete(LayerCellsVectorColorfulABC):
         for cell_index, cell_tri_mesh in enumerate(self._cell_tri_meshes):
             # Average color values of all vertices of this cell.
             cell_membranes_vertex_data = membranes_vertex_data[
-                self._visual.cells.cell_to_mems[cell_index]]
+                self._phase.cells.cell_to_mems[cell_index]]
 
             # Gouraud-shade this triangulation mesh with these color values.
             cell_tri_mesh.set_array(cell_membranes_vertex_data)

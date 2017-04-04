@@ -9,8 +9,8 @@ Abstract base classes of all vector subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseVectorException
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.lib.numpy import arrays
-from betse.util.py import references
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceOrNoneTypes
 from numpy import ndarray
@@ -37,10 +37,8 @@ class VectorCells(object):
 
     Attributes
     ----------
-    _cells : betse.science.cells.Cells
-        Current cell cluster.
-    _p : betse.science.parameters.Parameters
-        Current simulation configuration.
+    _phase : SimPhaseABC
+        Current simulation phase.
     _times_cell_centres : ndarray
         Two-dimensional Numpy array of all arbitrary cell data for one or more
         simulation time steps spatially situated at cell centres, returned by
@@ -59,8 +57,7 @@ class VectorCells(object):
     @type_check
     def __init__(
         self,
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
+        phase: SimPhaseABC,
         times_cells_centre: SequenceOrNoneTypes = None,
         times_grids_centre: SequenceOrNoneTypes = None,
         times_membranes_midpoint: SequenceOrNoneTypes = None,
@@ -70,10 +67,8 @@ class VectorCells(object):
 
         Parameters
         ----------
-        cells : betse.science.cells.Cells
-            Current cell cluster.
-        p : Parameters
-            Current simulation configuration.
+        phase : SimPhaseABC
+            Current simulation phase.
         times_cells_centre : optional[SequenceTypes]
             Two-dimensional sequence of all cell data for a single cell
             membrane-specific modelled variable (e.g., cell electric field
@@ -82,9 +77,9 @@ class VectorCells(object):
             . Second dimension indexes each cell, such that each element is
               arbitrary cell data spatially situated at the centre of this cell
               for this time step.
-            Defaults to `None`, in which case at least one of the
-            `times_grids_centre` and `times_membranes_midpoint` parameters must
-            be non-`None`.
+            Defaults to ``None``, in which case at least one of the
+            ``times_grids_centre`` and ``times_membranes_midpoint`` parameters
+            must be non-``None``.
         times_grids_centre : optional[SequenceTypes]
             Two-dimensional sequence of all grid data for a single
             intra- and/or extracellular modelled variable (e.g., total current
@@ -93,9 +88,9 @@ class VectorCells(object):
             . Second dimension indexes each grid space (in either dimension),
               such that each element is arbitrary grid data spatially
               situated at the centre of this grid space for this time step.
-            Defaults to `None`, in which case at least one of the
-            `times_cells_centre` and `times_membranes_midpoint` parameters must
-            be non-`None`.
+            Defaults to ``None``, in which case at least one of the
+            ``times_cells_centre`` and ``times_membranes_midpoint`` parameters
+            must be non-``None``.
         times_membranes_midpoint : optional[SequenceTypes]
             Two-dimensional sequence of all cell membrane data for a single
             cell membrane-specific modelled variable (e.g., cell membrane
@@ -104,15 +99,16 @@ class VectorCells(object):
             . Second dimension indexes each cell membrane, such that each
               element is arbitrary cell membrane data spatially situated at the
               midpoint of this membrane for this time step.
-            Defaults to `None`, in which case at least one of the
-            `times_cells_centre` and `times_grids_centre` parameters must be
-            non-`None`.
+            Defaults to ``None``, in which case at least one of the
+            ``times_cells_centre`` and ``times_grids_centre`` parameters must be
+            non-``None``.
 
         Raises
         ----------
         BetseVectorException
-            If exactly one of the `times_cells_centre` and
-            `times_membranes_midpoint` parameters is *not* passed.
+            If exactly one of the ``times_cells_centre``,
+            ``times_grids_centre``, and ``times_membranes_midpoint`` parameters
+            is *not* passed.
         '''
 
         # Initialize our superclass.
@@ -128,16 +124,6 @@ class VectorCells(object):
                 'Parameters "times_cells_centre", "times_grids_centre", and '
                 '"times_membranes_midpoint" not passed.')
 
-        # Classify these parameters with weak rather than strong (the default)
-        # references, thereby avoiding circular references and the resulting
-        # complications thereof (e.g., increased memory overhead). Since the
-        # parent object necessarily lives significantly longer than this vector,
-        # no complications arise. Ergo, these variables *ALWAYS* yield the
-        # expected objects (rather than non-deterministically yielding None if
-        # these objects are unexpectedly garbage-collected).
-        self._cells = references.proxy_weak(cells)
-        self._p = references.proxy_weak(p)
-
         # Convert each passed sequence into a Numpy array for efficiency.
         if times_cells_centre is not None:
             times_cells_centre = arrays.from_sequence(times_cells_centre)
@@ -147,7 +133,8 @@ class VectorCells(object):
             times_membranes_midpoint = arrays.from_sequence(
                 times_membranes_midpoint)
 
-        # Classify these sequences.
+        # Classify all passed parameters.
+        self._phase = phase
         self._times_cells_centre = times_cells_centre
         self._times_grids_centre = times_grids_centre
         self._times_membranes_midpoint = times_membranes_midpoint
@@ -187,7 +174,7 @@ class VectorCells(object):
                 'property "times_grids_centre".')
 
         # Else, remap this vector from cell membrane midpoints to cell centres.
-        return self._cells.map_membranes_midpoint_to_cells_centre(
+        return self._phase.cells.map_membranes_midpoint_to_cells_centre(
             self.times_membranes_midpoint)
 
 
@@ -212,7 +199,7 @@ class VectorCells(object):
             return self._times_membranes_midpoint
 
         # Else, remap this vector from cell centres to cell membrane midpoints.
-        return self._cells.map_cells_centre_to_membranes_midpoint(
+        return self._phase.cells.map_cells_centre_to_membranes_midpoint(
             self.times_cells_centre)
 
 
@@ -232,7 +219,7 @@ class VectorCells(object):
         '''
 
         return np.dot(
-            self.times_membranes_midpoint, self._cells.matrixMap2Verts)
+            self.times_membranes_midpoint, self._phase.cells.matrixMap2Verts)
 
 
     @property_cached
@@ -253,11 +240,11 @@ class VectorCells(object):
         # Array to be returned, zeroed to the desired shape.
         times_regions_centre = np.zeros((
             len(self.times_cells_centre),
-            len(self._cells.voronoi_centres)))
+            len(self._phase.cells.voronoi_centres)))
 
         # Map cell- to region-centred data for all time steps.
         times_regions_centre[
-            :, self._cells.cell_to_grid] = self.times_cells_centre
+            :, self._phase.cells.cell_to_grid] = self.times_cells_centre
 
         # Return this array for subsequent caching.
         return times_regions_centre
@@ -275,11 +262,11 @@ class VectorCells(object):
         . First dimension indexes each simulation time step.
         . Second dimension indexes each square grid space (in either dimension),
           such that each element is either:
-          * If this vector was initialized with the `times_grids_centre`
+        * If this vector was initialized with the :meth:`times_grids_centre`
             parameter, arbitrary grid data spatially situated at the centre of
             this grid space for this time step. In this case, no interpolation
-            is required and the original `times_grids_centre` array is returned
-            as is. This edge case preserves all extracellular data for
+            is required and the original :meth:`times_grids_centre` array is
+            returned as is. This edge case preserves all extracellular data for
             environmental grid spaces.
           * Else:
             * If this grid space resides *inside* the convex hull of this cell
@@ -309,7 +296,8 @@ class VectorCells(object):
         # * Second dimension indexes each cell, such that each element is the
         #   input coordinate in this dimension of the centre of this cell.
         dimensions_cells_center = (
-            self._cells.cell_centres[:, 0], self._cells.cell_centres[:, 1])
+            self._phase.cells.cell_centres[:, 0],
+            self._phase.cells.cell_centres[:, 1])
 
         # Two-dimensional sequence of output X and Y coordinates to be
         # interpolated into, whose:
@@ -318,7 +306,7 @@ class VectorCells(object):
         # * Second dimension indexes each square grid space, such that each
         #   element is the output coordinate in this dimension of the centre of
         #   this grid space.
-        dimensions_grids_centre = (self._cells.X, self._cells.Y)
+        dimensions_grids_centre = (self._phase.cells.X, self._phase.cells.Y)
 
         # Two-dimensional sequence to be returned.
         times_grids_centre = []
@@ -329,7 +317,7 @@ class VectorCells(object):
             # One-dimensional output array of the X or Y components of all
             # vectors situated at the centre of each grid space for this time
             # step, interpolated from this input array.
-            grids_centre = self._cells.maskECM * interpolate.griddata(
+            grids_centre = self._phase.cells.maskECM * interpolate.griddata(
                 # Tuple of X and Y coordinates to interpolate from.
                 points=dimensions_cells_center,
 
@@ -341,7 +329,7 @@ class VectorCells(object):
 
                 # Machine-readable string specifying the type of interpolation
                 # to perform, established by the current configuration.
-                method=self._p.interp_type,
+                method=self._phase.p.interp_type,
 
                 # Default value for all environmental grid points residing
                 # outside the convex hull of the cell centers being interpolated

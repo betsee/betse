@@ -8,13 +8,11 @@ Abstract base classes of all vector field subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from numpy import ndarray
-
 from betse.lib.numpy import arrays
-from betse.science.vector.vectorcls import VectorCells
+from betse.science.math.vector.vectorcls import VectorCells
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
-
+from numpy import ndarray
 
 # ....................{ CLASSES                            }....................
 class VectorField(object):
@@ -200,11 +198,13 @@ class VectorFieldCells(object):
     _field_args : tuple
         Tuple of all positional arguments to be passed as is to the
         :meth:`VectorCellsABC.__init__` method of each
-        :meth:`VectorCellsABC` instance provided by each property of this cache.
+        :class:`VectorCellsABC` instance returned by each property of this
+        cache.
     _field_kwargs : dict
         Dictionary of all keyword arguments to be passed as is to the
         :meth:`VectorCellsABC.__init__` method of each
-        :meth:`VectorCellsABC` instance provided by each property of this cache.
+        :class:`VectorCellsABC` instance returned by each property of this
+        cache.
     _field_x : VectorCells
         Two-dimensional array of the X components of all vectors in this field
         for one or more simulation time steps.
@@ -230,7 +230,8 @@ class VectorFieldCells(object):
 
         All remaining parameters are passed as is to the
         :meth:`VectorCellsABC.__init__` method of each
-        :meth:`VectorCellsABC` instance provided by each property of this cache.
+        :class:`VectorCellsABC` instance returned by each property of this
+        cache.
         '''
 
         # Classify all passed parameters.

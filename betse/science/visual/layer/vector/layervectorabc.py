@@ -8,7 +8,7 @@ plotting vectors onto the cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.vector.vectorcls import VectorCells
+from betse.science.math.vector.vectorcls import VectorCells
 from betse.science.visual.layer.layerabc import LayerCellsColorfulABC
 # from betse.util.type.types import type_check
 
