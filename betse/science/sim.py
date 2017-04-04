@@ -369,6 +369,7 @@ class Simulator(object):
 
         # initialize extra arrays that allow additional substances (defined outside of sim) to affect Vmem:
         self.extra_rho_cells = np.zeros(self.cdl)
+        self.extra_rho_mems = np.zeros(self.mdl)
         self.extra_rho_env = np.zeros(self.edl)
         self.extra_J_mem = np.zeros(self.mdl)
 
@@ -1174,9 +1175,9 @@ class Simulator(object):
                 self.ca_handler(cells, p)
 
 
-            if p.ions_dict['H'] == 1:
-
-                self.acid_handler(cells, p)
+            # if p.ions_dict['H'] == 1:
+            #
+            #     self.acid_handler(cells, p)
 
             # update the microtubules:------------------------------------------------------------------------------
             self.mtubes.update_mtubes(cells, self, p)
@@ -1695,10 +1696,6 @@ class Simulator(object):
 
             self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
 
-        #----Capacitor based Vmem:-------------
-        # surface charge density in cells interior membrane:
-        # sig_cell = self.rho_cells * (cells.cell_vol / cells.cell_sa)
-
         self.vm = (1 / p.cm)*(self.rho_at_mem)
 
         if p.sim_ECM is True:
@@ -1929,9 +1926,9 @@ class Simulator(object):
 
     def get_rho_mem(self, cells, p):
 
-        self.rho_at_mem = np.dot(self.zs*p.F, self.cc_at_mem)*cells.diviterm[cells.mem_to_cells]
+        self.rho_at_mem = (np.dot(self.zs*p.F, self.cc_at_mem)*cells.diviterm[cells.mem_to_cells])  + self.extra_rho_mems
 
-        self.rho_cells = np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems
+        self.rho_cells = (np.dot(cells.M_sum_mems, self.rho_at_mem)/cells.num_mems)
 
     def get_ion(self, ion_name: str) -> int:
         '''

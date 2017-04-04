@@ -19,7 +19,7 @@ def get_current(sim, cells, p):
     sim.Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
 
     # add the free current sources together into a single transmembrane current:
-    sim.Jn = sim.Jmem + sim.Jgj
+    sim.Jn = sim.Jmem + sim.Jgj + sim.extra_J_mem
 
     # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa

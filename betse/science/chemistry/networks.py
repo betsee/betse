@@ -95,6 +95,8 @@ class MasterOfNetworks(object):
         self.ed_shape = 'hexagon'
         self.conc_shape = 'oval'
 
+        self.extra_J_mem = np.zeros(sim.mdl)
+
         self.globals = globals()
         self.locals = locals()
 
@@ -112,7 +114,7 @@ class MasterOfNetworks(object):
 
         # Initialize a dictionaries that will eventually hold dynamic values for cell, env and mit concentrations:
         cell_concs_mapping = {}
-        # mem_concs_mapping = {}
+        mem_concs_mapping = {}
         env_concs_mapping = {}
         bound_concs_mapping = {}
 
@@ -204,13 +206,19 @@ class MasterOfNetworks(object):
             #user-defined substances defined below and ions defined above.
             #Na, K, Cl, Ca, H, M, P == reserved names for ions!
 
-            # create dynamic mappings for the cell and mem conc vectors:
+            # create dynamic mappings for the cell conc vectors:
             cell_concs_mapping[name] = DynamicValue(
                 lambda name = name: self.molecules[name].c_cells,
                 lambda value, name = name: setattr(self.molecules[name], 'c_cells', value))
 
             # initialize array for data stored at membranes:
             mol.cc_at_mem = mol.c_cells[cells.mem_to_cells]
+
+            # create dynamic mappings for the mem conc vectors:
+            mem_concs_mapping[name] = DynamicValue(
+                lambda name = name: self.molecules[name].cc_at_mem,
+                lambda value, name = name: setattr(self.molecules[name], 'cc_at_mem', value))
+
             mol.cc_grad_x = np.zeros(sim.cdl)
             mol.cc_grad_y = np.zeros(sim.cdl)
 
@@ -255,6 +263,7 @@ class MasterOfNetworks(object):
                 mol.mit_enabled = False
 
         self.cell_concs = DynamicValueDict(cell_concs_mapping)
+        self.mem_concs = DynamicValueDict(mem_concs_mapping)
         self.env_concs = DynamicValueDict(env_concs_mapping)
         self.bound_concs = DynamicValueDict(bound_concs_mapping)
 
@@ -314,9 +323,6 @@ class MasterOfNetworks(object):
                 mol.ignoreGJ = mol_dic['GJ impermeable'] # ignore GJ?
 
                 mol.TJ_factor = float(mol_dic['TJ factor'])
-
-
-
 
                 # factors involving growth and decay (gad) in the cytoplasm
                 gad = mol_dic.get('growth and decay', None)
@@ -1928,6 +1934,9 @@ class MasterOfNetworks(object):
             # initialize an empty list that will hold strings defining fixed parameter values as LaTeX math string
             trans_tex_var_list = []
 
+            # initialize a field that will report net charge transported
+            self.transporters[transp_name].net_z = 0
+
             # define aliases for convenience:
             reactant_names = self.transporters[transp_name].reactants_list
             reactant_coeff = self.transporters[transp_name].reactants_coeff
@@ -2058,6 +2067,9 @@ class MasterOfNetworks(object):
                             # calculate the effect of transfer on transporter's free energy:
                             eterm = "-{}*sim.zs[{}]*p.F*{}".format(coeff, ion_ind, vmem)
 
+                            # add term to net charge list:
+                            self.transporters[transp_name].net_z += coeff*sim.zs[ion_ind]
+
                             # LaTeX version:
                             eterm_tex = r"-%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, out_name, out_name, vmem_tex)
 
@@ -2077,6 +2089,8 @@ class MasterOfNetworks(object):
 
                         # calculate the effect of transfer on transporter's free energy:
                         eterm = "-{}*self.molecules['{}'].z*p.F*{}".format(coeff, out_name, vmem)
+
+                        self.transporters[transp_name].net_z += coeff*self.molecules[out_name].z
 
                         # LaTeX version:
                         eterm_tex = r"-%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, out_name, out_name, vmem_tex)
@@ -2114,6 +2128,8 @@ class MasterOfNetworks(object):
                             # calculate the effect of transfer on transporter's free energy:
                             eterm = "{}*sim.zs[{}]*p.F*{}".format(coeff, ion_ind, vmem)
 
+                            self.transporters[transp_name].net_z += -coeff * sim.zs[ion_ind]
+
                             # LaTeX version:
                             eterm_tex = r"%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, in_name, in_name, vmem_tex)
 
@@ -2132,6 +2148,8 @@ class MasterOfNetworks(object):
 
                         # calculate the effect of transfer on transporter's free energy:
                         eterm = "{}*self.molecules['{}'].z*p.F*{}".format(coeff, in_name, vmem)
+
+                        self.transporters[transp_name].net_z += -coeff * self.molecules[in_name].z
 
                         # LaTeX version:
                         eterm_tex = r"%s\,[%s]\,z_{%s}\,F\,%s" % (coeff, in_name, in_name, vmem_tex)
@@ -2629,11 +2647,10 @@ class MasterOfNetworks(object):
         gad_rates = []
 
         self.extra_rho_cells = np.zeros(sim.cdl)
+        self.extra_rho_mems = np.zeros(sim.mdl)
         self.extra_rho_env = np.zeros(sim.edl)
         self.extra_rho_mit = np.zeros(sim.cdl)
         self.extra_J_mem = np.zeros(sim.mdl)
-        self.extra_conc_J_x = np.zeros(sim.edl)
-        self.extra_conc_J_y = np.zeros(sim.edl)
 
         for mol in self.molecules:
 
@@ -2714,9 +2731,10 @@ class MasterOfNetworks(object):
             # update concentration due to growth/decay and chemical reactions:
             self.cell_concs[name] = conco + deltac * p.dt
 
-            # if pumping is enabled:
+
             if obj is not None:
 
+                # if pumping is enabled:
                 if obj.active_pumping:
                     obj.pump(sim, cells, p)
 
@@ -2735,8 +2753,7 @@ class MasterOfNetworks(object):
                 # transport the molecule through gap junctions and environment:
                 obj.transport(sim, cells, p)
 
-                # # update the substance on the inside of the cell:
-                # obj.updateIntra(sim, self, cells, p)
+                # print(obj.name, obj.f_mem.mean())
 
                 # ensure no negs:
                 stb.no_negs(obj.c_cells)
@@ -2746,6 +2763,8 @@ class MasterOfNetworks(object):
                     # calculate the charge density this substance contributes to cell and environment:
                     self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z
                     self.extra_rho_env[:] += p.F*obj.c_env*obj.z
+                    self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F + obj.z*obj.f_gj*p.F
+                    self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z
 
 
             if self.mit_enabled and len(self.reactions_mit)>0:
@@ -2767,7 +2786,10 @@ class MasterOfNetworks(object):
 
         if p.substances_affect_charge:
             sim.extra_rho_cells = self.extra_rho_cells
+            sim.extra_rho_mems = self.extra_rho_mems*cells.diviterm[cells.mem_to_cells]
             sim.extra_rho_env = self.extra_rho_env
+            sim.extra_J_mem = self.extra_J_mem
+
 
         if self.mit_enabled:  # if enabled, update the mitochondria's voltage and other properties
             self.mit.extra_rho = self.extra_rho_mit[:]
@@ -2787,7 +2809,10 @@ class MasterOfNetworks(object):
             self.transporters[name].flux = sim.rho_pump*eval(self.transporters[name].transporter_eval_string,
                 self.globals, self.locals)
 
-            # print(name, self.transporters[name].flux.mean())
+            # print(name, self.transporters[name].net_z, self.transporters[name].flux.mean())
+
+            self.extra_J_mem += self.transporters[name].net_z*self.transporters[name].flux*p.F
+            sim.extra_J_mem = self.extra_J_mem
 
             # finally, update the concentrations using the final eval statements:
             for i, (delc, coeff) in enumerate(zip(self.transporters[name].delta_react_eval_strings,
@@ -3039,17 +3064,6 @@ class MasterOfNetworks(object):
         else:
 
             self.chi = np.zeros(sim.cdl)
-
-    def updateInside(self, sim, cells, p):
-        """
-        Runs the main simulation loop steps for each of the molecules included in the simulation.
-
-        """
-
-        # get the name of the specific substance:
-        for name in self.molecules:
-            obj = self.molecules[name]
-            obj.updateIntra(sim, self, cells, p)
 
     def mod_after_cut_event(self, target_inds_cell, target_inds_mem, sim, cells, p, met_tag=False):
 
@@ -5087,7 +5101,7 @@ class Molecule(object):
         """
 
 
-        self.c_env, self.c_cells, f_X_ED, fgj_X, fenvx, fenvy = stb.molecule_mover(sim,
+        self.c_env, self.c_cells, self.f_mem, self.f_gj, fenvx, fenvy = stb.molecule_mover(sim,
                                                                 self.c_env,
                                                                 self.c_cells,
                                                                 cells, p,
