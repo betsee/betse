@@ -631,31 +631,40 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ EXPORTERS ~ cells : electric       }..................
     @piperunner(
-        categories=('Cell Cluster', 'Electric Field', 'Intracellular',))
-    def export_cells_electric_intra(self, conf: SimConfVisualListable = None) -> None:
+        categories=('Cell Cluster', 'Microtubules', 'Intracellular',))
+    def export_cell_mtubes(self, conf: SimConfVisualListable = None) -> None:
         '''
-        Plot all intracellular electric field lines for the cell cluster at the
+        Plot arrangement of microtubules within each cell of the cluster at the
         last time step.
         '''
 
-        # Prepare to export the electric plot.
+        # Prepare to export the microtubules plot.
         self._export_prep()
 
-        plotutil.plotVectField(
-            self._phase.sim.E_gj_x,
-            self._phase.sim.E_gj_y,
+        pyplot.figure()
+        ax = pyplot.subplot(111)
+
+
+        plotutil.mem_quiver(
+            self._phase.sim.mtubes.mtubes_x,
+            self._phase.sim.mtubes.mtubes_y,
+            ax,
             self._phase.cells,
             self._phase.p,
-            plot_ecm=False,
-            title='Final Electric Field',
-            cb_title='Electric Field [V/m]',
-            colorAutoscale=self._phase.p.autoscale_Efield,
-            minColor=self._phase.p.Efield_min_clr,
-            maxColor=self._phase.p.Efield_max_clr,
+            # plot_ecm=False,
+            # title='Final Electric Field',
+            # cb_title='Electric Field [V/m]',
+            # colorAutoscale=self._phase.p.autoscale_Efield,
+            # minColor=self._phase.p.Efield_min_clr,
+            # maxColor=self._phase.p.Efield_max_clr,
         )
 
+        ax.set_xlabel('X-Distance [um]')
+        ax.set_ylabel('Y-Distance [um]')
+        ax.set_title('Microtubule arrangement in cells')
+
         # Export this plot to disk and/or display.
-        self._export(basename='Final_Electric_Field_GJ')
+        self._export(basename='Final_Microtubules')
 
 
     @piperunner(
@@ -686,6 +695,35 @@ class PlotCellsPipeliner(SimPipelinerExportABC):
 
         # Export this plot to disk and/or display.
         self._export(basename='Final_Electric_Field_ECM')
+
+    # ..................{ EXPORTERS ~ cells : microtubules       }..................
+
+    @piperunner(
+        categories=('Cell Cluster', 'Electric Field', 'Intracellular',))
+    def export_cells_electric_intra(self, conf: SimConfVisualListable = None) -> None:
+        '''
+        Plot all intracellular electric field lines for the cell cluster at the
+        last time step.
+        '''
+
+        # Prepare to export the electric plot.
+        self._export_prep()
+
+        plotutil.plotVectField(
+            self._phase.sim.E_gj_x,
+            self._phase.sim.E_gj_y,
+            self._phase.cells,
+            self._phase.p,
+            plot_ecm=False,
+            title='Final Electric Field',
+            cb_title='Electric Field [V/m]',
+            colorAutoscale=self._phase.p.autoscale_Efield,
+            minColor=self._phase.p.Efield_min_clr,
+            maxColor=self._phase.p.Efield_max_clr,
+        )
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_Electric_Field_GJ')
 
     # ..................{ EXPORTERS ~ cells : fluid          }..................
     @piperunner(
@@ -1300,6 +1338,8 @@ def pipeline(phase: SimPhaseABC) -> None:
     #  types of plots.
     #* This conjoined pipeline is already much too large. Attempting to document
     #  this conjoined pipeline in the YAML file is cumbersome and error-prone.
+
+    pipeliner.export_cell_mtubes()
 
     if phase.p.plot_single_cell_graphs:
         # Plot all cell transmembrane voltages.

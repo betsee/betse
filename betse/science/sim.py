@@ -1888,7 +1888,7 @@ class Simulator(object):
         # umt = 0.0
 
         # determine if there's a net dipole resulting from microtubules:
-        # uxmt, uymt, uumt = self.mtubes.mtubes_to_cell(cells, p)
+        # seluxmt, uymt, uumt = self.mtubes.mtubes_to_cell(cells, p)
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
         # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x  + ((umt*uxmt*cav)/Do)

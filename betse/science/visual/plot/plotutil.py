@@ -878,7 +878,7 @@ def streamingCurrent(
             linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
             color='k',
             cmap=clrmap,
-            arrowsize=1.5,
+            arrowsize=5.0,
         )
 
         ax.set_title('Final gap junction current density')
@@ -904,7 +904,7 @@ def streamingCurrent(
             linewidth=(3.0*Jmag_M/Jmag_M.max()) + 0.5,
             color='k',
             cmap=clrmap,
-            arrowsize=1.5,
+            arrowsize=5.0,
         )
 
         ax.set_title('Final total currents')
@@ -1255,11 +1255,46 @@ def cell_stream(datax,datay,ax,cells,p,showing_cells = False, cmap=None):
         density=p.stream_density,
         linewidth=lw,
         color=stream_color,
-        arrowsize=1.5,
+        arrowsize=5.0,
         cmap = cmap
     )
 
     return streams, ax
+
+
+def mem_quiver(datax,datay,ax,cells,p, cmap=None):
+    """
+    Sets up a quiver plot for membrane vectors with tail at cell centres.
+
+    Parameters
+    -----------
+
+    datax, datay    Data vectors defined on membrane midpoints
+    cells           Instance of cells module
+    p               Instance of parameters module
+    ax              Existing figure axis to plot currents on
+
+    Returns
+    --------
+    mvects             Container for quiver plot
+    ax                  Modified axis
+
+    """
+    # scaleval = (p.um*cells.R.mean())*7.0
+    scaleval = p.um*p.wsx*0.8
+
+    mvects = ax.quiver(
+        cells.cell_centres[:, 0][cells.mem_to_cells]*p.um,
+        cells.cell_centres[:, 1][cells.mem_to_cells]*p.um,
+        datax*cells.R[cells.mem_to_cells]*p.um, datay*cells.R[cells.mem_to_cells]*p.um, scale = scaleval,
+        color=p.vcolor,
+        cmap = cmap
+    )
+
+    ax.axis('equal')
+    ax.axis([cells.xmin*p.um, cells.xmax*p.um, cells.ymin*p.um, cells.ymax*p.um])
+
+    return mvects, ax
 
 
 def env_stream(datax,datay,ax,cells,p, cmap=None):
@@ -1296,8 +1331,8 @@ def env_stream(datax,datay,ax,cells,p, cmap=None):
 
     # if datax.shape == cells.X.shape:
 
-    streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy,density=p.stream_density,
-            linewidth=lw,color=Fmag,arrowsize=1.5,cmap=cmap)
+    streams = ax.streamplot(cells.X*p.um,cells.Y*p.um, Fx, Fy, arrowsize=5.0, density=p.stream_density,
+            linewidth=lw,color=Fmag, cmap=cmap)
 
     # elif datax.shape == cells.X.shape:
     #
