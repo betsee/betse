@@ -68,6 +68,8 @@ class Mtubes(object):
 
     def update_mtubes(self, cells, sim, p):
 
+        # print(self.pmit/3.33e-30)
+
         MM = np.column_stack((self.mtubes_xo, self.mtubes_yo))
         JJ = np.column_stack((sim.J_cell_x[cells.mem_to_cells], sim.J_cell_y[cells.mem_to_cells]))
 
@@ -80,7 +82,7 @@ class Mtubes(object):
         noisey = np.random.random(sim.mdl) - 0.5
         noiseTheta = np.arctan2(noisey, noisex)
 
-        theta = np.arctan2(self.mtubes_yo, self.mtubes_xo) + dtheta*p.dt - noiseTheta*self.alpha_noise*p.dt
+        theta = np.arctan2(self.mtubes_yo, self.mtubes_xo) + 0.1*dtheta*p.dt - 0.1*noiseTheta*self.alpha_noise*p.dt
 
         rmit = np.sqrt(self.mtubes_xo ** 2 + self.mtubes_yo ** 2)
 

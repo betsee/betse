@@ -960,6 +960,10 @@ class Simulator(object):
         # Define rate constant for conc gradient change in terms of ion diffusion coefficients and cell geometry:
         self.alpha_cgrad = [Do / (cells.R * p.cell_height) for Do in self.D_free]
 
+        # update the microtubules dipole for the case user changed it between init and sim:
+        self.mtubes.pmit = p.mt_dipole_moment * 3.33e-30
+        self.mtubes.alpha_noise = p.mtube_noise
+
     def run_sim_core(self, cells, p) -> None:
         '''
         Perform the current phase (e.g., initialization, simulation), pickling
