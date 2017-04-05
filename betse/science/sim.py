@@ -676,7 +676,7 @@ class Simulator(object):
         self.cc_grad_x = np.zeros(self.cc_cells.shape)
         self.cc_grad_y = np.zeros(self.cc_cells.shape)
 
-        self.cc_at_mem = np.zeros((self.cc_cells.shape[0],self.mdl))
+        self.cc_at_mem = np.asarray([cc[cells.mem_to_cells] for cc in self.cc_cells])
 
         # load in the microtubules object:
         self.mtubes = Mtubes(cells, p, alpha_noise = p.mtube_noise)

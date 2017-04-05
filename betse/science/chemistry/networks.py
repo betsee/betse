@@ -145,9 +145,9 @@ class MasterOfNetworks(object):
                     lambda ion_index=ion_index: sim.cc_cells[ion_index],
                     lambda value, ion_index=ion_index: sim.cc_cells.__setitem__(ion_index, value))
 
-                # mem_concs_mapping[k] = DynamicValue(
-                #     lambda ion_index=ion_index: sim.cc_mems[ion_index],
-                #     lambda value, ion_index=ion_index: setattr(sim.cc_mems.__setitem__(ion_index, value)))
+                mem_concs_mapping[k] = DynamicValue(
+                    lambda ion_index=ion_index: sim.cc_at_mem[ion_index],
+                    lambda value, ion_index=ion_index: sim.cc_at_mem.__setitem__(ion_index, value))
 
                 env_concs_mapping[k] = DynamicValue(
                     lambda ion_index=ion_index: sim.cc_env[ion_index],
@@ -519,7 +519,7 @@ class MasterOfNetworks(object):
                 if p.sim_ECM is True:
 
                     self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*((p.F*sim.vm)/(p.R*sim.T))*self.zmol[{}]*" \
-                                      "((self.cell_concs[{}][cells.mem_to_cells] - " \
+                                      "((self.mem_concs[{}] - " \
                                       "self.env_concs[{}][cells.map_mem2ecm]*" \
                                       "np.exp(-(self.zmol[{}]*p.F*sim.vm)" \
                                       "/(p.R*sim.T)))/(1-np.exp(-(self.zmol[{}]*" \
@@ -528,7 +528,7 @@ class MasterOfNetworks(object):
                 else:
 
                     self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*((p.F*sim.vm)/(p.R*sim.T))*self.zmol[{}]*" \
-                                              "((self.cell_concs[{}][cells.mem_to_cells] - " \
+                                              "((self.mem_concs[{}] - " \
                                               "self.env_concs[{}][cells.mem_to_cells]*" \
                                               "np.exp(-(self.zmol[{}]*p.F*sim.vm)" \
                                               "/(p.R*sim.T)))/(1-np.exp(-(self.zmol[{}]*" \
@@ -540,12 +540,12 @@ class MasterOfNetworks(object):
 
                 if p.sim_ECM is True:
 
-                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.cell_concs[{}][cells.mem_to_cells] - " \
+                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.mem_concs[{}] - " \
                                           "self.env_concs[{}][cells.map_mem2ecm])".format(name, name, name)
 
                 else:
 
-                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.cell_concs[{}][cells.mem_to_cells] - " \
+                    self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.mem_concs[{}] - " \
                                           "self.env_concs[{}][cells.mem_to_cells])".format(name, name, name)
 
             elif self.Dmem[k] == 0.0:
@@ -2196,9 +2196,9 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    tag2 = 'cell_concs'
+                    # tag2 = 'cell_concs'
 
-                    denomo_string_Q += "(self.{}['{}'][cells.mem_to_cells]".format(tag2, name)
+                    denomo_string_Q += "(self.{}['{}']".format(tag, name)
                     tex_name = name
 
                 elif tag == 'mit_concs':
@@ -2242,9 +2242,9 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    tag2 = 'cell_concs'
+                    # tag2 = 'cell_concs'
 
-                    numo_string_Q += "(self.{}['{}'][cells.mem_to_cells]".format(tag2, name)
+                    numo_string_Q += "(self.{}['{}']".format(tag, name)
                     tex_name = name
 
                 elif tag == 'mit_concs':
@@ -2300,10 +2300,10 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    tag2 = 'cell_concs'
+                    # tag2 = 'cell_concs'
 
-                    numo_string_r = "((self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
-                    denomo_string_r = "(1 + (self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
+                    numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                    denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     tex_name = name
 
                 elif tag == 'mit_concs':
@@ -2369,10 +2369,10 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    tag2 = 'cell_concs'
+                    # tag2 = 'cell_concs'
 
-                    numo_string_p = "((self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
-                    denomo_string_p = "(1 + (self.{}['{}'][cells.mem_to_cells]/{})**{})".format(tag2, name, Km, n)
+                    numo_string_p = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
+                    denomo_string_p = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
 
                     tex_name = name
 
@@ -4109,10 +4109,10 @@ class MasterOfNetworks(object):
 
                     if zone_tag == 'cell':
 
-                        numo_string_a += "((self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Kmc, n)
-                        denomo_string_a += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Kmc, n)
+                        numo_string_a += "((self.mem_concs['{}']/{})**{})".format(name, Kmc, n)
+                        denomo_string_a += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Kmc, n)
 
-                        direct_string_a += "self.cell_concs['{}'][cells.mem_to_cells]".format(name)
+                        direct_string_a += "self.mem_concs['{}']".format(name)
 
                         tex_name = name
 
@@ -4302,9 +4302,9 @@ class MasterOfNetworks(object):
                         tex_name = name
 
                         numo_string_i += "1"
-                        denomo_string_i += "(1 + (self.cell_concs['{}'][cells.mem_to_cells]/{})**{})".format(name, Kmc, n)
+                        denomo_string_i += "(1 + (self.mem_concs['{}']/{})**{})".format(name, Kmc, n)
 
-                        direct_string_i += "-self.cell_concs['{}'][cells.mem_to_cells]".format(name)
+                        direct_string_i += "-self.mem_concs['{}']".format(name)
 
                     elif zone_tag == 'env':
 
@@ -5225,7 +5225,7 @@ class Molecule(object):
                 # calculate any activators and/or inhibitor effects:
                 if self.gating_extracell is False:
 
-                    Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.c_cells[cells.mem_to_cells],
+                    Dm_mod_mol = sim.rho_channel*self.gating_max_val*tb.hill(self.cc_at_mem,
                                                                             self.gating_Hill_K,self.gating_Hill_n)
 
                 else:
