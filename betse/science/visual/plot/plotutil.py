@@ -1286,7 +1286,9 @@ def mem_quiver(datax,datay,ax,cells,p, cmap=None):
     mvects = ax.quiver(
         cells.cell_centres[:, 0][cells.mem_to_cells]*p.um,
         cells.cell_centres[:, 1][cells.mem_to_cells]*p.um,
-        datax*cells.R[cells.mem_to_cells]*p.um, datay*cells.R[cells.mem_to_cells]*p.um, scale = scaleval,
+        datax*cells.R[cells.mem_to_cells]*p.um,
+        datay*cells.R[cells.mem_to_cells]*p.um,
+        scale=scaleval,
         color=p.vcolor,
         cmap = cmap
     )

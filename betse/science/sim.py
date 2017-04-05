@@ -98,13 +98,13 @@ class Simulator(object):
         * First dimension indexes each simulation time step.
         * Second dimension indexes each cell such that each element is the X
           component of the intracellular current density vector spatially
-          situated at the center of each cell for this time step.
+          situated at the center of that cell for this time step.
     I_cell_y_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
         * Second dimension indexes each cell such that each element is the Y
           component of the intracellular current density vector spatially
-          situated at the center of each cell for this time step.
+          situated at the center of that cell for this time step.
     I_tot_x_time : list
         Two-dimensional list whose:
         * First dimension indexes each simulation time step.
@@ -259,6 +259,23 @@ class Simulator(object):
           total pressure for that cell defined as for the :attr:`P_cells` array.
         Equivalently, this list is the concatenation of all :attr:`P_cells`
         arrays for all time steps.
+
+    Attributes (Microtubules)
+    ----------
+    mtubes : Mtubes
+        Object encapsulating all microtubules for the current time step.
+    mtubes_x_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes each cell membrane such that each element is
+          the X component of the microtubule unit vector spatially situated at
+          the midpoint of that membrane for this time step.
+    mtubes_y_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each simulation time step.
+        * Second dimension indexes each cell membrane such that each element is
+          the Y component of the microtubule unit vector spatially situated at
+          the midpoint of that membrane for this time step.
 
     Attributes (Voltage)
     ----------
@@ -676,10 +693,11 @@ class Simulator(object):
         self.cc_grad_x = np.zeros(self.cc_cells.shape)
         self.cc_grad_y = np.zeros(self.cc_cells.shape)
 
-        self.cc_at_mem = np.asarray([cc[cells.mem_to_cells] for cc in self.cc_cells])
+        self.cc_at_mem = np.asarray([
+            cc[cells.mem_to_cells] for cc in self.cc_cells])
 
         # load in the microtubules object:
-        self.mtubes = Mtubes(cells, p, alpha_noise = p.mtube_noise)
+        self.mtubes = Mtubes(cells, p, alpha_noise=p.mtube_noise)
 
     def init_tissue(self, cells, p):
         '''
@@ -1171,9 +1189,7 @@ class Simulator(object):
             # ----transport and handling of special ions------------------------------------------------------------
 
             if p.ions_dict['Ca'] == 1:
-
                 self.ca_handler(cells, p)
-
 
             # if p.ions_dict['H'] == 1:
             #
@@ -1182,20 +1198,16 @@ class Simulator(object):
             # update the microtubules:------------------------------------------------------------------------------
             self.mtubes.update_mtubes(cells, self, p)
 
-
             # update the general molecules handler-----------------------------------------------------------------
             if p.molecules_enabled:
 
                 if self.molecules.transporters:
-
                     self.molecules.core.run_loop_transporters(t, self, cells, p)
 
                 if self.molecules.channels:
-
                     self.molecules.core.run_loop_channels(self, cells, p)
 
                 if self.molecules.modulators:
-
                     self.molecules.core.run_loop_modulators(self, cells, p)
 
                 self.molecules.core.run_loop(t, self, cells, p)
@@ -1476,77 +1488,65 @@ class Simulator(object):
         # self.vm_ave_time.append(vm_ave)
 
         self.rho_cells_time.append(self.rho_cells[:])
-
         self.rate_NaKATP_time.append(self.rate_NaKATP[:])
         self.P_cells_time.append(self.P_cells)
 
-        if p.deform_osmo is True:
+        if p.deform_osmo:
             self.osmo_P_delta_time.append(self.osmo_P_delta)
 
         # microtubules:
         self.mtubes_x_time.append(self.mtubes.mtubes_x*1)
         self.mtubes_y_time.append(self.mtubes.mtubes_y*1)
 
-        if p.deformation is True:
-
+        if p.deformation:
             # make a copy of cells to apply deformation to:
             # self.cellso = copy.deepcopy(cells)
             implement_deform_timestep(self, self.cellso, t, p)
             self.dx_cell_time.append(self.d_cells_x[:])
             self.dy_cell_time.append(self.d_cells_y[:])
 
-        if p.fluid_flow is True:
+        if p.fluid_flow:
             self.u_cells_x_time.append(self.u_cells_x[:])
             self.u_cells_y_time.append(self.u_cells_y[:])
 
-        if p.sim_eosmosis is True:
+        if p.sim_eosmosis:
             self.rho_channel_time.append(self.rho_channel[:])
             self.rho_pump_time.append(self.rho_pump[:])
 
         self.gjopen_time.append(self.gjopen[:])
-
         self.time.append(t)
 
         if p.molecules_enabled:
-
             self.molecules.core.write_data(self, cells, p)
             self.molecules.core.report(self, p)
 
         if p.metabolism_enabled:
-
             self.metabo.core.write_data(self, cells, p)
             self.metabo.core.report(self, p)
 
         if p.grn_enabled:
-
             self.grn.core.write_data(self, cells, p)
             self.grn.core.report(self, p)
 
-        if p.Ca_dyn == 1 and p.ions_dict['Ca']==1:
-
+        if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
             self.endo_retic.write_cache(self)
 
-        if p.sim_ECM is True:
-
+        if p.sim_ECM:
             self.efield_ecm_x_time.append(self.E_env_x[:])
-
             self.efield_ecm_y_time.append(self.E_env_y[:])
 
             self.I_tot_x_time.append(self.J_env_x[:])
             self.I_tot_y_time.append(self.J_env_y[:])
 
             if p.smooth_level == 0.0:
-
                 vv = self.v_env.reshape(cells.X.shape)
-
                 vvenv = gaussian_filter(vv, 1.0, mode = 'constant').ravel()
-
             else:
                 vvenv = self.v_env*1
 
             self.venv_time.append(vvenv)
 
-            if p.fluid_flow is True:
+            if p.fluid_flow:
                 self.u_env_x_time.append(self.u_env_x[:])
                 self.u_env_y_time.append(self.u_env_y[:])
 

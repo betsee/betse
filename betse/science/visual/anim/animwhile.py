@@ -95,7 +95,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
             `is_color_autoscaled` is `False`), this will be ignored. Defaults
             to `False`.
 
-        See the superclass `__init__()` method for all remaining parameters.
+        See the superclass method for all remaining parameters.
         '''
 
         # Initialize the superclass.
@@ -251,7 +251,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         # Update the color bar with the content of the cell body plot *AFTER*
         # possibly recreating this plot above.
-        if self._is_color_autoscaled:
+        if self._conf.is_color_autoscaled:
             cell_data_vm = cell_data
 
             # If autoscaling this colorbar in a telescoping manner and this is

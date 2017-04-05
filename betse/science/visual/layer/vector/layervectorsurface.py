@@ -6,47 +6,11 @@
 Layer subclasses spatially shading the cell cluster.
 '''
 
-#FIXME: Refactor this submodule as follows:
-#
-#* Rename the "LayerCellsVectorSurfaceDiscrete" subclass to
-#  "LayerCellsVectorSurfaceDiscrete".
-#* Rename the "LayerCellsShadeVectorContinuous" subclass to
-#  "LayerCellsVectorSurfaceContinuous".
-#* Rename this submodule to "layer.vector.layervectorsurface".
-
 # ....................{ IMPORTS                            }....................
 from betse.science.export import expmath
 from betse.science.visual.layer.vector.layervectorabc import (
     LayerCellsVectorColorfulABC)
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
-
-# ....................{ FACTORIES                          }....................
-#FIXME: Probably overkill. Simply inline the logic of this function directly at
-#its sole point of use; then excise this function.
-@type_check
-def make(p: 'betse.science.parameters.Parameters', *args, **kwargs) -> (
-    LayerCellsVectorColorfulABC):
-    '''
-    Layer plotting the cell cluster as a Gouraud-shaded surface in either a
-    contiguous or discontiguous manner according to the passed configuration.
-
-    Parameters
-    ----------
-    p : Parameters
-        Current simulation configuration.
-
-    All remaining parameters are passed to either the
-    :class:`LayerCellsVectorSurfaceDiscrete` or :class:`LayerCellsVectorSurfaceContinuous`
-    constructor as is.
-    '''
-
-    # Type of layer to be created.
-    layer_type = (
-        LayerCellsVectorSurfaceDiscrete if p.showCells else
-        LayerCellsVectorSurfaceContinuous)
-
-    # Create and return an instance of this type, passed the passed parameters.
-    return layer_type(*args, **kwargs)
 
 # ....................{ CLASSES                            }....................
 #FIXME: Fix us up, please. This layer is effectively broken at the moment,

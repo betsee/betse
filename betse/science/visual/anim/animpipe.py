@@ -33,12 +33,10 @@ from betse.science.visual.anim.anim import (
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
 from betse.science.visual.layer.field.layerfieldquiver import (
-    LayerCellsFieldQuiver)
-from betse.science.visual.layer.vector import layervectorsurface
+    LayerCellsFieldQuiverCells, LayerCellsFieldQuiverMembranes)
 from betse.science.visual.layer.vector.layervectorsurface import (
-    LayerCellsVectorSurfaceContinuous)
+    LayerCellsVectorSurfaceDiscrete, LayerCellsVectorSurfaceContinuous)
 from betse.util.type.types import type_check, IterableTypes
-
 
 # ....................{ SUBCLASSES                         }....................
 class AnimCellsPipeliner(SimPipelinerExportABC):
@@ -66,7 +64,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(categories=('Current Density', 'Intracellular',))
-    def export_current_intra(self, conf: SimConfVisualListable) -> None:
+    def export_currents_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all intracellular current densities for the cell cluster for all
         time steps.
@@ -87,7 +85,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         categories=('Current Density', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_current_extra(self, conf: SimConfVisualListable) -> None:
+    def export_currents_extra(self, conf: SimConfVisualListable) -> None:
         '''
         Animate all extracellular current densities for the cell cluster
         environment over all time steps.
@@ -126,15 +124,15 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
     @piperunner(categories=('Electric Field', 'Intracellular',))
     def export_electric_intra(self, conf: SimConfVisualListable) -> None:
         '''
-        Animate all intracellular electric field lines for the cell cluster for
+        Animate all intracellular electric field lines for the cell cluster over
         all time steps.
         '''
 
-        # Vector field cache of the intracellular electric field over all time steps.
+        # Intracellular electric field over all time steps.
         field = fieldmake.make_electric_intra(phase=self._phase)
 
-        # Vector of all intracellular electric field magnitudes over all time steps.
-        # spatially situated at cell centres.
+        # Vector of all intracellular electric field magnitudes over all time
+        # steps, spatially situated at cell centres.
         field_magnitudes = VectorCells(
             phase=self._phase,
             times_cells_centre=field.times_cells_centre.magnitudes)
@@ -145,7 +143,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             LayerCellsVectorSurfaceContinuous(vector=field_magnitudes),
 
             # A higher layer animating this field.
-            LayerCellsFieldQuiver(field=field),
+            LayerCellsFieldQuiverCells(field=field),
         )
 
         # Animate these layers.
@@ -293,9 +291,32 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
             colorbar_title='Voltage [mV]',
         )
 
+    # ..................{ EXPORTERS ~ microtubules           }..................
+    @piperunner(categories=('Microtubules',))
+    def export_microtubule(self, conf: SimConfVisualListable) -> None:
+        '''
+        Animate all cellular microtubules for the cell cluster over all time
+        steps.
+        '''
+
+        # Vector field of all cellular microtubules over all time steps.
+        field = fieldmake.make_microtubule(phase=self._phase)
+
+        # Sequence containing only a layer animating this field.
+        layers = (LayerCellsFieldQuiverMembranes(field=field),)
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
+            phase=self._phase,
+            conf=conf,
+            layers=layers,
+            label='Microtubules',
+            figure_title='Microtubule arrangement in cells',
+        )
+
     # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
-        categories=('Cellular Pressure', 'Total',),
+        categories=('Pressure', 'Total',),
         requirements={piperunreq.PRESSURE_TOTAL,},
     )
     def export_pressure_total(self, conf: SimConfVisualListable) -> None:
@@ -317,7 +338,7 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
 
 
     @piperunner(
-        categories=('Cellular Pressure', 'Osmotic',),
+        categories=('Pressure', 'Osmotic',),
         requirements={piperunreq.PRESSURE_OSMOTIC,},
     )
     def export_pressure_osmotic(self, conf: SimConfVisualListable) -> None:
@@ -366,11 +387,17 @@ class AnimCellsPipeliner(SimPipelinerExportABC):
         # Vector of all cell membrane voltages over all time steps.
         vector = vectormake.make_voltages_membrane(phase=self._phase)
 
-        # Sequence of layers, consisting of only one layer animating these voltages
-        # as a Gouraud-shaded surface.
-        layers = (layervectorsurface.make(p=self._phase.p, vector=vector),)
+        # Type of layer to be created, plotting the cell cluster as a
+        # Gouraud-shaded surface in either a contiguous or discontiguous manner
+        # according to the phase configuration.
+        layer_type = (
+            LayerCellsVectorSurfaceDiscrete if self._phase.p.showCells else
+            LayerCellsVectorSurfaceContinuous)
 
-        # Animate these layers.
+        # Sequence containing only one such layer.
+        layers = (layer_type(vector=vector),)
+
+        # Animate this layer.
         AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,

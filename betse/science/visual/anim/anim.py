@@ -607,7 +607,7 @@ class AnimVelocityIntracellular(AnimVelocity):
         # self.streamV.set_UVC(u_gj_x/vnorm,u_gj_y/vnorm)
 
         # Rescale the colorbar range if desired.
-        if self._is_color_autoscaled is True:
+        if self._conf.is_color_autoscaled:
             self._color_min = np.min(vfield)
             self._color_max = vnorm
 

@@ -84,9 +84,9 @@ def make_currents_extra(phase: SimPhaseABC) -> VectorFieldCells:
 @type_check
 def make_electric_intra(phase: SimPhaseABC) -> VectorFieldCells:
     '''
-    Vector field caching the eletric field across all intracellular spaces for
-    all time steps of the passed simulation, originally spatially situated at
-    cell membrane midpoints.
+    Vector field caching the electric field across all intracellular spaces for
+    all time steps of the passed simulation phase, originally spatially situated
+    at cell membrane midpoints.
 
     Parameters
     ----------
@@ -110,9 +110,9 @@ def make_electric_intra(phase: SimPhaseABC) -> VectorFieldCells:
 @type_check
 def make_electric_extra(phase: SimPhaseABC) -> VectorFieldCells:
     '''
-    Vector field caching the eletric field across all extracellular spaces for
-    all time steps of the passed simulation, originally spatially situated at
-    environmental grid space centres.
+    Vector field caching the electric field across all extracellular spaces for
+    all time steps of the passed simulation phase, originally spatially situated
+    at environmental grid space centres.
 
     Parameters
     ----------
@@ -139,4 +139,30 @@ def make_electric_extra(phase: SimPhaseABC) -> VectorFieldCells:
             phase=phase, times_grids_centre=phase.sim.efield_ecm_x_time),
         y=VectorCells(
             phase=phase, times_grids_centre=phase.sim.efield_ecm_y_time),
+    )
+
+# ....................{ MAKERS ~ microtubule               }....................
+@type_check
+def make_microtubule(phase: SimPhaseABC) -> VectorFieldCells:
+    '''
+    Vector field caching all cellular microtubules for all time steps of the
+    passed simulation phase, originally spatially situated at cell membrane
+    midpoints.
+
+    Parameters
+    ----------
+    phase : SimPhaseABC
+        Current simulation phase.
+
+    Returns
+    ----------
+    VectorFieldCells
+        Vector field caching all cellular microtubules.
+    '''
+
+    return VectorFieldCells(
+        x=VectorCells(
+            phase=phase, times_membranes_midpoint=phase.sim.mtubes_x_time),
+        y=VectorCells(
+            phase=phase, times_membranes_midpoint=phase.sim.mtubes_y_time),
     )

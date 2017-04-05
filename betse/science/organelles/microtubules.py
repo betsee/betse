@@ -3,16 +3,37 @@
 # See "LICENSE" for further details.
 
 """
-
-Creates a microtubules class, which align in the direction of endogenous current flux
-through cells.
-
+**Microtubules** (i.e., vectors aligned in the direction of endogenous current
+flux through cells) functionality.
 """
 
 import numpy as np
 
 
 class Mtubes(object):
+    '''
+    Object encapsulating all cellular microtubules for the cell cluster
+    simulated at the current time step.
+
+    Attributes
+    ----------
+    mtubes_x : ndarray
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the normalized X component of the microtubule unit vector
+        spatially situated at the midpoint of that membrane for this time step.
+    mtubes_y : ndarray
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the normalized Y component of the microtubule unit vector
+        spatially situated at the midpoint of that membrane for this time step.
+    mtubes_xo : ndarray
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the non-normalized X component of the microtubule vector
+        spatially situated at the midpoint of that membrane for this time step.
+    mtubes_yo : ndarray
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the non-normalized Y component of the microtubule vector
+        spatially situated at the midpoint of that membrane for this time step.
+    '''
 
     def __init__(self, cells, p, alpha_noise = 1.0):
 

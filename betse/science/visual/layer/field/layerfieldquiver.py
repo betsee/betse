@@ -8,27 +8,28 @@ cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
+from abc import abstractproperty
 from betse.science.export import expmath
 from betse.science.visual.layer.field.layerfieldabc import (
     LayerCellsFieldColorlessABC)
-from betse.util.type.types import type_check
+# from betse.util.type.types import type_check
+from numpy import ndarray
 
-# ....................{ SUBCLASSES                         }....................
-class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
+# ....................{ SUPERCLASSES                       }....................
+class LayerCellsFieldQuiverABC(LayerCellsFieldColorlessABC):
     '''
-    Layer subclass plotting the most significant X and Y components of a single
-    vector field (e.g., electric field) onto the cell cluster for one on more
-    simulation time steps.
+    Layer abstract subclass plotting the most significant X and Y components of
+    a single vector field spatially situated according to this layer subclass
+    onto the cell cluster for one on more simulation time steps.
 
     Attributes
     ----------
     _quiver_plot : matplotlib.quiver.Quiver
         Ouiver plot of all vector components previously plotted for the prior
-        time step if any or `None` otherwise.
+        time step if any *or* ``None`` otherwise.
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    @type_check
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass.
@@ -38,22 +39,44 @@ class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
         self._quiver_plot = None
 
     # ..................{ SUPERCLASS                         }..................
+    def _layer_next(self) -> None:
+
+        # Replace all X and Y components of this vector field plotted for the
+        # prior time step by those for this time step.
+        self._quiver_plot.set_UVC(U=self._field_time_x, V=self._field_time_y)
+
+    # ..................{ SUBCLASS                           }..................
+    @abstractproperty
+    def _field_time_x(self) -> ndarray:
+        '''
+        One-dimensional Numpy array of all X components of this vector field
+        spatially situated spatially situated according to this layer subclass
+        for the current time step.
+        '''
+
+        pass
+
+
+    @abstractproperty
+    def _field_time_y(self) -> ndarray:
+        '''
+        One-dimensional Numpy array of all Y components of this vector field
+        spatially situated spatially situated according to this layer subclass
+        for the current time step.
+        '''
+
+        pass
+
+# ....................{ SUBCLASSES                         }....................
+class LayerCellsFieldQuiverCells(LayerCellsFieldQuiverABC):
+    '''
+    Layer subclass plotting the most significant X and Y components of a single
+    vector field spatially situated at cell centres (e.g., intracellular
+    electric field) onto the cell cluster for one on more simulation time steps.
+    '''
+
+    # ..................{ SUPERCLASS                         }..................
     def _layer_first(self) -> None:
-        '''
-        Layer the most significant X and Y components of this vector field for
-        the first time step onto the figure axes of the current plot or
-        animation.
-        '''
-
-        # Vector field whose X and Y components are spatially situated at cell
-        # centres.
-        field = self._field.times_cells_centre
-
-        # Arrays of the upscaled X and Y coordinates of all cell centres.
-        cells_centre_x = expmath.upscale_cell_coordinates(
-            self._phase.cells.cell_centres[:,0])
-        cells_centre_y = expmath.upscale_cell_coordinates(
-            self._phase.cells.cell_centres[:,1])
 
         # Ouiver plot of all vector components plotted for this time step. See
         # the matplotlib.quiver.quiver() docstring for further details.
@@ -63,13 +86,16 @@ class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
             # to the matplotlib.axes.quiver() method called here, the first four
             # arguments *MUST* be passed as positional arguments.
 
-            # X and Y coordinates of all cell centres.
-            cells_centre_x,
-            cells_centre_y,
+            # Upscaled X and Y coordinates of all cell centres.
+            expmath.upscale_cell_coordinates(
+                self._phase.cells.cell_centres[:,0]),
+            expmath.upscale_cell_coordinates(
+                self._phase.cells.cell_centres[:,1]),
 
-            # Normalized X and Y vector field components for this time step.
-            field.unit_x[self._visual.time_step],
-            field.unit_y[self._visual.time_step],
+            # Normalized X and Y components of this vector field spatially
+            # situated at cell centres for this time step.
+            self._field_time_x,
+            self._field_time_y,
 
             # Keyword arguments. All remaining arguments *MUST* be passed as
             # keyword arguments.
@@ -96,23 +122,104 @@ class LayerCellsFieldQuiver(LayerCellsFieldColorlessABC):
             # zorder=10,
         )
 
+    # ..................{ SUPERCLASS ~ property              }..................
+    @property
+    def _field_time_x(self) -> ndarray:
+        return self._field.times_cells_centre.unit_x[self._visual.time_step]
 
-    def _layer_next(self) -> None:
+    @property
+    def _field_time_y(self) -> ndarray:
+        return self._field.times_cells_centre.unit_y[self._visual.time_step]
+
+
+class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
+    '''
+    Layer subclass plotting the most significant X and Y components of a single
+    vector field spatially situated at cell membrane midpoints (e.g.,
+    microtubules) onto the cell cluster for one on more simulation time steps.
+
+    Attributes
+    ----------
+    _cells_radius : ndarray
+        One-dimensional Numpy array indexing each cell such that each element is
+        the upscaled radius of that cell.
+    '''
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, *args, **kwargs) -> None:
+
+        # Initialize our superclass.
+        super().__init__(*args, **kwargs)
+
+        # Default all remaining instance variables.
+        self._cells_radius = None
+
+
+    def prep(self, *args, **kwargs) -> None:
+
+        # Prepare our superclass.
+        super().prep(*args, **kwargs)
+
+        # Upscale all cell radii.
+        self._cells_radius = expmath.upscale_cell_coordinates(
+            self._phase.cells.R[self._phase.cells.mem_to_cells])
+
+    # ..................{ SUPERCLASS                         }..................
+    def _layer_first(self) -> None:
+
+        # Localize attributes for brevity.
+        cells = self._phase.cells
+
+        # Ouiver plot of all vector components plotted for this time step. See
+        # the matplotlib.quiver.quiver() docstring for further details.
+        self._quiver_plot = self._visual.axes.quiver(
+            # Positional arguments. See
+            # LayerCellsFieldQuiverCells._layer_first() for further discussion.
+
+            # Upscaled X and Y coordinates of all cell membrane midpoints.
+            # cells.cell_centres[:, 0][cells.mem_to_cells]*self._phase.p.um,
+            # cells.cell_centres[:, 1][cells.mem_to_cells]*self._phase.p.um,
+            expmath.upscale_cell_coordinates(
+                cells.cell_centres[:, 0][cells.mem_to_cells]),
+            expmath.upscale_cell_coordinates(
+                cells.cell_centres[:, 1][cells.mem_to_cells]),
+
+            # X and Y components of this vector field spatially situated at cell
+            # membrane midpoints extending to cell centres for this time step.
+            self._field_time_x,
+            self._field_time_y,
+
+            # Keyword arguments. All remaining arguments *MUST* be passed as
+            # keyword arguments.
+
+            # Matplotlib-specific color code of all vector arrows.
+            color=self._phase.p.vcolor,
+
+            # Number of data units per arrow length unit.
+            # scale=self._phase.p.um*self._phase.p.wsx*0.8,
+            scale=expmath.upscale_cell_coordinates(self._phase.p.wsx*0.8)
+        )
+
+    # ..................{ SUPERCLASS ~ property              }..................
+    @property
+    def _field_time_x(self) -> ndarray:
         '''
-        Layer the most significant X and Y components of this vector field for
-        the next time step onto the figure axes of the current plot or
-        animation.
+        X components of this vector field spatially situated at cell membrane
+        midpoints extending exactly to cell centres for the current time step,
+        calculated by first normalizing and then extending each such component
+        by the upscaled radius of the cell containing this membrane.
         '''
 
-        # Vector field whose X and Y components are spatially situated at cell
-        # centres.
-        field = self._field.times_cells_centre
+        return self._field.times_membranes_midpoint.unit_x[
+            self._visual.time_step] * self._cells_radius
 
-        # Arrays of all normalized X and Y components of this vector field for
-        # this time step.
-        field_unit_x = field.unit_x[self._visual.time_step]
-        field_unit_y = field.unit_y[self._visual.time_step]
 
-        # Replace all normalized X and Y components previously plotted for the
-        # prior time step by these components.
-        self._quiver_plot.set_UVC(U=field_unit_x, V=field_unit_y)
+    @property
+    def _field_time_y(self) -> ndarray:
+        '''
+        Y components of this vector field spatially situated at cell membrane
+        midpoints extending exactly to cell centres for the current time step.
+        '''
+
+        return self._field.times_membranes_midpoint.unit_y[
+            self._visual.time_step] * self._cells_radius

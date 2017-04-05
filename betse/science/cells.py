@@ -69,9 +69,9 @@ class Cells(object):
           . First element is the X coordinate of the current cell center.
           . Second element is the Y coordinate of the current cell center.
     cell_i : ndarray
-        One-dimensional Numpy array of length the number of cells such that
-        each element is that cell's index (i.e., `[0, 1, ..., n-2, n-1]` for
-        the number of cells `n`), required for efficient Numpy slicing.
+        One-dimensional Numpy array indexing each cell such that each element is
+        that cell's index (i.e., ``[0, 1, ..., n-2, n-1]`` for the number of
+        cells ``n``), required for efficient Numpy slicing.
     cell_verts : ndarray
         Three-dimensional Numpy array of the coordinates of the vertices of all
         cells, whose:
@@ -86,6 +86,9 @@ class Cells(object):
           whose length is guaranteed to be 2 _and_ whose:
           . First element is the X coordinate of the current cell vertex.
           . Second element is the Y coordinate of the current cell vertex.
+    R : ndarray
+        One-dimensional Numpy array indexing each cell such that each element is
+        the radius of that cell.
 
     Attributes (Cell Membrane)
     ----------

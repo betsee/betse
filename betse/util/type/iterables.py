@@ -96,25 +96,25 @@ def is_reversible(iterable: IterableTypes) -> bool:
 
 # ....................{ TESTERS ~ item                     }....................
 @type_check
-def is_items_any_satisfying(
+def is_item_satisfying(
     iterable: IterableTypes, predicate: CallableTypes) -> bool:
     '''
-    `True` only if some element of the passed iterable satisfies the passed
-    **predicate** (i.e., callable accepting one parameter, returning `True` only
-    if this parameter suffices).
+    ``True`` only if some element of the passed iterable satisfies the passed
+    **predicate** (i.e., callable accepting one parameter returning ``True``
+    only if this parameter suffices).
 
     Parameters
     ----------
     iterable : IterableTypes
         Iterable to be inspected.
     predicate : CallableTypes
-        Callable accepting one parameter and returning `True` only if this
+        Callable accepting one parameter and returning ``True`` only if this
         parameter suffices.
 
     Returns
     ----------
     bool
-        `True` only if some element of this iterable satisfies this predicate.
+        ``True`` only if some element of this iterable satisfies this predicate.
     '''
 
     # First item satisfying this predicate in this iterable if any *OR* the
@@ -127,10 +127,10 @@ def is_items_any_satisfying(
 
 
 @type_check
-def is_items_any_instance_of(
+def is_item_instance_of(
     iterable: IterableTypes, cls: TestableTypes) -> bool:
     '''
-    `True` only if some element of the passed iterable is an instance of the
+    ``True`` only if some element of the passed iterable is an instance of the
     passed class.
 
     Parameters
@@ -143,11 +143,11 @@ def is_items_any_instance_of(
     Returns
     ----------
     bool
-        `True` only if some element of this iterable is an instance of this
+        ``True`` only if some element of this iterable is an instance of this
         class.
     '''
 
-    return is_items_any_satisfying(
+    return is_item_satisfying(
         iterable=iterable, predicate=lambda item: isinstance(item, cls))
 
 # ....................{ GETTERS ~ first                    }....................

@@ -485,7 +485,7 @@ class AnimCellsABC(VisualCellsABC):
             not self._is_current_overlayable or
 
             # A layer in the layer sequence already plots a vector field.
-            iterables.is_items_any_instance_of(
+            iterables.is_item_instance_of(
                 iterable=self._layers, cls=LayerCellsFieldColorlessABC)
         # ...then silently noop.
         ):

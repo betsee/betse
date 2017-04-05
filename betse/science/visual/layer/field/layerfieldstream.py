@@ -53,7 +53,6 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    @type_check
     def __init__(self, *args, **kwargs) -> None:
 
         # Initialize our superclass.

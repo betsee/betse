@@ -14,12 +14,12 @@ from betse.science.visual.layer.layerabc import (
 from betse.util.type.types import type_check
 
 # ....................{ SUBCLASSES                         }....................
-class LayerCellsFieldColoredABC(LayerCellsColorfulABC):
+class LayerCellsFieldColorlessABC(LayerCellsABC):
     '''
     Abstract base class of all classes spatially plotting vector fields of
     arbitrary data onto the cell cluster (e.g., current density, electric field)
-    such that the components and/or magnitudes of these fields are mappable as
-    colors onto the colorbars of parent plots and animations.
+    such that neither the components nor magnitudes of these fields are mappable
+    as colors onto the colorbars of parent plots and animations.
 
     Attributes
     ----------
@@ -49,12 +49,13 @@ class LayerCellsFieldColoredABC(LayerCellsColorfulABC):
         self._field = field
 
 
-class LayerCellsFieldColorlessABC(LayerCellsABC):
+#FIXME: Rename to "LayerCellsFieldColorfulABC".
+class LayerCellsFieldColoredABC(LayerCellsColorfulABC):
     '''
     Abstract base class of all classes spatially plotting vector fields of
     arbitrary data onto the cell cluster (e.g., current density, electric field)
-    such that neither the components nor magnitudes of these fields are mappable
-    as colors onto the colorbars of parent plots and animations.
+    such that the components and/or magnitudes of these fields are mappable as
+    colors onto the colorbars of parent plots and animations.
 
     Attributes
     ----------

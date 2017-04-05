@@ -15,7 +15,7 @@ Abstract base classes of all Matplotlib-based plot and animation subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
-from betse.exceptions import BetseMethodException
+from betse.exceptions import BetseSimVisualException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
@@ -37,6 +37,7 @@ from betse.util.type.types import (
     NoneType,
     NumericOrNoneTypes,
     SequenceTypes, SequenceOrNoneTypes,
+    StrOrNoneTypes,
 )
 from matplotlib import pyplot
 from matplotlib.axes import Axes
@@ -64,6 +65,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     Attributes (Private)
     ----------
+    _conf : SimConfVisualABC
+        Visualization configuration, synchronized with the YAML-backed
+        simulation configuration file for this phase.
     _label : str
         Basename of the subdirectory in the phase-specific results directory
         to which all files exported for this plot or animation are saved _and_
@@ -111,21 +115,22 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         displayed both in the figure axes and colorbar of this plot or
         animation. Due to matplotlib constraints, only the first mappable in
         this iterable is associated with this colorbar.
-    _colorbar_title: str
-        Text displayed above the figure colorbar.
+    _colorbar_title: StrOrNoneTypes
+        Text displayed above the figure colorbar if any *or* ``None`` otherwise.
     _color_max : NumericTypes
         Maximum color value to be displayed by the colorbar. Ignored if
-        :attr:`_is_color_autoscaled` is ``True``.
+        :attr:`_conf.is_color_autoscaled` is ``True``.
     _color_min : NumericTypes
         Minimum color value to be displayed by the colorbar. Ignored if
-        :attr:`_is_color_autoscaled` is ``True``.
+        :attr:`_conf.is_color_autoscaled` is ``True``.
     _colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
-    _is_color_autoscaled : bool
-        ``True`` if dynamically setting the minimum and maximum colorbar values
-        to the minimum and maximum values flattened from the first iterable in
-        ``_color_mappables`` *or* ``False`` if statically setting these values
-        to :attr:`_color_min` and :attr:`_color_max`.
+    _is_colorful : bool
+        ``True`` only if this visualization is **colorful** (i.e., at least one
+        layer in the :attr:`_layers` sequence is an instance of the
+        :class:`LayerCellsColorfulABC` base class and hence provides data
+        mappable onto a Matplotlib color artist). If ``False``, all color- and
+        colorbar-specific attributes are ignored.
 
     Attributes (Private: Time)
     ----------
@@ -146,12 +151,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         is_show: bool,
         label: str,
         figure_title: str,
-        colorbar_title: str,
 
         # Optional parameters.
-        axes_title: (str, NoneType) = None,
+        axes_title: StrOrNoneTypes = None,
         axes_x_label: str = 'Spatial Distance [um]',
         axes_y_label: str = 'Spatial Distance [um]',
+        colorbar_title: StrOrNoneTypes = None,
         colormap: (Colormap, NoneType) = None,
 
         #FIXME: Refactor this to be mandatory instead.
@@ -164,9 +169,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         ----------
         phase : SimPhaseABC
             Current simulation phase.
-        conf : SimConfVisualMixin
-            Object encapsulating the configuration of this visualization, parsed
-            from the YAML-backed simulation configuration file for this phase.
+        conf : SimConfVisualABC
+            Visualization configuration, synchronized with the YAML-backed
+            simulation configuration file for this phase.
         is_save : bool
             ``True`` only if non-interactively saving this plot or animation.
         is_show : bool
@@ -178,21 +183,6 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             * The basename prefix of these files.
         figure_title : str
             Text displayed above the figure itself.
-        colorbar_title: str
-            Text displayed above the figure colorbar.
-        is_color_autoscaled : bool
-            `True` if dynamically resetting the minimum and maximum colorbar
-            values to be the corresponding minimum and maximum values for the
-            current frame _or_ `False` if statically setting the minimum and
-            maximum colorbar values to predetermined constants.
-        color_min : NumericTypes
-            Minimum colorbar value to be used if `is_color_autoscaled` is
-            `False`. If `is_color_autoscaled` is `True`, this parameter is
-            silently ignored.
-        color_max : NumericTypes
-            Maximum colorbar value to be used if `is_color_autoscaled` is
-            `False`. If `is_color_autoscaled` is `True`, this parameter is
-            silently ignored.
         axes_title : optional[str]
             Text displayed above the figure axes but below the figure title.
             Defaults to `None`, in which case no such text is displayed.
@@ -202,9 +192,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         axes_y_label : optional[str]
             Text displayed to the left of this figure's Y axis. Defaults to
             `None`, in which case a general-purpose string is defaulted to.
+        colorbar_title: optional[str]
+            Text displayed above the figure colorbar if any *or* ``None``
+            otherwise. If this parameter is ``None`` *and* at least one layer in
+            the passed ``layers`` parameter is an instance of the
+            :class:`LayerCellsColorfulABC` base class, an exception is raised.
         colormap : optional[Colormap]
             Matplotlib colormap to be used by default for all animation artists
-            (e.g., colorbar, images). Defaults to `None`, in which case the
+            (e.g., colorbar, images). Defaults to ``None``, in which case the
             default colormap is used.
         layers : optional[SequenceTypes]
             Sequence of all :class:`LayerCellsABC` instances collectively
@@ -224,12 +219,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Classify *AFTER* validating parameters.
         self._phase = phase
+        self._conf = conf
         self._axes_title = axes_title
         self._axes_x_label = axes_x_label
         self._axes_y_label = axes_y_label
         self._colorbar_title = colorbar_title
         self._colormap = colormap
-        self._is_color_autoscaled = conf.is_color_autoscaled
         self._is_save = is_save
         self._is_show = is_show
         self._figure_title = figure_title
@@ -238,15 +233,35 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # Convert the passed sequence of layers into a new list of layers,
         # permitting this sequence to be safely modified *WITHOUT* modifying
         # the passed sequence. To validate the type of each such layer, call an
-        # existing method rather than manually perform this conversion.
+        # existing method rather than manually performing this conversion.
         self._layers = []
         self._append_layer(*layers)
+
+        # If at least one layer is passed, this visualization is colorful if and
+        # only if at least one such layer is colorful.
+        if self._layers:
+            self._is_colorful = iterables.is_item_instance_of(
+                iterable=self._layers, cls=LayerCellsColorfulABC)
+        #FIXME: Eliminate this branch. At least one layer should *ALWAYS* exist.
+        # Else, no layers were passed. In this case, assume this visualization
+        # to be an old-style animation requiring a colorbar.
+        else:
+            self._is_colorful = True
+
+        # If this visualization is colorful but no colorbar title was passed,
+        # raise an exception.
+        if self._is_colorful and self._colorbar_title is None:
+            raise BetseSimVisualException(
+                'Animation "{}" parameter "colorbar_title" unpassed, '
+                'but at least one passed layer is colorful '
+                '(i.e., implements the "LayerCellsColorfulABC" class).'.format(
+                    self._label))
 
         # If autoscaling colors, ignore the passed minimum and maximum. To avoid
         # propagating these changes back to the underlying configuration file,
         # these changes are isolated to new instance variables; the passed
         # "conf.color_max" and "conf.color_min" variables remain unchanged.
-        if self._is_color_autoscaled:
+        if self._conf.is_color_autoscaled:
             self._color_max = None
             self._color_min = None
         # Else, classify the passed minimum and maximum.
@@ -315,6 +330,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Initialize the X and Y axes of this plot's figure.
         '''
 
+        #FIXME: Reduplicated elsewhere in the codebase, including in at least
+        #one layer. Clearly, this requires placement in a higher-level object.
+
         # Extent of the current 2D environment.
         self._axes_bounds = [
             self._phase.cells.xmin * self._phase.p.um,
@@ -349,65 +367,22 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self._init_figure_axes()
 
     # ..................{ PREPARERS ~ figure                 }..................
-    @type_check
-    def _prep_figure(
-        self,
-        color_data: SequenceOrNoneTypes = None,
-
-        #FIXME: This is awful. For sanity, require callers always pass a
-        #sequence of mappables: e.g.,
-        #   color_mappables: IterableOrNoneTypes = None,
-
-        color_mappables: (ScalarMappable,) + IterableOrNoneTypes = None,
-    ) -> None:
+    #FIXME: This method should no longer accept any parameters. All parameters
+    #currently accepted by this method are obsolete and hence remain
+    #undocumented. They should *ALL* be removed as soon as feasible.
+    def _prep_figure(self, *args, **kwargs) -> None:
         '''
-        Prepare this plot _after_ having previously initialized this plot but
-        _before_ subsequently displaying and/or saving this plot.
-
-        Parameters
-        ----------
-        color_mappables : optional[ScalarMappable or IterableTypes]
-            Iterable of all :class:`ScalarMappable` instances (e.g.,
-            :class:`AxesImage`, :class:`ContourSet`) to associate with this
-            plot or animation's colorbar. For convenience, this parameter may
-            be either:
-            * A single mappable, in which case this colorbar will be associated
-              with this mappable as is.
-            * A non-string iterable (e.g., :class:`list`, :class:`set`) of one
-              or more mappables, in which case this colorbar will be
-              arbitrarily associated with the first mappable in this iterable.
-            Defaults to `None`, in which case this parameter defaults to the
-            iterable of all mappables provided by the topmost and hence last
-            mappable layer in the current layer sequence (i.e., the
-            :meth:`LayerCellsColorfulABC.color_mappables` property of the
-            last instance of the :class:`LayerCellsColorfulABC` subclass in
-            the :attr:`_layers` attribute).
-        color_data : optional[SequenceTypes]
-            Multi-dimensional sequence of all color values to be plotted _or_
-            `None` if calculating these values on initialization is impractical
-            (e.g., due to space or time constraints). Defaults to `None`. If
-            colorbar autoscaling is enabled _and_ this parameter is:
-            * Non-`None`, the colorbar is clipped to the minimum and maximum
-              scalar values unravelled from this array.
-            * `None`, the subclass is responsible for colorbar autoscaling.
+        Prepare this visualization *after* having previously initialized this
+        visualization but *before* subsequently displaying and/or saving this
+        visualization.
         '''
 
         # Prepare all layers to be layered onto this plot or animation *BEFORE*
         # autoscaling colors assuming layers to have been prepared.
         self._prep_layers()
 
-        # Autoscale colors to the range implied by the passed color values.
-        self._autoscale_colors(color_data)
-
-        # If a single mappable rather than a sequence of mappables was passed,
-        # convert the former to the latter.
-        if isinstance(color_mappables, ScalarMappable):
-            color_mappables = (color_mappables,)
-
-        # Associate these mappables with this plot or animation's colorbar
-        # *AFTER* preparing all layers defining these mappables if no mappables
-        # were passed.
-        self._automap_colors(color_mappables)
+        # Prepare all color-specific data.
+        self._prep_colors(*args, **kwargs)
 
     # ..................{ DEINITIALIZERS                     }..................
     def close(self) -> None:
@@ -537,155 +512,6 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         return self._colormap
 
-    # ..................{ COLORS                             }..................
-    #FIXME: Improve this method to internally ignore the first time step of
-    #the passed array (i.e., "color_data[0]") if this array is non-empty. Why?
-    #Because this step typically contains spurious outlier data resulting in
-    #the more "normal" data plotted for the remaining time steps appear to
-    #exhibit no changes in color. Ignoring such outlier data should improve
-    #this lamentable situation.
-    @type_check
-    def _autoscale_colors(self, color_data: SequenceOrNoneTypes) -> None:
-        '''
-        Autoscale the colorbar for this plot or animation's figure to the
-        minimum and maximum scalar values unravelled from the passed sequence
-        by setting the :attr:`_color_min` and :attr:`_color_max` attributes to
-        such values if colorbar autoscaling is both enabled and has not already
-        been performed (i.e., these attributes are `None`) _or_ noop otherwise.
-
-        Parameters
-        ----------
-        color_data : SequenceOrNoneTypes
-            Multi-dimensional sequence of all color values to be plotted _or_
-            `None` if calculating these values on initialization is
-            impractical. See the :meth:`_prep_figure` method for further
-            details.
-        '''
-
-        # If colorbar autoscaling is disabled, noop.
-        if not self._is_color_autoscaled:
-            return
-
-        # If no color values are passed...
-        if color_data is None:
-            #FIXME: Eliminate code duplication between this and the
-            #_automap_colors() method. Ideally, the last mappable layer
-            #instance should only be searched for once. This code is currently
-            #non-trivial to unify, due to the need for a mappable layer to be
-            #optional here but *NOT* in the _automap_colors() method. Ideally,
-            #a mappable layer should be mandatory in both methods. Once this is
-            #the case across all animations, unify the retrieval of this layer
-            #into a single location.
-
-            # Last mappable layer in this layer sequence if any or the sentinel
-            # placeholder constant otherwise.
-            mappable_layer = iterables.get_item_last_instance_of_or_sentinel(
-                iterable=self._layers,
-                cls=LayerCellsColorfulABC,
-            )
-
-            # If this layer exists, defer to its color data.
-            if mappable_layer is not SENTINEL:
-                color_data = mappable_layer.color_data
-
-        # If no color values are available, silently noop.
-        if color_data is None:
-            return
-
-        # Flatten this multi-dimensional array to a one-dimensional array,
-        # permitting efficient retrieval of minimum and maximum values.
-        time_series_flat = np.ravel(color_data)
-
-        # Set the current minimum and maximum color values.
-        self._color_min = np.ma.min(time_series_flat)
-        self._color_max = np.ma.max(time_series_flat)
-
-        # Log these values.
-        logs.log_debug('Autoscaling animation colors to [%d, %d].', self._color_min, self._color_max)
-
-
-    @type_check
-    def _automap_colors(self, color_mappables: IterableOrNoneTypes) -> None:
-        '''
-        Create a figure colorbar for this plot or animation associated with the
-        passed mappables if any or the mappables provided by the last mappable
-        layer in the current layer sequence otherwise.
-
-        Parameters
-        ----------
-        color_mappables : optional[IterableTypes]
-            Iterable of all :class:`ScalarMappable` instances (e.g.,
-            :class:`AxesImage`, :class:`ContourSet`) to associate with this
-            plot or animation's colorbar. By Matplotlib design, only the first
-            mappable in this iterable is arbitrarily associated with this
-            colorbar; all other mappables are ignored. Defaults to `None`, in
-            which case the iterable of all mappables provided by the topmost
-            and hence last mappable layer in the current layer sequence is
-            defaulted to (i.e., the value of the
-            :meth:`LayerCellsColorfulABC.color_mappables` property of the last
-            instance of the :class:`LayerCellsColorfulABC` subclass in the
-            :attr:`_layers` attribute).
-        '''
-
-        # If no color mappables are passed...
-        if color_mappables is None:
-            # Last mappable layer in this layer sequence if any or raise an
-            # exception with this message otherwise.
-            mappable_layer = iterables.get_item_last_instance_of(
-                iterable=self._layers,
-                cls=LayerCellsColorfulABC,
-                exception_message=(
-                    'Visual "{}" mappable layer not found.'.format(
-                        self._label)),
-            )
-
-            # Sequence of mappables provided by this layer.
-            color_mappables = mappable_layer.color_mappables
-
-        # Classify this sequence of mappables.
-        self._color_mappables = color_mappables
-
-        # Scale these mappables by previously established color values *AFTER*
-        # classifying this sequence.
-        self._rescale_color_mappables()
-
-        # First mappable safely retrieved from this iterable of mappables.
-        color_mappable_first = iterables.get_item_first(self._color_mappables)
-
-        # Create a colorbar associated with this mappable.
-        colorbar = self._figure.colorbar(color_mappable_first)
-        colorbar.set_label(self._colorbar_title)
-
-
-    def _rescale_color_mappables(self) -> None:
-        '''
-        Rescale all mappables associated with this plot or animation's colorbar
-        to the current minimum and maximum color values.
-
-        This method must be called _after_ the :meth:`_prep_figure` method has
-        been called. Failing to do so will raise exceptions.
-        '''
-
-        # If the _prep_figure() method has not been called, raise an exception.
-        if self._color_mappables is None:
-            raise BetseMethodException(
-                '{class_name}._rescale_color_mappables() called before '
-                '{class_name}._prep_figure().'.format(class_name=type(self)))
-
-        # If these values are identical, coerce them to differ. Failing to do
-        # so produces spurious visual artifacts in both the axes and colorbar.
-        # if self._color_min == self._color_max:
-        #     self._color_min = self._color_min - 1
-        #     self._color_max = self._color_max + 1
-
-        # For each color mappable, clip that mappable to the minimum and
-        # maximum values discovered above. Note this also has the beneficial
-        # side-effect of establishing the colorbar's range.
-        for color_mappable in self._color_mappables:
-            assert types.is_matplotlib_mappable(color_mappable), (
-                types.assert_not_matplotlib_mappable(color_mappable))
-            color_mappable.set_clim(self._color_min, self._color_max)
-
     # ..................{ LAYERS                             }..................
     @type_check
     def _append_layer(self, *layers: LayerCellsABC) -> None:
@@ -747,12 +573,232 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         for layer in self._layers:
             layer.layer()
 
+    # ..................{ COLORS                             }..................
+    @type_check
+    def _prep_colors(
+        self,
+
+        # Obsolete optional parameters, which should no longer be passed.
+        color_data: SequenceOrNoneTypes = None,
+
+        #FIXME: This is awful. For sanity, require callers always pass a
+        #sequence of mappables: e.g.,
+        #   color_mappables: IterableOrNoneTypes = None,
+        #FIXME: Actually, this entire method is awful and should be refactored
+        #away once layers are used everywhere. For backward compatilibility with
+        #old-style animations, this is currently preserved as is.
+
+        color_mappables: (ScalarMappable,) + IterableOrNoneTypes = None,
+    ) -> None:
+        '''
+        Prepare all color-specific data if this visualization is colorful *or*
+        silently noop otherwise.
+
+        If this visualization is colorful, this method autoscale colors to the
+        range implied by the passed color values *and* associate all mappables
+        provided by colorful layers with this visuazilation's colorbar.
+
+        Parameters
+        ----------
+        color_mappables : optional[ScalarMappable or IterableTypes]
+            Iterable of all :class:`ScalarMappable` instances (e.g.,
+            :class:`AxesImage`, :class:`ContourSet`) to associate with this
+            plot or animation's colorbar. For convenience, this parameter may
+            be either:
+            * A single mappable, in which case this colorbar will be associated
+              with this mappable as is.
+            * A non-string iterable (e.g., :class:`list`, :class:`set`) of one
+              or more mappables, in which case this colorbar will be
+              arbitrarily associated with the first mappable in this iterable.
+            Defaults to `None`, in which case this parameter defaults to the
+            iterable of all mappables provided by the topmost and hence last
+            mappable layer in the current layer sequence (i.e., the
+            :meth:`LayerCellsColorfulABC.color_mappables` property of the
+            last instance of the :class:`LayerCellsColorfulABC` subclass in
+            the :attr:`_layers` attribute).
+        color_data : optional[SequenceTypes]
+            Multi-dimensional sequence of all color values to be plotted _or_
+            `None` if calculating these values on initialization is impractical
+            (e.g., due to space or time constraints). Defaults to `None`. If
+            colorbar autoscaling is enabled _and_ this parameter is:
+            * Non-`None`, the colorbar is clipped to the minimum and maximum
+              scalar values unravelled from this array.
+            * `None`, the subclass is responsible for colorbar autoscaling.
+        '''
+
+        # If this visualization is *NOT* colorful, return immediately.
+        if not self._is_colorful:
+            return
+        # Else, this visualization is colorful.
+
+        # Autoscale colors to the range implied by the passed color values.
+        self._autoscale_colors(color_data)
+
+        # If a single mappable rather than a sequence of mappables was passed,
+        # convert the former to the latter.
+        if isinstance(color_mappables, ScalarMappable):
+            color_mappables = (color_mappables,)
+
+        # Associate these mappables with this visuazilation's colorbar *AFTER*
+        # preparing all layers defining these mappables if no mappables were
+        # passed.
+        self._automap_colors(color_mappables)
+
+
+    #FIXME: Improve this method to internally ignore the first time step of
+    #the passed array (i.e., "color_data[0]") if this array is non-empty. Why?
+    #Because this step typically contains spurious outlier data resulting in
+    #the more "normal" data plotted for the remaining time steps appear to
+    #exhibit no changes in color. Ignoring such outlier data should improve
+    #this lamentable situation.
+    @type_check
+    def _autoscale_colors(self, color_data: SequenceOrNoneTypes) -> None:
+        '''
+        Autoscale the colorbar for this plot or animation's figure to the
+        minimum and maximum scalar values unravelled from the passed sequence
+        by setting the :attr:`_color_min` and :attr:`_color_max` attributes to
+        such values if colorbar autoscaling is both enabled and has not already
+        been performed (i.e., these attributes are `None`) _or_ noop otherwise.
+
+        Parameters
+        ----------
+        color_data : SequenceOrNoneTypes
+            Multi-dimensional sequence of all color values to be plotted _or_
+            `None` if calculating these values on initialization is
+            impractical. See the :meth:`_prep_figure` method for further
+            details.
+        '''
+
+        # If colorbar autoscaling is disabled, noop.
+        if not self._conf.is_color_autoscaled:
+            return
+
+        # If no color values are passed...
+        if color_data is None:
+            #FIXME: Eliminate code duplication between this and the
+            #_automap_colors() method. Ideally, the last mappable layer
+            #instance should only be searched for once. This code is currently
+            #non-trivial to unify, due to the need for a mappable layer to be
+            #optional here but *NOT* in the _automap_colors() method. Ideally,
+            #a mappable layer should be mandatory in both methods. Once this is
+            #the case across all animations, unify the retrieval of this layer
+            #into a single location.
+
+            # Last mappable layer in this layer sequence if any or the sentinel
+            # placeholder constant otherwise.
+            mappable_layer = iterables.get_item_last_instance_of_or_sentinel(
+                iterable=self._layers, cls=LayerCellsColorfulABC)
+
+            # If this layer exists, defer to its color data.
+            if mappable_layer is not SENTINEL:
+                color_data = mappable_layer.color_data
+
+        # If no color values are available, silently noop.
+        if color_data is None:
+            return
+
+        # Flatten this multi-dimensional array to a one-dimensional array,
+        # permitting efficient retrieval of minimum and maximum values.
+        time_series_flat = np.ravel(color_data)
+
+        # Set the current minimum and maximum color values.
+        self._color_min = np.ma.min(time_series_flat)
+        self._color_max = np.ma.max(time_series_flat)
+
+        # Log these values.
+        logs.log_debug(
+            'Autoscaling animation colors to [%d, %d].',
+            self._color_min, self._color_max)
+
+
+    @type_check
+    def _automap_colors(self, color_mappables: IterableOrNoneTypes) -> None:
+        '''
+        Create a figure colorbar for this plot or animation associated with the
+        passed mappables if any or the mappables provided by the last mappable
+        layer in the current layer sequence otherwise.
+
+        Parameters
+        ----------
+        color_mappables : optional[IterableTypes]
+            Iterable of all :class:`ScalarMappable` instances (e.g.,
+            :class:`AxesImage`, :class:`ContourSet`) to associate with this
+            plot or animation's colorbar. By Matplotlib design, only the first
+            mappable in this iterable is arbitrarily associated with this
+            colorbar; all other mappables are ignored. Defaults to `None`, in
+            which case the iterable of all mappables provided by the topmost
+            and hence last mappable layer in the current layer sequence is
+            defaulted to (i.e., the value of the
+            :meth:`LayerCellsColorfulABC.color_mappables` property of the last
+            instance of the :class:`LayerCellsColorfulABC` subclass in the
+            :attr:`_layers` attribute).
+        '''
+
+        # If no color mappables are passed...
+        if color_mappables is None:
+            # Last mappable layer in this layer sequence if any or raise an
+            # exception with this message otherwise.
+            mappable_layer = iterables.get_item_last_instance_of(
+                iterable=self._layers,
+                cls=LayerCellsColorfulABC,
+                exception_message=(
+                    'Visual "{}" mappable layer not found.'.format(
+                        self._label)),
+            )
+
+            # Sequence of mappables provided by this layer.
+            color_mappables = mappable_layer.color_mappables
+
+        # Classify this sequence of mappables.
+        self._color_mappables = color_mappables
+
+        # Scale these mappables by previously established color values *AFTER*
+        # classifying this sequence.
+        self._rescale_color_mappables()
+
+        # First mappable safely retrieved from this iterable of mappables.
+        color_mappable_first = iterables.get_item_first(self._color_mappables)
+
+        # Create a colorbar associated with this mappable.
+        colorbar = self._figure.colorbar(color_mappable_first)
+        colorbar.set_label(self._colorbar_title)
+
+
+    def _rescale_color_mappables(self) -> None:
+        '''
+        Rescale all mappables associated with this plot or animation's colorbar
+        to the current minimum and maximum color values.
+
+        This method must be called *after* the :meth:`_prep_figure` method has
+        been called. Failing to do so will raise exceptions.
+        '''
+
+        # If the _prep_figure() method has not been called, raise an exception.
+        if self._color_mappables is None:
+            raise BetseSimVisualException(
+                '{class_name}._rescale_color_mappables() called before '
+                '{class_name}._prep_figure().'.format(class_name=type(self)))
+
+        # If these values are identical, coerce them to differ. Failing to do
+        # so produces spurious visual artifacts in both the axes and colorbar.
+        # if self._color_min == self._color_max:
+        #     self._color_min = self._color_min - 1
+        #     self._color_max = self._color_max + 1
+
+        # For each color mappable, clip that mappable to the minimum and
+        # maximum values discovered above. Note this also has the beneficial
+        # side-effect of establishing the colorbar's range.
+        for color_mappable in self._color_mappables:
+            assert types.is_matplotlib_mappable(color_mappable), (
+                types.assert_not_matplotlib_mappable(color_mappable))
+            color_mappable.set_clim(self._color_min, self._color_max)
+
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Shift this method and similar methods called by this method (e.g.,
-    #_plot_frame_axes_title()) into the "VisualCellsABC" superclass. When doing
-    #so, consider renaming this method to visualize_time_step() for generality.
-    #FIXME: Insanity. For "PlotAfterSolving"-style plots, the first frame is
-    #uselessly plotted twice. Investigate, please.
+    #FIXME: For generality, rename this method to visualize_time_step().
+    #FIXME: For "PlotAfterSolving"-style plots, the first frame is uselessly
+    #plotted twice. Investigate up this insanity, please. We might consider
+    #simply ignoring the first call to this method if we can't get to the
+    #ultimate bottom of this. Clearly, a matplotlib issue is implicated.
 
     @type_check
     def plot_frame(self, time_step: int) -> None:

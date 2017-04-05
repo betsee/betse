@@ -755,7 +755,7 @@ results options:
       pipeline:
         # Example average cell voltage plot.
         - type: cell_voltage   # Plot type, as any following string:
-          # cell_current_membrane  ->  Single-cell transmembrane current density
+          # cell_currents_membrane  ->  Single-cell transmembrane current density
           # cell_deform  ->  Cellular physical displacement
           #   Ignored unless deformation disabled.
           # cell_ion_calcium  ->  Single-cell calcium ion concentration
@@ -776,8 +776,8 @@ results options:
           #                                transform (FFT)
           # cells_channel_density  ->  Final cell cluster cell membrane ion channel density factor
           #   Ignored if channel electroosmosis disabled.
-          # cells_current_intra  ->  Final cell cluster intracellular current density
-          # cells_current_extra  ->  Final cell cluster extracellular current density
+          # cells_currents_intra  ->  Final cell cluster intracellular current density
+          # cells_currents_extra  ->  Final cell cluster extracellular current density
           #   Ignored if extracellular spaces disabled.
           # cells_deform  ->  Cellular physical displacement
           #   Ignored unless deformation disabled.
@@ -796,6 +796,7 @@ results options:
           # cells_ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
           #   Ignored if hydrogen ions (H+) disabled by ion profile.
           # cells_junction_state  ->  Final cell cluster gap junction connectivity state
+          # cells_microtubule  ->  Final cell cluster microtubule orientation
           # cells_pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
           #   Ignored if osmotic pressure or mechanical pressure event disabled.
           # cells_pump_density  ->  Final cell cluster cell membrane ion pump density factor
@@ -833,8 +834,8 @@ results options:
       pipeline:
         # Example transmembrane voltage (Vmem) animation.
         - type: voltage_membrane  # Animation type, including any following string:
-          # current_intra  ->  Intracellular current density
-          # current_extra  ->  Extracellular current density
+          # currents_intra  ->  Intracellular current density
+          # currents_extra  ->  Extracellular current density
           #   Ignored if extracellular spaces disabled.
           # deform  ->  Cellular physical displacement
           #   Ignored unless deformation disabled.
@@ -850,6 +851,7 @@ results options:
           # ion_hydrogen  ->  Hydrogen ion concentration as pH
           #   Ignored if hydrogen ions (H+) disabled by ion profile.
           # junction_state  ->  Gap junction connectivity state
+          # microtubule  ->  Microtubule orientation
           # pressure_osmotic  ->  Cellular osmotic pressure
           #   Ignored if osmotic pressure disabled.
           # pressure_total  ->  Cellular total pressure = osmotic + mechanical

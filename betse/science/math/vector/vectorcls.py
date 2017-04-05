@@ -193,8 +193,8 @@ class VectorCells(object):
         deferred to the first read of this property.
         '''
 
-        # If this vector was originally situated at cell centres, return the
-        # original array of such data.
+        # If this vector was originally situated at cell membrane midpoints,
+        # return the original array of such data.
         if self._times_membranes_midpoint is not None:
             return self._times_membranes_midpoint
 
