@@ -745,13 +745,13 @@ class Simulator(object):
             self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
             self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
 
-            self.conc_J_x = np.zeros(self.edl)
-            self.conc_J_y = np.zeros(self.edl)
+            # self.conc_J_x = np.zeros(self.edl)
+            # self.conc_J_y = np.zeros(self.edl)
 
-            self.extra_conc_J_x = np.zeros(self.edl)
-            self.extra_conc_J_y = np.zeros(self.edl)
+            # self.extra_conc_J_x = np.zeros(self.edl)
+            # self.extra_conc_J_y = np.zeros(self.edl)
 
-            self.Phi_vect = np.zeros((len(self.zs), self.edl))
+            # self.Phi_vect = np.zeros((len(self.zs), self.edl))
 
             # self.J_TJ = np.zeros(self.mdl)  # tight junction current density
 
@@ -1079,10 +1079,10 @@ class Simulator(object):
 
                 self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
                 self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
-                self.Phi_vect = np.zeros((len(self.zs), self.edl))
+                # self.Phi_vect = np.zeros((len(self.zs), self.edl))
 
-                self.conc_J_x = np.zeros(self.edl)
-                self.conc_J_y = np.zeros(self.edl)
+                # self.conc_J_x = np.zeros(self.edl)
+                # self.conc_J_y = np.zeros(self.edl)
 
             # Calculate the values of scheduled and dynamic quantities (e.g.
             # ion channel multipliers):
@@ -1542,13 +1542,13 @@ class Simulator(object):
             self.I_tot_x_time.append(self.J_env_x[:])
             self.I_tot_y_time.append(self.J_env_y[:])
 
-            if p.smooth_level == 0.0:
-                vv = self.v_env.reshape(cells.X.shape)
-                vvenv = gaussian_filter(vv, 1.0, mode = 'constant').ravel()
-            else:
-                vvenv = self.v_env*1
+            # if p.smooth_level == 0.0:
+            #     vv = self.v_env.reshape(cells.X.shape)
+            #     vvenv = gaussian_filter(vv, 1.0, mode = 'constant').ravel()
+            # else:
+            #     vvenv = self.v_env*1
 
-            self.venv_time.append(vvenv)
+            self.venv_time.append(self.v_env*1)
 
             if p.fluid_flow:
                 self.u_env_x_time.append(self.u_env_x[:])
@@ -1867,12 +1867,12 @@ class Simulator(object):
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
 
-        # diffusive component of current:
-        jxc = -self.D_env[i]*gcx.ravel()*p.F*self.zs[i]
-        jyc = -self.D_env[i]*gcy.ravel()*p.F*self.zs[i]
-
-        self.conc_J_x += jxc
-        self.conc_J_y += jyc
+        # # diffusive component of current:
+        # jxc = -self.D_env[i]*gcx.ravel()*p.F*self.zs[i]
+        # jyc = -self.D_env[i]*gcy.ravel()*p.F*self.zs[i]
+        #
+        # self.conc_J_x += jxc
+        # self.conc_J_y += jyc
 
         # divergence of total flux:
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)

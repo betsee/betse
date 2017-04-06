@@ -322,7 +322,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         # Prepare to export the current plot.
         self._export_prep()
 
-        if self._phase.p.smooth_level == 0.0:
+        if self._phase.p.smooth_level == 0.0 or self._phase.p.smooth_concs is False:
             cc_Ca = gaussian_filter(
                 self._phase.sim.cc_env[
                     self._phase.sim.iCa].reshape(self._phase.cells.X.shape),
@@ -561,7 +561,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         self._export_prep()
 
         vv = self._phase.sim.v_env.reshape(self._phase.cells.X.shape)
-        vv = gaussian_filter(vv, 1, mode='constant')
+
+        if self._phase.p.smooth_level == 0.0:
+            vv = gaussian_filter(vv, 1, mode='constant')
 
         pyplot.figure()
         pyplot.imshow(
