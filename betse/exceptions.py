@@ -309,7 +309,6 @@ class BetseVectorException(BetseSimException):
 
 
 # ....................{ EXCEPTIONS ~ science : visual      }....................
-#FIXME: Rename to "BetseSimVisException".
 class BetseSimVisualException(BetseSimException):
     '''
     Simulation visualization-specific exception, applicable to both plots and
@@ -318,7 +317,7 @@ class BetseSimVisualException(BetseSimException):
     pass
 
 
-#FIXME: For orthogonality, rename to "BetseSimVisLayerException".
+#FIXME: For orthogonality, rename to "BetseSimVisualLayerException".
 class BetseLayerException(BetseSimVisualException):
     '''
     Simulation visualization layer-specific exception.

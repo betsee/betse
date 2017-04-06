@@ -55,7 +55,7 @@ def pipeline(phase: SimPhaseABC) -> None:
     plotpipe.pipeline(phase)
 
     # Display and/or save all animations enabled by this configuration.
-    AnimCellsPipeliner(phase).run()
+    AnimCellsPipeliner(phase=phase).run()
 
     # Log the directory to which all results were exported.
     logs.log_info('Results exported to: %s', phase.save_dirname)
