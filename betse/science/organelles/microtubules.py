@@ -70,6 +70,10 @@ class Mtubes(object):
 
         # print(self.pmit/3.33e-30)
 
+        # calculate average field at axial regions of the cell from currents:
+        # jjx = (cells.nn_tx*sim.Jn + sim.J_cell_x[cells.mem_to_cells])/2
+        # jjy = (cells.nn_ty*sim.Jn + sim.J_cell_y[cells.mem_to_cells])/2
+
         MM = np.column_stack((self.mtubes_xo, self.mtubes_yo))
         JJ = np.column_stack((sim.J_cell_x[cells.mem_to_cells], sim.J_cell_y[cells.mem_to_cells]))
 
@@ -95,18 +99,18 @@ class Mtubes(object):
         self.mtubes_x = self.mtubes_xo / mtcn
         self.mtubes_y = self.mtubes_yo / mtcn
 
-    def mtubes_to_cell(self, cells, p, umt = 1.0):
+    def mtubes_to_cell(self, cells, p):
 
         # determine the microtubules base electroosmotic velocity:
-        uxmto = umt*self.mtubes_x
-        uymto = umt*self.mtubes_y
+        uxmto = self.mtubes_x
+        uymto = self.mtubes_y
 
-        uxmt = umt*np.dot(cells.M_sum_mems, uxmto)/cells.num_mems
-        uymt = umt*np.dot(cells.M_sum_mems, uymto)/cells.num_mems
+        uxmt = np.dot(cells.M_sum_mems, uxmto*cells.mem_sa)/cells.cell_sa
+        uymt = np.dot(cells.M_sum_mems, uymto*cells.mem_sa)/cells.cell_sa
 
-        uumt = np.sqrt(uxmt**2 + uymt**2)
+        # uumt = np.sqrt(uxmt**2 + uymt**2)
 
-        return uxmt, uymt, uumt
+        return uxmt, uymt
 
     def remove_mtubes(self, target_inds_mem, cells, sim, p):
 

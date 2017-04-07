@@ -219,8 +219,8 @@ class MasterOfNetworks(object):
                 lambda name = name: self.molecules[name].cc_at_mem,
                 lambda value, name = name: setattr(self.molecules[name], 'cc_at_mem', value))
 
-            mol.cc_grad_x = np.zeros(sim.cdl)
-            mol.cc_grad_y = np.zeros(sim.cdl)
+            mol.cc_grad_x = np.zeros(sim.mdl)
+            mol.cc_grad_y = np.zeros(sim.mdl)
 
             # mem_concs_mapping[name] = DynamicValue(
             #     lambda name = name: self.molecules[name].c_mems,
@@ -311,8 +311,8 @@ class MasterOfNetworks(object):
                     mol.mtt = True
 
                 # rate of change of cell concentration gradient (simplified diffusion):
-                mol.alpha_cgrad = mol.Do / (2*cells.R * p.cell_height)
-                mol.alpha_ugrad = mol.u_mt / (2 * cells.R * p.cell_height)
+                mol.alpha_cgrad = mol.Do / (cells.R_rads * p.cell_height)
+                mol.alpha_ugrad = mol.u_mt / (cells.R_rads * p.cell_height)
 
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
@@ -5128,28 +5128,32 @@ class Molecule(object):
 
     def update_cmem(self, sim, cells, p):
 
-        cav = self.c_cells
+        cav = self.c_cells[cells.mem_to_cells]
         z = self.z
 
-        # determine if there's a net dipole resulting from microtubules:
-        uxmt, uymt, uumt = sim.mtubes.mtubes_to_cell(cells, p)
+        uomt = p.u_mtube*z
+
+        # # determine if there's a net dipole resulting from microtubules:
+        # uxmt, uymt = sim.mtubes.mtubes_to_cell(cells, p)
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
-        ceqm_x = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_x + ((uxmt*self.u_mt)/(self.Do))*cav
-        ceqm_y = ((z * p.q) / (p.kb*p.T))*cav*sim.J_cell_y + ((uymt*self.u_mt)/(self.Do))*cav
+        ceqm_x = (((z * p.q) / (p.kb*p.T))*cav*p.media_rho*sim.J_cell_x[cells.mem_to_cells] +
+                  ((sim.mtubes.mtubes_x*self.u_mt)/(self.Do))*cav)  + ((uomt*sim.mtubes.mtubes_x*cav)/self.Do)
+
+        ceqm_y = (((z * p.q) / (p.kb*p.T))*cav*p.media_rho*sim.J_cell_y[cells.mem_to_cells] +
+                  ((sim.mtubes.mtubes_y*self.u_mt)/(self.Do))*cav) + ((uomt*sim.mtubes.mtubes_y*cav)/self.Do)
 
         cgrad_x = self.cc_grad_x
         cgrad_y = self.cc_grad_y
 
         # calculate update to the actual gradient concentration (0.1 assumes cytosol slows factor diffusion rate):
-        cgrad_x = cgrad_x - self.alpha_cgrad * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability
+        cgrad_x = cgrad_x - self.alpha_cgrad * (cgrad_x - ceqm_x) * p.dt
 
-        cgrad_y = cgrad_y - self.alpha_cgrad * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability
+        cgrad_y = cgrad_y - self.alpha_cgrad * (cgrad_y - ceqm_y) * p.dt
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
 
-        self.cc_at_mem = (cav[cells.mem_to_cells] + cgrad_x[cells.mem_to_cells] * cells.rads[:, 0] +
-                cgrad_y[cells.mem_to_cells] * cells.rads[:, 1])
+        self.cc_at_mem = (cav + cgrad_x * cells.rads[:, 0] + cgrad_y * cells.rads[:, 1])
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         # self.cc_at_mem[self.cc_at_mem < 0.0] = 0.0
@@ -5159,7 +5163,7 @@ class Molecule(object):
         if len(indsZ[0]):
 
             raise BetseSimInstabilityException("Network concentration value on membrane below zero! Your simulation has"
-                                               "become unstable.")
+                                               " become unstable.")
 
 
         # update the main matrices:
@@ -5304,24 +5308,23 @@ class Molecule(object):
         # reassign the new data vector to the object:
         self.c_cells = ccells2[:]
 
-
         # remove items from the mem concentration lists:
         ccmem2 = np.delete(self.cc_at_mem, target_inds_mem)
         # reassign the new data vector to the object:
         self.cc_at_mem = ccmem2[:]
 
         # remove cells from the cell gradient concentration list:
-        cgx2 = np.delete(self.cc_grad_x, target_inds_cell)
+        cgx2 = np.delete(self.cc_grad_x, target_inds_mem)
         # reassign the new data vector to the object:
         self.cc_grad_x = cgx2[:]
 
         # remove cells from the cell gradient concentration list:
-        cgy2 = np.delete(self.cc_grad_y, target_inds_cell)
+        cgy2 = np.delete(self.cc_grad_y, target_inds_mem)
         # reassign the new data vector to the object:
         self.cc_grad_y = cgy2[:]
 
         # remove cells from the alpha rate grad concentration list:
-        acg2 = np.delete(self.alpha_cgrad, target_inds_cell)
+        acg2 = np.delete(self.alpha_cgrad, target_inds_mem)
         # reassign the new data vector to the object:
         self.alpha_cgrad = acg2[:]
 

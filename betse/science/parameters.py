@@ -833,7 +833,7 @@ class Parameters(object):
         self.Do_M = float(iu['Do_M'])     # free diffusion constant mystery anchor ion [m2/s]
         self.Do_P = float(iu['Do_P'])      # free diffusion constant protein [m2/s]
 
-        # gap junction acceleration for molecular substances:
+        # gap junction acceleration for molecular substances:+
         # self.gj_acceleration = float(iu['time acceleration'])
         self.gj_acceleration = 1.0
 
@@ -928,6 +928,8 @@ class Parameters(object):
         self.mtube_noise = iu.get('microtubule noise', 1.0)
 
         self.mt_dipole_moment = iu.get('microtubule dipole moment', 1750)
+
+        self.u_mtube = iu.get('microtubule eosmo', 0.0)
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':

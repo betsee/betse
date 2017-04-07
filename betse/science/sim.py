@@ -690,8 +690,10 @@ class Simulator(object):
         self.gj_funk = None  # initialize this to None; set in init_tissue
 
         # Initialize matrices to store concentration gradient information for each ion:
-        self.cc_grad_x = np.zeros(self.cc_cells.shape)
-        self.cc_grad_y = np.zeros(self.cc_cells.shape)
+        # self.cc_grad_x = np.zeros(self.cc_cells.shape)
+        # self.cc_grad_y = np.zeros(self.cc_cells.shape)
+        self.cc_grad_x = np.zeros(self.fluxes_mem.shape)
+        self.cc_grad_y = np.zeros(self.fluxes_mem.shape)
 
         self.cc_at_mem = np.asarray([
             cc[cells.mem_to_cells] for cc in self.cc_cells])
@@ -958,7 +960,10 @@ class Simulator(object):
         self.dyna.runAllInit(self,cells,p)
 
         # Define rate constant for conc gradient change in terms of ion diffusion coefficients and cell geometry:
-        self.alpha_cgrad = [Do / (cells.R * p.cell_height) for Do in self.D_free]
+        alpha_cgrad = [Do / (cells.R_rads*p.cell_height*cells.num_mems[cells.mem_to_cells])
+                       for Do in self.D_free]
+
+        self.alpha_cgrad = np.array(alpha_cgrad)
 
         # update the microtubules dipole for the case user changed it between init and sim:
         self.mtubes.pmit = p.mt_dipole_moment * 3.33e-30
@@ -1867,13 +1872,6 @@ class Simulator(object):
         self.fluxes_env_x[i] = fx.ravel()  # store ecm junction flux for this ion
         self.fluxes_env_y[i] = fy.ravel()  # store ecm junction flux for this ion
 
-        # # diffusive component of current:
-        # jxc = -self.D_env[i]*gcx.ravel()*p.F*self.zs[i]
-        # jyc = -self.D_env[i]*gcy.ravel()*p.F*self.zs[i]
-        #
-        # self.conc_J_x += jxc
-        # self.conc_J_y += jyc
-
         # divergence of total flux:
         div_fa = fd.divergence(-fx, -fy, cells.delta, cells.delta)
 
@@ -1884,22 +1882,28 @@ class Simulator(object):
 
     def update_cmem(self, cells, p, i):
 
-        cav = self.cc_cells[i]
+        cav = self.cc_cells[i][cells.mem_to_cells]
         z = self.zs[i]
-        # Do = self.D_free[i]
+        Do = self.D_free[i]
 
-        # umt = -z*1.0e-9    # FIXME leave this until we figure out if there is an electroosmotic velocity along microtubule
-        # umt = 0.0
+        umt = z*p.u_mtube  # assumes the mtube conducts ions like a wire in accordance to applied voltage
 
-        # determine if there's a net dipole resulting from microtubules:
-        # seluxmt, uymt, uumt = self.mtubes.mtubes_to_cell(cells, p)
+        #umt = -p.u_mtube # assume electroosmotic velocity directed from positive to negative end of mt
+
+        # uxmt, uymt = self.mtubes.mtubes_to_cell(cells, p)
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
-        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x  + ((umt*uxmt*cav)/Do)
-        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y + ((umt*uymt*cav)/Do)
+        ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x[cells.mem_to_cells]   + ((umt*self.mtubes.mtubes_x*cav)/Do)
+        ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y[cells.mem_to_cells]  + ((umt*self.mtubes.mtubes_y*cav)/Do)
 
-        ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x
-        ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y
+        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x[cells.mem_to_cells]   + \
+        #          ((umt*uxmt[cells.mem_to_cells]*cav)/Do)
+        #
+        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y[cells.mem_to_cells]  + \
+        #          ((umt*uymt[cells.mem_to_cells]*cav)/Do)
+
+        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x[cells.mem_to_cells]
+        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y[cells.mem_to_cells]
 
         cgrad_x = self.cc_grad_x[i]
         cgrad_y = self.cc_grad_y[i]
@@ -1910,9 +1914,7 @@ class Simulator(object):
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
 
-        self.cc_at_mem[i] = (cav[cells.mem_to_cells] +
-                cgrad_x[cells.mem_to_cells] * cells.rads[:, 0] +
-                cgrad_y[cells.mem_to_cells] * cells.rads[:, 1])
+        self.cc_at_mem[i] = cav + cgrad_x * cells.rads[:, 0] + cgrad_y * cells.rads[:, 1]
 
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
@@ -1922,7 +1924,7 @@ class Simulator(object):
         if len(indsZ[0]):
 
             raise BetseSimInstabilityException("Ion concentration value on membrane below zero! Your simulation has"
-                                               "become unstable.")
+                                               " become unstable.")
 
         # update the main matrices:
         self.cc_grad_x[i] = cgrad_x * 1

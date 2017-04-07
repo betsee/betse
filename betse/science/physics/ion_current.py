@@ -12,6 +12,9 @@ from betse.science.math import finitediff as fd
 def get_current(sim, cells, p):
 
 
+    # nmx = cells.mem_vects_flat[:,2]
+    # nmy = cells.mem_vects_flat[:,3]
+
     # calculate membrane current density (- as fluxes were defined into cell)
     sim.Jmem = -np.dot(sim.zs * p.F, sim.fluxes_mem)
 
@@ -29,8 +32,11 @@ def get_current(sim, cells, p):
     Jny = sim.Jn * cells.nn_ty
 
     # average intracellular current to cell centres:
-    sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
-    sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
+    # sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
+    # sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
+
+    sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx*cells.mem_sa) / cells.cell_sa
+    sim.J_cell_y = np.dot(cells.M_sum_mems, Jny*cells.mem_sa) / cells.cell_sa
 
 
     # Current in the environment --------------------------------------------------------------------------------------

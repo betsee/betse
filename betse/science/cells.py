@@ -1140,6 +1140,12 @@ class Cells(object):
         # create radial vectors for each cell, defined from their centre to each membrane midpoint
         self.rads = self.mem_mids_flat - self.cell_centres[self.mem_to_cells]
 
+        # magnitude (R) and unit vectors (n) of rads:
+        self.R_rads = np.sqrt(self.rads[:,0]**2 + self.rads[:,1]**2)
+        self.nx_rads = self.rads[:,0]/self.R_rads
+        self.ny_rads = self.rads[:,1]/self.R_rads
+
+
     def quickVerts(self, p):
 
         # calculate basic properties such as volume, surface area, normals, etc for the cell array
