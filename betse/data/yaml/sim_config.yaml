@@ -730,108 +730,121 @@ variable settings:
 
 results options:
 
-  while solving:           # Results exported during simulation computation.
-    animations:            # Animations exported during simulation computation.
-      show: True           # Display animations during simulation computation?
-      save: True           # Save animations with the animation saving options
-                           # specified below during simulation computation? 
+  while solving:          # Results exported during simulation computation.
+    animations:           # Animations exported during simulation computation.
+      show: True          # Display animations during simulation computation?
+      save: True          # Save animations with the animation saving options
+                          # specified below during simulation computation? 
 
-      colorbar:            # Animation colorbar settings.
-        autoscale: True    # Automatically scale colorbar to minimum and
-                           # maximum values of underlying data series?
-        minimum: -70.0     # Minimum fixed colorbar value. Ignored if
-                           # "autoscale" is True.
-        maximum:  10.0     # Maximum fixed colorbar value. Ignored if
-                           # "autoscale" is True.
+      colorbar:           # Animation colorbar settings.
+        autoscale: True   # Automatically scale colorbar to minimum and
+                          # maximum values of underlying data series?
+        minimum: -70.0    # Minimum fixed colorbar value. Ignored if
+                          # "autoscale" is True.
+        maximum:  10.0    # Maximum fixed colorbar value. Ignored if
+                          # "autoscale" is True.
 
-  after solving:           # Results exported after simulation computation.
-    plots:                 # Plots exported after simulation computation.
-      show: False          # Display plots after simulation computation?
-      save: True           # Save plots with the plot saving options specified below 
-                           # after simulation computation? 
+  after solving:          # Results exported after simulation computation.
+    plots:                # Plots exported after simulation computation.
+      show: False         # Display plots after simulation computation?
+      save: True          # Save plots after simulation computation with
+                          # plot saving options defined below? 
 
-      # List of all plots to be exported after simulation computation.
-      # Ignored if both "show" and "save" are False.
-      pipeline:
-        # Example average cell voltage plot.
-        - type: cell_voltage   # Plot type, as any following string:
-          # cell_currents_membrane  ->  Single-cell transmembrane current density
-          # cell_deform  ->  Cellular physical displacement
-          #   Ignored unless deformation disabled.
-          # cell_ion_calcium  ->  Single-cell calcium ion concentration
-          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # cell_ion_m_anion  ->  Single-cell M anion concentration
-          #   Ignored if M anion ions (M-) disabled by ion profile.
-          # cell_ion_potassium  ->  Single-cell potassium ion concentration
-          #   Ignored if potassium ions (K+) disabled by ion profile.
-          # cell_ion_sodium  ->  Single-cell sodium ion concentration
-          #   Ignored if sodium ions (Na+) disabled by ion profile.
-          # cell_pressure_osmotic  ->  Single-cell osmotic pressure
-          #   Ignored if osmotic pressure disabled.
-          # cell_pressure_total  ->  Single-cell total pressure = osmotic + mechanical
-          #   Ignored if osmotic pressure or mechanical pressure event disabled.
-          # cell_pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
-          # cell_voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
-          # cell_voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) fast Fourier
-          #                                transform (FFT)
-          # cells_channel_density  ->  Final cell cluster cell membrane ion channel density factor
-          #   Ignored if channel electroosmosis disabled.
-          # cells_currents_intra  ->  Final cell cluster intracellular current density
-          # cells_currents_extra  ->  Final cell cluster extracellular current density
-          #   Ignored if extracellular spaces disabled.
-          # cells_deform  ->  Cellular physical displacement
-          #   Ignored unless deformation disabled.
-          # cells_electric_intra  ->  Final cell cluster intracellular electric field
-          # cells_electric_extra  ->  Final cell cluster extracellular electric field
-          #   Ignored if extracellular spaces disabled.
-          # cells_fluid_intra  ->  Final cell cluster intracellular fluid flow
-          #   Ignored if fluid flow disabled.
-          # cells_fluid_extra  ->  Final cell cluster extracellular fluid flow
-          #   Ignored if fluid flow or extracellular spaces disabled.
-          # cells_ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
-          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # cells_ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
-          #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
-          #   disabled.
-          # cells_ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
-          #   Ignored if hydrogen ions (H+) disabled by ion profile.
-          # cells_junction_state  ->  Final cell cluster gap junction connectivity state
-          # cells_microtubule  ->  Final cell cluster microtubule orientation
-          # cells_pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
-          #   Ignored if osmotic pressure or mechanical pressure event disabled.
-          # cells_pump_density  ->  Final cell cluster cell membrane ion pump density factor
-          #   Ignored if channel electroosmosis disabled.
-          # cells_pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
-          # cells_voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
-          # cells_voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem)
-          #                                     average
-          # cells_voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem)
-          #                                 calculated by Goldman-Hodgkin-Katz (GHK) equation 
-          #   Ignored if GHK calculation disabled.
-          # cells_voltage_extra  ->  Final cell cluster extracellular voltage
-          #   Ignored if extracellular spaces disabled.
-          #
-          # Plot types prefixed by "cell_" are single-cell plots specific to the
-          # cell selected by the "plot cell index" setting.
+      single cell:        # Single-cell plots specific to cell selected by
+                          # "plot cell index" below over all time steps.
+        pipeline:         # List of all single-cell plots exported after
+                          # simulation computation. Ignored if "show" and
+                          # "save" are False.
+          # Example single-cell average transmembrane voltage (Vmem) plot.
+          - type: voltage_membrane   # Plot type, as any following string:
+            # currents_membrane  ->  Single-cell transmembrane current density
+            # deform  ->  Cellular physical displacement
+            #   Ignored unless deformation disabled.
+            # ion_calcium  ->  Single-cell calcium ion concentration
+            #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+            # ion_m_anion  ->  Single-cell M anion concentration
+            #   Ignored if M anion ions (M-) disabled by ion profile.
+            # ion_potassium  ->  Single-cell potassium ion concentration
+            #   Ignored if potassium ions (K+) disabled by ion profile.
+            # ion_sodium  ->  Single-cell sodium ion concentration
+            #   Ignored if sodium ions (Na+) disabled by ion profile.
+            # pressure_osmotic  ->  Single-cell osmotic pressure
+            #   Ignored if osmotic pressure disabled.
+            # pressure_total  ->  Single-cell total pressure = osmotic + mechanical
+            #   Ignored if osmotic pressure or mechanical pressure event disabled.
+            # pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
+            # voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
+            # voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) Fourier transform (FFT)
+            enabled: True   # Enable this plot?
+          # Example single-cell transmembrane current density plot.
+          - type: currents_membrane
+            enabled: True
 
-          enabled: True        # Enable this plot?
-          colorbar:            # Plot colorbar settings. Ignored for single-cell
-                               # plots (i.e., plot types prefixed by "cell_").
-            autoscale: True    # Automatically scale colorbar to minimum and
-                               # maximum values of underlying data series?
-            minimum: -70.0     # Minimum fixed colorbar value. Ignored if
-                               # "autoscale" is True.
-            maximum:  10.0     # Maximum fixed colorbar value. Ignored if
-                               # "autoscale" is True.
+      cell cluster:   # Cell cluster plots depicting all cells in cluster at
+                      # last time step.
+        pipeline:     # List of all cell cluster plots exported after simulation
+                      # computation. Ignored if "show" and "save" are False.
+          # Example final cell cluster transmembrane voltage (Vmem) plot.
+          - type: voltage_membrane   # Plot type, as any following string:
+            # channel_density  ->  Final cell cluster cell membrane ion channel density factor
+            #   Ignored if channel electroosmosis disabled.
+            # currents_intra  ->  Final cell cluster intracellular current density
+            # currents_extra  ->  Final cell cluster extracellular current density
+            #   Ignored if extracellular spaces disabled.
+            # deform  ->  Cellular physical displacement
+            #   Ignored unless deformation disabled.
+            # electric_intra  ->  Final cell cluster intracellular electric field
+            # electric_extra  ->  Final cell cluster extracellular electric field
+            #   Ignored if extracellular spaces disabled.
+            # fluid_intra  ->  Final cell cluster intracellular fluid flow
+            #   Ignored if fluid flow disabled.
+            # fluid_extra  ->  Final cell cluster extracellular fluid flow
+            #   Ignored if fluid flow or extracellular spaces disabled.
+            # ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
+            #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+            # ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
+            #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
+            #   disabled.
+            # ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
+            #   Ignored if hydrogen ions (H+) disabled by ion profile.
+            # junction_state  ->  Final cell cluster gap junction connectivity state
+            # microtubule  ->  Final cell cluster microtubule orientation
+            # pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
+            #   Ignored if osmotic pressure or mechanical pressure event disabled.
+            # pump_density  ->  Final cell cluster cell membrane ion pump density factor
+            #   Ignored if channel electroosmosis disabled.
+            # pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
+            # voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
+            # voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem)
+            #                                     average
+            # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem)
+            #                                 calculated by Goldman-Hodgkin-Katz (GHK) equation 
+            #   Ignored if GHK calculation disabled.
+            # voltage_extra  ->  Final cell cluster extracellular voltage
+            #   Ignored if extracellular spaces disabled.
+            enabled: True       # Enable this plot?
+            colorbar:           # Plot colorbar settings.
+              autoscale: True   # Automatically scale colorbar to minimum and
+                                # maximum values of underlying data series?
+              minimum: -70.0    # Minimum fixed colorbar value. Ignored if
+                                # "autoscale" is True.
+              maximum:  10.0    # Maximum fixed colorbar value. Ignored if
+                                # "autoscale" is True.
+          # Example final cell cluster intracellular current density plot.
+          - type: currents_intra
+            enabled: True
+            colorbar:
+              autoscale: True
+              minimum: -70.0
+              maximum:  10.0
 
-    animations:      # Animations produced after simulation computation.
+    animations:      # Animations exported after simulation computation.
       show: False    # Display animations after simulation computation?
-      save: False    # Save animations with the animation saving options
-                     # specified below after simulation computation? 
+      save: False    # Save animations after simulation computation with
+                     # animation saving options defined below? 
 
-      # List of all animations to be produced after simulation computation.
-      # Ignored if both "show" and "save" are False.
-      pipeline:
+      pipeline:      # List of all animations exported after simulation
+                     # computation. Ignored if "show" and "save" are False.
         # Example transmembrane voltage (Vmem) animation.
         - type: voltage_membrane  # Animation type, including any following string:
           # currents_intra  ->  Intracellular current density
@@ -861,17 +874,15 @@ results options:
           # voltage_membrane  ->  Transmembrane voltage (Vmem)
           # voltage_extra  ->  Extracellular voltage
           #   Ignored if extracellular spaces disabled.
-
-          enabled: True        # Enable this animation?
-          colorbar:            # Animation colorbar settings.
-            autoscale: True    # Automatically scale colorbar to minimum and
-                               # maximum values of underlying data series?
-            minimum: -70.0     # Minimum fixed colorbar value. Ignored if
-                               # "autoscale" is True.
-            maximum:  10.0     # Maximum fixed colorbar value. Ignored if
-                               # "autoscale" is True.
-
-        # Example intracellular electric field animation. (Details above.)
+          enabled: True       # Enable this animation?
+          colorbar:           # Animation colorbar settings.
+            autoscale: True   # Automatically scale colorbar to minimum and
+                              # maximum values of underlying data series?
+            minimum: -70.0    # Minimum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+            maximum:  10.0    # Maximum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+        # Example intracellular electric field animation.
         - type: electric_intra
           enabled: True
           colorbar:
@@ -975,63 +986,10 @@ results options:
 
   #-------2D plots---------------------------------------------------------------------------------------------------
   
-  plot single cell graphs: True   # plot graphs of concentration and voltage for a single cell
-                                  # (the plot cell) as a function of simulation time
-
-  plot networks: True            # export any implemented regulatory networks to an interconnected graph image
-
-  Vmem 2D:
-    plot Vmem: True              # 2d plot of final vmem ?
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: 10.0                # maximum colorbar value in mV
-    min val: -70.0               # minimum colorbar value in mV
-
-  Currents 2D:
-    plot Currents: True               # 2d plot of net current flow in the collective?
-    autoscale colorbar: True          # autoscale colorbar to min max of data set?
-    max val: 150                    # maximum colorbar value [pA]
-    min val: 0                        # minimum colorbar value [A]
-    colormap: coolwarm                    # colorbar for the currents
-
-  Efield 2D:
-    plot Efield: True              # 2d plot of electric field
-    autoscale colorbar: True        # autoscale colorbar to min max of data set?
-    max val: 900                   # maximum colorbar value in V/m
-    min val: 0                      # maximum colorbar value in V/m
-  
-  Ca 2D:
-    plot Ca: True                # 2d plot of final cell calcium (if Ca2+ present in ion profile)?
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: 1000                 # maximum colorbar value in nmol/L
-    min val: 0                    # minimum colorbar value in nmol/L
-  
-  pH 2D:
-    plot pH: True                # 2d plot of final pH (if H+ present in ion profile) ?
-    autoscale colorbar: True    # autoscale colorbar to min max of data set?
-    max val: 8                 # maximum colorbar value in pH units
-    min val: 6                    # minimum colorbar value pH units
-  
-  Pressure 2D:                      # 2D plot of pressure in the cluster
-    plot Pressure: True
-    autoscale colorbar: True
-    max val: 15
-    min val: -15
-  
-  Velocity 2D:
-    plot Velocity: True          # 2D plot of the velocity of electrostatic
-                                 # fluid in the cell cluster? Ignored unless
-                                 # "include fluid flow" and
-                                 # "include electrostatic pressure" are True.
-    autoscale colorbar: True
-    max val: 15
-    min val: -15
-
-  Deformation 2D:
-    plot Deformation: True       # 2D plot of cell cluster deformation? Ignored
-                                 # unless deformation enabled.
-    autoscale colorbar: True
-    max val: 15
-    min val: -15
+  plot networks: True               # export regulatory networks to
+                                    # interconnected graph images?
+  plot networks single cell: True   # export regulatory networks for single cell to
+                                    # interconnected graph images?
 
   # World-related plotting options------------------------------------------------------------------------------------
 

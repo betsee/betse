@@ -10,8 +10,8 @@ run by its parent pipeline) functionality.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
-from betse.exceptions import BetseSimPipelineException
-from betse.science.simulate.pipe.piperunreq import SimPipelineRunnerRequirement
+from betse.exceptions import BetseSimPipeException
+from betse.science.simulate.pipe.piperunreq import SimPipeRunnerRequirement
 from betse.util.type import strs
 from betse.util.type.cls.decorators import MethodDecorator
 from betse.util.type.obj import objects
@@ -29,11 +29,11 @@ def piperunner(
 ) -> CallableTypes:
     '''
     Decorator annotating simulation pipeline **runners** (i.e., methods of
-    :class:`SimPipelinerABC` subclasses with names prefixed by
-    :attr:`SimPipelinerABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
+    :class:`SimPipeABC` subclasses with names prefixed by
+    :attr:`SimPipeABC._RUNNER_METHOD_NAME_PREFIX`) with custom metadata.
 
     All methods decorated by this decorator are guaranteed to be instances of
-    the :class:`SimPipelineRunner` class, which provides all metadata passed to
+    the :class:`SimPipeRunner` class, which provides all metadata passed to
     this decorator as instance variables of the same name.
 
     Caveats
@@ -69,7 +69,7 @@ def piperunner(
           increasingly fine-grained depth, again intended to be shared between
           multiple runners.
     requirements : optional[SetType]
-        Set of zero or more :class:`SimPipelineRunnerRequirement` instances
+        Set of zero or more :class:`SimPipeRunnerRequirement` instances
         specifying all simulation features required by this runner. This
         decorator then decorates this runner by performing the following logic
         immediately *before* calling this runner:
@@ -78,13 +78,13 @@ def piperunner(
             (e.g., as the configuration for this phase disables extracellular
             spaces), this requirement (and hence this runner) is unsatisfied.
             Since this constitutes a fatal error, an
-            :class:`BetseSimPipelineUnsatisfiedException` is raised.
+            :class:`BetseSimPipeRunnerUnsatisfiedException` is raised.
           * Else, this runner is run.
         Defaults to ``None``, in which case no such decoration is applied.
     '''
 
     @type_check
-    def _piperunner_closure(method: CallableTypes) -> SimPipelineRunner:
+    def _piperunner_closure(method: CallableTypes) -> SimPipeRunner:
         '''
         Closure both type-checking *and* annotating the passed simulation
         pipeline runner method with the metadata passed to the outer decorator
@@ -98,7 +98,7 @@ def piperunner(
             #. The :func:`@type_check` decorator, type checking this method.
                For efficiency, callers should ensure this method is *not*
                externally decorated by this decorator.
-            #. The :class:`SimPipelineRunner` class decorator,
+            #. The :class:`SimPipeRunner` class decorator,
                annotating this method with this metadata.
 
         See Also
@@ -108,7 +108,7 @@ def piperunner(
         '''
 
         # Return an instance of the class decorator exposing this metadata.
-        return SimPipelineRunner(
+        return SimPipeRunner(
             # As a caller convenience, ensure this method is type-checked.
             method=type_check(method),
             categories=categories,
@@ -119,7 +119,7 @@ def piperunner(
     return _piperunner_closure
 
 # ....................{ CLASSES                            }....................
-class SimPipelineRunner(MethodDecorator):
+class SimPipeRunner(MethodDecorator):
     '''
     Class decorator annotating simulation pipeline runners with custom metadata.
 
@@ -136,7 +136,7 @@ class SimPipelineRunner(MethodDecorator):
     method_name : str
         Name of the method implementing this runner.
     requirements : SetType
-        Set of zero or more :class:`SimPipelineRunnerRequirement` instances
+        Set of zero or more :class:`SimPipeRunnerRequirement` instances
         specifying all simulation features required by this runner.
     description : str
         Human-readable description of this runner as a **single-line string**
@@ -166,11 +166,11 @@ class SimPipelineRunner(MethodDecorator):
         categories : SequenceTypes
             Sequence of one or more human-readable category names.
         requirements: SetOrNoneTypes
-            Set of zero or more :class:`SimPipelineRunnerRequirement` instances.
+            Set of zero or more :class:`SimPipeRunnerRequirement` instances.
 
         Raises
         ----------
-        BetseSimPipelineException
+        BetseSimPipeException
             If this method has no docstring.
         '''
 
@@ -185,7 +185,7 @@ class SimPipelineRunner(MethodDecorator):
         for requirement in requirements or ():
             # If this is *NOT* a requirement, raise an exception.
             objects.die_unless_instance(
-                obj=requirement, cls=SimPipelineRunnerRequirement)
+                obj=requirement, cls=SimPipeRunnerRequirement)
 
             # Add this requirement to this set.
             self.requirements.add(requirement)
@@ -199,7 +199,7 @@ class SimPipelineRunner(MethodDecorator):
 
         # If this docstring is empty, raise an exception.
         if not self.description:
-            raise BetseSimPipelineException(
+            raise BetseSimPipeException(
                 'Runner method {}() has no docstring.'.format(method.__name__))
         # Else, this docstring is non-empty.
 
@@ -217,7 +217,7 @@ class SimPipelineRunner(MethodDecorator):
 
         # To avoid circular import dependencies, this is type-checked as a
         # fully-qualified class name resolved at runtime.
-        pipeline: 'betse.science.simulate.pipe.pipeabc.SimPipelinerABC',
+        pipeline: 'betse.science.simulate.pipe.pipeabc.SimPipeABC',
         *args,
         **kwargs
     ) -> object:
@@ -230,22 +230,16 @@ class SimPipelineRunner(MethodDecorator):
         # Defer to the superclass implementation to run this runner.
         return super().__call__(pipeline, *args, **kwargs)
 
-# ....................{ TYPES                              }....................
-SimPipelineRunnerTypes = (SimPipelineRunner,) + CallableTypes
-'''
-Tuple of all callable classes *and* the simulation pipeline runner type.
-
-This tuple may be used to efficiently match both undecorated runners *and*
-runners decorated by the :func:`piperunner` decorator.
-'''
-
 # ....................{ INTERFACES                         }....................
-class SimPipelineRunnerConf(object, metaclass=ABCMeta):
+class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all subclasses defining a type of **simulation
-    pipeline runner arguments** (i.e., simple object encapsulating all input
-    parameters to be passed to a method implementing a runner in a
-    :class:`SimPipelinerABC` pipeline).
+    Abstract base class of all **simulation pipeline runner argument list**
+    (i.e., object containing all input parameters to be passed to a method
+    implementing a :class:`SimPipeABC` pipeline runner) subclasses.
+
+    Each :func:`piperun`-decorated runner method in a
+    :class:`SimPipeABC`-subclassed pipeline class accepts exactly one
+    parameter of this type.
 
     This class is suitable for use as a multiple-inheritance mixin. To preserve
     the expected method resolution order (MRO) semantics, this class should
@@ -261,10 +255,11 @@ class SimPipelineRunnerConf(object, metaclass=ABCMeta):
     @abstractproperty
     def is_enabled(self) -> bool:
         '''
-        ``True`` only if this runner is **enabled** (i.e., present in the
-        parent simulation pipeline *and* containing an ``enabled`` boolean set
-        to ``True``).
+        ``True`` only if this runner is **enabled** (i.e., both contained in and
+        enabled by the parent simulation pipeline).
         '''
+
+        pass
 
 
     @abstractproperty
@@ -272,6 +267,7 @@ class SimPipelineRunnerConf(object, metaclass=ABCMeta):
         '''
         Lowercase alphanumeric string uniquely identifying the runner these
         arguments apply to in the parent simulation pipeline (e.g.,
-        ``voltage_intra``, signifying an intracellular voltage runner).
+        ``voltage_membrane``, signifying a transmembrane voltage runner).
         '''
 
+        pass

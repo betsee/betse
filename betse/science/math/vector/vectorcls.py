@@ -8,7 +8,7 @@ Abstract base classes of all vector subclasses.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseVectorException
+from betse.exceptions import BetseSimVectorException
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.lib.numpy import arrays
 from betse.util.type.call.memoizers import property_cached
@@ -105,7 +105,7 @@ class VectorCells(object):
 
         Raises
         ----------
-        BetseVectorException
+        BetseSimVectorException
             If exactly one of the ``times_cells_centre``,
             ``times_grids_centre``, and ``times_membranes_midpoint`` parameters
             is *not* passed.
@@ -120,7 +120,7 @@ class VectorCells(object):
             times_grids_centre is None and
             times_membranes_midpoint is None
         ):
-            raise BetseVectorException(
+            raise BetseSimVectorException(
                 'Parameters "times_cells_centre", "times_grids_centre", and '
                 '"times_membranes_midpoint" not passed.')
 
@@ -168,7 +168,7 @@ class VectorCells(object):
         # would recall this method, which would recall that method, and so on
         # until the stack is exhausted, halting the current process.
         if self._times_membranes_midpoint is None:
-            raise BetseVectorException(
+            raise BetseSimVectorException(
                 'Properties "times_cells_centre" and '
                 '"times_membranes_midpoint" not convertible from '
                 'property "times_grids_centre".')

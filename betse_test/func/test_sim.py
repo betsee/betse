@@ -15,7 +15,7 @@ from betse_test.util.mark.skip import skip_unless_matplotlib_anim_writer
 from betse_test.util.mark.fail import xfail
 
 # ....................{ TESTS                              }....................
-def test_cli_sim_ecmless(betse_cli_sim: 'CLISimTester') -> None:
+def test_cli_sim_noecm(betse_cli_sim: 'CLISimTester') -> None:
     '''
     Test exporting all available exports (e.g., CSVs, plots, animations) with
     all simulation features required by these exports excluding extracellular

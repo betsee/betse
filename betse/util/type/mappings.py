@@ -10,7 +10,7 @@ Low-level dictionary facilities.
 # ....................{ IMPORTS                            }....................
 import pprint
 from betse.exceptions import (
-    BetseDictException, BetseMethodUnimplementedException)
+    BetseMappingException, BetseMethodUnimplementedException)
 from betse.util.type import types
 from betse.util.type.types import (
     type_check,
@@ -275,7 +275,7 @@ class OrderedArgsDict(OrderedDict):
 
         Raises
         ----------
-        :exc:`betse.exceptions.BetseDictException`
+        :exc:`betse.exceptions.BetseMappingException`
              If this tuple is _not_ of even length.
         '''
 
@@ -285,7 +285,7 @@ class OrderedArgsDict(OrderedDict):
         # If the passed tuple of key-value pairs is odd and hence omitted the
         # value for the final key, raise an exception.
         if ints.is_odd(len(key_value_pairs)):
-            raise BetseDictException(
+            raise BetseMappingException(
                 'Expected even number of key-value parameters, '
                 'but received {} such parameters.'.format(len(key_value_pairs)))
 

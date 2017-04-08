@@ -10,15 +10,16 @@ simulated data of a single cell of the cell cluster).
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimConfigException
-from betse.science.config.export.confvisabc import SimConfVisualListable
+from betse.science.config.export.confvisabc import SimConfVisualCellListItem
 from betse.science.simulate.pipe import piperunreq
-from betse.science.visual.plot.pipe.plotpipeabc import PlotCellsPipelinerABC
+from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
+from betse.util.type.types import IterableTypes
 from matplotlib import pyplot as pyplot
 
 # ....................{ SUBCLASSES                         }....................
-class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
+class PlotCellPipe(PlotPipeABC):
     '''
     **Post-simulation single-cell plot pipeline** (i.e., object iteratively
     displaying and/or saving all plots specific to a single cell of the cell
@@ -42,11 +43,16 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
                     self._phase.cells.cell_i[-1],
                 ))
 
+    # ..................{ SUPERCLASS                         }..................
+    @property
+    def _runners_conf(self) -> IterableTypes:
+        return self._phase.p.plot.after_sim_pipeline_cell
+
     # ..................{ EXPORTERS ~ cell : current         }..................
     #FIXME: Force every currently optional "conf" parameter to be mandatory.
     #Specifically, excise "= None" everywhere below.
     @piperunner(categories=('Current Density', 'Transmembrane',))
-    def export_currents_membrane(self, conf: SimConfVisualListable = None) -> None:
+    def export_currents_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all transmembrane current densities for the single cell indexed by
         the current simulation configuration over all time steps.
@@ -112,7 +118,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
         categories=('Physical Deformation',),
         requirements={piperunreq.DEFORM,},
     )
-    def export_deform(self, conf: SimConfVisualListable = None) -> None:
+    def export_deform(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all physical cellular deformations for the single cell indexed by
         the current simulation configuration over all time steps.
@@ -147,7 +153,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
         categories=('Ion Concentration', 'Calcium'),
         requirements={piperunreq.ION_CALCIUM, },
     )
-    def export_ion_calcium(self, conf: SimConfVisualListable = None) -> None:
+    def export_ion_calcium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all calcium (i.e., Ca2+) ion concentrations for the single cell
         indexed by the current simulation configuration over all time steps.
@@ -177,7 +183,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
         categories=('Ion Concentration', 'M anion'),
         requirements={piperunreq.ION_M_ANION, },
     )
-    def export_ion_m_anion(self, conf: SimConfVisualListable = None) -> None:
+    def export_ion_m_anion(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all M anion (i.e., M-) ion concentrations for the single cell
         indexed by the current simulation configuration over all time steps.
@@ -206,7 +212,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
         categories=('Ion Concentration', 'Potassium'),
         requirements={piperunreq.ION_POTASSIUM, },
     )
-    def export_ion_potassium(self, conf: SimConfVisualListable = None) -> None:
+    def export_ion_potassium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all potassium (i.e., K+) ion concentrations for the single cell
         indexed by the current simulation configuration over all time steps.
@@ -236,7 +242,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
         categories=('Ion Concentration', 'Sodium'),
         requirements={piperunreq.ION_SODIUM, },
     )
-    def export_ion_sodium(self, conf: SimConfVisualListable = None) -> None:
+    def export_ion_sodium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all sodium (i.e., Na+) ion concentrations for the single cell
         indexed by the current simulation configuration over all time steps.
@@ -267,7 +273,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
         categories=('Pressure', 'Osmotic',),
         requirements={piperunreq.PRESSURE_OSMOTIC,},
     )
-    def export_pressure_osmotic(self, conf: SimConfVisualListable = None) -> None:
+    def export_pressure_osmotic(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the osmotic cellular pressure for the single cell indexed by the
         current simulation configuration over all time steps.
@@ -296,7 +302,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
         categories=('Pressure', 'Total',),
         requirements={piperunreq.PRESSURE_TOTAL,},
     )
-    def export_pressure_total(self, conf: SimConfVisualListable = None) -> None:
+    def export_pressure_total(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the **total cellular pressure** (i.e., summation of the cellular
         mechanical and osmotic pressure) for the single cell indexed by the
@@ -325,7 +331,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
     #FIXME: Actually plot the average of these rates. Currently, this method
     #only plots rates for a single arbitrarily selected membrane of this cell.
     @piperunner(categories=('Pump Rate', 'Na-K-ATPase',))
-    def export_pump_nakatpase(self, conf: SimConfVisualListable = None) -> None:
+    def export_pump_nakatpase(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the averages of the Na-K-ATPase membrane pump rates for the single
         cell indexed by the current simulation configuration over all time
@@ -363,7 +369,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
     #FIXME: Actually plot the average of these Vmems. Currently, this method
     #only plots Vmems for a single arbitrarily selected membrane of this cell.
     @piperunner(categories=('Voltage', 'Transmembrane', 'Average',))
-    def export_voltage_membrane(self, conf: SimConfVisualListable = None) -> None:
+    def export_voltage_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the averages of all transmembrane voltages for the single cell
         indexed by the current simulation configuration over all time steps.
@@ -395,7 +401,7 @@ class PlotCellsPipelinerCell(PlotCellsPipelinerABC):
     @piperunner(categories=(
         'Voltage', 'Transmembrane', 'Fast Fourier Transform (FFT)',))
     def export_voltage_membrane_fft(
-        self, conf: SimConfVisualListable = None) -> None:
+        self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the fast Fourier transform (FFT) of the averages of all
         transmembrane voltages for the single cell indexed by the current

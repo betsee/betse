@@ -3,85 +3,68 @@
 # See "LICENSE" for further details.
 
 '''
-YAML-backed simulation visualization subconfigurations.
+YAML-backed simulation visual subconfigurations.
 '''
 
+#FIXME: Rename this submodule to "confvis".
+
 # ....................{ IMPORTS                            }....................
-#from abc import ABCMeta
-from betse.exceptions import BetseMethodUnimplementedException
+from abc import ABCMeta, abstractproperty
+# from betse.exceptions import BetseMethodUnimplementedException
 from betse.science.config.confabc import (
-    SimConfABC, SimConfListableABC, conf_alias)
+    SimConfABC, SimConfListableABC, SimConfListItemTypedABC, conf_alias)
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUPERCLASSES                       }....................
+#FIXME: Rename to "SimConfVisualCellsABC".
 #FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored
 #to leverage the YAML format specified by "SimConfVisualMixin".
-class SimConfVisualABC(object):
+class SimConfVisualABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class generalizing logic common to all YAML-backed simulation
-    visualization subconfiguration subclasses.
-
-    This mix-in encapsulates the configuration of a single visualization (either
-    in- or post-simulation plot or animation) parsed from the current
-    YAML-formatted simulation configuration file. For generality, this mix-in
-    provides no support for a YAML ``type`` key or corresponding :attr:`name`
-    property.
+    Abstract base class generalizing logic common to all cell cluster visual
+    subconfigurations -- YAML-backed or otherwise.
 
     Attributes (Colorbar)
     ----------
     color_max : NumericTypes
-        Maximum color value to be displayed by this visualization's colorbar.
+        Maximum color value to be displayed by this visual's colorbar.
         Ignored if :attr:`is_color_autoscaled` is ``True``.
     color_min : NumericTypes
-        Minimum color value to be displayed by this visualization's colorbar.
+        Minimum color value to be displayed by this visual's colorbar.
         Ignored if :attr:`is_color_autoscaled` is ``True``.
     is_color_autoscaled : bool
         ``True`` if dynamically setting the minimum and maximum colorbar values
-        for this visualization to the minimum and maximum values flattened from
+        for this visual to the minimum and maximum values flattened from
         the corresponding time series *or* ``False`` if statically setting these
         values to :attr:`color_min` and :attr:`color_max`.
     '''
 
     # ..................{ PROPERTIES                         }..................
-    #FIXME: Docstring us up.
-    @property
+    @abstractproperty
     def is_color_autoscaled(self) -> bool:
-        raise BetseMethodUnimplementedException()
+        pass
 
-    @property
+    @abstractproperty
     def color_min(self) -> NumericTypes:
-        raise BetseMethodUnimplementedException()
+        pass
 
-    @property
+    @abstractproperty
     def color_max(self) -> NumericTypes:
-        raise BetseMethodUnimplementedException()
+        pass
 
 
+#FIXME: Rename to "SimConfVisualCellsYAMLMixin".
 class SimConfVisualMixin(SimConfVisualABC):
     '''
-    Abstract mix-in generalizing logic common to all YAML-backed simulation
-    visualization subconfiguration subclasses.
+    Abstract mix-in generalizing logic common to all YAML-backed cell cluster
+    visual subconfigurations.
 
-    This mix-in encapsulates the configuration of a single visualization (either
+    This mix-in encapsulates the configuration of a single visual (either
     in- or post-simulation plot or animation) parsed from the current
     YAML-formatted simulation configuration file. For generality, this mix-in
     provides no support for a YAML ``type`` key or corresponding :attr:`name`
     property.
-
-    Attributes (Colorbar)
-    ----------
-    color_max : NumericTypes
-        Maximum color value to be displayed by this visualization's colorbar.
-        Ignored if :attr:`is_color_autoscaled` is ``True``.
-    color_min : NumericTypes
-        Minimum color value to be displayed by this visualization's colorbar.
-        Ignored if :attr:`is_color_autoscaled` is ``True``.
-    is_color_autoscaled : bool
-        ``True`` if dynamically setting the minimum and maximum colorbar values
-        for this visualization to the minimum and maximum values flattened from
-        the corresponding time series *or* ``False`` if statically setting these
-        values to :attr:`color_min` and :attr:`color_max`.
     '''
 
     # ..................{ ALIASES ~ colorbar                 }..................
@@ -89,10 +72,19 @@ class SimConfVisualMixin(SimConfVisualABC):
     color_min = conf_alias("['colorbar']['minimum']", NumericTypes)
     color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
 
-
+# ....................{ SUBCLASSES                         }....................
+#FIXME: Rename to "SimConfVisualCellsNonYAML".
+#FIXME: Eliminate this subclass. For serializability, all configuration classes
+#should be YAML-backed.
 class SimConfVisualMolecule(SimConfVisualABC):
     '''
-    Networks molecule-specific visualization subconfiguration subclasses.
+    Cell cluster visual subconfiguration specific to the
+    :mod:`betse.science.networks` package.
+
+    Unlike all cell cluster visual subconfigurations, this class preserves
+    backward compatibility by implementing superclass properties *without*
+    calling the :func:`conf_alias` function returning YAML-backed data
+    descriptors. Subconfiguration changes are *not* propagated back to disk.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -122,47 +114,25 @@ class SimConfVisualMolecule(SimConfVisualABC):
         return self._color_max
 
 # ....................{ SUBCLASSES                         }....................
+#FIXME: Rename to "SimConfVisualCellsSolitary".
 class SimConfVisualGeneric(SimConfVisualMixin, SimConfABC):
     '''
-    YAML-backed simulation visualization subconfiguration, encapsulating the
-    configuration of a single visualization (either in- or post-simulation plot
+    YAML-backed cell cluster visual subconfiguration, encapsulating the
+    configuration of a single visual (either in- or post-simulation plot
     or animation) with no ``type`` entry or corresponding :attr:`name` property
     parsed from the current YAML-formatted simulation configuration file.
-
-    Attributes (Colorbar)
-    ----------
-    color_max : NumericTypes
-        Maximum color value to be displayed by this visualization's colorbar.
-        Ignored if :attr:`is_color_autoscaled` is ``True``.
-    color_min : NumericTypes
-        Minimum color value to be displayed by this visualization's colorbar.
-        Ignored if :attr:`is_color_autoscaled` is ``True``.
-    is_color_autoscaled : bool
-        ``True`` if dynamically setting the minimum and maximum colorbar values
-        for this visualization to the minimum and maximum values flattened from
-        the corresponding time series *or* ``False`` if statically setting these
-        values to :attr:`color_min` and :attr:`color_max`.
     '''
 
     pass
 
-
-class SimConfVisualListable(SimConfVisualMixin, SimConfListableABC):
+# ....................{ SUBCLASSES : list item             }....................
+#FIXME: Rename to "SimConfVisualCellsListItem".
+class SimConfVisualListable(SimConfVisualMixin, SimConfListItemTypedABC):
     '''
-    YAML-backed simulation visualization subconfiguration, encapsulating the
-    configuration of a single visualization (either in- or post-simulation plot
-    or animation) parsed from the list of all such visualizations in the current
-    YAML-formatted simulation configuration file.
-
-    Attributes (General)
-    ----------
-    is_enabled : bool
-        ``True`` only if this visualization is enabled.
-    name : str
-        Lowercase alphanumeric string uniquely identifying the type of this
-        visualization (e.g., ``voltage_intra``, signifying a visualization of
-        intracellular voltages). See the corresponding entry ``type`` of the
-        default simulation configuration file for further commentary.
+    YAML-backed cell cluster visual subconfiguration, encapsulating the
+    configuration of a single visual (either in- or post-simulation plot
+    or animation) applicable to all cells parsed from the list of all such
+    visuals in the current YAML-formatted simulation configuration file.
     '''
 
     # ..................{ CLASS                              }..................
@@ -171,7 +141,7 @@ class SimConfVisualListable(SimConfVisualMixin, SimConfListableABC):
 
         # Duplicate the default animation listed first in our default YAML file.
         return SimConfVisualListable(conf={
-            'type': 'voltage_intra',
+            'type': 'voltage_membrane',
             'enabled': True,
             'colorbar': {
                 'autoscale': True,
@@ -179,10 +149,6 @@ class SimConfVisualListable(SimConfVisualMixin, SimConfListableABC):
                 'maximum':  10.0,
             },
         })
-
-    # ..................{ ALIASES                            }..................
-    is_enabled = conf_alias("['enabled']", bool)
-    name = conf_alias("['type']", str)
 
     # ..................{ INITIALIZERS                       }..................
     def __init__(self, *args, **kwargs) -> None:
@@ -201,3 +167,22 @@ class SimConfVisualListable(SimConfVisualMixin, SimConfListableABC):
 
             # Preserve backwards compatibility.
             self._conf['enabled'] = True
+
+
+class SimConfVisualCellListItem(SimConfListItemTypedABC):
+    '''
+    YAML-backed single-cell visual subconfiguration, encapsulating the
+    configuration of a single visual (either in- or post-simulation
+    plot or animation) specific to a single cell parsed from the list of all
+    such visuals in the current YAML-formatted simulation configuration file.
+    '''
+
+    # ..................{ CLASS                              }..................
+    @classmethod
+    def make_default(self) -> SimConfListableABC:
+
+        # Duplicate the default animation listed first in our default YAML file.
+        return SimConfVisualCellListItem(conf={
+            'type': 'voltage_membrane',
+            'enabled': True,
+        })

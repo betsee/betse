@@ -11,8 +11,9 @@ spreadsheets.
 # ....................{ IMPORTS                            }....................
 from betse.science.export.csv import csvpipe
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
-from betse.science.visual.anim.animpipe import AnimCellsPipeliner
-from betse.science.visual.plot import plotpipe
+from betse.science.visual.anim.animpipe import AnimCellsPipe
+from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
+from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
 
@@ -46,16 +47,19 @@ def pipeline(phase: SimPhaseABC) -> None:
     elif phase.kind is SimPhaseKind.SIM:
         phase.p.plot_type = 'sim'
 
-    # Save all CSV files *BEFORE* visualizations (e.g., plots), as the former is
-    # considerably faster than the latter.
+
+    # Display and/or save all exports enabled by this configuration in
+    # increasing order of expected duration (i.e., from fastest to slowest),
+    # trivially improving aesthetic responsiveness for end users:
+    #
+    # * CSV files, typically exported faster than visuals.
+    # * Single-cell plots, typically exported faster than cell cluster plots.
+    # * Cell cluster plots, typically exported faster than animations.
+    # * Animations.
     csvpipe.pipeline(phase)
-
-    # Display and/or save all plots *BEFORE* animations, as the former is again
-    # considerably faster than the latter (particularly, when encoding video).
-    plotpipe.pipeline(phase)
-
-    # Display and/or save all animations enabled by this configuration.
-    AnimCellsPipeliner(phase=phase).run()
+    PlotCellPipe(phase).run()
+    PlotCellsPipe(phase).run()
+    AnimCellsPipe(phase).run()
 
     # Log the directory to which all results were exported.
     logs.log_info('Results exported to: %s', phase.save_dirname)

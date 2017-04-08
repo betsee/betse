@@ -606,9 +606,7 @@ class Parameters(object):
         self.mu_membrane = 1.0 # membrane viscocity
         self.zeta = -70e-3  # zeta potential of cell membrane [V]
 
-
         # Gap junction parameters ------------------
-
         self.gj_surface = float(self._conf['variable settings']['gap junctions']['gap junction surface area'])
         self.gj_flux_sensitive = False
         self.gj_vthresh = float(self._conf['variable settings']['gap junctions']['gj voltage threshold'])
@@ -728,63 +726,13 @@ class Parameters(object):
 
         # True if numbering cells in plots and animations.
         self.enumerate_cells = ro['enumerate cells']
-
         self.plot_cell = ro['plot cell index']             # State the cell index to use for single-cell time plots
-
-        self.plot_single_cell_graphs = ro['plot single cell graphs'] # plot graphs of concentration and voltage with t
-
+        self.plot_networks_single_cell = ro['plot networks single cell']
         self.showCells = ro['show cells']     # True = polygon patch plots, False = trimesh
-
         self.I_overlay = ro['overlay currents']
-
         self.stream_density = ro['streamline density']
-
         self.IecmPlot = ro['plot total current']    # True = plot extracellular currents, false plot gj
-
-        self.extVPlot = False   # plot the environmental spaces -- no longer used
-
         self.plotMask = ro['plot masked geometry']
-
-        # options for individual 2D plots
-        self.plot_vm2d = ro['Vmem 2D']['plot Vmem']                # 2d plot of final vmem ?
-        self.autoscale_Vmem = ro['Vmem 2D']['autoscale colorbar']
-        self.Vmem_min_clr = float(ro['Vmem 2D']['min val'])
-        self.Vmem_max_clr = float(ro['Vmem 2D']['max val'])
-
-        self.plot_ca2d = ro['Ca 2D']['plot Ca']                # 2d plot of final cell calcium ?
-        self.autoscale_Ca = ro['Ca 2D']['autoscale colorbar']
-        self.Ca_min_clr = float(ro['Ca 2D']['min val'])
-        self.Ca_max_clr = float(ro['Ca 2D']['max val'])
-
-        self.plot_pH2d = ro['pH 2D']['plot pH']                # 2d plot of final cell pH ?
-        self.autoscale_pH = ro['pH 2D']['autoscale colorbar']
-        self.pH_min_clr = float(ro['pH 2D']['min val'])
-        self.pH_max_clr = float(ro['pH 2D']['max val'])
-
-        self.plot_I2d = ro['Currents 2D']['plot Currents']
-        self.autoscale_I2d = ro['Currents 2D']['autoscale colorbar']
-        self.I_min_clr = float(ro['Currents 2D']['min val'])
-        self.I_max_clr = float(ro['Currents 2D']['max val'])
-
-        self.plot_Efield = ro['Efield 2D']['plot Efield']   # 2d plot of electric field
-        self.autoscale_Efield =ro['Efield 2D']['autoscale colorbar'] # autoscale colorbar to min max of data set?
-        self.Efield_min_clr =float(ro['Efield 2D']['max val'])         # maximum colorbar value in V/m
-        self.Efield_max_clr =float(ro['Efield 2D']['min val'])       # maximum colorbar value in V/m
-
-        self.plot_P = ro['Pressure 2D']['plot Pressure']
-        self.autoscale_P = ro['Pressure 2D']['autoscale colorbar']
-        self.P_min_clr = float(ro['Pressure 2D']['min val'])
-        self.P_max_clr = float(ro['Pressure 2D']['max val'])
-
-        self.plot_Vel = ro['Velocity 2D']['plot Velocity']
-        self.autoscale_Vel = ro['Velocity 2D']['autoscale colorbar']
-        self.Vel_min_clr = float(ro['Velocity 2D']['min val'])
-        self.Vel_max_clr = float(ro['Velocity 2D']['max val'])
-
-        self.plot_Deformation = ro['Deformation 2D']['plot Deformation']
-        self.autoscale_Deformation = ro['Deformation 2D']['autoscale colorbar']
-        self.Deformation_min_clr = float(ro['Deformation 2D']['min val'])
-        self.Deformation_max_clr = float(ro['Deformation 2D']['max val'])
 
         # Plot seed options.
         self.plot_cell_cluster = ro.get('plot cell cluster', True)
@@ -1324,18 +1272,6 @@ class Parameters(object):
             # Default the value for this dictionary key to the empty list.
             after_solving_anims['pipeline'] = []
 
-        if 'pipeline' not in after_solving_plots:
-            # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file setting "results options" -> "after solving" -> '
-                '"plots" -> "pipeline" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
-
-            # Default the value for this dictionary key to the empty list.
-            after_solving_plots['pipeline'] = []
-
         while_solving_anims = results['while solving']['animations']
 
         if 'colorbar' not in while_solving_anims:
@@ -1354,22 +1290,46 @@ class Parameters(object):
                 'maximum':  10.0,
             }
 
-        if 'Deformation 2D' not in results:
+        if 'single cell' not in after_solving_plots:
             # Log a non-fatal warning.
             logs.log_warning(
-                'Config file setting "results options" -> "Deformation 2D" '
-                'not found. '
+                'Config file setting "results options" -> "after solving" -> '
+                '"plots" -> "single cell" not found. '
                 'Repairing to preserve backward compatibility. '
                 'Consider upgrading to the newest config file format!',
             )
 
-            # Default the value for this dictionary key to the typical settings.
-            results['Deformation 2D'] = {
-                'plot Deformation': True,
-                'autoscale colorbar': True,
-                'max val': 15,
-                'min val': -15,
+            # Default the value for this dictionary key to the empty list.
+            after_solving_plots['single cell'] = {
+                'pipeline': [],
             }
+
+        if 'cell cluster' not in after_solving_plots:
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Config file setting "results options" -> "after solving" -> '
+                '"plots" -> "cell cluster" not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
+
+            # Default the value for this dictionary key to the empty list.
+            after_solving_plots['cell cluster'] = {
+                'pipeline': [],
+            }
+
+        if 'plot networks single cell' not in results:
+            # Log a non-fatal warning.
+            logs.log_warning(
+                'Config file setting "results options" -> '
+                '"plot networks single cell" not found. '
+                'Repairing to preserve backward compatibility. '
+                'Consider upgrading to the newest config file format!',
+            )
+
+            # Default the value for this dictionary key to the empty list.
+            results['plot networks single cell'] = results[
+                'plot single cell graphs']
 
 
     def _init_tissue_and_cut_profiles(self) -> None:

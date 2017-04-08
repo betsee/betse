@@ -56,12 +56,12 @@ def test_orderedparamsdict_fail() -> None:
     '''
 
     # Defer heavyweight imports.
-    from betse.exceptions import BetseDictException
+    from betse.exceptions import BetseMappingException
     from betse.util.type.mappings import OrderedArgsDict
 
     # Test whether initializing this dictionary with an odd rather than even
     # number of positional arguments fails.
-    with pytest.raises(BetseDictException):
+    with pytest.raises(BetseMappingException):
         OrderedArgsDict(
             'Danu', 'Don',
             'Dian Cecht',

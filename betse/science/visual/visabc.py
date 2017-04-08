@@ -51,8 +51,8 @@ from matplotlib.streamplot import StreamplotSet
 # ....................{ SUPERCLASSES                       }....................
 class VisualCellsABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all subclasses spatially plotting or animating the
-    currently simulated cell cluster.
+    Abstract base class of all **cell cluster visual** (i.e., plot or animation
+    spatially visualizing the current cell cluster) subclasses.
 
     Subclasses of this class plot the spatial distribution of one or more
     modelled variables (e.g., charge distribution, membrane voltage) for
@@ -70,11 +70,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         simulation configuration file for this phase.
     _label : str
         Basename of the subdirectory in the phase-specific results directory
-        to which all files exported for this plot or animation are saved _and_
+        to which all files exported for this visual are saved _and_
         the basename prefix of these files.
     _layers : list
         List of all :class:`LayerCellsABC` instances collectively composing
-        this plot or animation.
+        this visual.
     _phase : SimPhaseABC
         Current simulation phase.
 
@@ -126,7 +126,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     _colormap : Colormap
         Matplotlib colormap with which to create this animation's colorbar.
     _is_colorful : bool
-        ``True`` only if this visualization is **colorful** (i.e., at least one
+        ``True`` only if this visual is **colorful** (i.e., at least one
         layer in the :attr:`_layers` sequence is an instance of the
         :class:`LayerCellsColorfulABC` base class and hence provides data
         mappable onto a Matplotlib color artist). If ``False``, all color- and
@@ -163,7 +163,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         layers: SequenceOrNoneTypes = None,
     ) -> None:
         '''
-        Initialize this plot or animation.
+        Initialize this visual.
 
         Parameters
         ----------
@@ -173,13 +173,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             Visualization configuration, synchronized with the YAML-backed
             simulation configuration file for this phase.
         is_save : bool
-            ``True`` only if non-interactively saving this plot or animation.
+            ``True`` only if non-interactively saving this visual.
         is_show : bool
-            ``True`` only if interactively displaying this plot or animation.
+            ``True`` only if interactively displaying this visual.
         label : str
             Terse machine-readable string (e.g., ``Vmem``) serving as both:
             * The basename of the subdirectory of the phase-specific results
-              directory containing all files saved by this plot or animation.
+              directory containing all files saved by this visual.
             * The basename prefix of these files.
         figure_title : str
             Text displayed above the figure itself.
@@ -203,12 +203,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             default colormap is used.
         layers : optional[SequenceTypes]
             Sequence of all :class:`LayerCellsABC` instances collectively
-            plotting each frame of this plot or animation. **Order is extremely
+            plotting each frame of this visual. **Order is extremely
             significant.** Specifically, the order of layers in this sequence
             defines the order in which these layers are plotted and hence
             overlaid onto one another (i.e., z-order). Defaults to `None`, in
             which case the subclass is responsible for manually plotting this
-            plot or animation.
+            visual.
         '''
 
         # Default unpassed parameters.
@@ -237,18 +237,18 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self._layers = []
         self._append_layer(*layers)
 
-        # If at least one layer is passed, this visualization is colorful if and
+        # If at least one layer is passed, this visual is colorful if and
         # only if at least one such layer is colorful.
         if self._layers:
             self._is_colorful = iterables.is_item_instance_of(
                 iterable=self._layers, cls=LayerCellsColorfulABC)
         #FIXME: Eliminate this branch. At least one layer should *ALWAYS* exist.
-        # Else, no layers were passed. In this case, assume this visualization
+        # Else, no layers were passed. In this case, assume this visual
         # to be an old-style animation requiring a colorbar.
         else:
             self._is_colorful = True
 
-        # If this visualization is colorful but no colorbar title was passed,
+        # If this visual is colorful but no colorbar title was passed,
         # raise an exception.
         if self._is_colorful and self._colorbar_title is None:
             raise BetseSimVisualException(
@@ -372,12 +372,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     #undocumented. They should *ALL* be removed as soon as feasible.
     def _prep_figure(self, *args, **kwargs) -> None:
         '''
-        Prepare this visualization *after* having previously initialized this
-        visualization but *before* subsequently displaying and/or saving this
-        visualization.
+        Prepare this visual *after* having previously initialized this
+        visual but *before* subsequently displaying and/or saving this
+        visual.
         '''
 
-        # Prepare all layers to be layered onto this plot or animation *BEFORE*
+        # Prepare all layers to be layered onto this visual *BEFORE*
         # autoscaling colors assuming layers to have been prepared.
         self._prep_layers()
 
@@ -387,11 +387,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     # ..................{ DEINITIALIZERS                     }..................
     def close(self) -> None:
         '''
-        Deallocate all resources associated with this plot or animation.
+        Deallocate all resources associated with this visual.
 
         To reduce resource overhead (namely memory), this method (in order):
 
-        . Explicitly closes this plot or animation's figure.
+        . Explicitly closes this visual's figure.
         . Explicitly breaks all circular references between this figure and
           related artist objects (e.g., between this figure and its axes).
         . Explicitly nullifies *all* attributes of the current object.
@@ -401,14 +401,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         ----------
         This method should only be called:
 
-        * If this plot or animation is blocking (e.g., saved non-interactively,
+        * If this visual is blocking (e.g., saved non-interactively,
           displayed interactively in a blocking manner). If this plot or
           animation is non-blocking, the resources assigned this plot or
           animation may be safely deallocated only *after* the end user closes
           the corresponding GUI widget or window.
         * As the last action of either:
           * The current caller.
-          * The plot or animation subclass.
+          * The visual subclass.
 
         Attempting to subsequently call any other method *or* access any other
         variable bound to this object will reliably raise an exception.
@@ -475,19 +475,20 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     @property
     def axes(self) -> Axes:
         '''
-        Matplotlib axes for this plot or animation's figure.
+        Matplotlib axes for this visual's figure.
 
         All modelled variables for this cell cluster are spatially plotted onto
-        this axes at each time step of this plot or animation.
+        this axes at each time step of this visual.
         '''
 
         return self._axes
 
-
+    # ..................{ PROPERTIES ~ read-only : color     }..................
     @property
     def color_min(self) -> float:
         '''
-        Minimum color value displayed on this plot or animation's colorbar.
+        Minimum color value displayed on this visual's colorbar if
+        this .
         '''
 
         return self._color_min
@@ -496,7 +497,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     @property
     def color_max(self) -> float:
         '''
-        Maximum color value displayed on this plot or animation's colorbar.
+        Maximum color value displayed on this visual's colorbar.
         '''
 
         return self._color_max
@@ -532,7 +533,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     def _prep_layers(self) -> None:
         '''
         Iteratively prepare all layers to be subsequently layered onto this
-        plot or animation.
+        visual.
 
         If this simulation configuration requests that cells be labelled by
         their 0-based indices, a layer doing so is appended to the current
@@ -553,13 +554,13 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     def _plot_layers(self) -> None:
         '''
-        Iteratively plot all layers onto this plot or animation for the
+        Iteratively plot all layers onto this visual for the
         current time step of this simulation.
 
         If this is:
 
         * The first time step, each such layer adds one or more Matplotlib
-          artists to the figure for this plot or animation.
+          artists to the figure for this visual.
         * Any time step _except_ the first, each such layer either:
           * Updates the contents of all artists previously added by that layer.
             This is the most efficient and hence ideal approach, but infeasible
@@ -591,10 +592,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         color_mappables: (ScalarMappable,) + IterableOrNoneTypes = None,
     ) -> None:
         '''
-        Prepare all color-specific data if this visualization is colorful *or*
+        Prepare all color-specific data if this visual is colorful *or*
         silently noop otherwise.
 
-        If this visualization is colorful, this method autoscale colors to the
+        If this visual is colorful, this method autoscale colors to the
         range implied by the passed color values *and* associate all mappables
         provided by colorful layers with this visuazilation's colorbar.
 
@@ -603,7 +604,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         color_mappables : optional[ScalarMappable or IterableTypes]
             Iterable of all :class:`ScalarMappable` instances (e.g.,
             :class:`AxesImage`, :class:`ContourSet`) to associate with this
-            plot or animation's colorbar. For convenience, this parameter may
+            visual's colorbar. For convenience, this parameter may
             be either:
             * A single mappable, in which case this colorbar will be associated
               with this mappable as is.
@@ -626,10 +627,10 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             * `None`, the subclass is responsible for colorbar autoscaling.
         '''
 
-        # If this visualization is *NOT* colorful, return immediately.
+        # If this visual is *NOT* colorful, return immediately.
         if not self._is_colorful:
             return
-        # Else, this visualization is colorful.
+        # Else, this visual is colorful.
 
         # Autoscale colors to the range implied by the passed color values.
         self._autoscale_colors(color_data)
@@ -654,7 +655,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     @type_check
     def _autoscale_colors(self, color_data: SequenceOrNoneTypes) -> None:
         '''
-        Autoscale the colorbar for this plot or animation's figure to the
+        Autoscale the colorbar for this visual's figure to the
         minimum and maximum scalar values unravelled from the passed sequence
         by setting the :attr:`_color_min` and :attr:`_color_max` attributes to
         such values if colorbar autoscaling is both enabled and has not already
@@ -714,7 +715,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     @type_check
     def _automap_colors(self, color_mappables: IterableOrNoneTypes) -> None:
         '''
-        Create a figure colorbar for this plot or animation associated with the
+        Create a figure colorbar for this visual associated with the
         passed mappables if any or the mappables provided by the last mappable
         layer in the current layer sequence otherwise.
 
@@ -723,7 +724,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         color_mappables : optional[IterableTypes]
             Iterable of all :class:`ScalarMappable` instances (e.g.,
             :class:`AxesImage`, :class:`ContourSet`) to associate with this
-            plot or animation's colorbar. By Matplotlib design, only the first
+            visual's colorbar. By Matplotlib design, only the first
             mappable in this iterable is arbitrarily associated with this
             colorbar; all other mappables are ignored. Defaults to `None`, in
             which case the iterable of all mappables provided by the topmost
@@ -766,7 +767,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     def _rescale_color_mappables(self) -> None:
         '''
-        Rescale all mappables associated with this plot or animation's colorbar
+        Rescale all mappables associated with this visual's colorbar
         to the current minimum and maximum color values.
 
         This method must be called *after* the :meth:`_prep_figure` method has
@@ -804,7 +805,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     def plot_frame(self, time_step: int) -> None:
         '''
         Display and/or save the frame corresponding to the passed sampled
-        simulation time step for this plot or animation.
+        simulation time step for this visual.
 
         This method is iteratively called by matplotlib's
         :class:`FuncAnimation` class instantiated by our :meth:`_animate`
@@ -961,7 +962,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         #
         # * The current platform is Windows, whose POSIX-incompatible process
         #   model has special needs.
-        # * The current plot or animation is non-blocking *AND* the current
+        # * The current visual is non-blocking *AND* the current
         #   backend is poorly implemented or supported (e.g., "Qt4Agg").
         #
         # Since reliably detecting all such conditions is non-trivial and
@@ -1049,8 +1050,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     # ..................{ SUBCLASS                           }..................
     def _plot_frame_figure(self) -> None:
         '''
-        Update this plot or animation's figure (and typically axes) content to
-        reflect the current simulation time step.
+        Update this visual's figure (and typically axes) content to reflect the
+        current simulation time step.
 
         This method defaults to a noop. Subclasses may optionally redefine this
         method with subclass-specific logic but are strongly encouraged to

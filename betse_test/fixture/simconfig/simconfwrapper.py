@@ -29,7 +29,9 @@ from betse.exceptions import BetseNumericException
 from betse.science.config import confdefault, confio
 from betse.science.parameters import Parameters
 from betse.science.simulate.pipe import piperunreq
-from betse.science.visual.anim.animpipe import AnimCellsPipeliner
+from betse.science.visual.anim.animpipe import AnimCellsPipe
+from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
+from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
 from betse.util.io.log import logs
 from betse.util.path import files, paths
 from betse.util.type.types import type_check, NumericTypes
@@ -592,22 +594,20 @@ class SimConfigTestWrapper(object):
         # Disable extracellular spaces.
         self._p.sim_ECM = False
 
-        # For each animation pipeline exporter...
-        for anim_exporter_name, anim_exporter in (
-            AnimCellsPipeliner.iter_runners()):
-            #FIXME: Non-ideal. This should dynamically inspect the set of all
-            #requirements declared by this exporter at decoration time for a
-            #requirement equal to "sim_ECM".
+        # For each type of export pipeline to be exercised and list of all
+        # currently enabled exporters in this pipeline...
+        for pipe_type, pipe_list in self._pipes_type_list:
+            # For the name and metadata of each exporter (enabled or not)
+            # supported by this pipeline...
+            for pipe_exporter_name, pipe_exporter in pipe_type.iter_runners():
+                # If this export needs extracellular spaces, ignore this export.
+                if piperunreq.ECM in pipe_exporter.requirements:
+                    continue
+                # Else, this export does *NOT* need extracellular space.
 
-            # If this export requires extracellular spaces, ignore this export.
-            if piperunreq.ECM in anim_exporter.requirements:
-                continue
-            # Else, this export does *NOT* require extracellular spaces.
-
-            # New default export of this type appended to this pipeline.
-            anim_exporter_conf = (
-                self._p.anim.after_sim_pipeline.append_default())
-            anim_exporter_conf.name = anim_exporter_name
+                # New default export of this type appended to this pipeline.
+                pipe_exporter_conf = pipe_list.append_default()
+                pipe_exporter_conf.name = pipe_exporter_name
 
 
     def enable_exports_ecm(self) -> None:
@@ -632,12 +632,14 @@ class SimConfigTestWrapper(object):
         # Enable extracellular spaces.
         self._p.sim_ECM = True
 
-        # For each type of animation supported by the animation pipeline...
-        for anim_exporter_name, _ in AnimCellsPipeliner.iter_runners():
-            # New default animation of this type appended to this pipeline.
-            anim_exporter_conf = (
-                self._p.anim.after_sim_pipeline.append_default())
-            anim_exporter_conf.name = anim_exporter_name
+        # For each type of export pipeline to be exercised and list of all
+        # currently enabled exporters in this pipeline...
+        for pipe_type, pipe_list in self._pipes_type_list:
+            # For the name of each exporter supported by this pipeline...
+            for pipe_exporter_name, _ in pipe_type.iter_runners():
+                # New default export of this type appended to this pipeline.
+                pipe_exporter_conf = pipe_list.append_default()
+                pipe_exporter_conf.name = pipe_exporter_name
 
 
     def _enable_visuals_common(self) -> None:
@@ -676,15 +678,6 @@ class SimConfigTestWrapper(object):
         results = self._p._conf['results options']
         variable = self._p._conf['variable settings']
 
-        # Enable all plots *NOT* requiring extracellular spaces.
-        results['Vmem 2D']['plot Vmem'] = True
-        results['Ca 2D']['plot Ca'] = True
-        results['pH 2D']['plot pH'] = True
-        results['Efield 2D']['plot Efield'] = True
-        results['Currents 2D']['plot Currents'] = True
-        results['Pressure 2D']['plot Pressure'] = True
-        results['Velocity 2D']['plot Velocity'] = True
-
         # Enable all simulation features required by these exports.
         self.ion_profile = 'animal'
         self._p._conf['apply pressure']['event happens'] = True
@@ -696,3 +689,21 @@ class SimConfigTestWrapper(object):
         # Enable all optional settings supported by these exports.
         results['enumerate cells'] = True
         results['overlay currents'] = True
+
+    # ..................{ PRIVOTE ~ iterators                }..................
+    @property
+    def _pipes_type_list(self) -> tuple:
+        '''
+        Tuple of 2-tuples ``(pipe_type, pipe_list)``, describing each export
+        pipeline to be exercised, where:
+
+        * ``pipe_type`` is an instance of :class:`SimPipeABC`.
+        * ``pipe_list`` is an instance of :class:`SimConfList` listing all
+          currently enabled exporters in this pipeline.
+        '''
+
+        return (
+            (PlotCellPipe,  self._p.plot.after_sim_pipeline_cell),
+            (PlotCellsPipe, self._p.plot.after_sim_pipeline_cells),
+            (AnimCellsPipe, self._p.anim.after_sim_pipeline),
+        )

@@ -214,8 +214,7 @@ class BetseTypeException(BetseException):
     pass
 
 
-#FIXME: Rename to "BetseMappingException" for generality.
-class BetseDictException(BetseTypeException):
+class BetseMappingException(BetseTypeException):
     '''
     Dictionary-specific type or value exception.
     '''
@@ -300,13 +299,11 @@ class BetseSimPhaseException(BetseSimException):
     pass
 
 
-#FIXME: For orthogonality, rename to "BetseSimVectorException".
-class BetseVectorException(BetseSimException):
+class BetseSimVectorException(BetseSimException):
     '''
     Vector-specific exception.
     '''
     pass
-
 
 # ....................{ EXCEPTIONS ~ science : visual      }....................
 class BetseSimVisualException(BetseSimException):
@@ -317,22 +314,21 @@ class BetseSimVisualException(BetseSimException):
     pass
 
 
-#FIXME: For orthogonality, rename to "BetseSimVisualLayerException".
-class BetseLayerException(BetseSimVisualException):
+class BetseSimVisualLayerException(BetseSimVisualException):
     '''
     Simulation visualization layer-specific exception.
     '''
     pass
 
-# ....................{ EXCEPTIONS ~ science : pipeline    }....................
-class BetseSimPipelineException(BetseSimException):
+# ....................{ EXCEPTIONS ~ science : pipe        }....................
+class BetseSimPipeException(BetseSimException):
     '''
     Simulation pipeline-specific exception.
     '''
     pass
 
 
-class BetseSimPipelineUnsatisfiedException(BetseSimPipelineException):
+class BetseSimPipeRunnerUnsatisfiedException(BetseSimPipeException):
     '''
     Simulation pipeline-specific exception raised on attempting to run a runner
     with unsatisfied requirements (e.g., a post-simulation animation requiring

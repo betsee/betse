@@ -11,11 +11,9 @@ activities to be iteratively run) functionality.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
 from betse.exceptions import (
-    BetseSimPipelineException,
-    BetseSimPipelineUnsatisfiedException,
-)
+    BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.science.simulate.pipe.piperun import (
-    SimPipelineRunner, SimPipelineRunnerConf)
+    SimPipeRunner, SimPipeRunnerConfMixin)
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.util.io.log import logs
 from betse.util.type import strs
@@ -23,7 +21,7 @@ from betse.util.type.obj import objects
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
 
 # ....................{ SUPERCLASSES                       }....................
-class SimPipelinerABC(object, metaclass=ABCMeta):
+class SimPipeABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all subclasses running a **simulation pipeline**
     (i.e., sequence of similar simulation activities to be iteratively run).
@@ -91,7 +89,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
     def iter_runners(cls) -> GeneratorType:
         '''
         Generator yielding the 2-tuple ``(runner_name, runner)`` for each
-        **runner** (i.e., :class:`SimPipelineRunner` instance produced by the
+        **runner** (i.e., :class:`SimPipeRunner` instance produced by the
         :func:`piperunner` decorator decorating this runner's method)
         defined by this pipeline subclass.
 
@@ -100,12 +98,12 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
         Yields
         ----------
-        (str, SimPipelineRunner)
+        (str, SimPipeRunner)
             2-tuple ``(runner_name, runner)`` where:
             * ``runner_name`` is the name of this runner's underlying method
               excluding the substring :attr:`_RUNNER_METHOD_NAME_PREFIX`
               prefixing this name.
-            * ``runner`` is each runner's :class:`SimPipelineRunner` instance.
+            * ``runner`` is each runner's :class:`SimPipeRunner` instance.
         '''
 
         # Return a generator comprehension...
@@ -113,7 +111,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             # Yielding a 2-tuple of:
             #
             # * The name of this runner's method excluding runner prefix.
-            # * Each "SimPipelineRunner" instance defined on this class.
+            # * Each "SimPipeRunner" instance defined on this class.
             (
                 strs.remove_prefix(
                     text=runner_method_name,
@@ -124,7 +122,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             for runner_method_name, runner in objects.iter_attrs_matching(
                 obj=cls,
                 predicate=lambda attr_name, attr_value: (
-                    isinstance(attr_value, SimPipelineRunner))))
+                    isinstance(attr_value, SimPipeRunner))))
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
@@ -204,7 +202,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
         * If the :meth:`is_enabled` property is ``True`` (implying this pipeline
           to be currently enabled):
-          * For each :class:`SimPipelineRunnerConf` instance (corresponding to
+          * For each :class:`SimPipeRunnerConfMixin` instance (corresponding to
             the configuration of a currently enabled pipeline runner) in the
             sequence of these instances provided by the
             :meth:`_runners_conf` property:
@@ -229,10 +227,10 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         # For the object encapsulating all input arguments to be passed to each
         # currently enabled runner in this pipeline...
         for runner_conf in self._runners_conf:
-            if not isinstance(runner_conf, SimPipelineRunnerConf):
-                raise BetseSimPipelineException(
+            if not isinstance(runner_conf, SimPipeRunnerConfMixin):
+                raise BetseSimPipeException(
                     '_runners_conf() item {!r} '
-                    'not instance of "SimPipelineRunnerConf".'.format(
+                    'not instance of "SimPipeRunnerConfMixin".'.format(
                         runner_conf))
 
             # If this runner is disabled, log this fact and ignore this runner.
@@ -255,7 +253,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
             # If this runner is unrecognized, raise an exception.
             if runner_method is None:
-                raise BetseSimPipelineException(
+                raise BetseSimPipeException(
                     '{} "{}" unrecognized.'.format(
                         self._label_singular_uppercase, runner_conf.name))
             # Else, this runner is recognized.
@@ -266,7 +264,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
             # If this runner's requirements are unsatisfied (e.g., due to the
             # current simulation configuration disabling extracellular spaces),
             # ignore this runner with a non-fatal warning and continue.
-            except BetseSimPipelineUnsatisfiedException as exception:
+            except BetseSimPipeRunnerUnsatisfiedException as exception:
                 logs.log_warn(
                     'Ignoring %s "%s", as:\n\t%s',
                     self._label_singular_lowercase,
@@ -276,7 +274,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
     # ..................{ EXCEPTIONS                         }..................
     @type_check
     def die_unless_runner_satisfied(
-        self, runner: SimPipelineRunner) -> None:
+        self, runner: SimPipeRunner) -> None:
         '''
         Raise an exception if the passed runner is **unsatisfied** (i.e.,
         requires one or more simulation features disabled for the current
@@ -284,7 +282,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        runner : SimPipelineRunner
+        runner : SimPipeRunner
             Simulation pipeline runner to be tested.
 
         Raises
@@ -306,7 +304,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         # If any runner requirement is unsatisfied, raise an exception.
         for requirement in runner.requirements:
             if not requirement.is_satisfied(phase=self._phase):
-                raise BetseSimPipelineUnsatisfiedException(
+                raise BetseSimPipeRunnerUnsatisfiedException(
                     '{} "{}" requirement unsatisfied: {} disabled.'.format(
                         self._label_singular_uppercase,
                         runner_name,
@@ -322,7 +320,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
     @abstractproperty
     def _runners_conf(self) -> IterableTypes:
         '''
-        Iterable of all :class:`SimPipelineRunnerConf` instances for the current
+        Iterable of all :class:`SimPipeRunnerConfMixin` instances for the current
         pipeline, each encapsulating all input parameters to be passed to the
         method implementing a runner currently contained in this pipeline.
 
@@ -334,7 +332,7 @@ class SimPipelinerABC(object, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASSES                         }....................
-class SimPipelinerExportABC(SimPipelinerABC):
+class SimPipeExportABC(SimPipeABC):
     '''
     Abstract base class of all **simulation export pipelines** (i.e., subclasses
     iteritavely exporting all variations on a single type of simulation export,

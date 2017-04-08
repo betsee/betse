@@ -67,19 +67,19 @@ displaying and/or saving plots produced after initialization and simulation).
 import matplotlib
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
+from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import type_check
 from matplotlib import pyplot as pyplot
 
 # ....................{ SUBCLASSES                         }....................
-class PlotCellsPipelinerABC(SimPipelinerExportABC):
+class PlotPipeABC(SimPipeExportABC):
     '''
-    Abstract base class of all **post-simulation plot pipeline** (i.e., object
+    Abstract base class of all **post-simulation plot pipelines** (i.e., objects
     iteratively displaying and/or saving all plots produced after initialization
-    and simulation enabled by the current simulation configuration) subclasses.
+    and simulation enabled by the current simulation configuration).
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -97,12 +97,6 @@ class PlotCellsPipelinerABC(SimPipelinerExportABC):
     @property
     def is_enabled(self) -> bool:
         return self._phase.p.plot.is_after_sim
-
-
-    #FIXME: Shift into subclasses.
-    @property
-    def _runners_conf(self) -> IterableTypes:
-        return self._phase.p.plot.after_sim_pipeline
 
     # ..................{ PRIVATE ~ properties               }..................
     #FIXME: Fairly confident we calculate this elsewhere as well. Centralize all

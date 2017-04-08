@@ -9,7 +9,9 @@ YAML-backed simulation plot subconfigurations.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confabc import SimConfABC, conf_alias
+from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
+from betse.science.config.export.confvisabc import (
+    SimConfVisualListable, SimConfVisualCellListItem)
 from betse.util.type import ints
 from betse.util.type.types import type_check
 
@@ -32,10 +34,15 @@ class SimConfPlotAll(SimConfABC):
         ``True`` only if this configuration displays post-simulation plots.
     is_after_sim_save : bool
         ``True`` only if this configuration saves post-simulation plots.
-    postsim_pipeline : SimConfList
-        List of all post-simulation plots to be animated. Ignored if
-        :attr:``is_after_sim_save`` and :attr:``is_after_sim_show`` are both
-        ``False``.
+
+    Attributes (After : Single-cell)
+    ----------
+    after_sim_pipeline_cell : SimConfList
+        List of all post-simulation single-cell plots to be animated. Ignored if
+        :attr:``is_after_sim`` is ``False``.
+    after_sim_pipeline_cells : SimConfList
+        List of all post-simulation cell cluster plots to be animated. Ignored
+        if :attr:``is_after_sim`` is ``False``.
 
     Attributes (Image)
     ----------
@@ -53,9 +60,22 @@ class SimConfPlotAll(SimConfABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, **kwargs)
 
-        # Validate all passed integers to be positive.
+        # Encapsulate low-level lists of dictionaries with high-level wrappers.
+        self.after_sim_pipeline_cell = SimConfList(
+            confs=self._conf[
+                'results options']['after solving'][
+                'plots']['single cell']['pipeline'],
+            conf_type=SimConfVisualCellListItem,
+        )
+        self.after_sim_pipeline_cells = SimConfList(
+            confs=self._conf[
+                'results options']['after solving'][
+                'plots']['cell cluster']['pipeline'],
+            conf_type=SimConfVisualListable,
+        )
+
+        # Validate all configured integers to be positive.
         ints.die_unless_positive(self.image_dpi)
-        # print('is_after_sim_show: {}'.format(self.is_after_sim_show))
 
     # ..................{ ALIASES ~ after                    }..................
     is_after_sim_save = conf_alias(

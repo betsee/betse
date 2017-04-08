@@ -11,10 +11,10 @@ simulation feature required by a runner) functionality.
 # ....................{ IMPORTS                            }....................
 from betse.science.simulate.simphase import SimPhaseABC
 from betse.util.type.cls.expralias import ExprAliasUnbound
-from betse.util.type.types import type_check, StrOrNoneTypes
+from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
-class SimPipelineRunnerRequirement(object):
+class SimPipeRunnerRequirement(object):
     '''
     Object encapsulating the current boolean state of a simulation feature
     (e.g., extracellular spaces) required by simulation pipeline runners.
@@ -120,14 +120,14 @@ class SimPipelineRunnerRequirement(object):
         return self._expr_alias.set(phase, is_satisfied)
 
 # ....................{ CONSTANTS                          }....................
-DEFORM = SimPipelineRunnerRequirement(
+DEFORM = SimPipeRunnerRequirement(
     expr='phase.p.deformation', name='cellular deformation',)
 '''
 Requirement that a simulation phase enable cellular deformations.
 '''
 
 
-ECM = SimPipelineRunnerRequirement(
+ECM = SimPipeRunnerRequirement(
     expr='phase.p.sim_ECM', name='extracellular spaces',)
 '''
 Requirement that a simulation phase enable the extracellular matrix (ECM), also
@@ -135,21 +135,21 @@ referred to as "extracellular spaces."
 '''
 
 
-ELECTROOSMOSIS = SimPipelineRunnerRequirement(
+ELECTROOSMOSIS = SimPipeRunnerRequirement(
     expr='phase.p.sim_eosmosis', name='electroosmotic flow',)
 '''
 Requirement that a simulation phase enable electroosmotic flow (EOF).
 '''
 
 
-FLUID = SimPipelineRunnerRequirement(
+FLUID = SimPipeRunnerRequirement(
     expr='phase.p.fluid_flow', name='fluid flow',)
 '''
 Requirement that a simulation phase enable fluid flow.
 '''
 
 
-GHK = SimPipelineRunnerRequirement(
+GHK = SimPipeRunnerRequirement(
     expr='phase.p.GHK_calc', name='Goldman calculation',)
 '''
 Requirement that a simulation phase enable alternative calculation of
@@ -157,49 +157,49 @@ transmembrane voltages (Vmem) given the Goldman-Hodgkin-Katz (GHK) equation.
 '''
 
 
-ION_CALCIUM = SimPipelineRunnerRequirement(
+ION_CALCIUM = SimPipeRunnerRequirement(
     expr='phase.p.ions_dict["Ca"]', name='calcium (Ca2+) ions',)
 '''
 Requirement that a simulation phase enable calcium (Ca2+) ions.
 '''
 
 
-ION_HYDROGEN = SimPipelineRunnerRequirement(
+ION_HYDROGEN = SimPipeRunnerRequirement(
     expr='phase.p.ions_dict["H"]', name='hydrogen (H+) ions',)
 '''
 Requirement that a simulation phase enable hydrogen (H+) ions.
 '''
 
 
-ION_POTASSIUM = SimPipelineRunnerRequirement(
+ION_POTASSIUM = SimPipeRunnerRequirement(
     expr='phase.p.ions_dict["K"]', name='potassium (K+) ions',)
 '''
 Requirement that a simulation phase enable potassium (K+) ions.
 '''
 
 
-ION_M_ANION = SimPipelineRunnerRequirement(
+ION_M_ANION = SimPipeRunnerRequirement(
     expr='phase.p.ions_dict["M"]', name='M anions (M-)',)
 '''
 Requirement that a simulation phase enable M anions (M-).
 '''
 
 
-ION_SODIUM = SimPipelineRunnerRequirement(
+ION_SODIUM = SimPipeRunnerRequirement(
     expr='phase.p.ions_dict["Na"]', name='sodium (Na+) ions',)
 '''
 Requirement that a simulation phase enable sodium (Na+) ions.
 '''
 
 
-PRESSURE_OSMOTIC = SimPipelineRunnerRequirement(
+PRESSURE_OSMOTIC = SimPipeRunnerRequirement(
     expr='phase.p.deform_osmo', name='osmotic pressure',)
 '''
 Requirement that a simulation phase enable osmotic pressure.
 '''
 
 
-PRESSURE_TOTAL = SimPipelineRunnerRequirement(
+PRESSURE_TOTAL = SimPipeRunnerRequirement(
     # For simplicity, define this requirement to be settable by enabling osmotic
     # pressure. While the mechanical pressure event could also be enabled, doing
     # so is less trivial than the former.

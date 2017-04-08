@@ -18,7 +18,7 @@ from betse.science.math.vector import vectormake
 from betse.science.math.vector.field import fieldmake
 from betse.science.math.vector.vectorcls import VectorCells
 from betse.science.simulate.pipe import piperunreq
-from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
+from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.visual.anim.anim import (
     AnimCurrent,
@@ -39,7 +39,7 @@ from betse.science.visual.layer.vector.layervectorsurface import (
 from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUBCLASSES                         }....................
-class AnimCellsPipeliner(SimPipelinerExportABC):
+class AnimCellsPipe(SimPipeExportABC):
     '''
     **Post-simulation animation pipeline** (i.e., class iteratively creating all
     post-simulation animations requested by the current simulation

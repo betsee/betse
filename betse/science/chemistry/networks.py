@@ -28,7 +28,7 @@ from betse.science.config.export.confvisabc import SimConfVisualMolecule
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
-from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
+from betse.science.simulate.simphase import SimPhaseABC
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
@@ -3267,10 +3267,9 @@ class MasterOfNetworks(object):
 
         # get the name of the specific substance:
         for name in self.molecules:
-
             obj = self.molecules[name]
 
-            if p.plot_single_cell_graphs:
+            if p.plot_networks_single_cell:
                 # create line graphs for the substance
                 obj.plot_1D(sim, p, self.imagePath)
 

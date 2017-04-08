@@ -13,13 +13,14 @@ from betse.science.config.export.confvisabc import SimConfVisualListable
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
-from betse.science.visual.plot.pipe.plotpipeabc import PlotCellsPipelinerABC
+from betse.science.visual.plot.pipe.plotpipeabc import PlotPipeABC
+from betse.util.type.types import IterableTypes
 from matplotlib import pyplot as pyplot
 from matplotlib.collections import LineCollection
 from scipy.ndimage.filters import gaussian_filter
 
 # ....................{ SUBCLASSES                         }....................
-class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
+class PlotCellsPipe(PlotPipeABC):
     '''
     **Post-simulation cell cluster plot pipeline** (i.e., object iteratively
     displaying and/or saving all plots depicting all cells of the cell cluster,
@@ -33,12 +34,17 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         # Initialize our superclass with all passed parameters.
         super().__init__(*args, label_singular='cell cluster plot', **kwargs)
 
+    # ..................{ SUPERCLASS                         }..................
+    @property
+    def _runners_conf(self) -> IterableTypes:
+        return self._phase.p.plot.after_sim_pipeline_cells
+
     # ..................{ EXPORTERS ~ cells : channel        }..................
     @piperunner(
         categories=('Ion Channel', 'Density Factor',),
         requirements={piperunreq.ELECTROOSMOSIS,},
     )
-    def export_channel_density(self, conf: SimConfVisualListable = None) -> None:
+    def export_channel_density(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all cell membrane ion channel density factors for the cell cluster
         at the last time step.
@@ -63,7 +69,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
     # ..................{ EXPORTERS ~ cells : current        }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',))
-    def export_currents_intra(self, conf: SimConfVisualListable = None) -> None:
+    def export_currents_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all intracellular current densities for the cell cluster at the
         last time step.
@@ -81,9 +87,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             title='Intracellular Current Density',
             cb_title='Current Density [uA/cm2]',
             show_cells=False,
-            colorAutoscale=self._phase.p.autoscale_I2d,
-            minColor=self._phase.p.I_min_clr,
-            maxColor=self._phase.p.I_max_clr,
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
 
         axI.set_xlabel('Spatial distance [um]')
@@ -98,7 +104,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Current Density', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_currents_extra(self, conf: SimConfVisualListable = None) -> None:
+    def export_currents_extra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all extracellular current densities for the cell cluster
         environment at the last time step.
@@ -116,9 +122,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             title='Extracellular Current Density',
             cb_title='Current Density [uA/cm2]',
             show_cells=False,
-            colorAutoscale=self._phase.p.autoscale_I2d,
-            minColor=self._phase.p.I_min_clr,
-            maxColor=self._phase.p.I_max_clr,
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
 
         axI2.set_xlabel('Spatial distance [um]')
@@ -133,7 +139,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Physical Deformation',),
         requirements={piperunreq.DEFORM,},
     )
-    def export_deform(self, conf: SimConfVisualListable = None) -> None:
+    def export_deform(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all physical deformations for the cell cluster at the last time
         steps.
@@ -150,9 +156,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             title='Final Displacement of Cell Collective',
             cb_title='Displacement [um]',
             show_cells=self._phase.p.showCells,
-            colorAutoscale=self._phase.p.autoscale_Deformation,
-            minColor=self._phase.p.Deformation_min_clr,
-            maxColor=self._phase.p.Deformation_max_clr,
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
 
         # Export this plot to disk and/or display.
@@ -161,7 +167,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
     # ..................{ EXPORTERS ~ cells : electric       }..................
     @piperunner(
         categories=('Electric Field', 'Intracellular',))
-    def export_electric_intra(self, conf: SimConfVisualListable = None) -> None:
+    def export_electric_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all intracellular electric field lines for the cell cluster at the
         last time step.
@@ -178,9 +184,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             plot_ecm=False,
             title='Final Electric Field',
             cb_title='Electric Field [V/m]',
-            colorAutoscale=self._phase.p.autoscale_Efield,
-            minColor=self._phase.p.Efield_min_clr,
-            maxColor=self._phase.p.Efield_max_clr,
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
 
         # Export this plot to disk and/or display.
@@ -191,7 +197,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Electric Field', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_electric_extra(self, conf: SimConfVisualListable = None) -> None:
+    def export_electric_extra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all extracellular electric field lines for the cell cluster
         environment at the last time step.
@@ -208,9 +214,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             plot_ecm=True,
             title='Final Electric Field',
             cb_title='Electric Field [V/m]',
-            colorAutoscale=self._phase.p.autoscale_Efield,
-            minColor=self._phase.p.Efield_min_clr,
-            maxColor=self._phase.p.Efield_max_clr,
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
 
         # Export this plot to disk and/or display.
@@ -221,7 +227,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Fluid Flow', 'Intracellular',),
         requirements={piperunreq.FLUID,},
     )
-    def export_fluid_intra(self, conf: SimConfVisualListable = None) -> None:
+    def export_fluid_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all intracellular fluid flow field lines for the cell cluster at
         the last time step.
@@ -237,9 +243,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             plot_ecm=False,
             title='Final Fluid Velocity in Cell Collective',
             cb_title='Velocity [nm/s]',
-            colorAutoscale=self._phase.p.autoscale_Vel,
-            minColor=self._phase.p.Vel_min_clr,
-            maxColor=self._phase.p.Vel_max_clr,
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
 
         # Export this plot to disk and/or display.
@@ -250,7 +256,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Fluid Flow', 'Extracellular',),
         requirements={piperunreq.FLUID, piperunreq.ECM,},
     )
-    def export_fluid_extra(self, conf: SimConfVisualListable = None) -> None:
+    def export_fluid_extra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all extracellular fluid flow field lines for the cell cluster
         environment at the last time step.
@@ -266,9 +272,9 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             plot_ecm=True,
             title='Final Fluid Velocity in Cell Collective',
             cb_title='Velocity [um/s]',
-            colorAutoscale=self._phase.p.autoscale_Vel,
-            minColor=self._phase.p.Vel_min_clr,
-            maxColor=self._phase.p.Vel_max_clr,
+            colorAutoscale=conf.is_color_autoscaled,
+            minColor=conf.color_min,
+            maxColor=conf.color_max,
         )
 
         # Export this plot to disk and/or display.
@@ -279,8 +285,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Ion Concentration', 'Calcium', 'Intracellular',),
         requirements={piperunreq.ION_CALCIUM,},
     )
-    def export_ion_calcium_intra(
-        self, conf: SimConfVisualListable = None) -> None:
+    def export_ion_calcium_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all intracellular calcium (i.e., Ca2+) ion concentrations for the
         cell cluster at the last time step.
@@ -293,10 +298,10 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             self._phase.sim, self._phase.cells, self._phase.p,
             zdata=self._phase.sim.cc_time[-1][self._phase.sim.iCa]*1e6,
             number_cells=self._phase.p.enumerate_cells,
-            clrAutoscale=self._phase.p.autoscale_Ca,
-            clrMin=self._phase.p.Ca_min_clr,
-            clrMax=self._phase.p.Ca_max_clr,
             clrmap=self._phase.p.default_cm,
+            clrAutoscale=conf.is_color_autoscaled,
+            clrMin=conf.color_min,
+            clrMax=conf.color_max,
         )
 
         axCa.set_title('Final cytosolic Ca2+')
@@ -312,8 +317,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Ion Concentration', 'Calcium', 'Extracellular',),
         requirements={piperunreq.ION_CALCIUM, piperunreq.ECM,},
     )
-    def export_ion_calcium_extra(
-        self, conf: SimConfVisualListable = None) -> None:
+    def export_ion_calcium_extra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all extracellular calcium (i.e., Ca2+) ion concentrations for the
         cell cluster environment at the last time step.
@@ -349,8 +353,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Ion Concentration', 'Hydrogen', 'Intracellular',),
         requirements={piperunreq.ION_HYDROGEN,},
     )
-    def export_ion_hydrogen_intra(
-        self, conf: SimConfVisualListable = None) -> None:
+    def export_ion_hydrogen_intra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all intracellular hydrogen (i.e., H+) ion concentrations for the
         cell cluster at the last time step.
@@ -365,10 +368,10 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             self._phase.sim, self._phase.cells, self._phase.p,
             zdata=pHdata,
             number_cells=self._phase.p.enumerate_cells,
-            clrAutoscale=self._phase.p.autoscale_pH,
-            clrMin=self._phase.p.pH_min_clr,
-            clrMax=self._phase.p.pH_max_clr,
             clrmap=self._phase.p.default_cm,
+            clrAutoscale=conf.is_color_autoscaled,
+            clrMin=conf.color_min,
+            clrMax=conf.color_max,
         )
 
         # figH, axH, cbH = plotutil.plotPrettyPolyData(pHdata, sim,cells,p,
@@ -386,8 +389,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
     # ..................{ EXPORTERS ~ cells : junction       }..................
     @piperunner(
         categories=('Gap Junction', 'Connectivity State',))
-    def export_junction_state(
-        self, conf: SimConfVisualListable = None) -> None:
+    def export_junction_state(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all **gap junction connectivity states** (i.e., relative
         permeabilities of the gap junctions connecting all cell membranes) for
@@ -425,7 +427,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
 
     # ..................{ EXPORTERS ~ cells : microtubule    }..................
     @piperunner(categories=('Microtubule', 'Orientation',))
-    def export_microtubule(self, conf: SimConfVisualListable = None) -> None:
+    def export_microtubule(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all cellular microtubules for the cell cluster at the last time
         step.
@@ -443,12 +445,6 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             ax,
             self._phase.cells,
             self._phase.p,
-            # plot_ecm=False,
-            # title='Final Electric Field',
-            # cb_title='Electric Field [V/m]',
-            # colorAutoscale=self._phase.p.autoscale_Efield,
-            # minColor=self._phase.p.Efield_min_clr,
-            # maxColor=self._phase.p.Efield_max_clr,
         )
 
         ax.set_xlabel('X-Distance [um]')
@@ -463,7 +459,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Ion Pump', 'Density Factor',),
         requirements={piperunreq.ELECTROOSMOSIS,},
     )
-    def export_pump_density(self, conf: SimConfVisualListable = None) -> None:
+    def export_pump_density(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all cell membrane ion pump density factors for the cell cluster at
         the last time step.
@@ -486,7 +482,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
 
 
     @piperunner(categories=('Ion Pump', 'Pump Rate', 'Na-K-ATPase',))
-    def export_pump_nakatpase(self, conf: SimConfVisualListable = None) -> None:
+    def export_pump_nakatpase(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all cell membrane Na-K-ATPase pump rates for the cell cluster at
         the last time step.
@@ -517,7 +513,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Pressure', 'Total',),
         requirements={piperunreq.PRESSURE_TOTAL,},
     )
-    def export_pressure_total(self, conf: SimConfVisualListable = None) -> None:
+    def export_pressure_total(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all **cellular pressure totals** (i.e., summations of all cellular
         mechanical and osmotic pressures) for the cell cluster  at the last time
@@ -531,10 +527,10 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
             self._phase.sim, self._phase.cells, self._phase.p,
             zdata=self._phase.sim.P_cells,
             number_cells=self._phase.p.enumerate_cells,
-            clrAutoscale=self._phase.p.autoscale_P,
-            clrMin=self._phase.p.P_min_clr,
-            clrMax=self._phase.p.P_max_clr,
             clrmap=self._phase.p.default_cm,
+            clrAutoscale=conf.is_color_autoscaled,
+            clrMin=conf.color_min,
+            clrMax=conf.color_max,
         )
 
         axP.set_title('Final Pressure in Cell Network')
@@ -550,8 +546,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Voltage', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_voltage_extra(
-        self, conf: SimConfVisualListable = None) -> None:
+    def export_voltage_extra(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all extracellular voltages for the cell cluster environment at the
         last time step.
@@ -581,8 +576,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
     # ..................{ EXPORTERS ~ cells : voltage : vmem }..................
     @piperunner(
         categories=('Voltage', 'Transmembrane', 'Actual',))
-    def export_voltage_membrane(
-        self, conf: SimConfVisualListable = None) -> None:
+    def export_voltage_membrane(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all transmembrane voltages (Vmem) for all cell membranes at the
         last time step.
@@ -594,13 +588,13 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         figV, axV, cbV = plotutil.plotPrettyPolyData(
             1000*self._phase.sim.vm_time[-1],
             self._phase.sim, self._phase.cells, self._phase.p,
-            clrAutoscale=self._phase.p.autoscale_Vmem,
-            clrMin=self._phase.p.Vmem_min_clr,
-            clrMax=self._phase.p.Vmem_max_clr,
             number_cells=self._phase.p.enumerate_cells,
-            clrmap=self._phase.p.default_cm,
             current_overlay=False,
             plotIecm=self._phase.p.IecmPlot,
+            clrmap=self._phase.p.default_cm,
+            clrAutoscale=conf.is_color_autoscaled,
+            clrMin=conf.color_min,
+            clrMax=conf.color_max,
         )
 
         figV.suptitle('Final Vmem', fontsize=14, fontweight='bold')
@@ -615,7 +609,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
     @piperunner(
         categories=('Voltage', 'Transmembrane', 'Average',))
     def export_voltage_membrane_average(
-        self, conf: SimConfVisualListable = None) -> None:
+        self, conf: SimConfVisualListable) -> None:
         '''
         Plot the averages of all transmembrane voltages (Vmem) for all cells
         at the last time step.
@@ -627,13 +621,13 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         figVa, axVa, cbVa = plotutil.plotPolyData(
             self._phase.sim, self._phase.cells, self._phase.p,
             zdata=1000*self._phase.sim.vm_ave,
-            clrAutoscale=self._phase.p.autoscale_Vmem,
-            clrMin=self._phase.p.Vmem_min_clr,
-            clrMax=self._phase.p.Vmem_max_clr,
             number_cells=self._phase.p.enumerate_cells,
-            clrmap=self._phase.p.default_cm,
             current_overlay=False,
             plotIecm=self._phase.p.IecmPlot,
+            clrmap=self._phase.p.default_cm,
+            clrAutoscale=conf.is_color_autoscaled,
+            clrMin=conf.color_min,
+            clrMax=conf.color_max,
         )
 
         # axVa.quiver(
@@ -653,7 +647,7 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         categories=('Voltage', 'Transmembrane', 'GHK',),
         requirements={piperunreq.GHK,},
     )
-    def export_voltage_membrane_ghk(self, conf: SimConfVisualListable = None) -> None:
+    def export_voltage_membrane_ghk(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all transmembrane voltages (Vmem) calculated by the
         Goldman-Hodgkin-Katz (GHK) equation for all cells at the last time step.
@@ -665,13 +659,13 @@ class PlotCellsPipelinerCells(PlotCellsPipelinerABC):
         figV_ghk, axV_ghk, cbV_ghk = plotutil.plotPolyData(
             self._phase.sim, self._phase.cells, self._phase.p,
             zdata=1000*self._phase.sim.vm_GHK_time[-1],
-            clrAutoscale=self._phase.p.autoscale_Vmem,
-            clrMin=self._phase.p.Vmem_min_clr,
-            clrMax=self._phase.p.Vmem_max_clr,
             number_cells=self._phase.p.enumerate_cells,
-            clrmap=self._phase.p.default_cm,
-            current_overlay = False,
+            current_overlay=False,
             plotIecm=self._phase.p.IecmPlot,
+            clrmap=self._phase.p.default_cm,
+            clrAutoscale=conf.is_color_autoscaled,
+            clrMin=conf.color_min,
+            clrMax=conf.color_max,
         )
 
         figV_ghk.suptitle(

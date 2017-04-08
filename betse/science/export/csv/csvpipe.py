@@ -15,7 +15,7 @@ import numpy as np
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import arrays
 from betse.science.export import expmath
-from betse.science.simulate.pipe.pipeabc import SimPipelinerExportABC
+from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
 from betse.science.visual.plot.plotutil import cell_ave
@@ -26,7 +26,7 @@ from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 from numpy import ndarray
 
 # ....................{ SUBCLASSES                         }....................
-class SimPipelinerExportCSV(SimPipelinerExportABC):
+class SimPipelinerExportCSV(SimPipeExportABC):
     '''
     **Post-simulation CSV export pipeline** (i.e., class iteratively creating
     all post-simulation plaintext spreadsheets in comma-separated value (CSV)
