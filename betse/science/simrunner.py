@@ -135,7 +135,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-
     def init(self) -> SimPhaseStrong:
         '''
         Initialize this simulation with the cell cluster seeded by a prior call
@@ -226,7 +225,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-
     def sim(self) -> SimPhaseStrong:
         '''
         Simulate this simulation with the cell cluster initialized by a prior
@@ -299,7 +297,6 @@ class SimRunner(object):
 
         # Return this phase.
         return phase
-
 
     #FIXME: Eliminate duplication. This and the sim_grn() methods are currently
     #carbon copies of each other, with the single difference that this method
@@ -402,7 +399,6 @@ class SimRunner(object):
 
         # Return this phase.
         return phase
-
 
     def sim_grn(self) -> SimPhaseStrong:
         '''
@@ -649,7 +645,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-
     def plot_init(self) -> SimPhaseStrong:
         '''
         Visualize the cell cluster initialized by a prior call to the
@@ -761,7 +756,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-
     def plot_sim(self) -> SimPhaseStrong:
         '''
         Visualize the cell cluster simulated by a prior call to the :meth:`sim`
@@ -861,7 +855,6 @@ class SimRunner(object):
         # Return this phase.
         return phase
 
-
     def plot_brn(self) -> SimPhaseStrong:
         '''
         Visualize the pure bioenergetics reaction network (BRN) initialized and
@@ -909,7 +902,6 @@ class SimRunner(object):
 
         # Return this phase.
         return phase
-
 
     def plot_grn(self) -> SimPhaseStrong:
         '''

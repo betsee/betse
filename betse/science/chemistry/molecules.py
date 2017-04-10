@@ -18,6 +18,7 @@ from betse.science import filehandling as fh
 from betse.util.io.log import logs
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.chemistry.netplot import set_net_opts
+from betse.science.math.systems import SimMaster
 
 
 class MasterOfMolecules(object):
@@ -96,6 +97,11 @@ class MasterOfMolecules(object):
         # set plotting options for the network:
         set_net_opts(self.core, self.core.net_plot_opts, p)
 
+        # plot up direction surfaces:  # FIXME move this to its own command in Simrunner
+        dyna_surf = SimMaster(self.config_dic, p)
+
+
+        # FIXME move this to its own command in Simrunner
         # after primary initialization, check and see if optimization required:
         opti = self.config_dic['optimization']['optimize network']
         self.core.opti_N = self.config_dic['optimization']['optimization steps']
@@ -103,20 +109,12 @@ class MasterOfMolecules(object):
         self.core.target_vmem = float(self.config_dic['optimization']['target Vmem'])
         self.core.opti_T = float(self.config_dic['optimization']['optimization T'])
         self.core.opti_step = float(self.config_dic['optimization']['optimization step'])
-        # self.core.opti_run = self.config_dic['optimization']['run from optimization']
 
         if opti is True:
             logs.log_info("The General Network is being analyzed for optimal rates...")
             self.core.optimizer(sim, cells, p)
             self.reinitialize(sim, cells, p)
 
-    #     if self.core.opti_run is True:
-    #
-    #         self.run_from_init(self, sim, cells, p)
-    #
-    # def run_from_init(self, sim, cells, p):
-    #
-    #     pass
 
     def reinitialize(self, sim, cells, p):
 

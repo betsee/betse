@@ -10,6 +10,7 @@ import os.path
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import OrderedDict
+from matplotlib import cm
 from matplotlib import colors
 from scipy.optimize import basinhopping
 from betse.exceptions import BetseSimConfigException
@@ -18,11 +19,12 @@ from betse.science.chemistry.netplot import set_net_opts
 from betse.util.io.log import logs
 from betse.util.path import paths
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
+from mpl_toolkits.mplot3d import Axes3D
 
 # ....................{ CLASSES                            }....................
 class SimMaster(object):
 
-    def __init__(self, config_substances, p, mit_enabled = False):
+    def __init__(self, config_dic, p, mit_enabled = False):
         """
         Initializes the MasterOfNetworks object.
 
@@ -52,16 +54,63 @@ class SimMaster(object):
         # boolean so that charge will only ever be balanced once:
         self.charge_has_been_balanced = False
 
-        self.vm = 0.0
+
+
+        self.vmo = float(p.network_config['optimization']['target Vmem'])
+
+        self.vm = self.vmo
         self.cdl = 1
         self.edl = 1
         self.mdl = 1
 
         self.div_cell = 5.0e5
 
+        # obtain main dictionaries:
+        # obtain specific sub-dictionaries from the config file:
+        self.substances_config = config_dic['biomolecules']
+        self.reactions_config = config_dic.get('reactions', None)
+        self.transporters_config = config_dic.get('transporters', None)
+        self.channels_config = config_dic.get('channels', None)
+
+        self.direction_surface_config = config_dic.get('direction surfaces', None)
+
         # read in substance properties from the config file, and initialize basic properties:
-        self.read_substances(config_substances, p)
-        self.tissue_init(config_substances, p)
+        self.read_substances(self.substances_config, p)
+        self.tissue_init(self.substances_config, p)
+
+
+        if self.reactions_config is not None:
+            # initialize the reactions of metabolism:
+            self.read_reactions(self.reactions_config, p)
+            self.write_reactions()
+            self.create_reaction_matrix()
+            self.write_reactions_env()
+            self.create_reaction_matrix_env()
+            self.has_reactions = True
+
+        else:
+            self.create_reaction_matrix()
+            self.create_reaction_matrix_env()
+            self.has_reactions = False
+
+        # initialize transporters, if defined:
+        if self.transporters_config is not None:
+            self.read_transporters(self.transporters_config, p)
+            self.write_transporters(p)
+
+            self.has_transporters = True
+
+        else:
+            self.has_transporters = False
+
+        # initialize channels, if desired:
+        if self.channels_config is not None:
+            self.read_channels(self.channels_config, p)
+            self.has_channels = True
+
+        else:
+            self.has_channels = False
+
 
         # colormap for plotting series of 1D lines:
         self.plot_cmap = 'viridis'
@@ -77,9 +126,47 @@ class SimMaster(object):
         self.globals = globals()
         self.locals = locals()
 
+        # Build core data structures:
 
+        self.build_sim_matrix(p)
 
-    #------------Initializers-------------------------------------------------------------------------------------------
+        self.init_saving(p)
+
+        # direction field plots:
+        if self.direction_surface_config is not None:
+
+            if len(self.direction_surface_config):
+
+                logs.log_info("Plotting direction surfaces for BIGR networks...")
+
+                self.direction_field_plotter(p)
+
+    def direction_field_plotter(self, p):
+
+        for dsparams in self.direction_surface_config:
+
+            npoints = int(dsparams['number of points'])
+
+            ap = {}
+            bp = {}
+
+            ap['name'] = dsparams['substance X name']
+            bp['name'] = dsparams['substance Y name']
+
+            ap['A_min'] = float(dsparams['range of X'][0])
+            ap['A_max'] = float(dsparams['range of X'][1])
+
+            bp['B_min'] = float(dsparams['range of Y'][0])
+            bp['B_max'] = float(dsparams['range of Y'][1])
+
+            alpha = float(dsparams['cmap alpha'])
+
+            self.direction_field(p, ap, bp, npoints=npoints, calpha=alpha)
+
+    def optimize_network(self, config, p):
+
+        pass
+
     def read_substances(self, config_substances, p):
         """
         Initialize all core data structures and concentration variables for all
@@ -371,16 +458,6 @@ class SimMaster(object):
 
         for i, conc_name in enumerate(self.conc_handler):
             self.conc_handler_index[conc_name] = i
-
-    def plot_init(self, config_dic, p):
-
-        config_substances = config_dic['biomolecules']
-
-        # read in network plotting options:
-        self.net_plot_opts = config_dic.get('network plotting', None)
-
-        # set plotting options for the network:
-        set_net_opts(self, self.net_plot_opts, p)
 
     def init_saving(self, p, plot_type='init', nested_folder_name='DynamicSystem'):
 
@@ -2274,9 +2351,9 @@ class SimMaster(object):
         from networkx import nx_pydot
 
         # set the Vmem to target value requested by user:
-        self.vm = float(p.network_config['optimization']['target Vmem'])
+        self.vm = self.vmo
 
-        self.init_saving(p, plot_type='init', nested_folder_name='Network_Matrix')
+        self.init_saving(p, plot_type='init', nested_folder_name='DynamicSystem')
 
         # create the reaction and concentration handlers, which organize different kinds of reactions and
         # concentrations:
@@ -2486,6 +2563,144 @@ class SimMaster(object):
                 origin_o[i] = self.channels[rea_name].channelMax
 
         self.origin_o = origin_o
+
+    def optimize(self, sim, cells, p):
+        pass
+
+    def direction_field(self, p, aa_params, bb_params, npoints = 25, calpha = 0.5):
+        """
+        Plots a direction field for 2 user-specified parameters of the network.
+        :param sim:
+        :param cells:
+        :param p:
+        :return:
+        """
+
+
+        Amin = aa_params['A_min']
+        Amax = aa_params['A_max']
+        Bmin = bb_params['B_min']
+        Bmax = bb_params['B_max']
+
+        aa = np.linspace(Amin, Amax, npoints)
+        bb = np.linspace(Bmin, Bmax, npoints)
+
+        AA, BB = np.meshgrid(aa, bb)
+
+        outputdA = np.zeros(AA.shape)
+        outputdB = np.zeros(BB.shape)
+
+        name_A = aa_params['name']
+        name_B = bb_params['name']
+
+        self.vm = self.vmo
+
+
+
+        for i in range(AA.shape[0]):
+
+            for j in range(BB.shape[1]):
+
+                if name_B == 'Vmem' and name_A in self.cell_concs:
+
+                    self.vm = BB[i, j]
+                    self.cell_concs[name_A] = AA[i, j]
+
+                    tagA = 'd/dt ' + name_A
+                    ind_A = list(self.output_handler).index(tagA)
+
+                    ind_B = list(self.output_handler).index('Jmem')
+
+
+
+                elif name_A == 'Vmem' and name_B in self.cell_concs:
+
+                    self.cell_concs[name_B] = BB[i, j]
+                    self.vm = AA[i, j]
+
+                    tagB = 'd/dt ' + name_B
+                    ind_B = list(self.output_handler).index(tagB)
+
+                    ind_A = list(self.output_handler).index('Jmem')
+
+                elif name_A in self.cell_concs and name_B in self.cell_concs:
+
+
+                    self.cell_concs[name_A] = AA[i,j]
+                    self.cell_concs[name_B] = BB[i,j]
+
+                    tagA = 'd/dt ' + name_A
+                    ind_A = list(self.output_handler).index(tagA)
+
+
+                    tagB = 'd/dt ' + name_B
+                    ind_B = list(self.output_handler).index(tagB)
+
+
+                else:
+
+                    raise BetseSimConfigException("Something's not right with the way direction surface "
+                                                  "entities have been specified. Please check the config "
+                                                  "settings and try again.")
+
+                r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in
+                          self.react_handler]
+
+                outputs = np.dot(self.network_opt_M, r_base)
+
+                outputdB[i, j] = outputs[ind_B]
+                outputdA[i, j] = outputs[ind_A]
+
+        MagM = (np.hypot(outputdA, outputdB))
+        # avoid zero division errors
+        MagM[MagM == 0] = 1.
+        # normalize each arrow
+        outputdA2 = outputdA / MagM
+        outputdB2 = outputdB / MagM
+
+        UU = np.sqrt(outputdA ** 2 + (outputdB) ** 2)
+
+        fig = plt.figure()
+        ax = plt.subplot(111)
+        plt.pcolormesh(AA, BB, UU, cmap = p.background_cm, alpha = calpha)
+        ax.quiver(AA, BB, outputdA2, outputdB2)
+        plt.axis([Amin, Amax, Bmin, Bmax])
+
+        ax.set_title('Direction field for ' + name_A + ' versus ' + name_B)
+        ax.set_xlabel('Value of ' + name_A)
+        ax.set_ylabel('Value of ' + name_B)
+
+
+        if p.autosave is True:
+            savename = self.imagePath + 'DirectionField_' + name_A + '_' + name_B + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+        plt.close()
+
+        #-----
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        surf = ax.plot_surface(AA, BB, UU, linewidth=0.0, rstride=1, cstride=1,
+                               shade=True, cmap=p.background_cm, antialiased=True)
+
+        # ax.set_title('Direction Surface for ' + name_A + ' versus ' + name_B)
+        ax.set_xlabel('Value of ' + name_A)
+        ax.set_ylabel('Value of ' + name_B)
+        # ax.view_init(elev=10, azim=-70)
+
+        if p.autosave is True:
+            savename = self.imagePath + 'DirectionSurface3D_' + name_A + '_' + name_B + '.png'
+            plt.savefig(savename, format='png', transparent=True)
+
+
+
+        plt.close()
+
+        # if p.turn_all_plots_off is False:
+        #     plt.show(block=False)
+
 
 class Molecule(object):
 
