@@ -34,6 +34,7 @@ from numpy import ndarray
 from random import shuffle
 from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
+from betse.science.math import toolbox as tb
 
 # ....................{ CLASSES                            }....................
 class Simulator(object):
@@ -450,7 +451,7 @@ class Simulator(object):
         if p.sim_ECM is True:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
-            self.v_env = np.zeros(len(cells.xypts))
+            self.v_env = np.ones(len(cells.xypts))*1.0e-3
             self.rho_env = np.zeros(len(cells.xypts))
 
             self.z_array_env = []  # ion valence array matched to env points
@@ -458,16 +459,10 @@ class Simulator(object):
             self.c_env_bound = []  # moving ion concentration at global boundary
             self.Dtj_rel = []  # relative diffusion constants for ions across tight junctions
 
-            #FIXME: The following complex assignments can be reduced to simply:
-            #
-            #    self.E_env_x = np.zeros(cells.X.shape)
-            #    self.E_env_y = np.zeros(cells.X.shape)
-            #
-            #This works because np.zeros() accepts a shape tuple directly. Ooh!
-            self.E_env_x = np.zeros(self.edl).reshape(cells.X.shape)
-            self.E_env_y = np.zeros(self.edl).reshape(cells.X.shape)
+            self.E_env_x = np.zeros(cells.X.shape)  # electric field in environment, x component
+            self.E_env_y = np.zeros(cells.X.shape)  # electric field in environment, y component
 
-            self.Phi_env = np.zeros(self.edl) # Voltage difference across the outer electrical double layer
+
 
         else:  # items specific to simulation *without* extracellular spaces:
             # Initialize environmental volume:
@@ -700,6 +695,7 @@ class Simulator(object):
 
         # load in the microtubules object:
         self.mtubes = Mtubes(cells, p, alpha_noise=p.mtube_noise)
+
 
     def init_tissue(self, cells, p):
         '''
@@ -969,6 +965,13 @@ class Simulator(object):
         # update the microtubules dipole for the case user changed it between init and sim:
         self.mtubes.pmit = p.mt_dipole_moment * 3.33e-30
         self.mtubes.alpha_noise = p.mtube_noise
+
+        # calculate an inverse electrical double layer based on internal and external concentrations:
+        self.ko_env = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.eo * p.er * p.kb * p.T), self.cc_env))).mean()
+        self.ko_cell = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.eo * p.er * p.kb * p.T), self.cc_cells))).mean()
+
+        self.cedl_env = p.eo*p.er*self.ko_env
+        self.cedl_cell = p.eo*p.er*self.ko_cell
 
 
     @type_check
@@ -1398,14 +1401,6 @@ class Simulator(object):
 
         self.rate_NaKATP_time =[]
 
-        self.pol_x_time = []  # polarization vectors
-        self.pol_y_time = []
-
-        self.Pol_tot_x_time = []
-        self.Pol_tot_y_time = []
-
-        self.Pol_tot_time = []
-
         self.vm_ave_time = []
 
         # microtubules:
@@ -1561,16 +1556,6 @@ class Simulator(object):
                 self.u_env_x_time.append(self.u_env_x[:])
                 self.u_env_y_time.append(self.u_env_y[:])
 
-        # polarizations:
-
-        # self.pol_x_time.append(self.pol_cell_x*1)
-        # self.pol_y_time.append(self.pol_cell_y*1)
-        #
-        # self.Pol_tot_x_time.append(self.Pol_x)
-        # self.Pol_tot_y_time.append(self.Pol_y)
-        #
-        # self.Pol_tot_time.append(self.Pol_tot)
-
         self.vm_ave_time.append(self.vm_ave)
 
         # # magnetic vector potential:
@@ -1702,16 +1687,42 @@ class Simulator(object):
         self.get_rho_mem(cells, p)
 
         # self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
+        #
+        # if p.sim_ECM is True:
+        #
+        #     self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
 
-        if p.sim_ECM is True:
+        # self.vm = (1 / p.cm)*(self.rho_at_mem)
 
-            self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
+        if p.sim_ECM is False:
 
-        self.vm = (1 / p.cm)*(self.rho_at_mem)
+            self.vm = (1 / p.cm)*(self.rho_at_mem)
 
-        if p.sim_ECM is True:
+        else:
 
-            self.vm = self.vm - self.v_env[cells.map_mem2ecm]
+            # map current from extracellular space to membrane normal
+            Jme = p.media_rho * (self.J_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+                                 self.J_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+
+            # Vmem with double layer interaction modelled (optional with "cell polarizability"):
+            self.vm = ((1/p.cm)*(self.rho_at_mem)
+                                                    # - (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability
+                                                   +  (1/self.cedl_env)*Jme*p.dt*p.cell_polarizability
+                                                   - self.v_env[cells.map_mem2ecm]
+                       )
+
+
+
+            # self.vm = (self.vm
+            #                     - (1/p.cm)*self.Jn*p.dt*0.5
+            #                     - (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability
+            #                     +  (1/self.cedl_env)*Jme*p.dt*p.cell_polarizability
+            #                                         )
+
+
+
+
+            # self.vm = self.vm - self.v_env[cells.map_mem2ecm]
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
@@ -1894,27 +1905,16 @@ class Simulator(object):
 
         #umt = -p.u_mtube # assume electroosmotic velocity directed from positive to negative end of mt
 
-        # uxmt, uymt = self.mtubes.mtubes_to_cell(cells, p)
-
         # calculate the equillibrium concentration gradients in terms of current and average concs:
         ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x[cells.mem_to_cells]   + ((umt*self.mtubes.mtubes_x*cav)/Do)
         ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y[cells.mem_to_cells]  + ((umt*self.mtubes.mtubes_y*cav)/Do)
-
-        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x[cells.mem_to_cells]   + \
-        #          ((umt*uxmt[cells.mem_to_cells]*cav)/Do)
-        #
-        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y[cells.mem_to_cells]  + \
-        #          ((umt*uymt[cells.mem_to_cells]*cav)/Do)
-
-        # ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x[cells.mem_to_cells]
-        # ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y[cells.mem_to_cells]
 
         cgrad_x = self.cc_grad_x[i]
         cgrad_y = self.cc_grad_y[i]
 
         # calculate update to the actual gradient concentration:
-        cgrad_x = cgrad_x - self.alpha_cgrad[i] * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability*0.1
-        cgrad_y = cgrad_y - self.alpha_cgrad[i] * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability*0.1
+        cgrad_x = cgrad_x - self.alpha_cgrad[i] * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability
+        cgrad_y = cgrad_y - self.alpha_cgrad[i] * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
 
@@ -1978,26 +1978,16 @@ class Simulator(object):
         matrices, including tight and adherin junctions.
         '''
 
-        self.D_env_u = np.zeros((
-            self.D_env.shape[0],
-            cells.grid_obj.u_shape[0],
-            cells.grid_obj.u_shape[1]))
-        self.D_env_v = np.zeros((
-            self.D_env.shape[0],
-            cells.grid_obj.v_shape[0],
-            cells.grid_obj.v_shape[1]))
+        # self.D_env_u = np.zeros((
+        #     self.D_env.shape[0],
+        #     cells.grid_obj.u_shape[0],
+        #     cells.grid_obj.u_shape[1]))
+        # self.D_env_v = np.zeros((
+        #     self.D_env.shape[0],
+        #     cells.grid_obj.v_shape[0],
+        #     cells.grid_obj.v_shape[1]))
 
         for i, dmat in enumerate(self.D_env):
-
-            # neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
-            # all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
-            # interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
-            # interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
-            # all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
-            #
-            # all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
-            # interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
-            # inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
 
             Denv_o = np.ones(self.edl) * self.D_free[i]
 
@@ -2007,30 +1997,8 @@ class Simulator(object):
             Denv_o[cells.interior_bound_mem_inds] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
             Denv_o[cells.inds_outmem] = self.D_free[i]
 
-            # set external membrane of boundary cells to the diffusion constant of tight junctions:
-            # dummyMems[all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            # dummyMems[interior_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            # dummyMems[cells.bflags_mems] = self.D_free[i]
-
-            # dummyMems[cells.bflags_mems] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-
-            # interp the membrane data to an ecm grid, fill values correspond to environmental diffusion consts:
-            # if p.env_type is True:
-                # Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                #     (cells.X,cells.Y),method='nearest',fill_value=self.D_free[i])
-
-            # else:
-                # Denv_o = interp.griddata((cells.mem_vects_flat[:,0],cells.mem_vects_flat[:,1]),dummyMems,
-                #     (cells.X,cells.Y),method='nearest',fill_value=0)
-
-            # Denv_o = Denv_o.ravel()
-            # Denv_o[cells.inds_env] = self.D_free[i]
-            # Denv_o[cells.map_cell2ecm][cells.bflags_cells] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
-
             # create an ecm diffusion grid filled with the environmental values
             self.D_env[i] = Denv_o*1.0
-
-            # self.D_env[i][cells.ecm_bound_k] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
 
 
         # create a matrix that weights the relative transport efficiency in the world space:
@@ -2038,40 +2006,40 @@ class Simulator(object):
         self.D_env_weight = D_env_weight.reshape(cells.X.shape)
         self.D_env_weight_base = np.copy(self.D_env_weight)
 
-        for i, dmat in enumerate(self.D_env):
-
-            if p.env_type is True:
-
-                self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = self.D_free[i])
-
-                self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=self.D_free[i])
-
-            else:
-                self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
-
-                self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                    (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
-
-
-
-        self.D_env_weight_u = self.D_env_u[self.iP]/self.D_env_u[self.iP].max()
-
-        self.D_env_weight_v = self.D_env_v[self.iP]/self.D_env_v[self.iP].max()
-
-        if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
-
-            self.D_env_weight_u[:,0] = 0
-            self.D_env_weight_u[:,-1] = 0
-            self.D_env_weight_u[0,:] = 0
-            self.D_env_weight_u[-1,:] = 0
-
-            self.D_env_weight_v[:,0] = 0
-            self.D_env_weight_v[:,-1] = 0
-            self.D_env_weight_v[0,:] = 0
-            self.D_env_weight_v[-1,:] = 0
+        # for i, dmat in enumerate(self.D_env):
+        #
+        #     if p.env_type is True:
+        #
+        #         self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = self.D_free[i])
+        #
+        #         self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=self.D_free[i])
+        #
+        #     else:
+        #         self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
+        #
+        #         self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
+        #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
+        #
+        #
+        #
+        # self.D_env_weight_u = self.D_env_u[self.iP]/self.D_env_u[self.iP].max()
+        #
+        # self.D_env_weight_v = self.D_env_v[self.iP]/self.D_env_v[self.iP].max()
+        #
+        # if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
+        #
+        #     self.D_env_weight_u[:,0] = 0
+        #     self.D_env_weight_u[:,-1] = 0
+        #     self.D_env_weight_u[0,:] = 0
+        #     self.D_env_weight_u[-1,:] = 0
+        #
+        #     self.D_env_weight_v[:,0] = 0
+        #     self.D_env_weight_v[:,-1] = 0
+        #     self.D_env_weight_v[0,:] = 0
+        #     self.D_env_weight_v[-1,:] = 0
 
     # ..................{ PLOTTERS                           }..................
     def _plot_loop(self, phase: SimPhase) -> tuple:
@@ -2175,367 +2143,5 @@ class Simulator(object):
         return time_steps, time_steps_sampled, anim_cells
 
 
-#FIXME: Can this be reasonably removed now?  No...not yet :-)
-#-----------------------------------------------------------------------------------------------------------------------
-# WASTELANDS
-#-----------------------------------------------------------------------------------------------------------------------
 
-        # #----Method #1 current based:---------------
-        # # I suspect this method is no good because the Vmem at each membrane are not adjustable. In
-        # # reality, the charge relaxation constant of an electrolyte is less than 3.6e-6 s. Therefore,
-        # # any polarization would be difficult to maintain for longer than a few microseconds in the
-        # # absence of a current. I am therefore using Method #2, which accounts for polarization by uneven
-        # # currents introduced across a membrane in a single time-step, but for which Vmem in a cell
-        # # collective would revert to homogeneous without a continous asymmetric current across individual
-        # # membranes.
-        #
-        # # We do not need to consider conductivity of the membrane in a resistive term, because it is already
-        # # incorporated into self.Jmem via the passive electrodiffusion fluxes across the membrane.
-        #
-        # dv = - (1/p.cm)*self.Jn*p.dt
-        # self.vm = self.vm + dv
-        #
-        # # # add in electric potential contribution from GJ currents:
-        # # self.vm = self.vm + self.v_cell[cells.mem_to_cells]
-        #
-        # if p.sim_ECM is True:
-        #
-        #     self.vm = self.vm - self.v_env[cells.map_mem2ecm]
-
-# def update_C(self,ion_i,flux,cells,p):
-#
-#     c_cells = self.cc_cells[ion_i][:]
-#     c_env = self.cc_env[ion_i][:]
-#
-#     if p.sim_ECM is True:
-#
-#         delta_cells = flux*(cells.mem_sa/cells.mem_vol)
-#
-#         # interpolate the flux from mem points to the ENV GRID:
-#         flux_env = -flux[cells.map_mem2ecm]
-#
-#         # save values at the cluster boundary:
-#         bound_vals = flux_env[cells.ecm_bound_k]
-#
-#         # set the values of the global environment to zero:
-#         flux_env[cells.inds_env] = 0
-#
-#         # finally, ensure that the boundary values are restored:
-#         flux_env[cells.ecm_bound_k] = bound_vals
-#
-#         # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the cell2ecm ratio,
-#         # which yields number of cells per unit env grid square, and then by cell surface area, and finally
-#         # by the volume of the env grid square, to get the mol/s change in concentration (divergence):
-#
-#         delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-#
-#         # update the concentrations
-#         self.cc_cells[ion_i] = c_cells + delta_cells*p.dt
-#         self.cc_env[ion_i] = c_env + delta_env*p.dt
-#
-#
-#     else:
-#
-#         delta_cells = flux* (cells.mem_sa/cells.mem_vol)
-#         delta_env = -flux*(cells.mem_sa/p.vol_env)
-#
-#         self.cc_cells[ion_i] = c_cells + delta_cells * p.dt
-#
-#         c_env = c_env + delta_env * p.dt
-#         # assume auto-mixing of environmental concentrations:
-#         self.cc_env[ion_i][:] = c_env.mean()
-
-
-
-
-# Calculate flux across TJ for this ion:
-
-# IdM = np.ones(self.mdl)
-#
-# f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
-#                     self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
-#                        self.T, p)
-#
-#
-# self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
-
-
-# #-----old way------------------------------------------------------------
-#
-#
-# if p.closed_bound is True:
-#     btag = 'closed'
-#
-# else:
-#     btag = 'open'
-#
-# # make v_env and cc_env into 2d matrices
-# cenv = self.cc_env[i]
-#
-# v_env = self.v_env.reshape(cells.X.shape)
-#
-# # enforce voltage at boundary:
-# v_env[:,0] = self.bound_V['L']
-# v_env[:,-1] = self.bound_V['R']
-# v_env[0,:] = self.bound_V['B']
-# v_env[-1,:] = self.bound_V['T']
-#
-# cenv = cenv.reshape(cells.X.shape)
-#
-# # if p.smooth_level > 0.0:
-# #     cenv = gaussian_filter(cenv, p.smooth_level)
-#
-# # prepare concentrations and diffusion constants for MACs grid format
-# # by resampling the values at the u v coordinates of the flux:
-# cenv_x = np.zeros(cells.grid_obj.u_shape)
-# cenv_y = np.zeros(cells.grid_obj.v_shape)
-#
-# # create the proper shape for the concentrations and state appropriate boundary conditions:
-# cenv_x[:,1:] = cenv
-#
-# cenv_y[1:,:] = cenv
-#
-# if p.closed_bound is True: # insulation boundary conditions
-#
-#     cenv_x[:,0] = cenv_x[:,1]
-#     cenv_x[:,-1] = cenv_x[:,-2]
-#     cenv_x[0,:] = cenv_x[1,:]
-#     cenv_x[-1,:] = cenv_x[-2,:]
-#
-#     cenv_y[0,:] = cenv_y[1,:]
-#     cenv_y[-1,:] = cenv_y[-2,:]
-#     cenv_y[:,0] = cenv_y[:,1]
-#     cenv_y[:,-1] = cenv_y[:,-2]
-#
-# else:   # open and electrically grounded boundary conditions
-#     cenv_x[:,0] =  self.c_env_bound[i]
-#     cenv_x[:,-1] =  self.c_env_bound[i]
-#     cenv_x[0,:] =  self.c_env_bound[i]
-#     cenv_x[-1,:] =  self.c_env_bound[i]
-#
-#     cenv_y[0,:] =  self.c_env_bound[i]
-#     cenv_y[-1,:] =  self.c_env_bound[i]
-#     cenv_y[:,0] =  self.c_env_bound[i]
-#     cenv_y[:,-1] =  self.c_env_bound[i]
-#
-#
-# # calculate gradients in the environment
-# grad_V_env_x, grad_V_env_y = cells.grid_obj.grid_gradient(v_env,bounds='closed')
-#
-# grad_cc_env_x, grad_cc_env_y = cells.grid_obj.grid_gradient(cenv,bounds=btag)
-#
-#
-# grad_V_env_x[:,1:] = grad_V_env_x[:,1:]  + self.E_env_x
-#
-# grad_V_env_y[1:,:] = grad_V_env_y[1:,:] + self.E_env_y
-#
-# # calculate fluxes for electrodiffusive transport:
-# if p.fluid_flow is True:
-#
-#     uenvx = np.zeros(cells.grid_obj.u_shape)
-#     uenvy = np.zeros(cells.grid_obj.v_shape)
-#
-#     uenvx[:,1:] = self.u_env_x
-#     uenvy[1:,:] = self.u_env_y
-#
-#     if p.closed_bound is False:
-#
-#         uenvx[:,0] = uenvx[:,1]
-#         uenvx[:,-1]= uenvx[:,-2]
-#         uenvx[0,:] = uenvx[1,:]
-#         uenvx[-1,:] = uenvx[-2,:]
-#
-#         uenvy[:,0] = uenvy[:,1]
-#         uenvy[:,-1]= uenvy[:,-2]
-#         uenvy[0,:] = uenvy[1,:]
-#         uenvy[-1,:] = uenvy[-2,:]
-#
-#     else:
-#
-#         uenvx[:,0] = 0
-#         uenvx[:,-1]= 0
-#         uenvx[0,:] = 0
-#         uenvx[-1,:] = 0
-#
-#         uenvy[:,0] = 0
-#         uenvy[:,-1]= 0
-#         uenvy[0,:] = 0
-#         uenvy[-1,:] = 0
-#
-#
-# else:
-#     uenvx = 0
-#     uenvy = 0
-#
-# # distance over which electric field is active is affected by electrolyte screening. Therefore
-# # we define a field modulation in the bulk, which is assumed to be a fraction of the Debye length,
-# # which is assumed to be about 1 nm:
-#
-# # self.field_mod = (1e-9/p.cell_space)
-# self.field_mod = 0.0
-#
-# f_env_x, f_env_y = stb.np_flux_special(cenv_x,cenv_y,grad_cc_env_x,grad_cc_env_y,
-#     self.field_mod*grad_V_env_x, self.field_mod*grad_V_env_y, uenvx,uenvy,self.D_env_u[i],self.D_env_v[i],
-#     self.zs[i],self.T,p)
-#
-#
-# IdM = np.ones(self.mdl)
-#
-#
-# # Calculate flux across TJ for this ion:
-#
-# f_TJ = stb.electroflux(self.c_env_bound[i]*IdM, self.cc_env[i][cells.map_mem2ecm],
-#                     self.D_env[i][cells.map_mem2ecm], IdM*p.rc, self.zs[i]*IdM, self.v_env[cells.map_mem2ecm],
-#                        self.T, p)
-#
-#
-# self.J_TJ = self.J_TJ - p.F*self.zs[i]*f_TJ
-#
-#
-# if p.closed_bound is False:
-#
-#     f_env_x[:,0] = f_env_x[:,1]
-#     f_env_x[:,-1]= f_env_x[:,-2]
-#     f_env_x[0,:] = f_env_x[1,:]
-#     f_env_x[-1,:] = f_env_x[-2,:]
-#
-#     f_env_y[:,0] = f_env_y[:,1]
-#     f_env_y[:,-1]= f_env_y[:,-2]
-#     f_env_y[0,:] = f_env_y[1,:]
-#     f_env_y[-1,:] = f_env_y[-2,:]
-#
-# else:
-#
-#     f_env_x[:,0] = 0
-#     f_env_x[:,-1]= 0
-#     f_env_x[0,:] = 0
-#     f_env_x[-1,:] = 0
-#
-#     f_env_y[:,0] = 0
-#     f_env_y[:,-1]= 0
-#     f_env_y[0,:] = 0
-#     f_env_y[-1,:] = 0
-#
-# # calculate the divergence of the total flux, which is equivalent to the total change per unit time
-#
-# d_fenvx = -(f_env_x[:,1:] - f_env_x[:,0:-1])/cells.delta
-# d_fenvy = -(f_env_y[1:,:] - f_env_y[0:-1,:])/cells.delta
-#
-# delta_c = d_fenvx + d_fenvy
-#
-# #-----------------------
-# cenv = cenv + delta_c*p.dt
-#
-#
-# if p.closed_bound is True:
-#     # Neumann boundary condition (flux at boundary)
-#     # zero flux boundaries for concentration:
-#
-#     cenv[:,-1] = cenv[:,-2]
-#     cenv[:,0] = cenv[:,1]
-#     cenv[0,:] = cenv[1,:]
-#     cenv[-1,:] = cenv[-2,:]
-#
-# elif p.closed_bound is False:
-#     # if the boundary is open, set the concentration at the boundary
-#     # open boundary
-#     cenv[:,-1] = self.c_env_bound[i]
-#     cenv[:,0] = self.c_env_bound[i]
-#     cenv[0,:] = self.c_env_bound[i]
-#     cenv[-1,:] = self.c_env_bound[i]
-#
-# self.cc_env[i] = cenv.ravel()
-#
-# fenvx = (f_env_x[:, 1:] + f_env_x[:, 0:-1]) / 2
-# fenvy = (f_env_y[1:, :] + f_env_y[0:-1, :]) / 2
-#
-# self.fluxes_env_x[i] = self.fluxes_env_x[i] + fenvx.ravel()  # store ecm junction flux for this ion
-# self.fluxes_env_y[i] = self.fluxes_env_y[i] + fenvy.ravel()  # store ecm junction flux for this ion
-
-
-#--------------------------------------------------------
-        # ---option to correct individual fluxes -------------------------------
-
-        # zz = self.zs[i]
-        #
-        # dd = self.D_env[i].reshape(cells.X.shape)
-        #
-        # # calculate the Einstein coefficient:
-        # sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
-        #
-        #
-        # fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, 0, 0, 0, 0,
-        #                                 self.D_env[i].reshape(cells.X.shape), self.zs[i],
-        #                                 self.T, p)
-        #
-        #
-        # # Calculate the divergence of the uncorrected flux:
-        # div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
-        #
-        # # enforce applied voltage condition at the boundary:
-        # div_fo[:,0] = self.bound_V['L']*(1/cells.delta**2)
-        # div_fo[:,-1] = self.bound_V['R']*(1/cells.delta**2)
-        # div_fo[0,:] = self.bound_V['B']*(1/cells.delta**2)
-        # div_fo[-1,:] = self.bound_V['T']*(1/cells.delta**2)
-        #
-        # # solve for the hidden potential energy, Phi:
-        # Phi = np.dot(cells.lapENVinv, div_fo.ravel())
-        #
-        # Phi = Phi.reshape(cells.X.shape)
-        #
-        # gPhix, gPhiy = fd.gradient(Phi, cells.delta)
-        #
-        # # correct the flux with its component of Phi:
-        # fx = fxo - gPhix*sigma
-        # fy = fyo - gPhiy*sigma
-
-        # #smooth the fluxes:
-        # if p.smooth_level > 0.0:
-        #     fx = gaussian_filter(fx, p.smooth_level)
-        #     fy = gaussian_filter(fy, p.smooth_level)
-
-        # # add this component of the extracellular voltage:
-        # self.Phi_vect[i] = Phi.ravel()
-        # -----------------------------------------------------------------------
-
-    # #---METHOD 2: option to correct individual fluxes -------------------------------
-    #
-    #     zz = self.zs[i]
-    #
-    #     dd = self.D_env[i].reshape(cells.X.shape)
-    #
-    #     # calculate the Einstein coefficient:
-    #     sigma = ((dd * (zz) * p.q * cenv) / (p.kb * p.T))
-    #
-    #     # corr = p.cell_space/cells.delta
-    #     corr = p.cell_polarizability
-    #
-    #
-    #     fxo, fyo = stb.nernst_planck_flux(cenv, gcx, gcy, -self.E_env_x*corr, -self.E_env_y*corr, 0, 0,
-    #                                     self.D_env[i].reshape(cells.X.shape), self.zs[i],
-    #                                     self.T, p)
-    #
-    #
-    #     # Calculate the divergence of the uncorrected flux, divided through by the Einstein coefficient:
-    #     div_fo = fd.divergence((1/sigma)*fxo, (1/sigma)*fyo, cells.delta, cells.delta)
-    #
-    #     #enforce applied voltage condition at the boundary:
-    #     div_fo[:,0] = 0.0
-    #     div_fo[:,-1] = 0.0
-    #     div_fo[0,:] = 0.0
-    #     div_fo[-1,:] = 0.0
-    #
-    #     # solve for the hidden potential energy, Phi:
-    #     Phi = np.dot(cells.lapENVinv, div_fo.ravel())
-    #
-    #     Phi = Phi.reshape(cells.X.shape)
-    #
-    #     gPhix, gPhiy = fd.gradient(Phi, cells.delta)
-    #
-    #     # correct the flux with its component of Phi:
-    #     fx = fxo - gPhix*sigma
-    #     fy = fyo - gPhiy*sigma
-    #
-    #     # add this component of the extracellular voltage storage vector:
-    #     self.Phi_vect[i] = Phi.ravel()
 

@@ -426,7 +426,7 @@ class PlotCellsPipe(PlotPipeABC):
         self._export(basename='final_gjState')
 
     # ..................{ EXPORTERS ~ cells : microtubule    }..................
-    @piperunner(categories=('Microtubule', 'Orientation',))
+    @piperunner(categories=('Microtubule', 'Coherence',))
     def export_microtubule(self, conf: SimConfVisualListable) -> None:
         '''
         Plot all cellular microtubules for the cell cluster at the last time
@@ -453,6 +453,49 @@ class PlotCellsPipe(PlotPipeABC):
 
         # Export this plot to disk and/or display.
         self._export(basename='Final_Microtubules')
+
+    # ..................{ EXPORTERS ~ cells : microtubule    }..................
+    @piperunner(categories=('Polarization', 'Coherence',))
+    def export_polarization(self, conf: SimConfVisualListable) -> None:
+        '''
+        Plot all cellular microtubules for the cell cluster at the last time
+        step.
+        '''
+
+        # Prepare to export the polarization plot.
+        self._export_prep()
+
+        pyplot.figure()
+
+        # plot a background Vmem mesh:
+        fig, ax, cb = plotutil.plotPrettyPolyData(
+            1000*self._phase.sim.vm_time[-1],
+            self._phase.sim, self._phase.cells, self._phase.p,
+            number_cells=self._phase.p.enumerate_cells,
+            current_overlay=False,
+            plotIecm=self._phase.p.IecmPlot,
+            clrmap=self._phase.p.default_cm,
+            clrAutoscale=conf.is_color_autoscaled,
+            clrMin=conf.color_min,
+            clrMax=conf.color_max,
+        )
+
+        # calculate the Vmem polarity vectors:
+        polm = self._phase.sim.vm - self._phase.sim.vm_ave_time[-1][self._phase.cells.mem_to_cells]
+        polx = polm*self._phase.cells.mem_vects_flat[:,2]
+        poly = polm*self._phase.cells.mem_vects_flat[:,3]
+
+        pcx = np.dot(self._phase.cells.M_sum_mems, polx*self._phase.cells.mem_sa)/self._phase.cells.cell_sa
+        pcy = np.dot(self._phase.cells.M_sum_mems, poly*self._phase.cells.mem_sa)/self._phase.cells.cell_sa
+
+        plotutil.cell_quiver(pcx, pcy, ax, self._phase.cells, self._phase.p)
+
+        ax.set_xlabel('X-Distance [um]')
+        ax.set_ylabel('Y-Distance [um]')
+        ax.set_title('Cell Vmem polarity')
+
+        # Export this plot to disk and/or display.
+        self._export(basename='Final_Polarity')
 
     # ..................{ EXPORTERS ~ cells : pump           }..................
     @piperunner(

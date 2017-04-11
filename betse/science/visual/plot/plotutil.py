@@ -1140,9 +1140,9 @@ def cell_quiver(datax, datay, ax, cells, p):
     Fmag = np.sqrt(Fx**2 + Fy**2)
 
     # normalize the data:
-    if Fmag.all() != 0.0:
-        Fx = Fx/Fmag
-        Fy = Fy/Fmag
+    Fmag[Fmag == 0.0] = 1.0
+    Fx = Fx/Fmag
+    Fy = Fy/Fmag
 
     vplot = ax.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],Fx,Fy,
         pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7, zorder=10)

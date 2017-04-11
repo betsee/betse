@@ -444,7 +444,6 @@ class Cells(object):
 
         self.cell_i = np.asarray(self.cell_i) # we need this to be an array for advanced indexing & assignments
 
-
     def deformWorld(self,p, ecm_verts):
         """
         Runs necessary methods to recalculate essential world
@@ -1144,7 +1143,6 @@ class Cells(object):
         self.R_rads = np.sqrt(self.rads[:,0]**2 + self.rads[:,1]**2)
         self.nx_rads = self.rads[:,0]/self.R_rads
         self.ny_rads = self.rads[:,1]/self.R_rads
-
 
     def quickVerts(self, p):
 
