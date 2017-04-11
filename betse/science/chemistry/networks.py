@@ -28,7 +28,7 @@ from betse.science.config.export.confvisabc import SimConfVisualMolecule
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
@@ -3591,7 +3591,7 @@ class MasterOfNetworks(object):
             plt.show(block=False)
 
     @type_check
-    def anim(self, phase: SimPhaseABC, message: str) -> None:
+    def anim(self, phase: SimPhase, message: str) -> None:
         """
         Animates 2D data for each molecule in the simulation.
         """
@@ -4984,7 +4984,7 @@ class Molecule(object):
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
     @type_check
-    def anim_cells(self, phase: SimPhaseABC) -> None:
+    def anim_cells(self, phase: SimPhase) -> None:
         """
         Create 2D animation of cell concentration.
         """
@@ -5007,7 +5007,7 @@ class Molecule(object):
     #FIXME: Ideally, this method should be refactored to comply with the
     #new pipeline API.
     @type_check
-    def anim_env(self, phase: SimPhaseABC) -> None:
+    def anim_env(self, phase: SimPhase) -> None:
         """
         Create 2D animation of env concentration.
         """

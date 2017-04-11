@@ -14,7 +14,7 @@ from betse.exceptions import (
     BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.science.simulate.pipe.piperun import (
     SimPipeRunner, SimPipeRunnerConfMixin)
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.util.io.log import logs
 from betse.util.type import strs
 from betse.util.type.obj import objects
@@ -52,7 +52,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
     Attributes (Private)
     ----------
-    _phase : SimPhaseABC
+    _phase : SimPhase
         Current simulation phase.
 
     Attributes (Private: Labels)
@@ -130,7 +130,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
         self,
 
         # Mandatory parameters.
-        phase: SimPhaseABC,
+        phase: SimPhase,
         label_singular: str,
 
         # Optional parameters.
@@ -142,7 +142,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        phase : SimPhaseABC
+        phase : SimPhase
             Current simulation phase.
         label_singular : str
             Human-readable singular noun synopsizing the type of runners

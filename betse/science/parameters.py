@@ -1383,7 +1383,7 @@ class Parameters(object):
     #Ideally, use the new "betse.science.sim.SimPhaseKind" enumeration value.
     #FIXME: Actually, this method makes little sense here; clearly, this method
     #sets phase-specific attributes. All phase-specific attributes should reside
-    #directly in the "SimPhaseABC" API rather than in this class, which is
+    #directly in the "SimPhase" API rather than in this class, which is
     #supposed to be phase-agnostic and hence reusable between phases.
 
     @type_check

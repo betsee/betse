@@ -17,7 +17,7 @@ from betse.lib.numpy import arrays
 from betse.science.export import expmath
 from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
-from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
+from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, paths
 from betse.util.type.call.memoizers import property_cached
@@ -344,14 +344,14 @@ class SimPipelinerExportCSV(SimPipeExportABC):
 
 # ....................{ PIPELINES                          }....................
 @type_check
-def pipeline(phase: SimPhaseABC) -> None:
+def pipeline(phase: SimPhase) -> None:
     '''
     Save all currently enabled data exports (e.g., spreadsheets in
     comma-separated value form) for the passed simulation phase.
 
     Parameters
     ----------------------------
-    phase: SimPhaseABC
+    phase: SimPhase
         Current simulation phase.
     '''
 

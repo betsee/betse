@@ -23,7 +23,7 @@ from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
 from betse.science.physics.move_channels import eosmosis
 from betse.science.physics.pressures import osmotic_P
-from betse.science.simulate.simphase import SimPhaseWeak, SimPhaseKind
+from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
@@ -922,8 +922,11 @@ class Simulator(object):
 
             cells.deform_tools(p)
 
-            #FIXME: Privatize the "cellso" attribute to the less ambiguous
-            #name "_cells_deformed". External callers should never access this.
+            #FIXME: "cellso" is pretty... wierd. Do we still need this and, if
+            #so, can we better document why? If we do ultimately need this,
+            #we'll probably want to privatize this attribute to the less
+            #ambiguous name "_cells_deformed". External callers should never
+            #access or care about this.
 
             # Deepy copy of the current cell cluster, to isolate deformations to
             # for visualization purposes only.
@@ -936,9 +939,7 @@ class Simulator(object):
                 # irregular cell network.
                 logs.log_info('Creating cell network Poisson solver...')
                 cells.graphLaplacian(p)
-
         else:
-
             self.cellso = cells
 
         # if simulating electrodiffusive movement of membrane pumps and channels:-------------
@@ -969,35 +970,37 @@ class Simulator(object):
         self.mtubes.pmit = p.mt_dipole_moment * 3.33e-30
         self.mtubes.alpha_noise = p.mtube_noise
 
-    def run_sim_core(self, cells, p) -> None:
+
+    @type_check
+    def run_sim_core(self, phase: SimPhase) -> None:
         '''
-        Perform the current phase (e.g., initialization, simulation), pickling
-        the results to files defined by the passed configuration.
+        Perform the passed simulation phase (e.g., initialization, simulation),
+        pickling the results to files defined by the configuration associated
+        with this phase.
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
         '''
 
         # Initialize all structures used for gap junctions, ion channels, and
         # other dynamics.
-        self.init_tissue(cells, p)
+        self.init_tissue(phase.cells, phase.p)
 
         # Reinitialize all time-data structures
-        self.clear_storage(cells, p)
+        self.clear_storage(phase.cells, phase.p)
 
         # Get the net, unbalanced charge and corresponding voltage in each cell
         # to initialize values of voltages.
-        self.update_V(cells, p)
-
-        #FIXME: "cellso" is pretty... wierd. Do we still need this and, if so,
-        #can we better document why? If we do ultimately need this, we'll
-        #probably want to store this "cellso" attribute on the current "phase"
-        #object rather than this simulator instead.
+        self.update_V(phase.cells, phase.p)
 
         # Display and/or save an animation during solving and calculate:
         #
         # * "time_steps", the array of all time steps for this phase.
         # * "time_steps_sampled", this array resampled to reduce data storage.
         # * "anim_cells", the mid-simulation animation providing cell voltages.
-        time_steps, time_steps_sampled, anim_cells = self._plot_loop(
-            self.cellso, p)
+        time_steps, time_steps_sampled, anim_cells = self._plot_loop(phase)
 
         # Exception raised if this simulation becomes unstable, enabling safe
         # handling of this instability (e.g., by saving simulation results).
@@ -1011,7 +1014,11 @@ class Simulator(object):
             # doing nothing.
             with anim_cells or noop_context():
                 self._run_sim_core_loop(
-                    cells, p, time_steps, time_steps_sampled, anim_cells)
+                    phase=phase,
+                    time_steps=time_steps,
+                    time_steps_sampled=time_steps_sampled,
+                    anim_cells=anim_cells,
+                )
         # If this phase becomes computationally unstable, preserve this
         # exception *BEFORE* saving the results and then reraising this
         # exception. Doing so guarantees access to these results even in the
@@ -1024,7 +1031,7 @@ class Simulator(object):
 
         # Save this initialization or simulation and report results of
         # potential interest to the user.
-        self.save_and_report(cells, p)
+        self.save_and_report(phase.cells, phase.p)
 
         # If the simulation went unstable, inform the user and reraise the
         # previously raised exception to preserve the underlying cause. To
@@ -1034,11 +1041,11 @@ class Simulator(object):
             logs.log_error('Simulation prematurely halted due to instability.')
             raise exception_instability
 
+
     @type_check
     def _run_sim_core_loop(
         self,
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
+        phase: SimPhase,
         time_steps: ndarray,
         time_steps_sampled: set,
         anim_cells: (AnimCellsWhileSolving, NoneType),
@@ -1051,10 +1058,8 @@ class Simulator(object):
 
         Parameters
         --------
-        cells : betse.science.cells.Cells
-            Current cell cluster.
-        p : betse.science.parameters.Parameters
-            Current simulation configuration.
+        phase : SimPhase
+            Current simulation phase.
         time_steps : ndarray
             One-dimensional Numpy array defining the time-steps vector for the
             current phase.
@@ -1068,30 +1073,32 @@ class Simulator(object):
             enabled by this configuration *or* ``None`` otherwise.
         '''
 
+        # Localize frequently accessed variables for efficiency when iterating.
+        p = phase.p
+        cells = phase.cells
+
         # True only on the first time step of this phase.
         is_time_step_first = True
 
         for t in time_steps:  # run through the loop
             # Start the timer to approximate time for the simulation.
-            if is_time_step_first is True:
+            if is_time_step_first:
                 loop_measure = time.time()
 
-            # Reinitialize flux storage devices:
+            # Reinitialize flux storage devices.
             self.fluxes_mem.fill(0)
             self.fluxes_gj.fill(0)
 
-            if p.sim_ECM is True:
-
+            if p.sim_ECM:
                 self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
                 self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
                 # self.Phi_vect = np.zeros((len(self.zs), self.edl))
-
                 # self.conc_J_x = np.zeros(self.edl)
                 # self.conc_J_y = np.zeros(self.edl)
 
-            # Calculate the values of scheduled and dynamic quantities (e.g.
-            # ion channel multipliers):
-            if p.run_sim is True:
+            # Calculate the values of scheduled and dynamic quantities (e.g..
+            # ion channel multipliers).
+            if p.run_sim:
                 self.dyna.runAllDynamics(self, cells, p, t)
 
             # -----------------PUMPS-------------------------------------------------------------------------------------
@@ -1111,7 +1118,6 @@ class Simulator(object):
                 )
 
             else:
-
                 fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
                             self.cc_at_mem[self.iNa],
                             self.cc_env[self.iNa],
@@ -1160,7 +1166,7 @@ class Simulator(object):
 
                 IdM = np.ones(self.mdl)
 
-                if p.sim_ECM is True:
+                if p.sim_ECM:
 
                     f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_at_mem[i],
                         self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
@@ -1209,7 +1215,6 @@ class Simulator(object):
 
             # update the general molecules handler-----------------------------------------------------------------
             if p.molecules_enabled:
-
                 if self.molecules.transporters:
                     self.molecules.core.run_loop_transporters(t, self, cells, p)
 
@@ -1224,16 +1229,13 @@ class Simulator(object):
             # update metabolic handler----------------------------------------------------------------------
 
             if p.metabolism_enabled:
-
                 if self.metabo.transporters:
                     self.metabo.core.run_loop_transporters(t, self, cells, p)
 
                 if self.metabo.channels:
-
                     self.metabo.core.run_loop_channels(self, cells, p)
 
                 if self.metabo.modulators:
-
                     self.metabo.core.run_loop_modulators(self, cells, p)
 
                 self.metabo.core.run_loop(t, self, cells, p)
@@ -1584,9 +1586,9 @@ class Simulator(object):
         simulation).
         '''
 
-        #FIXME: What is this? Why do we need an extra copy of "cells", anyway?
         cells.points_tree = None
 
+        #FIXME: What is this? Why do we need an extra copy of "cells", anyway?
         # get rid of the extra copy of cells
         if p.deformation:
             cells = copy.deepcopy(self.cellso)
@@ -2072,21 +2074,16 @@ class Simulator(object):
             self.D_env_weight_v[-1,:] = 0
 
     # ..................{ PLOTTERS                           }..................
-    #FIXME: Refactor to accept a single "SimPhaseABC" object instead.  Doing so
-    #will ultimately necessitate refactoring the parent "run_sim_core" method to
-    #accept the same object. Fortunately, that method is only called twice in
-    #the "simrunner" submodule. Unfortunately, doing so is complicated by our
-    #current use of a bizarre attribute of this object named "cellso"; see
-    #FIXME commentary elsewhere in this submodule for details.
-    def _plot_loop(
-        self,
-        cells: 'betse.science.cells.Cells',
-        p:     'betse.science.parameters.Parameters',
-    ) -> tuple:
+    def _plot_loop(self, phase: SimPhase) -> tuple:
         '''
-        Display and/or save an animation during solving if requested _and_
+        Display and/or save an animation during solving if requested *and*
         calculate data common to solving both with and without extracellular
         spaces.
+
+        Parameters
+        --------
+        phase : SimPhase
+            Current simulation phase.
 
         Returns
         --------
@@ -2105,42 +2102,29 @@ class Simulator(object):
               * Else, ``None``.
         '''
 
-        #FIXME: Replace "phase_kind" with "phase.kind" once we've refactored
-        #this method to accept a "SimPhaseABC" instance instead; then, remove
-        #this logic entirely.
-
-        # Type and maximum number of steps of the current run.
-        if p.run_sim is False:
-            phase_kind = SimPhaseKind.INIT
-        else:
-            phase_kind = SimPhaseKind.SIM
-
         #FIXME: Refactor these conditionally set local variables into
         #attributes of the "Parameters" object set instead by the
         #Parameters.set_time_profile() method.
 
-        if phase_kind is SimPhaseKind.INIT:
+        if phase.kind is SimPhaseKind.INIT:
             phase_verb = 'Initializing'
             phase_noun = 'initialization'
-            phase_time_step_count = p.init_tsteps
+            phase_time_step_count = phase.p.init_tsteps
         else:
             phase_verb = 'Simulating'
             phase_noun = 'simulation'
-            phase_time_step_count = p.sim_tsteps
-
-        #FIXME: Replace "phase_time_len" with "p.total_time", which is the same
-        #exact value. (Duplication is bad for coding health.)
+            phase_time_step_count = phase.p.sim_tsteps
 
         # Total number of seconds simulated by the current run.
-        phase_time_len = phase_time_step_count * p.dt
+        phase_time_len = phase_time_step_count * phase.p.dt
 
         # Time-steps vector appropriate for the current run.
         time_steps = np.linspace(0, phase_time_len, phase_time_step_count)
 
         time_steps_sampled = set()
         i = 0
-        while i < len(time_steps) - p.t_resample:
-            i += p.t_resample
+        while i < len(time_steps) - phase.p.t_resample:
+            i += phase.p.t_resample
             i = int(i)
             time_steps_sampled.add(time_steps[i])
 
@@ -2159,14 +2143,21 @@ class Simulator(object):
         anim_cells = None
 
         # If this animation is enabled...
-        if p.anim.is_while_sim:
-            # Current simulation phase, weakly referencing all passed objects to
-            # avoid unpleasant circular references.
-            phase = SimPhaseWeak(kind=phase_kind, sim=self, cells=cells, p=p)
+        if phase.p.anim.is_while_sim:
+            #FIXME: This is terrible. Ideally, all deformations should already
+            #be properly incorporated into the current cell cluster *WITHOUT*
+            #requiring "cellso" shenanigans. (Wake me up when Utopia arrives.)
+
+            # Deformed simulation phase, replacing the current cell cluster with
+            # the deformed cell cluster *ONLY* for this animation. If
+            # deformations are disabled, this is a noop; if deformations are
+            # enabled, this is required to animate deformations while solving.
+            phase_deformed = SimPhase(
+                kind=phase.kind, sim=phase.sim, cells=self.cellso, p=phase.p)
 
             # Create this animation.
             anim_cells = AnimCellsWhileSolving(
-                phase=phase,
+                phase=phase_deformed,
                 conf=phase.p.anim.while_sim,
 
                 # Number of frames to animate, corresponding to the number of

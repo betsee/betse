@@ -9,7 +9,7 @@ simulation feature required by a runner) functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.util.type.cls.expralias import ExprAliasUnbound
 from betse.util.type.types import type_check
 
@@ -79,7 +79,7 @@ class SimPipeRunnerRequirement(object):
     #  are guaranteed to be either 0 or 1 and hence are effectively boolean.
 
     @type_check
-    def is_satisfied(self, phase: SimPhaseABC):
+    def is_satisfied(self, phase: SimPhase):
         '''
         ``True`` only if the passed simulation phase satisfies this requirement.
 
@@ -88,7 +88,7 @@ class SimPipeRunnerRequirement(object):
 
         Parameters
         ----------
-        phase : SimPhaseABC
+        phase : SimPhase
             Current simulation phase.
 
         Returns
@@ -101,7 +101,7 @@ class SimPipeRunnerRequirement(object):
 
     # ..................{ SETTERS                            }..................
     @type_check
-    def set_satisfied(self, phase: SimPhaseABC, is_satisfied: bool) -> bool:
+    def set_satisfied(self, phase: SimPhase, is_satisfied: bool) -> bool:
         '''
         Force the passed simulation phase to either satisfy or *not* satisfy
         this requirement.
@@ -111,7 +111,7 @@ class SimPipeRunnerRequirement(object):
 
         Parameters
         ----------
-        phase : SimPhaseABC
+        phase : SimPhase
             Current simulation phase.
         is_satisfied : bool
             ``True`` only if this phase is to satisfy this requirement.
@@ -156,25 +156,32 @@ Requirement that a simulation phase enable alternative calculation of
 transmembrane voltages (Vmem) given the Goldman-Hodgkin-Katz (GHK) equation.
 '''
 
-
+# ....................{ CONSTANTS ~ ion                    }....................
 ION_CALCIUM = SimPipeRunnerRequirement(
-    expr='phase.p.ions_dict["Ca"]', name='calcium (Ca2+) ions',)
+    expr='phase.p.ions_dict["Ca"]', name='calcium ions (Ca2+)',)
 '''
-Requirement that a simulation phase enable calcium (Ca2+) ions.
+Requirement that a simulation phase enable calcium ions (Ca2+).
+'''
+
+
+ION_CHLORIDE = SimPipeRunnerRequirement(
+    expr='phase.p.ions_dict["Cl"]', name='chloride ions (Cl-)',)
+'''
+Requirement that a simulation phase enable chloride ions (Cl-).
 '''
 
 
 ION_HYDROGEN = SimPipeRunnerRequirement(
-    expr='phase.p.ions_dict["H"]', name='hydrogen (H+) ions',)
+    expr='phase.p.ions_dict["H"]', name='hydrogen ions (H+)',)
 '''
-Requirement that a simulation phase enable hydrogen (H+) ions.
+Requirement that a simulation phase enable hydrogen ions (H+).
 '''
 
 
 ION_POTASSIUM = SimPipeRunnerRequirement(
-    expr='phase.p.ions_dict["K"]', name='potassium (K+) ions',)
+    expr='phase.p.ions_dict["K"]', name='potassium ions (K+)',)
 '''
-Requirement that a simulation phase enable potassium (K+) ions.
+Requirement that a simulation phase enable potassium ions (K+).
 '''
 
 
@@ -186,12 +193,12 @@ Requirement that a simulation phase enable M anions (M-).
 
 
 ION_SODIUM = SimPipeRunnerRequirement(
-    expr='phase.p.ions_dict["Na"]', name='sodium (Na+) ions',)
+    expr='phase.p.ions_dict["Na"]', name='sodium ions (Na+)',)
 '''
-Requirement that a simulation phase enable sodium (Na+) ions.
+Requirement that a simulation phase enable sodium ions (Na+).
 '''
 
-
+# ....................{ CONSTANTS ~ pressure               }....................
 PRESSURE_OSMOTIC = SimPipeRunnerRequirement(
     expr='phase.p.deform_osmo', name='osmotic pressure',)
 '''

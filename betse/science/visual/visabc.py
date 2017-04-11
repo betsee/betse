@@ -22,7 +22,7 @@ from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
 from betse.lib.numpy import arrays
 from betse.science.config.export.confvisabc import SimConfVisualABC
 from betse.science.export import expmath
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.science.visual.layer.layertext import LayerCellsIndex
@@ -75,7 +75,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     _layers : list
         List of all :class:`LayerCellsABC` instances collectively composing
         this visual.
-    _phase : SimPhaseABC
+    _phase : SimPhase
         Current simulation phase.
 
     Attributes (Private: Figure)
@@ -145,7 +145,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         self,
 
         # Mandatory parameters.
-        phase: SimPhaseABC,
+        phase: SimPhase,
         conf: SimConfVisualABC,
         is_save: bool,
         is_show: bool,
@@ -167,7 +167,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         Parameters
         ----------
-        phase : SimPhaseABC
+        phase : SimPhase
             Current simulation phase.
         conf : SimConfVisualABC
             Visualization configuration, synchronized with the YAML-backed
@@ -464,7 +464,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
-    def phase(self) -> SimPhaseABC:
+    def phase(self) -> SimPhase:
         '''
         Current simulation phase.
         '''

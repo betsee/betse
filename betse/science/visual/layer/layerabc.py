@@ -69,7 +69,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     _is_layered : bool
         ``True`` only if the :meth:`layer` method has been called at least once
         for this layer instance.
-    _phase : SimPhaseABC
+    _phase : SimPhase
         Current simulation phase *or* ``None`` if the :meth:`prep` method has
         yet to be called. Note that this attribute is also accessible via the
         :meth:`_visual.phase` property and is thus technically redundant. For

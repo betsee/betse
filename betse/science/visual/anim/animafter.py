@@ -8,7 +8,7 @@
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
 
@@ -25,7 +25,7 @@ class AnimCellsAfterSolving(AnimCellsABC):
     @type_check
     def __init__(
         self,
-        phase: SimPhaseABC,
+        phase: SimPhase,
         *args, **kwargs
     ) -> None:
         '''
@@ -33,7 +33,7 @@ class AnimCellsAfterSolving(AnimCellsABC):
 
         Parameters
         ----------
-        phase: SimPhaseABC
+        phase: SimPhase
             Current simulation phase.
 
         See the superclass `__init__()` method for all remaining parameters.

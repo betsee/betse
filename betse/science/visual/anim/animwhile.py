@@ -12,7 +12,7 @@ import matplotlib
 import numpy as np
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.export import expmath
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
 from matplotlib import pyplot
@@ -66,7 +66,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         self,
 
         # Mandatory parameters.
-        phase: SimPhaseABC,
+        phase: SimPhase,
 
         # Optional parameters.
 
@@ -83,7 +83,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
 
         Parameters
         ----------
-        phase: SimPhaseABC
+        phase: SimPhase
             Current simulation phase.
         is_colorbar_autoscaling_telescoped : optional[bool]
             `True` if colorbar autoscaling is permitted to increase but _not_

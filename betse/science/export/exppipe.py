@@ -10,7 +10,7 @@ spreadsheets.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.export.csv import csvpipe
-from betse.science.simulate.simphase import SimPhaseABC, SimPhaseKind
+from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
@@ -19,14 +19,14 @@ from betse.util.type.types import type_check
 
 # ....................{ PIPELINES                          }....................
 @type_check
-def pipeline(phase: SimPhaseABC) -> None:
+def pipeline(phase: SimPhase) -> None:
     '''
     Display and/or save all currently enabled simulation exports (e.g., plots,
     animations, spreadsheets) for the passed simulation phase.
 
     Parameters
     ----------------------------
-    phase: SimPhaseABC
+    phase: SimPhase
         Current simulation phase.
     '''
 

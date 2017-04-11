@@ -31,10 +31,10 @@
 # useful for configuration files -- like this one. For details, please see
 # https://en.wikipedia.org/wiki/YAML.
 
-#-----------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # FILE HANDLING
-#------------------------------------------------------------------------------------------------------------------------
-# Settings specific to saving simulations and results output
+# ------------------------------------------------------------------------------
+# Settings specific to saving simulations and results output.
 
 init file saving:                # Initialization paths to save and load.
     directory: INITS             # Directory containing the following files.
@@ -59,21 +59,19 @@ results file saving:          # Initialization and simulation exports to save.
     sim directory: RESULTS/sim_1    # Directory containing all simulation
                                     # exports (e.g., plots, animations).
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # INITIALIZATION SETTINGS
-# -----------------------------------------------------------------------------
-# Settings specific to the initialization
-
+# ------------------------------------------------------------------------------
+# Settings specific to the initialization.
 
 init time settings:
-
   time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-3 or smaller)
   total time: 1.0             # end time [s] (recommend 5 seconds or more)
   sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
 
-# ---------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # SIMULATION SETTINGS
-# ---------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 automatically run initialization: True     # If init file is not found, do you wish to
                                            # automatically run an init?
@@ -278,10 +276,12 @@ tissue profile definition:
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
 #-----------------------------------------------------------------------------------------------------------------------
-# Targeted interventions are scheduled changes that can be applied to cells in the cluster by linking to a defined
-# tissue profile. # Targeted interventions only occur durring sim runs, not durring an init.
-
-# No file synch issues: Targeted intervention settings can be altered after seed and init.
+# Targeted interventions are scheduled changes that can be applied to cells in
+# the cluster by linking to a defined tissue profile. Targeted interventions
+# only occur during sim runs, not during an init.
+#
+# No file synch issues: Targeted intervention settings can be altered after seed
+# and init.
 
 change Na mem:       # Change the membrane permeability to Na+
     event happens: True        # turn the event on (True) or off (False)
@@ -478,7 +478,7 @@ Ca dynamics:                   # include full calcium dynamics in the situation?
 # pump and gap junction function and environmental concentrations of ions.
 # No file synch issues: Global intervention settings can be changed at any time between seed, init and sim.
 
-# The following global changes affect the entire cluster durring a sim run (not an init):
+# The following global changes affect the entire cluster during a sim run (not an init):
 
 change K env:       # Change the environmental concentration of K+
   event happens: False      # turn the event on (True) or off (False)
@@ -520,6 +520,41 @@ block NaKATP pump:
   change start: 5           # time to start change [s]
   change finish: 25         # time to end change and return to original [s]
   change rate: 1.0          # rate of change [s]
+
+# ------------------------------------------------------------------------------
+# INTERVENTIONS
+# ------------------------------------------------------------------------------
+# Interventions are scheduled changes externally applied to some or all cells
+# in the cell cluster for some or all time steps of the simulation. All settings
+# in this section are safely modifiable at any time, including between the seed,
+# initialization, and simulation phases.
+interventions:
+  global:           # Global interventions globally applied to all cells.
+    ion pipeline:   # List of all global ion interventions, temporarily
+                    # increasing environmental concentrations of ions as
+                    # logistic functions centered around time steps.
+      # Example global potassium intervention, disabled by default.
+      - type: potassium   # Intervention type, as any following string:
+        # chloride  ->  Global chloride ion intervention
+        #   Ignored if chloride ions (Cl-) disabled by ion profile.
+        # potassium  ->  Global potassium ion intervention
+        #   Ignored if potassium ions (K+) disabled by ion profile.
+        # sodium  ->  Global sodium ion intervention
+        #   Ignored if sodium ions (Na+) disabled by ion profile.
+        enabled: False        # Enable this intervention?
+        start time:  1.00     # Time at which to begin intervening [s]
+        end time:   12.00     # Time at which to cease intervening [s]
+        peak duration: 1.00   # Time duration over which to increase ion
+                              # concentration after intervention begins [s]
+        multiplier: 20        # Factor by which to increase base level of ion
+                              # concentration during peak intervention duration
+      # Example global chloride intervention, disabled by default.
+      - type: chloride
+        enabled: False
+        start time:  5.00
+        end time:   25.00
+        peak duration: 2.00
+        multiplier: 10
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  GENERAL NETWORK
@@ -646,7 +681,7 @@ variable settings:
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
       Dm_P: 0.0            # proteins- membrane diffusion constant [m2/s]
 
-  env boundary concentrations:   # these concentrations are placed at the global boundary durring init and sim
+  env boundary concentrations:   # these concentrations are placed at the global boundary during init and sim
                                  # altering these is an easy way to change extracellular ion concentrations
                                  # uncomment the fields below to set new env boundaries, otherwise feature ignored!
 

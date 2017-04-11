@@ -305,11 +305,11 @@ def pulse(t,t_on,t_off,t_change):
     Returns
     --------
     y            Numpy array or float of values
-
     """
+
     g = (1/t_change)*10
-    x1 = g*(t-t_on)
-    x2 = g*(t-t_off)
+    # x1 = g*(t-t_on)
+    # x2 = g*(t-t_off)
     y1 = 1/(1 + (np.exp(-g*(t-t_on))))
     y2 = 1/(1 + (np.exp(-g*(t-t_off))))
     # y1 = expit(x1)

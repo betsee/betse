@@ -7,7 +7,7 @@ Abstract base classes of all post-simulation plot subclasses.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.visabc import VisualCellsABC
 from betse.util.type.types import type_check
 
@@ -22,7 +22,7 @@ class PlotCellsAfterSolving(VisualCellsABC):
     @type_check
     def __init__(
         self,
-        phase: SimPhaseABC,
+        phase: SimPhase,
         *args, **kwargs
     ) -> None:
         '''
@@ -30,7 +30,7 @@ class PlotCellsAfterSolving(VisualCellsABC):
 
         Parameters
         ----------
-        phase: SimPhaseABC
+        phase: SimPhase
             Current simulation phase.
 
         See the superclass `__init__()` method for all remaining parameters.

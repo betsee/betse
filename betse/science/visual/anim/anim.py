@@ -35,7 +35,7 @@ from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
 from betse.science.config.export.confvisabc import SimConfVisualListable
 from betse.science.export import expmath
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.anim.animafter import (
     AnimCellsAfterSolving, AnimField, AnimVelocity)
 from betse.science.visual.plot.plotutil import (
@@ -996,7 +996,7 @@ class AnimateDeformation(object):
     @type_check
     def __init__(
         self,
-        phase: SimPhaseABC,
+        phase: SimPhase,
         conf: SimConfVisualListable,
         ani_repeat: bool = True,
         save: bool = True,

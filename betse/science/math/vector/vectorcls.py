@@ -9,7 +9,7 @@ Abstract base classes of all vector subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimVectorException
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.lib.numpy import arrays
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceOrNoneTypes
@@ -37,7 +37,7 @@ class VectorCells(object):
 
     Attributes
     ----------
-    _phase : SimPhaseABC
+    _phase : SimPhase
         Current simulation phase.
     _times_cell_centres : ndarray
         Two-dimensional Numpy array of all arbitrary cell data for one or more
@@ -57,7 +57,7 @@ class VectorCells(object):
     @type_check
     def __init__(
         self,
-        phase: SimPhaseABC,
+        phase: SimPhase,
         times_cells_centre: SequenceOrNoneTypes = None,
         times_grids_centre: SequenceOrNoneTypes = None,
         times_membranes_midpoint: SequenceOrNoneTypes = None,
@@ -67,7 +67,7 @@ class VectorCells(object):
 
         Parameters
         ----------
-        phase : SimPhaseABC
+        phase : SimPhase
             Current simulation phase.
         times_cells_centre : optional[SequenceTypes]
             Two-dimensional sequence of all cell data for a single cell

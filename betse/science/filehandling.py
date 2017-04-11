@@ -148,7 +148,6 @@ def _preserve_backward_importability() -> None:
     confanim.SimConfAnimOne = confvisabc.SimConfVisualListable
     confvisabc.SimConfVisual = confvisabc.SimConfVisualListable
     confvisabc.SimConfListableVisual = confvisabc.SimConfVisualListable
-    sim.SimPhase = simphase.SimPhaseKind
     simphase.SimPhaseType = simphase.SimPhaseKind
     sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
         confanim.SimConfAnimAll)

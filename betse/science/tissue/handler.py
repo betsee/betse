@@ -4,13 +4,9 @@
 
 # FIXME include other channels in morphogen (dye) dynamics
 
+# ....................{ IMPORTS                            }....................
 import copy
-from random import shuffle
-
 import numpy as np
-from scipy import interpolate as interp
-from scipy import spatial as sps
-
 from betse.science.channels import vg_ca as vgca
 from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
@@ -23,34 +19,45 @@ from betse.science.math import toolbox as tb
 from betse.science.tissue.channels_o import cagPotassium
 from betse.util.io.log import logs
 from betse.util.type import types
+from betse.util.type.types import type_check
+from random import shuffle
+from scipy import interpolate as interp
+from scipy import spatial as sps
 
-
+# ....................{ CLASSES                            }....................
 class TissueHandler(object):
     '''
-    A high-level handler for user-specified tissue-centric functionality,
-    including both tissue profiles _and_ scheduled interventions.
+    High-level handler for user-specified tissue-centric functionality,
+    including both tissue profiles *and* scheduled interventions.
 
     This handler governs all:
 
     * Tissue profiles and objects required by these profiles, including all
       geometry-specifying bitmaps.
-    * Scheduled interventions, even those _not_ pertaining to tissue profiles
+    * Scheduled interventions, even those *not* pertaining to tissue profiles
       (e.g., global scheduled interventions).
 
     Attributes (General)
     ----------------------------
     '''
 
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
     def __init__(
-        self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
+        self,
+        sim:   'betse.science.sim.Simulator',
+        cells: 'betse.science.cells.Cells',
+        p:     'betse.science.parameters.Parameters',
+    ) -> None:
 
-        if p.sim_ECM is True:
+        if p.sim_ECM:
             self.data_length = len(cells.mem_i)
         else:
             self.data_length = len(cells.mem_i)
 
         self.wound_channel_used = False
 
+    # ..................{ RUNNERS ~ init                     }..................
     def runAllInit(
         self, sim: 'Simulator', cells: 'Cells', p: 'Parameters') -> None:
         '''
@@ -63,7 +70,8 @@ class TissueHandler(object):
         self._init_events_tissue(  sim, cells, p)
         self._init_channels_tissue(sim, cells, p)
 
-    def runAllDynamics(self, sim, cells, p, t):
+    # ..................{ RUNNERS ~ apply                    }..................
+    def runAllDynamics(self, sim, cells, p, t: float):
         '''
         Apply all tissue manipulations specified by the passed user-specified
         parameters to the passed tissue simulation and cellular world for the
@@ -74,6 +82,7 @@ class TissueHandler(object):
         self._sim_events_tissue(  sim, cells, p, t)
         self._sim_channels_tissue(sim, cells, p, t)
         self.makeAllChanges(sim)
+
 
     def _init_events_global(self,sim,cells,p):
         '''
@@ -137,6 +146,7 @@ class TissueHandler(object):
             self.toffNK = p.global_options['NaKATP_block'][1]
             self.trampNK = p.global_options['NaKATP_block'][2]
 
+
     def _init_events_tissue(self, sim, cells, p):
         '''
         Initialize all **targeted scheduled interventions** (i.e., events only
@@ -196,7 +206,8 @@ class TissueHandler(object):
                 # call a special toolbox function to change membrane permeability: spatial grads
                 # 'gradient_x', 'gradient_y', 'gradient_r'
 
-                self.scalar_Kmem, self.dyna_Kmem = getattr(mod,self.function_Kmem)(self.targets_Kmem,cells,p)
+                self.scalar_Kmem, self.dyna_Kmem = getattr(
+                    mod, self.function_Kmem)(self.targets_Kmem, cells, p)
 
         #----------------------------------------------
 
@@ -523,8 +534,6 @@ class TissueHandler(object):
                     init_funk = getattr(self,object_name)
                     init_funk.init(self, sim, cells, p)
 
-
-
             # Ca_class_ = getattr(vgca, p.vgCa_type, 'Ca_L')
             # self.vgCa_object = Ca_class_()
             #
@@ -576,7 +585,8 @@ class TissueHandler(object):
             self.target_mask_NaStretch = np.zeros(self.data_length)
             self.target_mask_NaStretch[self.targets_NaStretch] = 1
 
-    def _sim_events_global(self, sim, cells, p, t):
+
+    def _sim_events_global(self, sim, cells, p, t) -> None:
         '''
         Apply all **global scheduled interventions** (i.e., events globally
         applicable to all cells) specified by the passed user-specified
@@ -585,14 +595,21 @@ class TissueHandler(object):
         '''
 
         if p.global_options['K_env'] != 0:
-            effector_Kenv = tb.pulse(t,self.t_on_Kenv,self.t_off_Kenv,self.t_change_Kenv)
+            effector_Kenv = tb.pulse(
+                t, self.t_on_Kenv, self.t_off_Kenv, self.t_change_Kenv)
 
-            if p.sim_ECM is False:
-                sim.cc_env[sim.iK][:] = self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env
-
-            elif p.sim_ECM is True: # simulate addition of potassium salt to remain charge neutral
-                sim.c_env_bound[sim.iK] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['K']
-                sim.c_env_bound[sim.iM] = self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] + p.env_concs['M']
+            if p.sim_ECM: # simulate addition of potassium salt to remain charge neutral
+                sim.c_env_bound[sim.iK] = (
+                    self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] +
+                    p.env_concs['K']
+                )
+                sim.c_env_bound[sim.iM] = (
+                    self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] +
+                    p.env_concs['M']
+                )
+            else:
+                sim.cc_env[sim.iK][:] = (
+                    self.mem_mult_Kenv*effector_Kenv*p.cK_env + p.cK_env)
 
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
             effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
@@ -622,6 +639,7 @@ class TissueHandler(object):
 
         if p.global_options['NaKATP_block'] != 0:
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
+
 
     def _sim_events_tissue(self, sim, cells, p, t):
         '''
@@ -1321,7 +1339,6 @@ class TissueHandler(object):
                     logs.log_info('Creating cell network Poisson solver...')
                     cells.graphLaplacian(p)
 
-
         if p.sim_eosmosis is True:
 
             cells.eosmo_tools(p)
@@ -1346,4 +1363,3 @@ class TissueHandler(object):
         # need to also re-do tissue profiles and GJ
         self.tissueProfiles(sim, cells, p)
         cells.redo_gj(self, p)  # redo gap junctions to isolate different tissue types
-

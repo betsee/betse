@@ -10,7 +10,7 @@ class.
 # ....................{ IMPORTS                            }....................
 from betse.science.math.vector.vectorcls import VectorCells
 from betse.science.math.vector.field.fieldcls import VectorFieldCells
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
@@ -23,7 +23,7 @@ of uA/cm^2.
 
 # ....................{ MAKERS ~ currents                  }....................
 @type_check
-def make_currents_intra(phase: SimPhaseABC) -> VectorFieldCells:
+def make_currents_intra(phase: SimPhase) -> VectorFieldCells:
     '''
     Vector field caching all intracellular current densities for all time steps
     of the passed simulation phase, originally spatially situated at cell
@@ -31,7 +31,7 @@ def make_currents_intra(phase: SimPhaseABC) -> VectorFieldCells:
 
     Parameters
     ----------
-    phase : SimPhaseABC
+    phase : SimPhase
         Current simulation phase.
 
     Returns
@@ -48,7 +48,7 @@ def make_currents_intra(phase: SimPhaseABC) -> VectorFieldCells:
 
 
 @type_check
-def make_currents_extra(phase: SimPhaseABC) -> VectorFieldCells:
+def make_currents_extra(phase: SimPhase) -> VectorFieldCells:
     '''
     Vector field caching all exracellular current densities for all time steps
     of the passed simulation phase, originally spatially situated at
@@ -56,7 +56,7 @@ def make_currents_extra(phase: SimPhaseABC) -> VectorFieldCells:
 
     Parameters
     ----------
-    phase : SimPhaseABC
+    phase : SimPhase
         Current simulation phase.
 
     Returns
@@ -82,7 +82,7 @@ def make_currents_extra(phase: SimPhaseABC) -> VectorFieldCells:
 
 # ....................{ MAKERS ~ electric                  }....................
 @type_check
-def make_electric_intra(phase: SimPhaseABC) -> VectorFieldCells:
+def make_electric_intra(phase: SimPhase) -> VectorFieldCells:
     '''
     Vector field caching the electric field across all intracellular spaces for
     all time steps of the passed simulation phase, originally spatially situated
@@ -90,7 +90,7 @@ def make_electric_intra(phase: SimPhaseABC) -> VectorFieldCells:
 
     Parameters
     ----------
-    phase : SimPhaseABC
+    phase : SimPhase
         Current simulation phase.
 
     Returns
@@ -108,7 +108,7 @@ def make_electric_intra(phase: SimPhaseABC) -> VectorFieldCells:
 
 
 @type_check
-def make_electric_extra(phase: SimPhaseABC) -> VectorFieldCells:
+def make_electric_extra(phase: SimPhase) -> VectorFieldCells:
     '''
     Vector field caching the electric field across all extracellular spaces for
     all time steps of the passed simulation phase, originally spatially situated
@@ -116,7 +116,7 @@ def make_electric_extra(phase: SimPhaseABC) -> VectorFieldCells:
 
     Parameters
     ----------
-    phase : SimPhaseABC
+    phase : SimPhase
         Current simulation phase.
 
     Returns
@@ -143,7 +143,7 @@ def make_electric_extra(phase: SimPhaseABC) -> VectorFieldCells:
 
 # ....................{ MAKERS ~ microtubule               }....................
 @type_check
-def make_microtubule(phase: SimPhaseABC) -> VectorFieldCells:
+def make_microtubule(phase: SimPhase) -> VectorFieldCells:
     '''
     Vector field caching all cellular microtubules for all time steps of the
     passed simulation phase, originally spatially situated at cell membrane
@@ -151,7 +151,7 @@ def make_microtubule(phase: SimPhaseABC) -> VectorFieldCells:
 
     Parameters
     ----------
-    phase : SimPhaseABC
+    phase : SimPhase
         Current simulation phase.
 
     Returns

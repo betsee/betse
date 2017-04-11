@@ -9,12 +9,12 @@ Vector factories, producing instances of the :class:`VectorCells` class.
 # ....................{ IMPORTS                            }....................
 from betse.science.export import expmath
 from betse.science.math.vector.vectorcls import VectorCells
-from betse.science.simulate.simphase import SimPhaseABC
+from betse.science.simulate.simphase import SimPhase
 from betse.util.type.types import type_check
 
 # ....................{ MAKERS                             }....................
 @type_check
-def make_voltages_membrane(phase: SimPhaseABC) -> VectorCells:
+def make_voltages_membrane(phase: SimPhase) -> VectorCells:
     '''
     Vector caching all **transmembrane voltages** (i.e., voltages across all
     gap junctions connecting intracellular membranes) for all time steps of the
@@ -22,7 +22,7 @@ def make_voltages_membrane(phase: SimPhaseABC) -> VectorCells:
 
     Parameters
     ----------
-    phase : SimPhaseABC
+    phase : SimPhase
         Current simulation phase.
 
     Returns
