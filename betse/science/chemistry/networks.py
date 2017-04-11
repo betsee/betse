@@ -312,8 +312,8 @@ class MasterOfNetworks(object):
                     mol.mtt = True
 
                 # rate of change of cell concentration gradient (simplified diffusion):
-                mol.alpha_cgrad = mol.Do / (cells.R_rads * p.cell_height)
-                mol.alpha_ugrad = mol.u_mt / (cells.R_rads * p.cell_height)
+                mol.alpha_cgrad = mol.Do / (cells.R_rads * p.cell_height*cells.num_mems[cells.mem_to_cells])
+                mol.alpha_ugrad = mol.u_mt / (cells.R_rads * p.cell_height*cells.num_mems[cells.mem_to_cells])
 
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
@@ -1983,22 +1983,22 @@ class MasterOfNetworks(object):
 
                 if p.sim_ECM is True:
 
-                    if self.transporters[transp_name].ignore_ECM_transporter is True:
+                    # if self.transporters[transp_name].ignore_ECM_transporter is True:
 
-                        out_delta_term_react = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                                               "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
+                    out_delta_term_react = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                                           "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
 
-                        out_delta_term_prod = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                                              "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
+                    out_delta_term_prod = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                                          "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
 
-                    else:
-                        out_delta_term_react = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                                               "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
-                                                .format(transp_name)
-
-                        out_delta_term_prod = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                                              "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
-                                                .format(transp_name)
+                    # else:
+                    #     out_delta_term_react = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                    #                            "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
+                    #                             .format(transp_name)
+                    #
+                    #     out_delta_term_prod = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
+                    #                           "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
+                    #                             .format(transp_name)
 
                 else:
                     out_delta_term_react = "(np.dot(cells.M_sum_mems, -self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
@@ -3069,6 +3069,8 @@ class MasterOfNetworks(object):
 
     def mod_after_cut_event(self, target_inds_cell, target_inds_mem, sim, cells, p, met_tag=False):
 
+        self.extra_J_mem = np.zeros(sim.mdl)
+
         # get the name of the specific substance:
         for name in self.molecules:
 
@@ -3543,6 +3545,14 @@ class MasterOfNetworks(object):
             transp_dataM = np.asarray(transp_dataM)
 
             np.savetxt(saveDataTransp, transp_dataM.T, delimiter=',', header=transp_header)
+
+
+        #----Channels flux plot-------------------------------------------------------------------
+        if len(self.channels):
+
+            for kch, vch in self.channels.items():
+
+                vch.plot_2D(sim, cells, p, self.imagePath)
 
         # energy charge plots:----------------------------------------------------------
         # 1 D plot of mitochondrial voltage--------------------------------------------------------
@@ -4538,7 +4548,7 @@ class Molecule(object):
         cav = self.c_cells[cells.mem_to_cells]
         z = self.z
 
-        uomt = p.u_mtube*z
+        uomt = p.u_mtube
 
         # # determine if there's a net dipole resulting from microtubules:
         # uxmt, uymt = sim.mtubes.mtubes_to_cell(cells, p)
@@ -4569,7 +4579,7 @@ class Molecule(object):
 
         if len(indsZ[0]):
 
-            raise BetseSimInstabilityException("Network concentration value on membrane below zero! Your simulation has"
+            raise BetseSimInstabilityException("Network concentration " + self.name + " on membrane below zero! Your simulation has"
                                                " become unstable.")
 
 
@@ -5200,6 +5210,8 @@ class Transporter(object):
 
 class Channel(object):
 
+    # FIXME something is wrong with channels -- biased along y axis.
+
     def __init__(self, sim, cells, p):
 
         self.dummy_dyna = TissueHandler(sim, cells, p)
@@ -5275,6 +5287,29 @@ class Channel(object):
     def update_channel(self, sim, cells, p):
         self.dummy_dyna.tissueProfiles(sim, cells, p)  # initialize all tissue profiles
         self.init_channel(self.channel_class, self.channel_type, self.channelMax, sim, cells, p)
+
+    def plot_2D(self, sim, cells, p, saveImagePath):
+
+        flux_chan = self.channel_core.chan_flux
+
+        fig, ax, cb = viz.plotPrettyPolyData(flux_chan,
+            sim, cells, p,
+            number_cells=p.enumerate_cells,
+            clrAutoscale=True,
+            clrMin=0,
+            clrMax=1,
+            clrmap=p.default_cm)
+
+        tit = 'Final Flux of Channel ' + self.name
+
+        fig.suptitle(tit, fontsize=14, fontweight='bold')
+        ax.set_xlabel('Spatial distance [um]')
+        ax.set_ylabel('Spatial distance [um]')
+        cb.set_label('Flux [mmol/s]')
+
+        if p.autosave is True:
+            savename = saveImagePath + 'ChannelFlux2D_' + self.name + '.png'
+            plt.savefig(savename, format='png', transparent=True)
 
 class Modulator(object):
     """

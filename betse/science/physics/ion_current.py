@@ -46,6 +46,12 @@ def get_current(sim, cells, p):
         J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
         J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
 
+        # calculate div J mems mapped to ecm:
+        J_mems_env = np.zeros(sim.edl)
+        J_mems_env[cells.map_mem2ecm] = -sim.Jmem
+
+        # div_cells = (J_mems_env * (cells.memSa_per_envSquare / cells.ecm_vol)).reshape(cells.X.shape)
+
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)

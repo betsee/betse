@@ -88,7 +88,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
 
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
-        c_mem = sim.cc_cells[sim.iK][cells.mem_to_cells]
+        c_mem = sim.cc_at_mem[sim.iK]
 
         if p.sim_ECM is True:
             c_env = sim.cc_env[sim.iK][cells.map_mem2ecm]
@@ -108,10 +108,10 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # calculate specific ion flux contribution for this channel:
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
+        self.clip_flux(delta_Q, threshold=p.flux_threshold)
+
         # save the delta_Q:
         self.chan_flux = delta_Q
-
-        self.clip_flux(delta_Q, threshold=p.flux_threshold)
 
         self.update_charge(sim.iK, delta_Q, dyna.targets_vgK, sim, cells, p)
 

@@ -1099,9 +1099,9 @@ class Simulator(object):
             if p.sim_ECM is True:
                 # run the Na-K-ATPase pump:
                 fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                    self.cc_cells[self.iNa][cells.mem_to_cells],
+                    self.cc_at_mem[self.iNa],
                     self.cc_env[self.iNa][cells.map_mem2ecm],
-                    self.cc_cells[self.iK][cells.mem_to_cells],
+                    self.cc_at_mem[self.iK],
                     self.cc_env[self.iK][cells.map_mem2ecm],
                     self.vm,
                     self.T,
@@ -1113,9 +1113,9 @@ class Simulator(object):
             else:
 
                 fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
-                            self.cc_cells[self.iNa][cells.mem_to_cells],
+                            self.cc_at_mem[self.iNa],
                             self.cc_env[self.iNa],
-                            self.cc_cells[self.iK][cells.mem_to_cells],
+                            self.cc_at_mem[self.iK],
                             self.cc_env[self.iK],
                             self.vm,
                             self.T,
@@ -1162,13 +1162,13 @@ class Simulator(object):
 
                 if p.sim_ECM is True:
 
-                    f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_cells[i][cells.mem_to_cells],
+                    f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_at_mem[i],
                         self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
                         rho=self.rho_channel)
 
                 else:
 
-                    f_ED = stb.electroflux(self.cc_env[i],self.cc_cells[i][cells.mem_to_cells],
+                    f_ED = stb.electroflux(self.cc_env[i],self.cc_at_mem[i],
                                             self.Dm_cells[i],IdM*p.tm,self.zs[i]*IdM,
                                     self.vm,self.T,p,rho=self.rho_channel)
 
@@ -1741,7 +1741,7 @@ class Simulator(object):
 
             # run Ca-ATPase
 
-            f_CaATP = stb.pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],
+            f_CaATP = stb.pumpCaATP(self.cc_at_mem[self.iCa],
                 self.cc_env[self.iCa][cells.map_mem2ecm],
                 self.vm, self.T, p, self.CaATP_block, met = self.met_concs)
 
@@ -1751,7 +1751,7 @@ class Simulator(object):
 
             # run Ca-ATPase
 
-            f_CaATP = stb.pumpCaATP(self.cc_cells[self.iCa][cells.mem_to_cells],
+            f_CaATP = stb.pumpCaATP(self.cc_at_mem[self.iCa],
                                     self.cc_env[self.iCa], self.vm, self.T, p,
                                     self.CaATP_block, met = self.met_concs)
 
@@ -1799,7 +1799,7 @@ class Simulator(object):
             self.gjopen = self.gj_block*np.ones(len(cells.mem_i))
 
 
-        conc_mem = self.cc_cells[i][cells.mem_to_cells]
+        conc_mem = self.cc_at_mem[i]
 
 
         grad_cgj = (conc_mem[cells.nn_i] - conc_mem[cells.mem_i])/(cells.gj_len)
@@ -1886,7 +1886,9 @@ class Simulator(object):
         z = self.zs[i]
         Do = self.D_free[i]
 
-        umt = z*p.u_mtube  # assumes the mtube conducts ions like a wire in accordance to applied voltage
+        # print(self.mtubes.pmit/3.33e-30)
+
+        umt = p.u_mtube  # assumes the mtube conducts ions like a wire in accordance to applied voltage
 
         #umt = -p.u_mtube # assume electroosmotic velocity directed from positive to negative end of mt
 

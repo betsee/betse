@@ -1294,7 +1294,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         fgj_x, fgj_y = nernst_planck_flux(cX_mids, gcx, gcy, -sim.E_gj_x,
                                           -sim.E_gj_y, ux, uy,
-                                          sim.gjopen*Dgj, z, sim.T, p)
+                                          sim.gjopen*Dgj*sim.gj_block, z, sim.T, p)
 
         fgj_X = fgj_x*cells.mem_vects_flat[:,2] + fgj_y*cells.mem_vects_flat[:,3]
 
@@ -1390,6 +1390,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     """
 
     # take the divergence of the flux for each enclosed cell:
+
     delta_cells = np.dot(cells.M_sum_mems, flux * cells.mem_sa) / cells.cell_vol
 
     # if p.cluster_open is False: FIXME what is this?
@@ -1403,6 +1404,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
 
     if p.sim_ECM is True:
 
+        # FIXME need flux_envx and flux_envy
 
         flux_env = np.zeros(sim.edl)
         flux_env[cells.map_mem2ecm] = -flux
@@ -1421,13 +1423,13 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
         # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
         # to get the mol/s change in concentration (divergence):
 
-        if ignoreECM is False:
+        # if ignoreECM is False:
 
-            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+            # delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
 
-        else:
+        # else:
 
-            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
 
 
         # if p.smooth_level > 0.0:
@@ -1444,7 +1446,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
         cX_env_o = cX_env + delta_env * p.dt
 
         # assume auto-mixing of environmental concentrations:
-        cX_env[:] = cX_env_o.mean()
+        cX_env = cX_env_o.mean()
 
     return cX_cell, cX_env
 
@@ -1466,13 +1468,13 @@ def div_env(flux, sim, cells, p):
     # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
     # to get the mol/s change in concentration (divergence):
 
-    if sim.ignore_ecm is False:
+    # if sim.ignore_ecm is False:
 
-        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
+        # delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
 
-    else:
+    # else:
 
-        delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
+    delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
 
     # if p.smooth_level > 0.0:
     #     delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()

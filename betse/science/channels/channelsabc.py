@@ -72,9 +72,11 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         ccell =  sim.cc_cells[ion_index][master_inds]
 
+        # take the divergence of the flux:
+        divQ = np.dot(cells.M_sum_mems, delta_Q*cells.mem_sa)/cells.cell_vol
+
         # first in cells:
-        sim.cc_cells[ion_index][master_inds] = (ccell +
-                                                delta_Q[targets]*(cells.mem_sa[targets]/cells.mem_vol[targets])*p.dt)
+        sim.cc_cells[ion_index][master_inds] = (ccell + divQ[master_inds]*p.dt)
 
         if p.sim_ECM is False:
 
@@ -103,7 +105,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
             # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the,
             # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
             # to get the mol/s change in concentration (divergence):
-            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol   # FIXME cells.true_ecm_vol?
+            delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
 
             # update the concentrations:
             sim.cc_env[ion_index]= sim.cc_env[ion_index] + delta_env * p.dt
