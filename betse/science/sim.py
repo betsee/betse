@@ -1683,7 +1683,7 @@ class Simulator(object):
 
     def update_V(self,cells,p):
 
-        print(self.cc_cells[self.iNa].mean())
+        # print(self.cc_cells[self.iNa].mean())
 
 
         # save the voltage as a placeholder:
