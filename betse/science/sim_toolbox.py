@@ -61,7 +61,7 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
     # print("cB", cB.mean(), cB.max(), cB.min())
 
 
-    Dc = rho*Dc
+    # Dc = rho*Dc
 
     alpha = (zc*vBA*p.F)/(p.R*T)
 
@@ -84,6 +84,8 @@ def electroflux(cA,cB,Dc,d,zc,vBA,T,p,rho=1):
         # calculate the flux for those elements:
         flux[inotzero] = -((Dc[inotzero]*alpha[inotzero])/d[inotzero])*((cB[inotzero] -
                         cA[inotzero]*exp_alpha[inotzero])/deno[inotzero])
+
+    flux = flux*rho
 
 
     return flux

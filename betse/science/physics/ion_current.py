@@ -71,7 +71,7 @@ def get_current(sim, cells, p):
         div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
 
         # term describing source of environmental potential:
-        source_term = div_Jo  + (sim.rho_env/(sim.ko_env*p.er*p.eo)).reshape(cells.X.shape)
+        source_term =  div_Jo  + (sim.rho_env/((sim.ko_env**2)*p.er*p.eo)).reshape(cells.X.shape)
 
         # set boundary conditions
         source_term[:,0] = sim.bound_V['L']*(1/cells.delta**2)

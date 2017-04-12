@@ -1677,6 +1677,7 @@ class Cells(object):
         self.all_bound_mem_inds = self.map_mem2ecm[all_bound_mem_inds_o]
         self.interior_bound_mem_inds = self.map_mem2ecm[interior_bound_mem_inds_o]
         self.inds_outmem = self.map_mem2ecm[self.bflags_mems]
+        self.ecm_inds_bound_cell = self.map_cell2ecm[self.bflags_cells]
 
     def graphLaplacian(self,p):
         '''

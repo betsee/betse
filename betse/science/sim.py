@@ -21,7 +21,7 @@ from betse.science.physics.deform import (
     getDeformation, timeDeform, implement_deform_timestep)
 from betse.science.physics.flow import getFlow
 from betse.science.physics.ion_current import get_current
-from betse.science.physics.move_channels import eosmosis
+from betse.science.physics.move_channels import MoveChannel
 from betse.science.physics.pressures import osmotic_P
 from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.organelles.microtubules import Mtubes
@@ -941,16 +941,20 @@ class Simulator(object):
         # if simulating electrodiffusive movement of membrane pumps and channels:-------------
         if p.sim_eosmosis is True:
 
-            if cells.gradMem is None:
-                logs.log_info("Creating tools for self-electrodiffusion of membrane pumps and channels.")
-                cells.eosmo_tools(p)
+            # if cells.gradMem is None:
+            #     logs.log_info("Creating tools for self-electrodiffusion of membrane pumps and channels.")
+            #     cells.eosmo_tools(p)
 
-            self.rho_pump = np.ones(len(cells.mem_i))
-            self.rho_channel = np.ones(len(cells.mem_i))
+            self.rho_pump = np.ones(self.mdl)
+            self.rho_channel = np.ones(self.mdl)
+
+            self.move_pumps_channels = MoveChannel(self, cells, p)
 
         else:
             self.rho_pump = 1  # else just define it as identity.
             self.rho_channel = 1
+
+            self.move_pumps_channels = None
 
 
         # Initialize core user-specified interventions:
@@ -1279,24 +1283,26 @@ class Simulator(object):
             # calculate specific forces and pressures:
 
             if p.deform_osmo is True:
+
                 osmotic_P(self,cells, p)
 
             if p.fluid_flow is True:
 
-                self.run_sim = True
+                # self.run_sim = True
 
                 getFlow(self,cells, p)
 
             # if desired, electroosmosis of membrane channels
             if p.sim_eosmosis is True:
 
-                self.run_sim = True
+                # self.run_sim = True
+                self.move_pumps_channels.run(self, cells, p)
 
-                eosmosis(self,cells, p)  # modify membrane pump and channel density according to Nernst-Planck
+
 
             if p.deformation is True:
 
-                self.run_sim = True
+                # self.run_sim = True
 
                 if p.td_deform is False:
 
@@ -1516,10 +1522,10 @@ class Simulator(object):
             self.u_cells_y_time.append(self.u_cells_y[:])
 
         if p.sim_eosmosis:
-            self.rho_channel_time.append(self.rho_channel[:])
-            self.rho_pump_time.append(self.rho_pump[:])
+            self.rho_channel_time.append(self.rho_channel*1)
+            self.rho_pump_time.append(self.rho_pump*1)
 
-        self.gjopen_time.append(self.gjopen[:])
+        self.gjopen_time.append(self.gjopen*1)
         self.time.append(t)
 
         if p.molecules_enabled:
@@ -1899,15 +1905,16 @@ class Simulator(object):
         z = self.zs[i]
         Do = self.D_free[i]
 
-        # print(self.mtubes.pmit/3.33e-30)
+        # conductivity of cytoplasm:
+        sigma = np.dot((((self.D_free*self.zs ** 2) * p.q * p.F) / (p.kb * p.T)), self.cc_cells).mean()
 
         umt = p.u_mtube  # assumes the mtube conducts ions like a wire in accordance to applied voltage
 
         #umt = -p.u_mtube # assume electroosmotic velocity directed from positive to negative end of mt
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
-        ceqm_x = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_x[cells.mem_to_cells]   + ((umt*self.mtubes.mtubes_x*cav)/Do)
-        ceqm_y = ((z * p.q) / (p.kb * p.T)) * cav * self.J_cell_y[cells.mem_to_cells]  + ((umt*self.mtubes.mtubes_y*cav)/Do)
+        ceqm_x = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_x[cells.mem_to_cells]*(1/sigma)  + ((umt*self.mtubes.mtubes_x*cav)/Do)
+        ceqm_y = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_y[cells.mem_to_cells]*(1/sigma)  + ((umt*self.mtubes.mtubes_y*cav)/Do)
 
         cgrad_x = self.cc_grad_x[i]
         cgrad_y = self.cc_grad_y[i]
@@ -1917,9 +1924,7 @@ class Simulator(object):
         cgrad_y = cgrad_y - self.alpha_cgrad[i] * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
-
         self.cc_at_mem[i] = cav + cgrad_x * cells.rads[:, 0] + cgrad_y * cells.rads[:, 1]
-
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         # self.cc_at_mem[self.cc_at_mem < 0.0] = 0.0
@@ -1978,68 +1983,25 @@ class Simulator(object):
         matrices, including tight and adherin junctions.
         '''
 
-        # self.D_env_u = np.zeros((
-        #     self.D_env.shape[0],
-        #     cells.grid_obj.u_shape[0],
-        #     cells.grid_obj.u_shape[1]))
-        # self.D_env_v = np.zeros((
-        #     self.D_env.shape[0],
-        #     cells.grid_obj.v_shape[0],
-        #     cells.grid_obj.v_shape[1]))
-
         for i, dmat in enumerate(self.D_env):
 
             Denv_o = np.ones(self.edl) * self.D_free[i]
 
-
             # if p.env_type is True:
             Denv_o[cells.all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             Denv_o[cells.interior_bound_mem_inds] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+            Denv_o[cells.ecm_inds_bound_cell] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
             Denv_o[cells.inds_outmem] = self.D_free[i]
 
             # create an ecm diffusion grid filled with the environmental values
             self.D_env[i] = Denv_o*1.0
-
 
         # create a matrix that weights the relative transport efficiency in the world space:
         D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
         self.D_env_weight = D_env_weight.reshape(cells.X.shape)
         self.D_env_weight_base = np.copy(self.D_env_weight)
 
-        # for i, dmat in enumerate(self.D_env):
-        #
-        #     if p.env_type is True:
-        #
-        #         self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = self.D_free[i])
-        #
-        #         self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=self.D_free[i])
-        #
-        #     else:
-        #         self.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
-        #
-        #         self.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-        #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
-        #
-        #
-        #
-        # self.D_env_weight_u = self.D_env_u[self.iP]/self.D_env_u[self.iP].max()
-        #
-        # self.D_env_weight_v = self.D_env_v[self.iP]/self.D_env_v[self.iP].max()
-        #
-        # if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
-        #
-        #     self.D_env_weight_u[:,0] = 0
-        #     self.D_env_weight_u[:,-1] = 0
-        #     self.D_env_weight_u[0,:] = 0
-        #     self.D_env_weight_u[-1,:] = 0
-        #
-        #     self.D_env_weight_v[:,0] = 0
-        #     self.D_env_weight_v[:,-1] = 0
-        #     self.D_env_weight_v[0,:] = 0
-        #     self.D_env_weight_v[-1,:] = 0
+
 
     # ..................{ PLOTTERS                           }..................
     def _plot_loop(self, phase: SimPhase) -> tuple:

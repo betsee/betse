@@ -83,7 +83,6 @@ class TissueHandler(object):
         self._sim_channels_tissue(sim, cells, p, t)
         self.makeAllChanges(sim)
 
-
     def _init_events_global(self,sim,cells,p):
         '''
         Initialize all **global scheduled interventions** (i.e., events globally
@@ -145,7 +144,6 @@ class TissueHandler(object):
             self.tonNK = p.global_options['NaKATP_block'][0]
             self.toffNK = p.global_options['NaKATP_block'][1]
             self.trampNK = p.global_options['NaKATP_block'][2]
-
 
     def _init_events_tissue(self, sim, cells, p):
         '''
@@ -585,7 +583,6 @@ class TissueHandler(object):
             self.target_mask_NaStretch = np.zeros(self.data_length)
             self.target_mask_NaStretch[self.targets_NaStretch] = 1
 
-
     def _sim_events_global(self, sim, cells, p, t) -> None:
         '''
         Apply all **global scheduled interventions** (i.e., events globally
@@ -639,7 +636,6 @@ class TissueHandler(object):
 
         if p.global_options['NaKATP_block'] != 0:
             sim.NaKATP_block = (1.0 - tb.pulse(t,self.tonNK,self.toffNK,self.trampNK))
-
 
     def _sim_events_tissue(self, sim, cells, p, t):
         '''
@@ -979,7 +975,6 @@ class TissueHandler(object):
             # Else this is a bad profile.
             else:
                 TypeError('Profile type {} unrecognized.'.format(profile_type))
-
 
     def makeAllChanges(self, sim) -> None:
         '''
@@ -1341,7 +1336,9 @@ class TissueHandler(object):
 
         if p.sim_eosmosis is True:
 
-            cells.eosmo_tools(p)
+            if sim.move_pumps_channels is not None:
+
+                sim.move_pumps_channels.remove_data(target_inds_mem)
 
         # WOUND CHANNEL FINALIZATION-----------------------------------------
 

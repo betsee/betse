@@ -97,10 +97,12 @@ class VgNaPABC(ChannelsABC, metaclass=ABCMeta):
         z_ion = sim.zs[sim.iNa] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmNaP*P*1.0e-9
+        Dchan = dyna.maxDmNaP*P*1.0e-9*self.modulator*sim.rho_channel
 
         # calculate specific ion flux contribution for this channel:
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
+
+        self.chan_flux = delta_Q
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

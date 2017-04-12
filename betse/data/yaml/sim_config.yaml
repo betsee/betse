@@ -777,6 +777,51 @@ variable settings:
 
 results options:
 
+  enumerate cells: False         # number the cells on 2D plots with their simulation index?
+
+
+  plot cell index: 0              # State the cell index to use for single-cell time plots
+                                  # the index of cells can be seen using enumerate cells feature.
+
+  show cells: True                # if True, plots and animations show individual cells,
+                                  # each displayed with color-coded data.
+
+  overlay currents: False         # overlay electric current or concentration
+                                  # flux streamlines on 2D plotted data?
+
+  streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
+
+  plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
+                                  # total current if true, plot gap junction current if false
+
+  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
+
+  plot masked geometry: True      # plot the geometry using the overall shape as a mask
+
+
+  default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
+                             # options include
+                             # coolwarm, hot, rainbow, jet, Blues, Greens, bone
+                             # to reverse a colormap add _r to the name (e.g. cm.jet_r)
+                             # for all options please see
+                             # http://matplotlib.org/examples/color/colormaps_reference.html
+
+  background colormap: RdBu_r     # Specify colormap to be used for data with vector overlays and 0 --> + data,
+                                  # including:
+                                  # currents, flow, electric field and deformation.
+
+  network colormap: rainbow       # colormap used for concentration nodes of reaction network graphs
+
+  gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
+
+  vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
+                                 # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
+
+  plot networks: True               # export regulatory networks to
+                                    # interconnected graph images?
+  plot networks single cell: True   # export regulatory networks for single cell to
+                                    # interconnected graph images?
+
   while solving:          # Results exported during simulation computation.
     animations:           # Animations exported during simulation computation.
       show: True          # Display animations during simulation computation?
@@ -990,53 +1035,6 @@ results options:
         filetype: csv  # Data filetype. Supported filetypes include:
                        # "csv" (comma-separated values).
 
-  enumerate cells: False         # number the cells on 2D plots with their simulation index?
-
-
-  plot cell index: 0              # State the cell index to use for single-cell time plots
-                                  # the index of cells can be seen using enumerate cells feature.
-
-  show cells: True                # if True, plots and animations show individual cells,
-                                  # each displayed with color-coded data.
-  
-  overlay currents: False         # overlay electric current or concentration
-                                  # flux streamlines on 2D plotted data?
-  
-  streamline density: 2.0         # for current plots, the density of streamlines. 0.5 to 5.0
-  
-  plot total current: True      # for currents and morphgen fluxing, if simululating extracellular spaces, plot
-                                  # total current if true, plot gap junction current if false
-  
-  plot cutlines: True            # plot any scheduled cut-lines on the cell cluster plot as black regions
-  
-  plot masked geometry: True      # plot the geometry using the overall shape as a mask
-
-
-  default colormap: RdBu_r   # Specify the colormap to be used for main data (spanning - to +).
-                             # options include
-                             # coolwarm, hot, rainbow, jet, Blues, Greens, bone
-                             # to reverse a colormap add _r to the name (e.g. cm.jet_r)
-                             # for all options please see
-                             # http://matplotlib.org/examples/color/colormaps_reference.html
-
-  background colormap: RdBu_r     # Specify colormap to be used for data with vector overlays and 0 --> + data,
-                                  # including:
-                                  # currents, flow, electric field and deformation.
-
-  network colormap: rainbow       # colormap used for concentration nodes of reaction network graphs
-
-  gj colormap: bone_r            # colormap used for plotting gj currents on top of default colormap
-
-  vector and stream color: 'k'    # Specify color of vector arrows and streamlines ('k' = black, 'w' = white,
-                                 # 'b' = blue, 'r' = red, 'y' = yellow, 'g' = green, 'm' = magenta,'c'=cyan)
-
-
-  #-------2D plots---------------------------------------------------------------------------------------------------
-  
-  plot networks: True               # export regulatory networks to
-                                    # interconnected graph images?
-  plot networks single cell: True   # export regulatory networks for single cell to
-                                    # interconnected graph images?
 
   # World-related plotting options------------------------------------------------------------------------------------
 
@@ -1112,7 +1110,7 @@ internal parameters:
 
   membrane capacitance: 0.05 # ~0.02 to 0.1 cell membrane capacitance [F/m2]
 
-  media resistivity: 1.0  # electrical resistivity of bulk electrolyte (Ohms.m)
+  media resistivity: 1.5  # electrical resistivity of bulk electrolyte (Ohms.m)
 
   cell polarizability: 0.0  # constant defining rate of cell polarizability change in electric fields (0.0 to 10.0)
 

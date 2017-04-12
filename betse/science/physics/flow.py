@@ -17,13 +17,9 @@ def getFlow(sim, cells, p):
 
     if p.sim_ECM is True:
 
-        # estimate the inverse viscosity for extracellular flow based on the diffusion constant weighting
-        # for the world:
-        corr = (cells.true_ecm_vol.min()/cells.ecm_vol)
-
         # electrostatic body forces in environment:
-        FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x*corr
-        FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y*corr
+        FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x*(1/sim.ko_env)
+        FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y*(1/sim.ko_env)
 
         # non-divergence free currents using Stokes flow equation:
         muFx = ((1/p.mu_water)*sim.D_env_weight)*FFx
@@ -55,14 +51,3 @@ def getFlow(sim, cells, p):
     # Flow must be made divergence-free: use the Helmholtz-Hodge decomposition method:
     _, sim.u_cells_x, sim.u_cells_y, _, _, _ = cells.HH_cells(u_gj_xo, u_gj_yo, rot_only=True)
 
-
-#--------WASTELANDS-----------------------------------------------------------------------------------------------
-    #
-    # # calculate the inverse viscosity for the cell collection, which is scaled by gj state:
-    # # alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * 8e-10) ** 2)
-    #
-    # # approximate radius of gap junctions:
-    # gj_rad = np.sqrt((cells.mem_sa*p.gj_surface)/3.14)
-    #
-    # alpha_gj = (1 / (32 * p.mu_water)) * ((sim.gjopen * gj_rad) ** 2)
-    #

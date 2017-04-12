@@ -99,7 +99,7 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         z_ion = sim.zs[sim.iCa] * IdM
 
         # membrane diffusion constant of the channel:
-        Dchan = dyna.maxDmCa*P*1.0e-9*self.modulator
+        Dchan = dyna.maxDmCa*P*1.0e-9*self.modulator*sim.rho_channel
 
         self.Dmem_time = Dchan   # save the membrane state of the channel
 
