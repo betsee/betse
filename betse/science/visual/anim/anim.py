@@ -33,7 +33,7 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
-from betse.science.config.export.confvisabc import SimConfVisualListable
+from betse.science.config.export.confvis import SimConfVisualCellsListItem
 from betse.science.export import expmath
 from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.anim.animafter import (
@@ -997,7 +997,7 @@ class AnimateDeformation(object):
     def __init__(
         self,
         phase: SimPhase,
-        conf: SimConfVisualListable,
+        conf: SimConfVisualCellsListItem,
         ani_repeat: bool = True,
         save: bool = True,
         saveFolder: str = 'anim/Deformation',

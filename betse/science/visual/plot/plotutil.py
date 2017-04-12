@@ -1108,14 +1108,13 @@ def cell_ave(cells,vm_at_mem):
 
     return v_cell
 
-# utility functions------------------------------------------------------
+
 def cell_quiver(datax, datay, ax, cells, p):
     """
     Sets up a vector plot for cell-specific data on an existing axis.
 
     Parameters
     -----------
-
     datax, datay    Data defined on cell centres or membrane midpoints
     cells           Instance of cells module
     p               Instance of parameters module
@@ -1125,14 +1124,11 @@ def cell_quiver(datax, datay, ax, cells, p):
     --------
     vplot               Container for vector plot, plotted at cell centres
     ax                  Modified axis
-
     """
 
     if len(datax) == len(cells.mem_i):
-
         Fx = np.dot(cells.M_sum_mems,datax)/cells.num_mems
         Fy = np.dot(cells.M_sum_mems,datay)/cells.num_mems
-
     else:
         Fx = datax
         Fy = datay
@@ -1144,8 +1140,10 @@ def cell_quiver(datax, datay, ax, cells, p):
     Fx = Fx/Fmag
     Fy = Fy/Fmag
 
-    vplot = ax.quiver(p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],Fx,Fy,
-        pivot='mid',color = p.vcolor, units='x',headwidth=5, headlength = 7, zorder=10)
+    vplot = ax.quiver(
+        p.um*cells.cell_centres[:,0],p.um*cells.cell_centres[:,1],Fx,Fy,
+        pivot='mid', color=p.vcolor, units='x',
+        headwidth=5, headlength=7, zorder=10)
 
     return vplot, ax
 

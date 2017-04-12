@@ -6,21 +6,17 @@
 YAML-backed simulation visual subconfigurations.
 '''
 
-#FIXME: Rename this submodule to "confvis".
-
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
-# from betse.exceptions import BetseMethodUnimplementedException
 from betse.science.config.confabc import (
     SimConfABC, SimConfListableABC, SimConfListItemTypedABC, conf_alias)
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUPERCLASSES                       }....................
-#FIXME: Rename to "SimConfVisualCellsABC".
 #FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored
-#to leverage the YAML format specified by "SimConfVisualMixin".
-class SimConfVisualABC(object, metaclass=ABCMeta):
+#to leverage the YAML format specified by "SimConfVisualCellsYAMLMixin".
+class SimConfVisualCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class generalizing logic common to all cell cluster visual
     subconfigurations -- YAML-backed or otherwise.
@@ -54,8 +50,7 @@ class SimConfVisualABC(object, metaclass=ABCMeta):
         pass
 
 
-#FIXME: Rename to "SimConfVisualCellsYAMLMixin".
-class SimConfVisualMixin(SimConfVisualABC):
+class SimConfVisualCellsYAMLMixin(SimConfVisualCellsABC):
     '''
     Abstract mix-in generalizing logic common to all YAML-backed cell cluster
     visual subconfigurations.
@@ -73,10 +68,9 @@ class SimConfVisualMixin(SimConfVisualABC):
     color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Rename to "SimConfVisualCellsNonYAML".
 #FIXME: Eliminate this subclass. For serializability, all configuration classes
 #should be YAML-backed.
-class SimConfVisualMolecule(SimConfVisualABC):
+class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
     '''
     Cell cluster visual subconfiguration specific to the
     :mod:`betse.science.networks` package.
@@ -114,25 +108,27 @@ class SimConfVisualMolecule(SimConfVisualABC):
         return self._color_max
 
 # ....................{ SUBCLASSES                         }....................
-#FIXME: Rename to "SimConfVisualCellsSolitary".
-class SimConfVisualGeneric(SimConfVisualMixin, SimConfABC):
+class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, SimConfABC):
     '''
     YAML-backed cell cluster visual subconfiguration, encapsulating the
-    configuration of a single visual (either in- or post-simulation plot
-    or animation) with no ``type`` entry or corresponding :attr:`name` property
-    parsed from the current YAML-formatted simulation configuration file.
+    configuration of a single visual applicable to all cells parsed from a
+    dictionary configuring at least this visual in the current
+    YAML-formatted simulation configuration file.
+    
+    This is the *only* visual configured by this dictionary. Hence, this
+    dictionary contains no distinguishing ``type`` entry and this
+    subconfiguration class no corresponding :attr:`name` property.
     '''
 
     pass
 
 # ....................{ SUBCLASSES : list item             }....................
-#FIXME: Rename to "SimConfVisualCellsListItem".
-class SimConfVisualListable(SimConfVisualMixin, SimConfListItemTypedABC):
+class SimConfVisualCellsListItem(
+    SimConfVisualCellsYAMLMixin, SimConfListItemTypedABC):
     '''
     YAML-backed cell cluster visual subconfiguration, encapsulating the
-    configuration of a single visual (either in- or post-simulation plot
-    or animation) applicable to all cells parsed from the list of all such
-    visuals in the current YAML-formatted simulation configuration file.
+    configuration of a single visual applicable to all cells parsed from a list
+    of these visuals in the current YAML-formatted simulation configuration file.
     '''
 
     # ..................{ CLASS                              }..................
@@ -140,7 +136,7 @@ class SimConfVisualListable(SimConfVisualMixin, SimConfListItemTypedABC):
     def make_default(self) -> SimConfListableABC:
 
         # Duplicate the default animation listed first in our default YAML file.
-        return SimConfVisualListable(conf={
+        return SimConfVisualCellsListItem(conf={
             'type': 'voltage_membrane',
             'enabled': True,
             'colorbar': {

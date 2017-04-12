@@ -86,6 +86,9 @@ class LayerCellsFieldQuiverCells(LayerCellsFieldQuiverABC):
             # to the matplotlib.axes.quiver() method called here, the first four
             # arguments *MUST* be passed as positional arguments.
 
+            #FIXME: Refactor into cached properties of the new
+            #"SimPhaseSubcacheCells" class.
+
             # Upscaled X and Y coordinates of all cell centres.
             expmath.upscale_cell_coordinates(
                 self._phase.cells.cell_centres[:,0]),
@@ -177,8 +180,6 @@ class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
             # LayerCellsFieldQuiverCells._layer_first() for further discussion.
 
             # Upscaled X and Y coordinates of all cell membrane midpoints.
-            # cells.cell_centres[:, 0][cells.mem_to_cells]*self._phase.p.um,
-            # cells.cell_centres[:, 1][cells.mem_to_cells]*self._phase.p.um,
             expmath.upscale_cell_coordinates(
                 cells.cell_centres[:, 0][cells.mem_to_cells]),
             expmath.upscale_cell_coordinates(
@@ -196,7 +197,6 @@ class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
             color=self._phase.p.vcolor,
 
             # Number of data units per arrow length unit.
-            # scale=self._phase.p.um*self._phase.p.wsx*0.8,
             scale=expmath.upscale_cell_coordinates(self._phase.p.wsx*0.8)
         )
 

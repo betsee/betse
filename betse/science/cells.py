@@ -131,9 +131,8 @@ class Cells(object):
         Two-dimensional Numpy array of the coordinates of various vectors of
         all cell membranes, whose:
         . First dimension indexes each cell membrane.
-        . Second dimension indexes each coordinate of some vector describing
-          the current cell membrane, whose length is guaranteed to be 6 *and*
-          whose:
+        . Second dimension indexes each coordinate of a vector describing the
+          current cell membrane, whose length is guaranteed to be 6 *and* whose:
           . First element is the X coordinate of the current membrane midpoint,
             equivalent to :attr:`mem_mids_flat[mem_i,0]` where ``mem_i`` is the
             index of the current membrane.
@@ -141,7 +140,8 @@ class Cells(object):
             midpoint, equivalent to :attr:`mem_mids_flat[mem_i,1]`.
           . Third element is the X coordinate of the normal unit vector
             orthogonal to the tangent unit vector of the current membrane
-            defined below.
+            (defined by the corresponding element of the fifth and sixth
+            elements of this array).
           . Fourth element is the Y coordinate of this normal unit vector.
           . Fifth element is the X coordinate of the tangent unit vector
             parallel to the vector implied by the pair of coordinates defining
@@ -2505,18 +2505,18 @@ class Cells(object):
     @property_cached
     def matrixMap2Verts(self) -> ndarray:
         '''
-        Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
+        Numpy matrix (i.e., two-dimensional array) of size ``m x n``, where:
 
-        * `m` is the total number of cell membranes.
-        * `n` is the total number of cell membrane vertices.
+        * ``m`` is the total number of cell membranes.
+        * ``n`` is the total number of cell membrane vertices.
 
-        For each membrane `i` and membrane vertex `j`, element
-        `matrixMap2Verts[i, j]` is:
+        For each membrane ``i`` and membrane vertex ``j``, element
+        ``matrixMap2Verts[i, j]`` is:
 
-        * 0 if this vertex is _not_ one of the two vertices defining this
-          membrane. Since most vertices do _not_ define most membranes, most
+        * 0 if this vertex is *not* one of the two vertices defining this
+          membrane. Since most vertices do *not* define most membranes, most
           entries of this matrix are zero, implying this matrix to typically
-          (but _not_ necessarily) be sparse.
+          (but *not* necessarily) be sparse.
         * 0.5 if this vertex is one of the two vertices defining this membrane,
           thus averaging membrane data defined at membrane midpoints over the
           vertex pairs defining these membranes.
@@ -2524,17 +2524,18 @@ class Cells(object):
         Usage
         -----------
         The dot product of a Numpy vector (i.e., one-dimensional array) of size
-        `m` containing membrane-specific data by this matrix yields another
-        Numpy vector of size `n` containing membrane vertex-specific data
-        interpolated from these membranes over these vertices, where `m` and
-        `n` are as defined above. Technically, the dot product of a vector by a
-        matrix is undefined. to facilitate this otherwise invalid operation,
+        ``m`` containing membrane-specific data by this matrix yields another
+        Numpy vector of size ``n`` containing membrane vertex-specific data
+        interpolated from these membranes over these vertices, where ``m`` and
+        ``n`` are as defined above. Technically, the dot product of a vector by a
+        matrix is undefined. To facilitate this otherwise invalid operation,
         Numpy implicitly converts:
 
-        * The input vector of size `m` into a matrix of size `1 x m`.
-        * The output matrix of size `n x 1` into an output vector of size `n`.
+        * The input vector of size ``m`` into a matrix of size ``1 x m``.
+        * The output matrix of size ``n x 1`` into an output vector of size
+          ``n``.
 
-        This matrix is cached _only_ on the first access of this property.
+        This matrix is cached *only* on the first access of this property.
         '''
 
         # Zero this matrix to the expected dimensions.
@@ -2561,29 +2562,29 @@ class Cells(object):
     @property_cached
     def membranes_midpoint_to_cells_centre(self) -> ndarray:
         '''
-        Numpy matrix (i.e., two-dimensional array) of size `m x n`, where:
+        Numpy matrix (i.e., two-dimensional array) of size ``m x n``, where:
 
-        * `m` is the total number of cell membranes.
-        * `n` is the total number of cells.
+        * ``m`` is the total number of cell membranes.
+        * ``n`` is the total number of cells.
 
-        For each membrane `i` and cell `j`, element
-        `mems_midpoint_to_cells_centre[i, j]` is:
+        For each membrane ``i`` and cell ``j``, element
+        ``mems_midpoint_to_cells_centre[i, j]`` is:
 
         * 0 if this cell does _not_ contain this membrane. Since most cells do
-          _not_ contain most membranes, most entries of this matrix are zero,
-          implying this matrix to typically (but _not_ necessarily) be sparse.
-        * `1/k` if this cell contains this membrane, where `k` is the number of
-          membranes this cell contains.
+          *not* contain most membranes, most entries of this matrix are zero,
+          implying this matrix to typically (but *not* necessarily) be sparse.
+        * ``1/k`` if this cell contains this membrane, where ``k`` is the number
+          of membranes this cell contains.
 
         Usage
         -----------
         The dot product of a Numpy vector (i.e., one-dimensional array) of size
-        `m` containing arbitrary data spatially situated at cell membrane
-        midpoints by this matrix by yields another Numpy vector of size `n`
-        containing the same data resituated at cell centres, where `m` and `n`
-        are as defined above.
+        ``m`` containing arbitrary data spatially situated at cell membrane
+        midpoints by this matrix by yields another Numpy vector of size ``n``
+        containing the same data resituated at cell centres, where ``m`` and
+        ``n`` are as defined above.
 
-        This matrix is cached _only_ on the first access of this property.
+        This matrix is cached *only* on the first access of this property.
         '''
 
         # Dismantled, this is:

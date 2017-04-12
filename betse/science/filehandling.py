@@ -124,18 +124,19 @@ def _preserve_backward_importability() -> None:
     '''
 
     # Import all modules whose fully-qualified names have been modified.
-    from betse.science import channels, sim
+    from betse.science import channels
     from betse.science.math import finitediff
     from betse.science.simulate import simphase
     from betse.science.tissue import tissuepick
     from betse.science.config import export
-    from betse.science.config.export import confanim, confplot, confvisabc
+    from betse.science.config.export import confanim, confplot, confvis
 
     # Alias obsolete module names to current module objects.
+    sys.modules['betse.science.config.export.confvisabc'] = confvis
     sys.modules['betse.science.config.visual'] = export
     sys.modules['betse.science.config.visual.confanim'] = confanim
     sys.modules['betse.science.config.visual.confplot'] = confplot
-    sys.modules['betse.science.config.visual.confvisualabc'] = confvisabc
+    sys.modules['betse.science.config.visual.confvisualabc'] = confvis
     sys.modules['betse.science.finitediff'] = finitediff
     sys.modules['betse.science.tissue.channels'] = channels
     sys.modules['betse.science.tissue.picker'] = tissuepick
@@ -145,9 +146,14 @@ def _preserve_backward_importability() -> None:
     sys.modules['betse.science.visual.plot.plotconfig'] = confplot
 
     # Alias obsolete to current class names.
-    confanim.SimConfAnimOne = confvisabc.SimConfVisualListable
-    confvisabc.SimConfVisual = confvisabc.SimConfVisualListable
-    confvisabc.SimConfListableVisual = confvisabc.SimConfVisualListable
+    confanim.SimConfAnimOne = confvis.SimConfVisualCellsListItem
+    confvis.SimConfVisualABC      = confvis.SimConfVisualCellsABC
+    confvis.SimConfVisualMixin    = confvis.SimConfVisualCellsYAMLMixin
+    confvis.SimConfVisualMolecule = confvis.SimConfVisualCellsNonYAML
+    confvis.SimConfVisualGeneric  = confvis.SimConfVisualCellsEmbedded
+    confvis.SimConfVisualListable = confvis.SimConfVisualCellsListItem
+    confvis.SimConfVisual         = confvis.SimConfVisualCellsListItem
+    confvis.SimConfListableVisual = confvis.SimConfVisualCellsListItem
     simphase.SimPhaseType = simphase.SimPhaseKind
     sys.modules['betse.science.config.visual.confanim'].SimConfAnim = (
         confanim.SimConfAnimAll)

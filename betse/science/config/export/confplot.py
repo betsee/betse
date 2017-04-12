@@ -10,8 +10,8 @@ YAML-backed simulation plot subconfigurations.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
-from betse.science.config.export.confvisabc import (
-    SimConfVisualListable, SimConfVisualCellListItem)
+from betse.science.config.export.confvis import (
+    SimConfVisualCellsListItem, SimConfVisualCellListItem)
 from betse.util.type import ints
 from betse.util.type.types import type_check
 
@@ -71,7 +71,7 @@ class SimConfPlotAll(SimConfABC):
             confs=self._conf[
                 'results options']['after solving'][
                 'plots']['cell cluster']['pipeline'],
-            conf_type=SimConfVisualListable,
+            conf_type=SimConfVisualCellsListItem,
         )
 
         # Validate all configured integers to be positive.

@@ -173,6 +173,7 @@ class VectorField(object):
         return self._y / self.magnitudes
 
 # ....................{ CLASSES ~ cells                    }....................
+#IFXME: Rename to "VectorFieldCellsCache".
 class VectorFieldCells(object):
     '''
     Cache of various related vector fields whose X and Y components are

@@ -32,9 +32,9 @@ from betse.util.type.contexts import noop_context
 from betse.util.type.types import type_check, NoneType
 from numpy import ndarray
 from random import shuffle
-from scipy import interpolate as interp
+# from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-from betse.science.math import toolbox as tb
+# from betse.science.math import toolbox as tb
 
 # ....................{ CLASSES                            }....................
 class Simulator(object):
@@ -2004,8 +2004,6 @@ class Simulator(object):
         self.D_env_weight = D_env_weight.reshape(cells.X.shape)
         self.D_env_weight_base = np.copy(self.D_env_weight)
 
-
-
     # ..................{ PLOTTERS                           }..................
     def _plot_loop(self, phase: SimPhase) -> tuple:
         '''
@@ -2106,7 +2104,3 @@ class Simulator(object):
 
         # Return the 3-tuple of these objects to the caller.
         return time_steps, time_steps_sampled, anim_cells
-
-
-
-

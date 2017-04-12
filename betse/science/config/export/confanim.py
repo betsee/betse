@@ -13,8 +13,8 @@ YAML-backed simulation animation subconfigurations.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
-from betse.science.config.export.confvisabc import (
-    SimConfVisualListable, SimConfVisualGeneric)
+from betse.science.config.export.confvis import (
+    SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
 from betse.util.type import ints
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
@@ -38,7 +38,7 @@ class SimConfAnimAll(SimConfABC):
         ``True`` only if this configuration saves in-simulation animations.
     is_while_sim_show : bool
         ``True`` only if this configuration displays in-simulation animations.
-    while_sim : SimConfVisualGeneric
+    while_sim : SimConfVisualCellsEmbedded
         Generic configuration applicable to all in-simulation animations. Ignored if
         :attr:``is_while_sim`` is ``False``.
 
@@ -128,7 +128,7 @@ class SimConfAnimAll(SimConfABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level dictionaries with high-level wrappers.
-        self.while_sim = SimConfVisualGeneric(
+        self.while_sim = SimConfVisualCellsEmbedded(
             conf=self._conf[
                 'results options']['while solving']['animations'])
 
@@ -136,7 +136,7 @@ class SimConfAnimAll(SimConfABC):
         self.after_sim_pipeline = SimConfList(
             confs=self._conf[
                 'results options']['after solving']['animations']['pipeline'],
-            conf_type=SimConfVisualListable,
+            conf_type=SimConfVisualCellsListItem,
         )
 
         # Validate all configured integers to be positive.

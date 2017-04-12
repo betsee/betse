@@ -9,7 +9,7 @@ simulated data of all cells in the cell cluster).
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.science.config.export.confvisabc import SimConfVisualListable
+from betse.science.config.export.confvis import SimConfVisualCellsListItem
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.visual.plot import plotutil
@@ -39,12 +39,12 @@ class PlotCellsPipe(PlotPipeABC):
     def _runners_conf(self) -> IterableTypes:
         return self._phase.p.plot.after_sim_pipeline_cells
 
-    # ..................{ EXPORTERS ~ cells : channel        }..................
+    # ..................{ EXPORTERS ~ channel                }..................
     @piperunner(
         categories=('Ion Channel', 'Density Factor',),
         requirements={piperunreq.ELECTROOSMOSIS,},
     )
-    def export_channel_density(self, conf: SimConfVisualListable) -> None:
+    def export_channel_density(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all cell membrane ion channel density factors for the cell cluster
         at the last time step.
@@ -66,10 +66,10 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_channels_2D')
 
-    # ..................{ EXPORTERS ~ cells : current        }..................
+    # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',))
-    def export_currents_intra(self, conf: SimConfVisualListable) -> None:
+    def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular current densities for the cell cluster at the
         last time step.
@@ -104,7 +104,7 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Current Density', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_currents_extra(self, conf: SimConfVisualListable) -> None:
+    def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular current densities for the cell cluster
         environment at the last time step.
@@ -134,12 +134,12 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_Current_extracellular')
 
-    # ..................{ EXPORTERS ~ cells : deform         }..................
+    # ..................{ EXPORTERS ~ deform                 }..................
     @piperunner(
         categories=('Physical Deformation',),
         requirements={piperunreq.DEFORM,},
     )
-    def export_deform(self, conf: SimConfVisualListable) -> None:
+    def export_deform(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all physical deformations for the cell cluster at the last time
         steps.
@@ -164,10 +164,10 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_displacement_2D')
 
-    # ..................{ EXPORTERS ~ cells : electric       }..................
+    # ..................{ EXPORTERS ~ electric               }..................
     @piperunner(
         categories=('Electric Field', 'Intracellular',))
-    def export_electric_intra(self, conf: SimConfVisualListable) -> None:
+    def export_electric_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular electric field lines for the cell cluster at the
         last time step.
@@ -197,7 +197,7 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Electric Field', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_electric_extra(self, conf: SimConfVisualListable) -> None:
+    def export_electric_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular electric field lines for the cell cluster
         environment at the last time step.
@@ -222,12 +222,12 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_Electric_Field_ECM')
 
-    # ..................{ EXPORTERS ~ cells : fluid          }..................
+    # ..................{ EXPORTERS ~ fluid                  }..................
     @piperunner(
         categories=('Fluid Flow', 'Intracellular',),
         requirements={piperunreq.FLUID,},
     )
-    def export_fluid_intra(self, conf: SimConfVisualListable) -> None:
+    def export_fluid_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular fluid flow field lines for the cell cluster at
         the last time step.
@@ -256,7 +256,7 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Fluid Flow', 'Extracellular',),
         requirements={piperunreq.FLUID, piperunreq.ECM,},
     )
-    def export_fluid_extra(self, conf: SimConfVisualListable) -> None:
+    def export_fluid_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular fluid flow field lines for the cell cluster
         environment at the last time step.
@@ -280,12 +280,12 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_vel_2D_env')
 
-    # ..................{ EXPORTERS ~ cells : ion : calcium  }..................
+    # ..................{ EXPORTERS ~ ion : calcium          }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium', 'Intracellular',),
         requirements={piperunreq.ION_CALCIUM,},
     )
-    def export_ion_calcium_intra(self, conf: SimConfVisualListable) -> None:
+    def export_ion_calcium_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular calcium (i.e., Ca2+) ion concentrations for the
         cell cluster at the last time step.
@@ -317,7 +317,7 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Ion Concentration', 'Calcium', 'Extracellular',),
         requirements={piperunreq.ION_CALCIUM, piperunreq.ECM,},
     )
-    def export_ion_calcium_extra(self, conf: SimConfVisualListable) -> None:
+    def export_ion_calcium_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular calcium (i.e., Ca2+) ion concentrations for the
         cell cluster environment at the last time step.
@@ -348,12 +348,12 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_environmental_calcium')
 
-    # ..................{ EXPORTERS ~ cells : ion : hydrogen }..................
+    # ..................{ EXPORTERS ~ ion : hydrogen         }..................
     @piperunner(
         categories=('Ion Concentration', 'Hydrogen', 'Intracellular',),
         requirements={piperunreq.ION_HYDROGEN,},
     )
-    def export_ion_hydrogen_intra(self, conf: SimConfVisualListable) -> None:
+    def export_ion_hydrogen_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular hydrogen (i.e., H+) ion concentrations for the
         cell cluster at the last time step.
@@ -386,10 +386,10 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_pH_2D')
 
-    # ..................{ EXPORTERS ~ cells : junction       }..................
+    # ..................{ EXPORTERS ~ junction               }..................
     @piperunner(
         categories=('Gap Junction', 'Connectivity State',))
-    def export_junction_state(self, conf: SimConfVisualListable) -> None:
+    def export_junction_state(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all **gap junction connectivity states** (i.e., relative
         permeabilities of the gap junctions connecting all cell membranes) for
@@ -425,12 +425,12 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_gjState')
 
-    # ..................{ EXPORTERS ~ cells : microtubule    }..................
-    @piperunner(categories=('Microtubule', 'Coherence',))
-    def export_microtubule(self, conf: SimConfVisualListable) -> None:
+    # ..................{ EXPORTERS ~ coherence              }..................
+    @piperunner(categories=('Coherence', 'Microtubule',))
+    def export_microtubule(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all cellular microtubules for the cell cluster at the last time
-        step.
+        Plot the coherence of all cellular microtubules for the cell cluster at
+        the last time step.
         '''
 
         # Prepare to export the microtubules plot.
@@ -454,12 +454,12 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='Final_Microtubules')
 
-    # ..................{ EXPORTERS ~ cells : microtubule    }..................
-    @piperunner(categories=('Polarization', 'Coherence',))
-    def export_polarization(self, conf: SimConfVisualListable) -> None:
+
+    @piperunner(categories=('Coherence', 'Polarization',))
+    def export_polarization(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all cellular microtubules for the cell cluster at the last time
-        step.
+        Plot the coherence of all cellular polarities for the cell cluster at
+        the last time step.
         '''
 
         # Prepare to export the polarization plot.
@@ -467,7 +467,7 @@ class PlotCellsPipe(PlotPipeABC):
 
         pyplot.figure()
 
-        # plot a background Vmem mesh:
+        # Plot a background Vmem mesh.
         fig, ax, cb = plotutil.plotPrettyPolyData(
             1000*self._phase.sim.vm_time[-1],
             self._phase.sim, self._phase.cells, self._phase.p,
@@ -480,13 +480,18 @@ class PlotCellsPipe(PlotPipeABC):
             clrMax=conf.color_max,
         )
 
-        # calculate the Vmem polarity vectors:
-        polm = self._phase.sim.vm - self._phase.sim.vm_ave_time[-1][self._phase.cells.mem_to_cells]
+        # Calculate the Vmem polarity vectors.
+        polm = self._phase.sim.vm - (
+            self._phase.sim.vm_ave_time[-1][self._phase.cells.mem_to_cells])
         polx = polm*self._phase.cells.mem_vects_flat[:,2]
         poly = polm*self._phase.cells.mem_vects_flat[:,3]
 
-        pcx = np.dot(self._phase.cells.M_sum_mems, polx*self._phase.cells.mem_sa)/self._phase.cells.cell_sa
-        pcy = np.dot(self._phase.cells.M_sum_mems, poly*self._phase.cells.mem_sa)/self._phase.cells.cell_sa
+        pcx = np.dot(
+            self._phase.cells.M_sum_mems,
+            polx*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
+        pcy = np.dot(
+            self._phase.cells.M_sum_mems,
+            poly*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
 
         plotutil.cell_quiver(pcx, pcy, ax, self._phase.cells, self._phase.p)
 
@@ -502,7 +507,7 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Ion Pump', 'Density Factor',),
         requirements={piperunreq.ELECTROOSMOSIS,},
     )
-    def export_pump_density(self, conf: SimConfVisualListable) -> None:
+    def export_pump_density(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all cell membrane ion pump density factors for the cell cluster at
         the last time step.
@@ -525,7 +530,7 @@ class PlotCellsPipe(PlotPipeABC):
 
 
     @piperunner(categories=('Ion Pump', 'Pump Rate', 'Na-K-ATPase',))
-    def export_pump_nakatpase(self, conf: SimConfVisualListable) -> None:
+    def export_pump_nakatpase(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all cell membrane Na-K-ATPase pump rates for the cell cluster at
         the last time step.
@@ -551,12 +556,12 @@ class PlotCellsPipe(PlotPipeABC):
         # Export this plot to disk and/or display.
         self._export(basename='final_NaKPump_2D')
 
-    # ..................{ EXPORTERS ~ cells : pressure       }..................
+    # ..................{ EXPORTERS ~ pressure               }..................
     @piperunner(
         categories=('Pressure', 'Total',),
         requirements={piperunreq.PRESSURE_TOTAL,},
     )
-    def export_pressure_total(self, conf: SimConfVisualListable) -> None:
+    def export_pressure_total(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all **cellular pressure totals** (i.e., summations of all cellular
         mechanical and osmotic pressures) for the cell cluster  at the last time
@@ -589,7 +594,7 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Voltage', 'Extracellular',),
         requirements={piperunreq.ECM,},
     )
-    def export_voltage_extra(self, conf: SimConfVisualListable) -> None:
+    def export_voltage_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular voltages for the cell cluster environment at the
         last time step.
@@ -619,7 +624,7 @@ class PlotCellsPipe(PlotPipeABC):
     # ..................{ EXPORTERS ~ cells : voltage : vmem }..................
     @piperunner(
         categories=('Voltage', 'Transmembrane', 'Actual',))
-    def export_voltage_membrane(self, conf: SimConfVisualListable) -> None:
+    def export_voltage_membrane(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all transmembrane voltages (Vmem) for all cell membranes at the
         last time step.
@@ -652,7 +657,7 @@ class PlotCellsPipe(PlotPipeABC):
     @piperunner(
         categories=('Voltage', 'Transmembrane', 'Average',))
     def export_voltage_membrane_average(
-        self, conf: SimConfVisualListable) -> None:
+        self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot the averages of all transmembrane voltages (Vmem) for all cells
         at the last time step.
@@ -690,7 +695,7 @@ class PlotCellsPipe(PlotPipeABC):
         categories=('Voltage', 'Transmembrane', 'GHK',),
         requirements={piperunreq.GHK,},
     )
-    def export_voltage_membrane_ghk(self, conf: SimConfVisualListable) -> None:
+    def export_voltage_membrane_ghk(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all transmembrane voltages (Vmem) calculated by the
         Goldman-Hodgkin-Katz (GHK) equation for all cells at the last time step.

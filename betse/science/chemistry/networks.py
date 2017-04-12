@@ -13,7 +13,7 @@ from collections import OrderedDict
 from matplotlib import cm
 from matplotlib import colors
 from scipy.ndimage.filters import gaussian_filter
-from scipy.optimize import basinhopping
+# from scipy.optimize import basinhopping
 from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
@@ -24,7 +24,7 @@ from betse.science.channels import vg_funny as vgfun
 from betse.science.channels import vg_k as vgk
 from betse.science.channels import vg_na as vgna
 from betse.science.chemistry.netplot import plot_master_network, set_net_opts
-from betse.science.config.export.confvisabc import SimConfVisualMolecule
+from betse.science.config.export.confvis import SimConfVisualCellsNonYAML
 from betse.science.math import modulate as mods
 from betse.science.math import toolbox as tb
 from betse.science.organelles.mitochondria import Mito
@@ -5000,7 +5000,7 @@ class Molecule(object):
 
         #FIXME: To support GUI modification, refactor this class to access the
         #underlying YAML-based subconfiguration.
-        conf = SimConfVisualMolecule(
+        conf = SimConfVisualCellsNonYAML(
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
@@ -5023,7 +5023,7 @@ class Molecule(object):
 
         #FIXME: To support GUI modification, refactor this class to access the
         #underlying YAML-based subconfiguration.
-        conf = SimConfVisualMolecule(
+        conf = SimConfVisualCellsNonYAML(
             is_color_autoscaled=self.plot_autoscale,
             color_min=self.plot_min,
             color_max=self.plot_max)
