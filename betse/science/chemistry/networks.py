@@ -98,8 +98,6 @@ class MasterOfNetworks(object):
         self.extra_J_mem = np.zeros(sim.mdl)
         self.extra_J_env = np.zeros(sim.edl)
 
-        self.globals = globals()
-        self.locals = locals()
 
     #------------Initializers-------------------------------------------------------------------------------------------
     def read_substances(self, sim, cells, config_substances, p):
@@ -2653,6 +2651,9 @@ class MasterOfNetworks(object):
         self.extra_rho_mit = np.zeros(sim.cdl)
         self.extra_J_mem = np.zeros(sim.mdl)
         self.extra_J_env = np.zeros(sim.edl)
+        
+        globalo = globals()
+        localo = locals()
 
         for mol in self.molecules:
 
@@ -2661,7 +2662,7 @@ class MasterOfNetworks(object):
             obj.update_cmem(sim, cells, p)
 
             # calculate rates of growth/decay:
-            gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, self.globals, self.locals))
+            gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, globalo, localo))
 
             gad_targs.append(self.molecules[mol].growth_targets_cell)
 
@@ -2677,7 +2678,7 @@ class MasterOfNetworks(object):
 
         # ... and rates of chemical reactions in cell:
         self.reaction_rates = np.asarray(
-            [eval(self.reactions[rn].reaction_eval_string, self.globals, self.locals) for rn in self.reactions])
+            [eval(self.reactions[rn].reaction_eval_string, globalo, localo) for rn in self.reactions])
 
         # stack into an integrated data structure:
         if len(self.reaction_rates) > 0:
@@ -2692,7 +2693,7 @@ class MasterOfNetworks(object):
         if self.mit_enabled and len(self.reactions_mit)>0:
             # ... rates of chemical reactions in mitochondria:
             self.reaction_rates_mit = np.asarray(
-                [eval(self.reactions_mit[rn].reaction_eval_string, self.globals, self.locals) for
+                [eval(self.reactions_mit[rn].reaction_eval_string, globalo, localo) for
                     rn in self.reactions_mit])
 
             # calculate concentration rate of change using linear algebra:
@@ -2702,7 +2703,7 @@ class MasterOfNetworks(object):
         if len(self.reactions_env)>0:
             # ... rates of chemical reactions in env:
             self.reaction_rates_env = np.asarray(
-                [eval(self.reactions_env[rn].reaction_eval_string, self.globals, self.locals) for
+                [eval(self.reactions_env[rn].reaction_eval_string, globalo, localo) for
                     rn in self.reactions_env])
 
             # calculate concentration rate of change using linear algebra:
@@ -2744,7 +2745,7 @@ class MasterOfNetworks(object):
             # use the substance as a gating ligand (if desired)
 
                 if obj.ion_channel_gating:
-                    obj.gating_mod = eval(obj.gating_mod_eval_string, self.globals, self.locals)
+                    obj.gating_mod = eval(obj.gating_mod_eval_string, globalo, localo)
                     obj.gating(sim, cells, p)
 
                 if p.run_sim is True:
@@ -2799,6 +2800,9 @@ class MasterOfNetworks(object):
 
     def run_loop_transporters(self, t, sim, cells, p):
 
+        globalo = globals()
+        localo = locals()
+
         # call statement to evaluate:
         for name in self.transporters:
 
@@ -2809,7 +2813,7 @@ class MasterOfNetworks(object):
 
             # calculate the flux
             self.transporters[name].flux = sim.rho_pump*eval(self.transporters[name].transporter_eval_string,
-                self.globals, self.locals)
+                globalo, localo)
 
             # print(name, self.transporters[name].net_z, self.transporters[name].flux.mean())
 
@@ -2822,7 +2826,7 @@ class MasterOfNetworks(object):
 
                 # obtain the change for the reactant
 
-                delta_react = coeff*eval(delc,self.globals, self.locals)
+                delta_react = coeff*eval(delc, globalo, localo)
 
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].react_transport_tag[i] == 'mem_concs':
@@ -2870,7 +2874,7 @@ class MasterOfNetworks(object):
                 self.transporters[name].products_coeff)):
 
                 # obtain the change for the product
-                delta_prod = coeff*eval(delc, self.globals, self.locals)
+                delta_prod = coeff*eval(delc, globalo, localo)
 
                 # finally, update the concentrations using the final eval statements:
                 if self.transporters[name].prod_transport_tag[i] == 'mem_concs':
@@ -2918,13 +2922,15 @@ class MasterOfNetworks(object):
 
     def run_loop_channels(self, sim, cells, p):
 
+        globalo = globals()
+        localo = locals()
+
         # get the object corresponding to the specific transporter:
         for i, name in enumerate(self.channels):
 
             # compute the channel activity
             # calculate the value of the channel modulation constant:
-            moddy = eval(self.channels[name].alpha_eval_string, self.globals,
-                self.locals)
+            moddy = eval(self.channels[name].alpha_eval_string, globalo, localo)
 
             self.channels[name].channel_core.modulator = moddy
 
@@ -2932,13 +2938,16 @@ class MasterOfNetworks(object):
 
     def run_loop_modulators(self, sim, cells, p):
 
+        globalo = globals()
+        localo = locals()
+
         # get the object corresponding to the specific transporter:
         for i, name in enumerate(self.modulators):
 
             obj = self.modulators[name]
 
             # calculate the value of the channel modulation constant:
-            modulator = obj.max_val*eval(obj.alpha_eval_string, self.globals, self.locals)
+            modulator = obj.max_val*eval(obj.alpha_eval_string, globalo, localo)
 
             # # make size alteration for case of true environment:
             # if p.sim_ECM is True and obj.zone == 'env':

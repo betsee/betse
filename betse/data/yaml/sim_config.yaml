@@ -901,6 +901,7 @@ results options:
             #   Ignored if hydrogen ions (H+) disabled by ion profile.
             # junction_state  ->  Final cell cluster gap junction connectivity state
             # microtubule  ->  Final cell cluster microtubule orientation
+            # polarization -> Final Vmem plot showing electrical polarization vectors for each cell
             # pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
             #   Ignored if osmotic pressure or mechanical pressure event disabled.
             # pump_density  ->  Final cell cluster cell membrane ion pump density factor

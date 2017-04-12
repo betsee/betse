@@ -1222,6 +1222,7 @@ class Simulator(object):
 
             # update the general molecules handler-----------------------------------------------------------------
             if p.molecules_enabled:
+
                 if self.molecules.transporters:
                     self.molecules.core.run_loop_transporters(t, self, cells, p)
 
@@ -1681,6 +1682,8 @@ class Simulator(object):
     #.................{  DOOERs & GETTERS  }............................................
 
     def update_V(self,cells,p):
+
+        print(self.cc_cells[self.iNa].mean())
 
 
         # save the voltage as a placeholder:
