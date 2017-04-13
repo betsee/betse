@@ -3,18 +3,18 @@
 # See "LICENSE" for further details.
 
 '''
-Vector factories, producing instances of the :class:`VectorCells` class.
+Vector factories, producing instances of the :class:`VectorCellsCache` class.
 '''
 
 # ....................{ IMPORTS                            }....................
 from betse.science.export import expmath
-from betse.science.math.vector.vectorcls import VectorCells
+from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.simulate.simphase import SimPhase
 from betse.util.type.types import type_check
 
 # ....................{ MAKERS                             }....................
 @type_check
-def make_voltages_membrane(phase: SimPhase) -> VectorCells:
+def make_voltages_membrane(phase: SimPhase) -> VectorCellsCache:
     '''
     Vector caching all **transmembrane voltages** (i.e., voltages across all
     gap junctions connecting intracellular membranes) for all time steps of the
@@ -27,11 +27,11 @@ def make_voltages_membrane(phase: SimPhase) -> VectorCells:
 
     Returns
     ----------
-    VectorFieldCells
+    VectorFieldCellsCache
         Vector caching all transmembrane voltages.
     '''
 
-    return VectorCells(
+    return VectorCellsCache(
         phase=phase,
         times_membranes_midpoint=expmath.upscale_cell_data(phase.sim.vm_time),
     )

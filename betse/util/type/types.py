@@ -331,16 +331,15 @@ except:
 
 MappingOrSequenceTypes = (MappingType,) + SequenceTypes
 '''
-Tuple of all container base classes conforming to (but _not_ necessarily
-subclassing) the canonical `collections.abc.Mapping` *or*
-`collections.abc.Sequence` APIs.
+Tuple of all container base classes conforming to (but *not* necessarily
+subclassing) the canonical :class:`Mapping` *or* :class:`Sequence` APIs.
 '''
 
 
 NumericOrSequenceTypes = NumericTypes + SequenceTypes
 '''
 Tuple of all numeric types *and* all container base classes conforming to (but
-_not_ necessarily subclassing) the canonical `collections.abc.Sequence` API.
+*not* necessarily subclassing) the canonical :class:`Sequence` API.
 '''
 
 # ....................{ TUPLES : none                      }....................

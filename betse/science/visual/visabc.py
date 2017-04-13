@@ -89,18 +89,11 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     ----------
     _axes : Axes
         Matplotlib figure axes providing the current animation frame data.
-    _axes_bounds : list
-        Spacial extent of the current 2D environment as a 4-element list
-        conisting of (in order):
-        1. The minimum value of the figure's X axis.
-        2. The maximum value of the figure's X axis.
-        3. The minimum value of the figure's Y axis.
-        4. The maximum value of the figure's Y axis.
     _axes_title : str
-        Text displayed above the figure axes. If a non-`None` value for the
-        `axes_title` parameter is passed to the :meth:`__init__` method, this
-        is that value; else, this is the value of the `figure_title` parameter
-        passed to the same method.
+        Text displayed above the figure axes. If a non-``None`` value for the
+        ``axes_title`` parameter is passed to the :meth:`__init__` method, this
+        is that value; else, this is the value of the ``figure_title`` parameter
+        passed to that method.
     _axes_x_label : str
         Text displayed below the figure's X axis.
     _axes_y_label : str
@@ -330,20 +323,9 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         Initialize the X and Y axes of this plot's figure.
         '''
 
-        #FIXME: Reduplicated elsewhere in the codebase, including in at least
-        #one layer. Clearly, this requires placement in a higher-level object.
-
-        # Extent of the current 2D environment.
-        self._axes_bounds = [
-            self._phase.cells.xmin * self._phase.p.um,
-            self._phase.cells.xmax * self._phase.p.um,
-            self._phase.cells.ymin * self._phase.p.um,
-            self._phase.cells.ymax * self._phase.p.um,
-        ]
-
         # Bound these axes by this extent.
         self._axes.axis('equal')
-        self._axes.axis(self._axes_bounds)
+        self._axes.axis(self._phase.cache.upscaled.extent)
 
         # Display passed human-readable strings as axes attributes.
         self._axes.set_xlabel(self._axes_x_label)
@@ -1114,7 +1096,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         return self._axes.imshow(
             pixel_data,
             origin='lower',
-            extent=self._axes_bounds,
+            extent=self._phase.cache.upscaled.extent,
             cmap=colormap,
         )
 

@@ -8,7 +8,7 @@ plotting vectors onto the cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.math.vector.vectorcls import VectorCells
+from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.visual.layer.layerabc import LayerCellsColorfulABC
 # from betse.util.type.types import type_check
 
@@ -22,19 +22,19 @@ class LayerCellsVectorColorfulABC(LayerCellsColorfulABC):
 
     Attributes
     ----------
-    _vector : VectorCells
+    _vector : VectorCellsCache
         Cache of various vectors of the same underlying data situated along
         different coordinate systems for all time steps to be animated.
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    def __init__(self, vector: VectorCells) -> None:
+    def __init__(self, vector: VectorCellsCache) -> None:
         '''
         Initialize this layer.
 
         Parameters
         ----------
-        vector : VectorCells
+        vector : VectorCellsCache
             Cache of various vectors of the same underlying data situated along
             different coordinate systems for all time steps to be animated.
         '''

@@ -15,8 +15,8 @@ exporting) post-simulation animations.
 import numpy as np
 from betse.science.config.export.confvis import SimConfVisualCellsListItem
 from betse.science.math.vector import vectormake
-from betse.science.math.vector.field import fieldmake
-from betse.science.math.vector.vectorcls import VectorCells
+from betse.science.math.vector.veccls import VectorCellsCache
+from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
@@ -25,7 +25,6 @@ from betse.science.visual.anim.anim import (
     AnimateDeformation,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
-    AnimFieldExtracellular,
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
     AnimFlatCellsTimeSeries,
@@ -33,10 +32,14 @@ from betse.science.visual.anim.anim import (
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
 from betse.science.visual.layer.field.layerfieldquiver import (
-    LayerCellsFieldQuiverCells, LayerCellsFieldQuiverMembranes)
-from betse.science.visual.layer.vector.layervectorsurface import (
-    LayerCellsVectorSurfaceDiscrete, LayerCellsVectorSurfaceContinuous)
-from betse.util.type.types import type_check, IterableTypes
+    LayerCellsFieldQuiverCells,
+    LayerCellsFieldQuiverGrids,
+    LayerCellsFieldQuiverMembranes,
+)
+from betse.science.visual.layer.vector.lyrvecabrupt import LayerCellsVectorAbruptMembranes
+from betse.science.visual.layer.vector.lyrvecsmooth import (
+    LayerCellsVectorSmoothGrids, LayerCellsVectorSmoothRegions)
+from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 
 # ....................{ SUBCLASSES                         }....................
 class AnimCellsPipe(SimPipeExportABC):
@@ -128,23 +131,9 @@ class AnimCellsPipe(SimPipeExportABC):
         all time steps.
         '''
 
-        # Intracellular electric field over all time steps.
-        field = fieldmake.make_electric_intra(phase=self._phase)
-
-        # Vector of all intracellular electric field magnitudes over all time
-        # steps, spatially situated at cell centres.
-        field_magnitudes = VectorCells(
-            phase=self._phase,
-            times_cells_centre=field.times_cells_centre.magnitudes)
-
-        # Sequence of layers consisting of...
-        layers = (
-            # A lower layer animating these magnitudes.
-            LayerCellsVectorSurfaceContinuous(vector=field_magnitudes),
-
-            # A higher layer animating this field.
-            LayerCellsFieldQuiverCells(field=field),
-        )
+        # Sequence of layers depicting this field.
+        layers = self._make_layers_cells_field(
+            field=self._phase.cache.vector_field.electric_intra)
 
         # Animate these layers.
         AnimCellsAfterSolvingLayered(
@@ -170,15 +159,35 @@ class AnimCellsPipe(SimPipeExportABC):
         environment over all time steps.
         '''
 
-        # Animate this animation.
-        AnimFieldExtracellular(
+        # Extracellular electric field over all time steps.
+        field = self._phase.cache.vector_field.electric_extra
+
+        # Vector of all extracellular electric field magnitudes over all time
+        # steps, spatially situated at cell centres.
+        field_magnitudes = VectorCellsCache(
+            phase=self._phase,
+            times_grids_centre=field.times_grids_centre.magnitudes)
+
+        # Sequence of layers consisting of...
+        layers = (
+            # A lower layer animating these magnitudes.
+            LayerCellsVectorSmoothGrids(vector=field_magnitudes),
+
+            # A higher layer animating this field.
+            LayerCellsFieldQuiverGrids(field=field),
+        )
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,
-            x_time_series=self._phase.sim.efield_ecm_x_time,
-            y_time_series=self._phase.sim.efield_ecm_y_time,
+            layers=layers,
             label='Efield_ecm',
             figure_title='Extracellular E Field',
             colorbar_title='Electric Field [V/m]',
+
+            # Prefer an alternative colormap.
+            colormap=self._phase.p.background_cm,
         )
 
     # ..................{ EXPORTERS ~ fluid                  }..................
@@ -299,11 +308,10 @@ class AnimCellsPipe(SimPipeExportABC):
         steps.
         '''
 
-        # Vector field of all cellular microtubules over all time steps.
-        field = fieldmake.make_microtubule(phase=self._phase)
-
-        # Sequence containing only a layer animating this field.
-        layers = (LayerCellsFieldQuiverMembranes(field=field),)
+        # Sequence containing only a layer animating the vector field of all
+        # cellular microtubules over all time steps.
+        layers = (LayerCellsFieldQuiverMembranes(
+            field=self._phase.cache.vector_field.microtubule),)
 
         # Animate these layers.
         AnimCellsAfterSolvingLayered(
@@ -391,8 +399,8 @@ class AnimCellsPipe(SimPipeExportABC):
         # Gouraud-shaded surface in either a contiguous or discontiguous manner
         # according to the phase configuration.
         layer_type = (
-            LayerCellsVectorSurfaceDiscrete if self._phase.p.showCells else
-            LayerCellsVectorSurfaceContinuous)
+            LayerCellsVectorAbruptMembranes if self._phase.p.showCells else
+            LayerCellsVectorSmoothRegions)
 
         # Sequence containing only one such layer.
         layers = (layer_type(vector=vector),)
@@ -432,4 +440,44 @@ class AnimCellsPipe(SimPipeExportABC):
             label='Venv',
             figure_title='Environmental Voltage',
             colorbar_title='Voltage [mV]',
+        )
+
+    # ..................{ MAKERS                             }..................
+    @type_check
+    def _make_layers_cells_field(
+        self, field: VectorFieldCellsCache) -> SequenceTypes:
+        '''
+        Sequence of layers depicting the passed cell cluster vector field cache
+        spatially situated at cell centres.
+
+        Specifically, this sequence consists of a:
+
+        * Lower layer depicting all magnitudes spatially situated at cell
+          centresof this field as a continuous Gouroud-shaded surface.
+        * Higher layer depicting this field as a quiver plot.
+
+        Parameters
+        ----------
+        field : VectorFieldCellsCache
+            Cell cluster vector field cache to be layered.
+
+        Returns
+        ----------
+        SequenceTypes
+            Sequence of layers depicting this cell cluster vector field cache.
+        '''
+
+        # Vector cache of all field magnitudes over all time steps, spatially
+        # situated at cell centres.
+        field_magnitudes = VectorCellsCache(
+            phase=self._phase,
+            times_cells_centre=field.times_cells_centre.magnitudes)
+
+        # Return a tuple of layers consisting of...
+        return (
+            # A lower layer animating these magnitudes.
+            LayerCellsVectorSmoothRegions(vector=field_magnitudes),
+
+            # A higher layer animating this field.
+            LayerCellsFieldQuiverCells(field=field),
         )

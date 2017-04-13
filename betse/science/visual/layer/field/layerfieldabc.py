@@ -8,7 +8,7 @@ plotting vector fields onto the cell cluster.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.math.vector.field.fieldcls import VectorFieldCells
+from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
 from betse.science.visual.layer.layerabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.util.type.types import type_check
@@ -23,20 +23,20 @@ class LayerCellsFieldColorlessABC(LayerCellsABC):
 
     Attributes
     ----------
-    _field : VectorFieldCells
+    _field : VectorFieldCellsCache
         Cache of various vector fields of the same underlying data situated
         along different coordinate systems for all time steps to be animated.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, field: VectorFieldCells) -> None:
+    def __init__(self, field: VectorFieldCellsCache) -> None:
         '''
         Initialize this layer.
 
         Parameters
         ----------
-        field : VectorFieldCells
+        field : VectorFieldCellsCache
             Cache of various vector fields of the same underlying data situated
             along different coordinate systems for all time steps to be
             animated.
@@ -59,20 +59,20 @@ class LayerCellsFieldColoredABC(LayerCellsColorfulABC):
 
     Attributes
     ----------
-    _field : VectorFieldCells
+    _field : VectorFieldCellsCache
         Cache of various vector fields of the same underlying data situated
         along different coordinate systems for all time steps to be animated.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, field: VectorFieldCells) -> None:
+    def __init__(self, field: VectorFieldCellsCache) -> None:
         '''
         Initialize this layer.
 
         Parameters
         ----------
-        field : VectorFieldCells
+        field : VectorFieldCellsCache
             Cache of various vector fields of the same underlying data situated
             along different coordinate systems for all time steps to be
             animated.

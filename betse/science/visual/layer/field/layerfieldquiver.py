@@ -20,7 +20,7 @@ class LayerCellsFieldQuiverABC(LayerCellsFieldColorlessABC):
     '''
     Layer abstract subclass plotting the most significant X and Y components of
     a single vector field spatially situated according to this layer subclass
-    onto the cell cluster for one on more simulation time steps.
+    onto the cell cluster for one on more time steps.
 
     Attributes
     ----------
@@ -72,7 +72,7 @@ class LayerCellsFieldQuiverCells(LayerCellsFieldQuiverABC):
     '''
     Layer subclass plotting the most significant X and Y components of a single
     vector field spatially situated at cell centres (e.g., intracellular
-    electric field) onto the cell cluster for one on more simulation time steps.
+    electric field) onto the cell cluster for one on more time steps.
     '''
 
     # ..................{ SUPERCLASS                         }..................
@@ -86,14 +86,9 @@ class LayerCellsFieldQuiverCells(LayerCellsFieldQuiverABC):
             # to the matplotlib.axes.quiver() method called here, the first four
             # arguments *MUST* be passed as positional arguments.
 
-            #FIXME: Refactor into cached properties of the new
-            #"SimPhaseSubcacheCells" class.
-
             # Upscaled X and Y coordinates of all cell centres.
-            expmath.upscale_cell_coordinates(
-                self._phase.cells.cell_centres[:,0]),
-            expmath.upscale_cell_coordinates(
-                self._phase.cells.cell_centres[:,1]),
+            self._phase.cache.upscaled.cells_centre_x,
+            self._phase.cache.upscaled.cells_centre_y,
 
             # Normalized X and Y components of this vector field spatially
             # situated at cell centres for this time step.
@@ -120,9 +115,6 @@ class LayerCellsFieldQuiverCells(LayerCellsFieldQuiverABC):
             # user-defined zoom level increases in either X or Y dimensions.
             # units='xy',
             units='x',
-
-            #FIXME: This appears to be ignored. Is this still required?
-            # zorder=10,
         )
 
     # ..................{ SUPERCLASS ~ property              }..................
@@ -135,11 +127,84 @@ class LayerCellsFieldQuiverCells(LayerCellsFieldQuiverABC):
         return self._field.times_cells_centre.unit_y[self._visual.time_step]
 
 
+class LayerCellsFieldQuiverGrids(LayerCellsFieldQuiverABC):
+    '''
+    Layer subclass plotting the most significant X and Y components of a single
+    vector field spatially situated at environmental grid space centres (e.g.,
+    extracellular electric field) onto the cell cluster for one on more time
+    steps.
+    '''
+
+    # ..................{ SUPERCLASS                         }..................
+    def _layer_first(self) -> None:
+
+        # Ouiver plot of all vector components plotted for this time step. See
+        # the matplotlib.quiver.quiver() docstring for further details.
+        self._quiver_plot = self._visual.axes.quiver(
+            # Positional arguments. See
+            # LayerCellsFieldQuiverCells._layer_first() for further discussion.
+
+            # Upscaled X and Y coordinates of all grid space centres.
+            self._phase.cache.upscaled.grids_centre_x,
+            self._phase.cache.upscaled.grids_centre_y,
+
+            # Normalized X and Y components of this vector field spatially
+            # situated at grid space centres for this time step.
+            self._field_time_x,
+            self._field_time_y,
+
+            #FIXME: DRY. All following keyword arguments are duplicated from the
+            #LayerCellsFieldQuiverCells._layer_first() method, which is bad. In
+            #fact, the only difference between this and that class is the use
+            #of "grids_centre"-centric arrays above and below. So, four
+            #differences in total. Can we generalize this further?
+
+            # Keyword arguments. All remaining arguments *MUST* be passed as
+            # keyword arguments.
+
+            # Matplotlib-specific color code of all vector arrows.
+            color=self._phase.p.vcolor,
+
+            # Multiples of the width and height (respectively) of vector arrow
+            # shafts by which to scale the width and height of vector arrow
+            # heads. These settings default to 3 and 5 (respectively).
+            headwidth=5,
+            headlength=7,
+
+            # The portion of each vector arrow to situate at the X and Y
+            # coordinates of the corresponding cell centre.
+            pivot='middle',
+
+            # Scale vector arrows such that arrow size increases as the
+            # user-defined zoom level increases in either X or Y dimensions.
+            # units='xy',
+            units='x',
+        )
+
+    # ..................{ SUPERCLASS ~ property              }..................
+    @property
+    def _field_time_x(self) -> ndarray:
+
+        field = self._field.times_grids_centre
+        return (
+            field.x[self._visual.time_step] /
+            field.magnitudes[self._visual.time_step].max())
+
+
+    @property
+    def _field_time_y(self) -> ndarray:
+
+        field = self._field.times_grids_centre
+        return (
+            field.y[self._visual.time_step] /
+            field.magnitudes[self._visual.time_step].max())
+
+
 class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
     '''
     Layer subclass plotting the most significant X and Y components of a single
     vector field spatially situated at cell membrane midpoints (e.g.,
-    microtubules) onto the cell cluster for one on more simulation time steps.
+    microtubules) onto the cell cluster for one on more time steps.
 
     Attributes
     ----------

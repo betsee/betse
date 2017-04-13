@@ -15,22 +15,20 @@ from betse.util.py import references
 from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
-class SimPhaseCache(object):
+class SimPhaseCaches(object):
     '''
-    High-level simulation phase cache, persisting previously constructed
-    large-scale objects for subsequent reuse by a single simulation phase.
+    Namespace containing all simulation phase-specific caches, each persisting
+    previously constructed large-scale objects for subsequent reuse by a single
+    simulation phase.
 
     Attributes
     ----------
-    phase : SimPhase
-        Parent simulation phase.
-
-    Attributes (Subcache)
-    ----------
-    cells : SimPhaseSubcacheCells
-        Subcache of all cell cluster objects constructed for this phase.
-    vector : SimPhaseSubcacheVector
-        Subcache of all vectors and vector fields constructed for this phase.
+    upscaled : SimPhaseCacheCellsUpscaled
+        Subcache of all upscaled objects constructed for this phase.
+    vector : SimPhaseCacheVector
+        Subcache of all vectors constructed for this phase.
+    vector_field : SimPhaseCacheVectorField
+        Subcache of all vector fields constructed for this phase.
     '''
 
     # ..................{ INITIALIZORS                       }..................
@@ -46,18 +44,19 @@ class SimPhaseCache(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.science.simulate.cache.cachevec import SimPhaseSubcacheVector
+        from betse.science.simulate.cache.cacheupscaled import (
+            SimPhaseCacheUpscaled)
+        from betse.science.simulate.cache.cachevec import SimPhaseCacheVector
+        from betse.science.simulate.cache.cachevecfld import (
+            SimPhaseCacheVectorField)
 
-        # Classify all passed parameters as weak rather than strong reference,
-        # circumventing circular references and complications thereof.
-        self.phase = references.proxy_weak(phase)
-
-        # Classify all subcaches.
-        self.cells = SimPhaseSubcacheCells(self)
-        self.vector = SimPhaseSubcacheVector(self)
+        # Classify all subcaches imported above.
+        self.upscaled = SimPhaseCacheUpscaled(phase)
+        self.vector = SimPhaseCacheVector(phase)
+        self.vector_field = SimPhaseCacheVectorField(phase)
 
 # ....................{ SUPERCLASSES                       }....................
-class SimPhaseSubcacheABC(object, metaclass=ABCMeta):
+class SimPhaseCacheABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **simulation phase subcache** (i.e., container
     persisting previously constructed large-scale objects for some facet of a
@@ -67,14 +66,11 @@ class SimPhaseSubcacheABC(object, metaclass=ABCMeta):
     ----------
     Subcaches provide namespace isolation but are otherwise purely superficial.
     Technically, all objects cached by a subcache could simply be cached by the
-    parent :class:`SimPhaseCache` object instead. Doing so would quickly become
+    parent :class:`SimPhaseCaches` object instead. Doing so would quickly become
     cumbersome, however, both for maintenance and reuse.
 
     Attributes
     ----------
-    _cache : SimPhaseCache
-        Parent simulation phase cache, permitting this subcache to access
-        objects cached by other subcaches.
     _phase : SimPhase
         Parent simulation phase. This attribute is technically accessible as
         :attr:`_cache.phase` but is provided by this class for convenience.
@@ -82,36 +78,16 @@ class SimPhaseSubcacheABC(object, metaclass=ABCMeta):
 
     # ..................{ INITIALIZORS                       }..................
     @type_check
-    def __init__(self, cache: SimPhaseCache) -> None:
+    def __init__(self, phase: SimPhase) -> None:
         '''
         Initialize this simulation phase subcache.
 
         Parameters
         ----------
-        cache : SimPhaseCache
-            Parent simulation phase cache.
+        phase : SimPhase
+            Parent simulation phase.
         '''
 
         # Classify all passed parameters as weak rather than strong reference,
         # circumventing circular references and complications thereof.
-        self._cache = references.proxy_weak(cache)
-
-        # For convenience, reclassify the current phase as well.
-        self._phase = self._cache.phase
-
-# ....................{ SUBCLASSES                         }....................
-#FIXME: Shift into a new "cachecells" submodule of this subpackage.
-class SimPhaseSubcacheCells(SimPhaseSubcacheABC):
-    '''
-    Lower-level simulation phase cell cluster subcache, persisting all
-    previously constructed cell cluster objects for a single simulation phase.
-
-    Design
-    ----------
-    All objects persisted by this subcache are required only sporadically by
-    one or more isolated features (e.g., plots, animations). Hence, these
-    objects are *not* suitable for ownership by the general-purpose
-    :class:`Cells` class.
-    '''
-
-    pass
+        self._phase = references.proxy_weak(phase)

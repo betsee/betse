@@ -9,19 +9,20 @@ Abstract base classes of all vector subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimVectorException
-from betse.science.simulate.simphase import SimPhase
 from betse.lib.numpy import arrays
+from betse.science.simulate.cache.cacheabc import SimPhaseCacheABC
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceOrNoneTypes
 from numpy import ndarray
 from scipy import interpolate
 
 # ....................{ SUPERCLASSES                       }....................
-class VectorCells(object):
+class VectorCellsCache(SimPhaseCacheABC):
     '''
-    Cache of various related two-dimensional Numpy arrays describing the same
-    underlying data spatially situated along different coordinate systems (e.g.,
-    cell centres, cell membrane vertices) for one or more simulation time steps.
+    Cell cluster vector cache, persisting all two-dimensional Numpy arrays
+    describing the same underlying data spatially situated along different
+    coordinate systems (e.g., cell centres, cell membrane vertices) for one or
+    more simulation time steps.
 
     The input data encapsulated by this cache may be spatially situated at
     either:
@@ -37,8 +38,6 @@ class VectorCells(object):
 
     Attributes
     ----------
-    _phase : SimPhase
-        Current simulation phase.
     _times_cell_centres : ndarray
         Two-dimensional Numpy array of all arbitrary cell data for one or more
         simulation time steps spatially situated at cell centres, returned by
@@ -57,18 +56,16 @@ class VectorCells(object):
     @type_check
     def __init__(
         self,
-        phase: SimPhase,
         times_cells_centre: SequenceOrNoneTypes = None,
         times_grids_centre: SequenceOrNoneTypes = None,
         times_membranes_midpoint: SequenceOrNoneTypes = None,
+        **kwargs
     ) -> None:
         '''
-        Initialize this vector cache.
+        Initialize this cache.
 
         Parameters
         ----------
-        phase : SimPhase
-            Current simulation phase.
         times_cells_centre : optional[SequenceTypes]
             Two-dimensional sequence of all cell data for a single cell
             membrane-specific modelled variable (e.g., cell electric field
@@ -103,6 +100,9 @@ class VectorCells(object):
             ``times_cells_centre`` and ``times_grids_centre`` parameters must be
             non-``None``.
 
+        All remaining keyword arguments are passed as is to the superclass
+        :meth:`SimPhaseCacheABC.__init__` method.
+
         Raises
         ----------
         BetseSimVectorException
@@ -112,7 +112,7 @@ class VectorCells(object):
         '''
 
         # Initialize our superclass.
-        super().__init__()
+        super().__init__(**kwargs)
 
         # If no sequence was passed, raise an exception.
         if (
@@ -134,7 +134,6 @@ class VectorCells(object):
                 times_membranes_midpoint)
 
         # Classify all passed parameters.
-        self._phase = phase
         self._times_cells_centre = times_cells_centre
         self._times_grids_centre = times_grids_centre
         self._times_membranes_midpoint = times_membranes_midpoint
@@ -153,8 +152,7 @@ class VectorCells(object):
           arbitrary cell data spatially situated at the centre of this cell for
           this time step.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         # If this vector was originally situated at cell centres, return the
@@ -189,8 +187,7 @@ class VectorCells(object):
           arbitrary cell membrane data spatially situated at the midpoint of
           this membrane for this time step.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         # If this vector was originally situated at cell membrane midpoints,
@@ -214,8 +211,7 @@ class VectorCells(object):
           element is arbitrary data spatially situated at this cell membrane
           vertex for this time step.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         return np.dot(
@@ -233,8 +229,7 @@ class VectorCells(object):
           diagram, such that each element is arbitrary data spatially situated
           at the centre of this region for this time step.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         # Array to be returned, zeroed to the desired shape.
@@ -279,8 +274,7 @@ class VectorCells(object):
               the `times_grids_centre` parameter, this vector contains no
               extracellular data to interpolate environmental grid spaces from.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         # If this vector was originally situated at grid space centres, return

@@ -74,7 +74,7 @@ class SimPhase(object):
         Current simulation configuration.
     sim : betse.science.sim.Simulator
         Current simulation.
-    cache : betse.science.simulate.cache.cacheabc.SimPhaseCache
+    cache : betse.science.simulate.cache.cacheabc.SimPhaseCaches
         Current simulation cache.
 
     Attributes (Path)
@@ -113,7 +113,7 @@ class SimPhase(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.science.simulate.cache.cacheabc import SimPhaseCache
+        from betse.science.simulate.cache.cacheabc import SimPhaseCaches
 
         # Classify all passed parameters.
         self.kind = kind
@@ -122,7 +122,7 @@ class SimPhase(object):
         self.p = p
 
         # Classify the cache for this phase.
-        self.cache = SimPhaseCache(self)
+        self.cache = SimPhaseCaches(self)
 
         #FIXME: Isolate exports produced by the "seed" phase to their own
         #directory; for simplicity, such exports currently reuse that of the

@@ -37,11 +37,10 @@ from betse.science.config.export.confvis import SimConfVisualCellsListItem
 from betse.science.export import expmath
 from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.anim.animafter import (
-    AnimCellsAfterSolving, AnimField, AnimVelocity)
+    AnimCellsAfterSolving, AnimVelocity)
 from betse.science.visual.plot.plotutil import (
-    _setup_file_saving, env_mesh, cell_mosaic, cell_mesh,
-    env_quiver, cell_quiver, cell_stream, pretty_patch_plot,
-)
+    _setup_file_saving, cell_mosaic, cell_mesh, cell_quiver, cell_stream,
+    pretty_patch_plot)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
@@ -431,64 +430,6 @@ class AnimMorphogenTimeSeries(AnimCellsAfterSolving):
         self.bkgPlot.set_data(
             self._env_time_series[self._time_step].reshape(
                 self._phase.cells.X.shape))
-
-# ....................{ SUBCLASSES ~ field                 }....................
-class AnimFieldExtracellular(AnimField):
-    '''
-    Animation of the electric field over all extracellular spaces plotted on
-    the cell cluster.
-    '''
-
-
-    def __init__(self, *args, **kwargs) -> None:
-
-        # Initialize the superclass.
-        super().__init__(*args, is_ecm_required=True, **kwargs)
-
-        # Electric field magnitude.
-        efield_mag = np.sqrt(
-            self._x_time_series[-1] ** 2 + self._y_time_series[-1] ** 2)
-        # print('env_mesh shape: {}'.format(efield_mag.shape))
-
-        self.msh, self._axes = env_mesh(
-            efield_mag, self._axes, self._phase.cells, self._phase.p, self._colormap,
-            ignore_showCells=True)
-
-        self.streamE, self._axes = env_quiver(
-            self._x_time_series[-1],
-            self._y_time_series[-1], self._axes, self._phase.cells, self._phase.p)
-
-        # Autoscale the colorbar range if desired.
-        # if self._is_color_autoscaled is True:
-        #     self._color_min = np.min(efield_mag)
-        #     self._color_max = np.max(efield_mag)
-
-        self._animate(color_mappables=self.msh)
-
-
-    def _plot_frame_figure(self) -> None:
-
-        E_x = self._x_time_series[self._time_step]
-        E_y = self._y_time_series[self._time_step]
-
-        efield_mag = np.sqrt(E_x**2 + E_y**2)
-        self.msh.set_data(efield_mag)
-
-        if efield_mag.max() != 0.0:
-            E_x = E_x/efield_mag.max()
-            E_y = E_y/efield_mag.max()
-
-        self.streamE.set_UVC(E_x, E_y)
-
-        # # Rescale the colorbar range if desired.
-        # if self._is_color_autoscaled is True:
-        #     self._color_min = np.min(efield_mag)
-        #     self._color_max = np.max(efield_mag)
-        #
-        #     #FIXME: Make this go away. A coven of unicycles droven to the edge!
-        #
-        #     # Set the colorbar range.
-        #     self.msh.set_clim(self._color_min, self._color_max)
 
 # ....................{ SUBCLASSES ~ velocity              }....................
 class AnimVelocityIntracellular(AnimVelocity):
@@ -942,7 +883,7 @@ class AnimDeformTimeSeries(AnimCellsAfterSolving):  # FIXME this doesn't actuall
         # self.ax = plt.subplot(111)
         self._axes.cla()
         self._axes.axis('equal')
-        self._axes.axis(self._axes_bounds)
+        self._axes.axis(self._phase.cache.upscaled.extent)
         self._axes.set_xlabel('Spatial distance [um]')
         self._axes.set_ylabel('Spatial distance [um]')
 

@@ -9,7 +9,7 @@ Abstract base classes of all vector field subclasses.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.lib.numpy import arrays
-from betse.science.math.vector.vectorcls import VectorCells
+from betse.science.math.vector.veccls import VectorCellsCache
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
 from numpy import ndarray
@@ -135,8 +135,7 @@ class VectorField(object):
         #   (e.g., to normalize the X or Y components).
         # * Multiplied by the previously passed factor, typically to scale
         #   magnitudes to the desired units.
-        return (
-            1e-15 + self._magnitude_factor*np.sqrt(self._x**2 + self._y**2))
+        return 1e-15 + self._magnitude_factor*np.sqrt(self._x**2 + self._y**2)
 
     # ..................{ PROPERTIES ~ unit                  }..................
     @property_cached
@@ -172,14 +171,13 @@ class VectorField(object):
 
         return self._y / self.magnitudes
 
-# ....................{ CLASSES ~ cells                    }....................
-#IFXME: Rename to "VectorFieldCellsCache".
-class VectorFieldCells(object):
+# ....................{ CLASSES ~ cache                    }....................
+class VectorFieldCellsCache(object):
     '''
-    Cache of various related vector fields whose X and Y components are
-    two-dimensional Numpy arrays describing the same underlying data spatially
-    situated along different coordinate systems (e.g., cell centres, cell
-    membrane vertices) for one or more simulation time steps.
+    Cell cluster vector field cache, persisting all vector fields whose X and Y
+    components are two-dimensional Numpy arrays describing the same underlying
+    data spatially situated along different coordinate systems (e.g., cell
+    centres, cell membrane vertices) for one or more simulation time steps.
 
     The input data encapsulated by this cache may be spatially situated at
     either:
@@ -198,41 +196,43 @@ class VectorFieldCells(object):
     ----------
     _field_args : tuple
         Tuple of all positional arguments to be passed as is to the
-        :meth:`VectorCellsABC.__init__` method of each
-        :class:`VectorCellsABC` instance returned by each property of this
-        cache.
+        :meth:`VectorField.__init__` method of each :class:`VectorField`
+        instance returned by each property of this cache.
     _field_kwargs : dict
         Dictionary of all keyword arguments to be passed as is to the
-        :meth:`VectorCellsABC.__init__` method of each
-        :class:`VectorCellsABC` instance returned by each property of this
-        cache.
-    _field_x : VectorCells
+        :meth:`VectorField.__init__` method of each :class:`VectorField`
+        instance returned by each property of this cache.
+    _field_x : VectorCellsCache
         Two-dimensional array of the X components of all vectors in this field
         for one or more simulation time steps.
-    _field_y : VectorCells
+    _field_y : VectorCellsCache
         Two-dimensional array of the Y components of all vectors in this field
         for one or more simulation time steps.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, x: VectorCells, y: VectorCells, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        x: VectorCellsCache,
+        y: VectorCellsCache,
+        *args, **kwargs
+    ) -> None:
         '''
         Initialize this vector field cache.
 
         Parameters
         ----------
-        x : VectorCells
+        x : VectorCellsCache
             Two-dimensional array of the X components of all vectors in this
             field for one or more simulation time steps.
-        y : VectorCells
+        y : VectorCellsCache
             Two-dimensional array of the Y components of all vectors in this
             field for one or more simulation time steps.
 
         All remaining parameters are passed as is to the
-        :meth:`VectorCellsABC.__init__` method of each
-        :class:`VectorCellsABC` instance returned by each property of this
-        cache.
+        :meth:`VectorField.__init__` method of each :class:`VectorField`
+        instance returned by each property of this cache.
         '''
 
         # Classify all passed parameters.
@@ -250,12 +250,11 @@ class VectorFieldCells(object):
         Vector field whose X and Y components are two-dimensional Numpy arrays
         of data spatially situated at cell centres for one or more time steps.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This field is created only on the first access of this property.
 
         See Also
         ----------
-        :meth:`VectorCells.times_cells_centre`
+        :meth:`VectorCellsCache.times_cells_centre`
             Details on the structure of these arrays.
         '''
 
@@ -274,12 +273,11 @@ class VectorFieldCells(object):
         of data spatially situated at grid space centres for one or more
         time steps.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This field is created only on the first access of this property.
 
         See Also
         ----------
-        :meth:`VectorCells.times_grids_centre`
+        :meth:`VectorCellsCache.times_grids_centre`
             Details on the structure of these arrays.
         '''
 
@@ -298,12 +296,11 @@ class VectorFieldCells(object):
         of data spatially situated at cell membrane midpoints for one or more
         time steps.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This field is created only on the first access of this property.
 
         See Also
         ----------
-        :meth:`VectorCells.times_membranes_midpoint`
+        :meth:`VectorCellsCache.times_membranes_midpoint`
             Details on the structure of these arrays.
         '''
 
@@ -322,12 +319,11 @@ class VectorFieldCells(object):
         of data spatially situated at cell membrane vertices for one or more
         time steps.
 
-        For space and time efficiency, the definition of this field is lazily
-        deferred to the first read of this property.
+        This field is created only on the first access of this property.
 
         See Also
         ----------
-        :meth:`VectorCells.times_membranes_vertex`
+        :meth:`VectorCellsCache.times_membranes_vertex`
             Details on the structure of these arrays.
         '''
 

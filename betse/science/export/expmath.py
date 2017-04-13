@@ -70,7 +70,7 @@ def upscale_cells_coordinates(
         :func:`upscale_cell_coordinates` function.
     '''
 
-    return (
+    return tuple(
         upscale_cell_coordinates(cell_coordinates)
         for cell_coordinates in cells_coordinates
     )
@@ -92,7 +92,7 @@ def upscale_cell_coordinates(
 
     Returns
     ----------
-    object
+    NumericOrSequenceTypes
         Either:
         * If this data is numeric, this number upscaled by this multiplier.
         * If this data is sequential, this sequence converted into a Numpy array
@@ -125,7 +125,7 @@ def _upscale_data_in_units(
 
     Returns
     ----------
-    object
+    NumericOrSequenceTypes
         Either:
         * If this data is numeric, this number upscaled by this multiplier.
         * If this data is sequential, this sequence converted into a Numpy array
