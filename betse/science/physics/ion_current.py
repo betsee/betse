@@ -63,22 +63,22 @@ def get_current(sim, cells, p):
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)
 
         # conductivity in the media is modified by the environmental diffusion weight matrix:
-        sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
-
-        # smooth:
-        # sigma = gaussian_filter(sigma, 1)
+        # sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
 
         #---Calculate divergences for concentration & transmembrane fluxes ---------------------------------------------
-        div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
+        # div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
 
         # term describing source of environmental potential:
-        source_term =  div_Jo  + (sim.rho_env/((sim.ko_env**2)*p.er*p.eo)).reshape(cells.X.shape)
+        source_term =  (sim.rho_env/((sim.ko_env)*p.eo*p.eedl)).reshape(cells.X.shape)
+
+        # term producing vector spherical harmonics (becomes equivalent to Vector Helmholtz Equation):
+        # source_term = div_Jo + (sim.rho_env / ((sim.ko_env**2) * p.eo * p.er)).reshape(cells.X.shape)
 
         # set boundary conditions
-        source_term[:,0] = sim.bound_V['L']*(1/cells.delta**2)
-        source_term[:,-1] = sim.bound_V['R']*(1/cells.delta**2)
-        source_term[0,:] = sim.bound_V['B']*(1/cells.delta**2)
-        source_term[-1,:] = sim.bound_V['T']*(1/cells.delta**2)
+        source_term[:,0] = -sim.bound_V['L']*(1/cells.delta**2)
+        source_term[:,-1] = -sim.bound_V['R']*(1/cells.delta**2)
+        source_term[0,:] = -sim.bound_V['B']*(1/cells.delta**2)
+        source_term[-1,:] = -sim.bound_V['T']*(1/cells.delta**2)
 
         # Calculate a voltage that resists the divergence:
         Phi = np.dot(cells.lapENVinv, -source_term.ravel())
@@ -99,33 +99,6 @@ def get_current(sim, cells, p):
 
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
-
-
-        # # divergence-free correction to currents (without dealing with sigma term):-----------------------------------
-        # div_Joo = fd.divergence(J_env_x_o, J_env_y_o, cells.delta, cells.delta)
-        #
-        # # Calculate a voltage that resists the divergence:
-        # Phioo = np.dot(cells.lapENVinv, div_Joo.ravel())
-        #
-        # if p.smooth_level > 0.0:
-        #     # smoothing of Phi:
-        #     Phioo = gaussian_filter(Phioo.reshape(cells.X.shape), p.smooth_level, mode='constant')
-        #
-        # # calculate the gradient of v_env:
-        # gPhioox, gPhiooy = fd.gradient(Phioo.reshape(cells.X.shape), cells.delta)
-        #
-        # sim.J_env_x = J_env_x_o - gPhioox
-        # sim.J_env_y = J_env_y_o - gPhiooy
-
-        # Simply assign actual current -------------------------------------------------------------------------------
-
-        # sim.J_env_x = J_env_x_o*1
-        # sim.J_env_y = J_env_y_o*1
-        # #
-        # if p.smooth_level > 0.0:
-        #
-        #     sim.J_env_x = gaussian_filter(sim.J_env_x, p.smooth_level)
-        #     sim.J_env_y = gaussian_filter(sim.J_env_y, p.smooth_level)
 
 
 

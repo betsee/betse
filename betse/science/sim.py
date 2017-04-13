@@ -971,11 +971,11 @@ class Simulator(object):
         self.mtubes.alpha_noise = p.mtube_noise
 
         # calculate an inverse electrical double layer based on internal and external concentrations:
-        self.ko_env = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.eo * p.er * p.kb * p.T), self.cc_env))).mean()
-        self.ko_cell = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.eo * p.er * p.kb * p.T), self.cc_cells))).mean()
+        self.ko_env = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.er * p.eo * p.kb * p.T), self.cc_env))).mean()
+        self.ko_cell = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.er * p.eo * p.kb * p.T), self.cc_cells))).mean()
 
-        self.cedl_env = p.eo*p.er*self.ko_env
-        self.cedl_cell = p.eo*p.er*self.ko_cell
+        self.cedl_env = p.er*p.eo*self.ko_env
+        self.cedl_cell = p.er*p.eo*self.ko_cell
 
 
     @type_check
@@ -1715,9 +1715,9 @@ class Simulator(object):
 
             # Vmem with double layer interaction modelled (optional with "cell polarizability"):
             self.vm = ((1/p.cm)*(self.rho_at_mem)
-                                                    # - (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability
+                                                    - (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability
                                                    +  (1/self.cedl_env)*Jme*p.dt*p.cell_polarizability
-                                                   - self.v_env[cells.map_mem2ecm]
+                                                   # - self.v_env[cells.map_mem2ecm]
                        )
 
 

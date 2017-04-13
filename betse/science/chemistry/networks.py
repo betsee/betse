@@ -2953,6 +2953,9 @@ class MasterOfNetworks(object):
             # if p.sim_ECM is True and obj.zone == 'env':
             #     modulator = modulator[cells.map_mem2ecm]
 
+            # print(modulator.min())
+            # print("-----------")
+
             if obj.target_label == 'gj':
 
                 sim.gj_block = modulator
