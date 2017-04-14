@@ -1908,13 +1908,11 @@ class Simulator(object):
         # conductivity of cytoplasm:
         sigma = np.dot((((self.D_free*self.zs ** 2) * p.q * p.F) / (p.kb * p.T)), self.cc_cells).mean()
 
-        umt = p.u_mtube  # assumes the mtube conducts ions like a wire in accordance to applied voltage
-
         #umt = -p.u_mtube # assume electroosmotic velocity directed from positive to negative end of mt
 
         # calculate the equillibrium concentration gradients in terms of current and average concs:
-        ceqm_x = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_x[cells.mem_to_cells]*(1/sigma)  + ((umt*self.mtubes.mtubes_x*cav)/Do)
-        ceqm_y = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_y[cells.mem_to_cells]*(1/sigma)  + ((umt*self.mtubes.mtubes_y*cav)/Do)
+        ceqm_x = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_x[cells.mem_to_cells]*(1/sigma)
+        ceqm_y = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_y[cells.mem_to_cells]*(1/sigma)
 
         cgrad_x = self.cc_grad_x[i]
         cgrad_y = self.cc_grad_y[i]
