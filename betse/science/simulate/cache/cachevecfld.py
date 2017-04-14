@@ -8,6 +8,7 @@ High-level vector field subcache functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.lib.numpy import arrays
 from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.simulate.cache.cacheabc import SimPhaseCacheABC
@@ -36,6 +37,9 @@ class SimPhaseCacheVectorField(SimPhaseCacheABC):
         Vector field cache of all intracellular current densities over all time
         steps of the current simulation phase, originally spatially situated at
         cell centres.
+
+        For readability of units in exported visuals (e.g., plots), this cache
+        additionally upscales these densities to units of uA/cm^2.
         '''
 
         return VectorFieldCellsCache(
@@ -55,6 +59,9 @@ class SimPhaseCacheVectorField(SimPhaseCacheABC):
         Vector field cache of all exracellular current densities over all time
         steps of the current simulation phase, originally spatially situated at
         environmental grid space centres.
+
+        For readability of units in exported visuals (e.g., plots), this cache
+        additionally upscales these densities to units of uA/cm^2.
 
         Raises
         ----------
@@ -148,9 +155,12 @@ class SimPhaseCacheVectorField(SimPhaseCacheABC):
         situated at cell membrane midpoints.
         '''
 
-        #FIXME: Is "sim.vm_ave_time" a list? If so, we'll need to Numpify here.
+        # Two-dimensional Numpy array of the average transmembrane voltages
+        # across all cell membranes over all time steps.
+        vm_ave_time = arrays.from_sequence(self._phase.sim.vm_ave_time)
 
-        # Two-dimensional Numpy array of all Vmem polarity magnitudes whose:
+        # Two-dimensional Numpy array of all transmembrane voltage polarity
+        # vector magnitudes whose:
         #
         # * First dimension indexes each time step.
         # * Second dimension indexes each cell membrane such that each element
@@ -160,24 +170,32 @@ class SimPhaseCacheVectorField(SimPhaseCacheABC):
         #   * The transmembrane voltage across that membrane for this time step.
         #   * The average transmembrane voltage across all membranes of the cell
         #     containing that membrane for this time step.
-        polm = (
-            self._phase.sim.vm -
-            self._phase.sim.vm_ave_time[:,self._phase.cells.mem_to_cells])
+        polarity_membranes_midpoint_magnitudes = (
+            self._phase.sim.vm - vm_ave_time[:,self._phase.cells.mem_to_cells])
 
-        #FIXME: What does multiplication by "polm" do here?
+        # Two-dimensional Numpy arrays of the X and Y components of all Vmem
+        # polarity vectors, spatially situated at cell membrane midpoints.
+        polarity_membranes_midpoint_x = (
+            polarity_membranes_midpoint_magnitudes *
+            self._phase.cells.mem_vects_flat[:,2])
+        polarity_membranes_midpoint_y = (
+            polarity_membranes_midpoint_magnitudes *
+            self._phase.cells.mem_vects_flat[:,3])
 
-        # X and Y coordinates of all normal unit vectors orthogonal to all
-        # tangent unit vectors of all cell membranes.
-        polx = polm * self._phase.cells.mem_vects_flat[:,2]
-        poly = polm * self._phase.cells.mem_vects_flat[:,3]
-
-        #FIXME: Document us up.
-        pcx = self._phase.map_membranes_midpoint_to_cells_centre(
-            polx*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
-        pcy = self._phase.map_membranes_midpoint_to_cells_centre(
-            poly*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
+        # Two-dimensional Numpy arrays of the X and Y components of all Vmem
+        # polarity vectors, spatially situated at cell centres.
+        polarity_cells_centre_x = (
+            self._phase.map_membranes_midpoint_to_cells_centre(
+                polarity_membranes_midpoint_x * self._phase.cells.mem_sa) /
+            self._phase.cells.cell_sa)
+        polarity_cells_centre_y = (
+            self._phase.map_membranes_midpoint_to_cells_centre(
+                polarity_membranes_midpoint_y * self._phase.cells.mem_sa) /
+            self._phase.cells.cell_sa)
 
         # Create, return, and cache this vector field.
         return VectorFieldCellsCache(
-            x=VectorCellsCache(phase=self._phase, times_cells_centre=pcx),
-            y=VectorCellsCache(phase=self._phase, times_cells_centre=pcy))
+            x=VectorCellsCache(
+                phase=self._phase, times_cells_centre=polarity_cells_centre_x),
+            y=VectorCellsCache(
+                phase=self._phase, times_cells_centre=polarity_cells_centre_y))

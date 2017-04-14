@@ -23,9 +23,9 @@ from betse.lib.numpy import arrays
 from betse.science.config.export.confvis import SimConfVisualCellsABC
 from betse.science.export import expmath
 from betse.science.simulate.simphase import SimPhase
-from betse.science.visual.layer.layerabc import (
+from betse.science.visual.layer.lyrabc import (
     LayerCellsABC, LayerCellsColorfulABC)
-from betse.science.visual.layer.layertext import LayerCellsIndex
+from betse.science.visual.layer.lyrtext import LayerCellsIndex
 from betse.util.io.log import logs
 from betse.util.py import references
 from betse.util.type import iterables, types

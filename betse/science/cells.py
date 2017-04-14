@@ -2493,7 +2493,48 @@ class Cells(object):
             self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
             self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
-    #..........{ MAPPERS                                 }.....................
+    #..........{ PROPERTIES ~ membranes                  }.....................
+    @property_cached
+    def matrixMap2Verts(self) -> ndarray:
+        '''
+        Numpy matrix (i.e., two-dimensional array) of size ``m x n``, where:
+
+        * ``m`` is the total number of cell membranes.
+        * ``n`` is the total number of cell membrane vertices.
+
+        For each membrane ``i`` and membrane vertex ``j``, element
+        ``matrixMap2Verts[i, j]`` is:
+
+        * 0 if this vertex is *not* one of the two vertices defining this
+          membrane. Since most vertices do *not* define most membranes, most
+          entries of this matrix are zero, implying this matrix to typically
+          (but *not* necessarily) be sparse.
+        * 0.5 if this vertex is one of the two vertices defining this membrane,
+          thus averaging membrane data defined at membrane midpoints over the
+          vertex pairs defining these membranes.
+
+        Usage
+        -----------
+        The dot product of a Numpy vector (i.e., one-dimensional array) of size
+        ``m`` containing membrane-specific data by this matrix yields another
+        Numpy vector of size ``n`` containing membrane vertex-specific data
+        interpolated from these membranes over these vertices, where ``m`` and
+        ``n`` are as defined above. Technically, the dot product of a vector by a
+        matrix is undefined. To facilitate this otherwise invalid operation,
+        Numpy implicitly converts:
+
+        * The input vector of size ``m`` into a matrix of size ``1 x m``.
+        * The output matrix of size ``n x 1`` into an output vector of size
+          ``n``.
+
+        This matrix is cached *only* on the first access of this property.
+        '''
+
+        # Zero this matrix to the expected dimensions.
+        matrixMap2Verts = np.zeros(
+            (len(self.mem_mids_flat), len(self.mem_verts)))
+
+    #..........{ PROPERTIES ~ mappers                    }.....................
     #FIXME: For readability, rename to membranes_midpoint_to_vertices().
     @property_cached
     def matrixMap2Verts(self) -> ndarray:
@@ -2563,7 +2604,7 @@ class Cells(object):
         For each membrane ``i`` and cell ``j``, element
         ``mems_midpoint_to_cells_centre[i, j]`` is:
 
-        * 0 if this cell does _not_ contain this membrane. Since most cells do
+        * 0 if this cell does *not* contain this membrane. Since most cells do
           *not* contain most membranes, most entries of this matrix are zero,
           implying this matrix to typically (but *not* necessarily) be sparse.
         * ``1/k`` if this cell contains this membrane, where ``k`` is the number
@@ -2595,7 +2636,7 @@ class Cells(object):
         #   is divided by the corresponding element of this row vector.
         return self.M_sum_mems.T / self.num_mems
 
-
+    #..........{ MAPPERS                                 }.....................
     @type_check
     def map_membranes_midpoint_to_cells_centre(
         self, membranes_midpoint_data: SequenceTypes) -> ndarray:
@@ -2699,6 +2740,7 @@ class Cells(object):
         # ...which should internally do something like this:
     #    np.dot(some_array, cells.M_sum_mems.T) / cells.num_mems
     #
-    #After doing so, consider replacing the "M_sum_mems" array with its tranpspose,
-    #which is a # the more general-purpose and efficient array. Unlike the former, the latter is
-    #applicable to both Numpy arrays and matrices.
+    #After doing so, consider replacing the "M_sum_mems" array with its
+    #tranpspose, which is a # the more general-purpose and efficient array.
+    #Unlike the former, the latter is applicable to both Numpy arrays and
+    #matrices.

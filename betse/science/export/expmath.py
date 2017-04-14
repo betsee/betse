@@ -26,10 +26,10 @@ def upscale_cell_data(
     * A scalar number (e.g., of type :class:`int` or :class:`float`), this
       function returns a new scalar number of the same type multiplied by a
       positive constant.
-    * A NumPy array, this function returns a new NumPy array equal to the
+    * A Numpy array, this function returns a new Numpy array equal to the
       passed array multiplied by a positive constant.
-    * A Python sequence (e.g., :class:`list`), this function returns a new NumPy
-      array equal to the passed sequence converted into a new NumPy array and
+    * A Python sequence (e.g., :class:`list`), this function returns a new Numpy
+      array equal to the passed sequence converted into a new Numpy array and
       then multiplied by a positive constant.
 
     Parameters

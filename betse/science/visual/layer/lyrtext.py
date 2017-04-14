@@ -8,7 +8,7 @@ Layer subclasses printing text over the current cell cluster.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.export import expmath
-from betse.science.visual.layer.layerabc import LayerCellsABC
+from betse.science.visual.layer.lyrabc import LayerCellsABC
 
 # ....................{ CLASSES                            }....................
 class LayerCellsIndex(LayerCellsABC):

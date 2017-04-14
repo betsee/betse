@@ -9,7 +9,7 @@ plotting vector fields onto the cell cluster.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
-from betse.science.visual.layer.layerabc import (
+from betse.science.visual.layer.lyrabc import (
     LayerCellsABC, LayerCellsColorfulABC)
 from betse.util.type.types import type_check
 
@@ -49,8 +49,7 @@ class LayerCellsFieldColorlessABC(LayerCellsABC):
         self._field = field
 
 
-#FIXME: Rename to "LayerCellsFieldColorfulABC".
-class LayerCellsFieldColoredABC(LayerCellsColorfulABC):
+class LayerCellsFieldColorfulABC(LayerCellsColorfulABC):
     '''
     Abstract base class of all classes spatially plotting vector fields of
     arbitrary data onto the cell cluster (e.g., current density, electric field)

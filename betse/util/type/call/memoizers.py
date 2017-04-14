@@ -99,6 +99,23 @@ def callable_cached_arged(
 #In fact, the above approach is essentially what Django does (albeit with a more
 #cumbersome class decorator than a function decorator). Which means, in turn,
 #that this is indeed the canonical solution to caching properties.
+#FIXME: Actually, the solution below may indeed be superior -- but for one
+#particularly sutble reasons not commonly discussed: pickling. The third-party
+#pickling package "dill" explicitly supports pickling of @property-decorated
+#methods by pickling the data descriptor produced by those methods rather than
+#the underlying data -- which is good. Reducing this approach to the attribute
+#inlining scheme outlined above, however, would result in "dill" pickling the
+#underlying data -- which would be very bad.
+#FIXME: That said, the current approach still does *NOT* suffice. Why? Because
+#"dill" will still pickle the underlying data cached by all
+#@property_cached-decorated methods that have been called at least once, as this
+#data is cached to simple instance variables of their parent object.
+#Fortunately, these variables are *ALL* prefixed by the same substring:
+#"__property_cached_". This implies that "dill" may be instructed to ignore all
+#instance variables prefixed by this substring when pickling. Let it be, please.
+#FIXME: While "dill" doesn't appear to support such functionality at present, a
+#feature request for doing so has been opened at:
+#    https://github.com/uqfoundation/dill/issues/225
 
 # Note that, for unknown reasons, the "property_method" parameter cannot be
 # assumed to be a method. Property methods appear to be of type function rather

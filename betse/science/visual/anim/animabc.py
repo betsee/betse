@@ -98,9 +98,9 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.lib.matplotlib.writer import mplvideo
 from betse.lib.matplotlib.writer.mplclass import ImageWriter, NoopWriter
-from betse.science.visual.layer.field.layerfieldabc import (
+from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
-from betse.science.visual.layer.field.layerfieldstream import (
+from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
     LayerCellsFieldStream)
 from betse.science.visual.visabc import VisualCellsABC
 from betse.util.io.log import logs

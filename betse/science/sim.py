@@ -447,8 +447,7 @@ class Simulator(object):
         self.E_cell_x = np.zeros(self.mdl)   # intracellular electric field components (macro-field)
         self.E_cell_y = np.zeros(self.mdl)
 
-
-        if p.sim_ECM is True:  # special items specific to simulation of extracellular spaces only:
+        if p.sim_ECM:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
             self.v_env = np.ones(len(cells.xypts))*1.0e-3
@@ -461,8 +460,6 @@ class Simulator(object):
 
             self.E_env_x = np.zeros(cells.X.shape)  # electric field in environment, x component
             self.E_env_y = np.zeros(cells.X.shape)  # electric field in environment, y component
-
-
 
         else:  # items specific to simulation *without* extracellular spaces:
             # Initialize environmental volume:
@@ -645,20 +642,15 @@ class Simulator(object):
         # convert all data structures to Numpy arrays:
         self.cc_cells = np.asarray(self.cc_cells)
         self.cc_env = np.asarray(self.cc_env)
-
         self.zs = np.asarray(self.zs)
         self.z_array = np.asarray(self.z_array)
-
         self.Dm_cells = np.asarray(self.Dm_cells)
-
         self.D_free = np.asarray(self.D_free)
         self.D_gj = np.asarray(self.D_gj)
         self.molar_mass = np.asarray(self.molar_mass)
-
         self.fluxes_mem = np.asarray(self.fluxes_mem)
 
-        if p.sim_ECM is True:  # items specific for extracellular spaces simulation:
-
+        if p.sim_ECM:  # items specific for extracellular spaces simulation:
             self.z_array_env = np.asarray(self.z_array_env)
             self.D_env = np.asarray(self.D_env)
 
@@ -711,7 +703,7 @@ class Simulator(object):
         if p.v_sensitive_gj:
             self.gj_funk = Gap_Junction(self, cells, p)
 
-        if p.sim_ECM is True:
+        if p.sim_ECM:
             #  Initialize diffusion constants for the extracellular transport:
             self.initDenv(cells,p)
 
@@ -732,7 +724,7 @@ class Simulator(object):
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
 
-        if p.sim_ECM is True:
+        if p.sim_ECM:
             # create a copy-base of the environmental junctions diffusion constants:
             self.D_env_base = copy.copy(self.D_env)
 
@@ -1414,7 +1406,7 @@ class Simulator(object):
         self.mtubes_x_time = []
         self.mtubes_y_time = []
 
-        if p.deformation is True:
+        if p.deformation:
             self.ecm_verts_unique_to = cells.ecm_verts_unique[:] # make a copy of original ecm verts as disp ref point
 
             self.cell_centres_time = []
@@ -1468,10 +1460,15 @@ class Simulator(object):
             self.rho_channel_time = []
 
     def write2storage(self,t,cells,p):
+        '''
+        Append each multidimensional Numpy array covering all time steps (e.g.,
+        :attr:`cc_env_time`) with the corresponding Numpy array of fewer
+        dimensions specific to the passed time step (e.g., :attr:`cc_env`).
+        '''
 
-        if p.GHK_calc is True:
-                stb.ghk_calculator(self,cells,p)
-                self.vm_GHK_time.append(self.vm_GHK) # data array holding GHK vm estimates
+        if p.GHK_calc:
+            stb.ghk_calculator(self,cells,p)
+            self.vm_GHK_time.append(self.vm_GHK) # data array holding GHK vm estimates
 
         # add the new concentration and voltage data to the time-storage matrices:
         self.efield_gj_x_time.append(self.E_gj_x[:])

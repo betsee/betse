@@ -14,7 +14,6 @@ exporting) post-simulation animations.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.config.export.confvis import SimConfVisualCellsListItem
-from betse.science.math.vector import vectormake
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
 from betse.science.simulate.pipe import piperunreq
@@ -31,7 +30,7 @@ from betse.science.visual.anim.anim import (
     AnimEnvTimeSeries
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
-from betse.science.visual.layer.field.layerfieldquiver import (
+from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
     LayerCellsFieldQuiverCells,
     LayerCellsFieldQuiverGrids,
     LayerCellsFieldQuiverMembranes,
@@ -392,9 +391,6 @@ class AnimCellsPipe(SimPipeExportABC):
         Animate all transmembrane voltages (Vmem) over all time steps.
         '''
 
-        # Vector of all cell membrane voltages over all time steps.
-        vector = vectormake.make_voltages_membrane(phase=self._phase)
-
         # Type of layer to be created, plotting the cell cluster as a
         # Gouraud-shaded surface in either a contiguous or discontiguous manner
         # according to the phase configuration.
@@ -402,8 +398,9 @@ class AnimCellsPipe(SimPipeExportABC):
             LayerCellsVectorAbruptMembranes if self._phase.p.showCells else
             LayerCellsVectorSmoothRegions)
 
-        # Sequence containing only one such layer.
-        layers = (layer_type(vector=vector),)
+        # Sequence of only one such layer of all Vmems over all time steps.
+        layers = (
+            layer_type(vector=self._phase.cache.vector.voltages_membrane),)
 
         # Animate this layer.
         AnimCellsAfterSolvingLayered(

@@ -26,7 +26,7 @@ current cell cluster.
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.science.export import expmath
-from betse.science.visual.layer.field.layerfieldabc import (
+from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
 from betse.util.type.types import type_check
 from matplotlib.patches import FancyArrowPatch
