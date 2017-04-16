@@ -11,7 +11,6 @@ from betse.science.math import finitediff as fd
 
 def get_current(sim, cells, p):
 
-
     # nmx = cells.mem_vects_flat[:,2]
     # nmy = cells.mem_vects_flat[:,3]
 
@@ -23,21 +22,20 @@ def get_current(sim, cells, p):
 
     # add the free current sources together into a single transmembrane current:
     sim.Jn = sim.Jmem + sim.Jgj + sim.extra_J_mem
-    # print(sim.extra_J_mem)
 
     # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa
 
-    # components of membrane current:
-    Jnx = sim.Jn * cells.nn_tx
-    Jny = sim.Jn * cells.nn_ty
+    # calculate current density across whole cells via cytoplasm:
+    sim.Jc = np.dot(sim.zs*p.F, sim.fluxes_intra)
 
-    # average intracellular current to cell centres:
-    # sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx) / cells.num_mems
-    # sim.J_cell_y = np.dot(cells.M_sum_mems, Jny) / cells.num_mems
+    # components of intracellular current:
+    Jcx = sim.Jc * cells.mem_vects_flat[:,2]
+    Jcy = sim.Jc * cells.mem_vects_flat[:,3]
 
-    sim.J_cell_x = np.dot(cells.M_sum_mems, Jnx*cells.mem_sa) / cells.cell_sa
-    sim.J_cell_y = np.dot(cells.M_sum_mems, Jny*cells.mem_sa) / cells.cell_sa
+    # average intracellular current to cell centres FIXME I believe the intracellular current should be curl only!:
+    sim.J_cell_x = np.dot(cells.M_sum_mems, Jcx*cells.mem_sa) / cells.cell_sa
+    sim.J_cell_y = np.dot(cells.M_sum_mems, Jcy*cells.mem_sa) / cells.cell_sa
 
     # update inverse electrical double layer in cells based on internal concentrations:
     sim.ko_cell = (
@@ -54,9 +52,20 @@ def get_current(sim, cells, p):
         sim.ko_env = (
             np.sqrt(np.dot((p.NAv * (p.q ** 2) * sim.zs ** 2) / (p.eo * p.er * p.kb * p.T), sim.cc_env))).mean()
 
+        # currents in environment due to transmembrane fluxes:
+        # J_tm_env_x = np.zeros(sim.edl)
+        # J_tm_env_x[cells.map_mem2ecm] = sim.Jmem*cells.mem_vects_flat[:, 2]*(cells.mem_sa/cells.ecm_sa).mean()
+        #
+        # J_tm_env_y = np.zeros(sim.edl)
+        # J_tm_env_y[cells.map_mem2ecm] = sim.Jmem*cells.mem_vects_flat[:, 3]*(cells.mem_sa/cells.ecm_sa).mean()
+
         # diffusive component of current densities in the environment:
         J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
         J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
+
+        # add in component of current from transmembrane fluxes:
+        # J_env_x_o += J_tm_env_x
+        # J_env_y_o += J_tm_env_y
 
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
@@ -99,6 +108,10 @@ def get_current(sim, cells, p):
 
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
+
+        # sim.J_env_x = J_env_x_o
+        # sim.J_env_y = J_env_y_o
+
 
 
 

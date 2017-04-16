@@ -1288,32 +1288,22 @@ class Cells(object):
         """
 
         # calculate cell chords
-        self.chords = []
-        for i, memMid in enumerate(self.mem_mids_flat):
-            # get cell index for the membrane:
-            celli = self.mem_to_cells[i]
-            dist = memMid - self.cell_centres[celli]
-            chrd = np.sqrt(dist[0] ** 2 + dist[1] ** 2)
-            self.chords.append(chrd)
-
-        self.chords = np.asarray(self.chords)
+        # self.chords = []
+        # for i, memMid in enumerate(self.mem_mids_flat):
+        #     # get cell index for the membrane:
+        #     celli = self.mem_to_cells[i]
+        #     dist = memMid - self.cell_centres[celli]
+        #     chrd = np.sqrt(dist[0] ** 2 + dist[1] ** 2)
+        #     self.chords.append(chrd)
+        #
+        # self.chords = np.asarray(self.chords)
 
         # calculate the volume of each membrane's outer "pie-box":
 
-        self.mem_vol = (1 / 3) * self.chords * self.mem_sa
-
-        # each web of the cell also has a miniature triangle, which is
-        # part of the centroid region:
-        little_pie = (1/6)*self.chords*self.mem_sa
-
-        # calculate the volume of each cell's centroid region by summing up the "litte pie" slice triangles:
-        self.centroid_vol = np.dot(self.M_sum_mems, little_pie)
-
-        # each cell is split into a large triangle (by cutting along each vertex). Calculate its volume:
-        large_pie = (1/2)*self.chords*self.mem_sa
+        self.mem_vol = (1 / 2) * self.R_rads * self.mem_sa
 
         # calaculate cell volume by suming up the large pies:
-        self.cell_vol = np.dot(self.M_sum_mems, large_pie)
+        self.cell_vol = np.dot(self.M_sum_mems, self.mem_vol)
 
         self.R = ((3 / 4) * (self.cell_vol / math.pi)) ** (1 / 3)  # effective radius of each cell
 

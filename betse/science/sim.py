@@ -419,9 +419,11 @@ class Simulator(object):
 
         self.T = p.T  # set the base temperature for the simulation
 
-        self.Jn = np.zeros(self.mdl)  # net normal current density at membranes
-        self.Jmem = np.zeros(self.mdl)   # total normal current across membrane from intra- to extra-cellular space
+        self.Jn = np.zeros(self.mdl)  # net normal transmembrane current density at membranes
+        self.Jmem = np.zeros(self.mdl)   # current across membrane from intra- to extra-cellular space
         self.Jgj = np.zeros(self.mdl)     # total normal current across GJ coupled membranes from intra- to intra- space
+        self.Jc = np.zeros(self.mdl)   # current across membrane from intracellular conductivity
+        self.Ec = np.zeros(self.mdl)   # intracellular electric field at membrane
         self.dvm = np.zeros(self.mdl)   # rate of change of Vmem
         self.drho = np.zeros(self.cdl)  # rate of change of charge in cell
 
@@ -677,10 +679,7 @@ class Simulator(object):
         self.gj_funk = None  # initialize this to None; set in init_tissue
 
         # Initialize matrices to store concentration gradient information for each ion:
-        # self.cc_grad_x = np.zeros(self.cc_cells.shape)
-        # self.cc_grad_y = np.zeros(self.cc_cells.shape)
-        self.cc_grad_x = np.zeros(self.fluxes_mem.shape)
-        self.cc_grad_y = np.zeros(self.fluxes_mem.shape)
+        self.fluxes_intra = np.zeros(self.fluxes_mem.shape)
 
         self.cc_at_mem = np.asarray([
             cc[cells.mem_to_cells] for cc in self.cc_cells])
@@ -952,12 +951,6 @@ class Simulator(object):
         # Initialize core user-specified interventions:
         self.dyna.runAllInit(self,cells,p)
 
-        # Define rate constant for conc gradient change in terms of ion diffusion coefficients and cell geometry:
-        alpha_cgrad = [Do / (cells.R_rads*p.cell_height*cells.num_mems[cells.mem_to_cells])
-                       for Do in self.D_free]
-
-        self.alpha_cgrad = np.array(alpha_cgrad)
-
         # update the microtubules dipole for the case user changed it between init and sim:
         self.mtubes.pmit = p.mt_dipole_moment * 3.33e-30
         self.mtubes.alpha_noise = p.mtube_noise
@@ -1195,7 +1188,7 @@ class Simulator(object):
                     self.update_ecm(cells, p, t, i)
 
                 # update concentration gradient to estimate concentrations at membranes:
-                self.update_cmem(cells, p, i)
+                self.update_intra(cells, p, i)
 
                 # ensure no negative concentrations:
                 stb.no_negs(self.cc_cells[i])
@@ -1692,50 +1685,49 @@ class Simulator(object):
 
         self.get_rho_mem(cells, p)
 
-        # self.rho_cells = stb.get_charge_density(self.cc_cells, self.z_array, p) + self.extra_rho_cells
-        #
-        # if p.sim_ECM is True:
-        #
-        #     self.rho_env = np.dot(self.zs * p.F, self.cc_env)+ self.extra_rho_env
-
-        # self.vm = (1 / p.cm)*(self.rho_at_mem)
-
         if p.sim_ECM is False:
 
-            self.vm = (1 / p.cm)*(self.rho_at_mem)
+            self.vm = (1 / p.cm)*(self.rho_at_mem)   # FIXME finish this
 
         else:
 
             # map current from extracellular space to membrane normal
-            Jme = p.media_rho * (self.J_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+            Jme = (self.J_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                                  self.J_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
+
+            # capacitance of gj
+            cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
+            # cgj = p.cm
+
+            sqrconvF = (cells.ecm_sa/cells.mem_sa).mean()
+
+            # sqrconvF = 1.0
+
             # Vmem with double layer interaction modelled (optional with "cell polarizability"):
-            self.vm = ((1/p.cm)*(self.rho_at_mem)
-                                                    - (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability
-                                                   +  (1/self.cedl_env)*Jme*p.dt*p.cell_polarizability
-                                                   # - self.v_env[cells.map_mem2ecm]
+            self.vm = (self.vm
+                                # - (1/p.cm)*divJ[cells.mem_to_cells]*p.dt
+                                - (1/p.cm)*self.Jmem*p.dt  # current across the membrane from all sources
+                                - (1/(cgj))*self.Jgj*p.dt  # current across the membrane from gj
+                                + (1/self.cedl_cell)*self.Jc*p.dt  # current in intracellular space, interacting with edl
+                                +  (1/self.cedl_env)*Jme*p.dt*sqrconvF # current in extracellular space, interacting with edl
+
                        )
 
 
-
-            # self.vm = (self.vm
-            #                     - (1/p.cm)*self.Jn*p.dt*0.5
-            #                     - (1/self.cedl_cell)*self.Jn*p.dt*p.cell_polarizability
-            #                     +  (1/self.cedl_env)*Jme*p.dt*p.cell_polarizability
-            #                                         )
-
-
-
-
-            # self.vm = self.vm - self.v_env[cells.map_mem2ecm]
-
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
-        self.drho = (self.rho_cells - rhoo)/p.dt
 
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
+
+        # calculate the electric field in the cell, given it must satisfy the Laplace equation (i.e. respect
+        # boundary conditions and be a linear gradient):
+        self.Ec = -(self.vm - self.vm_ave[cells.mem_to_cells])/cells.R_rads
+
+        # average the field in the cell to a central point:
+        self.E_cell_x = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,2]*cells.mem_sa)/cells.cell_sa
+        self.E_cell_y = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,3]*cells.mem_sa)/cells.cell_sa
 
     def acid_handler(self, cells, p) -> None:
         '''
@@ -1857,6 +1849,8 @@ class Simulator(object):
         # Calculate the final concentration change:
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
 
+        # self.cc_at_mem[i] = conc_mem - fgj_X*(cells.mem_sa / cells.mem_vol)*p.dt
+
         self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X   # store gap junction flux for this ion
 
     def update_ecm(self,cells,p,t,i):
@@ -1899,34 +1893,24 @@ class Simulator(object):
 
         self.cc_env[i] = cenv.ravel()
 
-    def update_cmem(self, cells, p, i):
+    def update_intra(self, cells, p, i):
 
-        cav = self.cc_cells[i][cells.mem_to_cells]
-        z = self.zs[i]
-        Do = self.D_free[i]
+        cav = self.cc_cells[i][cells.mem_to_cells]  # concentration at cell centre
+        cmi = self.cc_at_mem[i]  # concentration at membrane
+        z = self.zs[i]    # charge of ion
+        Do = self.D_free[i]  # diffusion constant of ion
 
-        # conductivity of cytoplasm:
-        sigma = np.dot((((self.D_free*self.zs ** 2) * p.q * p.F) / (p.kb * p.T)), self.cc_cells).mean()
+        cp = (cav + cmi)/2   # concentration at midpoint between cell centre and membrane
+        cg = (cmi - cav)/cells.R_rads  # concentration gradients
 
-        #umt = -p.u_mtube # assume electroosmotic velocity directed from positive to negative end of mt
+        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*self.Ec)*p.cell_polarizability
 
-        # calculate the equillibrium concentration gradients in terms of current and average concs:
-        ceqm_x = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_x[cells.mem_to_cells]*(1/sigma)
-        ceqm_y = ((z * p.q) / (p.kb * p.T))*cav*self.J_cell_y[cells.mem_to_cells]*(1/sigma)
-
-        cgrad_x = self.cc_grad_x[i]
-        cgrad_y = self.cc_grad_y[i]
-
-        # calculate update to the actual gradient concentration:
-        cgrad_x = cgrad_x - self.alpha_cgrad[i] * (cgrad_x - ceqm_x) * p.dt * p.cell_polarizability
-        cgrad_y = cgrad_y - self.alpha_cgrad[i] * (cgrad_y - ceqm_y) * p.dt * p.cell_polarizability
-
-        # calculate the actual concentration at membranes by unpacking to concentration vectors:
-        self.cc_at_mem[i] = cav + cgrad_x * cells.rads[:, 0] + cgrad_y * cells.rads[:, 1]
+        # update the concentration at membranes:
+        # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes
+        self.cc_at_mem[i] = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
-        # self.cc_at_mem[self.cc_at_mem < 0.0] = 0.0
-        indsZ = (self.cc_at_mem < 0.0).nonzero()
+        indsZ = (self.cc_at_mem[i] < 0.0).nonzero()
 
         if len(indsZ[0]):
 
@@ -1934,8 +1918,10 @@ class Simulator(object):
                                                " become unstable.")
 
         # update the main matrices:
-        self.cc_grad_x[i] = cgrad_x * 1
-        self.cc_grad_y[i] = cgrad_y * 1
+        self.fluxes_intra[i] = cflux * 1
+
+        # uncomment this to skip the above computational loop ---------------
+        # self.cc_at_mem[i] = cav
 
     def get_rho_mem(self, cells, p):
 

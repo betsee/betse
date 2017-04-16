@@ -1392,21 +1392,14 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     """
 
     # take the divergence of the flux for each enclosed cell:
-
     delta_cells = np.dot(cells.M_sum_mems, flux * cells.mem_sa) / cells.cell_vol
-
-    # if p.cluster_open is False: FIXME what is this?
-    #
-    #     delta_cells[cells.bflags_cells] = 0.0
 
     # update cell concentration of substance:
     cX_cell = cX_cell + delta_cells * p.dt
 
-
+    # cX_mem = cX_mem + flux*(cells.mem_sa/cells.mem_vol)
 
     if p.sim_ECM is True:
-
-        # FIXME need flux_envx and flux_envy
 
         flux_env = np.zeros(sim.edl)
         flux_env[cells.map_mem2ecm] = -flux
@@ -1420,22 +1413,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
         # finally, ensure that the boundary values are restored:
         flux_env[cells.ecm_bound_k] = bound_vals
 
-
-        # Now that we have a nice, neat interpolation of flux from cell membranes, multiply by the
-        # true membrane surface area in the square, and divide by the true ecm volume of the env grid square,
-        # to get the mol/s change in concentration (divergence):
-
-        # if ignoreECM is False:
-
-            # delta_env = (flux_env * cells.memSa_per_envSquare) / cells.true_ecm_vol
-
-        # else:
-
         delta_env = (flux_env * cells.memSa_per_envSquare) / cells.ecm_vol
-
-
-        # if p.smooth_level > 0.0:
-        #     delta_env = gaussian_filter(delta_env.reshape(cells.X.shape), p.smooth_level).ravel()
 
         # update the environmental concentrations:
         cX_env = cX_env + delta_env * p.dt

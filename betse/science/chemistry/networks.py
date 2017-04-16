@@ -310,8 +310,7 @@ class MasterOfNetworks(object):
                     mol.mtt = True
 
                 # rate of change of cell concentration gradient (simplified diffusion):
-                mol.alpha_cgrad = mol.Do / (cells.R_rads * p.cell_height*cells.num_mems[cells.mem_to_cells])
-                mol.alpha_ugrad = mol.u_mt / (cells.R_rads * p.cell_height*cells.num_mems[cells.mem_to_cells])
+                mol.alpha_cgrad = mol.Do/(cells.mem_sa/2)
 
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
@@ -2659,7 +2658,7 @@ class MasterOfNetworks(object):
 
             # calculate concentrations at membranes:
             obj = self.molecules[mol]
-            obj.update_cmem(sim, cells, p)
+            obj.update_intra(sim, cells, p)
 
             # calculate rates of growth/decay:
             gad_rates_o.append(eval(self.molecules[mol].gad_eval_string, globalo, localo))
@@ -4555,7 +4554,7 @@ class Molecule(object):
         """
         self.c_mems, self.c_env = stb.update_Co(sim, self.c_mems, self.c_cells, flux, cells, p, ignoreECM=True)
 
-    def update_cmem(self, sim, cells, p):
+    def update_intra(self, sim, cells, p):
 
         cav = self.c_cells[cells.mem_to_cells]
         z = self.z
@@ -4756,11 +4755,6 @@ class Molecule(object):
         acg2 = np.delete(self.alpha_cgrad, target_inds_mem)
         # reassign the new data vector to the object:
         self.alpha_cgrad = acg2[:]
-
-        # remove cells from the alpha rate grad concentration list (mtubes):
-        aug2 = np.delete(self.alpha_ugrad, target_inds_cell)
-        # reassign the new data vector to the object:
-        self.alpha_ugrad = aug2[:]
 
         # # remove cells from the mems concentration list:
         # cmems2 = np.delete(self.c_mems, target_inds_mem)
