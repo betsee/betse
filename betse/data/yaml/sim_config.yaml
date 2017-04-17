@@ -1111,11 +1111,7 @@ internal parameters:
 
   membrane capacitance: 0.1 # ~0.05 to 0.1 cell membrane capacitance [F/m2]
 
-  media resistivity: 1.5  # electrical resistivity of bulk electrolyte (Ohms.m)
-
   cell polarizability: 1.0e-4  # constant defining rate of cell polarizability change in electric fields (0.0 to 1.0e-3)
-
-  tissue resistivity: 10.0  # electrical resistivity of bulk tissue (Ohms.m) 50.0 not uncommon see link above
 
   microtubule dipole moment: 1750     # dipole moment of tubulin dimer 1750 D, of whole microtubule 34000 D [D]
 

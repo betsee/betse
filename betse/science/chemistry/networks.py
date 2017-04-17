@@ -218,12 +218,8 @@ class MasterOfNetworks(object):
                 lambda name = name: self.molecules[name].cc_at_mem,
                 lambda value, name = name: setattr(self.molecules[name], 'cc_at_mem', value))
 
-            mol.cc_grad_x = np.zeros(sim.mdl)
-            mol.cc_grad_y = np.zeros(sim.mdl)
-
-            # mem_concs_mapping[name] = DynamicValue(
-            #     lambda name = name: self.molecules[name].c_mems,
-            #     lambda value, name = name: setattr(self.molecules[name], 'c_mems', value))
+            # storage array for intracellular flux:
+            mol.flux_intra = np.zeros(sim.mdl)
 
             # if there is an initial concentration for mitochondria and mit are enabled, define a conc vector for it:
             if self.mit_enabled:
@@ -304,13 +300,6 @@ class MasterOfNetworks(object):
 
                 # factors describing potential transport along current-aligned microtubules
                 mol.u_mt = float(mol_dic.get('u_mtube', 0.0))
-
-                if mol.u_mt > 0.0:
-
-                    mol.mtt = True
-
-                # rate of change of cell concentration gradient (simplified diffusion):
-                mol.alpha_cgrad = mol.Do/(cells.mem_sa/2)
 
                 self.zmol[name] = mol.z
                 self.Dmem[name] = mol.Dm
@@ -4556,36 +4545,38 @@ class Molecule(object):
 
     def update_intra(self, sim, cells, p):
 
-        cav = self.c_cells[cells.mem_to_cells]
-        z = self.z
+        cav = self.c_cells[cells.mem_to_cells]  # concentration at cell centre
+        cmi = self.cc_at_mem  # concentration at membrane
+        z = self.z  # charge of ion
+        Do = self.Do  # diffusion constant of ion
 
-        uomt = p.u_mtube
+        cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
+        cg = (cmi - cav) / cells.R_rads  # concentration gradients
 
-        # # determine if there's a net dipole resulting from microtubules:
-        # uxmt, uymt = sim.mtubes.mtubes_to_cell(cells, p)
+        # calculate normal component of electric field at membrane:
+        # component of any net electric field on membranes (must be done like this to ensure divergence free field):
+        en = (sim.E_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] +
+               sim.E_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:, 3])
 
-        # calculate the equillibrium concentration gradients in terms of current and average concs:
-        ceqm_x = (((z * p.q) / (p.kb*p.T))*cav*p.media_rho*sim.J_cell_x[cells.mem_to_cells] +
-                  ((sim.mtubes.mtubes_x*self.u_mt)/(self.Do))*cav)  + ((uomt*sim.mtubes.mtubes_x*cav)/self.Do)
+        # calculate normal component of microtubules at membrane:
+        umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
+        # print(umtn.min(), umtn.max())
 
-        ceqm_y = (((z * p.q) / (p.kb*p.T))*cav*p.media_rho*sim.J_cell_y[cells.mem_to_cells] +
-                  ((sim.mtubes.mtubes_y*self.u_mt)/(self.Do))*cav) + ((uomt*sim.mtubes.mtubes_y*cav)/self.Do)
+        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*en + umtn*self.u_mt*cp +
+                 umtn*p.u_mtube*cp*z)*p.cell_polarizability
 
-        cgrad_x = self.cc_grad_x
-        cgrad_y = self.cc_grad_y
-
-        # calculate update to the actual gradient concentration (0.1 assumes cytosol slows factor diffusion rate):
-        cgrad_x = cgrad_x - self.alpha_cgrad * (cgrad_x - ceqm_x) * p.dt
-
-        cgrad_y = cgrad_y - self.alpha_cgrad * (cgrad_y - ceqm_y) * p.dt
+        # # look at magnitude of changes wrt membrane or whole cell methods:
+        # div_flux_o = (np.dot(cells.M_sum_mems, cflux_o * cells.mem_sa) / cells.cell_vol)
+        #
+        # # calculate field to make the flux divergence-free:
+        # gP = np.dot(cells.divCell_inv, div_flux_o)
+        #
+        # cflux = cflux_o - gP
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
-
-        self.cc_at_mem = (cav + cgrad_x * cells.rads[:, 0] + cgrad_y * cells.rads[:, 1])
+        self.cc_at_mem = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
-        # self.cc_at_mem[self.cc_at_mem < 0.0] = 0.0
-
         indsZ = (self.cc_at_mem < 0.0).nonzero()
 
         if len(indsZ[0]):
@@ -4593,10 +4584,8 @@ class Molecule(object):
             raise BetseSimInstabilityException("Network concentration " + self.name + " on membrane below zero! Your simulation has"
                                                " become unstable.")
 
-
         # update the main matrices:
-        self.cc_grad_x = cgrad_x * 1
-        self.cc_grad_y = cgrad_y * 1
+        self.flux_intra = cflux*1
 
     def pump(self, sim, cells, p):
 
@@ -4742,19 +4731,9 @@ class Molecule(object):
         self.cc_at_mem = ccmem2[:]
 
         # remove cells from the cell gradient concentration list:
-        cgx2 = np.delete(self.cc_grad_x, target_inds_mem)
+        cgx2 = np.delete(self.flux_intra, target_inds_mem)
         # reassign the new data vector to the object:
         self.cc_grad_x = cgx2[:]
-
-        # remove cells from the cell gradient concentration list:
-        cgy2 = np.delete(self.cc_grad_y, target_inds_mem)
-        # reassign the new data vector to the object:
-        self.cc_grad_y = cgy2[:]
-
-        # remove cells from the alpha rate grad concentration list:
-        acg2 = np.delete(self.alpha_cgrad, target_inds_mem)
-        # reassign the new data vector to the object:
-        self.alpha_cgrad = acg2[:]
 
         # # remove cells from the mems concentration list:
         # cmems2 = np.delete(self.c_mems, target_inds_mem)

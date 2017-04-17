@@ -687,6 +687,9 @@ class Simulator(object):
         # load in the microtubules object:
         self.mtubes = Mtubes(cells, p, alpha_noise=p.mtube_noise)
 
+        # calculate a basic system conductivity:
+
+        self.sigma = 1.0
 
     def init_tissue(self, cells, p):
         '''
@@ -961,6 +964,8 @@ class Simulator(object):
 
         self.cedl_env = p.er*p.eo*self.ko_env
         self.cedl_cell = p.er*p.eo*self.ko_cell
+
+
 
 
     @type_check
@@ -1903,7 +1908,15 @@ class Simulator(object):
         cp = (cav + cmi)/2   # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav)/cells.R_rads  # concentration gradients
 
-        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*self.Ec)*p.cell_polarizability
+        # calculate normal component of electric field at membrane:
+        # component of any net electric field on membranes (must be done like this to ensure divergence free field):
+        en = (self.E_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] +
+               self.E_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:, 3])
+
+        # calculate normal component of microtubules at membrane:
+        umtn = self.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + self.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
+
+        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*en + umtn*p.u_mtube*cp*z)*p.cell_polarizability
 
         # update the concentration at membranes:
         # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes

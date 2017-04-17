@@ -8,6 +8,7 @@ flux through cells) functionality.
 """
 
 import numpy as np
+from betse.exceptions import BetseSimInstabilityException
 
 
 class Mtubes(object):
@@ -65,6 +66,12 @@ class Mtubes(object):
         self.mtubes_x = self.mtubes_xo / mtcn
         self.mtubes_y = self.mtubes_yo / mtcn
 
+        # microtubule plus-end charge stoichiometry:
+        self.qplus = 2.0
+
+        # concentration of the microtubule "plus ends":
+        self.cplus = np.ones(len(cells.mem_i))
+
 
     def update_mtubes(self, cells, sim, p):
 
@@ -98,6 +105,34 @@ class Mtubes(object):
         # normalized microtubule vectors from the cell centre point:
         self.mtubes_x = self.mtubes_xo / mtcn
         self.mtubes_y = self.mtubes_yo / mtcn
+
+
+    # def update_mtubes(self, cells, sim, p):
+    #
+    #     cav = self.c_cells[cells.mem_to_cells]  # concentration at cell centre
+    #     cmi = self.cc_at_mem  # concentration at membrane
+    #     z = self.z  # charge of ion
+    #     Do = self.Do  # diffusion constant of ion
+    #
+    #     cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
+    #     cg = (cmi - cav) / cells.R_rads  # concentration gradients
+    #
+    #     # calculate normal component of microtubules at membrane:
+    #     umtn = sim.mtubes.mtubes_x * cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y * cells.mem_vects_flat[:, 3]
+    #     # print(umtn.min(), umtn.max())
+    #
+    #     cflux = (-Do * cg + ((Do * p.q * cp * z) / (p.kb * sim.T)) * sim.Ec + umtn * self.u_mt * cp +
+    #              umtn * p.u_mtube * cp * z) * p.cell_polarizability
+    #
+    #     # calculate the actual concentration at membranes by unpacking to concentration vectors:
+    #     self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
+    #
+    #     # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
+    #     indsZ = (self.cc_at_mem < 0.0).nonzero()
+    #
+    #     if len(indsZ[0]):
+    #         raise BetseSimInstabilityException(
+    #             "A microtubule calculation has lead to simulation instability.")
 
     def mtubes_to_cell(self, cells, p):
 

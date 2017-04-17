@@ -19,6 +19,15 @@ def get_current(sim, cells, p):
 
     # calculate current density across cell membranes via gap junctions:
     sim.Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
+    # Jgjo = np.dot(sim.zs * p.F, sim.fluxes_gj)
+    #
+    # divjg = np.dot(cells.M_sum_mems, Jgjo*cells.mem_sa)/cells.cell_vol
+    # Pgj = np.dot(cells.lapGJinv, divjg)
+    #
+    # gP = (Pgj[cells.cell_nn_i[:, 1]] - Pgj[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+    #
+    # sim.Jgj = Jgjo - gP
+
 
     # add the free current sources together into a single transmembrane current:
     sim.Jn = sim.Jmem + sim.Jgj + sim.extra_J_mem

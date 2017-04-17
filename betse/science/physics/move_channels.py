@@ -38,8 +38,8 @@ class MoveChannel(object):
     def update_pump(self, sim, cells, p):
 
         # calculate the equillibrium gradient vector pointing from maximum to minimum density on the membrane:
-        ceqm_x = ((p.z_pump * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_x[cells.mem_to_cells] * p.media_rho
-        ceqm_y = ((p.z_pump * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_y[cells.mem_to_cells] * p.media_rho
+        ceqm_x = ((p.z_pump * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_x[cells.mem_to_cells] * (1/sim.sigma)
+        ceqm_y = ((p.z_pump * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_y[cells.mem_to_cells] * (1/sim.sigma)
 
         # calculate update to the actual gradient concentration:
         self.pgrad_x = self.pgrad_x - self.alpha*(self.pgrad_x - ceqm_x) * p.dt
@@ -49,8 +49,8 @@ class MoveChannel(object):
 
     def update_channel(self, sim, cells, p):
         # calculate the equillibrium gradient vector pointing from maximum to minimum density on the membrane:
-        ceqm_x = ((p.z_channel * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_x[cells.mem_to_cells] * p.media_rho
-        ceqm_y = ((p.z_channel * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_y[cells.mem_to_cells] * p.media_rho
+        ceqm_x = ((p.z_channel * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_x[cells.mem_to_cells] * (1/sim.sigma)
+        ceqm_y = ((p.z_channel * p.q) / (p.kb * p.T)) * 1.0 * sim.J_cell_y[cells.mem_to_cells] * (1/sim.sigma)
 
         # calculate update to the actual gradient concentration:
         self.cgrad_x = self.cgrad_x - self.alpha * (self.cgrad_x - ceqm_x) * p.dt

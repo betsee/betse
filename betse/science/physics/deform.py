@@ -131,8 +131,8 @@ def timeDeform(sim, cells, t, p):
     sim.gPyc = np.dot(cells.M_sum_mems, gPy) / cells.num_mems
 
     # deformation by "galvanotropic" mechanism (electrostrictive forces influenced by biology, e.g. cytoskeletal):
-    F_cell_x = (1 / p.lame_mu) * (p.media_rho * sim.J_cell_x * sim.rho_cells * p.galvanotropism + sim.gPxc)
-    F_cell_y = (1 / p.lame_mu) * (p.media_rho * sim.J_cell_y * sim.rho_cells * p.galvanotropism + sim.gPyc)
+    F_cell_x = (1 / p.lame_mu) * ( (1/sim.sigma) * sim.J_cell_x * sim.rho_cells * p.galvanotropism + sim.gPxc)
+    F_cell_y = (1 / p.lame_mu) * ( (1/sim.sigma) * sim.J_cell_y * sim.rho_cells * p.galvanotropism + sim.gPyc)
 
     # -------------------------------------------------------------------------------------------------
 
