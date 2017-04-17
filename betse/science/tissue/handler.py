@@ -905,7 +905,6 @@ class TissueHandler(object):
         for profile_name in profile_names:
             profile = p.profiles[profile_name]
 
-            #FIXME: A pretty horrible hack. It will go away. Praise the flower!
             profile_type = (
                 profile['type'] if isinstance(profile, dict) else 'cut')
 
@@ -924,19 +923,10 @@ class TissueHandler(object):
                 if len(self.cell_target_inds[profile_name]):
                     # Get ECM targets.
                     if p.sim_ECM is True:
-                        ecm_targs_cell = list(
-                            cells.map_cell2ecm[self.cell_target_inds[profile_name]])
                         ecm_targs_mem = list(
                             cells.map_mem2ecm[self.tissue_target_inds[profile_name]])
 
-                        #FIXME: The following six lines are reducible to merely:
-                        #    self.env_target_inds[profile_name] = ecm_targs_cell + ecm_targs_mem
-                        ecm_targs = []
-                        for v in ecm_targs_cell:
-                            ecm_targs.append(v)
-                        for v in ecm_targs_mem:
-                            ecm_targs.append(v)
-                        self.env_target_inds[profile_name] = ecm_targs
+                        self.env_target_inds[profile_name] = ecm_targs_mem
 
                     # Set the values of Dmems and ECM diffusion based on the
                     # identified target indices.

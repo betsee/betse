@@ -64,14 +64,8 @@ class ChannelsABC(object, metaclass=ABCMeta):
         # update the fluxes across the membrane to account for charge transfer from channel flux:
         sim.fluxes_mem[ion_index][targets] = sim.fluxes_mem[ion_index][targets] + delta_Q[targets]
 
-        # save the flux
-        # self.chan_flux = np.zeros(sim.mdl)
-        # self.chan_flux[targets] = delta_Q
-
         # update the concentrations of ion in cells and environment using GHK derived flux delta_Q:
-
         master_inds = cells.cell_i[cells.mem_to_cells][targets]
-
 
         ccell =  sim.cc_cells[ion_index][master_inds]
 
@@ -80,6 +74,10 @@ class ChannelsABC(object, metaclass=ABCMeta):
 
         # first in cells:
         sim.cc_cells[ion_index][master_inds] = (ccell + divQ[master_inds]*p.dt)
+
+        # next on membranes:
+        sim.cc_at_mem[ion_index][targets] = (sim.cc_at_mem[ion_index][targets] +
+                                             delta_Q[targets]*(cells.mem_sa[targets]/cells.mem_vol[targets])*p.dt)
 
         if p.sim_ECM is False:
 

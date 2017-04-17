@@ -79,14 +79,6 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         # calculate the open-probability of the channel:
         P = (dyna.m_K ** self._mpower) * (dyna.h_K ** self._hpower)
 
-        # print(P.min(), P.max(), P.mean())
-
-        # update charge in the cell and environment, assuming a trans-membrane flux occurs due to open channel state,
-        # which is described by the original Hodgkin Huxley equation.
-
-        # calculate the change of charge described for this channel, as a trans-membrane flux (+ into cell):
-        # delta_Q = - (dyna.maxDmK*P*(V - self.vrev))
-
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
         c_mem = sim.cc_at_mem[sim.iK]
 
@@ -109,7 +101,8 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
         # save the delta_Q:
-        self.chan_flux = delta_Q
+        self.chan_flux = np.zeros(sim.mdl)
+        self.chan_flux = delta_Q[dyna.targets_vgK]
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

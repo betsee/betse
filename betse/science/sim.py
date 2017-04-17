@@ -1152,12 +1152,17 @@ class Simulator(object):
                 self.metabo.update_ATP(fNa_NaK, self, cells, p)
 
             # update the concentrations of Na and K in cells and environment:
-            self.cc_cells[self.iNa],  self.cc_env[self.iNa] =  stb.update_Co(self, self.cc_cells[self.iNa],
+            self.cc_cells[self.iNa], self.cc_at_mem[self.iNa], self.cc_env[self.iNa] =  stb.update_Co(
+                                                                        self, self.cc_cells[self.iNa],
+                                                                        self.cc_at_mem[self.iNa],
                                                                         self.cc_env[self.iNa],fNa_NaK, cells, p,
                                                                         ignoreECM = self.ignore_ecm)
 
-            self.cc_cells[self.iK], self.cc_env[self.iK] = stb.update_Co(self, self.cc_cells[self.iK],
-                self.cc_env[self.iK], fK_NaK, cells, p, ignoreECM = self.ignore_ecm)
+            self.cc_cells[self.iK], self.cc_at_mem[self.iK], self.cc_env[self.iK] = stb.update_Co(
+                                                                         self, self.cc_cells[self.iK],
+                                                                         self.cc_at_mem[self.iK],
+                                                                         self.cc_env[self.iK], fK_NaK,
+                                                                         cells, p, ignoreECM = self.ignore_ecm)
 
 
             # ----------------ELECTRODIFFUSION---------------------------------------------------------------------------
@@ -1189,8 +1194,11 @@ class Simulator(object):
                 self.fluxes_mem[i] = self.fluxes_mem[i] + f_ED
 
                 # update ion concentrations in cell and ecm:
-                self.cc_cells[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
-                    self.cc_env[i], f_ED, cells, p, ignoreECM = self.ignore_ecm)
+                self.cc_cells[i], self.cc_at_mem[i], self.cc_env[i] = stb.update_Co(self, self.cc_cells[i],
+                                                                                    self.cc_at_mem[i],
+                                                                                    self.cc_env[i], f_ED,
+                                                                                    cells, p,
+                                                                                    ignoreECM = self.ignore_ecm)
 
                 # update flux between cells due to gap junctions
                 self.update_gj(cells, p, t, i)
@@ -1270,8 +1278,10 @@ class Simulator(object):
                 self.protein_noise_flux = p.dynamic_noise_level * (np.random.random(self.mdl) - 0.5)
 
                 # update the concentration of P in cells and environment:
-                self.cc_cells[self.iP], self.cc_env[self.iP] = stb.update_Co(self, self.cc_cells[self.iP],
-                    self.cc_env[self.iP], self.protein_noise_flux, cells, p, ignoreECM = self.ignore_ecm)
+                self.cc_cells[self.iP], self.cc_at_mem[self.iP], self.cc_env[self.iP] = stb.update_Co(self,
+                                                        self.cc_cells[self.iP], self.cc_at_mem[self.iP],
+                                                        self.cc_env[self.iP], self.protein_noise_flux, cells,
+                                                        p, ignoreECM = self.ignore_ecm)
 
                 # recalculate the net, unbalanced charge and voltage in each cell:
                 # self.update_V(cells, p)
@@ -1813,8 +1823,10 @@ class Simulator(object):
 
         # update calcium concentrations in cell and ecm:
 
-        self.cc_cells[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self, self.cc_cells[self.iCa],
-            self.cc_env[self.iCa], f_CaATP, cells, p, ignoreECM = True)
+        self.cc_cells[self.iCa], self.cc_at_mem[self.iCa], self.cc_env[self.iCa] = stb.update_Co(self,
+                                                            self.cc_cells[self.iCa], self.cc_at_mem[self.iCa],
+                                                            self.cc_env[self.iCa], f_CaATP,
+                                                            cells, p, ignoreECM = True)
 
 
         if p.Ca_dyn == 1:  # do endoplasmic reticulum handling

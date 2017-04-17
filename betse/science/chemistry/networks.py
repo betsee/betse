@@ -1955,8 +1955,6 @@ class MasterOfNetworks(object):
             echem_terms_list_tex = []
 
             if reaction_zone == 'cell':
-                # tex_in = ""
-                # tex_out = "_{env}"
 
                 type_out = 'env_concs'
 
@@ -1977,15 +1975,6 @@ class MasterOfNetworks(object):
                     out_delta_term_prod = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
                                           "[cells.map_mem2ecm]/cells.ecm_vol)".format(transp_name)
 
-                    # else:
-                    #     out_delta_term_react = "-self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                    #                            "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
-                    #                             .format(transp_name)
-                    #
-                    #     out_delta_term_prod = "self.transporters['{}'].flux*(cells.memSa_per_envSquare" \
-                    #                           "[cells.map_mem2ecm]/cells.true_ecm_vol[cells.map_mem2ecm])"\
-                    #                             .format(transp_name)
-
                 else:
                     out_delta_term_react = "(np.dot(cells.M_sum_mems, -self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
 
@@ -1997,8 +1986,6 @@ class MasterOfNetworks(object):
                                                                 reaction_zone='mem', in_mem_tag=False)
 
             elif reaction_zone == 'mit' and self.mit_enabled is True:
-                # tex_in = "_{mit}"
-                # tex_out = ""
 
                 vmem_tex = "V_{mit}"
 
@@ -2183,8 +2170,6 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    # tag2 = 'cell_concs'
-
                     denomo_string_Q += "(self.{}['{}']".format(tag, name)
                     tex_name = name
 
@@ -2229,16 +2214,16 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    # tag2 = 'cell_concs'
-
                     numo_string_Q += "(self.{}['{}']".format(tag, name)
                     tex_name = name
 
                 elif tag == 'mit_concs':
+
                     numo_string_Q += "(self.{}['{}']".format(tag, name)
                     tex_name = name + "_{mit}"
 
                 elif tag == 'cell_concs':
+
                     numo_string_Q += "(self.{}['{}']".format(tag, name)
                     tex_name = name
 
@@ -2286,8 +2271,6 @@ class MasterOfNetworks(object):
             for i, (name, n, Km, tag) in enumerate(zip(reactant_names, reactant_coeff, reactant_Km, react_transfer_tag)):
 
                 if tag == 'mem_concs':
-
-                    # tag2 = 'cell_concs'
 
                     numo_string_r = "((self.{}['{}']/{})**{})".format(tag, name, Km, n)
                     denomo_string_r = "(1 + (self.{}['{}']/{})**{})".format(tag, name, Km, n)
@@ -2465,7 +2448,6 @@ class MasterOfNetworks(object):
             v_tex = "v_{%s}^{max} & =" % (transp_name)
             v_tex += vval
             trans_tex_var_list.append(v_tex)
-
 
             # write the final LaTeX expressions:
             if self.transporters[transp_name].delta_Go is not None:
@@ -2803,7 +2785,6 @@ class MasterOfNetworks(object):
             self.transporters[name].flux = sim.rho_pump*eval(self.transporters[name].transporter_eval_string,
                 globalo, localo)
 
-            # print(name, self.transporters[name].net_z, self.transporters[name].flux.mean())
 
             self.extra_J_mem += self.transporters[name].net_z*self.transporters[name].flux*p.F
             sim.extra_J_mem = self.extra_J_mem
@@ -2824,6 +2805,10 @@ class MasterOfNetworks(object):
                     self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] = \
                         self.cell_concs[self.transporters[name].reactants_list[i]][targ_cell] + \
                         delta_react[targ_cell]*p.dt
+
+                    self.mem_concs[self.transporters[name].reactants_list[i]][targ_mem] = \
+                        self.mem_concs[self.transporters[name].reactants_list[i]][targ_mem] - \
+                        self.transporters[name].flux[targ_mem]*(cells.mem_sa[targ_mem]/cells.mem_vol[targ_mem])*p.dt
 
                 elif self.transporters[name].react_transport_tag[i] == 'env_concs':
 
@@ -2871,7 +2856,11 @@ class MasterOfNetworks(object):
                         self.cell_concs[self.transporters[name].products_list[i]][targ_cell] + \
                         delta_prod[targ_cell]*p.dt
 
-                    # print("--> ", self.transporters[name].products_list[i], delta_prod.mean())
+                    self.mem_concs[self.transporters[name].products_list[i]][targ_mem] = \
+                        self.mem_concs[self.transporters[name].products_list[i]][targ_mem] + \
+                        self.transporters[name].flux[targ_mem]*(cells.mem_sa[targ_mem]/cells.mem_vol[targ_mem])*p.dt
+
+
 
                 elif self.transporters[name].prod_transport_tag[i] == 'env_concs':
 
@@ -4541,7 +4530,8 @@ class Molecule(object):
         cells and environment.
 
         """
-        self.c_mems, self.c_env = stb.update_Co(sim, self.c_mems, self.c_cells, flux, cells, p, ignoreECM=True)
+        self.c_cells, self.cc_at_mem, self.c_env = stb.update_Co(sim, self.c_cells, self.cc_at_mem,
+                                                                self.c_env, flux, cells, p, ignoreECM=True)
 
     def update_intra(self, sim, cells, p):
 
@@ -4680,7 +4670,8 @@ class Molecule(object):
                 sim.fluxes_mem[ion_tag] = sim.fluxes_mem[ion_tag] + chan_flx
 
                 # update ion concentrations in cell and ecm:
-                sim.cc_cells[ion_tag], sim.cc_env[ion_tag] = stb.update_Co(sim, sim.cc_cells[ion_tag],
+                sim.cc_cells[ion_tag], sim.cc_at_mem[ion_tag], sim.cc_env[ion_tag] = stb.update_Co(sim,
+                                                                     sim.cc_cells[ion_tag], sim.cc_at_mem[ion_tag],
                                                                       sim.cc_env[ion_tag], chan_flx, cells, p,
                                                                       ignoreECM=False)
 
@@ -5132,7 +5123,7 @@ class Transporter(object):
 
             self.transporter_targets_mem = cells.mem_i
             self.transporter_targets_cell = cells.cell_i
-            self.transporter_targets_env = [x for x in range(0, len(cells.xypts))]
+            self.transporter_targets_env = cells.map_mem2ecm
 
     def plot_1D(self, sim, cells, p, saveImagePath):
 

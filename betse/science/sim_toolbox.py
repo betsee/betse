@@ -1086,8 +1086,10 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     if p.cluster_open is False:
         f_X[cells.bflags_mems] = 0
 
+    cmems = cX_cell_o[cells.mem_to_cells]
+
     # update cell and environmental concentrations
-    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
+    cX_cell_1, _, cX_env_1 = update_Co(sim, cX_cell_o, cmems, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
 
 
     if p.sim_ECM is False:
@@ -1199,8 +1201,10 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     if p.cluster_open is False:
         f_X[cells.bflags_mems] = 0
 
+    cmems = cX_cell_o[cells.mem_to_cells]
+
     # update cell and environmental concentrations
-    cX_cell_1, cX_env_1 = update_Co(sim, cX_cell_o, cX_env_o, f_X, cells, p, ignoreECM= ignoreECM)
+    cX_cell_1, _, cX_env_1 = update_Co(sim, cX_cell_o, cmems, cX_env_o, f_X, cells, p, ignoreECM= ignoreECM)
 
     # next electrodiffuse concentrations around the cell interior:
     # cX_cell_1 = update_intra(sim, cells, cX_cell_1, Df, z, p)
@@ -1270,7 +1274,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     # update concentrations due to electrodiffusion:
 
-    cX_cells, cX_env_o = update_Co(sim, cX_cells, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
+    cX_cells, cX_mems, cX_env_o = update_Co(sim, cX_cells, cX_mems, cX_env_o, f_X_ED, cells, p, ignoreECM = ignoreECM)
 
     # ------------------------------------------------------------
     if ignoreGJ is False:
@@ -1371,7 +1375,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     return cX_env_o, cX_cells, cX_mems, f_X_ED, fgj_X, fenvx, fenvy
 
-def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
+def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True):
     """
 
     General updater for a concentration defined on
@@ -1398,7 +1402,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     # update cell concentration of substance:
     cX_cell = cX_cell + delta_cells * p.dt
 
-    # cX_mem = cX_mem + flux*(cells.mem_sa/cells.mem_vol)
+    cX_mem = cX_mem + flux*(cells.mem_sa/cells.mem_vol)*p.dt
 
     if p.sim_ECM is True:
 
@@ -1429,7 +1433,7 @@ def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
         # assume auto-mixing of environmental concentrations:
         cX_env = cX_env_o.mean()
 
-    return cX_cell, cX_env
+    return cX_cell, cX_mem, cX_env
 
 def div_env(flux, sim, cells, p):
 
