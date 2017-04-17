@@ -1310,6 +1310,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
         # Calculate the final concentration change (the acceleration effectively speeds up time):
         cX_cells = cX_cells + p.dt*delta_cco
+        cX_mems = cX_mems - fgj_X*p.dt*(cells.mem_sa/cells.mem_vol)
 
 
     else:
@@ -1363,12 +1364,12 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     else:
         cX_env_temp = cX_env_o.mean()
-        cX_env_o = np.zeros(len(cX_env_o))
+        cX_env_o = np.zeros(sim.mdl)
         cX_env_o[:] = cX_env_temp
         fenvx = 0
         fenvy = 0
 
-    return cX_env_o, cX_cells, f_X_ED, fgj_X, fenvx, fenvy
+    return cX_env_o, cX_cells, cX_mems, f_X_ED, fgj_X, fenvx, fenvy
 
 def update_Co(sim, cX_cell, cX_env, flux, cells, p, ignoreECM = True):
     """

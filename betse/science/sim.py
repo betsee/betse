@@ -687,9 +687,6 @@ class Simulator(object):
         # load in the microtubules object:
         self.mtubes = Mtubes(cells, p, alpha_noise=p.mtube_noise)
 
-        # calculate a basic system conductivity:
-
-        self.sigma = 1.0
 
     def init_tissue(self, cells, p):
         '''
@@ -965,6 +962,16 @@ class Simulator(object):
         self.cedl_env = p.er*p.eo*self.ko_env
         self.cedl_cell = p.er*p.eo*self.ko_cell
 
+
+        # calculate a basic system conductivity:
+        self.sigma = np.asarray([((z**2)*p.q*p.F*cc*D)/(p.kb*p.T) for
+                                 (z, cc, D) in zip(self.zs, self.cc_cells, self.D_free)]).mean()
+
+        # calculate a geometric resistivity factor:
+        self.rho_factor = cells.mem_sa/cells.R_rads
+
+        # capacitance of gj
+        self.cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
 
 
 
@@ -1692,32 +1699,51 @@ class Simulator(object):
 
         if p.sim_ECM is False:
 
-            self.vm = (1 / p.cm)*(self.rho_at_mem)   # FIXME finish this
 
-        else:
+            if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
+
+                drho = np.dot(cells.M_sum_mems, -self.Jn*cells.mem_sa)/cells.cell_sa
+                self.vm = self.vm + (1/p.cm)*drho[cells.mem_to_cells]*p.dt
+
+            else:
+
+                self.vm = (self.vm
+                           # - (1/p.cm)*divJ[cells.mem_to_cells]*p.dt
+                           - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from all sources
+                           - (1 / (self.cgj)) * self.Jgj * p.dt  # current across the membrane from gj
+                           + (1 / self.cedl_cell) * self.Jc * p.dt  # current in intracellular space, interacting with edl
+                           # current in extracellular space, interacting with edl
+
+                           )
+
+
+
+        else: # if simulating extracellular spaces
 
             # map current from extracellular space to membrane normal
             Jme = (self.J_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-                                 self.J_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+                   self.J_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
+            sqrconvF = (cells.ecm_sa / cells.mem_sa).mean()
 
-            # capacitance of gj
-            cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
-            # cgj = p.cm
+            if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour
 
-            sqrconvF = (cells.ecm_sa/cells.mem_sa).mean()
+                drho = np.dot(cells.M_sum_mems, (-self.Jn + Jme)*cells.mem_sa)/cells.cell_sa
+                self.vm = self.vm + (1/p.cm)*drho[cells.mem_to_cells]*p.dt
 
-            # sqrconvF = 1.0
+            else:
 
-            # Vmem with double layer interaction modelled (optional with "cell polarizability"):
-            self.vm = (self.vm
-                                # - (1/p.cm)*divJ[cells.mem_to_cells]*p.dt
-                                - (1/p.cm)*self.Jmem*p.dt  # current across the membrane from all sources
-                                - (1/(cgj))*self.Jgj*p.dt  # current across the membrane from gj
-                                + (1/self.cedl_cell)*self.Jc*p.dt  # current in intracellular space, interacting with edl
-                                +  (1/self.cedl_env)*Jme*p.dt*sqrconvF # current in extracellular space, interacting with edl
+                # sqrconvF = 1.0
 
-                       )
+                # Vmem with double layer interaction modelled (optional with "cell polarizability"):
+                self.vm = (self.vm
+                                    # - (1/p.cm)*divJ[cells.mem_to_cells]*p.dt
+                                    - (1/p.cm)*self.Jmem*p.dt  # current across the membrane from all sources
+                                    - (1/(self.cgj))*self.Jgj*p.dt  # current across the membrane from gj
+                                    + (1/self.cedl_cell)*self.Jc*p.dt  # current in intracellular space, interacting with edl
+                                    +  (1/self.cedl_env)*Jme*p.dt*sqrconvF # current in extracellular space, interacting with edl
+
+                           )
 
 
         # calculate the derivative of Vmem:
@@ -1854,7 +1880,7 @@ class Simulator(object):
         # Calculate the final concentration change:
         self.cc_cells[i] = self.cc_cells[i] + p.dt*delta_cco
 
-        # self.cc_at_mem[i] = conc_mem - fgj_X*(cells.mem_sa / cells.mem_vol)*p.dt
+        self.cc_at_mem[i] = conc_mem - fgj_X*(cells.mem_sa / cells.mem_vol)*p.dt
 
         self.fluxes_gj[i] = self.fluxes_gj[i] + fgj_X   # store gap junction flux for this ion
 
@@ -1900,27 +1926,29 @@ class Simulator(object):
 
     def update_intra(self, cells, p, i):
 
+        # print(self.rho_factor.max())
+
         cav = self.cc_cells[i][cells.mem_to_cells]  # concentration at cell centre
         cmi = self.cc_at_mem[i]  # concentration at membrane
         z = self.zs[i]    # charge of ion
-        Do = self.D_free[i]  # diffusion constant of ion
+        Do = 0.1*self.D_free[i]  # diffusion constant of ion, assuming diffusion in cytoplasm is 10x slower than free
 
         cp = (cav + cmi)/2   # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav)/cells.R_rads  # concentration gradients
 
-        # calculate normal component of electric field at membrane:
-        # component of any net electric field on membranes (must be done like this to ensure divergence free field):
-        en = (self.E_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] +
-               self.E_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:, 3])
-
         # calculate normal component of microtubules at membrane:
         umtn = self.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + self.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
 
-        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*en + umtn*p.u_mtube*cp*z)*p.cell_polarizability
+        # small offset added to cell polarizability to prevent 0.0 vector of intracellular current, which crashes streamplot
+        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*self.Ec + umtn*p.u_mtube*cp*z)*(p.cell_polarizability + 1.0e-15)
 
         # update the concentration at membranes:
         # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes
         self.cc_at_mem[i] = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
+
+        divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
+
+        self.cc_cells[i] = self.cc_cells[i] + divJ*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cc_at_mem[i] < 0.0).nonzero()

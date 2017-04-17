@@ -4518,7 +4518,7 @@ class Molecule(object):
         """
 
 
-        self.c_env, self.c_cells, self.f_mem, self.f_gj, fenvx, fenvy = stb.molecule_mover(sim,
+        self.c_env, self.c_cells, self.cc_at_mem, self.f_mem, self.f_gj, fenvx, fenvy = stb.molecule_mover(sim,
                                                                 self.c_env,
                                                                 self.c_cells,
                                                                 cells, p,
@@ -4553,28 +4553,19 @@ class Molecule(object):
         cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav) / cells.R_rads  # concentration gradients
 
-        # calculate normal component of electric field at membrane:
-        # component of any net electric field on membranes (must be done like this to ensure divergence free field):
-        en = (sim.E_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] +
-               sim.E_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:, 3])
-
         # calculate normal component of microtubules at membrane:
         umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
         # print(umtn.min(), umtn.max())
 
-        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*en + umtn*self.u_mt*cp +
+        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*sim.Ec + umtn*self.u_mt*cp +
                  umtn*p.u_mtube*cp*z)*p.cell_polarizability
-
-        # # look at magnitude of changes wrt membrane or whole cell methods:
-        # div_flux_o = (np.dot(cells.M_sum_mems, cflux_o * cells.mem_sa) / cells.cell_vol)
-        #
-        # # calculate field to make the flux divergence-free:
-        # gP = np.dot(cells.divCell_inv, div_flux_o)
-        #
-        # cflux = cflux_o - gP
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
         self.cc_at_mem = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
+
+        # calculate the divergence so we can update the centre concentration:
+        divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
+        self.c_cells = self.c_cells + divJ*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cc_at_mem < 0.0).nonzero()
