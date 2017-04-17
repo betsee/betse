@@ -25,9 +25,9 @@ class SimPhaseCaches(object):
     ----------
     upscaled : SimPhaseCacheCellsUpscaled
         Subcache of all upscaled objects constructed for this phase.
-    vector : SimPhaseCacheVector
+    vector : SimPhaseCacheVectorCells
         Subcache of all vectors constructed for this phase.
-    vector_field : SimPhaseCacheVectorField
+    vector_field : SimPhaseCacheVectorFieldCells
         Subcache of all vector fields constructed for this phase.
     '''
 
@@ -46,14 +46,14 @@ class SimPhaseCaches(object):
         # Avoid circular import dependencies.
         from betse.science.simulate.cache.cacheupscaled import (
             SimPhaseCacheUpscaled)
-        from betse.science.simulate.cache.cachevec import SimPhaseCacheVector
+        from betse.science.simulate.cache.cachevec import SimPhaseCacheVectorCells
         from betse.science.simulate.cache.cachevecfld import (
-            SimPhaseCacheVectorField)
+            SimPhaseCacheVectorFieldCells)
 
         # Classify all subcaches imported above.
         self.upscaled = SimPhaseCacheUpscaled(phase)
-        self.vector = SimPhaseCacheVector(phase)
-        self.vector_field = SimPhaseCacheVectorField(phase)
+        self.vector = SimPhaseCacheVectorCells(phase)
+        self.vector_field = SimPhaseCacheVectorFieldCells(phase)
 
 # ....................{ SUPERCLASSES                       }....................
 class SimPhaseCacheABC(object, metaclass=ABCMeta):

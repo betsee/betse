@@ -15,7 +15,6 @@ exporting) post-simulation animations.
 import numpy as np
 from betse.science.config.export.confvis import SimConfVisualCellsListItem
 from betse.science.math.vector.veccls import VectorCellsCache
-from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
@@ -35,10 +34,9 @@ from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
     LayerCellsFieldQuiverGrids,
     LayerCellsFieldQuiverMembranes,
 )
-from betse.science.visual.layer.vector.lyrvecabrupt import LayerCellsVectorAbruptMembranes
 from betse.science.visual.layer.vector.lyrvecsmooth import (
     LayerCellsVectorSmoothGrids, LayerCellsVectorSmoothRegions)
-from betse.util.type.types import type_check, IterableTypes, SequenceTypes
+from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUBCLASSES                         }....................
 class AnimCellsPipe(SimPipeExportABC):
@@ -130,9 +128,23 @@ class AnimCellsPipe(SimPipeExportABC):
         all time steps.
         '''
 
-        # Sequence of layers depicting this field.
-        layers = self._make_layers_cells_field(
-            field=self._phase.cache.vector_field.electric_intra)
+        # Intracellular electric field.
+        field = self._phase.cache.vector_field.electric_intra
+
+        # Vector cache of all intracellular electric field magnitudes over all
+        # time steps, spatially situated at cell centres.
+        field_magnitudes = VectorCellsCache(
+            phase=self._phase,
+            times_cells_centre=field.times_cells_centre.magnitudes)
+
+        # Layer sequence containing...
+        layers = (
+            # A lower layer animating these magnitudes.
+            LayerCellsVectorSmoothRegions(vector=field_magnitudes),
+
+            # A higher layer animating this field.
+            LayerCellsFieldQuiverCells(field=field),
+        )
 
         # Animate these layers.
         AnimCellsAfterSolvingLayered(
@@ -167,7 +179,7 @@ class AnimCellsPipe(SimPipeExportABC):
             phase=self._phase,
             times_grids_centre=field.times_grids_centre.magnitudes)
 
-        # Sequence of layers consisting of...
+        # Layer sequence containing...
         layers = (
             # A lower layer animating these magnitudes.
             LayerCellsVectorSmoothGrids(vector=field_magnitudes),
@@ -300,11 +312,11 @@ class AnimCellsPipe(SimPipeExportABC):
         )
 
     # ..................{ EXPORTERS ~ microtubules           }..................
-    @piperunner(categories=('Microtubules',))
+    @piperunner(categories=('Microtubules', 'Coherence',))
     def export_microtubule(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Animate all cellular microtubules for the cell cluster over all time
-        steps.
+        Animate the coherence of all cellular microtubules for the cell cluster
+        over all time steps.
         '''
 
         # Sequence containing only a layer animating the vector field of all
@@ -385,34 +397,6 @@ class AnimCellsPipe(SimPipeExportABC):
         )
 
     # ..................{ EXPORTERS ~ voltage                }..................
-    @piperunner(categories=('Voltage', 'Transmembrane',))
-    def export_voltage_membrane(self, conf: SimConfVisualCellsListItem) -> None:
-        '''
-        Animate all transmembrane voltages (Vmem) over all time steps.
-        '''
-
-        # Type of layer to be created, plotting the cell cluster as a
-        # Gouraud-shaded surface in either a contiguous or discontiguous manner
-        # according to the phase configuration.
-        layer_type = (
-            LayerCellsVectorAbruptMembranes if self._phase.p.showCells else
-            LayerCellsVectorSmoothRegions)
-
-        # Sequence of only one such layer of all Vmems over all time steps.
-        layers = (
-            layer_type(vector=self._phase.cache.vector.voltages_membrane),)
-
-        # Animate this layer.
-        AnimCellsAfterSolvingLayered(
-            phase=self._phase,
-            conf=conf,
-            layers=layers,
-            label='Vmem',
-            figure_title='Transmembrane Voltage',
-            colorbar_title='Voltage [mV]',
-        )
-
-
     @piperunner(
         categories=('Voltage', 'Extracellular',),
         requirements={piperunreq.ECM,},
@@ -439,42 +423,48 @@ class AnimCellsPipe(SimPipeExportABC):
             colorbar_title='Voltage [mV]',
         )
 
-    # ..................{ MAKERS                             }..................
-    @type_check
-    def _make_layers_cells_field(
-        self, field: VectorFieldCellsCache) -> SequenceTypes:
+    # ..................{ EXPORTERS ~ voltage : vmem         }..................
+    @piperunner(categories=('Voltage', 'Transmembrane', 'Actual',))
+    def export_voltage_membrane(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Sequence of layers depicting the passed cell cluster vector field cache
-        spatially situated at cell centres.
-
-        Specifically, this sequence consists of a:
-
-        * Lower layer depicting all magnitudes spatially situated at cell
-          centresof this field as a continuous Gouroud-shaded surface.
-        * Higher layer depicting this field as a quiver plot.
-
-        Parameters
-        ----------
-        field : VectorFieldCellsCache
-            Cell cluster vector field cache to be layered.
-
-        Returns
-        ----------
-        SequenceTypes
-            Sequence of layers depicting this cell cluster vector field cache.
+        Animate all transmembrane voltages (Vmem) for the cell cluster over all
+        time steps.
         '''
 
-        # Vector cache of all field magnitudes over all time steps, spatially
-        # situated at cell centres.
-        field_magnitudes = VectorCellsCache(
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
-            times_cells_centre=field.times_cells_centre.magnitudes)
+            conf=conf,
+            layers=(self._phase.cache.vector.layer.voltage_membrane,),
+            label='Vmem',
+            figure_title='Transmembrane Voltage',
+            colorbar_title='Voltage [mV]',
+        )
 
-        # Return a tuple of layers consisting of...
-        return (
-            # A lower layer animating these magnitudes.
-            LayerCellsVectorSmoothRegions(vector=field_magnitudes),
 
-            # A higher layer animating this field.
-            LayerCellsFieldQuiverCells(field=field),
+    @piperunner(categories=('Voltage', 'Transmembrane', 'Polarity',))
+    def export_voltage_membrane_polarity(
+        self, conf: SimConfVisualCellsListItem) -> None:
+        '''
+        Animate all transmembrane voltage (Vmem) polarities for the cell cluster
+        over all time steps.
+        '''
+
+        # Layer sequence containing...
+        layers = (
+            # A lower layer animating all transmembrane voltages.
+            self._phase.cache.vector.layer.voltage_membrane,
+
+            # A higher layer animating all transmembrane voltage polarities.
+            LayerCellsFieldQuiverCells(
+                field=self._phase.cache.vector_field.voltage_membrane_polarity),
+        )
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
+            phase=self._phase,
+            conf=conf,
+            layers=layers,
+            label='Vmem',
+            figure_title='Transmembrane Voltage',
+            colorbar_title='Voltage [mV]',
         )

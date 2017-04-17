@@ -114,7 +114,7 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, SimConfABC):
     configuration of a single visual applicable to all cells parsed from a
     dictionary configuring at least this visual in the current
     YAML-formatted simulation configuration file.
-    
+
     This is the *only* visual configured by this dictionary. Hence, this
     dictionary contains no distinguishing ``type`` entry and this
     subconfiguration class no corresponding :attr:`name` property.
@@ -163,6 +163,11 @@ class SimConfVisualCellsListItem(
 
             # Preserve backwards compatibility.
             self._conf['enabled'] = True
+
+        # If this is an obselete visual type, silently update this to the
+        # corresponding new visual type.
+        if self.name == 'polarization':
+            self.name = 'voltage_membrane_polarity'
 
 
 class SimConfVisualCellListItem(SimConfListItemTypedABC):

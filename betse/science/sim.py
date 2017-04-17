@@ -290,9 +290,9 @@ class Simulator(object):
         One-dimensional Numpy array indexing each cell membrane such that each
         element is the transmembrane voltage spatially situated across the cell
         membrane indexed by that element for the current time step.
-    vm_time : ndarray
-        Two-dimensional Numpy array of all transmembrane voltages across all
-        cell membranes, whose:
+    vm_time : list
+        Two-dimensional list of all transmembrane voltages across all cell
+        membranes, whose:
         . First dimension indexes each time step.
         . Second dimension indexes each cell membrane such that each element is
           the transmembrane voltage spatially situated across the cell membrane

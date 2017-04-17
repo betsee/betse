@@ -901,18 +901,18 @@ results options:
             #   Ignored if hydrogen ions (H+) disabled by ion profile.
             # junction_state  ->  Final cell cluster gap junction connectivity state
             # microtubule  ->  Final cell cluster microtubule orientation
-            # polarization -> Final Vmem plot showing electrical polarization vectors for each cell
             # pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
             #   Ignored if osmotic pressure or mechanical pressure event disabled.
             # pump_density  ->  Final cell cluster cell membrane ion pump density factor
             #   Ignored if channel electroosmosis disabled.
             # pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
             # voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
-            # voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem)
-            #                                     average
-            # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem)
-            #                                 calculated by Goldman-Hodgkin-Katz (GHK) equation 
+            # voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem) average
+            # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem) calculated
+            #                           by Goldman-Hodgkin-Katz (GHK) equation
             #   Ignored if GHK calculation disabled.
+            # voltage_membrane_polarity  ->  Final cell cluster transmembrane voltage (Vmem)
+            #                                polarization
             # voltage_extra  ->  Final cell cluster extracellular voltage
             #   Ignored if extracellular spaces disabled.
             enabled: True       # Enable this plot?
@@ -965,6 +965,7 @@ results options:
           # pump_density  ->  Cell membrane ion pump density factor
           #   Ignored if channel electroosmosis disabled.
           # voltage_membrane  ->  Transmembrane voltage (Vmem)
+          # voltage_membrane_polarity  ->  Transmembrane voltage (Vmem) polarization
           # voltage_extra  ->  Extracellular voltage
           #   Ignored if extracellular spaces disabled.
           enabled: True       # Enable this animation?

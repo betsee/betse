@@ -24,7 +24,7 @@ of uA/cm^2.
 '''
 
 # ....................{ SUBCLASSES                         }....................
-class SimPhaseCacheVectorField(SimPhaseCacheABC):
+class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
     '''
     Simulation phase-specific vector field subcache, persisting all previously
     constructed vector fields for a single simulation phase.
@@ -155,8 +155,9 @@ class SimPhaseCacheVectorField(SimPhaseCacheABC):
         situated at cell membrane midpoints.
         '''
 
-        # Two-dimensional Numpy array of the average transmembrane voltages
-        # across all cell membranes over all time steps.
+        # Two-dimensional Numpy array of all transmembrane voltages (Vmem) and
+        # Vmem averages across all cell membranes over all time steps.
+        vm_time     = arrays.from_sequence(self._phase.sim.vm_time)
         vm_ave_time = arrays.from_sequence(self._phase.sim.vm_ave_time)
 
         # Two-dimensional Numpy array of all transmembrane voltage polarity
@@ -171,7 +172,7 @@ class SimPhaseCacheVectorField(SimPhaseCacheABC):
         #   * The average transmembrane voltage across all membranes of the cell
         #     containing that membrane for this time step.
         polarity_membranes_midpoint_magnitudes = (
-            self._phase.sim.vm - vm_ave_time[:,self._phase.cells.mem_to_cells])
+            vm_time - vm_ave_time[:,self._phase.cells.mem_to_cells])
 
         # Two-dimensional Numpy arrays of the X and Y components of all Vmem
         # polarity vectors, spatially situated at cell membrane midpoints.
@@ -185,11 +186,11 @@ class SimPhaseCacheVectorField(SimPhaseCacheABC):
         # Two-dimensional Numpy arrays of the X and Y components of all Vmem
         # polarity vectors, spatially situated at cell centres.
         polarity_cells_centre_x = (
-            self._phase.map_membranes_midpoint_to_cells_centre(
+            self._phase.cells.map_membranes_midpoint_to_cells_centre(
                 polarity_membranes_midpoint_x * self._phase.cells.mem_sa) /
             self._phase.cells.cell_sa)
         polarity_cells_centre_y = (
-            self._phase.map_membranes_midpoint_to_cells_centre(
+            self._phase.cells.map_membranes_midpoint_to_cells_centre(
                 polarity_membranes_midpoint_y * self._phase.cells.mem_sa) /
             self._phase.cells.cell_sa)
 
