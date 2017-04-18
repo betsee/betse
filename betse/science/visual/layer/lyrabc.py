@@ -131,6 +131,11 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         # Alias the current simulation phase to a convenience variable.
         self._phase = self._visual.phase
 
+        # Ensure the next call to the layer() method calls the _layer_first()
+        # rather than _layer_next() method, ensuring layers to be safely
+        # reusable between multiple parent visuals.
+        self._is_layered = False
+
     # ..................{ LAYERS                             }..................
     def layer(self) -> None:
         '''

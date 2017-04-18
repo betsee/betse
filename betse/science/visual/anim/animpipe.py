@@ -151,7 +151,6 @@ class AnimCellsPipe(SimPipeExportABC):
             phase=self._phase,
             conf=conf,
             layers=layers,
-            label='Efield_gj',
             figure_title='Intracellular E Field',
             colorbar_title='Electric Field [V/m]',
 
@@ -193,7 +192,6 @@ class AnimCellsPipe(SimPipeExportABC):
             phase=self._phase,
             conf=conf,
             layers=layers,
-            label='Efield_ecm',
             figure_title='Extracellular E Field',
             colorbar_title='Electric Field [V/m]',
 
@@ -329,7 +327,6 @@ class AnimCellsPipe(SimPipeExportABC):
             phase=self._phase,
             conf=conf,
             layers=layers,
-            label='Microtubules',
             figure_title='Microtubule arrangement in cells',
         )
 
@@ -423,8 +420,8 @@ class AnimCellsPipe(SimPipeExportABC):
             colorbar_title='Voltage [mV]',
         )
 
-    # ..................{ EXPORTERS ~ voltage : vmem         }..................
-    @piperunner(categories=('Voltage', 'Transmembrane', 'Actual',))
+
+    @piperunner(categories=('Voltage', 'Transmembrane',))
     def export_voltage_membrane(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Animate all transmembrane voltages (Vmem) for the cell cluster over all
@@ -435,18 +432,17 @@ class AnimCellsPipe(SimPipeExportABC):
             phase=self._phase,
             conf=conf,
             layers=(self._phase.cache.vector.layer.voltage_membrane,),
-            label='Vmem',
             figure_title='Transmembrane Voltage',
             colorbar_title='Voltage [mV]',
         )
 
 
-    @piperunner(categories=('Voltage', 'Transmembrane', 'Polarity',))
-    def export_voltage_membrane_polarity(
+    @piperunner(categories=('Voltage', 'Polarity',))
+    def export_voltage_polarity(
         self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Animate all transmembrane voltage (Vmem) polarities for the cell cluster
-        over all time steps.
+        Animate all cellular voltage polarities for the cell cluster over all
+        time steps.
         '''
 
         # Layer sequence containing...
@@ -456,7 +452,7 @@ class AnimCellsPipe(SimPipeExportABC):
 
             # A higher layer animating all transmembrane voltage polarities.
             LayerCellsFieldQuiverCells(
-                field=self._phase.cache.vector_field.voltage_membrane_polarity),
+                field=self._phase.cache.vector_field.voltage_polarity),
         )
 
         # Animate these layers.
@@ -464,7 +460,6 @@ class AnimCellsPipe(SimPipeExportABC):
             phase=self._phase,
             conf=conf,
             layers=layers,
-            label='Vmem',
-            figure_title='Transmembrane Voltage',
+            figure_title='Cell Vmem polarity',
             colorbar_title='Voltage [mV]',
         )

@@ -76,7 +76,7 @@ def deprecated(func: CallableTypes) -> CallableTypes:
 @type_check
 def is_function(func: CallableTypes) -> bool:
     '''
-    `True` only if the passed callable is a function.
+    ``True`` only if the passed callable is a function.
     '''
 
     return isinstance(func, FunctionTypes)
@@ -85,7 +85,7 @@ def is_function(func: CallableTypes) -> bool:
 @type_check
 def is_method(func: CallableTypes) -> bool:
     '''
-    `True` only if the passed callable is a method.
+    ``True`` only if the passed callable is a method.
     '''
 
     return isinstance(func, MethodTypes)

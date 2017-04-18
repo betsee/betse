@@ -167,7 +167,7 @@ class SimConfVisualCellsListItem(
         # If this is an obselete visual type, silently update this to the
         # corresponding new visual type.
         if self.name == 'polarization':
-            self.name = 'voltage_membrane_polarity'
+            self.name = 'voltage_polarity'
 
 
 class SimConfVisualCellListItem(SimConfListItemTypedABC):

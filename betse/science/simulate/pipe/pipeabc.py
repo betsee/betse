@@ -216,7 +216,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
 
         # If this pipeline is disabled, log this fact and return immediately.
         if not self.is_enabled:
-            logs.log_info('Ignoring %s...', self._label_plural_lowercase)
+            logs.log_info('Excluding %s...', self._label_plural_lowercase)
             return
         # Else, this pipeline is enabled.
 
@@ -265,11 +265,11 @@ class SimPipeABC(object, metaclass=ABCMeta):
             # current simulation configuration disabling extracellular spaces),
             # ignore this runner with a non-fatal warning and continue.
             except BetseSimPipeRunnerUnsatisfiedException as exception:
-                logs.log_warn(
-                    'Ignoring %s "%s", as:\n\t%s',
+                logs.log_warning(
+                    'Excluding %s "%s", as %s.',
                     self._label_singular_lowercase,
                     runner_conf.name,
-                    str(exception))
+                    exception.reason)
 
     # ..................{ EXCEPTIONS                         }..................
     @type_check
@@ -305,10 +305,10 @@ class SimPipeABC(object, metaclass=ABCMeta):
         for requirement in runner.requirements:
             if not requirement.is_satisfied(phase=self._phase):
                 raise BetseSimPipeRunnerUnsatisfiedException(
-                    '{} "{}" requirement unsatisfied: {} disabled.'.format(
-                        self._label_singular_uppercase,
-                        runner_name,
-                        requirement.name))
+                    result='{} "{}" requirement unsatisfied'.format(
+                        self._label_singular_uppercase, runner_name),
+                    reason='{} disabled'.format(requirement.name),
+                )
         # Else, all runner requirements are satisfied.
 
         # Log the subsequent attempt to run this runner.

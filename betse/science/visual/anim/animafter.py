@@ -8,6 +8,7 @@
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.science.config.export.confvis import SimConfVisualCellsABC
 from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.anim.animabc import AnimCellsABC
 from betse.util.type.types import type_check, SequenceTypes
@@ -70,12 +71,20 @@ class AnimCellsAfterSolvingLayered(AnimCellsAfterSolving):
 
     # ..................{ SUPERCLASS                         }..................
     @type_check
-    def __init__(self, layers: SequenceTypes, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        conf: SimConfVisualCellsABC,
+        layers: SequenceTypes,
+        *args, **kwargs
+    ) -> None:
         '''
         Initialize this animation.
 
         Parameters
         ----------
+        conf : SimConfVisualCellsABC
+            Configuration for this visual, synchronized with the user-defined
+            YAML-backed simulation configuration file for this phase.
         layers : SequenceTypes
             Sequence of all :class:`LayerCellsABC` instances collectively
             plotting each frame of this animation. See the
@@ -85,8 +94,19 @@ class AnimCellsAfterSolvingLayered(AnimCellsAfterSolving):
         :meth:`AnimCellsAfterSolving.__init__` method.
         '''
 
-        # Initialize the superclass.
-        super().__init__(*args, layers=layers, **kwargs)
+        # Initialize our superclass with all passed parameters.
+        super().__init__(
+            *args,
+            conf=conf,
+            layers=layers,
+
+            # Save this visual to a path containing this visual's name. Since
+            # this name is guaranteed to be unique across all other visuals of
+            # the same type, this path is guaranteed to be unique in at least
+            # the directory containing all visuals of the same type.
+            label=conf.name,
+            **kwargs
+        )
 
         # Display and/or save this animation.
         self._animate()

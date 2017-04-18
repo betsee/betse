@@ -109,9 +109,35 @@ class VectorField(object):
 
         return self._y
 
-    # ..................{ PROPERTIES                         }..................
+    # ..................{ PROPERTIES ~ magnitudes            }..................
     @property_cached
     def magnitudes(self) -> ndarray:
+        '''
+        Two-dimensional Numpy array whose:
+
+        * First dimension indexes one or more time steps of this simulation.
+        * Second dimension indexes each (possibly zero) magnitude of each vector
+          in this vector field for this time step.
+
+        For space and time efficiency, the definition of this array is lazily
+        deferred to the first read of this property.
+
+        Caveats
+        ----------
+        This array may contain zero values and is thus *not* safe for
+        general-purpose use as the divisor of division (e.g., to normalize the X
+        and Y components of this field). See :meth:`magnitudes_nonzero` for a
+        comparable array guaranteed *not* to contain zero values,
+        '''
+
+        # Array of all vector magnitudes computed from the arrays of all
+        # vector X and Y components, multiplying each such magnitude by the
+        # previously passed factor (e.g., to scale to the desired units).
+        return self._magnitude_factor*np.sqrt(self._x**2 + self._y**2)
+
+
+    @property_cached
+    def magnitudes_nonzero(self) -> ndarray:
         '''
         Two-dimensional Numpy array whose:
 
@@ -120,22 +146,25 @@ class VectorField(object):
           field for this time step. For safety, this magnitude is guaranteed to
           be non-zero, avoiding division-by-zero errors elsewhere in the
           codebase when these magnitudes are subsequently divided by (e.g., to
-          normalize the X or Y components of this field).
+          normalize the X or Y components of this field). If the unmodified
+          value of this magnitude in the :attr:`magnitudes` array is zero, this
+          magnitude is replaced with 1.0. This magnitude is indistinguishable
+          from magnitudes whose unmodified values are also 1.0 and is thus
+          safely usable *only* in contexts where vectors with zero magnitudes
+          are ignorable (e.g., as the divisior of division).
 
         For space and time efficiency, the definition of this array is lazily
         deferred to the first read of this property.
         '''
 
-        # Array of all vector magnitudes computed from the arrays of all
-        # vector X and Y components such that each such magnitude is:
-        #
-        # * Incremented by a negligible positive value approximately equal
-        #   to 0, avoiding inevitable division-by-zero errors elsewhere in
-        #   the codebase when these magnitudes are subsequently divided by
-        #   (e.g., to normalize the X or Y components).
-        # * Multiplied by the previously passed factor, typically to scale
-        #   magnitudes to the desired units.
-        return 1e-15 + self._magnitude_factor*np.sqrt(self._x**2 + self._y**2)
+        # Array of all vector magnitudes copied from the original.
+        magnitudes_nonzero = self.magnitudes[:]
+
+        # Substitute all zero magnitudes by 1.0.
+        magnitudes_nonzero[magnitudes_nonzero == 0.0] = 1.0
+
+        # Return the resulting array.
+        return magnitudes_nonzero
 
     # ..................{ PROPERTIES ~ unit                  }..................
     @property_cached
@@ -152,7 +181,7 @@ class VectorField(object):
         deferred to the first read of this property.
         '''
 
-        return self._x / self.magnitudes
+        return self._x / self.magnitudes_nonzero
 
 
     @property_cached
@@ -169,7 +198,7 @@ class VectorField(object):
         deferred to the first read of this property.
         '''
 
-        return self._y / self.magnitudes
+        return self._y / self.magnitudes_nonzero
 
 # ....................{ CLASSES ~ cache                    }....................
 class VectorFieldCellsCache(object):

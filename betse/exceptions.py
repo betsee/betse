@@ -134,12 +134,13 @@ class BetseMethodUnimplementedException(
     optional methods. Hence, this exception.
     '''
 
-    def __init__(self):
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self) -> None:
 
         # Avoid circular import dependencies.
         from betse.util.type.call import callers
 
-        # Defer to superclass constructors.
+        # Initialize our superclass with a human-readable exception message.
         super().__init__('Method {}() unimplemented.'.format(
             callers.get_caller_basename()))
 
@@ -333,5 +334,36 @@ class BetseSimPipeRunnerUnsatisfiedException(BetseSimPipeException):
     Simulation pipeline-specific exception raised on attempting to run a runner
     with unsatisfied requirements (e.g., a post-simulation animation requiring
     extracellular spaces to be enabled by the current simulation configuration).
+
+    Attributes
+    ----------
+    result : str
+        Human-readable string justifying this failure. For generality, this
+        string is neither capitalized *nor* punctuated.
+    reason : str
+        Human-readable string justifying this failure. For generality, this
+        string is neither capitalized *nor* punctuated.
     '''
-    pass
+
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, result: str, reason: str) -> None:
+        '''
+        Initialize this exception.
+
+        Parameters
+        ----------
+        result : str
+            Human-readable string describing this failure. For generality, this
+            string is expected to be neither capitalized *nor* punctuated.
+        reason : str
+            Human-readable string justifying this failure. For generality, this
+            string is expected to be neither capitalized *nor* punctuated.
+        '''
+
+        # Capitalize all passed parameters.
+        self.result = result
+        self.reason = reason
+
+        # Initialize our superclass, concatenating these strings into a single
+        # human-readable exception message.
+        super().__init__('{}: {}.'.format(self.result, self.reason))

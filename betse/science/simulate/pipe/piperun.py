@@ -224,8 +224,8 @@ class SimPipeRunner(MethodDecorator):
 
         # If this runner is unsatisfied, raise an exception.
         pipeline.die_unless_runner_satisfied(self)
-        # Else, this runner is satisfied. The prior call logged the attempt to
-        # run this runner; now actually do so.
+        # Else, this runner is satisfied. Since the prior call logged the
+        # attempt to run this runner, now do so.
 
         # Defer to the superclass implementation to run this runner.
         return super().__call__(pipeline, *args, **kwargs)

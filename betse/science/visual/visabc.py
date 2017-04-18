@@ -66,8 +66,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
     Attributes (Private)
     ----------
     _conf : SimConfVisualCellsABC
-        Visualization configuration, synchronized with the YAML-backed
-        simulation configuration file for this phase.
+        Configuration for this visual, synchronized with the user-defined
+        YAML-backed simulation configuration file for this phase.
     _label : str
         Basename of the subdirectory in the phase-specific results directory
         to which all files exported for this visual are saved _and_
@@ -163,8 +163,8 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         phase : SimPhase
             Current simulation phase.
         conf : SimConfVisualCellsABC
-            Visualization configuration, synchronized with the YAML-backed
-            simulation configuration file for this phase.
+            Configuration for this visual, synchronized with the user-defined
+            YAML-backed simulation configuration file for this phase.
         is_save : bool
             ``True`` only if non-interactively saving this visual.
         is_show : bool

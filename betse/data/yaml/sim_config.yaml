@@ -911,7 +911,7 @@ results options:
             # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem) calculated
             #                           by Goldman-Hodgkin-Katz (GHK) equation
             #   Ignored if GHK calculation disabled.
-            # voltage_membrane_polarity  ->  Final cell cluster transmembrane voltage (Vmem)
+            # voltage_polarity  ->  Final cell cluster transmembrane voltage (Vmem)
             #                                polarization
             # voltage_extra  ->  Final cell cluster extracellular voltage
             #   Ignored if extracellular spaces disabled.
@@ -965,7 +965,7 @@ results options:
           # pump_density  ->  Cell membrane ion pump density factor
           #   Ignored if channel electroosmosis disabled.
           # voltage_membrane  ->  Transmembrane voltage (Vmem)
-          # voltage_membrane_polarity  ->  Transmembrane voltage (Vmem) polarization
+          # voltage_polarity  ->  Transmembrane voltage (Vmem) polarization
           # voltage_extra  ->  Extracellular voltage
           #   Ignored if extracellular spaces disabled.
           enabled: True       # Enable this animation?

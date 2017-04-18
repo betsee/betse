@@ -14,10 +14,13 @@ from betse.util.type.types import (
     type_check, CallableTypes, ClassType, MethodType)
 
 # ....................{ DECORATORS                         }....................
+#FIXME: Rename this class to "MethodDecoratorABC".
+#FIXME: Rename the "_method" attribute to "_method_unbound".
 class MethodDecorator(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all **method decorators** (i.e., decorators
-    decorating *only* methods bound to class instances).
+    Abstract base class of all **method decorators** (i.e., decorators *only*
+    decorating methods bound to class instances), implemented as a class
+    descriptor satisfying the standard descriptor protocol.
 
     This superclass efficiently caches bound methods on behalf of subclasses,
     guaranteeing all subclasses to be efficiently callable as proper methods.
@@ -56,6 +59,12 @@ class MethodDecorator(object, metaclass=ABCMeta):
     def __get__(self, obj: object, cls: ClassType) -> MethodType:
         '''
         Create, cache, and return a decorated method bound to the passed object.
+
+        This method satisfies the descriptor protocol in a similar manner to
+        Python itself. Python implicitly converts each function in a class body
+        into a descriptor implementing the ``__get__()`` special method by
+        internally creating and returning a copy of that function bound to the
+        passed class instance.
         '''
 
         # If this descriptor is accessed as a class rather than instance
@@ -67,13 +76,26 @@ class MethodDecorator(object, metaclass=ABCMeta):
         # Unique identifier associated with this object.
         obj_id = id(obj)
 
-        # Attempt to...
+        # Attempt to return the previously bound decorated method.
         try:
-            # Return the previously bound decorated method.
             return self._obj_id_to_method_bound[obj_id]
+        # If this method has yet to be bound...
         except KeyError:
-            #FIXME: If the line below fails, consider this common alternative:
-            #    ... = functools.partial(self.__call__, obj)
+            # Create and cache this bound method. While superficially trivial,
+            # doing so is surprisingly non-trivial when examined. In the
+            # following assignment:
+            #
+            # * Accessing "self.__call__" implicitly creates a new method from
+            #   the __call__() function bound to the current instance of this
+            #   class with the signature:
+            #       def __call__bound(obj, *args, **kwargs)
+            # * Instantiating "MethodType" implicitly creates a new method from
+            #   the __call__bound() method bound to the passed instance of the
+            #   parent class with the signature:
+            #       def __call__bound_bound(*args, **kwargs)
+            #
+            # Hence, this bound method is actually a bound bound method (i.e., a
+            # function bound to two class instances).
             method_bound = self._obj_id_to_method_bound[obj_id] = MethodType(
                 self.__call__, obj)
             return method_bound
