@@ -108,7 +108,7 @@ class VgClABC(ChannelsABC, metaclass=ABCMeta):
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
         self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux = delta_Q[dyna.targets_vgCl]
+        self.chan_flux = -delta_Q[dyna.targets_vgCl]
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

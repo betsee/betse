@@ -1114,9 +1114,11 @@ internal parameters:
 
   cell polarizability: 0.0  # constant defining rate of cell polarizability change in electric fields (0.0 to 1.0e-3)
 
-  microtubule dipole moment: 1750     # dipole moment of tubulin dimer 1750 D, of whole microtubule 34000 D [D]
+  microtubule dipole moment: 34000     # dipole moment of tubulin dimer 1750 D, of whole microtubule 34000 D [D]
 
-  microtubule noise: 1.0  # noise factor scrambling microtubule alignment (0.0 to 1.0)
+  microtubule noise: 1.0e-3  # noise factor scrambling microtubule alignment (0.0 to 1.0)
+
+  microtubule diffusion: 5.0e-12  # effective diffusion coefficient of microtubule (mobility) [m2/s]
 
   microtubule eosmo: 0.0  # electroosmotic flow term along microtubule (0.0 to 1.0e-9 [m/s])
 

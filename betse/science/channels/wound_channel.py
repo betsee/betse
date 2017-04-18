@@ -124,6 +124,9 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
         self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
         self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
 
+        self.chan_flux = np.zeros(sim.mdl)
+        self.chan_flux[dyna.targets_vgWound] = -delta_Q_Na[dyna.targets_vgWound] -delta_Q_K[dyna.targets_vgWound]
+
         self.update_charge(sim.iNa, delta_Q_Na, dyna.targets_vgWound, sim, cells, p)
         self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgWound, sim, cells, p)
 

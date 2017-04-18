@@ -102,7 +102,7 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
 
         # save the delta_Q:
         self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux = delta_Q[dyna.targets_vgK]
+        self.chan_flux = -delta_Q[dyna.targets_vgK]
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

@@ -337,7 +337,6 @@ class Simulator(object):
         #both the run_loop_no_ecm() and run_loop_with_ecm() methods.
         self.fileInit(p)
 
-
     def fileInit(self, p):
         '''
         Initializes the pathnames of top-level files and directories comprising
@@ -687,7 +686,6 @@ class Simulator(object):
         # load in the microtubules object:
         self.mtubes = Mtubes(cells, p, alpha_noise=p.mtube_noise)
 
-
     def init_tissue(self, cells, p):
         '''
         Prepares data structures pertaining to tissue profiles, dynamic
@@ -952,8 +950,7 @@ class Simulator(object):
         self.dyna.runAllInit(self,cells,p)
 
         # update the microtubules dipole for the case user changed it between init and sim:
-        self.mtubes.pmit = p.mt_dipole_moment * 3.33e-30
-        self.mtubes.alpha_noise = p.mtube_noise
+        self.mtubes.reinit(cells, p)
 
         # calculate an inverse electrical double layer based on internal and external concentrations:
         self.ko_env = (np.sqrt(np.dot((p.NAv * (p.q ** 2) * self.zs ** 2) / (p.er * p.eo * p.kb * p.T), self.cc_env))).mean()
@@ -972,8 +969,6 @@ class Simulator(object):
 
         # capacitance of gj
         self.cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
-
-
 
     @type_check
     def run_sim_core(self, phase: SimPhase) -> None:
@@ -1044,7 +1039,6 @@ class Simulator(object):
         if exception_instability is not None:
             logs.log_error('Simulation prematurely halted due to instability.')
             raise exception_instability
-
 
     @type_check
     def _run_sim_core_loop(

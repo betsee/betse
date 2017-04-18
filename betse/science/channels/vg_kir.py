@@ -104,7 +104,8 @@ class VgKirABC(ChannelsABC, metaclass=ABCMeta):
         # calculate specific ion flux contribution for this channel:
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
-        self.chan_flux = delta_Q
+        self.chan_flux = np.zeros(sim.mdl)
+        self.chan_flux[dyna.targets_vgKir] = -delta_Q[dyna.targets_vgKir]
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

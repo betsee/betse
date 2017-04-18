@@ -104,7 +104,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         delta_Q = stb.electroflux(c_env, c_mem, Dchan, p.tm * IdM, z_ion, sim.vm, sim.T, p, rho=sim.rho_channel)
 
         self.chan_flux = np.zeros(sim.mdl)
-        self.chan_flux[dyna.targets_vgNa] = delta_Q[dyna.targets_vgNa]
+        self.chan_flux[dyna.targets_vgNa] = -delta_Q[dyna.targets_vgNa]
 
         self.clip_flux(delta_Q, threshold=p.flux_threshold)
 

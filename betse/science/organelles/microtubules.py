@@ -50,30 +50,61 @@ class Mtubes(object):
         # microtubule dipole moment [C m] (NOTE: dipole moment of microtubule may be as high as 34000 D):
         self.pmit = p.mt_dipole_moment * 3.33e-30   # 1740
 
+        # microtubule "plus end" charges:
+        self.zp = (self.pmit/(cells.R_rads*p.q))
+
+        # total microtubule concentration (determines sensitivity to ordering)
+        if p.mtube_noise <= 0.0:
+
+            p.mtube_noise = 1.0e-4
+
+        self.cpo = (1/p.mtube_noise)
+
+        # microtubule "plus end" concentration initialized:
+        self.cp = np.ones(len(cells.mem_i))
+
+        # microtubule diffusion constant:
+        self.D = p.D_mtube
+
         # normalize the cell radial vectors:
         norm_rads = np.sqrt(cells.rads[:, 0] ** 2 + cells.rads[:, 1] ** 2)
 
         self.radx = cells.rads[:, 0] / norm_rads
         self.rady = cells.rads[:, 1] / norm_rads
 
+        self.mt_n = np.zeros(len(cells.mem_i))
+
         # initialize microtubule dipole vectors:
         self.mtubes_xo = self.radx * self.pmit
         self.mtubes_yo = self.rady * self.pmit
 
-        mtcn = np.sqrt(self.mtubes_xo ** 2 + self.mtubes_yo ** 2)
-
         # normalized microtubule vectors from the cell centre point:
-        self.mtubes_x = self.mtubes_xo / mtcn
-        self.mtubes_y = self.mtubes_yo / mtcn
-
-        # microtubule plus-end charge stoichiometry:
-        self.qplus = 2.0
-
-        # concentration of the microtubule "plus ends":
-        self.cplus = np.ones(len(cells.mem_i))
+        self.mtubes_x = cells.mem_vects_flat[:,2]
+        self.mtubes_y = cells.mem_vects_flat[:,3]
 
 
-    def update_mtubes(self, cells, sim, p):
+    def reinit(self, cells, p):
+
+        # microtubule diffusion constant:
+        self.D = p.D_mtube
+
+        # microtubule dipole moment [C m] (NOTE: dipole moment of microtubule may be as high as 34000 D):
+        self.pmit = p.mt_dipole_moment * 3.33e-30  # 1740
+
+        # microtubule "plus end" charges:
+        self.zp = (self.pmit / (cells.R_rads * p.q))
+
+
+        if p.mtube_noise <= 0.0:
+
+            p.mtube_noise = 1.0e-4
+
+        # total microtubule concentration (determines sensitivity to ordering)
+        self.cpo = (1/p.mtube_noise)
+
+
+
+    def update_mtubes_o(self, cells, sim, p):
 
         # print(self.pmit/3.33e-30)
 
@@ -82,7 +113,7 @@ class Mtubes(object):
         # jjy = (cells.nn_ty*sim.Jn + sim.J_cell_y[cells.mem_to_cells])/2
 
         MM = np.column_stack((self.mtubes_xo, self.mtubes_yo))
-        JJ = np.column_stack((sim.J_cell_x[cells.mem_to_cells], sim.J_cell_y[cells.mem_to_cells]))
+        JJ = np.column_stack((sim.E_cell_x[cells.mem_to_cells], sim.E_cell_y[cells.mem_to_cells]))
 
         torque = np.cross(MM, JJ)
 
@@ -107,32 +138,47 @@ class Mtubes(object):
         self.mtubes_y = self.mtubes_yo / mtcn
 
 
-    # def update_mtubes(self, cells, sim, p):
-    #
-    #     cav = self.c_cells[cells.mem_to_cells]  # concentration at cell centre
-    #     cmi = self.cc_at_mem  # concentration at membrane
-    #     z = self.z  # charge of ion
-    #     Do = self.Do  # diffusion constant of ion
-    #
-    #     cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
-    #     cg = (cmi - cav) / cells.R_rads  # concentration gradients
-    #
-    #     # calculate normal component of microtubules at membrane:
-    #     umtn = sim.mtubes.mtubes_x * cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y * cells.mem_vects_flat[:, 3]
-    #     # print(umtn.min(), umtn.max())
-    #
-    #     cflux = (-Do * cg + ((Do * p.q * cp * z) / (p.kb * sim.T)) * sim.Ec + umtn * self.u_mt * cp +
-    #              umtn * p.u_mtube * cp * z) * p.cell_polarizability
-    #
-    #     # calculate the actual concentration at membranes by unpacking to concentration vectors:
-    #     self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
-    #
-    #     # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
-    #     indsZ = (self.cc_at_mem < 0.0).nonzero()
-    #
-    #     if len(indsZ[0]):
-    #         raise BetseSimInstabilityException(
-    #             "A microtubule calculation has lead to simulation instability.")
+    def update_mtubes(self, cells, sim, p):
+
+        cav = 1.0  # concentration at cell centre
+        cpi = self.cp  # concentration at membrane
+        z = self.zp  # charge of ion
+        Do = self.D  # diffusion constant of ion
+
+        cap = (cav + cpi) / 2  # concentration at midpoint between cell centre and membrane
+        cgp = (cpi - cav) / cells.R_rads  # concentration gradients
+
+        cfluxp = -Do*cgp + ((Do * p.q * cap * z)/(p.kb * sim.T))*sim.Ec
+
+        # calculate the actual concentration at membranes by unpacking to concentration vectors:
+        self.cp = cpi + cfluxp*(cells.mem_sa/cells.mem_vol)*p.dt
+
+        # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
+        indsZ = (self.cp < 0.0).nonzero()
+
+        if len(indsZ[0]):
+            raise BetseSimInstabilityException(
+                "A microtubule calculation has lead to simulation instability.")
+
+        # define microtubule direction vectors in terms of density difference between plus and central minus end:
+        # component normal to the membrane:
+
+        mtno = (self.cp - 1)*self.cpo
+
+        mtx = np.dot(cells.M_sum_mems, mtno*cells.mem_vects_flat[:, 2]*cells.mem_sa) / cells.cell_sa
+        mty = np.dot(cells.M_sum_mems, mtno*cells.mem_vects_flat[:, 3]*cells.mem_sa) / cells.cell_sa
+
+        self.mtubes_xo = cells.mem_vects_flat[:, 2] + mtx[cells.mem_to_cells]
+        self.mtubes_yo = cells.mem_vects_flat[:, 3] + mty[cells.mem_to_cells]
+
+        mtmag = np.sqrt(sim.mtubes.mtubes_xo ** 2 + sim.mtubes.mtubes_yo ** 2)
+
+        mtmag[mtmag == 0.0] = 1.0
+
+        # normalized microtubule vectors from the cell centre point:
+        self.mtubes_x = self.mtubes_xo / mtmag
+        self.mtubes_y = self.mtubes_yo / mtmag
+
 
     def mtubes_to_cell(self, cells, p):
 
@@ -161,5 +207,11 @@ class Mtubes(object):
 
         mtubesy2 = np.delete(self.mtubes_y, target_inds_mem)
         self.mtubes_y = mtubesy2*1
+
+        cp2 = np.delete(self.cp, target_inds_mem)
+        self.cp = cp2*1
+
+        zp2 = np.delete(self.zp, target_inds_mem)
+        self.zp = zp2*1
 
 
