@@ -17,7 +17,7 @@ from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
 from betse.util.path import paths
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, NumericTypes, SequenceTypes
 from collections import OrderedDict
 
 # ....................{ CLASSES                            }....................
@@ -32,7 +32,7 @@ class Parameters(object):
     initialization.
 
     Attributes (Private)
-    ----------------------------
+    ----------
     _config : MappingType
         Low-level dictionary containing this entire simulation configuration,
         deserialized from this configuration's YAML-formatted file and safely
@@ -41,14 +41,8 @@ class Parameters(object):
         this dictionary are safely retrievable and modifiable by callers *only*
         via the public :func:`conf_alias` data descriptors in this class.
 
-    Attributes (General: Boolean)
-    ----------------------------
-    sim_ECM : bool
-        ``True`` only if this simulation enables the extracellular matrix (ECM),
-        commonly referred to as extracellular spaces.
-
     Attributes (General: Path)
-    ----------------------------
+    ----------
     config_dirname : str
         Absolute path of the directory containing the source YAML configuration
         file from which this object was first deserialized. This directory
@@ -58,8 +52,20 @@ class Parameters(object):
         Absolute path of the source YAML configuration file from which this
         object was first deserialized.
 
+    Attributes (General: Boolean)
+    ----------
+    sim_ECM : bool
+        ``True`` only if this simulation enables the extracellular matrix (ECM),
+        commonly referred to as extracellular spaces.
+
+    Attributes (General: Scalars)
+    ----------
+    cell_polarizability : NumericTypes
+        Constant defining the rate of cell polarizability change in electric
+        fields, typically ranging ``[0.0, 1.0e-3]``.
+
     Attributes (Phase: Time)
-    ----------------------------
+    ----------
     dt : float
         Duration in seconds of each time step for the current simulation phase.
     total_time : float
@@ -70,7 +76,7 @@ class Parameters(object):
         current gap junction acceleration factor.
 
     Attributes (Ions)
-    ----------------------------
+    ----------
     ions_dict : dict
         Dictionary mapping:
         * From each of the following names of a supported core ion:
@@ -87,7 +93,7 @@ class Parameters(object):
           * 1, if that ion is enabled by that ion profile.
 
     Attributes (Exports)
-    ----------------------------
+    ----------
     anim : SimConfAnimAll
         Subconfiguration encapsulating exported simulation animations.
     plot : SimConfPlotAll
@@ -102,7 +108,7 @@ class Parameters(object):
         flux streamlines on appropriate plots and animations.
 
     Attributes (Tissue)
-    ----------------------------
+    ----------
     clipping_bitmap_matcher : TissuePickerBitmap
         Object encapsulating the bitmap whose colored pixel area specifies the
         global geometry mask to which all tissue profile bitmaps will be
@@ -120,9 +126,13 @@ class Parameters(object):
     init_filename  = conf_alias("['init file saving']['file']", str)
     sim_filename   = conf_alias("['sim file saving']['file']", str)
 
-    # ..................{ ALIASES ~ feature                  }..................
+    # ..................{ ALIASES ~ bool                     }..................
     sim_ECM = conf_alias(
         "['general options']['simulate extracellular spaces']", bool)
+
+    # ..................{ ALIASES ~ scalar                   }..................
+    cell_polarizability = conf_alias(
+        "['internal parameters']['cell polarizability']", NumericTypes)
 
     # ..................{ ALIASES ~ event                    }..................
     #FIXME: Define similar booleans for all remaining events.
@@ -768,7 +778,6 @@ class Parameters(object):
 
         # self.media_rho = float(iu['media resistivity'])
         # self.tissue_rho = float(iu['tissue resistivity'])
-        self.cell_polarizability = float(iu['cell polarizability'])
 
         self.substances_affect_charge = iu['substances affect Vmem']
 

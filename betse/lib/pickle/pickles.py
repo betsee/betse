@@ -9,23 +9,26 @@ complex objects to and from on-disk files) facilities.
 
 Caveats
 ----------
-**This submodule leverages the third-party `dill` package rather than the
-standard `pickle` package.** The former conforms to the API of the latter with
-additional support for so-called "exotic" types required by this application,
-including:
+**This submodule leverages the third-party :mod:`dill` package rather than the
+standard :mod:`pickle` package.** The former conforms to the API of the latter
+with additional support for so-called "exotic" types required by this
+application, including:
 
-* `lambda` expressions.
 * Generators.
+* Lambda expressions.
 * Ranges.
 * Slices.
-* Numpy `ndarray` subclass objectes.
-* Numpy `unfunc` objects.
+* Numpy :class:`ndarray` subclass instances.
+* Numpy :class:`ufunc` objects.
 '''
 
 # ....................{ IMPORTS                            }....................
 import dill as pickle
+from betse.util.io.log import logs
 from betse.util.path import files
+from betse.util.type.call.memoizers import CALLABLE_CACHED_VAR_NAME_PREFIX
 from betse.util.type.types import type_check
+from dill import Pickler
 
 # ....................{ CONSTANTS                          }....................
 # The improved pickle-ability of protocol 4 appears to be required to pickle
@@ -42,6 +45,81 @@ competing tradeoffs:
 * Maximal **pickle-ability** (i.e., the capacity to pickle objects), improving
   support for such edge cases as very large objects and edge-case object types.
 '''
+
+# ....................{ CLASSES                            }....................
+class BetsePickler(Pickler):
+    '''
+    Application-specific :mod:`dill`-based custom pickler.
+
+    This pickler augments :mod:`dill` with additional support for
+    application-specific constructs, including:
+
+    * Preventing temporary in-memory cached data from being pickled to disk,
+      including all private instance variables cached by decorators defined by
+      the :mod:`betse.util.type.call.memoizers` module (e.g.,
+      :func:`property_cached`). To do so efficiently, this pickler uncaches
+      *all* previously cached data from *all* objects pickled to disk. This data
+      is guaranteed to be transparently re-cached on the next in-memory access
+      of this data and is thus safely uncachable. While technically avoidable
+      (e.g., by saving and restoring uncached instance variables into a local
+      dictionary internal to the :meth:`save` method), doing so would incur
+      additional space, time, and maintenance penalties. In short, the lazy way
+      still remains the best way.
+
+    See Also
+    ----------
+    https://github.com/uqfoundation/dill/issues/225#issuecomment-294286518
+        Feature request response by GitHub user matsjoyce_ on the :mod:`dill`
+        issue tracker from which this implementation was strongly inspired.
+        Thanks a metric ton, matsjoyce_!
+
+    .. _matsjoyce:
+        https://github.com/matsjoyce
+    '''
+
+    # ..................{ SAVERS                             }..................
+    def save(self, obj, *args, **kwargs):
+        '''
+        Prepare the passed object to be pickled.
+
+        This method is recursively called ala the Visitor pattern for each
+        object to be pickled reachable in the current object graph.
+        '''
+        # logs.log_debug('Pickling object "%s"...', obj.__class__.__name__)
+
+        # If this object defines a dictionary mapping from the name to value of
+        # each attribute defined on this object and hence is unslotted, prevent
+        # cached attributes from being pickled. Slotted objects cannot have
+        # attributes dynamically added or removed at runtime and hence *MUST* be
+        # ignored here.
+        #
+        # Since this guarantees the "obj.__dict__" attribute to exist, this
+        # attribute is accessed directly below rather than indirectly via the
+        # vars() builtin. While feasible, the latter is slightly less efficient.
+        if hasattr(obj, '__dict__'):
+            # For the name of each such attribute...
+            for obj_attr_name in obj.__dict__.keys():
+                # If this attribute is prefixed by a substring implying this
+                # attribute to be a private instance variable to which some
+                # caching decorators (e.g., @property_cached) has cached the
+                # value returned by a decorated callable...
+                if obj_attr_name.startswith(CALLABLE_CACHED_VAR_NAME_PREFIX):
+                    # Log this deletion attempt.
+                    logs.log_debug(
+                        'Uncaching transient data "%s.%s"...',
+                        obj.__class__.__name__, obj_attr_name)
+
+                    # Delete this variable from this object. Again, do so
+                    # directly rather than via the del() built. While feasible,
+                    # the latter is slightly less efficient.
+                    obj.__dict__.pop(obj_attr_name)
+
+        # Pickle this object.
+        super().save(obj, *args, **kwargs)
+
+
+# Force "dill" to pickle via the custom pickler defined above.
+pickle.dill.Pickler = BetsePickler
 
 # ....................{ LOADERS                            }....................
 @type_check

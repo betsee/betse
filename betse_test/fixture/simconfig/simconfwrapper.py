@@ -679,7 +679,6 @@ class SimConfigTestWrapper(object):
         # Localize nested dictionaries for convenience.
         results = self._p._conf['results options']
         variable = self._p._conf['variable settings']
-        internal = self._p._conf['internal parameters']
 
         # Enable all simulation features required by these exports.
         self.ion_profile = 'animal'
@@ -688,7 +687,7 @@ class SimConfigTestWrapper(object):
         variable['deformation']['turn on'] = True
         variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include osmotic pressure'] = True
-        internal['cell polarizability'] = 1e-3
+        self._p.cell_polarizability = 1e-3
 
         # Enable all optional settings supported by these exports.
         results['enumerate cells'] = True

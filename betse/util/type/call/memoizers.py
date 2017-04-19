@@ -14,7 +14,47 @@ from functools import wraps
 
 if False: wraps  # silence contemptible IDE warnings
 
+# ....................{ CONSTANTS                          }....................
+CALLABLE_CACHED_VAR_NAME_PREFIX = '_betse_cached__'
+'''
+Substring prefixing the names of all private instance variables to which all
+caching decorators (e.g., :func:`property_cached`) cache values returned by
+decorated callables.
+
+This prefix guarantees uniqueness across *all* instances -- including those
+instantiated from official Python and unofficial third-party classes and those
+internally defined by this application. Doing so permits logic elsewhere (e.g.,
+pickling filtering) to uniquely match and act upon these variables.
+'''
+
+
+FUNCTION_CACHED_VAR_NAME = CALLABLE_CACHED_VAR_NAME_PREFIX + 'function_value'
+'''
+Name of the private instance variable to which the :func:`callable_cached`
+decorator statically caches the value returned by the decorated function.
+'''
+
+
+PROPERTY_CACHED_VAR_NAME_PREFIX = CALLABLE_CACHED_VAR_NAME_PREFIX + 'property_'
+'''
+Substring prefixing the names of all private instance variables to which the
+:func:`property_cached` decorator dynamically caches the value returned by the
+decorated property method.
+'''
+
 # ....................{ DECORATORS                         }....................
+#FIXME: Rename to "function_cached". While this decorator *COULD* technically be
+#used to decorate non-function callables, it never will be. Why? Because:
+#
+#* Decorating lambdas is highly non-trivial and hence impractical.
+#* Attempting to cache unbound method return values via this decorator would do
+#  so globally rather than on an instance-specific basis and hence be
+#  functionally useless. To instead cache bound method return values on an
+#  instance-specific basis, this decorator would need to be refactored to return
+#  a descriptor whose __get__() special method created and returned bound
+#  methods whose return values are cached onto instance variables of those bound
+#  methods themselves. For similar functionality, see the @expr_alias data
+#  descriptor.
 @type_check
 def callable_cached(func: CallableTypes) -> CallableTypes:
     '''
@@ -25,7 +65,7 @@ def callable_cached(func: CallableTypes) -> CallableTypes:
     callable is called with all passed parameters, the value returned by this
     callable is cached into a private attribute of this callable, and this value
     is returned. On each subsequent call of this callable, the cached value is
-    returned as is _without_ calling this callable. Hence, this callable is
+    returned as is *without* calling this callable. Hence, this callable is
     called at most once for each instance of the class containing this property.
 
     Caveats
@@ -35,8 +75,8 @@ def callable_cached(func: CallableTypes) -> CallableTypes:
     return value conditionally cached (and hence returned) for that permutation.
 
     This decorator instead unconditionally caches (and hence returns) a single
-    return value for _all_ permutations of passed parameters. Hence, this
-    decorator is principally intended to decorate callables accepting _no_
+    return value for *all* permutations of passed parameters. Hence, this
+    decorator is principally intended to decorate callables accepting *no*
     parameters (e.g., simple testers and getters).
 
     See Also
@@ -61,12 +101,12 @@ def callable_cached(func: CallableTypes) -> CallableTypes:
 def callable_cached_arged(
     *args, __callable_cached=__callable_cached, **kwargs):
     try:
-        return __callable_cached.__callable_cached_value
+        return __callable_cached.{callable_var_name}
     except AttributeError:
-        __callable_cached.__callable_cached_value = __callable_cached(
+        __callable_cached.{callable_var_name} = __callable_cached(
             *args, **kwargs)
-        return __callable_cached.__callable_cached_value
-'''
+        return __callable_cached.{callable_var_name}
+'''.format(callable_var_name=FUNCTION_CACHED_VAR_NAME)
 
     # Dictionary mapping from local attribute name to value. For efficiency,
     # only attributes required by the body of this wrapper are copied from the
@@ -83,44 +123,6 @@ def callable_cached_arged(
     return local_attrs['callable_cached_arged']
 
 
-#FIXME: Reimplement this to leverage this far more efficient alternative
-#overwriting itself with the value returned by the decorated function:
-#
-#    https://stackoverflow.com/a/36684652/2809027
-#
-#Quite clever and *MUCH* more succinct than the approach pursued below. Note
-#that this approach does change the type of this property from a callable to an
-#instance variable. For this reason, this approach *CANNOT* be used to similarly
-#improve the callable_cached() decorator defined above. In this case, however,
-#doing so is perfectly safe: a property should only ever be treated as an
-#instance variable, so there exists no harm in dynamically changing the type of
-#the former to the latter. (Awesome.)
-#
-#In fact, the above approach is essentially what Django does (albeit with a more
-#cumbersome class decorator than a function decorator). Which means, in turn,
-#that this is indeed the canonical solution to caching properties.
-#FIXME: Actually, the solution below may indeed be superior -- but for one
-#particularly sutble reasons not commonly discussed: pickling. The third-party
-#pickling package "dill" explicitly supports pickling of @property-decorated
-#methods by pickling the data descriptor produced by those methods rather than
-#the underlying data -- which is good. Reducing this approach to the attribute
-#inlining scheme outlined above, however, would result in "dill" pickling the
-#underlying data -- which would be very bad.
-#FIXME: That said, the current approach still does *NOT* suffice. Why? Because
-#"dill" will still pickle the underlying data cached by all
-#@property_cached-decorated methods that have been called at least once, as this
-#data is cached to simple instance variables of their parent object.
-#Fortunately, these variables are *ALL* prefixed by the same substring:
-#"__property_cached_". This implies that "dill" may be instructed to ignore all
-#instance variables prefixed by this substring when pickling. Let it be, please.
-#FIXME: While "dill" doesn't appear to support such functionality at present, a
-#feature request for doing so has been opened at:
-#    https://github.com/uqfoundation/dill/issues/225
-
-# Note that, for unknown reasons, the "property_method" parameter cannot be
-# assumed to be a method. Property methods appear to be of type function rather
-# than method, presumably due to being decorated *BEFORE* being bound to a class
-# as a method.
 @type_check
 def property_cached(property_method: CallableTypes) -> PropertyType:
     '''
@@ -134,7 +136,37 @@ def property_cached(property_method: CallableTypes) -> PropertyType:
     access of this property, this cached value is returned as is _without_
     calling this method. Hence, this method is called at most once for each
     object exposing this property.
+
+    Caveats
+    ----------
+    **This decorator does not destroy bound property methods.** Technically, the
+    most efficient means of caching a property value into an instance is to
+    replace the property method currently bound to that instance with an
+    instance variable initialized to that value (e.g., as documented by this
+    `StackOverflow answer`_).
+
+    Since a property should only ever be treated as an instance variable,
+    there superficially exists little harm in dynamically changing the type of
+    the former to the latter. Sadly, doing so introduces numerous subtle issues
+    with no plausible workaround.
+
+    In particular, replacing property methods by instance variables prevents
+    pickling logic elsewhere from automatically excluding cached property
+    values, forcing these values to *always* be pickled to disk. This is bad.
+    Cached property values are *always* safely recreatable in memory (and hence
+    need *not* be pickled) and typically space-consumptive in memory (and hence
+    best *not* pickled). The slight efficiency gain from replacing property
+    methods by instance variables is hardly worth the significant space loss
+    from pickling these variables.
+
+    .. _StackOverflow answer:
+        https://stackoverflow.com/a/36684652/2809027
     '''
+
+    # Name of the private instance variable to which this decorator caches the
+    # value returned by the decorated property method.
+    property_var_name = (
+        PROPERTY_CACHED_VAR_NAME_PREFIX + property_method.__name__)
 
     # Raw string of Python statements comprising the body of this wrapper,
     # including (in order):
@@ -173,11 +205,11 @@ def property_cached(property_method: CallableTypes) -> PropertyType:
 @wraps(__property_method)
 def property_method_cached(self, __property_method=__property_method):
     try:
-        return self.{property_name}
+        return self.{property_var_name}
     except AttributeError:
-        self.{property_name} = __property_method(self)
-        return self.{property_name}
-'''.format(property_name='__property_cached_' + property_method.__name__)
+        self.{property_var_name} = __property_method(self)
+        return self.{property_var_name}
+'''.format(property_var_name=property_var_name)
 
     # Dictionary mapping from local attribute name to value. For efficiency,
     # only attributes required by the body of this wrapper are copied from the
