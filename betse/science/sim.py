@@ -686,6 +686,10 @@ class Simulator(object):
         # load in the microtubules object:
         self.mtubes = Mtubes(cells, p, alpha_noise=p.mtube_noise)
 
+        # smoothing weights for membrane and central values:
+        self.smooth_weight_mem = ((2*cells.num_mems[cells.mem_to_cells] -1)/(2*cells.num_mems[cells.mem_to_cells]))
+        self.smooth_weight_o = 1/(2*cells.num_mems[cells.mem_to_cells])
+
     def init_tissue(self, cells, p):
         '''
         Prepares data structures pertaining to tissue profiles, dynamic
@@ -1712,7 +1716,6 @@ class Simulator(object):
             else:
 
                 self.vm = (self.vm
-                           # - (1/p.cm)*divJ[cells.mem_to_cells]*p.dt
                            - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from all sources
                            - (1 / (self.cgj)) * self.Jgj * p.dt  # current across the membrane from gj
                            + (1 / self.cedl_cell) * self.Jc * p.dt  # current in intracellular space, interacting with edl
@@ -1932,7 +1935,7 @@ class Simulator(object):
 
     def update_intra(self, cells, p, i):
 
-        # print(self.rho_factor.max())
+        # print(self.cc_cells[self.iNa].mean())
 
         cav = self.cc_cells[i][cells.mem_to_cells]  # concentration at cell centre
         cmi = self.cc_at_mem[i]  # concentration at membrane
@@ -1943,18 +1946,24 @@ class Simulator(object):
         cg = (cmi - cav)/cells.R_rads  # concentration gradients
 
         # calculate normal component of microtubules at membrane:
-        umtn = self.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + self.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
+        # umtn = self.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + self.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
 
         # small offset added to cell polarizability to prevent 0.0 vector of intracellular current, which crashes streamplot
-        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*self.Ec + umtn*p.u_mtube*cp*z)*(p.cell_polarizability + 1.0e-15)
+        cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*self.Ec)*p.cell_polarizability
+
+        # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        cflux = stb.single_cell_div_free(cfluxo, cells)
 
         # update the concentration at membranes:
         # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes
         self.cc_at_mem[i] = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
 
-        divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
+        # smooth the concentration:
+        self.cc_at_mem[i] = self.smooth_weight_mem*self.cc_at_mem[i] + cav*self.smooth_weight_o
 
-        self.cc_cells[i] = self.cc_cells[i] + divJ*p.dt
+        # divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
+        #
+        # self.cc_cells[i] = self.cc_cells[i] + divJ*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cc_at_mem[i] < 0.0).nonzero()

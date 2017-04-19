@@ -4544,18 +4544,26 @@ class Molecule(object):
         cg = (cmi - cav) / cells.R_rads  # concentration gradients
 
         # calculate normal component of microtubules at membrane:
-        umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
-        # print(umtn.min(), umtn.max())
 
-        cflux = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*sim.Ec + umtn*self.u_mt*cp +
-                 umtn*p.u_mtube*cp*z)*p.cell_polarizability
+        # umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
+        # umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
+
+        umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
+
+        cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*sim.Ec + umtn*self.u_mt*cp)
+
+        # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        cflux = stb.single_cell_div_free(cfluxo, cells)
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
         self.cc_at_mem = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
 
-        # calculate the divergence so we can update the centre concentration:
-        divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
-        self.c_cells = self.c_cells + divJ*p.dt
+        # smooth the concentration:
+        self.cc_at_mem = sim.smooth_weight_mem*self.cc_at_mem + sim.smooth_weight_o*cav
+
+        # # calculate the divergence so we can update the centre concentration:
+        # divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
+        # self.c_cells = self.c_cells + divJ*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cc_at_mem < 0.0).nonzero()

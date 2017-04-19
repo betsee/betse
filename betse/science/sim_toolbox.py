@@ -961,13 +961,13 @@ def ghk_calculator(sim, cells, p):
             sum_PmCation_out = sum_PmCation_out + Dm * conc_env * (1 / p.tm)
 
 
-    NaKrate = (np.dot(cells.M_sum_mems, sim.rate_NaKATP)/cells.num_mems)
+    # NaKrate = (np.dot(cells.M_sum_mems, sim.rate_NaKATP)/cells.num_mems)
 
     # sum together contributions for Na and K flux across the membrane:
-    NaKflux = NaKrate - (2/3)*NaKrate
+    # NaKflux = NaKrate - (2/3)*NaKrate
 
     sim.vm_GHK = ((p.R * sim.T) / p.F) * np.log(
-        (sum_PmCation_out + sum_PmAnion_in - NaKflux) / (sum_PmCation_in + sum_PmAnion_out))
+        (sum_PmCation_out + sum_PmAnion_in) / (sum_PmCation_in + sum_PmAnion_out))
 
 def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_cell =False, alpha_max=1.0e-8, Km_X=1.0,
                  Km_ATP=1.0, met = None, n=1, ignoreECM = True, rho = 1.0):
@@ -1548,6 +1548,29 @@ def div_free(Fxo, Fyo, cells):
     Fy = Fyo.reshape(cells.X.shape) - gPhiy
 
     return Fx, Fy, Phi
+
+def single_cell_div_free(cfluxo, cells):
+    """
+    Averages a membrane-specific vector field to the cell centre
+    in order to provide a divergence-free field wrt to a single cell.
+
+    Parameters
+    ------------
+    cfluxo:            Component of non-divergence free field wrt membranes
+    cells:             Cells object
+
+    Returns
+    -------
+    cflux               Divergence-free field normal component to membrane
+    """
+
+    # as no flux is leaving the cell, cflux must be a divergence-free field:
+    cfxo = np.dot(cells.M_sum_mems, cfluxo * cells.mem_vects_flat[:, 2] * cells.mem_sa) / cells.cell_sa
+    cfyo = np.dot(cells.M_sum_mems, cfluxo * cells.mem_vects_flat[:, 3] * cells.mem_sa) / cells.cell_sa
+
+    cflux = cfxo[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + cfyo[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
+
+    return cflux
 
 
 #----------------------------------------------------------------------------------------------------------------

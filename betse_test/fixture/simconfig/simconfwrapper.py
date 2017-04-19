@@ -668,6 +668,8 @@ class SimConfigTestWrapper(object):
           * Osmotic pressure.
         * The ``pump_density`` plot and animation by enabling:
           * Channel electroosmosis.
+        * The ``voltage_polarity`` plot and animation by enabling:
+          * Cell polarizability.
         * All other plots and animations *not* requiring extracellular spaces.
         '''
 
@@ -677,6 +679,7 @@ class SimConfigTestWrapper(object):
         # Localize nested dictionaries for convenience.
         results = self._p._conf['results options']
         variable = self._p._conf['variable settings']
+        internal = self._p._conf['internal parameters']
 
         # Enable all simulation features required by these exports.
         self.ion_profile = 'animal'
@@ -685,6 +688,7 @@ class SimConfigTestWrapper(object):
         variable['deformation']['turn on'] = True
         variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include osmotic pressure'] = True
+        internal['cell polarizability'] = 1e-3
 
         # Enable all optional settings supported by these exports.
         results['enumerate cells'] = True

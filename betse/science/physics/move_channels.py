@@ -3,6 +3,7 @@
 # See "LICENSE" for further details.
 
 import numpy as np
+from betse.science import sim_toolbox as stb
 
 
 class MoveChannel(object):
@@ -49,7 +50,10 @@ class MoveChannel(object):
         cgp = (cpi - cav) / cells.R_rads  # concentration gradients
 
         # Nernst-Planck equation to calculate flux:
-        cfluxp = -Do * cgp + ((Do * p.q * cap * z) / (p.kb * sim.T)) * sim.Ec
+        cfluxp = -Do * cgp + ((Do * p.q * cav * z) / (p.kb * sim.T)) * sim.Ec
+
+        # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        # cfluxp = stb.single_cell_div_free(cfluxpo, cells)
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
         sim.rho_pump = cpi + cfluxp * (cells.mem_sa / cells.mem_vol) * p.dt
@@ -77,6 +81,9 @@ class MoveChannel(object):
         # Nernst-Planck equation to calculate flux:
         cfluxc = -Do * cgp + ((Do * p.q * cap * z) / (p.kb * sim.T)) * sim.Ec
 
+        # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        # cfluxc = stb.single_cell_div_free(cfluxco, cells)
+
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
         sim.rho_channel = cpi + cfluxc * (cells.mem_sa / cells.mem_vol) * p.dt
 
@@ -90,32 +97,18 @@ class MoveChannel(object):
         #
         # sim.rho_channel = 1.0 + self.cgrad_x * (cells.nx_rads/2) + self.cgrad_y * (cells.ny_rads/2)
 
-    def remove_data(self, targets_mem):
+    def remove_data(self, targets_cell):
 
         pass
 
         # # remove items from the mem concentration lists:
-        # pgrad_x = np.delete(self.pgrad_x, targets_mem)
+        # rpo2 = np.delete(self.rpo, targets_cell)
         # # reassign the new data vector to the object:
-        # self.pgrad_x = pgrad_x*1
+        # self.rpo = rpo2*1
         #
         # # remove items from the mem concentration lists:
-        # pgrad_y = np.delete(self.pgrad_y, targets_mem)
+        # rco2 = np.delete(self.rco, targets_cell)
         # # reassign the new data vector to the object:
-        # self.pgrad_y = pgrad_y * 1
-        #
-        # # remove items from the mem concentration lists:
-        # cgrad_x = np.delete(self.cgrad_x, targets_mem)
-        # # reassign the new data vector to the object:
-        # self.cgrad_x = cgrad_x*1
-        #
-        # # remove items from the mem concentration lists:
-        # cgrad_y = np.delete(self.cgrad_y, targets_mem)
-        # # reassign the new data vector to the object:
-        # self.cgrad_y = cgrad_y * 1
-        #
-        # # remove items from the mem concentration lists:
-        # alpha = np.delete(self.alpha, targets_mem)
-        # # reassign the new data vector to the object:
-        # self.alpha = alpha * 1
+        # self.rco = rco2*1
+
 

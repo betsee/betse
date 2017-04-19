@@ -9,6 +9,7 @@ flux through cells) functionality.
 
 import numpy as np
 from betse.exceptions import BetseSimInstabilityException
+from betse.science import sim_toolbox as stb
 
 
 class Mtubes(object):
@@ -38,7 +39,7 @@ class Mtubes(object):
 
     def __init__(self, cells, p, alpha_noise = 1.0):
 
-        self.alpha_noise = alpha_noise
+        self.alpha_noise = p.mtube_noise
 
         # basic parameters for microtubule units:
         tubulin_mass = 1.66e-27 * 1e3 * 100    # kg
@@ -50,18 +51,21 @@ class Mtubes(object):
         # microtubule dipole moment [C m] (NOTE: dipole moment of microtubule may be as high as 34000 D):
         self.pmit = p.mt_dipole_moment * 3.33e-30   # 1740
 
-        # microtubule "plus end" charges:
-        self.zp = (self.pmit/(cells.R_rads*p.q))
+        # microtubule end charge:
+        self.z = (self.pmit/(cells.R_rads*p.q))
 
         # total microtubule concentration (determines sensitivity to ordering)
         if p.mtube_noise <= 0.0:
 
             p.mtube_noise = 1.0e-4
 
-        self.cpo = (1/p.mtube_noise)
+        self.sensitivity = (1/p.mtube_noise)
 
         # microtubule "plus end" concentration initialized:
         self.cp = np.ones(len(cells.mem_i))
+
+        # microtubule "negative end" concentration initialized:
+        self.cn = np.ones(len(cells.mem_i))
 
         # microtubule diffusion constant:
         self.D = p.D_mtube
@@ -91,8 +95,8 @@ class Mtubes(object):
         # microtubule dipole moment [C m] (NOTE: dipole moment of microtubule may be as high as 34000 D):
         self.pmit = p.mt_dipole_moment * 3.33e-30  # 1740
 
-        # microtubule "plus end" charges:
-        self.zp = (self.pmit / (cells.R_rads * p.q))
+        # microtubule end charge:
+        self.z = (self.pmit / (cells.R_rads * p.q))
 
 
         if p.mtube_noise <= 0.0:
@@ -100,20 +104,12 @@ class Mtubes(object):
             p.mtube_noise = 1.0e-4
 
         # total microtubule concentration (determines sensitivity to ordering)
-        self.cpo = (1/p.mtube_noise)
-
-
+        self.sensitivity = (1/p.mtube_noise)
 
     def update_mtubes_o(self, cells, sim, p):
 
-        # print(self.pmit/3.33e-30)
-
-        # calculate average field at axial regions of the cell from currents:
-        # jjx = (cells.nn_tx*sim.Jn + sim.J_cell_x[cells.mem_to_cells])/2
-        # jjy = (cells.nn_ty*sim.Jn + sim.J_cell_y[cells.mem_to_cells])/2
-
         MM = np.column_stack((self.mtubes_xo, self.mtubes_yo))
-        JJ = np.column_stack((sim.E_cell_x[cells.mem_to_cells], sim.E_cell_y[cells.mem_to_cells]))
+        JJ = np.column_stack((sim.J_cell_x[cells.mem_to_cells], sim.J_cell_y[cells.mem_to_cells]))
 
         torque = np.cross(MM, JJ)
 
@@ -137,21 +133,36 @@ class Mtubes(object):
         self.mtubes_x = self.mtubes_xo / mtcn
         self.mtubes_y = self.mtubes_yo / mtcn
 
-
     def update_mtubes(self, cells, sim, p):
 
         cav = 1.0  # concentration at cell centre
         cpi = self.cp  # concentration at membrane
-        z = self.zp  # charge of ion
+        z = self.z  # charge of ion
         Do = self.D  # diffusion constant of ion
 
         cap = (cav + cpi) / 2  # concentration at midpoint between cell centre and membrane
         cgp = (cpi - cav) / cells.R_rads  # concentration gradients
 
-        cfluxp = -Do*cgp + ((Do * p.q * cap * z)/(p.kb * sim.T))*sim.Ec
+        cfluxpo = -Do*cgp + ((Do * p.q * cav * z)/(p.kb * sim.T))*sim.Ec
+
+        # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        cfluxp = stb.single_cell_div_free(cfluxpo, cells)
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
         self.cp = cpi + cfluxp*(cells.mem_sa/cells.mem_vol)*p.dt
+
+
+        #-----calculate a "negative end" concentration that has equal and opposite value of z:
+        can = (1.0 + self.cn) / 2  # concentration at midpoint between cell centre and membrane
+        cgn = (self.cn - 1.0) / cells.R_rads  # concentration gradients
+
+        cfluxno = -Do*cgn - ((Do * p.q * cav * z)/(p.kb * sim.T))*sim.Ec
+
+        # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        cfluxn = stb.single_cell_div_free(cfluxno, cells)
+
+        # calculate the actual concentration at membranes by unpacking to concentration vectors:
+        self.cn = self.cn + cfluxn*(cells.mem_sa/cells.mem_vol)*p.dt
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cp < 0.0).nonzero()
@@ -163,7 +174,7 @@ class Mtubes(object):
         # define microtubule direction vectors in terms of density difference between plus and central minus end:
         # component normal to the membrane:
 
-        mtno = (self.cp - 1)*self.cpo
+        mtno = (self.cp - self.cn)*self.sensitivity
 
         mtx = np.dot(cells.M_sum_mems, mtno*cells.mem_vects_flat[:, 2]*cells.mem_sa) / cells.cell_sa
         mty = np.dot(cells.M_sum_mems, mtno*cells.mem_vects_flat[:, 3]*cells.mem_sa) / cells.cell_sa
@@ -179,7 +190,6 @@ class Mtubes(object):
         self.mtubes_x = self.mtubes_xo / mtmag
         self.mtubes_y = self.mtubes_yo / mtmag
 
-
     def mtubes_to_cell(self, cells, p):
 
         # determine the microtubules base electroosmotic velocity:
@@ -193,7 +203,7 @@ class Mtubes(object):
 
         return uxmt, uymt
 
-    def remove_mtubes(self, target_inds_mem, cells, sim, p):
+    def remove_mtubes(self, target_inds_mem, target_inds_cell, cells, sim, p):
 
         # remove microtubules from the lists and reassign objects:
         mtubesxo2 = np.delete(self.mtubes_xo, target_inds_mem)
@@ -211,7 +221,12 @@ class Mtubes(object):
         cp2 = np.delete(self.cp, target_inds_mem)
         self.cp = cp2*1
 
-        zp2 = np.delete(self.zp, target_inds_mem)
-        self.zp = zp2*1
+
+        cn2 = np.delete(self.cn, target_inds_mem)
+        self.cn = cn2*1
+
+
+        z2 = np.delete(self.z, target_inds_mem)
+        self.z = z2*1
 
 

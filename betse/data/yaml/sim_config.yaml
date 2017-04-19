@@ -924,7 +924,7 @@ results options:
               maximum:  10.0    # Maximum fixed colorbar value. Ignored if
                                 # "autoscale" is True.
           # Example final cell cluster intracellular current density plot.
-          - type: currents_intra
+          - type: electric_intra
             enabled: True
             colorbar:
               autoscale: True
