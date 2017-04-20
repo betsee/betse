@@ -687,7 +687,7 @@ class SimConfigTestWrapper(object):
         variable['deformation']['turn on'] = True
         variable['fluid flow']['include fluid flow'] = True
         variable['pressures']['include osmotic pressure'] = True
-        self._p.cell_polarizability = 1e-3
+        self._p.cell_polarizability = 1e-4
 
         # Enable all optional settings supported by these exports.
         results['enumerate cells'] = True

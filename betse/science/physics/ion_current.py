@@ -19,15 +19,6 @@ def get_current(sim, cells, p):
 
     # calculate current density across cell membranes via gap junctions:
     sim.Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
-    # Jgjo = np.dot(sim.zs * p.F, sim.fluxes_gj)
-    #
-    # divjg = np.dot(cells.M_sum_mems, Jgjo*cells.mem_sa)/cells.cell_vol
-    # Pgj = np.dot(cells.lapGJinv, divjg)
-    #
-    # gP = (Pgj[cells.cell_nn_i[:, 1]] - Pgj[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
-    #
-    # sim.Jgj = Jgjo - gP
-
 
     # add the free current sources together into a single transmembrane current:
     sim.Jn = sim.Jmem + sim.Jgj + sim.extra_J_mem
@@ -61,20 +52,9 @@ def get_current(sim, cells, p):
         sim.ko_env = (
             np.sqrt(np.dot((p.NAv * (p.q ** 2) * sim.zs ** 2) / (p.eo * p.er * p.kb * p.T), sim.cc_env))).mean()
 
-        # currents in environment due to transmembrane fluxes:
-        # J_tm_env_x = np.zeros(sim.edl)
-        # J_tm_env_x[cells.map_mem2ecm] = sim.Jmem*cells.mem_vects_flat[:, 2]*(cells.mem_sa/cells.ecm_sa).mean()
-        #
-        # J_tm_env_y = np.zeros(sim.edl)
-        # J_tm_env_y[cells.map_mem2ecm] = sim.Jmem*cells.mem_vects_flat[:, 3]*(cells.mem_sa/cells.ecm_sa).mean()
-
         # diffusive component of current densities in the environment:
         J_env_x_o = np.dot(p.F*sim.zs, sim.fluxes_env_x)
         J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
-
-        # add in component of current from transmembrane fluxes:
-        # J_env_x_o += J_tm_env_x
-        # J_env_y_o += J_tm_env_y
 
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)

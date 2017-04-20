@@ -883,9 +883,7 @@ class Parameters(object):
 
         self.vm_ph = 0.1             # rate constant for bicarbonate buffer [mol/s] 5.0e-5 originally
 
-        self.mtube_noise = float(iu.get('microtubule noise', 1.0e-3))
-
-        self.mt_dipole_moment = float(iu.get('microtubule dipole moment', 34000))
+        self.cytoplasm_viscocity = float(iu.get('cytoplasm viscocity', 1.0))
 
         self.u_mtube = float(iu.get('microtubule eosmo', 0.0))
 

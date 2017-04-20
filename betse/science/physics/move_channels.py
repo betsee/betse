@@ -50,10 +50,10 @@ class MoveChannel(object):
         cgp = (cpi - cav) / cells.R_rads  # concentration gradients
 
         # Nernst-Planck equation to calculate flux:
-        cfluxp = -Do * cgp + ((Do * p.q * cav * z) / (p.kb * sim.T)) * sim.Ec
+        cfluxpo = -Do * cgp + ((Do * p.q * cap * z) / (p.kb * sim.T)) * sim.Ec
 
         # as no net mass must leave this intracellular movement, make the flux divergence-free:
-        # cfluxp = stb.single_cell_div_free(cfluxpo, cells)
+        cfluxp = stb.single_cell_div_free(cfluxpo, cells)
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
         sim.rho_pump = cpi + cfluxp * (cells.mem_sa / cells.mem_vol) * p.dt
@@ -79,10 +79,10 @@ class MoveChannel(object):
         cgp = (cpi - cav) / cells.R_rads  # concentration gradients
 
         # Nernst-Planck equation to calculate flux:
-        cfluxc = -Do * cgp + ((Do * p.q * cap * z) / (p.kb * sim.T)) * sim.Ec
+        cfluxco = -Do * cgp + ((Do * p.q * cap * z) / (p.kb * sim.T)) * sim.Ec
 
         # as no net mass must leave this intracellular movement, make the flux divergence-free:
-        # cfluxc = stb.single_cell_div_free(cfluxco, cells)
+        cfluxc = stb.single_cell_div_free(cfluxco, cells)
 
         # calculate the actual concentration at membranes by unpacking to concentration vectors:
         sim.rho_channel = cpi + cfluxc * (cells.mem_sa / cells.mem_vol) * p.dt

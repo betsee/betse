@@ -1275,6 +1275,18 @@ class Cells(object):
 
         self.cell_number = self.cell_centres.shape[0]
 
+        # matrix for calculating gradients around the cell circumference:
+        self.gradTheta = np.zeros((len(self.mem_i), len(self.mem_i)))
+
+        for cell_i, mem_i in enumerate(self.cell_to_mems):
+            mem_io = np.roll(mem_i, 1)
+            li = self.mem_mids_flat[mem_i] - self.mem_mids_flat[mem_io]
+
+            lm = np.sqrt(li[:, 0] ** 2 + li[:, 1] ** 2)
+
+            self.gradTheta[mem_i, mem_i] = 1 / lm
+            self.gradTheta[mem_i, mem_io] = -1 / lm
+
     def cell_vols(self,p):
         """
         Each cell is divided into a spider-web like volume with an outer

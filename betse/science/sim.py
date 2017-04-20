@@ -684,11 +684,13 @@ class Simulator(object):
             cc[cells.mem_to_cells] for cc in self.cc_cells])
 
         # load in the microtubules object:
-        self.mtubes = Mtubes(cells, p, alpha_noise=p.mtube_noise)
+        self.mtubes = Mtubes(self, cells, p)
 
         # smoothing weights for membrane and central values:
         self.smooth_weight_mem = ((2*cells.num_mems[cells.mem_to_cells] -1)/(2*cells.num_mems[cells.mem_to_cells]))
         self.smooth_weight_o = 1/(2*cells.num_mems[cells.mem_to_cells])
+
+
 
     def init_tissue(self, cells, p):
         '''
@@ -1945,11 +1947,15 @@ class Simulator(object):
         cp = (cav + cmi)/2   # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav)/cells.R_rads  # concentration gradients
 
+        # normal component of electric field at membranes:
+        En = (self.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+              self.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
         # calculate normal component of microtubules at membrane:
         # umtn = self.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + self.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
 
         # small offset added to cell polarizability to prevent 0.0 vector of intracellular current, which crashes streamplot
-        cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*self.Ec)*p.cell_polarizability
+        cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*En)*p.cell_polarizability
 
         # as no net mass must leave this intracellular movement, make the flux divergence-free:
         cflux = stb.single_cell_div_free(cfluxo, cells)
@@ -1961,9 +1967,7 @@ class Simulator(object):
         # smooth the concentration:
         self.cc_at_mem[i] = self.smooth_weight_mem*self.cc_at_mem[i] + cav*self.smooth_weight_o
 
-        # divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
-        #
-        # self.cc_cells[i] = self.cc_cells[i] + divJ*p.dt
+        # self.cc_at_mem[i] = (self.cc_at_mem[i] + cav)/2
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
         indsZ = (self.cc_at_mem[i] < 0.0).nonzero()
@@ -2031,7 +2035,10 @@ class Simulator(object):
             Denv_o[cells.all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
             Denv_o[cells.interior_bound_mem_inds] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
             Denv_o[cells.ecm_inds_bound_cell] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+
             Denv_o[cells.inds_outmem] = self.D_free[i]
+
+            # Denv_o = gaussian_filter(Denv_o.reshape(cells.X.shape), 1).ravel()
 
             # create an ecm diffusion grid filled with the environmental values
             self.D_env[i] = Denv_o*1.0
