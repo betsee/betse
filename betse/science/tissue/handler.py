@@ -1294,6 +1294,7 @@ class TissueHandler(object):
             cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
             cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
             cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
+            cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
 
 
             # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
