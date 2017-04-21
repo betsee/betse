@@ -134,24 +134,6 @@ class Parameters(object):
     cell_polarizability = conf_alias(
         "['internal parameters']['cell polarizability']", NumericTypes)
 
-    # ..................{ ALIASES ~ event                    }..................
-    #FIXME: Define similar booleans for all remaining events.
-    #FIXME: Globally replace in the codebase all awkward non-boolean tests of
-    #"p.scheduled_options" dictionary values against 0 with boolean tests of
-    #the following boolean descriptors. As example, globally replace all
-    #instances of:
-    #
-    #* "if p.scheduled_options['pressure'] != 0:" with
-    #  "if p.is_event_pressure:".
-    #* "if p.scheduled_options['pressure'] == 0:" with
-    #  "if not p.is_event_pressure:".
-    #
-    #This is critical, as the latter are trivially usable in expression aliases
-    #expecting booleans whereas the former are not. See the
-    #"SimPipelineRunnerRequirementType.PRESSURE_MECHANICAL" enumeration member.
-
-    is_event_pressure = conf_alias("['apply pressure']['event happens']", bool)
-
     # ..................{ INITIALIZERS                       }..................
     #FIXME: Convert all or most of the variables parsed in the __init__() method
     #below should be converted into aliases of the above form. Brainy rainbows!
@@ -275,6 +257,7 @@ class Parameters(object):
         bool_Clmem = bool(self._conf['change Cl mem']['event happens'])
         bool_Camem = bool(self._conf['change Ca mem']['event happens'])
         bool_ecmj = bool(self._conf['break ecm junctions']['event happens'])
+        bool_pressure = bool(self._conf['apply pressure']['event happens'])
 
         if bool_Namem is False:
             self.scheduled_options['Na_mem'] = 0
@@ -324,7 +307,7 @@ class Parameters(object):
             Camem = [on_Camem, off_Camem, rate_Camem, multi_Camem, apply_Camem,function]
             self.scheduled_options['Ca_mem'] = Camem
 
-        if self.is_event_pressure:
+        if bool_pressure:
             on_p = float(self._conf['apply pressure']['change start'])
             off_p = float(self._conf['apply pressure']['change finish'])
             rate_p = float(self._conf['apply pressure']['change rate'])
@@ -1300,33 +1283,34 @@ class Parameters(object):
                 'maximum':  10.0,
             }
 
-        if 'single cell' not in after_solving_plots:
+        if 'single cell pipeline' not in after_solving_plots:
             # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file setting "results options" -> "after solving" -> '
-                '"plots" -> "single cell" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
+            if 'single cell' not in after_solving_plots:
+                logs.log_warning(
+                    'Config file setting "results options" -> "after solving" -> '
+                    '"plots" -> "single cell pipeline" not found. '
+                    'Repairing to preserve backward compatibility. '
+                    'Consider upgrading to the newest config file format!',
+                )
 
             # Default the value for this dictionary key to the empty list.
-            after_solving_plots['single cell'] = {
-                'pipeline': [],
-            }
+            after_solving_plots['single cell pipeline'] = (
+                after_solving_plots['single cell']['pipeline']
+                if 'single cell' in after_solving_plots else [])
 
-        if 'cell cluster' not in after_solving_plots:
+        if 'cell cluster pipeline' not in after_solving_plots:
             # Log a non-fatal warning.
-            logs.log_warning(
-                'Config file setting "results options" -> "after solving" -> '
-                '"plots" -> "cell cluster" not found. '
-                'Repairing to preserve backward compatibility. '
-                'Consider upgrading to the newest config file format!',
-            )
+            if 'cell cluster' not in after_solving_plots:
+                logs.log_warning(
+                    'Config file setting "results options" -> "after solving" -> '
+                    '"plots" -> "cell cluster pipeline" not found. '
+                    'Repairing to preserve backward compatibility. '
+                    'Consider upgrading to the newest config file format!',
+                )
 
-            # Default the value for this dictionary key to the empty list.
-            after_solving_plots['cell cluster'] = {
-                'pipeline': [],
-            }
+            after_solving_plots['cell cluster pipeline'] = (
+                after_solving_plots['cell cluster']['pipeline']
+                if 'cell cluster' in after_solving_plots else [])
 
         if 'plot networks single cell' not in results:
             # Log a non-fatal warning.

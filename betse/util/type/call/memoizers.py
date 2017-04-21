@@ -108,7 +108,7 @@ def callable_cached_arged(
         return __callable_cached.{callable_var_name}
 '''.format(callable_var_name=FUNCTION_CACHED_VAR_NAME)
 
-    # Dictionary mapping from local attribute name to value. For efficiency,
+    # Dictionary mapping from local attribute names to values. For efficiency,
     # only attributes required by the body of this wrapper are copied from the
     # current namespace. (See below.)
     local_attrs = {'__callable_cached': func}
@@ -211,7 +211,7 @@ def property_method_cached(self, __property_method=__property_method):
         return self.{property_var_name}
 '''.format(property_var_name=property_var_name)
 
-    # Dictionary mapping from local attribute name to value. For efficiency,
+    # Dictionary mapping from local attribute names to values. For efficiency,
     # only attributes required by the body of this wrapper are copied from the
     # current namespace. (See below.)
     local_attrs = {'__property_method': property_method}

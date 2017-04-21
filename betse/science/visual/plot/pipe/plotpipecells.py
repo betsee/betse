@@ -68,7 +68,9 @@ class PlotCellsPipe(PlotPipeABC):
 
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
-        categories=('Current Density', 'Intracellular',))
+        categories=('Current Density', 'Intracellular',),
+        requirements={piperunreq.VOLTAGE_POLARITY,},
+    )
     def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all intracellular current densities for the cell cluster at the
@@ -574,7 +576,10 @@ class PlotCellsPipe(PlotPipeABC):
         self._export(basename='Final_environmental_V')
 
 
-    @piperunner(categories=('Voltage', 'Polarity',))
+    @piperunner(
+        categories=('Voltage', 'Polarity',),
+        requirements={piperunreq.VOLTAGE_POLARITY,},
+    )
     def export_voltage_polarity(
         self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -694,7 +699,7 @@ class PlotCellsPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Voltage', 'Transmembrane', 'GHK',),
-        requirements={piperunreq.GHK,},
+        requirements={piperunreq.VOLTAGE_MEMBRANE_GHK,},
     )
     def export_voltage_membrane_ghk(
         self, conf: SimConfVisualCellsListItem) -> None:

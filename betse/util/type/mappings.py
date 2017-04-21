@@ -25,13 +25,13 @@ from collections import OrderedDict
 # ....................{ CLASSES ~ dict : dynamic           }....................
 class DynamicValue(object):
     '''
-    Object encapsulating a single variable gettable and settable via callables
-    predefined at object initialization time.
+    **Dynamic value** (i.e., qbject encapsulating a single variable gettable and
+    settable via callables predefined at object initialization time).
 
     This object typically encapsulates a variable repeatedly reassigned to.
-    Since the value of such a variable is inconstant, this variable is _not_
+    Since the value of such a variable is inconstant, this variable is *not*
     reliably passable or referrable to without introducing desynchronization
-    issues (e.g., the `sim.cc_cells[sim.iNa]` Numpy array of all cell-specific
+    issues (e.g., the ``sim.cc_cells[sim.iNa]`` Numpy array of all cell-specific
     sodium ion concentrations, unreliably reassigned to each simulation time
     step). This object wraps this variable's access and modification, permitting
     this variable to effectively be reliably passed and referred to without
@@ -47,17 +47,19 @@ class DynamicValue(object):
         variable's value.
     '''
 
+    # ..................{ SLOTS                              }..................
     # Tuple of the names of all instance attributes permitted in instances of
     # this class. This slightly improves the time efficiency of attribute access
     # (by anywhere from 5% to 10%) and dramatically improves the space
     # efficiency of object storage (by several orders of magnitude).
     __slots__ = ('get_value', 'set_value',)
 
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(
         self, get_value: CallableTypes, set_value: CallableTypes) -> None:
         '''
-        Initialize this object.
+        Initialize this dynamic value.
 
         Parameters
         ----------
@@ -96,7 +98,7 @@ class DynamicValueDict(MutableMappingType):
           variable to be dynamically get and set.
     '''
 
-    # ..................{ LIFECYCLE                          }..................
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, key_to_dynamic_value: dict) -> None:
         '''

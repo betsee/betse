@@ -842,104 +842,103 @@ results options:
       save: True          # Save plots after simulation computation with
                           # plot saving options defined below? 
 
-      single cell:        # Single-cell plots specific to cell selected by
-                          # "plot cell index" below over all time steps.
-        pipeline:         # List of all single-cell plots exported after
-                          # simulation computation. Ignored if "show" and
-                          # "save" are False.
-          # Example single-cell average transmembrane voltage (Vmem) plot.
-          - type: voltage_membrane   # Plot type, as any following string:
-            # currents_membrane  ->  Single-cell transmembrane current density
-            # deform  ->  Cellular physical displacement
-            #   Ignored unless deformation disabled.
-            # ion_calcium  ->  Single-cell calcium ion concentration
-            #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-            # ion_m_anion  ->  Single-cell M anion concentration
-            #   Ignored if M anion ions (M-) disabled by ion profile.
-            # ion_potassium  ->  Single-cell potassium ion concentration
-            #   Ignored if potassium ions (K+) disabled by ion profile.
-            # ion_sodium  ->  Single-cell sodium ion concentration
-            #   Ignored if sodium ions (Na+) disabled by ion profile.
-            # pressure_osmotic  ->  Single-cell osmotic pressure
-            #   Ignored if osmotic pressure disabled.
-            # pressure_total  ->  Single-cell total pressure = osmotic + mechanical
-            #   Ignored if osmotic pressure or mechanical pressure event disabled.
-            # pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
-            # voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
-            # voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) Fourier transform (FFT)
-            enabled: True   # Enable this plot?
-          # Example single-cell transmembrane current density plot.
-          - type: currents_membrane
-            enabled: True
+      single cell pipeline:   # List of all single-cell plots for the cell
+                              # selected by "plot cell index" for all time
+                              # steps. Ignored if "show" and "save" are False.
+        # Example single-cell average transmembrane voltage (Vmem) plot.
+        - type: voltage_membrane   # Plot type, as any following string:
+          # currents_membrane  ->  Single-cell transmembrane current density
+          # deform  ->  Cellular physical displacement
+          #   Ignored unless deformation disabled.
+          # ion_calcium  ->  Single-cell calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+          # ion_m_anion  ->  Single-cell M anion concentration
+          #   Ignored if M anion ions (M-) disabled by ion profile.
+          # ion_potassium  ->  Single-cell potassium ion concentration
+          #   Ignored if potassium ions (K+) disabled by ion profile.
+          # ion_sodium  ->  Single-cell sodium ion concentration
+          #   Ignored if sodium ions (Na+) disabled by ion profile.
+          # pressure_osmotic  ->  Single-cell osmotic pressure
+          #   Ignored if osmotic pressure disabled.
+          # pressure_total  ->  Single-cell total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
+          # voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
+          # voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) Fourier transform (FFT)
+          enabled: True   # Enable this plot?
+        # Example single-cell transmembrane current density plot.
+        - type: currents_membrane
+          enabled: True
 
-      cell cluster:   # Cell cluster plots depicting all cells in cluster at
-                      # last time step.
-        pipeline:     # List of all cell cluster plots exported after simulation
-                      # computation. Ignored if "show" and "save" are False.
-          # Example final cell cluster transmembrane voltage (Vmem) plot.
-          - type: voltage_membrane   # Plot type, as any following string:
-            # channel_density  ->  Final cell cluster cell membrane ion channel density factor
-            #   Ignored if channel electroosmosis disabled.
-            # currents_intra  ->  Final cell cluster intracellular current density
-            # currents_extra  ->  Final cell cluster extracellular current density
-            #   Ignored if extracellular spaces disabled.
-            # deform  ->  Cellular physical displacement
-            #   Ignored unless deformation disabled.
-            # electric_intra  ->  Final cell cluster intracellular electric field
-            # electric_extra  ->  Final cell cluster extracellular electric field
-            #   Ignored if extracellular spaces disabled.
-            # fluid_intra  ->  Final cell cluster intracellular fluid flow
-            #   Ignored if fluid flow disabled.
-            # fluid_extra  ->  Final cell cluster extracellular fluid flow
-            #   Ignored if fluid flow or extracellular spaces disabled.
-            # ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
-            #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-            # ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
-            #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
-            #   disabled.
-            # ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
-            #   Ignored if hydrogen ions (H+) disabled by ion profile.
-            # junction_state  ->  Final cell cluster gap junction connectivity state
-            # microtubule  ->  Final cell cluster microtubule orientation
-            # pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
-            #   Ignored if osmotic pressure or mechanical pressure event disabled.
-            # pump_density  ->  Final cell cluster cell membrane ion pump density factor
-            #   Ignored if channel electroosmosis disabled.
-            # pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
-            # voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
-            # voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem) average
-            # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem) calculated
-            #                           by Goldman-Hodgkin-Katz (GHK) equation
-            #   Ignored if GHK calculation disabled.
-            # voltage_extra  ->  Final cell cluster extracellular voltage
-            #   Ignored if extracellular spaces disabled.
-            # voltage_polarity  ->  Final cell cluster cellular voltage polarization
-            enabled: True       # Enable this plot?
-            colorbar:           # Plot colorbar settings.
-              autoscale: True   # Automatically scale colorbar to minimum and
-                                # maximum values of underlying data series?
-              minimum: -70.0    # Minimum fixed colorbar value. Ignored if
-                                # "autoscale" is True.
-              maximum:  10.0    # Maximum fixed colorbar value. Ignored if
-                                # "autoscale" is True.
-          # Example final cell cluster intracellular current density plot.
-          - type: electric_intra
-            enabled: True
-            colorbar:
-              autoscale: True
-              minimum: -70.0
-              maximum:  10.0
+      cell cluster pipeline:   # List of all cell cluster plots for all cells
+                               # at the last time step. Ignored if "show" and
+                               # "save" are False.
+        # Example final cell cluster transmembrane voltage (Vmem) plot.
+        - type: voltage_membrane   # Plot type, as any following string:
+          # channel_density  ->  Final cell cluster cell membrane ion channel density factor
+          #   Ignored if channel electroosmosis disabled.
+          # currents_intra  ->  Final cell cluster intracellular current density
+          #   Ignored if cell polarizability disabled.
+          # currents_extra  ->  Final cell cluster extracellular current density
+          #   Ignored if extracellular spaces disabled.
+          # deform  ->  Cellular physical displacement
+          #   Ignored unless deformation disabled.
+          # electric_intra  ->  Final cell cluster intracellular electric field
+          # electric_extra  ->  Final cell cluster extracellular electric field
+          #   Ignored if extracellular spaces disabled.
+          # fluid_intra  ->  Final cell cluster intracellular fluid flow
+          #   Ignored if fluid flow disabled.
+          # fluid_extra  ->  Final cell cluster extracellular fluid flow
+          #   Ignored if fluid flow or extracellular spaces disabled.
+          # ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile.
+          # ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
+          #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
+          #   disabled.
+          # ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
+          #   Ignored if hydrogen ions (H+) disabled by ion profile.
+          # junction_state  ->  Final cell cluster gap junction connectivity state
+          # microtubule  ->  Final cell cluster microtubule orientation
+          # pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
+          #   Ignored if osmotic pressure or mechanical pressure event disabled.
+          # pump_density  ->  Final cell cluster cell membrane ion pump density factor
+          #   Ignored if channel electroosmosis disabled.
+          # pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
+          # voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
+          # voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem) average
+          # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem) calculated
+          #                           by Goldman-Hodgkin-Katz (GHK) equation
+          #   Ignored if GHK calculation disabled.
+          # voltage_extra  ->  Final cell cluster extracellular voltage
+          #   Ignored if extracellular spaces disabled.
+          # voltage_polarity  ->  Final cell cluster cellular voltage polarization
+          #   Ignored if cell polarizability disabled.
+          enabled: True       # Enable this plot?
+          colorbar:           # Plot colorbar settings.
+            autoscale: True   # Automatically scale colorbar to minimum and
+                              # maximum values of underlying data series?
+            minimum: -70.0    # Minimum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+            maximum:  10.0    # Maximum fixed colorbar value. Ignored if
+                              # "autoscale" is True.
+        # Example final cell cluster intracellular electric field plot.
+        - type: electric_intra
+          enabled: True
+          colorbar:
+            autoscale: True
+            minimum: -70.0
+            maximum:  10.0
 
     animations:      # Animations exported after simulation computation.
       show: False    # Display animations after simulation computation?
       save: False    # Save animations after simulation computation with
                      # animation saving options defined below? 
 
-      pipeline:      # List of all animations exported after simulation
-                     # computation. Ignored if "show" and "save" are False.
+      pipeline:      # List of all animations. Ignored if "show" and "save" are False.
         # Example transmembrane voltage (Vmem) animation.
         - type: voltage_membrane  # Animation type, including any following string:
           # currents_intra  ->  Intracellular current density
+          #   Ignored if cell polarizability disabled.
           # currents_extra  ->  Extracellular current density
           #   Ignored if extracellular spaces disabled.
           # deform  ->  Cellular physical displacement
@@ -967,6 +966,7 @@ results options:
           # voltage_extra  ->  Extracellular voltage
           #   Ignored if extracellular spaces disabled.
           # voltage_polarity  ->  Cellular voltage polarization
+          #   Ignored if cell polarizability disabled.
           enabled: True       # Enable this animation?
           colorbar:           # Animation colorbar settings.
             autoscale: True   # Automatically scale colorbar to minimum and

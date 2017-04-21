@@ -64,13 +64,13 @@ class SimConfPlotAll(SimConfABC):
         self.after_sim_pipeline_cell = SimConfList(
             confs=self._conf[
                 'results options']['after solving'][
-                'plots']['single cell']['pipeline'],
+                'plots']['single cell pipeline'],
             conf_type=SimConfVisualCellListItem,
         )
         self.after_sim_pipeline_cells = SimConfList(
             confs=self._conf[
                 'results options']['after solving'][
-                'plots']['cell cluster']['pipeline'],
+                'plots']['cell cluster pipeline'],
             conf_type=SimConfVisualCellsListItem,
         )
 

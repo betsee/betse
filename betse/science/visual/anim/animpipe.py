@@ -63,7 +63,10 @@ class AnimCellsPipe(SimPipeExportABC):
         return self._phase.p.anim.after_sim_pipeline
 
     # ..................{ EXPORTERS ~ current                }..................
-    @piperunner(categories=('Current Density', 'Intracellular',))
+    @piperunner(
+        categories=('Current Density', 'Intracellular',),
+        requirements={piperunreq.VOLTAGE_POLARITY,},
+    )
     def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Animate all intracellular current densities for the cell cluster for all
@@ -437,7 +440,10 @@ class AnimCellsPipe(SimPipeExportABC):
         )
 
 
-    @piperunner(categories=('Voltage', 'Polarity',))
+    @piperunner(
+        categories=('Voltage', 'Polarity',),
+        requirements={piperunreq.VOLTAGE_POLARITY,},
+    )
     def export_voltage_polarity(
         self, conf: SimConfVisualCellsListItem) -> None:
         '''
