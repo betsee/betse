@@ -1769,11 +1769,6 @@ class Simulator(object):
 
         else: # if simulating extracellular spaces
 
-            # map current from extracellular space to membrane normal
-            Jme = (self.J_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-                   self.J_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
-
-
             # factor converting between cell and environmental grid:
             # sqrconvF = cells.mems_per_envSquare[cells.map_mem2ecm]/2
             sqrconvF = 1.0
@@ -1783,7 +1778,7 @@ class Simulator(object):
 
                 drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
                 drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
-                drho_Jme = np.dot(cells.M_sum_mems, Jme*cells.mem_sa)/cells.cell_sa
+                drho_Jme = np.dot(cells.M_sum_mems, self.Jme*cells.mem_sa)/cells.cell_sa
 
                 self.vm = self.vm + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt \
                           + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt + \
@@ -1803,7 +1798,7 @@ class Simulator(object):
                                     - (1/p.cm)*self.Jmem*p.dt  # current across the membrane from all sources
                                     - (1/(self.cgj))*self.Jgj*p.dt  # current across the membrane from gj
                                     + (1/self.cedl_cell)*self.Jc*p.dt  # current in intracellular space, interacting with edl
-                                    +  (1/self.cedl_env)*Jme*sqrconvF*p.dt # current in extracellular space, interacting with edl
+                                    +  (1/self.cedl_env)*self.Jme*sqrconvF*p.dt # current in extracellular space, interacting with edl
 
                            )
 
@@ -1823,12 +1818,17 @@ class Simulator(object):
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
 
+        vcell_ave = np.dot(cells.M_sum_mems, self.v_cell*cells.mem_sa)/cells.cell_sa
+
+        # smooth voltages at the membrane:
+        self.v_cell = self.smooth_weight_mem*self.v_cell + vcell_ave[cells.mem_to_cells]*self.smooth_weight_o
+        self.vm = self.smooth_weight_mem*self.vm + self.vm_ave[cells.mem_to_cells]*self.smooth_weight_o
+
         # calculate the electric field in the cell, given it must satisfy the Laplace equation (i.e. respect
         # boundary conditions and be a linear gradient):
+        # self.Ec = -(self.vm - self.vm_ave[cells.mem_to_cells])/cells.R_rads
 
-        vcell_ave = np.dot(cells.M_sum_mems, self.v_cell)/cells.num_mems
         self.Ec = -(self.v_cell - vcell_ave[cells.mem_to_cells])/cells.R_rads
-
 
         if p.cell_polarizability == 0.0:
 
@@ -1908,6 +1908,7 @@ class Simulator(object):
         # calculate voltage difference (gradient*len_gj) between gj-connected cells:
 
         self.vgj = self.vm[cells.nn_i]- self.vm[cells.mem_i]
+        # self.vgj = self.v_cell[cells.nn_i]- self.v_cell[cells.mem_i]
 
         self.Egj = -self.vgj/cells.gj_len
 

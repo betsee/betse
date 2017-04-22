@@ -333,7 +333,8 @@ class Parameters(object):
             off_ecmj = float(self._conf['break ecm junctions']['change finish'])
             rate_ecmj = float(self._conf['break ecm junctions']['change rate'])
             apply_ecmj = self._conf['break ecm junctions']['apply to']
-            ecmj = [on_ecmj, off_ecmj, rate_ecmj, apply_ecmj]
+            mult_ecmj = 1.0 - float(self._conf['break ecm junctions'].get('multiplier', 0.0))
+            ecmj = [on_ecmj, off_ecmj, rate_ecmj, apply_ecmj, mult_ecmj]
 
             self.scheduled_options['ecmJ'] = ecmj
 

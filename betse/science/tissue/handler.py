@@ -296,6 +296,7 @@ class TissueHandler(object):
             self.t_off_ecmJ = p.scheduled_options['ecmJ'][1]
             self.t_change_ecmJ = p.scheduled_options['ecmJ'][2]
             self.apply_ecmJ = p.scheduled_options['ecmJ'][3]
+            self.mult_ecmJ = p.scheduled_options['ecmJ'][4]
 
             self.targets_ecmJ = []
             for profile in self.apply_ecmJ:
@@ -682,7 +683,7 @@ class TissueHandler(object):
             if p.scheduled_options['ecmJ'] != 0:
                 for i, dmat in enumerate(sim.D_env):
 
-                    effector_ecmJ = tb.pulse(
+                    effector_ecmJ = self.mult_ecmJ*tb.pulse(
                         t,self.t_on_ecmJ,self.t_off_ecmJ,self.t_change_ecmJ)
 
                     sim.D_env[i][self.targets_ecmJ] = (

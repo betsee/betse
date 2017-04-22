@@ -67,6 +67,28 @@ def get_current(sim, cells, p):
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)
 
+        #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
+        _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
+
+        # map current from extracellular space to membrane normal
+        sim.Jme = (sim.J_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+               sim.J_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+
+        # obtain divergence of trans-membrane current wrt environmental zone:
+        drho_cells = np.dot(cells.M_sum_mems, sim.Jn*cells.mem_sa)/cells.cell_vol
+
+        drho_env = np.dot(cells.M_sum_mems, sim.Jme*cells.mem_sa)/cells.cell_vol
+
+        # create a source term:
+        source_term = np.zeros(sim.edl)
+        source_term[cells.map_mem2ecm] = ((1/(2*p.cm))*drho_cells[cells.mem_to_cells]
+                                          - (1/sim.cedl_env)*drho_env[cells.mem_to_cells])
+
+        source_term = source_term.reshape(cells.X.shape)
+
+        # print((1/((sim.ko_env**2)*p.eo*p.er)).mean())
+
+
         # conductivity in the media is modified by the environmental diffusion weight matrix:
         # sigma = np.dot((((sim.zs ** 2) * p.q * p.F) / (p.kb * p.T)), sim.cc_env*sim.D_env).reshape(cells.X.shape)
 
@@ -80,7 +102,7 @@ def get_current(sim, cells, p):
         # source_term = div_Jo + (sim.rho_env / ((sim.ko_env**2) * p.eo * p.er)).reshape(cells.X.shape)
 
         # Otherwise, assume this is a Laplace equation:
-        source_term = np.zeros(cells.X.shape)
+        # source_term = np.zeros(cells.X.shape)
 
         # set boundary conditions
         source_term[:,0] = -sim.bound_V['L']*(1/cells.delta**2)
@@ -96,7 +118,7 @@ def get_current(sim, cells, p):
             # smoothing of Phi:
             Phi = gaussian_filter(Phi.reshape(cells.X.shape), p.smooth_level, mode='constant')
 
-        sim.v_env = Phi.ravel()
+        sim.v_env = sim.v_env + Phi.ravel()*p.dt
 
         #--------------------------------------------------------------------------------------------------------------
         # calculate the gradient of v_env:
@@ -105,8 +127,7 @@ def get_current(sim, cells, p):
         sim.E_env_x = -gPhix
         sim.E_env_y = -gPhiy
 
-        #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
-        _, sim.J_env_x, sim.J_env_y, _, _, _ = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
+
 
         # sim.J_env_x = J_env_x_o
         # sim.J_env_y = J_env_y_o

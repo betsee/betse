@@ -351,6 +351,7 @@ break ecm junctions:     # break extracellular junctions between cells
     change start: 2.0        # time to start change [s]
     change finish: 7.0       # time to end change and return to original [s]
     change rate: 0.5         # rate of change [s]
+    multiplier: 0.0          # fraction of original TJ magnitude
     apply to: ['wound']      # tissue profile(s) to apply intervention to
 
 
@@ -687,10 +688,10 @@ variable settings:
 
 #    Na: 145.0    # Na+ concentration at bound [mM]
 #    K: 5.0      # K+ concentration at bound [mM]
-#    Cl: 110.0    # Cl- concentration at bound [mM]
+#    Cl: 105.0    # Cl- concentration at bound [mM]
 #    Ca: 1.0     # Ca2+ concentration at bound [mM]
 #    P: 10.0      # Protein- concentration at bound [mM]
-#    M: 31.0     # Anion (bicarbonate) concentration at bound [mM]
+#    M: 37.0     # Anion (bicarbonate) concentration at bound [mM]
 
   temperature: 310            # system temperature [K]
 
