@@ -46,36 +46,9 @@ def upscale_cell_data(
         Upscaled object as described above.
     '''
 
-    return _upscale_data_in_units(data=cell_data, multiplier=1000)
+    return _upscale_data_in_units(data=cell_data, multiplier=1e3)
 
 # ....................{ UPSCALERS ~ cell : coordinates     }....................
-@type_check
-def upscale_cells_coordinates(
-    *cells_coordinates: NumericOrSequenceTypes) -> tuple:
-    '''
-    Upscale the contents of each passed number or sequence of numbers whose
-    units are assumed to be denominated in micrometers (i.e., ``10**-6``),
-    returning an n-tuple of each upscaled number or sequence of numbers.
-
-    Parameters
-    ----------
-    cells_coordinates : tuple[NumericOrSequenceTypes]
-        Tuple of all numbers and sequences to be upscaled.
-
-    Returns
-    ----------
-    tuple
-        N-tuple for ``N`` the number of passed positional arguments such that
-        each element is the corresponding positional argument upscaled by the
-        :func:`upscale_cell_coordinates` function.
-    '''
-
-    return tuple(
-        upscale_cell_coordinates(cell_coordinates)
-        for cell_coordinates in cells_coordinates
-    )
-
-
 @type_check
 def upscale_cell_coordinates(
     cell_coordinates: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
@@ -104,7 +77,34 @@ def upscale_cell_coordinates(
         Further details.
     '''
 
-    return _upscale_data_in_units(cell_coordinates, multiplier=1000000)
+    return _upscale_data_in_units(cell_coordinates, multiplier=1e6)
+
+
+@type_check
+def upscale_cells_coordinates(
+    *cells_coordinates: NumericOrSequenceTypes) -> tuple:
+    '''
+    Upscale the contents of each passed number or sequence of numbers whose
+    units are assumed to be denominated in micrometers (i.e., ``10**-6``),
+    returning an n-tuple of each upscaled number or sequence of numbers.
+
+    Parameters
+    ----------
+    cells_coordinates : tuple[NumericOrSequenceTypes]
+        Tuple of all numbers and sequences to be upscaled.
+
+    Returns
+    ----------
+    tuple
+        N-tuple for ``N`` the number of passed positional arguments such that
+        each element is the corresponding positional argument upscaled by the
+        :func:`upscale_cell_coordinates` function.
+    '''
+
+    return tuple(
+        upscale_cell_coordinates(cell_coordinates)
+        for cell_coordinates in cells_coordinates
+    )
 
 # ....................{ UPSCALERS ~ private                }....................
 @type_check

@@ -55,7 +55,7 @@ class PlotCellPipe(PlotPipeABC):
     def export_currents_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all transmembrane current densities for the single cell indexed by
-        the current simulation configuration over all time steps.
+        the current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -115,13 +115,15 @@ class PlotCellPipe(PlotPipeABC):
 
     # ..................{ EXPORTERS ~ cell : deform          }..................
     @piperunner(
-        categories=('Physical Deformation',),
+        categories=('Deformation', 'Total',),
         requirements={piperunreq.DEFORM,},
     )
-    def export_deform(self, conf: SimConfVisualCellListItem) -> None:
+    def export_deform_total(self, conf: SimConfVisualCellListItem) -> None:
         '''
-        Plot all physical cellular deformations for the single cell indexed by
-        the current simulation configuration over all time steps.
+        Plot all **total cellular displacements** (i.e., summations of all
+        cellular deformations due to galvanotropic and osmotic pressure body
+        forces) for the single cell indexed by the current simulation
+        configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -156,7 +158,7 @@ class PlotCellPipe(PlotPipeABC):
     def export_ion_calcium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all calcium (i.e., Ca2+) ion concentrations for the single cell
-        indexed by the current simulation configuration over all time steps.
+        indexed by the current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -186,7 +188,7 @@ class PlotCellPipe(PlotPipeABC):
     def export_ion_m_anion(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all M anion (i.e., M-) ion concentrations for the single cell
-        indexed by the current simulation configuration over all time steps.
+        indexed by the current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -215,7 +217,7 @@ class PlotCellPipe(PlotPipeABC):
     def export_ion_potassium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all potassium (i.e., K+) ion concentrations for the single cell
-        indexed by the current simulation configuration over all time steps.
+        indexed by the current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -245,7 +247,7 @@ class PlotCellPipe(PlotPipeABC):
     def export_ion_sodium(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot all sodium (i.e., Na+) ion concentrations for the single cell
-        indexed by the current simulation configuration over all time steps.
+        indexed by the current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -276,7 +278,7 @@ class PlotCellPipe(PlotPipeABC):
     def export_pressure_osmotic(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the osmotic cellular pressure for the single cell indexed by the
-        current simulation configuration over all time steps.
+        current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -306,7 +308,7 @@ class PlotCellPipe(PlotPipeABC):
         '''
         Plot the **total cellular pressure** (i.e., summation of the cellular
         mechanical and osmotic pressure) for the single cell indexed by the
-        current simulation configuration over all time steps.
+        current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -372,7 +374,7 @@ class PlotCellPipe(PlotPipeABC):
     def export_voltage_membrane(self, conf: SimConfVisualCellListItem) -> None:
         '''
         Plot the averages of all transmembrane voltages for the single cell
-        indexed by the current simulation configuration over all time steps.
+        indexed by the current simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.
@@ -405,7 +407,7 @@ class PlotCellPipe(PlotPipeABC):
         '''
         Plot the fast Fourier transform (FFT) of the averages of all
         transmembrane voltages for the single cell indexed by the current
-        simulation configuration over all time steps.
+        simulation configuration over all sampled time steps.
         '''
 
         # Prepare to export the current plot.

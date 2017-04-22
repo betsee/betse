@@ -848,8 +848,8 @@ results options:
         # Example single-cell average transmembrane voltage (Vmem) plot.
         - type: voltage_membrane   # Plot type, as any following string:
           # currents_membrane  ->  Single-cell transmembrane current density
-          # deform  ->  Cellular physical displacement
-          #   Ignored unless deformation disabled.
+          # deform_total  ->  Total cellular deformation = osmotic + galvanotropic
+          #   Ignored if deformation disabled.
           # ion_calcium  ->  Single-cell calcium ion concentration
           #   Ignored if calcium ions (Ca2+) disabled by ion profile.
           # ion_m_anion  ->  Single-cell M anion concentration
@@ -878,11 +878,10 @@ results options:
           # channel_density  ->  Final cell cluster cell membrane ion channel density factor
           #   Ignored if channel electroosmosis disabled.
           # currents_intra  ->  Final cell cluster intracellular current density
-          #   Ignored if cell polarizability disabled.
           # currents_extra  ->  Final cell cluster extracellular current density
           #   Ignored if extracellular spaces disabled.
-          # deform  ->  Cellular physical displacement
-          #   Ignored unless deformation disabled.
+          # deform_total  ->  Final cell cluster total cellular deformation = osmotic + galvanotropic
+          #   Ignored if deformation disabled.
           # electric_intra  ->  Final cell cluster intracellular electric field
           # electric_extra  ->  Final cell cluster extracellular electric field
           #   Ignored if extracellular spaces disabled.
@@ -938,11 +937,10 @@ results options:
         # Example transmembrane voltage (Vmem) animation.
         - type: voltage_membrane  # Animation type, including any following string:
           # currents_intra  ->  Intracellular current density
-          #   Ignored if cell polarizability disabled.
           # currents_extra  ->  Extracellular current density
           #   Ignored if extracellular spaces disabled.
-          # deform  ->  Cellular physical displacement
-          #   Ignored unless deformation disabled.
+          # deform_total  ->  Total cellular deformation = osmotic + galvanotropic
+          #   Ignored if deformation disabled.
           # electric_intra  ->  Intracellular electric field
           # electric_extra  ->  Extracellular electric field
           #   Ignored if extracellular spaces disabled.
@@ -1044,22 +1042,6 @@ results options:
   plot cell connectivity diagram: True  # 'plot seed' creates a plot showing gap junction connections
 
   plot cluster mask: True  # 'plot seed' creates a plot showing the logarithm of environmental diffusion
-
-  #---------Animations -----------------------------------------------------------------------------------------------
-
-  #FIXME: This animation cannot be safely pipelined until the "data type" key
-  #defined below is refactored into two separate animation types above:
-  #
-  #* "deform_displace", animating... we have no idea. Physical displacement?
-  #* "deform_voltage", animating.... we have no idea. Voltage-based deformation?
-  #
-  #However, incorporating the "style" key as well into this scheme would then
-  #necessitate four distinct animation types above -- at which point it would
-  #probably be more prudent to defer this until this can be properly refactored
-  #into "composable" layers that can be dynamically combined and reused at will.
-  Deformation Ani:
-      data type: Displacement     # data type can be 'Vmem' or 'Displacement'
-      style: streamline           # plot 'streamline' or 'vector' displacements
 
 # ----------------------------------------------------------------------------------------------------------------------
 # INTERNAL USE ONLY

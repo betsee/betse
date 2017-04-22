@@ -96,19 +96,19 @@ class Simulator(object):
     ----------
     I_cell_x_time : list
         Two-dimensional list whose:
-        * First dimension indexes each simulation time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each cell such that each element is the X
           component of the intracellular current density vector spatially
           situated at the center of that cell for this time step.
     I_cell_y_time : list
         Two-dimensional list whose:
-        * First dimension indexes each simulation time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each cell such that each element is the Y
           component of the intracellular current density vector spatially
           situated at the center of that cell for this time step.
     I_tot_x_time : list
         Two-dimensional list whose:
-        * First dimension indexes each simulation time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each square grid spaces (in either
           dimension) such that each element is the X component of the **total
           current density vector** (i.e., vector of both intra- _and_
@@ -116,18 +116,61 @@ class Simulator(object):
           that grid space for this time step.
     I_tot_y_time : list
         Two-dimensional list whose:
-        * First dimension indexes each simulation time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each square grid spaces (in either
           dimension) such that each element is the Y component of the **total
           current density vector** (i.e., vector of both intra- _and_
           extracellular current densities) spatially situated at the center of
           that grid space for this time step.
 
-    Attributes (Electric Field, Extracellular)
+    Attributes (Deformation)
+    ----------
+    The following attributes are defined *only* if this simulation enables
+    deformations. If this is *not* the case for this simulation, these
+    attributes remain undefined.
+
+    cell_verts_time : ndarray
+        Four-dimensional list whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension indexes each cell such that each element is the
+          matplotlib-compatible polygon patch for that cell defined as for the
+          :attr:`betse.science.cells.Cells.cell_verts` array.
+        Equivalently, this list is the concatenation of all
+        :attr:`betse.science.cells.Cells.cell_verts` arrays for all sampled time
+        steps.
+    d_cells_x : ndarray
+        One-dimensional Numpy array indexing each cell such that each element is
+        the X component of the **total cellular displacement** (i.e., summation
+        of all cellular deformations due to galvanotropic and osmotic pressure
+        body forces) spatially situated at the centre of the cell indexed by
+        that element for the current time step.
+    d_cells_y : ndarray
+        One-dimensional Numpy array indexing each cell such that each element is
+        the Y component of the total cellular displacement spatially situated at
+        the centre of the cell indexed by that element for the current time
+        step.
+    dx_cell_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension indexes each cell such that each element is the X
+          component of the total deformation for that cell defined as for the
+          :attr:`d_cells_x` array.
+        Equivalently, this list is the concatenation of all :attr:`d_cells_x`
+        arrays for all sampled time steps.
+    dy_cell_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension indexes each cell such that each element is the Y
+          component of the total deformation for that cell defined as for the
+          :attr:`d_cells_y` array.
+        Equivalently, this list is the concatenation of all :attr:`d_cells_y`
+        arrays for all sampled time steps.
+
+    Attributes (Electric Field: Extracellular)
     ----------
     The following attributes are defined *only* if this simulation enables
     extracellular spaces. If this is *not* the case for this simulation, these
-    these attributes remain undefined.
+    attributes remain undefined.
 
     E_env_x : ndarray
         Two-dimensional Numpy array of the X components of the extracellular
@@ -148,23 +191,23 @@ class Simulator(object):
     efield_ecm_x_time : list
         Three-dimensional list of the X components of the extracellular
         electric fields for all time steps, whose:
-        * First dimension indexes each simulation time step.
+        * First dimension indexes each sampled time step.
         * Second dimension yields a two-dimensional Numpy array of the X
           components of the extracellular electric field for this time step,
           defined as for the corresponding :attr:`E_env_x` array.
         Equivalently, this list is the concatenation of all :attr:`E_env_x`
-        arrays for all time steps.
+        arrays for all sampled time steps.
     efield_ecm_y_time : list
         Three-dimensional list of the Y components of the extracellular
         electric fields for all time steps, whose:
-        * First dimension indexes each simulation time step.
+        * First dimension indexes each sampled time step.
         * Second dimension yields a two-dimensional Numpy array of the Y
           components of the extracellular electric field for this time step,
           defined as for the corresponding :attr:`E_env_y` array.
         Equivalently, this list is the concatenation of all :attr:`E_env_y`
-        arrays for all time steps.
+        arrays for all sampled time steps.
 
-    Attributes (Electric Field, Intracellular)
+    Attributes (Electric Field: Intracellular)
     ----------
     E_gj_x : ndarray
         One-dimensional Numpy array indexing each cell membrane such that each
@@ -183,21 +226,21 @@ class Simulator(object):
     efield_gj_x_time : list
         Two-dimensional list of the X components of the intracellular electric
         fields for all time steps, whose:
-        * First dimension indexes each time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each cell membrane such that each element is
           the X component of the intracellular electric field vector defined as
           for the :attr:`E_gj_x` array.
         Equivalently, this list is the concatenation of all :attr:`E_gj_x`
-        arrays for all time steps.
+        arrays for all sampled time steps.
     efield_gj_y_time : list
         Two-dimensional list of the Y components of the intracellular electric
         fields for all time steps, whose:
-        * First dimension indexes each time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each cell membrane such that each element is
           the Y component of the intracellular electric field vector defined as
           for the :attr:`E_gj_y` array.
         Equivalently, this list is the concatenation of all :attr:`E_gj_y`
-        arrays for all time steps.
+        arrays for all sampled time steps.
 
     Attributes (Ion)
     ----------
@@ -210,12 +253,12 @@ class Simulator(object):
     cc_time : list
         Three-dimensional list of all cellular ion concentrations for all time
         steps, whose:
-        * First dimension indexes each time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each ion such that each element is the array
           of all cellular concentrations of that ion, defined as for the
           :attr:`cc_cells` array.
         Equivalently, this list is the concatenation of all :attr:`cc_cells`
-        arrays for all time steps.
+        arrays for all sampled time steps.
 
     Attributes (Ion: Index)
     ----------
@@ -244,7 +287,24 @@ class Simulator(object):
         0-based index of all anionic proteins if enabled by this simulation's
         ion profile *or* undefined otherwise.
 
-    Attributes (Mechanical Pressure)
+    Attributes (Microtubules)
+    ----------
+    mtubes : Mtubes
+        Object encapsulating all microtubules for the current time step.
+    mtubes_x_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension indexes each cell membrane such that each element is
+          the X component of the microtubule unit vector spatially situated at
+          the midpoint of that membrane for this time step.
+    mtubes_y_time : list
+        Two-dimensional list whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension indexes each cell membrane such that each element is
+          the Y component of the microtubule unit vector spatially situated at
+          the midpoint of that membrane for this time step.
+
+    Attributes (Pressure)
     ----------
     P_cells : ndarray
         One-dimensional Numpy array indexing each cell such that each element is
@@ -255,28 +315,11 @@ class Simulator(object):
         Two-dimensional list of all **total cellular pressures** (i.e.,
         summation of all mechanical and osmotic cellular pressures) for all time
         steps, whose:
-        * First dimension indexes each time step.
+        * First dimension indexes each sampled time step.
         * Second dimension indexes each cell such that each element is the
           total pressure for that cell defined as for the :attr:`P_cells` array.
         Equivalently, this list is the concatenation of all :attr:`P_cells`
-        arrays for all time steps.
-
-    Attributes (Microtubules)
-    ----------
-    mtubes : Mtubes
-        Object encapsulating all microtubules for the current time step.
-    mtubes_x_time : list
-        Two-dimensional list whose:
-        * First dimension indexes each simulation time step.
-        * Second dimension indexes each cell membrane such that each element is
-          the X component of the microtubule unit vector spatially situated at
-          the midpoint of that membrane for this time step.
-    mtubes_y_time : list
-        Two-dimensional list whose:
-        * First dimension indexes each simulation time step.
-        * Second dimension indexes each cell membrane such that each element is
-          the Y component of the microtubule unit vector spatially situated at
-          the midpoint of that membrane for this time step.
+        arrays for all sampled time steps.
 
     Attributes (Voltage)
     ----------
@@ -293,7 +336,7 @@ class Simulator(object):
     vm_time : list
         Two-dimensional list of all transmembrane voltages across all cell
         membranes, whose:
-        . First dimension indexes each time step.
+        . First dimension indexes each sampled time step.
         . Second dimension indexes each cell membrane such that each element is
           the transmembrane voltage spatially situated across the cell membrane
           indexed by that element for this time step.
@@ -905,7 +948,6 @@ class Simulator(object):
                 # cells.lapENV_P = None  # get rid of the non-inverse matrix as it only hogs memory...
 
         if p.deformation:  # if user desires deformation:
-
             # initialize vectors for potential deformation:
             self.d_cells_x = np.zeros(self.cdl)
             self.d_cells_y = np.zeros(self.cdl)
@@ -1718,14 +1760,12 @@ class Simulator(object):
                            - (1 / (self.cgj)) * self.Jgj * p.dt  # current across the membrane from gj
                            + (1 / self.cedl_cell) * self.Jc * p.dt  # current in intracellular space, interacting with edl
                            # current in extracellular space, interacting with edl
-
                            )
 
                 self.v_cell = (self.v_cell
                                -(1/(2*p.cm))*self.Jmem*p.dt
                                - (1 / (2*self.cgj))*self.Jgj*p.dt
                                + (1/self.cedl_cell)*self.Jc*p.dt)
-
 
         else: # if simulating extracellular spaces
 

@@ -1369,9 +1369,9 @@ def cell_mesh(data, ax, cells, p, clrmap):
     return msh, ax
 
 #FIXME: Obsoleted by the more general-purpose, reliable, and efficient
-#"betse.science.plot.layer.plottershaded.LayerCellsGouraudShaded" class.
-#Replace all remaining calls to this function with usage of that class; then,
-#remove this function.
+#"betse.science.plot.layer.vector.lyrvecabrupt.LayerCellsVectorAbruptMembranes"
+#class. Replace all remaining calls to this function with usage of that class;
+#then, remove this function.
 def pretty_patch_plot(
     data_verts, ax, cells, p, clrmap,
     cmin=None,

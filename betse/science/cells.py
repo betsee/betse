@@ -76,14 +76,14 @@ class Cells(object):
         Three-dimensional Numpy array of the coordinates of the vertices of all
         cells, whose:
         . First dimension indexes each cell such that each element is a
-          Matplotlib-compatible **polygon patch** (i.e., a two-dimensional
+          matplotlib-compatible **polygon patch** (i.e., a two-dimensional
           Numpy array of all vertex coordinates defining the current cell's
           polygon), suitable for passing as is to the
           :meth:`matplotlib.patches.Polygon.__init__` method.
-        . Second dimension indexes each vertex of the current cell (_in
-          counterclockwise order_).
+        . Second dimension indexes each vertex of the current cell (in
+          counterclockwise order).
         . Third dimension indexes each coordinate of the current cell vertex,
-          whose length is guaranteed to be 2 _and_ whose:
+          whose length is guaranteed to be 2 *and* whose:
           . First element is the X coordinate of the current cell vertex.
           . Second element is the Y coordinate of the current cell vertex.
     R : ndarray
@@ -2380,30 +2380,27 @@ class Cells(object):
 
     def HH_cells(self, Fx, Fy, bounds_closed = True, rot_only = False):
         """
-        This awesomely magic algorithm calculates a
-        Helmholtz-Hodge decomposition to return the
-        divergence-free component of a vector field.
+        This awesomely magic algorithm calculates a Helmholtz-Hodge
+        decomposition to return the divergence-free component of a vector field.
 
-        Thank you Bhatia et al (2013): "The Helmholtz-Hodge
-        Decompotion: a Survey"  !
+        Thank you, Bhatia et al (2013): "The Helmholtz-Hodge Decompotion: a
+        Survey"!
 
         Parameters
         ------------
         Fx:                # x-coordinate of field on cell centers
         Fy:                # y-coordinate of field on cell centers
-        bounds_closed:       # cluster boundary moves flux out, or is sealed
-        rot_only          # return only the divergence-free field components
-                          # (i.e. rotation only)
-
+        bounds_closed:     # cluster boundary moves flux out, or is sealed
+        rot_only           # return only the divergence-free field components
+                           # (i.e. rotation only)
 
         Returns
         ------------
-         AA, Ax, Ay     The vector potential AA, as well as divergence-free
-                        field components Ax and Ay
+        AA, Ax, Ay     The vector potential AA, as well as divergence-free
+                       field components Ax and Ay
 
-         BB, Bx, By     The scalar potential BB, as well as the curl-free
-                        field components Bx and By
-
+        BB, Bx, By     The scalar potential BB, as well as the curl-free
+                       field components Bx and By
         """
 
         nx = self.mem_vects_flat[:, 2]
@@ -2494,6 +2491,28 @@ class Cells(object):
 
             self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
             self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
+
+    #..........{ PROPERTIES ~ membrane                   }.....................
+    @property_cached
+    def membrane_normal_unit_x(self) -> ndarray:
+        '''
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the X coordinate of the normal unit vector orthogonal to the
+        tangent unit vector for this membrane.
+        '''
+
+        return self.mem_vects_flat[:, 2]
+
+
+    @property_cached
+    def membrane_normal_unit_y(self) -> ndarray:
+        '''
+        One-dimensional Numpy array indexing each cell membrane such that each
+        element is the Y coordinate of the normal unit vector orthogonal to the
+        tangent unit vector for this membrane.
+        '''
+
+        return self.mem_vects_flat[:, 3]
 
     #..........{ PROPERTIES ~ mappers                    }.....................
     #FIXME: For readability, rename to membranes_midpoint_to_vertices().

@@ -16,7 +16,7 @@ from betse.util.type.call.memoizers import property_cached
 # from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
-_MAGNITUDE_FACTOR_CURRENTS = 100
+_MAGNITUDE_FACTOR_CURRENTS = 1e2
 '''
 Factor by which to multiply each magnitude of each vector in each vector field
 of intra- and/or extracellular current densities, producing magnitude in units
@@ -87,9 +87,9 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
     @property_cached
     def electric_intra(self) -> VectorFieldCellsCache:
         '''
-        Vector field cache of the electric field across all intracellular spaces
-        over all time steps of the current simulation phase, originally
-        spatially situated at cell membrane midpoints.
+        Vector field cache of the intracellular electric field over all sampled
+        time steps of the current simulation phase, originally spatially
+        situated at cell membrane midpoints.
         '''
 
         return VectorFieldCellsCache(
@@ -105,9 +105,9 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
     @property_cached
     def electric_extra(self) -> VectorFieldCellsCache:
         '''
-        Vector field cache of the electric field across all extracellular spaces
-        over all time steps of the current simulation phase, originally
-        spatially situated at environmental grid space centres.
+        Vector field cache of the extracellular electric field over all sampled
+        time steps of the current simulation phase, originally spatially
+        situated at environmental grid space centres.
 
         Raises
         ----------
@@ -146,7 +146,7 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
                 times_membranes_midpoint=self._phase.sim.mtubes_y_time),
         )
 
-    # ..................{ PROPERTIES ~ vmem                  }..................
+    # ..................{ PROPERTIES ~ voltage               }..................
     @property_cached
     def voltage_polarity(self) -> VectorFieldCellsCache:
         '''
@@ -178,10 +178,10 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         # polarity vectors, spatially situated at cell membrane midpoints.
         polarity_membranes_midpoint_x = (
             polarity_membranes_midpoint_magnitudes *
-            self._phase.cells.mem_vects_flat[:,2])
+            self._phase.cells.membrane_normal_unit_x)
         polarity_membranes_midpoint_y = (
             polarity_membranes_midpoint_magnitudes *
-            self._phase.cells.mem_vects_flat[:,3])
+            self._phase.cells.membrane_normal_unit_y)
 
         # Two-dimensional Numpy arrays of the X and Y components of all Vmem
         # polarity vectors, spatially situated at cell centres.
@@ -194,39 +194,7 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
                 polarity_membranes_midpoint_y * self._phase.cells.mem_sa) /
             self._phase.cells.cell_sa)
 
-        #FIXME: This exporter appears to be broken, at the moment. The reason
-        #why is unclear, but appears to relate to the fact that
-        #"sim.vm != sim.vm_time[-1]". Excise the following wastelands after this
-        #issue is resolved.
-
-        # import numpy as np
-        # # polm = self._phase.sim.vm_time[-1] - (
-        # #     self._phase.sim.vm_ave_time[-1][self._phase.cells.mem_to_cells])
-        # polm = self._phase.sim.vm - (
-        #     self._phase.sim.vm_ave_time[-1][self._phase.cells.mem_to_cells])
-        # # polm = vm_time[-1] - vm_ave_time[-1,self._phase.cells.mem_to_cells]
-        # polx = polm*self._phase.cells.mem_vects_flat[:,2]
-        # poly = polm*self._phase.cells.mem_vects_flat[:,3]
-        #
-        # pcx = np.dot(
-        #     self._phase.cells.M_sum_mems,
-        #     polx*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
-        # pcy = np.dot(
-        #     self._phase.cells.M_sum_mems,
-        #     poly*self._phase.cells.mem_sa) / self._phase.cells.cell_sa
-
         # Create, return, and cache this vector field.
-        # print('vm: {}'.format(self._phase.sim.vm))
-        # print('vm_time[-1]: {}'.format(self._phase.sim.vm_time[-1]))
-        # print('polarity_membranes_midpoint_magnitudes[-1]: {}'.format(
-        #     polarity_membranes_midpoint_magnitudes[-1]))
-        # print('polm: {}'.format(polm))
-        # print('polarity_membranes_midpoint_magnitudes[-1] == polm? {}'.format(
-        #     (polarity_membranes_midpoint_magnitudes[-1] == polm).all()))
-        # print('polarity_cells_centre_x[-1] == pcx? {}'.format(
-        #     (polarity_cells_centre_x[-1] == pcx).all()))
-        # print(polarity_cells_centre_x[-1])
-
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase, times_cells_centre=polarity_cells_centre_x),

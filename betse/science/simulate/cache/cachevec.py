@@ -45,14 +45,49 @@ class SimPhaseCacheVectorCells(SimPhaseCacheABC):
         '''
         Vector cache of all upscaled **transmembrane voltages** (i.e., voltages
         across all gap junctions connecting intracellular membranes) over all
-        time steps of the current simulation phase, originally spatially
+        sampled time steps of the current simulation phase, originally spatially
         situated at cell membrane midpoints.
 
-        For readability of units in exported visuals (e.g., plots), this cache
-        additionally upscales these voltages from volts (V) to millivolts (mV).
+        For readability of units in exported visuals (e.g., plots), voltages are
+        cached upscaled from volts (V) to millivolts (mV).
         '''
 
         return VectorCellsCache(
             phase=self._phase,
             times_membranes_midpoint=expmath.upscale_cell_data(
                 self._phase.sim.vm_time))
+
+    # ..................{ PROPERTIES ~ deform                }..................
+    #FIXME: Raise an exception unless deformations are enabled. To do so sanely,
+    #we'll want to define a new @phase_property_cached decorator accepting an
+    #optional "requirements" parameter, much like the existing @piperunner
+    #decorator. (For now, simply ignore this for simplicity.)
+    @property_cached
+    def deform_total_magnitudes(self) -> VectorCellsCache:
+        '''
+        Vector cache of the upscaled magnitudes of all **total cellular
+        deformations** (i.e., summations of all cellular deformations due to
+        galvanotropic and osmotic pressure body forces) over all sampled time
+        steps of the current simulation phase, originally spatially situated at
+        cell membrane midpoints.
+        '''
+
+        # Two-dimensional Numpy arrays of the X and Y components of all total
+        # cellular deformations over all time steps, mapped from cell centres to
+        # cell membrane midpoints.
+        times_membranes_x = (
+            self._phase.sim.dx_cell_time[:, self.cells.mem_to_cells])
+        times_membranes_y = (
+            self._phase.sim.dy_cell_time[:, self.cells.mem_to_cells])
+
+        # One-dimensional Numpy array of the magnitudes of all total
+        # cellular deformations over all time steps, mapped from cell centres to
+        # cell membrane midpoints.
+        times_membranes_magnitudes = expmath.upscale_cells_coordinates(
+            times_membranes_x * self._phase.cells.membrane_normal_unit_x +
+            times_membranes_y * self._phase.cells.membrane_normal_unit_y)
+
+        # Create, return, and cache this vector.
+        return VectorCellsCache(
+            phase=self._phase,
+            times_membranes_midpoint=times_membranes_magnitudes)

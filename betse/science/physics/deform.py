@@ -4,33 +4,30 @@
 # See "LICENSE" for further details.
 
 import numpy as np
-from betse.exceptions import BetseSimException
 from betse.science import sim_toolbox as stb
 from betse.util.io.log import logs
 from scipy.interpolate import SmoothBivariateSpline
 
-
-
 def getDeformation(sim, cells, t, p):
     """
-    Calculates the deformation of the cell cluster under the action
-    of intracellular forces and pressures, assuming steady-state
-    (slow) changes.
+    Calculate the deformation of the cell cluster under the action of
+    intracellular forces and pressures, assuming steady-state (slow) changes.
 
-    The method assumes that material is incompressible and total volume is conserved.
+    The method assumes that material is incompressible and total volume is
+    conserved.
 
-    The "galvanotropism" mechanism assumes growing + ends of microtubules exert
-     a cell deforming force (microtubules are in turn influenced by the electric field)
+    The "galvanotropism" mechanism assumes growing and that ends of microtubules
+    exert a cell-deforming force. Microtubules are in turn influenced by the
+    electric field.
 
     If studying hydrostatic pressure deformations under osmotic influx, first,
-    the equation of linear elastic motion is used to calculate
-    deformation assuming full compressibility.
+    the equation of linear elastic motion is used to calculate deformation
+    assuming full compressibility.
 
-    The divergence of the resulting deformation field is calculated,
-    an internal reaction pressure is calculated from the divergence.
-    The gradient of the reaction pressure is subtracted from the initial
-    solution to create a divergence-free (volume conserved) deformation field.
-
+    The divergence of the resulting deformation field is calculated. An internal
+    reaction pressure is calculated from the divergence. The gradient of the
+    reaction pressure is subtracted from the initial solution to create a
+    divergence-free (volume conserved) deformation field.
     """
 
     # Determine action forces
@@ -47,22 +44,24 @@ def getDeformation(sim, cells, t, p):
 
     mtx, mty = sim.mtubes.mtubes_to_cell(cells, p)
 
-    # deformation by "galvanotropic" mechanism (electrostrictive forces influenced by biology, e.g. cytoskeletal):
+    # deformation by "galvanotropic" mechanism (electrostrictive forces
+    # influenced by biology, e.g. cytoskeletal).
     Fx = (1 / p.lame_mu) * (mtx * p.galvanotropism + sim.gPxc)
     Fy = (1 / p.lame_mu) * (mty * p.galvanotropism + sim.gPyc)
 
-    # Calculate flow under body forces using time-independent linear elasticity equation:
+    # Calculate flow under body forces using time-independent linear elasticity
+    # equation.
     dxo = np.dot(cells.lapGJinv, -Fx)
     dyo = np.dot(cells.lapGJinv, -Fy)
 
-    # deformation must be made divergence-free: use the Helmholtz-Hodge decomposition method:
-    _, sim.d_cells_x, sim.d_cells_y, _, _, _ = cells.HH_cells(dxo, dyo, rot_only=True,
-                                                              bounds_closed = p.fixed_cluster_bound)
+    # Deformation must be made divergence-free. To do so, use the
+    # Helmholtz-Hodge decomposition method.
+    _, sim.d_cells_x, sim.d_cells_y, _, _, _ = cells.HH_cells(
+        dxo, dyo, rot_only=True, bounds_closed=p.fixed_cluster_bound)
 
-    if p.deform_osmo is True:
-
-        # calculate the pressure gradient resulting from finite-divergence osmotic-pressure induced water flows to cells:
-
+    if p.deform_osmo:
+        # Calculate the pressure gradient resulting from finite-divergence
+        # osmotic-pressure induced water flows to cells.
         gPP = (sim.PP[cells.cell_nn_i[:, 1]] - sim.PP[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
 
         dx = -gPP * cells.nn_tx
@@ -261,6 +260,7 @@ def timeDeform(sim, cells, t, p):
     # check the displacement for NANs:
     stb.check_v(sim.d_cells_x)
 
+
 def implement_deform_timestep(sim, cells, t, p):
     """
     Implements the deformation of the tissue cluster based on divergence-free deformation
@@ -298,4 +298,3 @@ def implement_deform_timestep(sim, cells, t, p):
     # sim.maskM_time.append(cells.maskM[:])
     sim.mem_edges_time.append(cells.mem_edges_flat[:])
     sim.cell_verts_time.append(cells.cell_verts[:])
-

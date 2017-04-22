@@ -679,10 +679,15 @@ class Parameters(object):
 
         self.f_scan_properties['f slope'] = None
 
+        # ................{ EXPORTS                            }................
+        ro = self._conf['results options']
 
-        #--------------------------------------------------------------------------------------------------------------
-        # RESULTS OUTPUT & PLOTTING
-        #--------------------------------------------------------------------------------------------------------------
+        # Animation subconfiguration.
+        self.anim = SimConfAnimAll(conf=self._conf)
+
+        # CSV subconfiguration.
+        self.exportData = ro['save']['data']['all']['enabled']     # export all stored data for the plot_cell to a csv text file
+        self.exportData2D = ro['save']['data']['vmem']['enabled']
 
         # use the GHK equation to calculate alt Vmem from params?
         self.GHK_calc = self._conf['variable settings']['use Goldman calculator']
@@ -690,8 +695,6 @@ class Parameters(object):
         # ................{ PLOTS                              }................
         # Plot subconfiguration.
         self.plot = SimConfPlotAll(conf=self._conf)
-
-        ro = self._conf['results options']
 
         #FIXME: Replace all instances of "p.turn_all_plots_off" in the codebase
         #by "not p.plot.is_after_sim_show" and remove this attribute entirely.
@@ -731,21 +734,6 @@ class Parameters(object):
         self.plot_cell_cluster = ro.get('plot cell cluster', True)
         self.plot_cell_connectivity = ro.get('plot cell connectivity diagram', True)
         self.plot_cluster_mask = ro.get('plot cluster mask', True)
-
-        # ................{ ANIMATIONS                         }................
-        # Animation subconfiguration.
-        self.anim = SimConfAnimAll(conf=self._conf)
-
-        #FIXME: Refactor the default "sim_config.yaml" file to properly
-        #integrate these "leftover" options into the animation pipeline list.
-        self.ani_Deformation_data = ro['Deformation Ani']['data type']   # data type can be 'Vmem' or 'Displacement'
-        self.ani_Deformation_style = ro['Deformation Ani']['style']
-
-        self.clip = 20e-6
-
-        # ................{ DATA                               }................
-        self.exportData = ro['save']['data']['all']['enabled']     # export all stored data for the plot_cell to a csv text file
-        self.exportData2D = ro['save']['data']['vmem']['enabled']
 
         #--------------------------------------------------------------------------------------------------------------
         # INTERNAL USE ONLY

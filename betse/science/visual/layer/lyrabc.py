@@ -238,6 +238,29 @@ class LayerCellsColorfulABC(LayerCellsABC):
         return self._color_mappables
 
     # ..................{ SUPERCLASS                         }..................
+    #FIXME: Generalize this class to support layers recomputing color mappables
+    #each time step. To do so:
+    #
+    #* Define a new abstract _layer_next_color_mappables() method.
+    #* Refactor all subclasses to override that rather than the _layer_next()
+    #  method. (Ugh. Apologies on that one.)
+    #* Refactor all subclass implementations of _layer_next_color_mappables()
+    #  to explicitly return None, for safety.
+    #* Override the _layer_next() method here as follows:
+    #
+    #    def _layer_next(self) -> None:
+    #
+    #        # Iterable of mappables layered by the subclass for the current time
+    #        # step if any or None otherwise.
+    #        color_mappables = self._layer_next_color_mappables()
+    #
+    #        if color_mappables is not None:
+    #            self._color_mappables = color_mappables
+    #
+    #Great. We're not quite done, however. The question then becomes: how do we
+    #propagate this change of color mappables to the parent visual, which will
+    #be required to reset its colorbar accordingly? *UGH.*
+
     def _layer_first(self) -> None:
         '''
         Layer the spatial distribution of a single modelled variable (e.g., cell
@@ -258,22 +281,20 @@ class LayerCellsColorfulABC(LayerCellsABC):
         self._color_mappables = self._layer_first_color_mappables()
 
     # ..................{ SUBCLASS                           }..................
-    # Subclasses are required to implement the following abstract methods.
-
     @abstractproperty
     def color_data(self) -> SequenceOrNoneTypes:
         '''
         Sequence of arbitrary dimensions of all possible color values for all
-        time steps plotted by this layer _or_ `None` if calculating these values
-        is impractical (e.g., due to space or time constraints).
+        time steps plotted by this layer *or* ``None`` if calculating these
+        values is impractical (e.g., due to space or time constraints).
 
         If colorbar autoscaling is:
 
         * Disabled, this sequence is ignored.
-        * Enabled _and_ this sequence is:
-          * `None`, this sequence is ignored. In this case, the subclass is
+        * Enabled *and* this sequence is:
+          * ``None``, this sequence is ignored. In this case, the subclass is
             responsible for colorbar autoscaling.
-          * Non-`None`, the colorbar is clipped to the minimum and maximum
+          * Non-``None``, the colorbar is clipped to the minimum and maximum
             scalar values unravelled from this sequence.
         '''
 

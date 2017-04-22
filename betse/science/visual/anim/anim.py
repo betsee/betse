@@ -30,7 +30,6 @@ Matplotlib-based animation classes.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
-from betse.exceptions import BetseSimConfigException
 from betse.lib.matplotlib.writer.mplclass import ImageWriter
 from betse.lib.numpy import arrays
 from betse.science.config.export.confvis import SimConfVisualCellsListItem
@@ -39,12 +38,10 @@ from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.anim.animafter import (
     AnimCellsAfterSolving, AnimVelocity)
 from betse.science.visual.plot.plotutil import (
-    _setup_file_saving, cell_mosaic, cell_mesh, cell_quiver, cell_stream,
-    pretty_patch_plot)
+    _setup_file_saving, cell_mosaic, cell_mesh, cell_quiver, pretty_patch_plot)
 from betse.util.io.log import logs
 from betse.util.path import dirs, paths
 from betse.util.type.types import type_check, SequenceTypes
-from enum import Enum
 from matplotlib import animation
 from matplotlib import pyplot as plt
 from matplotlib.collections import LineCollection, PolyCollection
@@ -761,176 +758,6 @@ class AnimCurrent(AnimCellsAfterSolving):
         )
 
 
-#FIXME: Use below in lieu of string constants. Or maybe we won't need this
-#after we split "AnimDeformTimeSeries" into two subclasses, as suggested below?
-AnimDeformStyle = Enum('AnimDeformStyle', ('STREAMLINE', 'VECTOR'))
-
-#FIXME: Reenable after we deduce why the "AnimDeformTimeSeries" class defined
-#below no longer animates physical displacement. Since the
-#AnimCellsWhileSolving.resetData() method *DOES* appear to animate physical
-#displacement, that's probably the first place to start. The key appears to be
-#completely recreating the entire plot -- but then, don't we do that here?
-#FIXME: Split into two subclasses: one handling physical deformations and the
-#other voltage deformations. There exists very little post-subclassing code
-#shared in common between the two conditional branches handling this below.
-#FIXME: Ugh. We're basically going to have to rewrite this from the ground up.
-#This class hasn't been enabled for some time. Instead, the obsolete
-#"AnimateDeformation" class has been enabled and significantly modified since
-#this class was last revised. We'll need to take this incrementally. As a
-#temporary todo list:
-#
-#2. Create a new "test_sim_config_deform" test testing deformations.
-#3. Abandon this implementation of this class.
-#4. Derive the "AnimateDeformation" class from the "AnimCellsAfterSolving"
-#   superclass *WITHOUT* refactoring any "AnimateDeformation" code.
-#5. Run the "test_sim_config_deform" test.
-#6. Visually confirm deformations to still be animated.
-#7. Incrementally migrate the current the "AnimateDeformation" implementation
-#   to the "AnimCellsAfterSolving" approach. After each minor change, repeat
-#   steps 5 and 6 to isolate fatal and visual errors.
-#8. Rename "AnimCellsAfterSolving" to "AnimDeform".
-#9. Remove this "AnimDeformTimeSeries" class.
-#10. Split "AnimDeform" into two classes:
-#    * "AnimDeformPhysical", animating physical deformations.
-#    * "AnimDeformVmem", animating voltage-driven deformations.
-
-class AnimDeformTimeSeries(AnimCellsAfterSolving):  # FIXME this doesn't actually deform the tissue...
-    '''
-    Animation of physical cell deformation overlayed an arbitrary cell-centric
-    time series (e.g., cell voltage as a function of time) on the cell cluster.
-
-    Attributes
-    ----------
-    _cell_time_series : SequenceTypes
-        Arbitrary cell data as a function of time to be underlayed.
-    '''
-
-
-    @type_check
-    def __init__(
-        self,
-        cell_time_series: SequenceTypes,
-        *args, **kwargs
-    ) -> None:
-        '''
-        Initialize this animation.
-
-        Parameters
-        ----------
-        cell_time_series : SequenceTypes
-            Arbitrary cell data as a function of time to be underlayed.
-
-        See the superclass `__init__()` method for all remaining parameters.
-        '''
-
-        # Initialize the superclass.
-        super().__init__(
-            *args,
-            # Since this class already plots a streamplot, prevent the
-            # superclass from plotting another streamplot as an overlay.
-            is_current_overlayable=False,
-            **kwargs
-        )
-
-        # Classify all remaining parameters.
-        self._cell_time_series = cell_time_series
-
-        # Cell displacement magnitudes for the first frame.
-        dd = self._cell_time_series[0]
-
-        # Cell displacement X and Y components for the first frame.
-        dx = self._phase.sim.dx_cell_time[0]
-        dy = self._phase.sim.dy_cell_time[0]
-
-        if self._phase.p.showCells is True:
-            dd_collection, self._axes = cell_mosaic(
-                dd, self._axes, self._phase.cells, self._phase.p, self._colormap)
-        else:
-            dd_collection, self._axes = cell_mesh(
-                dd, self._axes, self._phase.cells, self._phase.p, self._colormap)
-
-        if self._phase.p.ani_Deformation_style == 'vector':
-            self._quiver_plot, self._axes = cell_quiver(
-                dx, dy, self._axes, self._phase.cells, self._phase.p)
-        elif self._phase.p.ani_Deformation_style == 'streamline':
-            self._stream_plot, self._axes = cell_stream(
-                dx, dy, self._axes, self._phase.cells, self._phase.p,
-                showing_cells=False)
-        elif self._phase.p.ani_Deformation_style != 'None':
-            raise BetseSimConfigException(
-                'Deformation animation style "{}" not '
-                '"vector", "streamline", or "None".'.format(
-                    self._phase.p.ani_Deformation_style))
-
-        # Display and/or save this animation.
-        self._animate(
-            color_mappables=dd_collection,
-            color_data=self._cell_time_series,
-        )
-
-
-    #FIXME: Quite a bit of code duplication. Generalize us up the bomb.
-    def _plot_frame_figure(self):
-
-        # Erase the prior frame before plotting this frame.
-        # self.ax.patches = []
-
-        #FIXME: Improve to avoid clearing the current axes.
-
-        # we need to have changing cells, so we have to clear the plot and redo
-        # it...
-        # self.fig.clf()
-        # self.ax = plt.subplot(111)
-        self._axes.cla()
-        self._axes.axis('equal')
-        self._axes.axis(self._phase.cache.upscaled.extent)
-        self._axes.set_xlabel('Spatial distance [um]')
-        self._axes.set_ylabel('Spatial distance [um]')
-
-        # Arrays of all cell deformation X and Y components for this frame.
-        dx = self._phase.sim.dx_cell_time[self._time_step]
-        dy = self._phase.sim.dy_cell_time[self._time_step]
-
-        # Array of all cell Vmem values for this frame.
-        if self._phase.p.ani_Deformation_data == 'Vmem':
-            if self._phase.p.sim_ECM is False:
-                dd = self._phase.sim.vm_time[self._time_step] * 1e3
-            else:
-                dd = self._phase.sim.vcell_time[self._time_step] * 1e3
-        # Array of all cell deformation magnitudes for this frame.
-        elif self._phase.p.ani_Deformation_data == 'Displacement':
-            dd = 1e6 * np.sqrt(dx**2 + dy**2)
-
-        # Reset the superclass colorbar mapping to this newly created mapping,
-        # permitting the superclass plot_frame() method to clip this mapping.
-        # dd_collection.remove()
-        # self.ax.collections = []
-        if self._phase.p.showCells is True:
-            dd_collection, self._axes = cell_mosaic(
-                dd, self._axes, self._phase.cells, self._phase.p, self._colormap)
-            # points = np.multiply(self.cells.cell_verts, self.p.um)
-            # dd_collection = PolyCollection(
-            #     points, cmap=self.colormap, edgecolors='none')
-            # dd_collection.set_array(dd)
-        else:
-            dd_collection, self._axes = cell_mesh(
-                dd, self._axes, self._phase.cells, self._phase.p, self._colormap)
-
-        dd_collection.set_clim(self._color_min, self._color_max)
-        # cb = self.fig.colorbar(dd_collection)
-        # cb.set_label(self._colorbar_title)
-
-        if self._phase.p.ani_Deformation_style == 'vector':
-            # self._quiver_plot.remove()
-            quiver_plot, self._axes = cell_quiver(
-                dx, dy, self._axes, self._phase.cells, self._phase.p)
-        elif self._phase.p.ani_Deformation_style == 'streamline':
-            # self._stream_plot.lines.remove()
-            stream_plot, self._axes = cell_stream(
-                dx, dy, self._axes, self._phase.cells, self._phase.p,
-                showing_cells=self._phase.p.showCells)
-
-
 #FIXME: Replace entirely with use of the new "LayerCellsABC" API.
 class AnimateDeformation(object):
 
@@ -961,24 +788,16 @@ class AnimateDeformation(object):
             _setup_file_saving(self,p)
 
         if conf.is_color_autoscaled:
-            if p.ani_Deformation_data == 'Displacement':
-                # first flatten the data (needed in case cells were cut)
-                all_z = []
-                for xarray, yarray in zip(sim.dx_cell_time,sim.dy_cell_time):
-                    zarray = np.sqrt(xarray**2 + yarray**2)
-                    for val in zarray:
-                        all_z.append(val*p.um)
+            # first flatten the data (needed in case cells were cut)
+            all_z = []
 
-            elif p.ani_Deformation_data == 'Vmem':
-                all_z = []
-
-                for zarray in sim.vm_time:
-                    for val in zarray:
-                        all_z.append(val*1e3)
+            for xarray, yarray in zip(sim.dx_cell_time,sim.dy_cell_time):
+                zarray = np.sqrt(xarray**2 + yarray**2)
+                for val in zarray:
+                    all_z.append(val*p.um)
 
             self.cmin = np.min(all_z)
             self.cmax = np.max(all_z)
-
         else:
             self.cmin = conf.color_min
             self.cmax = conf.color_max
@@ -989,16 +808,9 @@ class AnimateDeformation(object):
         xyverts = self.sim.cell_verts_time[0]
         self.specific_cmap = p.default_cm
 
-        if self.p.ani_Deformation_data == 'Vmem':
-            dd = self.sim.vm_time[0]*1e3
-        elif self.p.ani_Deformation_data == 'Displacement':
-            dd = 1e6 * (
-                dx[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 2] +
-                dy[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 3])
-        else:
-            raise BetseSimConfigException(
-                "Definition of 'data type' in deformation animation\n"
-                "must be either 'Vmem' or 'Displacement'.")
+        dd = 1e6 * (
+            dx[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 2] +
+            dy[self.cells.mem_to_cells] * self.cells.mem_vects_flat[:, 3])
 
         data_verts = np.dot(cells.matrixMap2Verts, dd)
 
@@ -1006,15 +818,7 @@ class AnimateDeformation(object):
             data_verts, self.ax, cells, p, self.specific_cmap, cmin=self.cmin,
             cmax=self.cmax, use_other_verts=xyverts)
 
-        if p.ani_Deformation_style == 'vector':
-            vplot, self.ax = cell_quiver(dx,dy,self.ax,cells,p)
-        elif p.ani_Deformation_style == 'streamline':
-            vplot, self.ax = cell_stream(
-                dx,dy,self.ax,cells,p, showing_cells=False)
-        else:
-            raise BetseSimConfigException(
-                "Definition of 'style' in deformation animation "
-                "must be either 'vector' or 'streamline'.")
+        vplot, self.ax = cell_quiver(dx,dy,self.ax,cells,p)
 
         self.ax.axis('equal')
 
@@ -1027,18 +831,13 @@ class AnimateDeformation(object):
 
         dd_collection.set_clim(self.cmin, self.cmax)
 
-        cb = self.fig.colorbar(dd_collection)
-
         self.tit = "Deformation"
         self.ax.set_title(self.tit)
         self.ax.set_xlabel('Spatial distance [um]')
         self.ax.set_ylabel('Spatial distance [um]')
 
-        if self.p.ani_Deformation_data == 'Displacement':
-            cb.set_label('Displacement [um]')
-
-        elif self.p.ani_Deformation_data == 'Vmem':
-            cb.set_label('Voltage [mV]')
+        cb = self.fig.colorbar(dd_collection)
+        cb.set_label('Displacement [um]')
 
         # If animation saving is enabled, prepare to do so.
         if self.p.anim.is_images_save:
@@ -1107,26 +906,17 @@ class AnimateDeformation(object):
 
         xyverts = self.sim.cell_verts_time[i]
 
-        if self.p.ani_Deformation_data == 'Vmem':
-            dd = self.sim.vm_time[i]*1e3
-
-        elif self.p.ani_Deformation_data == 'Displacement':
-            # map displacement to membranes and get the component of displacement normal to membranes:
-            dd = 1e6*(dx[self.cells.mem_to_cells]*self.cells.mem_vects_flat[:,2] +
-                      dy[self.cells.mem_to_cells]*self.cells.mem_vects_flat[:,3])
+        # map displacement to membranes and get the component of displacement normal to membranes:
+        dd = 1e6*(dx[self.cells.mem_to_cells]*self.cells.mem_vects_flat[:,2] +
+                    dy[self.cells.mem_to_cells]*self.cells.mem_vects_flat[:,3])
 
         data_verts = np.dot(self.cells.matrixMap2Verts, dd)
 
-        dd_collection, self.ax = pretty_patch_plot(data_verts,self.ax, self.cells, self.p, self.specific_cmap,
-                                cmin = self.cmin, cmax = self.cmax, use_other_verts = xyverts)
+        dd_collection, self.ax = pretty_patch_plot(
+            data_verts,self.ax, self.cells, self.p, self.specific_cmap,
+            cmin = self.cmin, cmax = self.cmax, use_other_verts = xyverts)
 
-        if self.p.ani_Deformation_style == 'vector':
-            vplot, self.ax = cell_quiver(dx,dy,self.ax,self.cells,self.p)
-
-        elif self.p.ani_Deformation_style == 'streamline':
-            vplot, self.ax = cell_stream(
-                dx, dy, self.ax, self.cells, self.p,
-                showing_cells=False)
+        vplot, self.ax = cell_quiver(dx,dy,self.ax,self.cells,self.p)
 
         self.ax.axis('equal')
 
@@ -1145,13 +935,4 @@ class AnimateDeformation(object):
         self.ax.set_ylabel('Spatial distance [um]')
 
         cb = self.fig.colorbar(dd_collection)
-
-        if self.p.ani_Deformation_data == 'Displacement':
-            cb.set_label('Displacement [um]')
-        elif self.p.ani_Deformation_data == 'Vmem':
-            cb.set_label('Voltage [mV]')
-
-        # if self.save is True:
-        #     self.fig.canvas.draw()
-        #     savename = self.savedAni + str(i) + '.png'
-        #     plt.savefig(savename,format='png')
+        cb.set_label('Displacement [um]')

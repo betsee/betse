@@ -51,7 +51,41 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
             self._phase.cells.ymax,
         )
 
-    # ..................{ PROPERTIES ~ cells centre          }..................
+    # ..................{ PROPERTIES ~ cells : vertices      }..................
+    @property_cached
+    def times_cells_vertices_coords(self) -> ndarray:
+        '''
+        Four-dimensional Numpy array of the upscaled coordinates of all cell
+        membrane vertices for this cell cluster over all time steps under the
+        assumption that these vertices are deformed over these time steps.
+
+        See Also
+        ----------
+        :attrs:`betse.science.sim.Simulator.cell_verts_time`
+            Further details.
+        '''
+
+        return expmath.upscale_cell_coordinates(
+            self._phase.sim.cell_verts_time)
+
+
+    @property_cached
+    def cells_vertices_coords(self) -> ndarray:
+        '''
+        Three-dimensional Numpy array of the upscaled coordinates of all cell
+        membrane vertices for this cell cluster under the assumption that these
+        vertices are *not* deformed at any time step and hence are fixed over
+        all time steps.
+
+        See Also
+        ----------
+        :attrs:`betse.science.cells.Cells.cell_verts`
+            Further details.
+        '''
+
+        return expmath.upscale_cell_coordinates(self._phase.cells.cell_verts)
+
+    # ..................{ PROPERTIES ~ cells : centre        }..................
     @property_cached
     def cells_centre_x(self) -> ndarray:
         '''
@@ -59,8 +93,8 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         centres for this cell cluster.
         '''
 
-        return expmath.upscale_cells_coordinates(
-            self._phase.cells.cell_centres[:,0])
+        return expmath.upscale_cell_coordinates(
+            self._phase.cells.cell_centres[:, 0])
 
 
     @property_cached
@@ -70,10 +104,10 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         centres for this cell cluster.
         '''
 
-        return expmath.upscale_cells_coordinates(
-            self._phase.cells.cell_centres[:,1])
+        return expmath.upscale_cell_coordinates(
+            self._phase.cells.cell_centres[:, 1])
 
-    # ..................{ PROPERTIES ~ grids centre          }..................
+    # ..................{ PROPERTIES ~ grids : centre        }..................
     @property_cached
     def grids_centre_x(self) -> ndarray:
         '''
@@ -81,7 +115,7 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         environmental grid space centres for this cell cluster.
         '''
 
-        return expmath.upscale_cells_coordinates(self._phase.cells.xypts[:,0])
+        return expmath.upscale_cell_coordinates(self._phase.cells.xypts[:,0])
 
 
     @property_cached
@@ -91,4 +125,4 @@ class SimPhaseCacheUpscaled(SimPhaseCacheABC):
         environmental grid space centres for this cell cluster.
         '''
 
-        return expmath.upscale_cells_coordinates(self._phase.cells.xypts[:,1])
+        return expmath.upscale_cell_coordinates(self._phase.cells.xypts[:,1])

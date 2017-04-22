@@ -138,13 +138,14 @@ class PlotCellsPipe(PlotPipeABC):
 
     # ..................{ EXPORTERS ~ deform                 }..................
     @piperunner(
-        categories=('Physical Deformation',),
+        categories=('Deformation', 'Total',),
         requirements={piperunreq.DEFORM,},
     )
-    def export_deform(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_deform_total(self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Plot all physical deformations for the cell cluster at the last time
-        steps.
+        Plot all **total cellular displacements** (i.e., summations of all
+        cellular deformations due to galvanotropic and osmotic pressure body
+        forces) for the cell cluster at the last time step.
         '''
 
         # Prepare to export the current plot.
