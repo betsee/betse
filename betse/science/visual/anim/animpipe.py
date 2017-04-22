@@ -65,7 +65,7 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',),
-        requirements={piperunreq.VOLTAGE_POLARITY,},
+        # requirements={piperunreq.VOLTAGE_POLARITY,},
     )
     def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''

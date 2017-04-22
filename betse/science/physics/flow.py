@@ -18,8 +18,8 @@ def getFlow(sim, cells, p):
     if p.sim_ECM is True:
 
         # electrostatic body forces in environment:
-        FFx = sim.rho_env.reshape(cells.X.shape)*sim.E_env_x*(1/sim.ko_env)
-        FFy = sim.rho_env.reshape(cells.X.shape)*sim.E_env_y*(1/sim.ko_env)
+        FFx = sim.rho_env.reshape(cells.X.shape)*sim.J_env_x*(1/sim.sigma)
+        FFy = sim.rho_env.reshape(cells.X.shape)*sim.J_env_y*(1/sim.sigma)
 
         # non-divergence free currents using Stokes flow equation:
         muFx = ((1/p.mu_water)*sim.D_env_weight)*FFx

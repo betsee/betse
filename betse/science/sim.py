@@ -394,6 +394,7 @@ class Simulator(object):
 
         self.vgj = np.zeros(self.mdl)
 
+
         self.gj_block = 1 # will update this according to user preferences in self.init_tissue()
 
         # Identity matrix to easily make matrices out of scalars
@@ -437,8 +438,7 @@ class Simulator(object):
 
         self.P_cells = np.zeros(self.cdl)  # initialize pressure in cells
 
-        self.v_cell = np.zeros(self.cdl)  # initialize intracellular voltage
-        # self.vm = -50.0e-3*np.ones(self.mdl)     # initialize vmem
+        self.v_cell = np.zeros(self.mdl)  # initialize intracellular voltage
         self.vm = np.zeros(self.mdl)     # initialize vmem
         self.rho_cells = np.zeros(self.cdl)
 
@@ -451,8 +451,9 @@ class Simulator(object):
         if p.sim_ECM:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
-            self.v_env = np.ones(len(cells.xypts))*1.0e-3
-            self.rho_env = np.zeros(len(cells.xypts))
+            self.phi_env = np.zeros(self.mdl) # voltage at the external membrane (at the outer edl)
+            self.v_env = np.zeros(self.edl)   # voltage in the full environment
+            self.rho_env = np.zeros(self.edl) # charge in the full environment
 
             self.z_array_env = []  # ion valence array matched to env points
             self.D_env = []  # an array of diffusion constants for each ion defined on env grid
@@ -689,8 +690,6 @@ class Simulator(object):
         # smoothing weights for membrane and central values:
         self.smooth_weight_mem = ((2*cells.num_mems[cells.mem_to_cells] -1)/(2*cells.num_mems[cells.mem_to_cells]))
         self.smooth_weight_o = 1/(2*cells.num_mems[cells.mem_to_cells])
-
-
 
     def init_tissue(self, cells, p):
         '''
@@ -1695,12 +1694,8 @@ class Simulator(object):
 
     def update_V(self,cells,p):
 
-        # print(self.cc_cells[self.iNa].mean())
-
-
         # save the voltage as a placeholder:
         vmo = self.vm*1
-        rhoo = self.rho_cells*1
 
         # get the currents and in-cell and environmental voltages:
         get_current(self, cells, p)
@@ -1709,10 +1704,11 @@ class Simulator(object):
 
         if p.sim_ECM is False:
 
-
             if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
+                # change in charge density at the membrane:
                 drho = np.dot(cells.M_sum_mems, -self.Jn*cells.mem_sa)/cells.cell_sa
+
                 self.vm = self.vm + (1/p.cm)*drho[cells.mem_to_cells]*p.dt
 
             else:
@@ -1725,6 +1721,10 @@ class Simulator(object):
 
                            )
 
+                self.v_cell = (self.v_cell
+                               -(1/(2*p.cm))*self.Jmem*p.dt
+                               - (1 / (2*self.cgj))*self.Jgj*p.dt
+                               + (1/self.cedl_cell)*self.Jc*p.dt)
 
 
         else: # if simulating extracellular spaces
@@ -1733,16 +1733,29 @@ class Simulator(object):
             Jme = (self.J_env_x.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
                    self.J_env_y.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
-            sqrconvF = (cells.ecm_sa / cells.mem_sa).mean()
+
+            # factor converting between cell and environmental grid:
+            # sqrconvF = cells.mems_per_envSquare[cells.map_mem2ecm]/2
+            sqrconvF = 1.0
+
 
             if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour
 
-                drho = np.dot(cells.M_sum_mems, (-self.Jn + Jme)*cells.mem_sa)/cells.cell_sa
-                self.vm = self.vm + (1/p.cm)*drho[cells.mem_to_cells]*p.dt
+                drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
+                drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
+                drho_Jme = np.dot(cells.M_sum_mems, Jme*cells.mem_sa)/cells.cell_sa
+
+                self.vm = self.vm + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt \
+                          + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt + \
+                          (1/self.cedl_env)*drho_Jme[cells.mem_to_cells]*p.dt
+
+
+                self.v_cell = (self.v_cell -
+                               (1/(2*p.cm))*self.Jmem*p.dt
+                               - (1/(2*self.cgj))*self.Jgj*p.dt)
 
             else:
 
-                # sqrconvF = 1.0
 
                 # Vmem with double layer interaction modelled (optional with "cell polarizability"):
                 self.vm = (self.vm
@@ -1750,9 +1763,18 @@ class Simulator(object):
                                     - (1/p.cm)*self.Jmem*p.dt  # current across the membrane from all sources
                                     - (1/(self.cgj))*self.Jgj*p.dt  # current across the membrane from gj
                                     + (1/self.cedl_cell)*self.Jc*p.dt  # current in intracellular space, interacting with edl
-                                    +  (1/self.cedl_env)*Jme*p.dt*sqrconvF # current in extracellular space, interacting with edl
+                                    +  (1/self.cedl_env)*Jme*sqrconvF*p.dt # current in extracellular space, interacting with edl
 
                            )
+
+                self.v_cell = (self.v_cell -
+                               (1/(2*p.cm))*self.Jmem*p.dt
+                               - (1/(2*self.cgj))*self.Jgj*p.dt
+                               + (1/self.cedl_cell)*self.Jc*p.dt)
+
+                # self.phi_env = (self.phi_env +
+                #                (1 / (2 * p.cm))*self.Jmem*p.dt
+                #                + (1/self.cedl_env)*Jme*p.dt)
 
 
         # calculate the derivative of Vmem:
@@ -1763,11 +1785,20 @@ class Simulator(object):
 
         # calculate the electric field in the cell, given it must satisfy the Laplace equation (i.e. respect
         # boundary conditions and be a linear gradient):
-        self.Ec = -(self.vm - self.vm_ave[cells.mem_to_cells])/cells.R_rads
 
-        # average the field in the cell to a central point:
-        self.E_cell_x = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,2]*cells.mem_sa)/cells.cell_sa
-        self.E_cell_y = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,3]*cells.mem_sa)/cells.cell_sa
+        vcell_ave = np.dot(cells.M_sum_mems, self.v_cell)/cells.num_mems
+        self.Ec = -(self.v_cell - vcell_ave[cells.mem_to_cells])/cells.R_rads
+
+
+        if p.cell_polarizability == 0.0:
+
+            self.E_cell_x = self.J_cell_x*(1/self.sigma)
+            self.E_cell_y = self.J_cell_y*(1/self.sigma)
+
+        else:
+            # average the field in the cell to a central point:
+            self.E_cell_x = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,2]*cells.mem_sa)/cells.cell_sa
+            self.E_cell_y = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,3]*cells.mem_sa)/cells.cell_sa
 
     def acid_handler(self, cells, p) -> None:
         '''

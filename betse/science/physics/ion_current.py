@@ -27,13 +27,20 @@ def get_current(sim, cells, p):
     sim.I_mem = -sim.Jn*cells.mem_sa
 
     # calculate current density across whole cells via cytoplasm:
-    sim.Jc = np.dot(sim.zs*p.F, sim.fluxes_intra)
+    if p.cell_polarizability == 0.0:
+
+        # if cell polarizability is zero, make cell current equal to GJ current:
+        sim.Jc = sim.Jgj
+
+    else:
+
+        sim.Jc = np.dot(sim.zs*p.F, sim.fluxes_intra)
 
     # components of intracellular current:
     Jcx = sim.Jc * cells.mem_vects_flat[:,2]
     Jcy = sim.Jc * cells.mem_vects_flat[:,3]
 
-    # average intracellular current to cell centres FIXME I believe the intracellular current should be curl only!:
+    # average intracellular current to cell centres
     sim.J_cell_x = np.dot(cells.M_sum_mems, Jcx*cells.mem_sa) / cells.cell_sa
     sim.J_cell_y = np.dot(cells.M_sum_mems, Jcy*cells.mem_sa) / cells.cell_sa
 
@@ -67,10 +74,13 @@ def get_current(sim, cells, p):
         # div_Jo = fd.divergence(J_env_x_o/sigma, J_env_y_o/sigma, cells.delta, cells.delta)
 
         # term describing source of environmental potential:
-        source_term =  (sim.rho_env/((sim.ko_env)*p.eo*p.eedl)).reshape(cells.X.shape)
+        # source_term =  (sim.rho_env/((sim.ko_env)*p.eo*p.eedl)).reshape(cells.X.shape)
 
         # term producing vector spherical harmonics (becomes equivalent to Vector Helmholtz Equation):
         # source_term = div_Jo + (sim.rho_env / ((sim.ko_env**2) * p.eo * p.er)).reshape(cells.X.shape)
+
+        # Otherwise, assume this is a Laplace equation:
+        source_term = np.zeros(cells.X.shape)
 
         # set boundary conditions
         source_term[:,0] = -sim.bound_V['L']*(1/cells.delta**2)
