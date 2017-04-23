@@ -180,8 +180,8 @@ class PlotCellsPipe(PlotPipeABC):
         self._export_prep()
 
         plotutil.plotVectField(
-            self._phase.sim.E_gj_x,
-            self._phase.sim.E_gj_y,
+            self._phase.sim.E_cell_x,
+            self._phase.sim.E_cell_y,
             self._phase.cells,
             self._phase.p,
             plot_ecm=False,

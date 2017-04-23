@@ -199,7 +199,6 @@ def timeDeform(sim, cells, t, p):
     _, sim.d_cells_x, sim.d_cells_y, _, _, _ = cells.HH_cells(sim.d_cells_x, sim.d_cells_y, rot_only=True,
                                                               bounds_closed=p.fixed_cluster_bound)
 
-    print(sim.d_cells_x.mean())
 
 
     # calculate divergence of u  -----------------------------------------------------------------------
