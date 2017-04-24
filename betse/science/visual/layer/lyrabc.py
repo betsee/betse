@@ -49,7 +49,7 @@ from betse.util.type.types import (
 class LayerCellsABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all classes spatially plotting a single feature of
-    the cell cluster for a parent plot or animation.
+    the cell cluster for a parent visual.
 
     Each subclass of this class plots the spatial distribution of a single
     modelled variable (e.g., membrane voltage) for one or more simulation time
@@ -57,12 +57,11 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     :class:`betse.science.visual.visabc.VisualCellsABC` abstract base class
     contains one or more instances of subclasses of this lower-level class.
 
-    Separating low-level layer logic from high-level plot and animation logic
-    (e.g., multithreaded animation frame iteration, video and image exporting)
-    enables composition between otherwise unrelated types. Thanks to plotters,
-    two or more types of plots or animations may be trivially composed into a
-    unique third type of plot or animation with _no_ modification to existing
-    plotters, plots, or animations.
+    Separating low-level layer logic from high-level visual logic (e.g., frame
+    iteration, video compression) enables composition between otherwise
+    unrelated types. Thanks to layers, two or more types of visuals may be
+    trivially composed into a unique third type of visual with *no* modification
+    to existing layers or visuals.
 
     Attributes
     ----------
@@ -79,6 +78,13 @@ class LayerCellsABC(object, metaclass=ABCMeta):
     _visual : VisualCellsABC
         Plot or animation to layer onto *or* ``None`` if the :meth:`prep` method
         has yet to be called.
+    _zorder : int
+        **Z-order** (i.e., positive integer ordering artist drawing, such that
+        artists with larger z-orders are drawn above artists with smaller
+        z-orders) of all artists plotted by this layer. While this zorder is
+        *not* strictly enforced by this abstract base class, layer subclasses
+        are encouraged to voluntarily pass the ``zorder=self._zorder`` option to
+        all matplotlib axis-specific artist creation methods.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -105,11 +111,15 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         self._is_layered = False
         self._phase = None
         self._visual = None
+        self._zorder = None
 
 
     @type_check
     def prep(
-        self, visual: 'betse.science.visual.visabc.VisualCellsABC') -> None:
+        self,
+        visual: 'betse.science.visual.visabc.VisualCellsABC',
+        zorder: int,
+    ) -> None:
         '''
         Prepare this layer to be layered onto the passed plot or animation.
 
@@ -117,16 +127,23 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         ----------
         visual : VisualCellsABC
             Plot or animation to layer onto.
+        zorder : int
+            **Z-order** (i.e., positive integer ordering artist drawing, such
+            that artists with larger z-orders are drawn above artists with
+            smaller z-orders) of all artists plotted by this layer.
         '''
 
-        # Classify this plot or animation with a weak rather than strong (the
-        # default) reference, thereby avoiding circular references and the
-        # resulting complications thereof (e.g., increased memory overhead).
-        # Since the parent plot or animation necessarily lives significantly
-        # longer than this layer, no complications arise. Ergo, this attribute
-        # *ALWAYS* yields this object (rather than non-deterministically
-        # yielding "None" if this object is unexpectedly garbage-collected).
+        # Classify this visual with a weak rather than strong (the default)
+        # reference, thereby avoiding circular references and the resulting
+        # complications thereof (e.g., increased memory overhead).  Since the
+        # parent plot or animation necessarily lives significantly longer than
+        # this layer, no complications arise. Ergo, this attribute *ALWAYS*
+        # yields this object (rather than non-deterministically yielding "None"
+        # if this object is unexpectedly garbage-collected).
         self._visual = references.proxy_weak(visual)
+
+        # Classify this zorder unmodified.
+        self._zorder = zorder
 
         # Alias the current simulation phase to a convenience variable.
         self._phase = self._visual.phase

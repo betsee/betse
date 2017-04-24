@@ -115,6 +115,9 @@ class LayerCellsFieldQuiverCells(LayerCellsFieldQuiverABC):
             # user-defined zoom level increases in either X or Y dimensions.
             # units='xy',
             units='x',
+
+            # Z-order of this plot with respect to other artists.
+            zorder=self._zorder,
         )
 
     # ..................{ SUPERCLASS ~ property              }..................
@@ -179,6 +182,9 @@ class LayerCellsFieldQuiverGrids(LayerCellsFieldQuiverABC):
             # user-defined zoom level increases in either X or Y dimensions.
             # units='xy',
             units='x',
+
+            # Z-order of this plot with respect to other artists.
+            zorder=self._zorder,
         )
 
     # ..................{ SUPERCLASS ~ property              }..................
@@ -262,7 +268,10 @@ class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
             color=self._phase.p.vcolor,
 
             # Number of data units per arrow length unit.
-            scale=expmath.upscale_cell_coordinates(self._phase.p.wsx*0.8)
+            scale=expmath.upscale_cell_coordinates(self._phase.p.wsx*0.8),
+
+            # Z-order of this plot with respect to other artists.
+            zorder=self._zorder,
         )
 
     # ..................{ SUPERCLASS ~ property              }..................

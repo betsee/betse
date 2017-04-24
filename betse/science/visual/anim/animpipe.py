@@ -20,7 +20,6 @@ from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.visual.anim.anim import (
     AnimCurrent,
-    AnimateDeformation,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
     AnimVelocityIntracellular,
@@ -34,6 +33,8 @@ from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
     LayerCellsFieldQuiverGrids,
     LayerCellsFieldQuiverMembranes,
 )
+from betse.science.visual.layer.vector.lyrvecdiscrete import (
+    LayerCellsVectorDiscreteMembranesDeformed)
 from betse.science.visual.layer.vector.lyrvecsmooth import (
     LayerCellsVectorSmoothGrids, LayerCellsVectorSmoothRegions)
 from betse.util.type.types import type_check, IterableTypes
@@ -116,12 +117,27 @@ class AnimCellsPipe(SimPipeExportABC):
         forces) for the cell cluster over all sampled time steps.
         '''
 
-        # Animate this animation.
-        AnimateDeformation(
+        # Layer sequence containing...
+        layers = (
+            # A lower layer animating all cell displacement magnitudes.
+            LayerCellsVectorDiscreteMembranesDeformed(
+                vector=self._phase.cache.vector.deform_total_magnitudes),
+
+            # A higher layer animating all cell displacement directionalities.
+            LayerCellsFieldQuiverCells(
+                field=self._phase.cache.vector_field.deform_total),
+        )
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,
-            ani_repeat=True,
-            save=self._phase.p.anim.is_after_sim_save,
+            layers=layers,
+            figure_title='Deformation',
+            colorbar_title='Displacement [um]',
+
+            # Prefer an alternative colormap.
+            # colormap=self._phase.p.background_cm,
         )
 
     # ..................{ EXPORTERS ~ electric               }..................

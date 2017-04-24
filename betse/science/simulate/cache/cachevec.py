@@ -72,20 +72,31 @@ class SimPhaseCacheVectorCells(SimPhaseCacheABC):
         cell membrane midpoints.
         '''
 
-        # Two-dimensional Numpy arrays of the X and Y components of all total
-        # cellular deformations over all time steps, mapped from cell centres to
-        # cell membrane midpoints.
-        times_membranes_x = (
-            self._phase.sim.dx_cell_time[:, self.cells.mem_to_cells])
-        times_membranes_y = (
-            self._phase.sim.dy_cell_time[:, self.cells.mem_to_cells])
+        # Vector field of all total cellular deformations over all time steps,
+        # spatially situated at cell centres.
+        times_cells_centre = (
+            self._phase.cache.vector_field.deform_total.times_cells_centre)
+
+        #FIXME: Is this really the case? Perhaps it *WOULD* be advisable to use
+        #"self._phase.cache.vector_field.deform_total.times_membranes_midpoints"
+        #rather than the following two ad-hoc arrays. Contemplate. Consider.
+
+        # The X and Y components of this field, spatially situated at cell
+        # membrane midpoints. While these components are also given by the
+        # "self._phase.cache.vector_field.deform_total.times_membranes_midpoints"
+        # field, computing that field performs expensive interpolation *NOT*
+        # required for the simplistic magnitude provided by this vector.
+        times_membranes_x = times_cells_centre.x[
+            :, self._phase.cells.mem_to_cells]
+        times_membranes_y = times_cells_centre.y[
+            :, self._phase.cells.mem_to_cells]
 
         # One-dimensional Numpy array of the magnitudes of all total
         # cellular deformations over all time steps, mapped from cell centres to
         # cell membrane midpoints.
-        times_membranes_magnitudes = expmath.upscale_cells_coordinates(
-            times_membranes_x * self._phase.cells.membrane_normal_unit_x +
-            times_membranes_y * self._phase.cells.membrane_normal_unit_y)
+        times_membranes_magnitudes = expmath.upscale_cell_coordinates(
+            times_membranes_x * self._phase.cells.membranes_normal_unit_x +
+            times_membranes_y * self._phase.cells.membranes_normal_unit_y)
 
         # Create, return, and cache this vector.
         return VectorCellsCache(

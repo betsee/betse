@@ -63,6 +63,9 @@ class LayerCellsVectorSmoothGrids(LayerCellsVectorColorfulABC):
             # The [0, 0] index of this two- or three-dimensional Numpy array
             # resides at the lower-left corner of this figure's axes.
             origin='lower',
+
+            # Z-order of this plot with respect to other artists.
+            zorder=self._zorder,
         )
 
         # Map this surface image plot onto the figure colorbar, returned as a
@@ -139,6 +142,9 @@ class LayerCellsVectorSmoothRegions(LayerCellsVectorColorfulABC):
 
             # Colormap converting input data values into output color values.
             cmap=self._visual.colormap,
+
+            # Z-order of this mesh with respect to other artists.
+            zorder=self._zorder,
         )
 
         # Map this triangulation mesh onto the figure colorbar, returned as a

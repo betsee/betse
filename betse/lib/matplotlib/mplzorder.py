@@ -20,7 +20,7 @@ ZORDER_PATCH = 1
 '''
 Default **z-order** (i.e., positive integer ordering artist drawing, such that
 artists with larger z-orders are drawn over artists with smaller z-orders) for
-patch artists (e.g., `Patch`, `PatchCollection`).
+patch artists (e.g., :class:`Patch`, :class:`PatchCollection`).
 
 This is the lowest default z-order, thus drawing patch artists under all other
 artists by default.

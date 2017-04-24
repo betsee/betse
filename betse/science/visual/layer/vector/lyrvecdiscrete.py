@@ -12,6 +12,7 @@ from abc import abstractproperty
 from betse.science.visual.layer.vector.lyrvecabc import (
     LayerCellsVectorColorfulABC)
 from betse.util.type.types import type_check, IterableTypes, SequenceOrNoneTypes
+from matplotlib.collections import TriMesh
 from numpy import ndarray
 
 # ....................{ SUPERCLASSES                       }....................
@@ -68,9 +69,10 @@ class LayerCellsVectorDiscreteMembranesABC(LayerCellsVectorColorfulABC):
 
     @type_check
     def _layer_first_color_mappables(self) -> IterableTypes:
+        # self._visual.axes.set_axis_bgcolor('black')
 
         # One-dimensional array of all membrane vertex data for this time step.
-        membranes_vertex_data = self._vector.times_membranes_vertex[
+        membranes_vertex = self._vector.times_membranes_vertex[
             self._visual.time_step]
 
         # List of triangulation meshes created by iteration below.
@@ -86,11 +88,13 @@ class LayerCellsVectorDiscreteMembranesABC(LayerCellsVectorColorfulABC):
             # Y coordinates of all vertices defining this cell's polygon.
             cell_vertices_y = cell_vertices_coords[:, 1]
 
+            # Indices of all membranes for this cell.
+            cell_membranes_index = self._phase.cells.cell_to_mems[cell_index]
+
             # Color values of all vertices of this cell, referred to as "C" in
             # both the documentation and implementation of the tripcolor()
             # function. Why "C"? Because you will believe.
-            cell_membranes_vertex_data = membranes_vertex_data[
-                self._phase.cells.cell_to_mems[cell_index]]
+            cell_membranes_vertex = membranes_vertex[cell_membranes_index]
 
             # Gouraud-shaded triangulation mesh for this cell, computed from
             # the Delaunay hull of the non-triangular vertices of this cell.
@@ -99,7 +103,7 @@ class LayerCellsVectorDiscreteMembranesABC(LayerCellsVectorColorfulABC):
                 # matplotlib.tri.tripcolor() function parsing arguments passed
                 # to the matplotlib.axes.tripcolor() method called here, the
                 # first four arguments *MUST* be passed as positional arguments.
-                cell_vertices_x, cell_vertices_y, cell_membranes_vertex_data,
+                cell_vertices_x, cell_vertices_y, cell_membranes_vertex,
 
                 # Keyword arguments. All remaining arguments *MUST* be passed as
                 # keyword arguments.
@@ -109,6 +113,9 @@ class LayerCellsVectorDiscreteMembranesABC(LayerCellsVectorColorfulABC):
 
                 # Colormap converting input values into output color values.
                 cmap=self._visual.colormap,
+
+                # Z-order of this mesh with respect to other artists.
+                zorder=self._zorder,
             )
 
             # Add this triangulation mesh to the cached set of such meshes.
@@ -181,16 +188,31 @@ class LayerCellsVectorDiscreteMembranesDeformed(
 
     def _layer_next(self) -> None:
 
-        #FIXME: If this fails... we have no idea. Perhaps pilfer the current
-        #matplotlib repository for a working remove method?  Note that the class
-        #in question is "matplotlib.collections.TriMesh". Google shows no hits,
-        #sadly. We may indeed need to entirely clear and reconstruct the current
-        #figure axes (!) from the ground up, which would be... intense.
+        #FIXME: Submit a matplotlib issue concerning this, please.
 
-        # For the triangulation mesh previously computed for each cell...
-        for cell_tri_mesh in self._cell_tri_meshes:
-            # Remove this mesh from the current figure axes.
-            cell_tri_mesh.remove()
+        # Manually remove all triangulation meshes plotted for the prior time
+        # step by iterating over all matplotlib collection objects and
+        # preserving all such objects that are *NOT* such meshes. Doing so also
+        # removes all triangulation meshes of other visuals already plotted for
+        # this time step and is hence non-ideal. But no alternatives exist.
+        #
+        # Actually, that's not quite accurate. The following alternative exists,
+        # but silently reduces to a noop for unknown reasons:
+        #
+        #     # For each triangulation mesh plotted for the prior time step...
+        #     for cell_tri_mesh in self._cell_tri_meshes:
+        #         # Remove this mesh from the current figure axes. Sadly, doing
+        #         # so via this method call appears to silently reduce to a noop
+        #         # rather than raising the expected "NotImplementedError"
+        #         # exception. Since there thus exists no means of discerning a
+        #         # successful from unsuccessful removal attempt, this call is
+        #         # currently assumed to always unsuccessfully reduce to a noop.
+        #         cell_tri_mesh.remove()
+        self._visual.axes.collections = [
+            collection
+            for collection in self._visual.axes.collections
+            if not isinstance(collection, TriMesh)
+        ]
 
-        # Recompute and return triangulation meshes for all cells.
-        return self._layer_first_color_mappables()
+        # Replot triangulation meshes for all cells for this time step.
+        self._layer_first_color_mappables()

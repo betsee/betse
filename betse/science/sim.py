@@ -150,7 +150,8 @@ class Simulator(object):
         the centre of the cell indexed by that element for the current time
         step.
     dx_cell_time : list
-        Two-dimensional list whose:
+        Two-dimensional list of the X components of all cellular deformations,
+        for all sampled time steps, whose:
         * First dimension indexes each sampled time step.
         * Second dimension indexes each cell such that each element is the X
           component of the total deformation for that cell defined as for the
@@ -158,7 +159,8 @@ class Simulator(object):
         Equivalently, this list is the concatenation of all :attr:`d_cells_x`
         arrays for all sampled time steps.
     dy_cell_time : list
-        Two-dimensional list whose:
+        Two-dimensional list of the Y components of all cellular deformations
+        for all sampled time steps, whose:
         * First dimension indexes each sampled time step.
         * Second dimension indexes each cell such that each element is the Y
           component of the total deformation for that cell defined as for the

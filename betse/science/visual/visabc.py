@@ -18,7 +18,7 @@ from abc import ABCMeta  #, abstractmethod  #, abstractstaticmethod
 from betse.exceptions import BetseSimVisualException
 from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
-from betse.lib.matplotlib.mplzorder import ZORDER_STREAM
+from betse.lib.matplotlib.mplzorder import ZORDER_PATCH, ZORDER_STREAM
 from betse.lib.numpy import arrays
 from betse.science.config.export.confvis import SimConfVisualCellsABC
 from betse.science.export import expmath
@@ -514,8 +514,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
     def _prep_layers(self) -> None:
         '''
-        Iteratively prepare all layers to be subsequently layered onto this
-        visual.
+        Prepare all layers to be subsequently layered onto this visual.
 
         If this simulation configuration requests that cells be labelled by
         their 0-based indices, a layer doing so is appended to the current
@@ -529,9 +528,17 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         if self._phase.p.enumerate_cells:
             self._append_layer(LayerCellsIndex())
 
-        # Prepare each layer *AFTER* appending all layers above.
-        for layer in self._layers:
-            layer.prep(self)
+        # For the 0-based index of each layer and layer in the layer sequence
+        # *AFTER* finalizing this sequence by appending final layers above...
+        for layer_index, layer in enumerate(self._layers):
+            # Z-order of all artists plotted by this layer. To prevent patch
+            # artists defaulting to the default "ZORDER_PATCH" from being
+            # plotted over artists plotted by the first layer, this z-order is
+            # guaranteed to be at least as large as that default.
+            layer_zorder = layer_index + ZORDER_PATCH
+
+            # Prepare this layer.
+            layer.prep(visual=self, zorder=layer_zorder)
 
 
     def _plot_layers(self) -> None:

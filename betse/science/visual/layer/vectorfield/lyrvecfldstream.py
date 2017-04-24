@@ -28,7 +28,7 @@ import numpy as np
 from betse.science.export import expmath
 from betse.science.visual.layer.vectorfield.lyrvecfldabc import (
     LayerCellsFieldColorlessABC)
-from betse.util.type.types import type_check
+# from betse.util.type.types import type_check
 from matplotlib.patches import FancyArrowPatch
 
 # ....................{ SUBCLASSES                         }....................
@@ -116,6 +116,9 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
 
             # Factor by which to upscale the size of all streamline arrowheads.
             arrowsize=3.0,
+
+            # Z-order of these streamlines with respect to other artists.
+            zorder=self._zorder,
         )
 
 
@@ -128,13 +131,13 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
         # Remove all streamlines plotted for the prior time step.
         self._stream_plot.lines.remove()
 
-        # If this Matplotlib version supports removing the set of all streamline
+        # If this matplotlib version supports removing the set of all streamline
         # arrowheads plotted for the prior time step, do so.
         try:
             self._stream_plot.arrows.remove()
         # Else, these arrowheads *MUST* be manually erased by iterating over all
         # patch objects and preserving all non-arrowhead patches. Doing so also
-        # removes all arrowhead patches of other streamplots already plotted for
+        # removes all arrowhead patches of other visuals already plotted for
         # this time step and is hence non-ideal. But no alternatives exist.
         except NotImplementedError:
             self._visual.axes.patches = [

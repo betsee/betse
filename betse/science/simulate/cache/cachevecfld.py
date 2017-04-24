@@ -83,6 +83,29 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
             magnitude_factor=_MAGNITUDE_FACTOR_CURRENTS,
         )
 
+    # ..................{ PROPERTIES ~ deform                }..................
+    #FIXME: Raise an exception unless deformations are enabled. To do so sanely,
+    #we'll want to define a new @phase_property_cached decorator accepting an
+    #optional "requirements" parameter, much like the existing @piperunner
+    #decorator. (For now, simply ignore this for simplicity.)
+    @property_cached
+    def deform_total(self) -> VectorFieldCellsCache:
+        '''
+        Vector field cache of all **total cellular deformations** (i.e.,
+        summations of all cellular deformations due to galvanotropic and osmotic
+        pressure body forces) over all sampled time steps of the current
+        simulation phase, originally spatially situated at cell centres.
+        '''
+
+        return VectorFieldCellsCache(
+            x=VectorCellsCache(
+                phase=self._phase,
+                times_cells_centre=self._phase.sim.dx_cell_time),
+            y=VectorCellsCache(
+                phase=self._phase,
+                times_cells_centre=self._phase.sim.dy_cell_time),
+        )
+
     # ..................{ PROPERTIES ~ electric              }..................
     @property_cached
     def electric_intra(self) -> VectorFieldCellsCache:
@@ -155,7 +178,7 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         cell membrane midpoints.
         '''
 
-        # Two-dimensional Numpy array of all transmembrane voltages (Vmem) and
+        # Two-dimensional Numpy arrays of all transmembrane voltages (Vmem) and
         # Vmem averages across all cell membranes over all time steps.
         vm_time     = arrays.from_sequence(self._phase.sim.vm_time)
         vm_ave_time = arrays.from_sequence(self._phase.sim.vm_ave_time)
@@ -178,10 +201,10 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         # polarity vectors, spatially situated at cell membrane midpoints.
         polarity_membranes_midpoint_x = (
             polarity_membranes_midpoint_magnitudes *
-            self._phase.cells.membrane_normal_unit_x)
+            self._phase.cells.membranes_normal_unit_x)
         polarity_membranes_midpoint_y = (
             polarity_membranes_midpoint_magnitudes *
-            self._phase.cells.membrane_normal_unit_y)
+            self._phase.cells.membranes_normal_unit_y)
 
         # Two-dimensional Numpy arrays of the X and Y components of all Vmem
         # polarity vectors, spatially situated at cell centres.

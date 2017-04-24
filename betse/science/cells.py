@@ -2494,7 +2494,7 @@ class Cells(object):
 
     #..........{ PROPERTIES ~ membrane                   }.....................
     @property_cached
-    def membrane_normal_unit_x(self) -> ndarray:
+    def membranes_normal_unit_x(self) -> ndarray:
         '''
         One-dimensional Numpy array indexing each cell membrane such that each
         element is the X coordinate of the normal unit vector orthogonal to the
@@ -2505,7 +2505,7 @@ class Cells(object):
 
 
     @property_cached
-    def membrane_normal_unit_y(self) -> ndarray:
+    def membranes_normal_unit_y(self) -> ndarray:
         '''
         One-dimensional Numpy array indexing each cell membrane such that each
         element is the Y coordinate of the normal unit vector orthogonal to the

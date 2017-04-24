@@ -35,4 +35,7 @@ class LayerCellsIndex(LayerCellsABC):
                 # Alignment of this text at these coordinates.
                 horizontalalignment='center',
                 verticalalignment='center',
+
+                # Z-order of this text with respect to other artists.
+                zorder=self._zorder,
             )
