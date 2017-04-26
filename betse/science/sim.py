@@ -1017,7 +1017,8 @@ class Simulator(object):
         self.rho_factor = cells.mem_sa/cells.R_rads
 
         # capacitance of gj
-        self.cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
+        # self.cgj = 1 / ((2 / self.cedl_cell) + (2 / p.cm))
+        self.cgj = 1/(2/p.cm)
 
     @type_check
     def run_sim_core(self, phase: SimPhase) -> None:
@@ -1764,10 +1765,10 @@ class Simulator(object):
                            # current in extracellular space, interacting with edl
                            )
 
-                self.v_cell = (self.v_cell
-                               -(1/(2*p.cm))*self.Jmem*p.dt
-                               - (1 / (2*self.cgj))*self.Jgj*p.dt
-                               + (1/self.cedl_cell)*self.Jc*p.dt)
+                # self.v_cell = (self.v_cell
+                #                -(1/(2*p.cm))*self.Jmem*p.dt
+                #                - (1 / (2*self.cgj))*self.Jgj*p.dt
+                #                + (1/self.cedl_cell)*self.Jc*p.dt)
 
         else: # if simulating extracellular spaces
 
@@ -1823,19 +1824,19 @@ class Simulator(object):
         vcell_ave = np.dot(cells.M_sum_mems, self.v_cell*cells.mem_sa)/cells.cell_sa
 
         # smooth voltages at the membrane:
-        self.v_cell = self.smooth_weight_mem*self.v_cell + vcell_ave[cells.mem_to_cells]*self.smooth_weight_o
+        # self.v_cell = self.smooth_weight_mem*self.v_cell + vcell_ave[cells.mem_to_cells]*self.smooth_weight_o
         self.vm = self.smooth_weight_mem*self.vm + self.vm_ave[cells.mem_to_cells]*self.smooth_weight_o
 
         # calculate the electric field in the cell, given it must satisfy the Laplace equation (i.e. respect
         # boundary conditions and be a linear gradient):
-        # self.Ec = -(self.vm - self.vm_ave[cells.mem_to_cells])/cells.R_rads
+        self.Ec = -(self.vm - self.vm_ave[cells.mem_to_cells])/cells.R_rads
 
-        self.Ec = -(self.v_cell - vcell_ave[cells.mem_to_cells])/cells.R_rads
+        # self.Ec = -(self.v_cell - vcell_ave[cells.mem_to_cells])/cells.R_rads
 
         if p.cell_polarizability == 0.0:
 
-            self.E_cell_x = self.J_cell_x*(1/self.sigma)
-            self.E_cell_y = self.J_cell_y*(1/self.sigma)
+            self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1))
+            self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1))
 
         else:
             # average the field in the cell to a central point:

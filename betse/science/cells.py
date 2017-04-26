@@ -379,6 +379,7 @@ class Cells(object):
 
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
         # self.cellDivM(p)    # create matrix to invert divergence
+        # self.memLaplacian()   # creates an inverse matrix to calculate voltage on individual membranes
 
         logs.log_info('Creating gap junctions... ')
         self.mem_processing(p)  # calculates membrane nearest neighbours, ecm interaction, boundary tags, etc
@@ -1282,6 +1283,7 @@ class Cells(object):
         self.gradTheta = np.zeros((len(self.mem_i), len(self.mem_i)))
 
         for cell_i, mem_i in enumerate(self.cell_to_mems):
+
             mem_io = np.roll(mem_i, 1)
             li = self.mem_mids_flat[mem_i] - self.mem_mids_flat[mem_io]
 
@@ -1289,6 +1291,27 @@ class Cells(object):
 
             self.gradTheta[mem_i, mem_i] = 1 / lm
             self.gradTheta[mem_i, mem_io] = -1 / lm
+
+
+    def memLaplacian(self):
+
+        # matrix for computing divergence of a property defined on a membrane of each cell patch:
+        lapGJmem = np.zeros((len(self.mem_i), len(self.mem_i)))
+
+        for cell_i, mem_i in enumerate(self.cell_to_mems):
+
+            num_mems = self.num_mems[cell_i]
+
+            for nj, j in enumerate(mem_i):
+
+                mem_j = np.roll(mem_i, -1 - nj)
+
+                memjj = mem_j[0:-1]
+
+                lapGJmem[j, j] = ((num_mems - 1)/num_mems)*(self.mem_sa[j]/self.mem_vol[j])
+                lapGJmem[j, memjj] = -(1/num_mems)*(self.mem_sa[memjj]/self.mem_vol[memjj])
+
+        self.lapGJmem_inv = np.linalg.pinv(lapGJmem)
 
     def cell_vols(self,p):
         """

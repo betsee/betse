@@ -30,7 +30,7 @@ def get_current(sim, cells, p):
     if p.cell_polarizability == 0.0:
 
         # if cell polarizability is zero, make cell current equal to GJ current:
-        sim.Jc = sim.Jgj
+        sim.Jc = sim.Jn
 
     else:
 
