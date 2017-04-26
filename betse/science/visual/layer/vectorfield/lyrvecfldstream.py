@@ -69,8 +69,8 @@ class LayerCellsFieldStream(LayerCellsFieldColorlessABC):
         '''
 
         # Arrays of the upscaled X and Y coordinates of all grid spaces.
-        grid_x = expmath.upscale_cell_coordinates(self._phase.cells.X)
-        grid_y = expmath.upscale_cell_coordinates(self._phase.cells.Y)
+        grid_x = expmath.upscale_coordinates(self._phase.cells.X)
+        grid_y = expmath.upscale_coordinates(self._phase.cells.Y)
 
         # Vector field whose X and Y components are spatially situated at grid
         # space centres.

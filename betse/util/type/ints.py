@@ -18,7 +18,23 @@ BITS_PER_BYTE = 8
 Number of bits per byte.
 '''
 
-# ....................{ CONSTANTS ~ units                  }....................
+# ....................{ CONSTANTS ~ max                    }....................
+BYTE_VALUE_MAX = 255
+'''
+Maximum value of unsigned bytes.
+'''
+
+
+INT_VALUE_MAX_32_BIT = 1 << 32
+'''
+Maximum value for integer variables of internal type `Py_ssize_t` on 32-bit
+Python interpreters.
+
+This value is suitable for comparison with `sys.maxsize`, the maximum value of
+these variables on the current system.
+'''
+
+# ....................{ CONSTANTS ~ units ~ size           }....................
 # Size denominations in base 2 rather than base 10, for mild efficiency.
 
 KiB = 1 << 10
@@ -44,20 +60,28 @@ TiB = 1 << 40
 Number of bytes in one tebibyte (i.e., `2**40`).
 '''
 
-# ....................{ CONSTANTS ~ max                    }....................
-BYTE_VALUE_MAX = 255
+# ....................{ CONSTANTS ~ units ~ inverse        }....................
+INVERSE_CENTI = 1e2
 '''
-Maximum value of unsigned bytes.
+Inverse of the centi- unit prefix (i.e., `10**−2`), typically used as a
+multiplicative factor for upscaling quantities from centi-prefixed units to
+unprefixed units.
 '''
 
 
-INT_VALUE_MAX_32_BIT = 1 << 32
+INVERSE_MILLI = 1e3
 '''
-Maximum value for integer variables of internal type `Py_ssize_t` on 32-bit
-Python interpreters.
+Inverse of the milli- unit prefix (i.e., `10**−3`), typically used as a
+multiplicative factor for upscaling quantities from milli-prefixed units to
+unprefixed units.
+'''
 
-This value is suitable for comparison with `sys.maxsize`, the maximum value of
-these variables on the current system.
+
+INVERSE_MICRO = 1e6
+'''
+Inverse of the micro- unit prefix (i.e., `10**−6`), typically used as a
+multiplicative factor for upscaling quantities from micro-prefixed units to
+unprefixed units.
 '''
 
 # ....................{ EXCEPTIONS                         }....................

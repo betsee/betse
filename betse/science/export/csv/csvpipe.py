@@ -80,7 +80,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
 
         # ................{ VMEM ~ goldman                   }..................
         if self._phase.p.GHK_calc:
-            vm_goldman = expmath.upscale_cell_data([
+            vm_goldman = expmath.upscale_units_milli([
                 vm_GHK_time_cells[cell_index]
                 for vm_GHK_time_cells in self._phase.sim.vm_GHK_time])
         else:
@@ -159,7 +159,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
                 arr[cell_index] for arr in self._phase.sim.dy_cell_time])
 
             # get the total magnitude:
-            disp = expmath.upscale_cell_coordinates(np.sqrt(dx**2 + dy**2))
+            disp = expmath.upscale_coordinates(np.sqrt(dx ** 2 + dy ** 2))
         else:
             disp = column_data_empty
 
@@ -243,7 +243,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         '''
 
         # One-dimensional Numpy array of all upscaled cell voltages.
-        cells_times_vmems = expmath.upscale_cell_data(
+        cells_times_vmems = expmath.upscale_units_milli(
             self._phase.sim.vm_ave_time)
 
         # Save all membrane voltages for this time step to a unique CSV file.
@@ -292,9 +292,9 @@ class SimPipelinerExportCSV(SimPipeExportABC):
 
         # One-dimensional Numpy arrays of the X and Y coordinates (respectively)
         # of the centres of all cells.
-        cell_centres_x = expmath.upscale_cell_coordinates(
+        cell_centres_x = expmath.upscale_coordinates(
             self._phase.cells.cell_centres[:,0])
-        cell_centres_y = expmath.upscale_cell_coordinates(
+        cell_centres_y = expmath.upscale_coordinates(
             self._phase.cells.cell_centres[:,1])
 
         # For the 0-based index of each sampled time step...
@@ -333,11 +333,11 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         if self._phase.p.sim_ECM:
             cell_times_vmems = []
             for vm_at_mem in self._phase.sim.vm_time:
-                vm_t = expmath.upscale_cell_data(
+                vm_t = expmath.upscale_units_milli(
                     cell_ave(self._phase.cells,vm_at_mem)[cell_index])
                 cell_times_vmems.append(vm_t)
         else:
-            cell_times_vmems = expmath.upscale_cell_data(
+            cell_times_vmems = expmath.upscale_units_milli(
                 self._phase.sim.vm_time)
 
         return arrays.from_sequence(cell_times_vmems)

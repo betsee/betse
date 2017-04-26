@@ -39,10 +39,15 @@ def die_if_empty(text: str, exception_message: StrOrNoneTypes = None) -> None:
     Parameters
     ----------
     text : str
-        String to be tested.
+        String to be validated.
     exception_message : optional[str]
-        Exception message to be raised. Defaults to `None`, in which case an
-        default exception message is raised.
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Raises
+    ----------
+    BetseStrException
+        If this string is empty.
     '''
 
     # If this string is empty, raise an exception.
@@ -61,17 +66,22 @@ def die_unless_prefix(
     '''
     Raise an exception with the passed message (defaulting to a message
     synthesized from the passed arguments) if the second passed string does
-    _not_ prefix the first passed string.
+    *not* prefix the first passed string.
 
     Parameters
     ----------
     text : str
-        String to be tested.
+        String to be validated.
     prefix : str
         Prefix to test for.
     exception_message : optional[str]
-        Exception message to be raised. Defaults to `None`, in which case an
+        Exception message to be raised. Defaults to ``None``, in which case an
         exception message synthesized from the passed arguments is raised.
+
+    Raises
+    ----------
+    BetseStrException
+        If this string is *not* prefixed by this prefix.
     '''
 
     # If this string is *NOT* prefixed by this prefix, raise an exception.

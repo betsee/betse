@@ -149,7 +149,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
         cell_data_current = vm_o
 
         # Upscaled cell data for the first frame.
-        cell_data = expmath.upscale_cell_data(cell_data_current)
+        cell_data = expmath.upscale_units_milli(cell_data_current)
 
         # Collection of cell polygons with animated voltage data.
         #
@@ -222,7 +222,7 @@ class AnimCellsWhileSolving(AnimCellsABC):
     def _plot_frame_figure(self) -> None:
 
         # Upscaled cell data for the current time step.
-        cell_data = expmath.upscale_cell_data(
+        cell_data = expmath.upscale_units_milli(
             self._cell_time_series[self._time_step])
 
         #FIXME: Duplicated from above. What we probably want to do is define a

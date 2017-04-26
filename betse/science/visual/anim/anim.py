@@ -220,7 +220,7 @@ class AnimGapJuncTimeSeries(AnimCellsAfterSolving):
 
         # Gap junction data series for the first frame plotted as lines.
         self._gapjunc_plot = LineCollection(
-            expmath.upscale_cell_coordinates(self._phase.cells.nn_edges),
+            expmath.upscale_coordinates(self._phase.cells.nn_edges),
             array=self._time_series[0],
             cmap=self._phase.p.gj_cm,
             linewidths=2.0,

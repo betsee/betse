@@ -9,18 +9,20 @@ High-level vector field subcache functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.lib.numpy import arrays
+from betse.science.export import expmath
 from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.simulate.cache.cacheabc import SimPhaseCacheABC
+from betse.util.type import ints
 from betse.util.type.call.memoizers import property_cached
 # from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
-_MAGNITUDE_FACTOR_CURRENTS = 1e2
+_MAGNITUDE_FACTOR_CURRENTS = ints.INVERSE_CENTI
 '''
-Factor by which to multiply each magnitude of each vector in each vector field
-of intra- and/or extracellular current densities, producing magnitude in units
-of uA/cm^2.
+Multiplicative factor for upscaling intra- and extracellular current density
+magnitudes to units of uA/cm^2, improving the readability of these magnitudes in
+user-friendly exports.
 '''
 
 # ....................{ SUBCLASSES                         }....................
@@ -104,6 +106,11 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
             y=VectorCellsCache(
                 phase=self._phase,
                 times_cells_centre=self._phase.sim.dy_cell_time),
+
+            # Multiplicative factor for upscaling displacement magnitudes from
+            # micro-prefixed coordinate units to unprefixed units, improving the
+            # readability of these magnitudes in user-friendly exports.
+            magnitude_factor=expmath.UPSCALER_COORDINATES,
         )
 
     # ..................{ PROPERTIES ~ electric              }..................

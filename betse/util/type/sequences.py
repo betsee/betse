@@ -21,7 +21,8 @@ betse.util.type.types.is_sequence
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseSequenceException
 from betse.util.type import types
-from betse.util.type.types import type_check, CallableTypes, SequenceTypes
+from betse.util.type.types import (
+    type_check, CallableTypes, SequenceTypes, StrOrNoneTypes)
 from collections.abc import Container, Mapping
 
 # ....................{ EXCEPTIONS                         }....................
@@ -61,11 +62,48 @@ def die_if_empty(
                 raise BetseSequenceException(
                     '{} {} empty.'.format(label.capitalize(), sequence_index))
 
+
+@type_check
+def die_unless_len(
+    sequence: SequenceTypes,
+    sequence_len: int,
+    exception_message: StrOrNoneTypes = None,
+) -> None:
+    '''
+    Raise an exception with the passed message (defaulting to a human-readable
+    message) if the passed sequence is *not* of the passed length.
+
+    Parameters
+    ----------
+    sequence: SequenceType
+        Sequence to be validated.
+    len: int
+        Sequence length to test for.
+    exception_message : optional[str]
+        Exception message to be raised. Defaults to ``None``, in which case an
+        exception message synthesized from the passed arguments is raised.
+
+    Raises
+    ----------
+    BetseSequenceException
+        If this sequence is *not* of this length.
+    '''
+
+    # If this sequence is *NOT* of this length, raise an exception.
+    if len(sequence) != sequence_len:
+        # If no exception message was passed, synthesize one.
+        if not exception_message:
+            exception_message = 'Sequence length {} not {}.'.format(
+                len(sequence), sequence_len)
+
+        # Raise this exception.
+        raise BetseSequenceException(exception_message)
+
 # ....................{ TESTERS                            }....................
 @type_check
 def is_empty(*sequences: SequenceTypes) -> bool:
     '''
-    `True` only if all passed sequences are **empty** (i.e., contain no
+    ``True`` only if all passed sequences are **empty** (i.e., contain no
     elements).
 
     Parameters
@@ -76,7 +114,7 @@ def is_empty(*sequences: SequenceTypes) -> bool:
     Returns
     ----------
     bool
-        `True` only if these sequences are all empty.
+        ``True`` only if these sequences are all empty.
     '''
 
     # all(). It is awesome.

@@ -8,14 +8,21 @@ Utility functions of general-purpose relevance to all plots and animations.
 
 # ....................{ IMPORTS                            }....................
 from betse.lib.numpy import arrays
-from betse.util.type import types
+from betse.util.type import ints, types
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, NumericTypes)
 
+# ....................{ CONSTANTS                          }....................
+UPSCALER_COORDINATES = ints.INVERSE_MICRO
+'''
+Multiplicative factor for upscaling cell cluster coordinates from micro-prefixed
+units (i.e., `10**−6`) to unprefixed units, often to improve the readability of
+these coordinates in user-friendly exports.
+'''
+
 # ....................{ UPSCALERS ~ cell : data            }....................
-#FIXME: Use everywhere in the "betse.science.visual.anim.animpipe" submodule.
 @type_check
-def upscale_cell_data(
+def upscale_units_milli(
     cell_data: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
     '''
     Upscale the contents of the number or sequence of numbers whose units are
@@ -46,11 +53,12 @@ def upscale_cell_data(
         Upscaled object as described above.
     '''
 
-    return _upscale_data_in_units(data=cell_data, multiplier=1e3)
+    return _upscale_data_in_units(
+        data=cell_data, factor=ints.INVERSE_MILLI)
 
 # ....................{ UPSCALERS ~ cell : coordinates     }....................
 @type_check
-def upscale_cell_coordinates(
+def upscale_coordinates(
     cell_coordinates: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
     '''
     Upscale the contents of the passed number or sequence of numbers whose units
@@ -73,15 +81,16 @@ def upscale_cell_coordinates(
 
     See Also
     ----------
-    :func:`upscale_cell_data`
+    :func:`upscale_units_milli`
         Further details.
     '''
 
-    return _upscale_data_in_units(cell_coordinates, multiplier=1e6)
+    return _upscale_data_in_units(
+        data=cell_coordinates, factor=UPSCALER_COORDINATES)
 
 
 @type_check
-def upscale_cells_coordinates(
+def upscale_coordinates_tuple(
     *cells_coordinates: NumericOrSequenceTypes) -> tuple:
     '''
     Upscale the contents of each passed number or sequence of numbers whose
@@ -98,18 +107,18 @@ def upscale_cells_coordinates(
     tuple
         N-tuple for ``N`` the number of passed positional arguments such that
         each element is the corresponding positional argument upscaled by the
-        :func:`upscale_cell_coordinates` function.
+        :func:`upscale_coordinates` function.
     '''
 
     return tuple(
-        upscale_cell_coordinates(cell_coordinates)
+        upscale_coordinates(cell_coordinates)
         for cell_coordinates in cells_coordinates
     )
 
 # ....................{ UPSCALERS ~ private                }....................
 @type_check
 def _upscale_data_in_units(
-    data: NumericOrSequenceTypes, multiplier: NumericTypes) -> (
+    data: NumericOrSequenceTypes, factor: NumericTypes) -> (
     NumericOrSequenceTypes):
     '''
     Upscale the contents of the passed object by the passed multiplier,
@@ -120,7 +129,7 @@ def _upscale_data_in_units(
     ----------
     data : NumericOrSequenceTypes
         Number or sequence to be upscaled.
-    multiplier : NumericTypes
+    factor : NumericTypes
         Reciprocal of the units this object is denominated in.
 
     Returns
@@ -133,14 +142,14 @@ def _upscale_data_in_units(
 
     See Also
     ----------
-    :func:`upscale_cell_data`
+    :func:`upscale_units_milli`
         Further details.
     '''
 
     # If the passed object is numeric, return this number upscaled.
     if types.is_numeric(data):
-        return data * multiplier
+        return data * factor
     # Else, this object is a sequence. Return this sequence converted into a
     # Numpy array and then upscaled.
     else:
-        return arrays.from_sequence(data) * multiplier
+        return arrays.from_sequence(data) * factor

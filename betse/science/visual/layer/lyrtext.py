@@ -29,8 +29,8 @@ class LayerCellsIndex(LayerCellsABC):
                 s=cell_index,
 
                 # X and Y coordinates to display this text at.
-                x=expmath.upscale_cell_coordinates(cell_center[0]),
-                y=expmath.upscale_cell_coordinates(cell_center[1]),
+                x=expmath.upscale_coordinates(cell_center[0]),
+                y=expmath.upscale_coordinates(cell_center[1]),
 
                 # Alignment of this text at these coordinates.
                 horizontalalignment='center',

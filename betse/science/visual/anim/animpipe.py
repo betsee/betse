@@ -117,15 +117,23 @@ class AnimCellsPipe(SimPipeExportABC):
         forces) for the cell cluster over all sampled time steps.
         '''
 
+        # Total cellular displacements.
+        field = self._phase.cache.vector_field.deform_total
+
+        # Vector cache of all total cellular displacement magnitudes over all
+        # time steps, spatially situated at cell centres.
+        field_magnitudes = VectorCellsCache(
+            phase=self._phase,
+            times_cells_centre=field.times_cells_centre.magnitudes,
+        )
+
         # Layer sequence containing...
         layers = (
             # A lower layer animating all cell displacement magnitudes.
-            LayerCellsVectorDiscreteMembranesDeformed(
-                vector=self._phase.cache.vector.deform_total_magnitudes),
+            LayerCellsVectorDiscreteMembranesDeformed(vector=field_magnitudes),
 
             # A higher layer animating all cell displacement directionalities.
-            LayerCellsFieldQuiverCells(
-                field=self._phase.cache.vector_field.deform_total),
+            LayerCellsFieldQuiverCells(field=field),
         )
 
         # Animate these layers.
@@ -135,9 +143,6 @@ class AnimCellsPipe(SimPipeExportABC):
             layers=layers,
             figure_title='Deformation',
             colorbar_title='Displacement [um]',
-
-            # Prefer an alternative colormap.
-            # colormap=self._phase.p.background_cm,
         )
 
     # ..................{ EXPORTERS ~ electric               }..................

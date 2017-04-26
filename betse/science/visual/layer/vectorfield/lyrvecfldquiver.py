@@ -235,7 +235,7 @@ class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
         super().prep(*args, **kwargs)
 
         # Upscale all cell radii.
-        self._cells_radius = expmath.upscale_cell_coordinates(
+        self._cells_radius = expmath.upscale_coordinates(
             self._phase.cells.R[self._phase.cells.mem_to_cells])
 
     # ..................{ SUPERCLASS                         }..................
@@ -251,9 +251,9 @@ class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
             # LayerCellsFieldQuiverCells._layer_first() for further discussion.
 
             # Upscaled X and Y coordinates of all cell membrane midpoints.
-            expmath.upscale_cell_coordinates(
+            expmath.upscale_coordinates(
                 cells.cell_centres[:, 0][cells.mem_to_cells]),
-            expmath.upscale_cell_coordinates(
+            expmath.upscale_coordinates(
                 cells.cell_centres[:, 1][cells.mem_to_cells]),
 
             # X and Y components of this vector field spatially situated at cell
@@ -268,7 +268,7 @@ class LayerCellsFieldQuiverMembranes(LayerCellsFieldQuiverABC):
             color=self._phase.p.vcolor,
 
             # Number of data units per arrow length unit.
-            scale=expmath.upscale_cell_coordinates(self._phase.p.wsx*0.8),
+            scale=expmath.upscale_coordinates(self._phase.p.wsx * 0.8),
 
             # Z-order of this plot with respect to other artists.
             zorder=self._zorder,

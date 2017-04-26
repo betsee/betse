@@ -1385,7 +1385,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
 
         # Cell vertices plotted as polygons.
         mosaic_plot = PolyCollection(
-            verts=expmath.upscale_cell_coordinates(self._phase.cells.cell_verts),
+            verts=expmath.upscale_coordinates(self._phase.cells.cell_verts),
             cmap=self._colormap,
             edgecolors='none',
         )

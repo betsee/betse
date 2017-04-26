@@ -2,9 +2,7 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-# FIXME create a new option for seed points: Fibonacci radial-spiral array
-
-
+# ....................{ IMPORTS                            }....................
 import math
 import os
 import os.path
@@ -13,7 +11,7 @@ import scipy.spatial as sps
 from numpy import ndarray
 from scipy import interpolate as interp
 from scipy import ndimage
-from betse.exceptions import BetseSimConfigException
+from betse.exceptions import BetseSequenceException, BetseSimConfigException
 from betse.lib.numpy import arrays
 from betse.science import filehandling as fh
 from betse.science.math import finitediff as fd
@@ -23,7 +21,8 @@ from betse.util.io.log import logs
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceTypes
 
-
+# ....................{ CLASSES                            }....................
+# FIXME create a new option for seed points: Fibonacci radial-spiral array
 class Cells(object):
     '''
     High-level tissue simulation object encapsulating the cell population.
@@ -65,13 +64,13 @@ class Cells(object):
         . First dimension indexes cells, whose length is the number of cells.
         . Second dimension indexes the coordinates of the center point of the
           current cell, whose length is unconditionally guaranteed to be 2
-          _and_ whose:
+          *and* whose:
           . First element is the X coordinate of the current cell center.
           . Second element is the Y coordinate of the current cell center.
-    cell_i : ndarray
-        One-dimensional Numpy array indexing each cell such that each element is
-        that cell's index (i.e., ``[0, 1, ..., n-2, n-1]`` for the number of
-        cells ``n``), required for efficient Numpy slicing.
+    cell_i : list
+        One-dimensional list indexing each cell such that each element is that
+        cell's index (i.e., ``[0, 1, ..., n-2, n-1]`` for the number of cells
+        ``n``), required for efficient Numpy slicing.
     cell_verts : ndarray
         Three-dimensional Numpy array of the coordinates of the vertices of all
         cells, whose:
@@ -112,9 +111,9 @@ class Cells(object):
           membrane.
         * ``mem_to_cells[-1]`` is the index of the cell containing the last
           membrane.
-    mem_i : ndarray
-        One-dimensional Numpy array of length the number of cell membranes such
-        that each element is that cell membrane's index (i.e.,
+    mem_i : list
+        One-dimensional list of length the number of cell membranes such that
+        each element is that cell membrane's index (i.e.,
         ``[0, 1, ..., m-2, m-1]`` for the number of cell membranes ``m``),
         required for efficient Numpy slicing.
     mem_mids_flat : ndarray
@@ -856,8 +855,12 @@ class Cells(object):
             pty = vert[1]
             ecm_verts_set.add((ptx,pty))
 
-        self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
-
+        #FIXME: The following three lines safely reduce to the one-liner:
+        #
+        #    # Action, Jackson!
+        #    self.ecm_verts_unique = np.asarray(list(ecm_verts_set))
+        self.ecm_verts_unique = [
+            list(ecm_verts) for ecm_verts in list(ecm_verts_set)]
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
 
     def cleanVoronoi(self,p):
@@ -2663,7 +2666,25 @@ class Cells(object):
         # Numpy array converted from the passed sequence.
         membranes_midpoint_data = arrays.from_sequence(membranes_midpoint_data)
 
-        # Map this array from cell membrane midpoints onto cell centres.
+        # If the last dimension of this array does *NOT* index all cell
+        # membranes and hence is *NOT* spatially situated at cell membrane
+        # midpoints, raise an exception.
+        if membranes_midpoint_data.shape[-1] != self.mem_mids_flat.shape[0]:
+            raise BetseSequenceException(
+                'Input array not spatially situated at cell membrane midpoints '
+                '(i.e., last array dimension length {} not {}).'.format(
+                    membranes_midpoint_data.shape[-1],
+                    self.mem_mids_flat.shape[0]))
+
+        # If this array is three- or more-dimensional, raise an exception.
+        if len(membranes_midpoint_data.shape) >= 3:
+            raise BetseSequenceException(
+                'Input array of dimensionality {} neither one- nor '
+                'two-dimensional.'.format(len(membranes_midpoint_data.shape)))
+
+        # Map this array from cell membrane midpoints onto cell centres. By
+        # design, this efficiently supports both one- and two-dimensional input
+        # arrays as is.
         return np.dot(
             membranes_midpoint_data, self.membranes_midpoint_to_cells_centre)
 
@@ -2699,14 +2720,63 @@ class Cells(object):
         # Numpy array converted from the passed sequence.
         cells_centre_data = arrays.from_sequence(cells_centre_data)
 
-        # Map this array from cell centres onto cell membrane midpoints.
-        return interp.griddata(
-            (self.cell_centres[:,0], self.cell_centres[:,1]),
-            cells_centre_data,
-            (self.mem_mids_flat[:,0], self.mem_mids_flat[:,1]),
-            fill_value=0,
-            method=interp_method,
-        )
+        # If the last dimension of this array does *NOT* index all cells and
+        # hence is *NOT* spatially situated at cell centres, raise an exception.
+        if cells_centre_data.shape[-1] != self.cell_centres.shape[0]:
+            raise BetseSequenceException(
+                'Input array not spatially situated at cell centres '
+                '(i.e., last array dimension length {} not {}).'.format(
+                    cells_centre_data.shape[-1], self.cell_centres.shape[0]))
+
+        # If this array is three- or more-dimensional, raise an exception.
+        if len(cells_centre_data.shape) >= 3:
+            raise BetseSequenceException(
+                'Input array of dimensionality {} neither one- nor '
+                'two-dimensional.'.format(len(cells_centre_data.shape)))
+
+        # 2-tuple of the X and Y coordinates of all cell centres.
+        cell_centres_points = (self.cell_centres[:,0], self.cell_centres[:,1])
+
+        # 2-tuple of the X and Y coordinates of all cell membrane midpoints.
+        cell_membrane_midpoints = (
+            self.mem_mids_flat[:,0], self.mem_mids_flat[:,1])
+
+        # If this array is one-dimensional, map this array from cell centres
+        # onto cell membrane midpoints with a single interpolation call.
+        if len(cells_centre_data.shape) == 1:
+            return interp.griddata(
+                cell_centres_points,
+                cells_centre_data,
+                cell_membrane_midpoints,
+                fill_value=0,
+                method=interp_method,
+            )
+        # Else, this array is two-dimensional. Since SciPy requires that the
+        # second parameter to the interp.griddata() function be one-dimensional,
+        # map this array from cell centres onto cell membrane midpoints with
+        # multiple interpolation calls. While inefficient, SciPy appears to
+        # provide no alternative optimization.
+        else:
+            # Two-dimensional list aggregating all interpolation results.
+            cells_centre_data_interpolated = []
+
+            # For each one-dimensional array in this two-dimensional array...
+            for cells_centre_data_one in cells_centre_data:
+                # One-dimensional array interpolated from this array.
+                cells_centre_data_one_interpolated = interp.griddata(
+                    cell_centres_points,
+                    cells_centre_data_one,
+                    cell_membrane_midpoints,
+                    fill_value=0,
+                    method=interp_method,
+                )
+
+                # Append this array to this list.
+                cells_centre_data_interpolated.append(
+                    cells_centre_data_one_interpolated)
+
+            # Return this list converted back to an array.
+            return arrays.from_sequence(cells_centre_data_interpolated)
 
 
     #FIXME: To reduce code duplication:

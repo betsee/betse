@@ -116,9 +116,9 @@ class LayerCellsVectorSmoothRegions(LayerCellsVectorColorfulABC):
 
         # X and Y coordinates of the centers of all polygonol regions of the
         # Voronoi diagram defining this cell cluster.
-        regions_centre_x = expmath.upscale_cell_coordinates(
+        regions_centre_x = expmath.upscale_coordinates(
             self._phase.cells.voronoi_centres[:,0])
-        regions_centre_y = expmath.upscale_cell_coordinates(
+        regions_centre_y = expmath.upscale_coordinates(
             self._phase.cells.voronoi_centres[:,1])
 
         # One-dimensional array of all region-centred data for this time step.
