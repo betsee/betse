@@ -28,15 +28,17 @@ from betse.science.visual.anim.anim import (
     AnimEnvTimeSeries
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
+from betse.science.visual.layer.vector.lyrvecdiscrete import (
+    LayerCellsVectorDiscreteMembranesDeformed)
+from betse.science.visual.layer.vector.lyrvecsmooth import (
+    LayerCellsVectorSmoothGrids, LayerCellsVectorSmoothRegions)
 from betse.science.visual.layer.vectorfield.lyrvecfldquiver import (
     LayerCellsFieldQuiverCells,
     LayerCellsFieldQuiverGrids,
     LayerCellsFieldQuiverMembranes,
 )
-from betse.science.visual.layer.vector.lyrvecdiscrete import (
-    LayerCellsVectorDiscreteMembranesDeformed)
-from betse.science.visual.layer.vector.lyrvecsmooth import (
-    LayerCellsVectorSmoothGrids, LayerCellsVectorSmoothRegions)
+from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
+    LayerCellsFieldStream)
 from betse.util.type.types import type_check, IterableTypes
 
 # ....................{ SUBCLASSES                         }....................
@@ -66,7 +68,6 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ current                }..................
     @piperunner(
         categories=('Current Density', 'Intracellular',),
-        # requirements={piperunreq.VOLTAGE_POLARITY,},
     )
     def export_currents_intra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
@@ -74,14 +75,34 @@ class AnimCellsPipe(SimPipeExportABC):
         time steps.
         '''
 
-        # Animate this animation.
-        AnimCurrent(
+        # Intracellular current density field.
+        field = self._phase.cache.vector_field.currents_intra
+
+        # Vector cache of all intracellular current density field magnitudes
+        # over all time steps, spatially situated at cell centres.
+        field_magnitudes = VectorCellsCache(
+            phase=self._phase,
+            times_cells_centre=field.times_cells_centre.magnitudes)
+
+        # Layer sequence containing...
+        layers = (
+            # A lower layer animating these magnitudes.
+            LayerCellsVectorSmoothRegions(vector=field_magnitudes),
+
+            # A higher layer animating this field.
+            LayerCellsFieldStream(field=field),
+        )
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,
-            is_current_overlay_only_gj=True,
-            label='current_gj',
+            layers=layers,
             figure_title='Intracellular Current',
             colorbar_title='Current Density [uA/cm2]',
+
+            # Prefer an alternative colormap.
+            colormap=self._phase.p.background_cm,
         )
 
 

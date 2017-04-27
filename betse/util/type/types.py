@@ -388,6 +388,14 @@ type of the singleton ``None`` object.
 '''
 
 
+NumericOrSequenceOrNoneTypes = NumericOrSequenceTypes + NoneTypes
+'''
+Tuple of all numeric types, all container base classes conforming to (but *not*
+necessarily subclassing) the canonical :class:`Sequence` API, and the type of
+the singletone ``None`` object.
+'''
+
+
 SequenceOrNoneTypes = SequenceTypes + NoneTypes
 '''
 Tuple of all container base classes conforming to (but *not* necessarily

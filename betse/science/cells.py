@@ -19,7 +19,8 @@ from betse.science.math import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import (
+    type_check, NumericOrSequenceTypes, SequenceTypes,)
 
 # ....................{ CLASSES                            }....................
 # FIXME create a new option for seed points: Fibonacci radial-spiral array
@@ -61,12 +62,12 @@ class Cells(object):
     cell_centres : ndarray
         Two-dimensional Numpy array of the coordinates of the center points of
         all cells, whose:
-        . First dimension indexes cells, whose length is the number of cells.
-        . Second dimension indexes the coordinates of the center point of the
+        #. First dimension indexes cells, whose length is the number of cells.
+        #. Second dimension indexes the coordinates of the center point of the
           current cell, whose length is unconditionally guaranteed to be 2
           *and* whose:
-          . First element is the X coordinate of the current cell center.
-          . Second element is the Y coordinate of the current cell center.
+          #. First element is the X coordinate of the current cell center.
+          #. Second element is the Y coordinate of the current cell center.
     cell_i : list
         One-dimensional list indexing each cell such that each element is that
         cell's index (i.e., ``[0, 1, ..., n-2, n-1]`` for the number of cells
@@ -74,17 +75,17 @@ class Cells(object):
     cell_verts : ndarray
         Three-dimensional Numpy array of the coordinates of the vertices of all
         cells, whose:
-        . First dimension indexes each cell such that each element is a
+        #. First dimension indexes each cell such that each element is a
           matplotlib-compatible **polygon patch** (i.e., a two-dimensional
           Numpy array of all vertex coordinates defining the current cell's
           polygon), suitable for passing as is to the
           :meth:`matplotlib.patches.Polygon.__init__` method.
-        . Second dimension indexes each vertex of the current cell (in
+        #. Second dimension indexes each vertex of the current cell (in
           counterclockwise order).
-        . Third dimension indexes each coordinate of the current cell vertex,
+        #. Third dimension indexes each coordinate of the current cell vertex,
           whose length is guaranteed to be 2 *and* whose:
-          . First element is the X coordinate of the current cell vertex.
-          . Second element is the Y coordinate of the current cell vertex.
+          #. First element is the X coordinate of the current cell vertex.
+          #. Second element is the Y coordinate of the current cell vertex.
     R : ndarray
         One-dimensional Numpy array indexing each cell such that each element is
         the radius of that cell.
@@ -119,33 +120,32 @@ class Cells(object):
     mem_mids_flat : ndarray
         Two-dimensional Numpy array of the coordinates of the midpoints of all
         cell membranes, whose:
-        . First dimension indexes each cell membrane.
-        . Second dimension indexes each coordinate of the midpoint of the
-          current cell membrane, whose length is guaranteed to be 2 *and*
-          whose:
-          . First element is the X coordinate of the current membrane midpoint.
-          . Second element is the Y coordinate of the current membrane
-            midpoint.
+        #. First dimension indexes each cell membrane.
+        #. Second dimension indexes each coordinate of the midpoint of the
+           current cell membrane, whose length is guaranteed to be 2 and whose:
+          #. First element is the X coordinate of the current membrane midpoint.
+          #. Second element is the Y coordinate of the current membrane
+             midpoint.
     mem_vects_flat : ndarray
         Two-dimensional Numpy array of the coordinates of various vectors of
         all cell membranes, whose:
-        . First dimension indexes each cell membrane.
-        . Second dimension indexes each coordinate of a vector describing the
-          current cell membrane, whose length is guaranteed to be 6 *and* whose:
-          . First element is the X coordinate of the current membrane midpoint,
-            equivalent to :attr:`mem_mids_flat[mem_i,0]` where ``mem_i`` is the
-            index of the current membrane.
-          . Second element is the Y coordinate of the current membrane
-            midpoint, equivalent to :attr:`mem_mids_flat[mem_i,1]`.
-          . Third element is the X coordinate of the normal unit vector
-            orthogonal to the tangent unit vector of the current membrane
-            (defined by the corresponding element of the fifth and sixth
-            elements of this array).
-          . Fourth element is the Y coordinate of this normal unit vector.
-          . Fifth element is the X coordinate of the tangent unit vector
-            parallel to the vector implied by the pair of coordinates defining
-            the current membrane.
-          . Sixth element is the Y coordinate of this tangent unit vector.
+        #. First dimension indexes each cell membrane.
+        #. Second dimension indexes each coordinate of a vector describing the
+           current cell membrane, whose length is guaranteed to be 6 and whose:
+          #. First element is the X coordinate of the current membrane midpoint,
+             equivalent to :attr:`mem_mids_flat[mem_i,0]` where ``mem_i`` is the
+             index of the current membrane.
+          #. Second element is the Y coordinate of the current membrane
+             midpoint, equivalent to :attr:`mem_mids_flat[mem_i,1]`.
+          #. Third element is the X coordinate of the normal unit vector
+             orthogonal to the tangent unit vector of the current membrane
+             (defined by the corresponding element of the fifth and sixth
+             elements of this array).
+          #. Fourth element is the Y coordinate of this normal unit vector.
+          #. Fifth element is the X coordinate of the tangent unit vector
+             parallel to the vector implied by the pair of coordinates defining
+             the current membrane.
+          #. Sixth element is the Y coordinate of this tangent unit vector.
     num_mems : ndarray
         One-dimensional Numpy array indexing each cell such that each element
         is the number of cell membranes contained by the current cell.
@@ -2518,7 +2518,7 @@ class Cells(object):
             self.gradMem[inds_o,inds_p1] = 1/len_mem.mean()
             self.gradMem[inds_o,inds_o] = -1/len_mem.mean()
 
-    #..........{ PROPERTIES ~ membrane                   }.....................
+    # ..........{ PROPERTIES ~ membrane                   }.....................
     @property_cached
     def membranes_normal_unit_x(self) -> ndarray:
         '''
@@ -2540,7 +2540,7 @@ class Cells(object):
 
         return self.mem_vects_flat[:, 3]
 
-    #..........{ PROPERTIES ~ mappers                    }.....................
+    # ..........{ PROPERTIES ~ mappers                    }.....................
     #FIXME: For readability, rename to membranes_midpoint_to_vertices().
     @property_cached
     def matrixMap2Verts(self) -> ndarray:
@@ -2642,14 +2642,28 @@ class Cells(object):
         #   by the corresponding element of this row vector.
         return self.M_sum_mems.T / self.num_mems
 
-    #..........{ MAPPERS                                 }.....................
+    # ..........{ MAPPERS                                 }.....................
+    #FIXME: To reduce code duplication:
+    #
+    #    # Globally replace all instances of this...
+    #    np.dot(cells.M_sum_mems, some_array) / cells.num_mems
+    #
+    #    # ...with this.
+    #    cells.calculate_divergence(some_array)
+    #
+    #    # ...which should internally do something like this:
+    #    np.dot(some_array, cells.M_sum_mems.T) / cells.num_mems
+    #
+    #After doing so, consider replacing the "M_sum_mems" array with its
+    #tranpspose, which is a # the more general-purpose and efficient array.
+    #Unlike the former, the latter is applicable to both arrays and matrices.
     @type_check
     def map_membranes_midpoint_to_cells_centre(
         self, membranes_midpoint_data: SequenceTypes) -> ndarray:
         """
-        Interpolate a one- to two-dimensional sequence of arbitrary data
-        spatially situated at cell membrane midpoints into a Numpy array or
-        matrix of the same data resituated at cell centres.
+        Convert the passed one- or two-dimensional sequence of arbitrary data
+        spatially situated at cell membrane midpoints into a Numpy array of the
+        same dimensionality and data spatially situated at cell centres.
 
         Each element of the output array is the average of the passed membrane
         data over all membranes of the corresponding cell, thus interpolating
@@ -2711,109 +2725,197 @@ class Cells(object):
         return np.dot(
             membranes_midpoint_data, self.membranes_midpoint_to_cells_centre)
 
+    # ..........{ MAPPERS ~ cells centre                  }.....................
+    def map_cells_centre_to_grids_centre(
+        self, *args, **kwargs) -> ndarray:
+        """
+        Convert the passed one- or two-dimensional sequence of arbitrary data
+        spatially situated at cell centres into a Numpy array of the same
+        dimensionality and data spatially situated at environmental (i.e.,
+        extracellular) grid space centres.
+
+        See Also
+        -----------
+        :meth:`map_cells_centre_to_points`
+            Further details.
+        """
+
+        return self.map_cells_centre_to_points(
+            *args,
+
+            # 2-tuple of the target X and Y coordinates of all grid space
+            # centres to interpolate this data onto.
+            target_points=(self.X, self.Y),
+
+            # Mask nullifying all output data mapped onto extracellular spaces.
+            # While the "fill_value" parameter internally passed to the
+            # griddata() function by this call should already do so, assumptions
+            # are a dangerous mistress.
+            data_factor=self.maskECM,
+
+            # All remaining arguments.
+            **kwargs
+        )
+
 
     def map_cells_centre_to_membranes_midpoint(
+        self, *args, **kwargs) -> ndarray:
+        """
+        Convert the passed one- or two-dimensional sequence of arbitrary data
+        spatially situated at cell centres into a Numpy array of the same
+        dimensionality and data spatially situated at cell membrane midpoints.
+
+        See Also
+        -----------
+        :meth:`map_cells_centre_to_points`
+            Further details.
+        """
+
+        return self.map_cells_centre_to_points(
+            *args,
+
+            # 2-tuple of the target X and Y coordinates of all cell membrane
+            # midpoints to interpolate this data onto.
+            target_points=(
+                self.mem_mids_flat[:, 0], self.mem_mids_flat[:, 1]),
+
+            # All remaining arguments.
+            **kwargs
+        )
+
+
+    def map_cells_centre_to_points(
         self,
+
+        # Mandatory parameters.
         cells_centre_data: SequenceTypes,
+        target_points: SequenceTypes,
+
+        # Optional parameters.
         interp_method: str = 'linear',
+        data_factor: NumericOrSequenceTypes = 1,
     ) -> ndarray:
         """
-        Interpolate a sequence of arbitrary data defined on cell centres
-        into a Numpy array of the same data defined on cell membrane midpoints.
+        Convert the passed one- or two-dimensional sequence of arbitrary data
+        spatially situated at cell centres into a Numpy array of the same
+        dimensionality and data spatially situated at the passed target points.
 
         Parameters
         -----------
         cells_centre_data : SequenceTypes
-            One-dimensional sequence of length the number of cells such that
-            each element is arbitrary cell data spatially situated at the
-            center of the cell with that 0-based index.
-        interp_method : str
+            One- or two-dimensional sequence of length the number of cells such
+            that each element is arbitrary cell data spatially situated at the
+            centre of that cell.
+        target_points : SequenceTypes
+            Two-dimensional sequence of the coordinates of all target points to
+            interpolate this cell data onto, whose:
+            #. First dimension indexes first the X and then Y axis.
+            #. Second dimension indexes each target point such that each element
+               is the coordinate of that point along this axis.
+            For each target point, the output data returned for source data
+            defined at cells whose membranes overlap this target point is
+            defined as follows:
+            * If this target point resides *inside* the convex hull of this cell
+              cluster, this output data is spatially interpolated from the
+              centres of these cells onto this target point.
+            * Else, 0. In this case, this target point resides *outside* the
+              convex hull of this cell cluster. The source data is spatially
+              situated at cell centres and hence perfectly intracellular. No
+              extracellular source data exists with which to interpolate onto
+              extracellular target points.
+        interp_method : optional[str]
             Interpolation type to pass to the
-            :func:`scipy.interpolate.gridddata` function (e.g., `nearest`,
-            `linear`, `cubic`).
+            :func:`scipy.interpolate.gridddata` function (e.g., ``nearest``,
+            ``linear``, ``cubic``). Defaults to ``linear``.
+        data_factor : NumericOrSequenceTypes
+            Integer, float, or one-dimensional sequence of integers or floats
+            by which to multiply all elements of the returned array. Defaults to
+            1, in which case this array is returned as is. Specifically, if this
+            array is:
+            * One-dimensional, this array itself is multiplied by this factor.
+            * Two-dimensional, each element of the first dimension of this array
+              is multiplied by this factor.
 
         Returns
         -----------
         ndarray
-            One-dimensional Numpy array of length the number of cell membranes
-            such that each element is arbitrary cell membrane data spatially
-            situated at the midpoint of the membrane with that 0-based index.
+            One- or two-dimensional Numpy array of length the number of target
+            points such that each element is arbitrary cell data spatially
+            interpolated onto the nearast target point.
         """
 
-        # Numpy array converted from the passed sequence.
+        # Numpy arrays converted from the passed sequences.
         cells_centre_data = arrays.from_sequence(cells_centre_data)
 
-        # If the last dimension of this array does *NOT* index all cells and
-        # hence is *NOT* spatially situated at cell centres, raise an exception.
-        if cells_centre_data.shape[-1] != self.cell_centres.shape[0]:
+        # If this source data is neither one- nor two-dimensional, raise an
+        # exception.
+        if len(cells_centre_data.shape) not in {1, 2}:
             raise BetseSequenceException(
-                'Input array not spatially situated at cell centres '
-                '(i.e., last array dimension length {} not {}).'.format(
-                    cells_centre_data.shape[-1], self.cell_centres.shape[0]))
-
-        # If this array is three- or more-dimensional, raise an exception.
-        if len(cells_centre_data.shape) >= 3:
-            raise BetseSequenceException(
-                'Input array of dimensionality {} neither one- nor '
+                'Source data dimensionality {} neither one- nor '
                 'two-dimensional.'.format(len(cells_centre_data.shape)))
 
+        # If the last dimension of this source data does *NOT* index all cells
+        # in this cluster, raise an exception.
+        if cells_centre_data.shape[-1] != self.cell_centres.shape[0]:
+            raise BetseSequenceException(
+                'Source data not spatially situated at cell centres '
+                '(i.e., last dimension length {} not {}).'.format(
+                    cells_centre_data.shape[-1], self.cell_centres.shape[0]))
+
+        # If the first dimension of these target points are *NOT* coordinate
+        # pairs, raise an exception.
+        if len(target_points) != 2:
+            raise BetseSequenceException(
+                'Target points not coordinate pairs '
+                '(i.e., first dimension length {} not 2).'.format(
+                    len(target_points)))
+
         # 2-tuple of the X and Y coordinates of all cell centres.
-        cell_centres_points = (self.cell_centres[:,0], self.cell_centres[:,1])
+        cell_centres = (self.cell_centres[:, 0], self.cell_centres[:, 1])
 
-        # 2-tuple of the X and Y coordinates of all cell membrane midpoints.
-        cell_membrane_midpoints = (
-            self.mem_mids_flat[:,0], self.mem_mids_flat[:,1])
+        # Dictionary of all keyword arguments to pass to all calls to the
+        # griddata() function performed below.
+        griddate_kwargs = {
+            # 2-tuple of all source X and Y coordinates to interpolate from.
+            'points': cell_centres,
 
-        # If this array is one-dimensional, map this array from cell centres
-        # onto cell membrane midpoints with a single interpolation call.
+            # 2-tuple of all target X and Y coordinates to interpolate onto.
+            'xi': target_points,
+
+            # Machine-readable string specifying the interpolation type.
+            'method': interp_method,
+
+            # Default data value to assign all output points residing outside
+            # the convex hull of the cell centres being interpolated from, which
+            # are thus non-interpolatable. For safety, this data is nullified.
+            # The default "fill_value" is NaN, which is absurdly unsafe.
+            'fill_value': 0,
+        }
+
+        # If this source data is one-dimensional, map this data from cell
+        # centres onto target points via a single interpolation call.
         if len(cells_centre_data.shape) == 1:
-            return interp.griddata(
-                cell_centres_points,
-                cells_centre_data,
-                cell_membrane_midpoints,
-                fill_value=0,
-                method=interp_method,
-            )
-        # Else, this array is two-dimensional. Since SciPy requires that the
-        # second parameter to the interp.griddata() function be one-dimensional,
-        # map this array from cell centres onto cell membrane midpoints with
-        # multiple interpolation calls. While inefficient, SciPy appears to
-        # provide no alternative optimization.
+            return data_factor * interp.griddata(
+                values=cells_centre_data, **griddate_kwargs)
+        # Else, this data is two-dimensional. Since SciPy requires the second
+        # parameter to the interp.griddata() function be one-dimensional, this
+        # is mappable from cell centres onto target points *ONLY* via multiple
+        # interpolation calls. While inefficient, SciPy offers no alternatives.
         else:
-            # Two-dimensional list aggregating all interpolation results.
+            # Two-dimensional output list aggregating all interpolation results.
             cells_centre_data_interpolated = []
 
-            # For each one-dimensional array in this two-dimensional array...
+            # For each one-dimensional input array of source data in this
+            # two-dimensional input array of such data...
             for cells_centre_data_one in cells_centre_data:
-                # One-dimensional array interpolated from this array.
-                cells_centre_data_one_interpolated = interp.griddata(
-                    cell_centres_points,
-                    cells_centre_data_one,
-                    cell_membrane_midpoints,
-                    fill_value=0,
-                    method=interp_method,
-                )
+                # One-dimensional output array interpolated from this array.
+                cells_centre_data_one_interpolated = (
+                    data_factor * interp.griddata(
+                        values=cells_centre_data_one, **griddate_kwargs))
 
-                # Append this array to this list.
+                # Append this output array to this output list.
                 cells_centre_data_interpolated.append(
                     cells_centre_data_one_interpolated)
 
-            # Return this list converted back to an array.
+            # Return this output list converted back to an output array.
             return arrays.from_sequence(cells_centre_data_interpolated)
-
-
-    #FIXME: To reduce code duplication:
-    #
-    #    # Globally replace all instances of this...
-    #    np.dot(cells.M_sum_mems, some_array) / cells.num_mems
-    #
-    #    # ...with this.
-    #    cells.calculate_divergence(some_array)
-
-        # ...which should internally do something like this:
-    #    np.dot(some_array, cells.M_sum_mems.T) / cells.num_mems
-    #
-    #After doing so, consider replacing the "M_sum_mems" array with its
-    #tranpspose, which is a # the more general-purpose and efficient array.
-    #Unlike the former, the latter is applicable to both Numpy arrays and
-    #matrices.

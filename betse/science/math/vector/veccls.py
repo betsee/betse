@@ -14,7 +14,6 @@ from betse.science.simulate.cache.cacheabc import SimPhaseCacheABC
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, SequenceOrNoneTypes
 from numpy import ndarray
-from scipy import interpolate
 
 # ....................{ SUPERCLASSES                       }....................
 class VectorCellsCache(SimPhaseCacheABC):
@@ -173,7 +172,7 @@ class VectorCellsCache(SimPhaseCacheABC):
 
         # Else, remap this vector from cell membrane midpoints to cell centres.
         return self._phase.cells.map_membranes_midpoint_to_cells_centre(
-            self.times_membranes_midpoint)
+            membranes_midpoint_data=self.times_membranes_midpoint)
 
 
     @property_cached
@@ -197,7 +196,7 @@ class VectorCellsCache(SimPhaseCacheABC):
 
         # Else, remap this vector from cell centres to cell membrane midpoints.
         return self._phase.cells.map_cells_centre_to_membranes_midpoint(
-            self.times_cells_centre)
+            cells_centre_data=self.times_cells_centre)
 
 
     @property_cached
@@ -257,7 +256,7 @@ class VectorCellsCache(SimPhaseCacheABC):
         . First dimension indexes each simulation time step.
         . Second dimension indexes each square grid space (in either dimension),
           such that each element is either:
-        * If this vector was initialized with the :meth:`times_grids_centre`
+          * If this vector was initialized with the :meth:`times_grids_centre`
             parameter, arbitrary grid data spatially situated at the centre of
             this grid space for this time step. In this case, no interpolation
             is required and the original :meth:`times_grids_centre` array is
@@ -281,59 +280,9 @@ class VectorCellsCache(SimPhaseCacheABC):
         # the original array of such data.
         if self._times_grids_centre is not None:
             return self._times_grids_centre
+
         # Else, remap this vector from cell centres to grid space centres.
-
-        # Two-dimensional sequence of input X and Y coordinates to be
-        # interpolated from, whose:
-        #
-        # * First dimension indexes first the X and then Y dimension.
-        # * Second dimension indexes each cell, such that each element is the
-        #   input coordinate in this dimension of the centre of this cell.
-        dimensions_cells_center = (
-            self._phase.cells.cell_centres[:, 0],
-            self._phase.cells.cell_centres[:, 1])
-
-        # Two-dimensional sequence of output X and Y coordinates to be
-        # interpolated into, whose:
-        #
-        # * First dimension indexes first the X and then Y dimension.
-        # * Second dimension indexes each square grid space, such that each
-        #   element is the output coordinate in this dimension of the centre of
-        #   this grid space.
-        dimensions_grids_centre = (self._phase.cells.X, self._phase.cells.Y)
-
-        # Two-dimensional sequence to be returned.
-        times_grids_centre = []
-
-        # For each one-dimensional input array of the X or Y components of all
-        # vectors situated at the center of each cell for each time step...
-        for cells_centre in self.times_cells_centre:
-            # One-dimensional output array of the X or Y components of all
-            # vectors situated at the centre of each grid space for this time
-            # step, interpolated from this input array.
-            grids_centre = self._phase.cells.maskECM * interpolate.griddata(
-                # Tuple of X and Y coordinates to interpolate from.
-                points=dimensions_cells_center,
-
-                # Tuple of X and Y coordinates to interpolate onto.
-                xi=dimensions_grids_centre,
-
-                # Array of X or Y input vector components to interpolate.
-                values=cells_centre,
-
-                # Machine-readable string specifying the type of interpolation
-                # to perform, established by the current configuration.
-                method=self._phase.p.interp_type,
-
-                # Default value for all environmental grid points residing
-                # outside the convex hull of the cell centers being interpolated
-                # from, which are thus non-interpolatable. To nullify all
-                # extracellular vectors, this is zero. By default, this is NaN.
-                fill_value=0,
-            )
-
-            # Append this output array to this output sequence.
-            times_grids_centre.append(grids_centre)
-
-        # Return this output sequence, converted from a list into a Numpy array.
-        return arrays.from_sequence(times_grids_centre)
+        return self._phase.cells.map_cells_centre_to_grids_centre(
+            cells_centre_data=self.times_cells_centre,
+            interp_method=self._phase.p.interp_type,
+        )

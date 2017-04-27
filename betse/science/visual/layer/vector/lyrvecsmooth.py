@@ -19,8 +19,8 @@ class LayerCellsVectorSmoothGrids(LayerCellsVectorColorfulABC):
     '''
     Layer subclass plotting a single vector spatially situated at environmental
     grid space centres (e.g., extracellular electric field magnitudes) as a
-    continuous surface depicted by a polygonal mesh onto the
-    cell cluster for one on more simulation steps.
+    continuous surface depicted by a polygonal mesh onto the cell cluster for
+    one on more simulation steps.
 
     Attributes
     ----------

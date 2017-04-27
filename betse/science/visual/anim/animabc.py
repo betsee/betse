@@ -174,6 +174,9 @@ class AnimCellsABC(VisualCellsABC):
     def __init__(
         self,
 
+        # Mandatory parameters.
+        save_dir_parent_basename: str,
+
         #FIXME: Remove the "is_current_overlayable" and
         #"is_current_overlay_only_gj" parameters but *NOT* the corresponding
         #private attributes. Currently, the former parameter is only enabled
@@ -189,9 +192,6 @@ class AnimCellsABC(VisualCellsABC):
         #  attribute should be disabled.
         #* Else, that attribute should default to the corresponding setting(s)
         #  in the current simulation configuration.
-
-        # Mandatory parameters.
-        save_dir_parent_basename: str,
 
         # Optional parameters.
         is_current_overlayable: BoolOrNoneTypes = None,
