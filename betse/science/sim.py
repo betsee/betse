@@ -92,36 +92,41 @@ class Simulator(object):
         * Frames in each exported animation.
         * Rows in each exported spreadsheet.
 
-    Attributes (Current Density)
+    Attributes (Current Density: Extracellular)
+    ----------
+    I_tot_x_time : list
+        Two-dimensional list of the X components of all extracellular current
+        densities, whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension indexes each square environmental grid space (in
+          either dimension) such that each element is the X component of the
+          extracellular current density vector spatially situated at the centre
+          of that space for this time step.
+    I_tot_y_time : list
+        Two-dimensional list of the Y components of all extracellular current
+        densities, whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension indexes each square environmental grid space (in
+          either dimension) such that each element is the Y component of the
+          extracellular current density vector spatially situated at the centre
+          of that space for this time step.
+
+    Attributes (Current Density: Intracellular)
     ----------
     I_cell_x_time : list
-        Two-dimensional list whose:
+        Two-dimensional list of the X components of all intracellular current
+        densities, whose:
         * First dimension indexes each sampled time step.
         * Second dimension indexes each cell such that each element is the X
           component of the intracellular current density vector spatially
           situated at the center of that cell for this time step.
     I_cell_y_time : list
-        Two-dimensional list whose:
+        Two-dimensional list of the Y components of all intracellular current
+        densities, whose:
         * First dimension indexes each sampled time step.
         * Second dimension indexes each cell such that each element is the Y
           component of the intracellular current density vector spatially
           situated at the center of that cell for this time step.
-    I_tot_x_time : list
-        Two-dimensional list whose:
-        * First dimension indexes each sampled time step.
-        * Second dimension indexes each square grid spaces (in either
-          dimension) such that each element is the X component of the **total
-          current density vector** (i.e., vector of both intra- _and_
-          extracellular current densities) spatially situated at the center of
-          that grid space for this time step.
-    I_tot_y_time : list
-        Two-dimensional list whose:
-        * First dimension indexes each sampled time step.
-        * Second dimension indexes each square grid spaces (in either
-          dimension) such that each element is the Y component of the **total
-          current density vector** (i.e., vector of both intra- _and_
-          extracellular current densities) spatially situated at the center of
-          that grid space for this time step.
 
     Attributes (Deformation)
     ----------

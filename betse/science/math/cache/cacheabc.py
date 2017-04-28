@@ -9,10 +9,12 @@ constructed large-scale objects for a simulation phase) functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
-from abc import ABCMeta  #, abstractmethod
+from abc import ABCMeta  # , abstractmethod
+
 from betse.science.simulate.simphase import SimPhase
 from betse.util.py import references
 from betse.util.type.types import type_check
+
 
 # ....................{ CLASSES                            }....................
 class SimPhaseCaches(object):
@@ -44,10 +46,10 @@ class SimPhaseCaches(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.science.simulate.cache.cacheupscaled import (
+        from betse.science.math.cache.cacheupscaled import (
             SimPhaseCacheUpscaled)
-        from betse.science.simulate.cache.cachevec import SimPhaseCacheVectorCells
-        from betse.science.simulate.cache.cachevecfld import (
+        from betse.science.math.cache.cachevec import SimPhaseCacheVectorCells
+        from betse.science.math.cache.cachevecfld import (
             SimPhaseCacheVectorFieldCells)
 
         # Classify all subcaches imported above.

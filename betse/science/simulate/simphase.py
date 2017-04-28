@@ -113,7 +113,7 @@ class SimPhase(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.science.simulate.cache.cacheabc import SimPhaseCaches
+        from betse.science.math.cache.cacheabc import SimPhaseCaches
 
         # Classify all passed parameters.
         self.kind = kind

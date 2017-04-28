@@ -2701,7 +2701,7 @@ class Cells(object):
         """
 
         # Numpy array converted from the passed sequence.
-        membranes_midpoint_data = arrays.from_sequence(membranes_midpoint_data)
+        membranes_midpoint_data = arrays.from_iterable(membranes_midpoint_data)
 
         # If the last dimension of this array does *NOT* index all cell
         # membranes and hence is *NOT* spatially situated at cell membrane
@@ -2845,7 +2845,7 @@ class Cells(object):
         """
 
         # Numpy arrays converted from the passed sequences.
-        cells_centre_data = arrays.from_sequence(cells_centre_data)
+        cells_centre_data = arrays.from_iterable(cells_centre_data)
 
         # If this source data is neither one- nor two-dimensional, raise an
         # exception.
@@ -2918,4 +2918,4 @@ class Cells(object):
                     cells_centre_data_one_interpolated)
 
             # Return this output list converted back to an output array.
-            return arrays.from_sequence(cells_centre_data_interpolated)
+            return arrays.from_iterable(cells_centre_data_interpolated)

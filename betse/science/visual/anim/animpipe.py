@@ -12,14 +12,12 @@ exporting) post-simulation animations.
 #the generation of each animation to its own Python process. Verdant shimmers!
 
 # ....................{ IMPORTS                            }....................
-import numpy as np
 from betse.science.config.export.confvis import SimConfVisualCellsListItem
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.simulate.pipe import piperunreq
 from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.visual.anim.anim import (
-    AnimCurrent,
     AnimGapJuncTimeSeries,
     AnimMembraneTimeSeries,
     AnimVelocityIntracellular,
@@ -28,6 +26,7 @@ from betse.science.visual.anim.anim import (
     AnimEnvTimeSeries
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
+from betse.science.visual.layer.vector import lyrvecabc
 from betse.science.visual.layer.vector.lyrvecdiscrete import (
     LayerCellsVectorDiscreteMembranesDeformed)
 from betse.science.visual.layer.vector.lyrvecsmooth import (
@@ -116,14 +115,34 @@ class AnimCellsPipe(SimPipeExportABC):
         environment over all sampled time steps.
         '''
 
-        # Animate this animation.
-        AnimCurrent(
+        # Extracellular current density field over all sampled time steps.
+        field = self._phase.cache.vector_field.currents_extra
+
+        # Vector of all extracellular current density magnitudes over all time
+        # steps, spatially situated at environmental grid space centres.
+        field_magnitudes = VectorCellsCache(
+            phase=self._phase,
+            times_grids_centre=field.times_grids_centre.magnitudes)
+
+        # Layer sequence containing...
+        layers = (
+            # A lower layer animating these magnitudes.
+            LayerCellsVectorSmoothGrids(vector=field_magnitudes),
+
+            # A higher layer animating this field.
+            LayerCellsFieldStream(field=field),
+        )
+
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,
-            is_current_overlay_only_gj=False,
-            label='current_ecm',
+            layers=layers,
             figure_title='Extracellular Current',
             colorbar_title='Current Density [uA/cm2]',
+
+            # Prefer an alternative colormap.
+            colormap=self._phase.p.background_cm,
         )
 
     # ..................{ EXPORTERS ~ deform                 }..................
@@ -219,7 +238,7 @@ class AnimCellsPipe(SimPipeExportABC):
         field = self._phase.cache.vector_field.electric_extra
 
         # Vector of all extracellular electric field magnitudes over all time
-        # steps, spatially situated at cell centres.
+        # steps, spatially situated at environmental grid space centres.
         field_magnitudes = VectorCellsCache(
             phase=self._phase,
             times_grids_centre=field.times_grids_centre.magnitudes)
@@ -288,23 +307,26 @@ class AnimCellsPipe(SimPipeExportABC):
     # ..................{ EXPORTERS ~ ion                    }..................
     @piperunner(
         categories=('Ion Concentration', 'Calcium',),
-        requirements={piperunreq.ION_CALCIUM, },
+        requirements={piperunreq.ION_CALCIUM,},
     )
-    def export_ion_calcium(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_ion_calcium_intra(
+        self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Animate all calcium (i.e., Ca2+) ion concentrations over all sampled time steps.
+        Animate all intracellular calcium ion (Ca2+) concentrations over all
+        sampled time steps.
         '''
 
-        # Array of all upscaled calcium ion concentrations.
-        time_series = [
-            1e6*arr[self._phase.sim.iCa] for arr in self._phase.sim.cc_time]
+        # Layer sequence containing only a single layer animating these ion
+        # concentrations.
+        layers = (lyrvecabc.make_layer(
+            phase=self._phase,
+            vector=self._phase.cache.vector.ion_calcium_intra),)
 
-        # Animate this animation.
-        AnimFlatCellsTimeSeries(
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,
-            time_series=time_series,
-            label='Ca',
+            layers=layers,
             figure_title='Cytosolic Ca2+',
             colorbar_title='Concentration [nmol/L]',
         )
@@ -312,26 +334,26 @@ class AnimCellsPipe(SimPipeExportABC):
 
     @piperunner(
         categories=('Ion Concentration', 'Hydrogen',),
-        requirements={piperunreq.ION_HYDROGEN, },
+        requirements={piperunreq.ION_HYDROGEN,},
     )
-    def export_ion_hydrogen(self, conf: SimConfVisualCellsListItem) -> None:
+    def export_ion_hydrogen_intra(
+        self, conf: SimConfVisualCellsListItem) -> None:
         '''
-        Animate all hydrogen (i.e., H+) ion concentrations over all sampled time steps.
-        scaled to correspond exactly to pH.
+        Animate all intracellular hydrogen ion (i.e., H+) concentrations over
+        all sampled time steps, scaled to correspond exactly to pH.
         '''
 
-        # Array of all upscaled calcium ion concentrations.
-        time_series = [
-            -np.log10(1.0e-3 * arr[self._phase.sim.iH])
-            for arr in self._phase.sim.cc_time
-        ]
+        # Layer sequence containing only a single layer animating these ion
+        # concentrations.
+        layers = (lyrvecabc.make_layer(
+            phase=self._phase,
+            vector=self._phase.cache.vector.ion_hydrogen_intra),)
 
-        # Animate this animation.
-        AnimFlatCellsTimeSeries(
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,
-            time_series=time_series,
-            label='pH',
+            layers=layers,
             figure_title='Cytosolic pH',
             colorbar_title='pH',
         )

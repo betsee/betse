@@ -10,7 +10,7 @@ Utility functions of general-purpose relevance to all plots and animations.
 from betse.lib.numpy import arrays
 from betse.util.type import ints, types
 from betse.util.type.types import (
-    type_check, NumericOrSequenceTypes, NumericTypes)
+    type_check, NumericTypes, NumericOrIterableTypes,)
 
 # ....................{ CONSTANTS                          }....................
 UPSCALER_COORDINATES = ints.INVERSE_MICRO
@@ -22,30 +22,26 @@ these coordinates in user-friendly exports.
 
 # ....................{ UPSCALERS ~ cell : data            }....................
 @type_check
-def upscale_units_milli(
-    cell_data: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
+def upscale_units_milli(data: NumericOrIterableTypes) -> NumericOrIterableTypes:
     '''
-    Upscale the contents of the number or sequence of numbers whose units are
-    assumed to be denominated in a milli- prefix (i.e., ``10**-3``).
+    Upscale the contents of the passed number or iterable of numbers whose units
+    are assumed to be milli-prefixed (i.e., factors of ``10**-3``).
 
     This function does *not* modify the passed object. If this object is:
 
-    * A scalar number (e.g., of type :class:`int` or :class:`float`), this
-      function returns a new scalar number of the same type multiplied by a
+    * A scalar number (e.g., :class:`int`, :class:`float`), this function
+      returns a new scalar number of the same type multiplied by a positive
+      constant.
+    * A non-Numpy iterable (e.g., :class:`list`), this function returns a new
+      Numpy array first converted from this iterable and then multiplied by a
       positive constant.
-    * A Numpy array, this function returns a new Numpy array equal to the
-      passed array multiplied by a positive constant.
-    * A Python sequence (e.g., :class:`list`), this function returns a new Numpy
-      array equal to the passed sequence converted into a new Numpy array and
-      then multiplied by a positive constant.
+    * A Numpy array, this function returns a new Numpy array first copied from
+      the passed array and then multiplied by a positive constant.
 
     Parameters
     ----------
-    cell_data : NumericOrSequenceTypes
-        Either:
-        * If this data is numeric, this number upscaled by this multiplier.
-        * If this data is sequential, this sequence converted into a Numpy array
-          whose elements are upscaled by this multiplier.
+    data : NumericOrIterableTypes
+        Either a number of iterable of numbers to upscale.
 
     Returns
     ----------
@@ -53,13 +49,27 @@ def upscale_units_milli(
         Upscaled object as described above.
     '''
 
-    return _upscale_data_in_units(
-        data=cell_data, factor=ints.INVERSE_MILLI)
+    return _upscale_data_in_units(data=data, factor=ints.INVERSE_MILLI)
+
+
+@type_check
+def upscale_units_micro(data: NumericOrIterableTypes) -> NumericOrIterableTypes:
+    '''
+    Upscale the contents of the passed number or iterable of numbers whose units
+    are assumed to be micro-prefixed (i.e., factors of ``10**-6``).
+
+    See Also
+    ----------
+    :func:`upscale_units_milli`
+        Further details.
+    '''
+
+    return _upscale_data_in_units(data=data, factor=ints.INVERSE_MICRO)
 
 # ....................{ UPSCALERS ~ cell : coordinates     }....................
 @type_check
 def upscale_coordinates(
-    cell_coordinates: NumericOrSequenceTypes) -> NumericOrSequenceTypes:
+    coordinates: NumericOrIterableTypes) -> NumericOrIterableTypes:
     '''
     Upscale the contents of the passed number or sequence of numbers whose units
     are assumed to be denominated in micrometers (i.e., ``10**-6``), typically
@@ -68,12 +78,12 @@ def upscale_coordinates(
 
     Parameters
     ----------
-    cell_coordinates : NumericOrSequenceTypes
+    coordinates : NumericOrIterableTypes
         Number or sequence to be upscaled.
 
     Returns
     ----------
-    NumericOrSequenceTypes
+    NumericOrIterableTypes
         Either:
         * If this data is numeric, this number upscaled by this multiplier.
         * If this data is sequential, this sequence converted into a Numpy array
@@ -86,12 +96,12 @@ def upscale_coordinates(
     '''
 
     return _upscale_data_in_units(
-        data=cell_coordinates, factor=UPSCALER_COORDINATES)
+        data=coordinates, factor=UPSCALER_COORDINATES)
 
 
 @type_check
 def upscale_coordinates_tuple(
-    *cells_coordinates: NumericOrSequenceTypes) -> tuple:
+    *cells_coordinates: NumericOrIterableTypes) -> tuple:
     '''
     Upscale the contents of each passed number or sequence of numbers whose
     units are assumed to be denominated in micrometers (i.e., ``10**-6``),
@@ -99,7 +109,7 @@ def upscale_coordinates_tuple(
 
     Parameters
     ----------
-    cells_coordinates : tuple[NumericOrSequenceTypes]
+    cells_coordinates : tuple[NumericOrIterableTypes]
         Tuple of all numbers and sequences to be upscaled.
 
     Returns
@@ -118,8 +128,8 @@ def upscale_coordinates_tuple(
 # ....................{ UPSCALERS ~ private                }....................
 @type_check
 def _upscale_data_in_units(
-    data: NumericOrSequenceTypes, factor: NumericTypes) -> (
-    NumericOrSequenceTypes):
+    data: NumericOrIterableTypes, factor: NumericTypes) -> (
+    NumericOrIterableTypes):
     '''
     Upscale the contents of the passed object by the passed multiplier,
     typically under the assumption that these contents are denominated in the
@@ -127,14 +137,14 @@ def _upscale_data_in_units(
 
     Parameters
     ----------
-    data : NumericOrSequenceTypes
+    data : NumericOrIterableTypes
         Number or sequence to be upscaled.
     factor : NumericTypes
         Reciprocal of the units this object is denominated in.
 
     Returns
     ----------
-    NumericOrSequenceTypes
+    NumericOrIterableTypes
         Either:
         * If this data is numeric, this number upscaled by this multiplier.
         * If this data is sequential, this sequence converted into a Numpy array
@@ -152,4 +162,4 @@ def _upscale_data_in_units(
     # Else, this object is a sequence. Return this sequence converted into a
     # Numpy array and then upscaled.
     else:
-        return arrays.from_sequence(data) * factor
+        return arrays.from_iterable(data) * factor

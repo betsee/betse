@@ -949,9 +949,9 @@ results options:
           #   Ignored if fluid flow disabled.
           # fluid_extra  ->  Extracellular fluid flow
           #   Ignored if fluid flow or extracellular spaces disabled.
-          # ion_calcium  ->  Calcium ion concentration
+          # ion_calcium_intra  ->  Intracellular calcium ion concentration
           #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # ion_hydrogen  ->  Hydrogen ion concentration as pH
+          # ion_hydrogen_intra  ->  Intracellular hydrogen ion concentration == pH
           #   Ignored if hydrogen ions (H+) disabled by ion profile.
           # junction_state  ->  Gap junction connectivity state
           # microtubule  ->  Microtubule orientation

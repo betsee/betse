@@ -14,20 +14,24 @@ Low-level Numpy array and matrix facilities.
 import numpy as np
 from betse.exceptions import BetseSequenceException, BetseStrException
 from betse.util.path import dirs
-from betse.util.type import strs, types
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type import sequences, strs, types
+from betse.util.type.types import type_check, IterableTypes
 from collections import OrderedDict
 from numpy import ndarray
 
 # ....................{ CONVERTERS                         }....................
 @type_check
-def from_sequence(sequence: SequenceTypes) -> ndarray:
+def from_iterable(iterable: IterableTypes) -> ndarray:
     '''
-    Convert the passed sequence into a Numpy array.
+    Convert the passed iterable into a Numpy array.
 
-    If this sequence is already a Numpy array, this function returns this array
-    unmodified; else, this function converts this sequence into a Numpy array
-    and returns that array.
+    If this iterable is:
+
+    * A non-sequence (e.g., generator), this iterable is first converted into a
+      sequence and finally into a Numpy array.
+    * A non-Numpy sequence (e.g., list), this sequence is directly converted
+      into a Numpy array.
+    * A Numpy array, this array is returned unmodified.
 
     Caveats
     ----------
@@ -60,8 +64,13 @@ def from_sequence(sequence: SequenceTypes) -> ndarray:
         Numpy array converted from this sequence.
     '''
 
-    # Thanks to the @type_check decorator invoked above, the passed parameter is
-    # guaranteed to be a sequence safely passable as is to this function.
+    # Sequence converted from this iterable. If this iterable is already a
+    # sequence, reuse this sequence as is; else, convert this iterable into the
+    # most space- and time-efficient pure-Python sequence available: a tuple.
+    sequence = (
+        iterable if sequences.is_sequence(iterable) else tuple(iterable))
+
+    # Numpy array converted from this sequence.
     return np.asarray(sequence)
 
 # ....................{ WRITERS                            }....................

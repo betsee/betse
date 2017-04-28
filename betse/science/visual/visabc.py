@@ -1348,7 +1348,7 @@ class VisualCellsABC(object, metaclass=ABCMeta):
             # Update this plot in-place.
             cell_plot.set_array(cell_data)
             cell_plot.set_verts(
-                arrays.from_sequence(self._phase.cells.cell_verts) * self._phase.p.um)
+                arrays.from_iterable(self._phase.cells.cell_verts) * self._phase.p.um)
 
             # Return the same plot.
             return cell_plot

@@ -153,9 +153,9 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             self._phase.kind is SimPhaseKind.SIM
         ):
             # Extract time-series deformation data for the plot cell:
-            dx = arrays.from_sequence([
+            dx = arrays.from_iterable([
                 arr[cell_index] for arr in self._phase.sim.dx_cell_time])
-            dy = arrays.from_sequence([
+            dy = arrays.from_iterable([
                 arr[cell_index] for arr in self._phase.sim.dy_cell_time])
 
             # get the total magnitude:
@@ -340,7 +340,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             cell_times_vmems = expmath.upscale_units_milli(
                 self._phase.sim.vm_time)
 
-        return arrays.from_sequence(cell_times_vmems)
+        return arrays.from_iterable(cell_times_vmems)
 
 # ....................{ PIPELINES                          }....................
 @type_check

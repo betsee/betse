@@ -77,8 +77,8 @@ class VectorField(object):
         '''
 
         # Classify the passed sequences as Numpy arrays for efficiency.
-        self._x = arrays.from_sequence(x)
-        self._y = arrays.from_sequence(y)
+        self._x = arrays.from_iterable(x)
+        self._y = arrays.from_iterable(y)
 
         # Classify all remaining parameters.
         self._magnitude_factor = magnitude_factor

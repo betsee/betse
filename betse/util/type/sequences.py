@@ -101,6 +101,33 @@ def die_unless_len(
 
 # ....................{ TESTERS                            }....................
 @type_check
+def is_sequence(*objs) -> bool:
+    '''
+    ``True`` only if all passed objects are **sequences** (i.e., of types
+    conforming to but *not* necessarily subclassing the canonical
+    :class:`collections.abc.Sequence` API).
+
+    Parameters
+    ----------
+    objs: tuple
+        Tuple of all objects to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these objects are all sequences.
+
+    See Also
+    ----------
+    :class:`collections.abc.Sequence`
+        Further details.
+    '''
+
+    # all(). It is awesome.
+    return all(isinstance(obj, SequenceTypes) for obj in objs)
+
+
+@type_check
 def is_empty(*sequences: SequenceTypes) -> bool:
     '''
     ``True`` only if all passed sequences are **empty** (i.e., contain no
@@ -117,7 +144,7 @@ def is_empty(*sequences: SequenceTypes) -> bool:
         ``True`` only if these sequences are all empty.
     '''
 
-    # all(). It is awesome.
+    # all(). It is all awesome.
     #
     # To transparently support Numpy arrays, the length of this sequence *MUST*
     # be explicitly tested via the len() builtin rather than implicitly tested

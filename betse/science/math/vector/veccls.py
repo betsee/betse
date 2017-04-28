@@ -10,9 +10,9 @@ Abstract base classes of all vector subclasses.
 import numpy as np
 from betse.exceptions import BetseSimVectorException
 from betse.lib.numpy import arrays
-from betse.science.simulate.cache.cacheabc import SimPhaseCacheABC
+from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.types import type_check, SequenceOrNoneTypes
+from betse.util.type.types import type_check, IterableOrNoneTypes
 from numpy import ndarray
 
 # ....................{ SUPERCLASSES                       }....................
@@ -55,9 +55,9 @@ class VectorCellsCache(SimPhaseCacheABC):
     @type_check
     def __init__(
         self,
-        times_cells_centre: SequenceOrNoneTypes = None,
-        times_grids_centre: SequenceOrNoneTypes = None,
-        times_membranes_midpoint: SequenceOrNoneTypes = None,
+        times_cells_centre: IterableOrNoneTypes = None,
+        times_grids_centre: IterableOrNoneTypes = None,
+        times_membranes_midpoint: IterableOrNoneTypes = None,
         **kwargs
     ) -> None:
         '''
@@ -65,8 +65,8 @@ class VectorCellsCache(SimPhaseCacheABC):
 
         Parameters
         ----------
-        times_cells_centre : optional[SequenceTypes]
-            Two-dimensional sequence of all cell data for a single cell
+        times_cells_centre : optional[IterableTypes]
+            Two-dimensional iterable of all cell data for a single cell
             membrane-specific modelled variable (e.g., cell electric field
             magnitude) for all simulation time steps, whose:
             . First dimension indexes each simulation time step.
@@ -76,8 +76,8 @@ class VectorCellsCache(SimPhaseCacheABC):
             Defaults to ``None``, in which case at least one of the
             ``times_grids_centre`` and ``times_membranes_midpoint`` parameters
             must be non-``None``.
-        times_grids_centre : optional[SequenceTypes]
-            Two-dimensional sequence of all grid data for a single
+        times_grids_centre : optional[IterableTypes]
+            Two-dimensional iterable of all grid data for a single
             intra- and/or extracellular modelled variable (e.g., total current
             density) for all simulation time steps, whose:
             . First dimension indexes each simulation time step.
@@ -87,8 +87,8 @@ class VectorCellsCache(SimPhaseCacheABC):
             Defaults to ``None``, in which case at least one of the
             ``times_cells_centre`` and ``times_membranes_midpoint`` parameters
             must be non-``None``.
-        times_membranes_midpoint : optional[SequenceTypes]
-            Two-dimensional sequence of all cell membrane data for a single
+        times_membranes_midpoint : optional[IterableTypes]
+            Two-dimensional iterable of all cell membrane data for a single
             cell membrane-specific modelled variable (e.g., cell membrane
             voltage) for all simulation time steps, whose:
             . First dimension indexes each simulation time step.
@@ -113,7 +113,7 @@ class VectorCellsCache(SimPhaseCacheABC):
         # Initialize our superclass.
         super().__init__(**kwargs)
 
-        # If no sequence was passed, raise an exception.
+        # If no iterable was passed, raise an exception.
         if (
             times_cells_centre is None and
             times_grids_centre is None and
@@ -123,13 +123,13 @@ class VectorCellsCache(SimPhaseCacheABC):
                 'Parameters "times_cells_centre", "times_grids_centre", and '
                 '"times_membranes_midpoint" not passed.')
 
-        # Convert each passed sequence into a Numpy array for efficiency.
+        # Convert each passed iterable into a Numpy array for efficiency.
         if times_cells_centre is not None:
-            times_cells_centre = arrays.from_sequence(times_cells_centre)
+            times_cells_centre = arrays.from_iterable(times_cells_centre)
         if times_grids_centre is not None:
-            times_grids_centre = arrays.from_sequence(times_grids_centre)
+            times_grids_centre = arrays.from_iterable(times_grids_centre)
         if times_membranes_midpoint is not None:
-            times_membranes_midpoint = arrays.from_sequence(
+            times_membranes_midpoint = arrays.from_iterable(
                 times_membranes_midpoint)
 
         # Classify all passed parameters.

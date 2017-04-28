@@ -268,26 +268,26 @@ This tuple contains classes matching both integer and real number types.
 # This tuple is declared here for documentation purposes but initialized below.
 SequenceTypes = None
 '''
-Tuple of all container base classes conforming to (but _not_ necessarily
-subclassing) the canonical `collections.abc.Sequence` API.
+Tuple of all container base classes conforming to (but *not* necessarily
+subclassing) the canonical :class:`collections.abc.Sequence` API.
 
-Sequences are iterables supporting efficient element access via integer
-indices. Most sequences implement the abstract base class
-`collections.abc.Sequence`, including the concrete `str` string class. All
-sequences define the special `__getitem__()` and `__len__()` methods, amongst
-numerous others.
+Sequences are iterables supporting efficient element access via integer indices.
+Most sequences implement the :class:`collections.abc.Sequence` abstract base
+class, including the concrete :class:`str` string class. All sequences define
+the special ``__getitem__()`` and ``__len__()`` methods, amongst numerous
+others.
 
 While all sequences are iterables, not all iterables are sequences. Generally
 speaking, sequences correspond to the proper subset of iterables whose elements
-are ordered. `dict` and `OrderedDict` are the canonical examples. `dict`
-implements `collections.abc.Iterable` but _not_ `collections.abc.Sequence`, due
-to _not_ supporting integer index-based lookup; `OrderedDict` implements both,
-due to supporting such lookup.
+are ordered. :class:`dict` and :class:`OrderedDict` are the canonical examples.
+:class:`dict` implements :class:`collections.abc.Iterable` but *not*
+:class:`collections.abc.Sequence`, due to failing to support integer index-based
+lookup; :class:`OrderedDict` implements both, due to supporting such lookup.
 
 For generality, this tuple contains classes matching both pure-Python sequences
-*and* non-Pythonic Fortran-based `numpy` arrays and matrices -- which fail to
-subclass `collections.abc.Sequence` despite implementing the entirety of that
-that API.
+*and* non-Pythonic Fortran-based Numpy arrays and matrices -- which fail to
+subclass :class:`collections.abc.Sequence` despite implementing the entirety of
+that that API.
 '''
 
 
@@ -333,6 +333,13 @@ MappingOrSequenceTypes = (MappingType,) + SequenceTypes
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
 subclassing) the canonical :class:`Mapping` *or* :class:`Sequence` APIs.
+'''
+
+
+NumericOrIterableTypes = NumericTypes + IterableTypes
+'''
+Tuple of all numeric types *and* all container base classes conforming to (but
+*not* necessarily subclassing) the canonical :class:`Iterable` API.
 '''
 
 
