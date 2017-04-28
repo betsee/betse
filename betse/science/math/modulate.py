@@ -31,7 +31,6 @@ def periodic(pc,cells,p):
 
     return scalar, y
 
-
 def f_sweep(pc,cells,p):
     """
     Creates a time-dependent sweep of a sinusoidal function through various
@@ -63,7 +62,6 @@ def f_sweep(pc,cells,p):
 
     return scalar, y
 
-
 def gradient_x(pc, cells,p):
     """
     Creates a spatial gradient along the x-axis from 0 to 1 over a patch
@@ -87,10 +85,8 @@ def gradient_x(pc, cells,p):
     """
 
     if len(pc) == len(cells.mem_i):
-        fx = np.zeros(len(cells.mem_i))
         x_vals_o = cells.mem_mids_flat[:, 0]
     elif len(pc) == len(cells.cell_i):
-        fx = np.zeros(len(cells.mem_i))
         x_vals_o = cells.cell_centres[:, 0]
 
     min_grad = x_vals_o.min()
@@ -112,6 +108,51 @@ def gradient_x(pc, cells,p):
 
     return fx, dynamics
 
+def gradient_xr(pc, cells,p):
+    """
+    Creates a spatial gradient along the reverse x-axis from 0 to 1 over a patch
+    of cells defined by indices.
+
+    Parameters
+    ----------
+    pc                 Indices of membranes or cells
+    cells              Instance of Cells module
+    p                  Instance of parameters
+    targs              Indices of targets within mem or cell inds to apply gradient
+
+    Returns
+    ---------
+    fx
+        Data values from 0 to 1 defining a gradient in the x-direciton. If
+        p.sim_ECM == True, length of fx is number of membranes, otherwise length
+        of fx is equal to cell number.
+    dynamics
+        Null quantity corresponding to time dynamics.
+    """
+
+    if len(pc) == len(cells.mem_i):
+        x_vals_o = cells.mem_mids_flat[:, 0]
+    elif len(pc) == len(cells.cell_i):
+        x_vals_o = cells.cell_centres[:, 0]
+
+    min_grad = x_vals_o.min()
+
+    # shift values to have a minimum of zero:
+    x_vals = x_vals_o - min_grad
+
+    # scale values to have a maximum of 1:
+    x_vals = x_vals/x_vals.max()
+
+    # shift the x_mid value by the offset:
+    x_mid = 0.5 + p.gradient_x_properties['offset']
+
+    n = p.gradient_x_properties['exponent']
+    grad_slope = ((x_vals/x_mid)**n)/(1+((x_vals/x_mid)**n))
+    fx = (1.0 - grad_slope)*p.gradient_x_properties['slope']
+
+    dynamics = lambda t: 1
+
+    return fx, dynamics
 
 def gradient_y(pc, cells,p):
     """
@@ -138,10 +179,8 @@ def gradient_y(pc, cells,p):
     """
 
     if len(pc) == len(cells.mem_i):
-        fy = np.zeros(len(cells.mem_i))
         y_vals_o = cells.mem_mids_flat[:, 1]
     elif len(pc) == len(cells.cell_i):
-        fy = np.zeros(len(cells.mem_i))
         y_vals_o = cells.cell_centres[:, 1]
 
     min_grad = y_vals_o.min()
@@ -163,6 +202,53 @@ def gradient_y(pc, cells,p):
 
     return fy, dynamics
 
+def gradient_yr(pc, cells,p):
+    """
+    Creates a spatial gradient along the reverse y-axis from 0 to 1 over a patch
+    of cells defined by indices.
+
+    If p.sim_ECM is True, the data is defined and returned on membrane
+    midpoints, otherwise cell centres are the defining structure.
+
+    Parameters
+    ----------
+    pc                 Indices of membranes
+    cells              Instance of Cells module
+    p                  Instance of parameters
+
+    Returns
+    ---------
+    fy
+        Data values from 0 to 1 defining a gradient in the y-direciton. If
+        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        of fy is equal to cell number.
+    dynamics
+        Null quantity corresponding to time dynamics.
+    """
+
+    if len(pc) == len(cells.mem_i):
+        y_vals_o = cells.mem_mids_flat[:, 1]
+    elif len(pc) == len(cells.cell_i):
+        y_vals_o = cells.cell_centres[:, 1]
+
+    min_grad = y_vals_o.min()
+
+    # shift values to have a minimum of zero:
+    y_vals = y_vals_o - min_grad
+
+    # scale values to have a maximum of 1:
+    y_vals = y_vals / y_vals.max()
+
+    # shift the y_mid value by the offset:
+    y_mid = 0.5 + p.gradient_y_properties['offset']
+
+    n = p.gradient_y_properties['exponent']
+    grad_slope = ((y_vals / y_mid) ** n) / (1 + ((y_vals / y_mid) ** n))
+    fy = (1.0 - grad_slope) * p.gradient_y_properties['slope']
+
+    dynamics = lambda t: 1
+
+    return fy, dynamics
 
 def gradient_r(pc, cells,p):
     """
@@ -207,3 +293,167 @@ def gradient_r(pc, cells,p):
     dynamics = lambda t: 1
 
     return r, dynamics
+
+def double_y(pc, cells,p):
+    """
+    Creates a parabolic spatial gradient along the y-axis from 0 to 1 over a patch
+    of cells defined by indices.
+
+    If p.sim_ECM is True, the data is defined and returned on membrane
+    midpoints, otherwise cell centres are the defining structure.
+
+    Parameters
+    ----------
+    pc                 Indices of membranes
+    cells              Instance of Cells module
+    p                  Instance of parameters
+
+    Returns
+    ---------
+    fy
+        Data values from 0 to 1 defining a gradient in the y-direciton. If
+        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        of fy is equal to cell number.
+    dynamics
+        Null quantity corresponding to time dynamics.
+    """
+
+    if len(pc) == len(cells.mem_i):
+        y_vals_o = cells.mem_mids_flat[:, 1]
+    elif len(pc) == len(cells.cell_i):
+        y_vals_o = cells.cell_centres[:, 1]
+
+    # shift values to have a minimum of zero:
+    y_vals = y_vals_o - y_vals_o.min()
+
+    # scale values to have a maximum of 1:
+    y_vals = y_vals / y_vals.max()
+
+    fy = (1 / 0.25) * (y_vals - y_vals.mean()) ** 2
+
+    dynamics = lambda t: 1
+
+    return fy, dynamics
+
+def double_yr(pc, cells,p):
+    """
+    Creates a reverse parabolic spatial gradient along the y-axis from 0 to 1 over a patch
+    of cells defined by indices (highest in the middle).
+
+    If p.sim_ECM is True, the data is defined and returned on membrane
+    midpoints, otherwise cell centres are the defining structure.
+
+    Parameters
+    ----------
+    pc                 Indices of membranes
+    cells              Instance of Cells module
+    p                  Instance of parameters
+
+    Returns
+    ---------
+    fy
+        Data values from 0 to 1 defining a gradient in the y-direciton. If
+        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        of fy is equal to cell number.
+    dynamics
+        Null quantity corresponding to time dynamics.
+    """
+
+    if len(pc) == len(cells.mem_i):
+        y_vals_o = cells.mem_mids_flat[:, 1]
+    elif len(pc) == len(cells.cell_i):
+        y_vals_o = cells.cell_centres[:, 1]
+
+    # shift values to have a minimum of zero:
+    y_vals = y_vals_o - y_vals_o.min()
+
+    # scale values to have a maximum of 1:
+    y_vals = y_vals / y_vals.max()
+
+    fy = 1.1 - (1 / 0.25) * (y_vals - y_vals.mean()) ** 2
+
+    dynamics = lambda t: 1
+
+    return fy, dynamics
+
+def double_x(pc, cells,p):
+    """
+    Creates a parabolic spatial gradient along the x-axis from 0 to 1 over a patch
+    of cells defined by indices.
+
+    If p.sim_ECM is True, the data is defined and returned on membrane
+    midpoints, otherwise cell centres are the defining structure.
+
+    Parameters
+    ----------
+    pc                 Indices of membranes
+    cells              Instance of Cells module
+    p                  Instance of parameters
+
+    Returns
+    ---------
+    fy
+        Data values from 0 to 1 defining a gradient in the y-direciton. If
+        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        of fy is equal to cell number.
+    dynamics
+        Null quantity corresponding to time dynamics.
+    """
+
+    if len(pc) == len(cells.mem_i):
+        x_vals_o = cells.mem_mids_flat[:, 0]
+    elif len(pc) == len(cells.cell_i):
+        x_vals_o = cells.cell_centres[:, 0]
+
+    # shift values to have a minimum of zero:
+    x_vals = x_vals_o - x_vals_o.min()
+
+    # scale values to have a maximum of 1:
+    x_vals = x_vals / x_vals.max()
+
+    fy = (1 / 0.25) * (x_vals - x_vals.mean()) ** 2
+
+    dynamics = lambda t: 1
+
+    return fy, dynamics
+
+def double_xr(pc, cells,p):
+    """
+    Creates a reverse parabolic spatial gradient along the x-axis from 0 to 1 over a patch
+    of cells defined by indices (highest in the middle).
+
+    If p.sim_ECM is True, the data is defined and returned on membrane
+    midpoints, otherwise cell centres are the defining structure.
+
+    Parameters
+    ----------
+    pc                 Indices of membranes
+    cells              Instance of Cells module
+    p                  Instance of parameters
+
+    Returns
+    ---------
+    fy
+        Data values from 0 to 1 defining a gradient in the y-direciton. If
+        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        of fy is equal to cell number.
+    dynamics
+        Null quantity corresponding to time dynamics.
+    """
+
+    if len(pc) == len(cells.mem_i):
+        x_vals_o = cells.mem_mids_flat[:, 0]
+    elif len(pc) == len(cells.cell_i):
+        x_vals_o = cells.cell_centres[:, 0]
+
+    # shift values to have a minimum of zero:
+    x_vals = x_vals_o - x_vals_o.min()
+
+    # scale values to have a maximum of 1:
+    x_vals = x_vals / x_vals.max()
+
+    fy = 1.1 - (1 / 0.25) * (x_vals - x_vals.mean()) ** 2
+
+    dynamics = lambda t: 1
+
+    return fy, dynamics

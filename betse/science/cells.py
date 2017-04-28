@@ -1292,7 +1292,6 @@ class Cells(object):
             self.gradTheta[mem_i, mem_i] = 1 / lm
             self.gradTheta[mem_i, mem_io] = -1 / lm
 
-
     def memLaplacian(self):
 
         # matrix for computing divergence of a property defined on a membrane of each cell patch:
