@@ -1770,10 +1770,10 @@ class Simulator(object):
                            # current in extracellular space, interacting with edl
                            )
 
-                # self.v_cell = (self.v_cell
-                #                -(1/(2*p.cm))*self.Jmem*p.dt
-                #                - (1 / (2*self.cgj))*self.Jgj*p.dt
-                #                + (1/self.cedl_cell)*self.Jc*p.dt)
+                self.v_cell = (self.v_cell
+                               -(1/(2*p.cm))*self.Jmem*p.dt
+                               - (1 / (2*self.cgj))*self.Jgj*p.dt
+                               + (1/self.cedl_cell)*self.Jc*p.dt)
 
         else: # if simulating extracellular spaces
 
@@ -1834,9 +1834,9 @@ class Simulator(object):
 
         # calculate the electric field in the cell, given it must satisfy the Laplace equation (i.e. respect
         # boundary conditions and be a linear gradient):
-        self.Ec = -(self.vm - self.vm_ave[cells.mem_to_cells])/cells.R_rads
+        # self.Ec = -(self.vm - self.vm_ave[cells.mem_to_cells])/cells.R_rads
 
-        # self.Ec = -(self.v_cell - vcell_ave[cells.mem_to_cells])/cells.R_rads
+        self.Ec = -(self.v_cell - vcell_ave[cells.mem_to_cells])/cells.R_rads
 
         if p.cell_polarizability == 0.0:
 

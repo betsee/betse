@@ -42,12 +42,12 @@ def getDeformation(sim, cells, t, p):
     sim.gPxc = np.dot(cells.M_sum_mems, gPx) / cells.num_mems
     sim.gPyc = np.dot(cells.M_sum_mems, gPy) / cells.num_mems
 
-    mtx, mty = sim.mtubes.mtubes_to_cell(cells, p)
-
     # deformation by "galvanotropic" mechanism (electrostrictive forces
     # influenced by biology, e.g. cytoskeletal).
-    Fx = (1 / p.lame_mu) * (mtx * p.galvanotropism + sim.gPxc)
-    Fy = (1 / p.lame_mu) * (mty * p.galvanotropism + sim.gPyc)
+    # Fx = (1 / p.lame_mu) * (sim.gPxc + sim.E_cell_x*p.galvanotropism)
+    # Fy = (1 / p.lame_mu) * (sim.gPyc + sim.E_cell_y*p.galvanotropism)
+    Fx = (1 / p.lame_mu) * (sim.gPxc)
+    Fy = (1 / p.lame_mu) * (sim.gPyc)
 
     # Calculate flow under body forces using time-independent linear elasticity
     # equation.
@@ -56,7 +56,7 @@ def getDeformation(sim, cells, t, p):
 
     # Deformation must be made divergence-free. To do so, use the
     # Helmholtz-Hodge decomposition method.
-    _, sim.d_cells_x, sim.d_cells_y, _, _, _ = cells.HH_cells(
+    _, d_cells_x, d_cells_y, _, _, _ = cells.HH_cells(
         dxo, dyo, rot_only=True, bounds_closed=p.fixed_cluster_bound)
 
     if p.deform_osmo:
@@ -73,8 +73,14 @@ def getDeformation(sim, cells, t, p):
         # _, dxc, dyc, _, _, _ = cells.HH_cells(dxco, dyco, rot_only=True,
         #                                                           bounds_closed=p.fixed_cluster_bound)
 
-        sim.d_cells_x = sim.d_cells_x + dxco
-        sim.d_cells_y = sim.d_cells_y + dyco
+        d_cells_x = d_cells_x + dxco
+        d_cells_y = d_cells_y + dyco
+
+    sim.d_cells_x = d_cells_x + sim.E_cell_x*p.galvanotropism
+    sim.d_cells_y = d_cells_y + sim.E_cell_y*p.galvanotropism
+
+    # sim.d_cells_x = d_cells_x*1
+    # sim.d_cells_y = d_cells_y*1
 
 
 def timeDeform(sim, cells, t, p):
@@ -267,33 +273,62 @@ def implement_deform_timestep(sim, cells, t, p):
 
     """
     # create a smooth bivariate spline to interpolate deformation data from cells:
-    cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=3, ky=3)
-    cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=3, ky=3)
+    cellinterp_x = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_x, kx=4, ky=4)
+    cellinterp_y = SmoothBivariateSpline(cells.cell_centres[:, 0], cells.cell_centres[:, 1], sim.d_cells_y, kx=4, ky=4)
 
     # calculate deformations wrt the ecm using the smooth bivariate spline:
-    decm_x = cellinterp_x.ev(cells.ecm_verts_unique[:, 0], cells.ecm_verts_unique[:, 1])
-    decm_y = cellinterp_y.ev(cells.ecm_verts_unique[:, 0], cells.ecm_verts_unique[:, 1])
+    dxv = cellinterp_x.ev(cells.mem_verts[:,0], cells.mem_verts[:,1])
+    dyv = cellinterp_y.ev(cells.mem_verts[:,0], cells.mem_verts[:,1])
 
-    # get the new ecm verts by applying the deformation:
-    ecm_x2 = cells.ecm_verts_unique[:, 0] + decm_x
-    ecm_y2 = cells.ecm_verts_unique[:, 1] + decm_y
+    xv2 = cells.mem_verts[:, 0] + dxv
+    yv2 = cells.mem_verts[:, 1] + dyv
 
-    ecm_new = np.column_stack((ecm_x2, ecm_y2))
 
-    # repackage new ecm vertices as cells.ecm_verts:
-    ecm_verts2 = []
+    # calculate new cell centres:
+    cell_cent_x = np.dot(cells.M_sum_mems, xv2*cells.mem_sa)/cells.cell_sa
+    cell_cent_y = np.dot(cells.M_sum_mems, yv2*cells.mem_sa)/cells.cell_sa
 
-    for inds in cells.inds2ecmVerts:
-        ecm_verts2.append(ecm_new[inds])
+    # smooth the vertices:
+    # xv2 = sim.smooth_weight_mem*xv2 + cell_cent_x[cells.mem_to_cells]*sim.smooth_weight_o
+    # yv2 = sim.smooth_weight_mem*yv2 + cell_cent_y[cells.mem_to_cells]*sim.smooth_weight_o
+
+    # repackage the vertices:
+    cell_verts2 = []
+
+    for i, pts in enumerate(cells.cell_verts):
+        vx = xv2[cells.cell_to_mems[i]]
+        vy = yv2[cells.cell_to_mems[i]]
+
+        pts2 = np.column_stack((vx, vy))
+        cell_verts2.append(pts2)
+
+    cells.cell_verts = np.asarray(cell_verts2)
+    cells.cell_centres = np.column_stack((cell_cent_x, cell_cent_y))
+
+    # # calculate deformations wrt the ecm using the smooth bivariate spline:
+    # decm_x = cellinterp_x.ev(cells.ecm_verts_unique[:, 0], cells.ecm_verts_unique[:, 1])
+    # decm_y = cellinterp_y.ev(cells.ecm_verts_unique[:, 0], cells.ecm_verts_unique[:, 1])
+    #
+    # # get the new ecm verts by applying the deformation:
+    # ecm_x2 = cells.ecm_verts_unique[:, 0] + decm_x
+    # ecm_y2 = cells.ecm_verts_unique[:, 1] + decm_y
+    #
+    # ecm_new = np.column_stack((ecm_x2, ecm_y2))
+    #
+    # # repackage new ecm vertices as cells.ecm_verts:
+    # ecm_verts2 = []
+    #
+    # for inds in cells.inds2ecmVerts:
+    #     ecm_verts2.append(ecm_new[inds])
 
     # cells.ecm_verts = np.asarray(ecm_verts2)
 
     # rebuild essential portions of the cell world:
-    cells.deformWorld(p, ecm_verts2)
+    # cells.deformWorld(p, ecm_verts2)
 
     # write data to time-storage vectors:
     sim.cell_centres_time.append(cells.cell_centres[:])
-    sim.mem_mids_time.append(cells.mem_mids_flat[:])
+    # sim.mem_mids_time.append(cells.mem_mids_flat[:])
     # sim.maskM_time.append(cells.maskM[:])
-    sim.mem_edges_time.append(cells.mem_edges_flat[:])
+    # sim.mem_edges_time.append(cells.mem_edges_flat[:])
     sim.cell_verts_time.append(cells.cell_verts[:])

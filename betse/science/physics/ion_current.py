@@ -81,8 +81,9 @@ def get_current(sim, cells, p):
 
         # create a source term:
         source_term = np.zeros(sim.edl)
-        # source_term[cells.map_mem2ecm] = ((1/(2*p.cm))*drho_cells[cells.mem_to_cells]
-        #                                   - (1/sim.cedl_env)*drho_env[cells.mem_to_cells])
+
+        source_term[cells.map_mem2ecm] = ((1/(2*p.cm))*drho_cells[cells.mem_to_cells]
+                                          - (1/sim.cedl_env)*drho_env[cells.mem_to_cells])
 
         source_term = source_term.reshape(cells.X.shape)
 
@@ -118,7 +119,7 @@ def get_current(sim, cells, p):
             # smoothing of Phi:
             Phi = gaussian_filter(Phi.reshape(cells.X.shape), p.smooth_level, mode='constant')
 
-        sim.v_env = Phi.ravel()*p.dt
+        sim.v_env = sim.v_env + Phi.ravel()*p.dt
 
         #--------------------------------------------------------------------------------------------------------------
         # calculate the gradient of v_env:

@@ -984,7 +984,6 @@ class TissueHandler(object):
 
         sim.P_cells = sim.P_mod + sim.P_base
 
-
     #FIXME: Replace "p.scheduled_options['cuts']" everywhere below by "self".
     def removeCells(
         self, tissue_picker, sim, cells, p, hole_tag = False) -> None:
@@ -1013,6 +1012,9 @@ class TissueHandler(object):
         # Subtract this bitmap's clipping mask from the global cluster mask.
         bitmap_mask = tissue_picker.get_bitmapper(cells).clipping_matrix
         cells.cluster_mask = cells.cluster_mask - bitmap_mask
+
+        # FIXME, if deformation is too much, the following line will crash as the "target_inds_cell" is null. Rayse
+        # an uman weedable eggseption.
 
         # Indices of all cells to be removed, ignoring extracellular spaces.
         target_inds_cell = tissue_picker.get_cell_indices(cells, p, ignoreECM=True)
