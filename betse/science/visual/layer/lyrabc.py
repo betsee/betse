@@ -41,7 +41,10 @@ plotting onto the cell cluster.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod, abstractproperty
+from betse.exceptions import BetseSimVisualLayerException
+from betse.util.io.log import logs
 from betse.util.py import references
+from betse.util.type import iterables, types
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
 
@@ -212,6 +215,13 @@ class LayerCellsColorfulABC(LayerCellsABC):
     _color_mappables : IterableTypes
         Iterable of all mappables internally cached and returned by the
         :meth:`color_mappables` property.
+    _color_max : NumericTypes
+        Maximum color value to be displayed by the parent visual's colorbar.
+    _color_min : NumericTypes
+        Minimum color value to be displayed by the parent visual's colorbar.
+        Ignored if :attr:`_visual.conf.is_color_autoscaled` is ``True``.
+        Minimum color value to be displayed by the colorbar. Ignored if
+        :attr:`_conf.is_color_autoscaled` is ``True``.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -225,34 +235,8 @@ class LayerCellsColorfulABC(LayerCellsABC):
 
         # Default all instance attributes.
         self._color_mappables = None
-
-    # ..................{ PROPERTIES ~ read-only             }..................
-    # Read-only properties, preventing callers from setting these attributes.
-
-    @property
-    def color_mappables(self) -> IterableTypes:
-        '''
-        Iterable of all **mappables** (i.e.,
-        :class:`matplotlib.cm.ScalarMappable` instances) previously added by
-        this layer to the figure axes of the current plot or animation to be
-        associated with a figure colorbar.
-
-        By Matplotlib design, only the first mappable in this iterable defines
-        the color range for the figure colorbar; all other mappables are
-        artificially constrained onto the same range.
-        '''
-
-        # If this iterable of mappables has yet to be cached...
-        if self._color_mappables is None:
-            # Layer the first time step, presumably caching this iterable.
-            self._layer_first()
-
-            # Assert this to be the case.
-            assert self._color_mappables is not None, (
-                '_layer_first() failed to define "self._color_mappables".')
-
-        # Map the figure colorbar to this cached iterable.
-        return self._color_mappables
+        self._color_min = None
+        self._color_max = None
 
     # ..................{ SUPERCLASS                         }..................
     #FIXME: Generalize this class to support layers recomputing color mappables
@@ -294,8 +278,16 @@ class LayerCellsColorfulABC(LayerCellsABC):
         *only* override the :meth:`_layer_first_color_mappables` method.
         '''
 
-        # Iterable of mappables layered by the subclass for the first time step.
+        # Color mappables layered by the subclass for the first time step.
         self._color_mappables = self._layer_first_color_mappables()
+
+        # If no mappables were layered, raise an exception.
+        if not self._color_mappables:
+            raise BetseSimVisualLayerException(
+                '_layer_first_color_mappables() returned no color mappables.')
+
+        # Add a colorbar to this visual associated with these mappables.
+        self._make_colorbar()
 
     # ..................{ SUBCLASS                           }..................
     @abstractproperty
@@ -323,14 +315,105 @@ class LayerCellsColorfulABC(LayerCellsABC):
         '''
         Layer the spatial distribution of a single modelled variable (e.g., cell
         membrane voltage) for the first simulation time step onto the figure
-        axes of the current plot or animation, returning the mappable or
-        mappables with which to map color data onto the colorbar.
+        axes of the current plot or animation, returning all matplotlib color
+        mappables whose artists are to be mapped onto (i.e., coloured according
+        to) the parent visual's colorbar.
 
         Returns
         ----------
         IterableTypes
-            Iterable of all mappables cached into the :attr:`_color_mappables`
-            attribute by the :meth:`_layer_first` method.
+            Iterable of all matplotlib color mappables, cached into the
+            :attr:`_color_mappables` attribute by the parent
+            :meth:`_layer_first` method. Note that, by matplotlib design, only
+            the first mappable in this iterable is arbitrarily associated with
+            this colorbar; all other mappables are ignored for this purpose.
         '''
 
         pass
+
+    # ..................{ COLORS                             }..................
+    def _make_colorbar(self) -> None:
+        '''
+        Add a colorbar to the parent visual's figure.
+
+        This method automatically configures the range of colors displayed by
+        this colorbar *and* associates all color mappables defined by this
+        layer subclass with this colorbar.
+        '''
+
+        # Set the minimum and maximum colorbar values.
+        self._set_color_range()
+
+        # Scale all color mappables defined by this subclass by these values.
+        self._scale_color_mappables()
+
+        # First color mappable defined by this subclass.
+        color_mappable_first = iterables.get_item_first(self._color_mappables)
+
+        # Create a colorbar associated with this color mappable.
+        self._visual.make_colorbar(color_mappable_first)
+
+
+    def _set_color_range(self) -> None:
+        '''
+        Set the minimum and maximum color values to be displayed by the colorbar
+        for the parent visual's figure.
+
+        Specifically, these values are set to:
+
+        * If colorbar autoscaling is enabled by this visual's configuration,
+          the minimum and maximum values unravelled from the
+          :meth:`color_data` Numpy array defined by this layer subclass.
+        * Else, the minimum and maximum values hardcoded into this visual's
+          configuration.
+        '''
+
+        # If colorbar autoscaling is enabled by this visual's configuration...
+        if self._visual.conf.is_color_autoscaled:
+            # One-dimensional Numpy array of all colors flattened from this
+            # possibly multi-dimensional Numpy array of these values.
+            color_data_flat = self.color_data.ravel()
+
+            # Set the minimum and maximum colors to the minimum and maximum
+            # values in this array.
+            self._color_min = color_data_flat.min()
+            self._color_max = color_data_flat.max()
+            # self._color_min = np.ma.min(color_data_flat)
+            # self._color_max = np.ma.max(color_data_flat)
+        # Else, colorbar autoscaling is disabled. In this case, set the minimum
+        # and maximum colors to those hardcoded into this configuration.
+        else:
+            self._color_min = self._visual.conf.color_min
+            self._color_max = self._visual.conf.color_max
+
+        # If these values are identical, coerce them to differ. Failing to do
+        # so produces spurious visual artifacts in both the axes and colorbar.
+        # if self._color_min == self._color_max:
+        #     self._color_min = self._color_min - 1
+        #     self._color_max = self._color_max + 1
+
+        # Ensure sanity.
+        assert types.is_numeric(self._color_min), (
+            types.assert_not_numeric(self._color_min))
+        assert types.is_numeric(self._color_max), (
+            types.assert_not_numeric(self._color_max))
+
+        # Log these values.
+        logs.log_debug(
+            'Scaling animation colors to [%d, %d]...',
+            self._color_min, self._color_max)
+
+
+    def _scale_color_mappables(self) -> None:
+        '''
+        Scale all color mappables defined by this layer subclass to the current
+        minimum and maximum color values.
+        '''
+
+        # For each color mappable, clip that mappable to the minimum and
+        # maximum values discovered above. Note this also has the beneficial
+        # side-effect of establishing the colorbar's range.
+        for color_mappable in self._color_mappables:
+            assert types.is_matplotlib_mappable(color_mappable), (
+                types.assert_not_matplotlib_mappable(color_mappable))
+            color_mappable.set_clim(self._color_min, self._color_max)

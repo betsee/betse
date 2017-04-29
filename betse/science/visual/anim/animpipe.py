@@ -23,7 +23,7 @@ from betse.science.visual.anim.anim import (
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
     AnimFlatCellsTimeSeries,
-    AnimEnvTimeSeries
+    AnimEnvTimeSeries,
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
 from betse.science.visual.layer.vector import lyrvecabc

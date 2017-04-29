@@ -8,13 +8,10 @@ High-level upscaled object subcache functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
-# from betse.util.type.types import type_check
 from numpy import ndarray
-
 from betse.science.export import expmath
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.util.type.call.memoizers import property_cached
-
 
 # ....................{ SUBCLASSES                         }....................
 class SimPhaseCacheUpscaled(SimPhaseCacheABC):

@@ -47,6 +47,7 @@ class LayerCellsVectorColorfulABC(LayerCellsColorfulABC):
         self._vector = vector
 
 # ....................{ MAKERS                             }....................
+#FIXME: Rename to layer_vector().
 @type_check
 def make_layer(phase: SimPhase, *args, **kwargs) -> LayerCellsVectorColorfulABC:
     '''

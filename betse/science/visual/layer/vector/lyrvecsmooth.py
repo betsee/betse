@@ -6,8 +6,6 @@
 Layer subclasses spatially shading the cell cluster as a continuous surface.
 '''
 
-#FIXME: Rename this submodule to simply "lyrveccls'.
-
 # ....................{ IMPORTS                            }....................
 from betse.science.export import expmath
 from betse.science.visual.layer.vector.lyrvecabc import (
@@ -38,9 +36,24 @@ class LayerCellsVectorSmoothGrids(LayerCellsVectorColorfulABC):
         self._surface_image = None
 
     # ..................{ SUPERCLASS                         }..................
+    # def prep(self, *args, **kwargs):
+    #     super().prep(*args, **kwargs)
+    #     import numpy as np
+    #     _current_density_x_time_series = 100*np.asarray(self._phase.sim.I_tot_x_time)
+    #     _current_density_y_time_series = 100*np.asarray(self._phase.sim.I_tot_y_time)
+    #
+    #     # Time series of all current density magnitudes (i.e., `Jmag_M`),
+    #     # multiplying by 100 to obtain current density in units of uA/cm2.
+    #     self._current_density_magnitude_time_series = np.sqrt(
+    #         np.asarray(_current_density_x_time_series) ** 2 +
+    #         np.asarray(_current_density_y_time_series) ** 2) + 1e-15
+    #
+    #     print('good[-1][0]: {}'.format(self._current_density_magnitude_time_series[-1][0]))
+    #     print('badd[-1][0]: {}'.format(self._vector.times_grids_centre[-1][0]))
+
+
     @property
     def color_data(self) -> SequenceOrNoneTypes:
-
         return self._vector.times_grids_centre
 
 
@@ -53,6 +66,7 @@ class LayerCellsVectorSmoothGrids(LayerCellsVectorColorfulABC):
             # Two-dimensional array of all grid data for this time step,
             # spatially situated at environmental grid space centres.
             X=self._vector.times_grids_centre[self._visual.time_step],
+            # self._current_density_magnitude_time_series[self._visual.time_step],
 
             # Colormap converting input data values into output color values.
             cmap=self._visual.colormap,
@@ -67,6 +81,7 @@ class LayerCellsVectorSmoothGrids(LayerCellsVectorColorfulABC):
             # Z-order of this plot with respect to other artists.
             zorder=self._zorder,
         )
+        # self._surface_image.set_clim(0, 152)
 
         # Map this surface image plot onto the figure colorbar, returned as a
         # 1-tuple to comply with the superclass API.
@@ -75,9 +90,14 @@ class LayerCellsVectorSmoothGrids(LayerCellsVectorColorfulABC):
 
     def _layer_next(self) -> None:
 
+        # print('Here!')
+        # self._visual._rescale_color_mappables()
+
         # Replace all obsoleted grid data plotted for the prior time step by the
         # updated grid data for this time step.
         self._surface_image.set_data(
+            # self._current_density_magnitude_time_series[-1])
+            # self._current_density_magnitude_time_series[self._visual.time_step])
             self._vector.times_grids_centre[self._visual.time_step])
 
 

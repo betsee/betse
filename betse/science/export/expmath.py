@@ -6,6 +6,10 @@
 Utility functions of general-purpose relevance to all plots and animations.
 '''
 
+#FIXME: Rename this submodule to "betse.science.math.units".
+#FIXME: After doing so, shift all units-specific integer constants in
+#"betse.util.type.ints" (e.g., "ints.INVERSE_MICRO") here.
+
 # ....................{ IMPORTS                            }....................
 from betse.lib.numpy import arrays
 from betse.util.type import ints, types
@@ -22,10 +26,10 @@ these coordinates in user-friendly exports.
 
 # ....................{ UPSCALERS ~ cell : data            }....................
 @type_check
-def upscale_units_milli(data: NumericOrIterableTypes) -> NumericOrIterableTypes:
+def upscale_units_centi(data: NumericOrIterableTypes) -> NumericOrIterableTypes:
     '''
     Upscale the contents of the passed number or iterable of numbers whose units
-    are assumed to be milli-prefixed (i.e., factors of ``10**-3``).
+    are assumed to be centi-prefixed (i.e., factors of ``10**-2``).
 
     This function does *not* modify the passed object. If this object is:
 
@@ -49,6 +53,21 @@ def upscale_units_milli(data: NumericOrIterableTypes) -> NumericOrIterableTypes:
         Upscaled object as described above.
     '''
 
+    return _upscale_data_in_units(data=data, factor=ints.INVERSE_CENTI)
+
+
+@type_check
+def upscale_units_milli(data: NumericOrIterableTypes) -> NumericOrIterableTypes:
+    '''
+    Upscale the contents of the passed number or iterable of numbers whose units
+    are assumed to be milli-prefixed (i.e., factors of ``10**-3``).
+
+    See Also
+    ----------
+    :func:`upscale_units_centi`
+        Further details.
+    '''
+
     return _upscale_data_in_units(data=data, factor=ints.INVERSE_MILLI)
 
 
@@ -60,7 +79,7 @@ def upscale_units_micro(data: NumericOrIterableTypes) -> NumericOrIterableTypes:
 
     See Also
     ----------
-    :func:`upscale_units_milli`
+    :func:`upscale_units_centi`
         Further details.
     '''
 
@@ -158,8 +177,8 @@ def _upscale_data_in_units(
 
     # If the passed object is numeric, return this number upscaled.
     if types.is_numeric(data):
-        return data * factor
+        return factor * data
     # Else, this object is a sequence. Return this sequence converted into a
     # Numpy array and then upscaled.
     else:
-        return arrays.from_iterable(data) * factor
+        return factor * arrays.from_iterable(data)

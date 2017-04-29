@@ -205,7 +205,48 @@ def get_item_first(iterable: IterableTypes) -> object:
     # Return the first element iterated above.
     return first_item
 
+# ....................{ GETTERS ~ first : instance         }....................
+@type_check
+def get_item_first_instance_of(
+    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
+    '''
+    First instance of the passed class retrieved from the passed iterable if
+    this iterable such an element *or* raise an exception otherwise (i.e., if
+    this iterable contains no such element).
 
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    cls : TestableTypes
+        Type of the element to be retrieved.
+    kwargs : dict
+        Dictionary of all remaining keyword arguments to be passed as is to the
+        :func:`get_item_first_satisfying` function.
+
+    Returns
+    ----------
+    object
+        First instance of this class in this iterable.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+
+    See Also
+    ----------
+    :func:`get_item_first_satisfying_or_sentinel`
+        Further details on ordering guarantees.
+    '''
+
+    return get_item_first_satisfying(
+        iterable=iterable,
+        predicate=lambda item: isinstance(item, cls),
+        **kwargs
+    )
+
+# ....................{ GETTERS ~ first : satisfying       }....................
 @type_check
 def get_item_first_satisfying_or_sentinel(
     iterable: IterableTypes, predicate: CallableTypes) -> object:
@@ -304,13 +345,13 @@ def get_item_first_satisfying(
     # Else, return this element.
     return first_item
 
-
+# ....................{ GETTERS ~ last : instance         }....................
 @type_check
-def get_item_first_instance_of(
+def get_item_last_instance_of(
     iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
     '''
-    First instance of the passed class retrieved from the passed iterable if
-    this iterable such an element _or_ raise an exception otherwise (i.e., if
+    Last instance of the passed class retrieved from the passed iterable if
+    this iterable such an element *or* raise an exception otherwise (i.e., if
     this iterable contains no such element).
 
     Parameters
@@ -321,12 +362,12 @@ def get_item_first_instance_of(
         Type of the element to be retrieved.
     kwargs : dict
         Dictionary of all remaining keyword arguments to be passed as is to the
-        :func:`get_item_first_satisfying` function.
+        :func:`get_item_last_satisfying` function.
 
     Returns
     ----------
     object
-        First instance of this class in this iterable.
+        Last instance of this class in this iterable.
 
     Raises
     ----------
@@ -335,17 +376,64 @@ def get_item_first_instance_of(
 
     See Also
     ----------
-    :func:`get_item_first_satisfying_or_sentinel`
+    :func:`get_item_last_satisfying`
         Further details on ordering guarantees.
     '''
 
-    return get_item_first_satisfying(
+    return get_item_last_satisfying(
         iterable=iterable,
         predicate=lambda item: isinstance(item, cls),
         **kwargs
     )
 
-# ....................{ GETTERS ~ last                    }....................
+
+@type_check
+def get_item_last_instance_of_or_none(
+    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
+    '''
+    Last instance of the passed class retrieved from the passed iterable if
+    this iterable such an element *or* ``None`` otherwise (i.e., if this
+    iterable contains no such element).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+    cls : TestableTypes
+        Type of the element to be retrieved.
+    kwargs : dict
+        Dictionary of all remaining keyword arguments to be passed as is to the
+        :func:`get_item_last_satisfying` function.
+
+    Returns
+    ----------
+    object
+        Last instance of this class in this iterable if any _or_
+        :data:`SENTINEL` otherwise.
+
+    Raises
+    ----------
+    BetseIterableException
+        If this iterable contains no such element.
+
+    See Also
+    ----------
+    :func:`get_item_last_satisfying`
+        Further details on ordering guarantees.
+    '''
+
+    # Last instance of this class in this iterable if any or the sentinel
+    # placeholder otherwise.
+    item_found = get_item_last_satisfying_or_sentinel(
+        iterable=iterable,
+        predicate=lambda item: isinstance(item, cls),
+        **kwargs
+    )
+
+    # Return this instance if *NOT* the sentinal placeholder or None otherwise.
+    return item_found if item_found is not SENTINEL else None
+
+# ....................{ GETTERS ~ last : satisfying       }....................
 @type_check
 def get_item_last_satisfying_or_sentinel(
     iterable: IterableTypes, predicate: CallableTypes) -> object:
@@ -445,89 +533,6 @@ def get_item_last_satisfying(
         iterable=reverse(iterable),
         predicate=predicate,
         exception_message=exception_message,
-    )
-
-
-@type_check
-def get_item_last_instance_of_or_sentinel(
-    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
-    '''
-    Last instance of the passed class retrieved from the passed iterable if
-    this iterable such an element _or_  the :data:`SENTINEL` placeholder
-    constant otherwise (i.e., if this iterable contains no such element).
-
-    Parameters
-    ----------
-    iterable : IterableTypes
-        Iterable to be inspected.
-    cls : TestableTypes
-        Type of the element to be retrieved.
-    kwargs : dict
-        Dictionary of all remaining keyword arguments to be passed as is to the
-        :func:`get_item_last_satisfying` function.
-
-    Returns
-    ----------
-    object
-        Last instance of this class in this iterable if any _or_
-        :data:`SENTINEL` otherwise.
-
-    Raises
-    ----------
-    BetseIterableException
-        If this iterable contains no such element.
-
-    See Also
-    ----------
-    :func:`get_item_last_satisfying`
-        Further details on ordering guarantees.
-    '''
-
-    return get_item_last_satisfying_or_sentinel(
-        iterable=iterable,
-        predicate=lambda item: isinstance(item, cls),
-        **kwargs
-    )
-
-
-@type_check
-def get_item_last_instance_of(
-    iterable: IterableTypes, cls: TestableTypes, **kwargs) -> object:
-    '''
-    Last instance of the passed class retrieved from the passed iterable if
-    this iterable such an element _or_ raise an exception otherwise (i.e., if
-    this iterable contains no such element).
-
-    Parameters
-    ----------
-    iterable : IterableTypes
-        Iterable to be inspected.
-    cls : TestableTypes
-        Type of the element to be retrieved.
-    kwargs : dict
-        Dictionary of all remaining keyword arguments to be passed as is to the
-        :func:`get_item_last_satisfying` function.
-
-    Returns
-    ----------
-    object
-        Last instance of this class in this iterable.
-
-    Raises
-    ----------
-    BetseIterableException
-        If this iterable contains no such element.
-
-    See Also
-    ----------
-    :func:`get_item_last_satisfying`
-        Further details on ordering guarantees.
-    '''
-
-    return get_item_last_satisfying(
-        iterable=iterable,
-        predicate=lambda item: isinstance(item, cls),
-        **kwargs
     )
 
 # ....................{ CONSUMERS                          }....................

@@ -13,18 +13,7 @@ from betse.science.export import expmath
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.science.math.vector.vecfldcls import VectorFieldCellsCache
-from betse.util.type import ints
 from betse.util.type.call.memoizers import property_cached
-
-# from betse.util.type.types import type_check
-
-# ....................{ CONSTANTS                          }....................
-_MAGNITUDE_FACTOR_CURRENTS = ints.INVERSE_CENTI
-'''
-Multiplicative factor for upscaling intra- and extracellular current density
-magnitudes to units of uA/cm^2, improving the readability of these magnitudes in
-user-friendly exports.
-'''
 
 # ....................{ SUBCLASSES                         }....................
 class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
@@ -48,11 +37,12 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=self._phase.sim.I_cell_x_time),
+                times_cells_centre=expmath.upscale_units_centi(
+                    self._phase.sim.I_cell_x_time)),
             y=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=self._phase.sim.I_cell_y_time),
-            magnitude_factor=_MAGNITUDE_FACTOR_CURRENTS,
+                times_cells_centre=expmath.upscale_units_centi(
+                    self._phase.sim.I_cell_y_time)),
         )
 
 
@@ -79,11 +69,12 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,
-                times_grids_centre=self._phase.sim.I_tot_x_time),
+                times_grids_centre=expmath.upscale_units_centi(
+                    self._phase.sim.I_tot_x_time)),
             y=VectorCellsCache(
                 phase=self._phase,
-                times_grids_centre=self._phase.sim.I_tot_y_time),
-            magnitude_factor=_MAGNITUDE_FACTOR_CURRENTS,
+                times_grids_centre=expmath.upscale_units_centi(
+                    self._phase.sim.I_tot_y_time)),
         )
 
     # ..................{ PROPERTIES ~ deform                }..................
@@ -94,24 +85,24 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
     @property_cached
     def deform_total(self) -> VectorFieldCellsCache:
         '''
-        Vector field cache of all **total cellular deformations** (i.e.,
-        summations of all cellular deformations due to galvanotropic and osmotic
-        pressure body forces) over all sampled time steps of the current
+        Vector field cache of all upscaled **total cellular displacements**
+        (i.e., summations of all cellular deformations due to galvanotropic and
+        osmotic pressure body forces) over all sampled time steps of the current
         simulation phase, originally spatially situated at cell centres.
+
+        For readability of units in exported visuals (e.g., plots), this cache
+        additionally upscales these displacements from meters to micrometers.
         '''
 
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=self._phase.sim.dx_cell_time),
+                times_cells_centre=expmath.upscale_coordinates(
+                    self._phase.sim.dx_cell_time)),
             y=VectorCellsCache(
                 phase=self._phase,
-                times_cells_centre=self._phase.sim.dy_cell_time),
-
-            # Multiplicative factor for upscaling displacement magnitudes from
-            # micro-prefixed coordinate units to unprefixed units, improving the
-            # readability of these magnitudes in user-friendly exports.
-            magnitude_factor=expmath.UPSCALER_COORDINATES,
+                times_cells_centre=expmath.upscale_coordinates(
+                    self._phase.sim.dy_cell_time)),
         )
 
     # ..................{ PROPERTIES ~ electric              }..................

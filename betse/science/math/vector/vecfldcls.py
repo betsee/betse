@@ -11,7 +11,7 @@ import numpy as np
 from betse.lib.numpy import arrays
 from betse.science.math.vector.veccls import VectorCellsCache
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.types import type_check, NumericTypes, SequenceTypes
+from betse.util.type.types import type_check, SequenceTypes
 from numpy import ndarray
 
 # ....................{ CLASSES                            }....................
@@ -28,9 +28,6 @@ class VectorField(object):
 
     Attributes
     ----------
-    _magnitude_factor : NumericTypes
-        Factor by which to multiply each magnitude of each vector in this vector
-        field, typically to scale vector magnitude to the desired units.
     x : ndarray
         Two-dimensional sequence whose:
         * First dimension indexes one or more time steps of this simulation.
@@ -51,9 +48,6 @@ class VectorField(object):
         # Mandatory parameters.
         x: SequenceTypes,
         y: SequenceTypes,
-
-        # Optional parameters.
-        magnitude_factor: NumericTypes = 1,
     ) -> None:
         '''
         Initialize this vector field.
@@ -70,18 +64,11 @@ class VectorField(object):
             * First dimension indexes one or more time steps of this simulation.
             * Second dimension indexes each Y component of each vector in this
               vector field for this time step.
-        magnitude_factor : optional[NumericTypes]
-            Factor by which to multiply each magnitude of each vector in this
-            vector field, typically to scale magnitude to the desired units.
-            Defaults to 1, implying no scaling.
         '''
 
         # Classify the passed sequences as Numpy arrays for efficiency.
         self._x = arrays.from_iterable(x)
         self._y = arrays.from_iterable(y)
-
-        # Classify all remaining parameters.
-        self._magnitude_factor = magnitude_factor
 
     # ..................{ PROPERTIES ~ abstract              }..................
     @property
@@ -119,8 +106,7 @@ class VectorField(object):
         * Second dimension indexes each (possibly zero) magnitude of each vector
           in this vector field for this time step.
 
-        For space and time efficiency, the definition of this array is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
 
         Caveats
         ----------
@@ -131,9 +117,8 @@ class VectorField(object):
         '''
 
         # Array of all vector magnitudes computed from the arrays of all
-        # vector X and Y components, multiplying each such magnitude by the
-        # previously passed factor (e.g., to scale to the desired units).
-        return self._magnitude_factor*np.sqrt(self._x**2 + self._y**2)
+        # vector X and Y components.
+        return np.sqrt(self._x**2 + self._y**2)
 
 
     @property_cached
@@ -153,12 +138,11 @@ class VectorField(object):
           safely usable *only* in contexts where vectors with zero magnitudes
           are ignorable (e.g., as the divisior of division).
 
-        For space and time efficiency, the definition of this array is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         # Array of all vector magnitudes copied from the original.
-        magnitudes_nonzero = self.magnitudes[:]
+        magnitudes_nonzero = self.magnitudes.copy()
 
         # Substitute all zero magnitudes by 1.0.
         magnitudes_nonzero[magnitudes_nonzero == 0.0] = 1.0
@@ -177,8 +161,7 @@ class VectorField(object):
           in this vector field for this time step, produced by dividing that
           vector's original X component by that vector's original magnitude.
 
-        For space and time efficiency, the definition of this array is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         return self._x / self.magnitudes_nonzero
@@ -194,8 +177,7 @@ class VectorField(object):
           in this vector field for this time step, produced by dividing that
           vector's original Y component by that vector's original magnitude.
 
-        For space and time efficiency, the definition of this array is lazily
-        deferred to the first read of this property.
+        This array is created only on the first access of this property.
         '''
 
         return self._y / self.magnitudes_nonzero
