@@ -186,7 +186,11 @@ class LayerCellsVectorDiscreteMembranesDeformed(
             self._visual.time_step]
 
 
-    def _layer_next(self) -> None:
+    # Of necessity, this method recomputes the triangulated mesh for each
+    # cell by recalling _layer_first_color_mappables() each time step. To ensure
+    # that these meshes are properly associated with the existing colorbar, the
+    # _layer_next_color_mappables() rather than _layer_next() method is defined.
+    def _layer_next_color_mappables(self) -> None:
 
         #FIXME: Submit a matplotlib issue concerning this, please.
 
@@ -214,5 +218,5 @@ class LayerCellsVectorDiscreteMembranesDeformed(
             if not isinstance(collection, TriMesh)
         ]
 
-        # Replot triangulation meshes for all cells for this time step.
-        self._layer_first_color_mappables()
+        # Return new triangulation meshes for all cells for this time step.
+        return self._layer_first_color_mappables()

@@ -133,7 +133,12 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         conf: SimConfVisualCellsABC,
         is_save: bool,
         is_show: bool,
+
+        #FIXME: For orthogonality with nomenclature elsewhere -- including the
+        #the "conf.name" attribute -- rename both this parameter and the
+        #corresponding "_label" attribute to "name" and "_name" respectively.
         label: str,
+
         figure_title: str,
 
         # Optional parameters.
@@ -436,6 +441,16 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         return self._conf
 
 
+    @property
+    def name(self) -> str:
+        '''
+        Non-human-readable name identifying this type of visual (e.g.,
+        ``voltage_extra``).
+        '''
+
+        return self._label
+
+    # ..................{ PROPERTIES ~ read-only : mpl       }..................
     @property
     def figure(self) -> Figure:
         '''

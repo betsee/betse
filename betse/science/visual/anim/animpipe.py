@@ -23,7 +23,6 @@ from betse.science.visual.anim.anim import (
     AnimVelocityIntracellular,
     AnimVelocityExtracellular,
     AnimFlatCellsTimeSeries,
-    AnimEnvTimeSeries,
 )
 from betse.science.visual.anim.animafter import AnimCellsAfterSolvingLayered
 from betse.science.visual.layer.vector import lyrvecabc
@@ -472,18 +471,16 @@ class AnimCellsPipe(SimPipeExportABC):
         all sampled time steps.
         '''
 
-        # List of environment voltages, indexed by time step.
-        venv_time_series = [
-            venv.reshape(self._phase.cells.X.shape)*1000
-            for venv in self._phase.sim.venv_time
-        ]
+        # Layer sequence containing only a single layer animating these
+        # voltages.
+        layers = (LayerCellsVectorSmoothGrids(
+            vector=self._phase.cache.vector.voltage_extra),)
 
-        # Animate this animation.
-        AnimEnvTimeSeries(
+        # Animate these layers.
+        AnimCellsAfterSolvingLayered(
             phase=self._phase,
             conf=conf,
-            time_series=venv_time_series,
-            label='Venv',
+            layers=layers,
             figure_title='Environmental Voltage',
             colorbar_title='Voltage [mV]',
         )

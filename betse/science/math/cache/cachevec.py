@@ -40,24 +40,6 @@ class SimPhaseCacheVectorCells(SimPhaseCacheABC):
         # Classify all subcaches imported above.
         self.layer = SimPhaseCacheLayerCellsVector(self._phase)
 
-    # ..................{ PROPERTIES ~ currents              }..................
-    @property_cached
-    def voltage_membrane(self) -> VectorCellsCache:
-        '''
-        Vector cache of all upscaled **transmembrane voltages** (i.e., voltages
-        across all gap junctions connecting intracellular membranes) over all
-        sampled time steps of the current simulation phase, originally spatially
-        situated at cell membrane midpoints.
-
-        For readability of units in exported visuals (e.g., plots), voltages are
-        cached upscaled from volts (V) to millivolts (mV).
-        '''
-
-        return VectorCellsCache(
-            phase=self._phase,
-            times_membranes_midpoint=expmath.upscale_units_milli(
-                self._phase.sim.vm_time))
-
     # ..................{ PROPERTIES ~ ions                  }..................
     #FIXME: Decorate to require that calcium ions be enabled.
     @property_cached
@@ -91,6 +73,53 @@ class SimPhaseCacheVectorCells(SimPhaseCacheABC):
             times_cells_centre=[
                 -np.log10(1.0e-3 * ions_concentration[self._phase.sim.iH])
                 for ions_concentration in self._phase.sim.cc_time])
+
+    # ..................{ PROPERTIES ~ voltage               }..................
+    @property_cached
+    def voltage_extra(self) -> VectorCellsCache:
+        '''
+        Vector cache of all upscaled **extracellular voltages** (i.e., voltages
+        across all environmental grid spaces) over all sampled time steps of the
+        current simulation phase, originally spatially situated at grid space
+        centres.
+
+        For readability of units in exported visuals (e.g., plots), voltages are
+        cached upscaled from volts (V) to millivolts (mV).
+        '''
+
+        # Shape of the extracellular voltages array to be cached. While the
+        # original "venv_time" is a two-dimensional array indexed first by
+        # sampled time steps and then by flattened grid spaces, this is a
+        # three-dimensional array indexed first by sampled time steps and then
+        # by nonflattened grid space rows and columns as unique dimensions. Why?
+        # Because layers plotting extracellular data assume the latter.
+        voltage_extra_shape = (
+            len(self._phase.sim.venv_time),) + self._phase.cells.X.shape
+
+        # Create, return, and create this cache, both upscaled and reshaped as
+        # detailed above.
+        return VectorCellsCache(
+            phase=self._phase,
+            times_grids_centre=expmath.upscale_units_milli(
+                self._phase.sim.venv_time).reshape(voltage_extra_shape))
+
+
+    @property_cached
+    def voltage_membrane(self) -> VectorCellsCache:
+        '''
+        Vector cache of all upscaled **transmembrane voltages** (i.e., voltages
+        across all gap junctions connecting intracellular membranes) over all
+        sampled time steps of the current simulation phase, originally spatially
+        situated at cell membrane midpoints.
+
+        For readability of units in exported visuals (e.g., plots), voltages are
+        cached upscaled from volts (V) to millivolts (mV).
+        '''
+
+        return VectorCellsCache(
+            phase=self._phase,
+            times_membranes_midpoint=expmath.upscale_units_milli(
+                self._phase.sim.vm_time))
 
     # ..................{ PRIVATE ~ ions                     }..................
     def _make_ion_intra_cache(self, ion_index: int) -> VectorCellsCache:

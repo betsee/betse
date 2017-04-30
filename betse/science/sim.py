@@ -254,16 +254,16 @@ class Simulator(object):
     cc_cells : ndarray
         Two-dimensional Numpy array of all cellular ion concentrations for the
         current time step, whose:
-        * First dimension indexes each ion enabled by the current ion profile.
-        * Second dimension indexes each cell such that each element is the
-          concentration of that ion in that cell.
+        #. First dimension indexes each ion enabled by the current ion profile.
+        #. Second dimension indexes each cell such that each element is the
+           concentration of that ion in that cell.
     cc_time : list
         Three-dimensional list of all cellular ion concentrations for all time
         steps, whose:
-        * First dimension indexes each sampled time step.
-        * Second dimension indexes each ion such that each element is the array
-          of all cellular concentrations of that ion, defined as for the
-          :attr:`cc_cells` array.
+        #. First dimension indexes each sampled time step.
+        #. Second dimension indexes each ion such that each element is the array
+           of all cellular concentrations of that ion for this time step,
+           defined as for the :attr:`cc_cells` array.
         Equivalently, this list is the concatenation of all :attr:`cc_cells`
         arrays for all sampled time steps.
 
@@ -328,27 +328,46 @@ class Simulator(object):
         Equivalently, this list is the concatenation of all :attr:`P_cells`
         arrays for all sampled time steps.
 
-    Attributes (Voltage)
+    Attributes (Voltage: Extracellular)
+    ----------
+    v_env : ndarray
+        One-dimensional Numpy array of all **extracellular voltages** (i.e.,
+        voltages at the outer membrane surfaces of all cells) at the current
+        time step, indexing each environmental grid space such that each element
+        is the extracellular voltage spatially situated at the centre of that
+        grid space.
+    venv_time : list
+        Two-dimensional list of all extracellular voltages over all time steps,
+        whose:
+        #. First dimension indexes each sampled time step.
+        #. Second dimension indexes each environmental grid space such that each
+           element is the extracellular voltage for that grid space at this time
+           step, defined as for the :attr:`v_env` array.
+        Equivalently, this array is the concatenation of all :attr:`v_env`
+        arrays over all time steps.
+
+    Attributes (Voltage: Intracellular)
     ----------
     vcell_time : ndarray
         Voltage at the inner membrane surface of each cell as a function of
         time.
-    venv_time : ndarray
-        Voltage at the outer membrane surface of each cell as a function of
-        time.
+
+    Attributes (Voltage: Transmembrane)
+    ----------
     vm : ndarray
-        One-dimensional Numpy array indexing each cell membrane such that each
-        element is the transmembrane voltage spatially situated across the cell
-        membrane indexed by that element for the current time step.
+        One-dimensional Numpy array of all transmembrane voltages across all
+        cell membranes at the current time step, indexing each cell membrane
+        such that each element is the transmembrane voltage spatially situated
+        across that cell membrane.
     vm_time : list
         Two-dimensional list of all transmembrane voltages across all cell
-        membranes, whose:
-        . First dimension indexes each sampled time step.
-        . Second dimension indexes each cell membrane such that each element is
-          the transmembrane voltage spatially situated across the cell membrane
-          indexed by that element for this time step.
+        membranes over all sampled time steps, whose:
+        #. First dimension indexes each sampled time step.
+        #. Second dimension indexes each cell membrane such that each element is
+           the transmembrane voltage for that cell at this time step, defined as
+           for the :attr:`vm` array.
         Equivalently, this array is the concatenation of all :attr:`vm` arrays
-        over all time steps.
+        over all sampled time steps.
     vm_ave : ndarray
         One-dimensional Numpy array indexing each cell such that each element is
         the transmembrane voltage spatially situated at the centre of the cell

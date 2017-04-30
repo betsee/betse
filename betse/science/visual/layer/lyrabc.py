@@ -264,18 +264,21 @@ class LayerCellsColorfulABC(LayerCellsABC):
 
     def _layer_first(self) -> None:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the first simulation time step onto the figure
-        axes of the current plot or animation.
+        Layer the spatial distribution of a single modelled variable (e.g.,
+        transmembrane voltage) for the first sampled time step onto the current
+        visual's figure axes.
 
-        This method internally caches the :attr:`_color_mappables` attribute
-        returned by the :meth:`color_mappables` property.
+        This method internally calls the subclass
+        :meth:`_layer_first_color_mappables` method and caches the
+        :attr:`_color_mappables` iterable returned by that call.
 
         Caveats
         ----------
         **Subclasses should not override this method,** which preserves various
         invariants required for colorbar mapping. Instead, subclasses should
-        *only* override the :meth:`_layer_first_color_mappables` method.
+        *only* override the :meth:`_layer_first_color_mappables`,
+        :meth:`_layer_next` method, and :meth:`_layer_next_color_mappables`
+        methods as needed.
         '''
 
         # Color mappables layered by the subclass for the first time step.
@@ -289,7 +292,46 @@ class LayerCellsColorfulABC(LayerCellsABC):
         # Add a colorbar to this visual associated with these mappables.
         self._make_colorbar()
 
-    # ..................{ SUBCLASS                           }..................
+
+    def _layer_next(self) -> None:
+        '''
+        Layer the spatial distribution of a single modelled variable (e.g.,
+        transmembrane voltage) for the next sampled time step onto the current
+        visual's figure axes.
+
+        This method internally calls the subclass
+        :meth:`_layer_next_color_mappables` method and caches the
+        :attr:`_color_mappables` iterable returned by that call.
+
+        Caveats
+        ----------
+        **Subclasses should typically override this method,** which
+        inefficiently recreates all color mappables each time step, which most
+        layer subclasses do *not* require. To efficiently preserve the initial
+        color mappables created and cached by the prior call to the
+        :meth:`_layer_first` method, most layer subclasses should instead
+        override the default implementation of this method rather than
+        implementing the optional :meth:`_layer_next_color_mappables` method.
+        '''
+
+        # Color mappables layered by the subclass for the next time step.
+        self._color_mappables = self._layer_next_color_mappables()
+
+        # If no mappables were layered, raise an exception.
+        if not self._color_mappables:
+            raise BetseSimVisualLayerException(
+                '_layer_next_color_mappables() returned no color mappables.')
+
+        # Rescale these mappables to the previously established minimum and
+        # maximum color values. Since matplotlib provides no convenient means
+        # for efficiently replacing the existing colorbar added by the prior
+        # call to the _layer_first() method *AND* since replacing this colorbar
+        # would be generally undesirable, this colorbar is preserved as is.
+        self._scale_color_mappables()
+
+    # ..................{ SUBCLASS ~ mandatory               }..................
+    # The following abstract methods *MUST* be implemented by subclasses.
+
     @abstractproperty
     def color_data(self) -> SequenceOrNoneTypes:
         '''
@@ -313,11 +355,11 @@ class LayerCellsColorfulABC(LayerCellsABC):
     @abstractmethod
     def _layer_first_color_mappables(self) -> IterableTypes:
         '''
-        Layer the spatial distribution of a single modelled variable (e.g., cell
-        membrane voltage) for the first simulation time step onto the figure
-        axes of the current plot or animation, returning all matplotlib color
-        mappables whose artists are to be mapped onto (i.e., coloured according
-        to) the parent visual's colorbar.
+        Layer the spatial distribution of a single modelled variable (e.g.,
+        transmembrane voltage) for the first sampled time step onto the current
+        visual's figure axes, returning all matplotlib color mappables whose
+        artists are to be mapped onto (i.e., coloured according to) this
+        figure's colorbar.
 
         Returns
         ----------
@@ -327,6 +369,46 @@ class LayerCellsColorfulABC(LayerCellsABC):
             :meth:`_layer_first` method. Note that, by matplotlib design, only
             the first mappable in this iterable is arbitrarily associated with
             this colorbar; all other mappables are ignored for this purpose.
+        '''
+
+        pass
+
+    # ..................{ SUBCLASS ~ optional                }..................
+    # The following non-abstract methods *MAY* be implemented by subclasses.
+
+    def _layer_next_color_mappables(self) -> IterableTypes:
+        '''
+        Layer the spatial distribution of a single modelled variable (e.g.,
+        transmembrane voltage) for the next sampled time step onto the current
+        visual's figure axes, returning all matplotlib color mappables whose
+        artists are to be mapped onto (i.e., coloured according to) this
+        figure's colorbar.
+
+        Design
+        ----------
+        All layer subclasses *must* implement either:
+
+        * The :meth:`layer_next` method, in which case this layer is assumed to
+          preserve the original color mappables returned by the initial call to
+          the :meth:`_layer_first_color_mappables` method for each time step.
+          This is the common (and most efficient) case.
+        * This method, in which case this layer is assumed to behave as follows
+          for each time step:
+
+          * Destroy all color mappables created by the prior call to this or the
+            :meth:`_layer_first_color_mappables` method.
+          * Create and return new color mappables from the call to this method.
+
+        Since the latter is substantially less efficient than the former, *only*
+        layers recreating color mappables must implement this method; all other
+        layers should implement the :meth:`layer_next` method.
+
+        Returns
+        ----------
+        IterableTypes
+            Iterable of all matplotlib color mappables, cached into the
+            :attr:`_color_mappables` attribute by the parent
+            :meth:`_layer_next` method.
         '''
 
         pass
@@ -398,11 +480,6 @@ class LayerCellsColorfulABC(LayerCellsABC):
         assert types.is_numeric(self._color_max), (
             types.assert_not_numeric(self._color_max))
 
-        # Log these values.
-        logs.log_debug(
-            'Scaling animation colors to [%d, %d]...',
-            self._color_min, self._color_max)
-
 
     def _scale_color_mappables(self) -> None:
         '''
@@ -410,10 +487,18 @@ class LayerCellsColorfulABC(LayerCellsABC):
         minimum and maximum color values.
         '''
 
+        # Log this attempt.
+        logs.log_debug(
+            'Rescaling "%s" colors to [%d, %d]...',
+            self._visual.name, self._color_min, self._color_max)
+
         # For each color mappable, clip that mappable to the minimum and
         # maximum values discovered above. Note this also has the beneficial
         # side-effect of establishing the colorbar's range.
         for color_mappable in self._color_mappables:
+            # Ensure sanity.
             assert types.is_matplotlib_mappable(color_mappable), (
                 types.assert_not_matplotlib_mappable(color_mappable))
+
+            # Clip this mappable.
             color_mappable.set_clim(self._color_min, self._color_max)
