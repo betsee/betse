@@ -305,6 +305,12 @@ BETSE is releasable to all supported platforms as follows:
 
        BETSE 0.4.1 (Gladder Galvani) started.
 
+#. **Push this commit.** Thus begins the dawn of a new scientific epoch.
+
+   .. code:: bash
+
+      $ git push
+
 #. (\ *Optional*\ ) **Update third-party platform-specific packages.** As of
    this writing, these include (in no particular order):
 
