@@ -99,8 +99,8 @@ class SafeRotatingFileHandler(RotatingFileHandler):
     coordination exists between independent BETSE processes run by external
     users at the low-level operating system level.
 
-    Thus, both file- and non-file locking is inapplicable within this context.
-    This handler cannot reasonably constrain logfile access during rotation.
+    Both file- and non-file locking are inapplicable within this context. Hence,
+    this handler cannot reasonably constrain logfile access during rotation.
     Instead, on detecting exceptions produced by race conditions between
     multiple processes competing for access when attempting to emit log records,
     this handler temporarily halts the current process for a non-observable

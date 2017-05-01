@@ -158,7 +158,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-__version__ = '0.4.2'
+__version__ = '0.5.0'
 '''
 Human-readable current version of this application as a `.`-delimited string.
 
@@ -168,7 +168,7 @@ than that of a typical constant (e.g., `VERSION_STR`).
 
 
 #FIXME: Log on BETSE startup.
-CODENAME = 'Gladdest Galvani'
+CODENAME = 'Happy Hodgkin'
 '''
 Human-readable code name associated with the current version of this
 application.
@@ -179,7 +179,7 @@ is the same as the first letter of that adjective.
 
 See Also
 ----------
-:download:`/doc/dev/RELEASE.md`
+:download:`/doc/rst/RELEASE.md`
     Further details on this incredible code name schema.
 '''
 

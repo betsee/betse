@@ -51,6 +51,12 @@ BETSE is releasable to all supported platforms as follows:
    `Test PyPI`_. While optional, securely registering and uploading PyPI
    distributions *without* twine_ is typically non-trivial, banal, and tedious.
    :sup:`Your mileage may vary.`
+#. (\ *Optional*\ ) **Bump release metadata.** Assuming the prior release
+   followed these instructions, release metadata has already been bumped in
+   preparation for the next (i.e., this) release. If another bump is required
+   (e.g., to upgrade this release from a patch to a minor or even major update),
+   this bump should be performed *before* tagging this release. For details, see
+   see the eponymous *"Bump release metadata."* instructions below.
 #. (\ *Optional*\ ) **List all existing tags.** For reference, listing all
    previously created tags *before* creating new tags is often advisable.
 
@@ -75,7 +81,7 @@ BETSE is releasable to all supported platforms as follows:
 
        BETSE 0.4.0 (Glad Galvani) released.
 
-       Major changes include:
+       Significant changes include:
 
        * Tissue profiles generalized.
        * Animation video encoding supported.
@@ -299,6 +305,12 @@ BETSE is releasable to all supported platforms as follows:
 
        BETSE 0.4.1 (Gladder Galvani) started.
 
+#. (\ *Optional*\ ) **Update third-party platform-specific packages.** As of
+   this writing, these include (in no particular order):
+
+   * The official `Gentoo Linux BETSE ebuild`_, currently hosted at the
+     `raiagent overlay`_ maintained by a co-maintainer of BETSE.
+
 .. [#tags]
    Do *not* create a lightweight tag, which omits critical metadata (e.g.,
    author identity, descriptive message). *Always* create an annotated tag
@@ -361,7 +373,7 @@ names is a fruitless and hence worthless goal.
 .. _tarballs:
    https://gitlab.com/betse/betse/tags
 
-.. # ------------------( LINKS ~ software                   )------------------
+.. # ------------------( LINKS ~ pypi                       )------------------
 .. _Test PyPI:
    https://testpypi.python.org/pypi
 .. _Test PyPI instructions:
@@ -372,11 +384,21 @@ names is a fruitless and hence worthless goal.
    https://pypi.python.org/pypi
 .. _PyPI user:
    https://pypi.python.org/pypi?%3Aaction=register_form
+
+.. # ------------------( LINKS ~ python                     )------------------
 .. _Semantic Versioning:
    http://semver.org
-.. _Ubuntu code name schema:
-   https://wiki.ubuntu.com/DevelopmentCodeNames
 .. _twine:
    https://pypi.python.org/pypi/twine
 .. _wheel:
    https://wheel.readthedocs.io
+
+.. # ------------------( LINKS ~ linux : ubuntu             )------------------
+.. _Ubuntu code name schema:
+   https://wiki.ubuntu.com/DevelopmentCodeNames
+
+.. # ------------------( LINKS ~ linux : gentoo             )------------------
+.. _Gentoo Linux BETSE ebuild:
+   https://github.com/leycec/raiagent/tree/master/sci-biology/betse
+.. _raiagent overlay:
+   https://github.com/leycec/raiagent
