@@ -119,7 +119,7 @@ def get_current(sim, cells, p):
             # smoothing of Phi:
             Phi = gaussian_filter(Phi.reshape(cells.X.shape), p.smooth_level, mode='constant')
 
-        sim.v_env = sim.v_env + Phi.ravel()*p.dt
+        sim.v_env = Phi.ravel()
 
         #--------------------------------------------------------------------------------------------------------------
         # calculate the gradient of v_env:
