@@ -208,14 +208,14 @@ modulators:
 # DIRECTION SURFACE PLOTS
 #-----------------------------------------------------------------------------------------------------------------------
 
-  direction surfaces:
+direction surfaces:
 
-    - substance X name: 'Vmem'
-      range of X: [-70e-3, 10e-3]
-      substance Y name: 'A'
-      range of Y: [0.1, 1.0]
-      number of points: 25
-      cmap alpha: 0.2
+  - substance X name: 'Vmem'
+    range of X: [-70e-3, 10e-3]
+    substance Y name: 'A'
+    range of Y: [0.1, 1.0]
+    number of points: 25
+    cmap alpha: 0.2
 
 
 #-----------------------------------------------------------------------------------------------------------------------

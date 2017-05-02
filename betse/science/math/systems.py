@@ -708,7 +708,25 @@ class SimMaster(object):
 
             obj.alpha_eval_string = "(" + all_alpha + ")"
 
-            obj.init_channel(obj.channel_class, obj.channel_type, obj.channelMax, obj.alpha_eval_string, p)
+            if obj.channel_class == 'Na':
+                obj.ion_strings = ['Na']
+
+            elif obj.channel_class == 'K':
+                obj.ion_strings = ['K']
+
+            elif obj.channel_class == 'Ca':
+                obj.ion_strings = ['Ca']
+
+            elif obj.channel_class == 'Cl':
+                obj.ion_strings = ['Cl']
+
+            elif obj.channel_class == 'Cat':
+                obj.ion_strings = ['Na']
+
+            elif obj.channel_class == 'Fun':
+                obj.ion_strings = ['Na']
+
+            obj.init_channel(obj.ion_strings, obj.channel_type, obj.channelMax, obj.alpha_eval_string, p)
 
     def write_growth_and_decay(self):
 
@@ -2595,7 +2613,10 @@ class SimMaster(object):
 
         self.vm = self.vmo
 
-
+        # for rea in self.react_handler:
+        #
+        #     print(self.react_handler[rea])
+        #     print('-----')
 
         for i in range(AA.shape[0]):
 
@@ -2610,8 +2631,6 @@ class SimMaster(object):
                     ind_A = list(self.output_handler).index(tagA)
 
                     ind_B = list(self.output_handler).index('Jmem')
-
-
 
                 elif name_A == 'Vmem' and name_B in self.cell_concs:
 
@@ -2635,7 +2654,6 @@ class SimMaster(object):
 
                     tagB = 'd/dt ' + name_B
                     ind_B = list(self.output_handler).index(tagB)
-
 
                 else:
 
@@ -2700,7 +2718,6 @@ class SimMaster(object):
 
         # if p.turn_all_plots_off is False:
         #     plt.show(block=False)
-
 
 class Molecule(object):
 
@@ -2838,19 +2855,21 @@ class Channel(object):
 
     def init_channel(self, ion_string, type_string, max_val, alpha_mod, p):
 
-        c_in = "self.cell_concs['{}']".format(ion_string)
-        c_out = "self.env_concs['{}']".format(ion_string)
+        for ion in ion_string:
 
-        zz = "self.zmol['{}']".format(ion_string)
+            c_in = "self.cell_concs['{}']".format(ion)
+            c_out = "self.env_concs['{}']".format(ion)
 
-        front_term = "((({}*1e-9)/p.tm)*((p.F*self.vm)/(p.R*p.T))*{})".format(max_val, zz)
+            zz = "self.zmol['{}']".format(ion)
 
-        alpha_v = "(({}*self.vm*p.F)/(p.R*p.T))".format(zz)
+            front_term = "((({}*1e-9)/p.tm)*((p.F*self.vm)/(p.R*p.T))*{})".format(max_val, zz)
 
-        numo_term = "({} - {}*np.exp(-{}))".format(c_in, c_out, alpha_v)
-        deno_term = "(1 - np.exp(-{}))".format(alpha_v)
+            alpha_v = "(({}*self.vm*p.F)/(p.R*p.T))".format(zz)
 
-        # write the eval string for the channel:
-        self.channel_eval_string = "{}*{}*({}/{})".format(alpha_mod, front_term, numo_term, deno_term)
+            numo_term = "({} - {}*np.exp(-{}))".format(c_in, c_out, alpha_v)
+            deno_term = "(1 - np.exp(-{}))".format(alpha_v)
+
+            # write the eval string for the channel:
+            self.channel_eval_string = "{}*{}*({}/{})".format(alpha_mod, front_term, numo_term, deno_term)
 
 
