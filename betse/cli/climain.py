@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-BETSE's command line interface (CLI).
+Command line interface (CLI) for this application.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -28,7 +28,7 @@ from betse.util.type.obj import objects
 # ....................{ CLASS                              }....................
 class CLIMain(CLIABC):
     '''
-    BETSE's command line interface (CLI).
+    Command line interface (CLI) for this application.
 
     Attributes
     ----------
@@ -51,6 +51,7 @@ class CLIMain(CLIABC):
 
     # ..................{ SUPERCLASS ~ args                  }..................
     def _get_arg_parser_top_kwargs(self):
+
         # Keyword arguments passed to the top-level argument parser constructor.
         return {
             'epilog': SUBCOMMANDS_SUFFIX,
@@ -58,6 +59,7 @@ class CLIMain(CLIABC):
 
 
     def _config_arg_parsing(self):
+
         # Collection of top-level argument subparsers.
         self._arg_subparsers_top = self._arg_parser.add_subparsers(
             # Name of the attribute storing the passed subcommand name.
@@ -95,7 +97,7 @@ class CLIMain(CLIABC):
     # ..................{ SUBCOMMAND ~ plot                  }..................
     def _config_arg_parsing_plot(self) -> None:
         '''
-        Configure argument parsing for subcommands of the `plot` subcommand.
+        Configure argument parsing for subcommands of the ``plot`` subcommand.
         '''
 
         # Collection of all subcommands of the "plot" subcommand.
@@ -119,7 +121,7 @@ class CLIMain(CLIABC):
     # ..................{ SUPERCLASS ~ cli                   }..................
     def _do(self) -> object:
         '''
-        Implement the BETSE command-line interface (CLI).
+        Implement this command-line interface (CLI).
 
         If a subcommand was passed, this method runs this subcommand and returns
         the result of doing so; else, this method prints help output and returns
@@ -167,7 +169,7 @@ class CLIMain(CLIABC):
     # ..................{ SUBCOMMANDS_TOP ~ sim                  }..................
     def _do_try(self) -> object:
         '''
-        Run the `try` subcommand and return the result of doing so.
+        Run the ``try`` subcommand and return the result of doing so.
         '''
 
         # Basename of the sample configuration file to be created.
@@ -206,7 +208,7 @@ class CLIMain(CLIABC):
 
     def _do_config(self) -> None:
         '''
-        Run the `config` subcommand.
+        Run the ``config`` subcommand.
         '''
 
         # Avoid importing modules importing dependencies at the top level.
@@ -216,7 +218,7 @@ class CLIMain(CLIABC):
 
     def _do_seed(self) -> object:
         '''
-        Run the `seed` subcommand and return the result of doing so.
+        Run the ``seed`` subcommand and return the result of doing so.
         '''
 
         return self._sim_runner.seed()
@@ -224,7 +226,7 @@ class CLIMain(CLIABC):
 
     def _do_init(self) -> object:
         '''
-        Run the `init` subcommand and return the result of doing so.
+        Run the ``init`` subcommand and return the result of doing so.
         '''
 
         return self._sim_runner.init()
@@ -232,7 +234,7 @@ class CLIMain(CLIABC):
 
     def _do_sim(self) -> object:
         '''
-        Run the `sim` subcommand and return the result of doing so.
+        Run the ``sim`` subcommand and return the result of doing so.
         '''
 
         return self._sim_runner.sim()
@@ -240,7 +242,7 @@ class CLIMain(CLIABC):
 
     def _do_sim_brn(self) -> object:
         '''
-        Run the `sim-brn` subcommand and return the result of doing so.
+        Run the ``sim-brn`` subcommand and return the result of doing so.
         '''
 
         return self._sim_runner.sim_brn()
@@ -248,7 +250,7 @@ class CLIMain(CLIABC):
 
     def _do_sim_grn(self) -> object:
         '''
-        Run the `sim-grn` subcommand and return the result of doing so.
+        Run the ``sim-grn`` subcommand and return the result of doing so.
         '''
 
         return self._sim_runner.sim_grn()
@@ -256,7 +258,7 @@ class CLIMain(CLIABC):
 
     def _do_plot(self) -> object:
         '''
-        Run the `plot` subcommand and return the result of doing so.
+        Run the ``plot`` subcommand and return the result of doing so.
         '''
 
         # If no subcommand was passed, print help output and return. Note that
@@ -277,7 +279,7 @@ class CLIMain(CLIABC):
 
     def _do_plot_seed(self) -> object:
         '''
-        Run the `plot` subcommand's `seed` subcommand and return the result
+        Run the ``plot`` subcommand's ``seed`` subcommand and return the result
         of doing so.
         '''
 
@@ -286,7 +288,7 @@ class CLIMain(CLIABC):
 
     def _do_plot_init(self) -> object:
         '''
-        Run the `plot` subcommand's `init` subcommand and return the result
+        Run the ``plot`` subcommand's ``init`` subcommand and return the result
         of doing so.
         '''
 
@@ -295,7 +297,7 @@ class CLIMain(CLIABC):
 
     def _do_plot_sim(self) -> object:
         '''
-        Run the `plot` subcommand's `sim` subcommand and return the result
+        Run the ``plot`` subcommand's ``sim`` subcommand and return the result
         of doing so.
         '''
 
@@ -304,8 +306,8 @@ class CLIMain(CLIABC):
 
     def _do_plot_sim_brn(self) -> object:
         '''
-        Run the `plot` subcommand's `sim-brn` subcommand and return the result
-        of doing so.
+        Run the ``plot`` subcommand's ``sim-brn`` subcommand and return the
+        result of doing so.
         '''
 
         return self._sim_runner.plot_brn()
@@ -313,8 +315,8 @@ class CLIMain(CLIABC):
 
     def _do_plot_sim_grn(self) -> object:
         '''
-        Run the `plot` subcommand's `sim-grn` subcommand and return the result
-        of doing so.
+        Run the ``plot`` subcommand's ``sim-grn`` subcommand and return the
+        result of doing so.
         '''
 
         return self._sim_runner.plot_grn()
@@ -322,14 +324,15 @@ class CLIMain(CLIABC):
 
     def _do_repl(self) -> None:
         '''
-        Run the `repl` subcommand.
+        Run the ``repl`` subcommand.
         '''
 
         # In the unlikely edge-case of the "repl" subcommand being erroneously
         # run by a functional test, prohibit this by raising an exception.
         # Permitting this would probably cause tests to indefinitely hang.
         if pys.is_testing():
-            raise BetseTestException('REPL unavailable for testing.')
+            raise BetseTestException(
+                'REPL unavailable during testing for safety.')
 
         # Defer heavyweight imports until *AFTER* possibly failing above.
         from betse.cli.repl import repls
@@ -341,7 +344,7 @@ class CLIMain(CLIABC):
     @property_cached
     def _sim_runner(self):
         '''
-        BETSE simulation runner preconfigured with sane defaults.
+        Simulation runner preconfigured with sane defaults.
         '''
 
         # Defer heavyweight imports.

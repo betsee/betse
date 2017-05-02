@@ -4,35 +4,35 @@
 # See "LICENSE" for further details.
 
 '''
-Metadata constants synopsizing high-level `betse` behaviour.
+Metadata constants synopsizing high-level application behaviour.
 
 Python Version
 ----------
-For uniformity between the BETSE codebase and the `setup.py` setuptools script
+For uniformity between this codebase and the ``setup.py`` setuptools script
 importing this module, this module also validates the version of the active
 Python 3 interpreter. An exception is raised if this version is insufficient.
 
 This application currently requires **Python 3.4**, as Python < 3.4:
 
 * Provides insufficient machinery for dynamically inspecting modules at runtime.
-  In particular, both the long-standing `imp.find_module()` function and the
-  `importlib.find_loader()` function introduced by Python 3.3 require all parent
-  packages of the passed module to be recursively imported _before_ these
+  In particular, both the long-standing :func:`imp.find_module` function and the
+  :func:`importlib.find_loader` function introduced by Python 3.3 require all
+  parent packages of the passed module to be recursively imported *before* these
   functions are called; failing to do so results in these functions
-  unconditionally returning `None`. Since this has been the source of numerous
+  unconditionally returning ``None``. Since this has been the source of numerous
   subtle issues throughout this codebase, Python 3.3 is strictly out. Since most
   modern Linux distributions have adopted Python 3.4 as the default Python
-  3 interpreters, this _should_ impose no hardship.
-* Fails to provide the `enum` module introduced by Python 3.4, which both
+  3 interpreters, this *should* impose no hardship.
+* Fails to provide the :mod:`enum` module introduced by Python 3.4, which both
   standardizes and simplifies enumeration implementations.
 '''
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
-# module may import *ONLY* from packages guaranteed to exist at the start of
-# installation. This includes all standard Python and BETSE packages but *NOT*
-# third-party dependencies, which if currently uninstalled will only be
+# module may import *ONLY* from modules guaranteed to exist at the start of
+# installation. This includes all standard Python and application modules but
+# *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -41,7 +41,7 @@ import sys
 # ....................{ METADATA                           }....................
 NAME = 'BETSE'
 '''
-Human-readable program name.
+Human-readable application name.
 '''
 
 # ....................{ PYTHON ~ version                   }....................
@@ -59,13 +59,13 @@ Human-readable program name.
 PYTHON_VERSION_MIN = '3.4.0'
 '''
 Human-readable minimum version of Python required by this application as a
-`.`-delimited string.
+``.``-delimited string.
 '''
 
 
 def _get_version_parts_from_str(version_str: str) -> tuple:
     '''
-    Convert the passed human-readable `.`-delimited version string into a
+    Convert the passed human-readable ``.``-delimited version string into a
     machine-readable version tuple of corresponding integers.
     '''
     assert isinstance(version_str, str), (
@@ -129,7 +129,7 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
         'is only Python {}. We feel deep sadness for you.'.format(
             NAME, PYTHON_VERSION_MIN, PYTHON_VERSION))
 
-# ....................{ METADATA ~ versions                }....................
+# ....................{ METADATA ~ version                 }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: When modifying the current version of this application below,
 # consider adhering to the Semantic Versioning schema. Specifically, the version
@@ -158,12 +158,9 @@ if sys.version_info[:3] < PYTHON_VERSION_MIN_PARTS:
 # For further details, see http://semver.org.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-__version__ = '0.5.1'
+VERSION = '0.5.1'
 '''
-Human-readable current version of this application as a `.`-delimited string.
-
-For PEP 8 compliance, this specifier has the canonical name `__version__` rather
-than that of a typical constant (e.g., `VERSION_STR`).
+Human-readable application version as a ``.``-delimited string.
 '''
 
 
@@ -184,12 +181,9 @@ See Also
 '''
 
 
-__version_info__ = _get_version_parts_from_str(__version__)
+VERSION_PARTS = _get_version_parts_from_str(VERSION)
 '''
-Machine-readable current version of this application as a tuple of integers.
-
-For PEP 8 compliance, this specifier has the canonical name `__version_info__`
-rather than that of a typical constant (e.g., `VERSION_PARTS`).
+Machine-readable application version as a tuple of integers.
 '''
 
 # ....................{ METADATA ~ synopsis                }....................
@@ -199,9 +193,9 @@ rather than that of a typical constant (e.g., `VERSION_PARTS`).
 # would significantly increase program startup costs with little to no benefit.)
 SYNOPSIS = 'BETSE, the Bioelectric Tissue Simulation Engine.'
 '''
-Human-readable single-line ASCII synopsis of this application.
+Human-readable single-line synopsis of this application.
 
-By PyPI design, this string must _not_ span multiple lines or paragraphs.
+By PyPI design, this string must *not* span multiple lines or paragraphs.
 '''
 
 
@@ -213,12 +207,12 @@ DESCRIPTION = (
     'and biochemical reaction networks.'
 )
 '''
-Human-readable multiline ASCII description of this application.
+Human-readable multiline description of this application.
 
 By :mod:`argparse` design, this string may (and typically should) span both
-multiple lines and paragraphs. Note this string is _not_ published to PyPI,
-which accepts reStructuredText (rst) and is hence passed the contents of the
-top-level :doc:`/README` file.
+multiple lines and paragraphs. Note that this string is *not* published to PyPI,
+which accepts reStructuredText (rst) and is thus passed the contents of the
+top-level :doc:`/README` file instead.
 '''
 
 # ....................{ METADATA ~ authors                 }....................
@@ -227,7 +221,7 @@ AUTHORS = 'Alexis Pietak, Cecil Curry, et al.'
 Human-readable list of all principal authors of this application as a
 comma-delimited string.
 
-For brevity, this string _only_ lists authors explicitly assigned copyrights.
+For brevity, this string *only* lists authors explicitly assigned copyrights.
 For the list of all contributors regardless of copyright assignment or
 attribution, see the top-level `AUTHORS.md` file.
 '''
@@ -248,43 +242,36 @@ URL of this application's homepage.
 
 URL_DOWNLOAD = (
     'https://gitlab.com/betse/betse/repository/archive.tar.gz?ref=v{}'.format(
-        __version__,
+        VERSION,
     )
 )
 '''
 URL of the source tarball for the current version of this application.
 
-This URL assumes a tag whose name is `v{VERSION}` where `{VERSION}` is the
-human-readable current version of this application (e.g., `v0.4.0`) to exist.
+This URL assumes a tag whose name is ``v{VERSION}`` where ``{VERSION}`` is the
+human-readable current version of this application (e.g., ``v0.4.0``) to exist.
 Typically, no such tag exists for live versions of this application -- which
 have yet to be stabilized and hence tagged. Hence, this URL is typically valid
-_only_ for previously released (rather than live) versions of this application.
+*only* for previously released (rather than live) versions of this application.
 '''
 
-# ....................{ METADATA ~ other                   }....................
+# ....................{ METADATA ~ license                 }....................
 LICENSE = '2-clause BSD'
 '''
-Human-readable name of the open-source license that this application is licensed
-under.
+Human-readable name of the license this application is licensed under.
 '''
 
-
+# ....................{ METADATA ~ python                  }....................
 PACKAGE_NAME = NAME.lower()
 '''
 Fully-qualified name of the top-level Python package implementing this
 application.
 '''
 
-# ....................{ METADATA ~ scripts                 }....................
-SCRIPT_NAME_CLI = PACKAGE_NAME
+
+SCRIPT_BASENAME = PACKAGE_NAME
 '''
 Basename of the CLI-specific Python script wrapper created by :mod:`setuptools`
-installation.
-'''
-
-SCRIPT_NAME_GUI = SCRIPT_NAME_CLI + '-qt'
-'''
-Basename of the GUI-specific Python script wrapper created by :mod:`setuptools`
 installation.
 '''
 
@@ -300,6 +287,7 @@ installation.
 #   between the setuptools-specific names listed below and the Python-specific
 #   module names imported by this application.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
+# * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_MANDATORY = {
     # setuptools is currently required at both install and runtime. At runtime,
@@ -369,10 +357,9 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
-# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
-#   between the setuptools-specific names listed below and the Python-specific
-#   module names imported by this application.
+# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary. See above.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
+# * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_OPTIONAL = {
     # To simplify subsequent lookup at runtime, project names for optional
@@ -381,7 +368,6 @@ DEPENDENCIES_RUNTIME_OPTIONAL = {
 
     # Dependencies directly required by this application.
     'pympler': '>= 0.4.1',
-    # 'numba': '>= 0.27.0',
     'pprofile': '>= 1.8',
     'ptpython': '>= 0.29',
 
@@ -414,10 +400,9 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., the top-level "README.rst").
-# * Gitlab-CI configuration (e.g., the top-level "requirements-anaconda.txt"
-#   file).
-# * Appveyor configuration (e.g., the "CONDA_DEPENDENCIES" key of the
-#   "environment.global" list of the top-level "appveyor.yml" file).
+# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary. See above.
+# * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
+# * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_TESTING_MANDATORY = {
     # For simplicity, py.test should remain the only hard dependency for testing
@@ -442,7 +427,7 @@ See Also
 # ....................{ METADATA ~ libs : external         }....................
 class DependencyCommand(object):
     '''
-    Metadata describing a single external command required by a single
+    Lightweight metadata describing a single external command required by some
     application dependency (of any type, including optional, mandatory, runtime,
     testing, or otherwise).
 
@@ -463,6 +448,7 @@ class DependencyCommand(object):
 # WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
+# * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_COMMANDS = {
     'pydot': (DependencyCommand(name='Graphviz', basename='dot'),),
@@ -482,9 +468,10 @@ See Also
 # ....................{ METADATA ~ private                 }....................
 _IS_TESTING = False
 '''
-`True` only if the active Python interpreter is running a test session (e.g.,
-with the `py.test` test harness).
+``True`` only if the active Python interpreter is running a test session (e.g.,
+with the ``py.test`` test harness).
 
-This private global is subject to change and hence_not_ intended to be accessed.
-(Consider calling the public `betse.util.py.pys.is_testing()` function instead.)
+This private global is subject to change and thus *not* intended to be publicly
+accessed. Consider calling the public :func:`betse.util.py.pys.is_testing`
+function instead.
 '''

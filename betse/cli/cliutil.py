@@ -20,7 +20,7 @@ def get_version() -> str:
     '''
 
     return '{} {}'.format(
-        commands.get_current_basename(), metadata.__version__)
+        commands.get_current_basename(), metadata.VERSION)
 
 # ....................{ EXPANDERS                          }....................
 @type_check

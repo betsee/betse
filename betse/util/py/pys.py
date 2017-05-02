@@ -51,7 +51,7 @@ def init() -> None:
 # ....................{ TESTERS                            }....................
 def is_testing() -> bool:
     '''
-    `True` only if the active Python interpreter is running a test session
+    ``True`` only if the active Python interpreter is running a test session
     (e.g., with the `py.test` test harness).
     '''
 
@@ -60,7 +60,7 @@ def is_testing() -> bool:
 # ....................{ TESTERS ~ wordsize                 }....................
 def is_wordsize_32() -> bool:
     '''
-    `True` only if the active Python interpreter is **32-bit** (i.e., was
+    ``True`` only if the active Python interpreter is **32-bit** (i.e., was
     compiled with a 32-bit toolchain into a 32-bit executable).
     '''
 
@@ -69,7 +69,7 @@ def is_wordsize_32() -> bool:
 
 def is_wordsize_64() -> bool:
     '''
-    `True` only if the active Python interpreter is **64-bit** (i.e., was
+    ``True`` only if the active Python interpreter is **64-bit** (i.e., was
     compiled with a 64-bit toolchain into a 64-bit executable).
     '''
 

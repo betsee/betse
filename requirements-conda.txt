@@ -42,8 +42,8 @@ pytest
 
 #FIXME: Unfortunately, networkx 1.10 is unavailable under Python 3.5 under
 #Anaconda. Until networkx 1.12 is both released and made available under
-#Anaconda, networkx is currently ignored. Since pydot is ignored without
-#networkx, pydot is necessarily ignored as well.
+#Anaconda, networkx is currently ignored. Since pydot is useless without
+#networkx, pydot is ignored as well.
 #FIXME: Note that even when networkx 1.12 is released, pydot support will also
 #require installing GraphViz from the "anaconda" channel. See our "Simple"
 #installation instructions in the "README.rst" file.

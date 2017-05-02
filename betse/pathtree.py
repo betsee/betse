@@ -104,7 +104,7 @@ def get_dot_dirname() -> str:
             get_home_dirname(),
             'Library',
             'Application Support',
-            metadata.SCRIPT_NAME_CLI,
+            metadata.SCRIPT_BASENAME,
         )
     # If the current platform is Windows, return the appropriate directory.
     elif oses.is_windows():
@@ -116,7 +116,7 @@ def get_dot_dirname() -> str:
         #function here.
 
         dot_dirname = paths.join(
-            get_home_dirname(), '.' + metadata.SCRIPT_NAME_CLI)
+            get_home_dirname(), '.' + metadata.SCRIPT_BASENAME)
 
     # Create this directory if not found.
     dirs.make_unless_dir(dot_dirname)
@@ -257,7 +257,7 @@ def get_log_default_filename() -> str:
     from betse.util.path import paths
 
     # Return the absolute path of this file.
-    return paths.join(get_dot_dirname(), metadata.SCRIPT_NAME_CLI + '.log')
+    return paths.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.log')
 
 
 @callable_cached
@@ -272,7 +272,7 @@ def get_profile_default_filename() -> str:
     from betse.util.path import paths
 
     # Return the absolute path of this file.
-    return paths.join(get_dot_dirname(), metadata.SCRIPT_NAME_CLI + '.prof')
+    return paths.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.prof')
 
 
 @callable_cached

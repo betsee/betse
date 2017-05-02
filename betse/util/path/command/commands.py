@@ -10,7 +10,7 @@ Low-level **command** (i.e., external executable file) facilities.
 # ....................{ IMPORTS                            }....................
 import sys
 from betse.exceptions import BetseCommandException
-from betse.metadata import SCRIPT_NAME_CLI
+from betse.metadata import SCRIPT_BASENAME
 from betse.util.type.types import type_check
 
 # ....................{ GLOBALS                            }....................
@@ -99,7 +99,7 @@ def get_current_basename() -> str:
     # If this is the non-human-readable "-c" Python interpreter option,
     # substitute this with the human-readable basename of the BETSE CLI.
     if _CURRENT_BASENAME == '-c':
-        _CURRENT_BASENAME = SCRIPT_NAME_CLI
+        _CURRENT_BASENAME = SCRIPT_BASENAME
     # Else, reduce this absolute or relative path to a basename.
     else:
         _CURRENT_BASENAME = paths.get_basename(_CURRENT_BASENAME)

@@ -39,7 +39,7 @@ def get_metadata() -> OrderedArgsDict:
     # Return this dictionary.
     return OrderedArgsDict(
         'basename', commands.get_current_basename(),
-        'version', metadata.__version__,
+        'version', metadata.VERSION,
         'codename', metadata.CODENAME,
         'authors', metadata.AUTHORS,
         'license', metadata.LICENSE,
@@ -61,7 +61,7 @@ def log_header() -> None:
         '{os_name} {os_version}'
         '>>.'.format(
             program_name=metadata.NAME,
-            program_version=metadata.__version__,
+            program_version=metadata.VERSION,
             py_name=interpreters.get_name(),
             py_version=pys.get_version(),
             os_name=oses.get_name(),
