@@ -125,6 +125,56 @@ class VgKABC(ChannelsABC, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASS                           }....................
+
+class Kv1p1(VgKABC):
+    '''
+    Kv1.1 model from Christie et al, cloned from rat brain, studied in xenopus.
+
+    Kv1.1 are low-voltage activated (LVA) channels, expressed primarily in the central nervous system, and
+    which open with small depolarizations at or below resting potential
+
+    Reference: Christie MJ. et al. Expression of a cloned rat brain potassium channel in Xenopus oocytes.
+    Science, 1989 Apr 14 , 244 (221-4).
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the vgK channel: Kv1p1 ')
+
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_K = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
+        dyna.h_K = 1.0000 / (1 + np.exp((V - -30.0000) / 27.3943))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 2
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
+        self._mTau = 30.0000 / (1 + np.exp((V - -76.5600) / 26.1479))
+        self._hInf = 1.0000 / (1 + np.exp((V - -30.0000) / 27.3943))
+        self._hTau = 15000.0000 / (1 + np.exp((V - -160.5600) / -100.0000))
+
 class Kv1p2(VgKABC):
     '''
     Kv1.2 model from  Sprunger et al.
@@ -229,15 +279,14 @@ class Kv1p3(VgKABC):
         self._hInf = 1.0000 / (1 + np.exp((V - -33.0000) / 3.7000))
         self._hTau = (-13.7600 * V) + 1162.4000
 
-class Kv1p1(VgKABC):
+class Kv1p4(VgKABC):
     '''
-    Kv1.1 model from Christie et al, cloned from rat brain, studied in xenopus.
+    Kv1.4 model from Stuhmer et al 1989.
 
-    Kv1.1 are low-voltage activated (LVA) channels, expressed primarily in the central nervous system, and
-    which open with small depolarizations at or below resting potential
 
-    Reference: Christie MJ. et al. Expression of a cloned rat brain potassium channel in Xenopus oocytes.
-    Science, 1989 Apr 14 , 244 (221-4).
+
+    reference: W Stühmer et. al; EMBO J. 1989 Nov
+
 
     '''
 
@@ -248,22 +297,21 @@ class Kv1p1(VgKABC):
 
         """
 
-        logs.log_info('You are using the vgK channel: Kv1p1 ')
+        logs.log_info('You are using the vgK channel: Kv1.4')
 
         self.vrev = -65     # reversal voltage used in model [mV]
         Texpt = 20    # temperature of the model in degrees C
         simT = sim.T - 273   # model temperature in degrees C
         # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0   # FIXME implement this!
+        self.qt = 1.0
 
         # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
-        dyna.h_K = 1.0000 / (1 + np.exp((V - -30.0000) / 27.3943))
+        dyna.m_K = 1.0000 / (1 + np.exp((V + 21.7000) / -16.9000))
+        dyna.h_K = 1.0000 / (1 + np.exp((V + 73.6000) / 12.8000))
 
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 1
-        self._hpower = 2
-
+        self._hpower = 1
 
     def _calculate_state(self, V, dyna, sim, p):
         """
@@ -273,10 +321,10 @@ class Kv1p1(VgKABC):
 
         """
 
-        self._mInf = 1.0000 / (1 + np.exp((V - -30.5000) / -11.3943))
-        self._mTau = 30.0000 / (1 + np.exp((V - -76.5600) / 26.1479))
-        self._hInf = 1.0000 / (1 + np.exp((V - -30.0000) / 27.3943))
-        self._hTau = 15000.0000 / (1 + np.exp((V - -160.5600) / -100.0000))
+        self._mInf = 1.0000 / (1 + np.exp((V + 21.7000) / -16.9000))
+        self._mTau = 3.0
+        self._hInf = 1.0000 / (1 + np.exp((V + 73.6000) / 12.8000))
+        self._hTau = 119.0
 
 class Kv1p5(VgKABC):
     '''
@@ -331,6 +379,53 @@ class Kv1p5(VgKABC):
         self._hInf = 1.0000 / (1 + np.exp((V - -25.3000) / 3.5000))
         self._hTau = (-15.5000 * V) + 1620.0000
 
+class Kv1p6(VgKABC):
+    '''
+    Kv1.6 model from Grupe et al. 1990.
+
+
+
+    Reference: A Grupe et. al; EMBO J. 1990 Jun
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the vgK channel: Kv1p6 ')
+
+        self.vrev = -65     # reversal voltage used in model [mV]
+        Texpt = 20    # temperature of the model in degrees C
+        simT = sim.T - 273   # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0   # FIXME implement this!
+
+        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp(((V - (-20.800)) / (-8.100))))
+        dyna.h_K =  1 / (1 + np.exp(((V - (-22.000)) / (11.390))))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 1 / (1 + np.exp(((V - (-20.800)) / (-8.100))))
+        self._mTau = 30.000 / (1 + np.exp(((V - (-46.560)) / (44.140))))
+        self._hInf = 1 / (1 + np.exp(((V - (-22.000)) / (11.390))))
+        self._hTau = 5000.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
+
 class Kv2p1(VgKABC):
     """
     Delayed rectifier potassium channel found widespread through many tissue types.
@@ -367,6 +462,197 @@ class Kv2p1(VgKABC):
         self._mTau = 100.000 / (1 + np.exp(((V - (-46.560)) / (44.140))))
         self._hInf = 1 / (1 + np.exp(((V - (-19.000)) / (5.000))))
         self._hTau = 10000.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
+
+class Kv2p2(VgKABC):
+    """
+    Reference: F Schmalz et. al; Am. J. Physiol. 1998 May
+
+
+    """
+
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+        """
+        logs.log_info('You are using the vgK channel: Kv2p2 ')
+
+        self.vrev = -65  # reversal voltage used in model [mV]
+        Texpt = 20  # temperature of the model in degrees C
+        simT = sim.T - 273  # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0  # FIXME implement this!
+
+        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp(((V - (5.000)) / (-12.000))))
+        dyna.h_K = 1 / (1 + np.exp(((V - (-16.300)) / (4.800))))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+        self._mInf = 1 / (1 + np.exp(((V - (5.000)) / (-12.000))))
+        self._mTau = 130.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
+        self._hInf = 1 / (1 + np.exp(((V - (-16.300)) / (4.800))))
+        self._hTau = 10000.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
+
+class Kv3p1(VgKABC):
+    """
+ 	J Rettig et. al; EMBO J. 1992 Jul
+
+    """
+
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+        """
+        logs.log_info('You are using the vgK channel: Kv3p1 ')
+
+        self.vrev = -65  # reversal voltage used in model [mV]
+        Texpt = 20  # temperature of the model in degrees C
+        simT = sim.T - 273  # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0
+
+        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp(((V - (18.700)) / (-9.700))))
+        dyna.h_K = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 0
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+        self._mInf = 1 / (1 + np.exp(((V - (18.700)) / (-9.700))))
+        self._mTau = 20.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
+        self._hInf = 1
+        self._hTau = 1
+
+class Kv3p2(VgKABC):
+    """
+    R Hernandez-Pineda et. al; J. Neurophysiol. 1999 Sep
+
+    """
+
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+        """
+        logs.log_info('You are using the vgK channel: Kv3p2 ')
+
+        self.vrev = -65  # reversal voltage used in model [mV]
+        self.qt = 1.0
+
+        # initialize values of the m and h gates of the potassium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp((V - -0.373267) / -8.568187))
+        dyna.h_K = 1
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 2
+        self._hpower = 0
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+        self._mInf =  1 / (1 + np.exp((V - -0.373267) / -8.568187))
+        self._mTau = 3.241643 + (19.106496 / (1 + np.exp((V - 19.220623) / 4.451533)))
+        self._hInf = 1
+        self._hTau = 1
+
+class Kv3p3(VgKABC):
+
+
+    """
+
+     Kv3p3 is a rapidly inactivating, A-type inward/outward potassium current, implicated in rapid firing of
+     neurons and is primarily found in Purkunjie neurons.
+
+     Reference: Desai R. et al. Protein kinase C modulates inactivation of Kv3.3 channels.
+     J. Biol. Chem., 2008 Aug 8 , 283 (22283-94).
+
+    """
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the A-current K+ channel: Kv3p3')
+
+        self.vrev = 82.0  # reversal voltage used in model [mV]
+        Texpt = 28  # temperature of the model in degrees C
+        simT = sim.T - 273  # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0  # FIXME implement this!
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp((V - 35) / -7.3))
+        dyna.h_K =  0.25 + (0.75 / (1 + np.exp((V - (-28.293856)) / 29.385636)))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 2
+        self._hpower = 1
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+
+        self._mInf = 1 / (1 + np.exp((V - 35) / -7.3))
+        self._mTau = 0.676808 + (27.913114 / (1 + np.exp((V - 22.414149) / 9.704638)))
+        self._hInf = 0.25 + (0.75 / (1 + np.exp((V - (-28.293856)) / 29.385636)))
+        self._hTau = 199.786728 + (2776.119438 * np.exp(-V / 7.309565))
+
+class Kv3p4(VgKABC):
+
+    """
+
+     Kv3p4 is a rapidly inactivating, A-type inward/outward potassium current.
+
+     Reference: Vega-Saenz de Miera E. et al. Cloning of ShIII (Shaw-like) cDNAs encoding a novel
+     high-voltage-activating, TEA-sensitive, type-A K+ channel. Proc. Biol. Sci., 1992 Apr 22 , 248 (9-18).
+
+    """
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the K+ channel: Kv3p4')
+
+        self.vrev = -65.0  # reversal voltage used in model [mV]
+        Texpt = 28  # temperature of the model in degrees C
+        simT = sim.T - 273  # model temperature in degrees C
+        # self.qt = 2.3**((simT-Texpt)/10)
+        self.qt = 1.0
+
+        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
+        dyna.m_K = 1 / (1 + np.exp(((V - (-3.400)) / (-8.400))))
+        dyna.h_K =  1 / (1 + np.exp(((V - (-53.320)) / (7.400))))
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 1
+        self._hpower = 1
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        self._mInf = 1 / (1 + np.exp(((V - (-3.400)) / (-8.400))))
+        self._mTau = 10.000 / (1 + np.exp(((V - (4.440)) / (38.140))))
+        self._hInf = 1 / (1 + np.exp(((V - (-53.320)) / (7.400))))
+        self._hTau = 20000.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
 
 class K_Fast(VgKABC):
     '''
@@ -569,96 +855,9 @@ class Kir2p1(VgKABC):
         self._hInf = 1 / (1 + np.exp((V - (-168.28)) / -44.13))
         self._hTau = 0.85 + (306.3 / (1 + np.exp((V - -118.29) / -27.23)))
 
-class Kv3p4(VgKABC):
-
-    """
-
-     Kv3p4 is a rapidly inactivating, A-type inward/outward potassium current.
-
-     Reference: Vega-Saenz de Miera E. et al. Cloning of ShIII (Shaw-like) cDNAs encoding a novel
-     high-voltage-activating, TEA-sensitive, type-A K+ channel. Proc. Biol. Sci., 1992 Apr 22 , 248 (9-18).
-
-    """
-
-    def _init_state(self, V, dyna, sim, p):
-        """
-
-        Run initialization calculation for m and h gates of the channel at starting Vmem value.
-
-        """
-
-        logs.log_info('You are using the A-current K+ channel: Kv3p4')
-
-        self.vrev = -65.0  # reversal voltage used in model [mV]
-        Texpt = 28  # temperature of the model in degrees C
-        simT = sim.T - 273  # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
-
-        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp(((V - (-3.400)) / (-8.400))))
-        dyna.h_K =  1 / (1 + np.exp(((V - (-53.320)) / (7.400))))
-
-        # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 1
-        self._hpower = 1
-
-    def _calculate_state(self, V, dyna, sim, p):
-        """
-
-        Update the state of m and h gates of the channel given their present value and present
-        simulation Vmem.
-
-        """
-
-        self._mInf = 1 / (1 + np.exp(((V - (-3.400)) / (-8.400))))
-        self._mTau = 10.000 / (1 + np.exp(((V - (4.440)) / (38.140))))
-        self._hInf = 1 / (1 + np.exp(((V - (-53.320)) / (7.400))))
-        self._hTau = 20000.000 / (1 + np.exp(((V - (-46.560)) / (-44.140))))
-
-class Kv3p3(VgKABC):
 
 
-    """
 
-     Kv3p3 is a rapidly inactivating, A-type inward/outward potassium current, implicated in rapid firing of
-     neurons and is primarily found in Purkunjie neurons.
-
-     Reference: Desai R. et al. Protein kinase C modulates inactivation of Kv3.3 channels.
-     J. Biol. Chem., 2008 Aug 8 , 283 (22283-94).
-
-    """
-
-    def _init_state(self, V, dyna, sim, p):
-        """
-
-        Run initialization calculation for m and h gates of the channel at starting Vmem value.
-
-        """
-
-        logs.log_info('You are using the A-current K+ channel: Kv3p3')
-
-        self.vrev = 82.0  # reversal voltage used in model [mV]
-        Texpt = 28  # temperature of the model in degrees C
-        simT = sim.T - 273  # model temperature in degrees C
-        # self.qt = 2.3**((simT-Texpt)/10)
-        self.qt = 1.0  # FIXME implement this!
-
-        # initialize values of the m and h gates of the sodium channel based on m_inf and h_inf:
-        dyna.m_K = 1 / (1 + np.exp((V - 35) / -7.3))
-        dyna.h_K =  0.25 + (0.75 / (1 + np.exp((V - (-28.293856)) / 29.385636)))
-
-        # define the power of m and h gates used in the final channel state equation:
-        self._mpower = 2
-        self._hpower = 1
-
-
-    def _calculate_state(self, V, dyna, sim, p):
-
-        self._mInf = 1 / (1 + np.exp((V - 35) / -7.3))
-        self._mTau = 0.676808 + (27.913114 / (1 + np.exp((V - 22.414149) / 9.704638)))
-        self._hInf = 0.25 + (0.75 / (1 + np.exp((V - (-28.293856)) / 29.385636)))
-        self._hTau = 199.786728 + (2776.119438 * np.exp(-V / 7.309565))
 
 
 

@@ -180,8 +180,9 @@ channels:
     inhibitor zone: ['cell']
 
     # type for channel class Na: Nav1p2, Nav1p3, NavRat1, NavRat2, Nav1p6, NaLeak
-    #                        K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p5, Kv2p1, KLeak, Kir2p1, Kv3p3, Kv3p4
-    #                        Ca: Ca_L, Ca_T, Ca_PQ, CaLeak
+    #                        K: K_Slow, K_Fast, Kv1p1, Kv1p2, Kv1p3, Kv1.4, Kv1.5, Kv1.6,
+    #                            Kv2p1, Kv2p2, Kv3p1, Kv3p2, Kv3p3, Kv3p4, Kir2p1, KLeak
+    #                        Ca: Cav1p2, Cav1p3, Ca_T, Ca_PQ, CaLeak
     #                        Cl: ClLeak
     #                        Fun: HCN1, HCN2, HCN4
     #                        Cat: CatLeak

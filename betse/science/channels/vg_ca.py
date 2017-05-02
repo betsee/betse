@@ -133,7 +133,7 @@ class VgCaABC(ChannelsABC, metaclass=ABCMeta):
         pass
 
 # ....................{ SUBCLASS                           }....................
-class Ca_L(VgCaABC):
+class Cav1p2(VgCaABC):
     '''
 
     L-type calcium channel model Avery et al. L-type channels are higher-voltage activating and very
@@ -298,7 +298,7 @@ class Ca_PQ(VgCaABC):
         self._hInf = 1.0
         self._hTau = 1.0
 
-class Ca_L_lv(VgCaABC):
+class Cav1p3(VgCaABC):
     '''
 
     Low voltage activating L-type calcium channel model altered from Avery et al.
