@@ -9,13 +9,13 @@ objects).
 '''
 
 # ....................{ IMPORTS                            }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies
 # *AND* avoid non-halting recursive imports when imported at the top-level
-# of other modules in the `betse.util` package, this module may import *ONLY*
-# from stock Python packages. (By definition, this excludes both BETSE and
+# of other modules in the "betse.util" package, this module may import *ONLY*
+# from stock Python packages. (By definition, this excludes both application and
 # third-party packages.)
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import inspect, re
 from argparse import ArgumentParser, _SubParsersAction

@@ -4,15 +4,14 @@
 # See "LICENSE" for further details.
 
 '''
-Command line interface (CLI) for this application.
+This application's command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
-# raise exceptions on importation. In particular, the following submodules often
-# raise exceptions on importation and hence must *NOT* be imported here.
+# raise exceptions on importation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse.cli import clicommand, cliutil, info

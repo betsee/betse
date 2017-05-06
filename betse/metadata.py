@@ -63,7 +63,7 @@ Human-readable minimum version of Python required by this application as a
 '''
 
 
-def _get_version_parts_from_str(version_str: str) -> tuple:
+def _convert_version_str_to_tuple(version_str: str) -> tuple:
     '''
     Convert the passed human-readable ``.``-delimited version string into a
     machine-readable version tuple of corresponding integers.
@@ -75,8 +75,7 @@ def _get_version_parts_from_str(version_str: str) -> tuple:
         int(version_part) for version_part in version_str.split('.'))
 
 
-PYTHON_VERSION_MIN_PARTS = _get_version_parts_from_str(
-    PYTHON_VERSION_MIN)
+PYTHON_VERSION_MIN_PARTS = _convert_version_str_to_tuple(PYTHON_VERSION_MIN)
 '''
 Machine-readable minimum version of Python required by this application as a
 tuple of integers.
@@ -181,7 +180,7 @@ See Also
 '''
 
 
-VERSION_PARTS = _get_version_parts_from_str(VERSION)
+VERSION_PARTS = _convert_version_str_to_tuple(VERSION)
 '''
 Machine-readable application version as a tuple of integers.
 '''

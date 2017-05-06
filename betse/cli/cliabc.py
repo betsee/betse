@@ -11,8 +11,7 @@ Abstract command line interface (CLI).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
 # top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
-# raise exceptions on importation. In particular, the following submodules often
-# raise exceptions on importation and hence must *NOT* be imported here.
+# raise exceptions on importation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys

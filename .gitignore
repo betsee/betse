@@ -53,6 +53,9 @@ __pycache__/
 # excluded.
 /*.manifest
 
+# Ignore top-level symbolic links to BETSE-dependent projects (e.g., BETSEE).
+/betsee
+
 # ....................{ FILES ~ subdirectory               }....................
 # Ignore all non-YAML files output under the YAML data directory by default.
 

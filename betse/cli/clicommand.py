@@ -4,11 +4,16 @@
 # See "LICENSE" for further details.
 
 '''
-Metadata describing subcommands accepted by BETSE's command line interface
-(CLI).
+Subcommands accepted by this application's command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To raise human-readable exceptions on application startup, the
+# top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
+# raise exceptions on importation.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from abc import ABCMeta
 from betse.cli import cliutil
 from betse.util.type.types import (

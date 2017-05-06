@@ -10,7 +10,6 @@ Low-level external process facilities.
 # ....................{ IMPORTS                            }....................
 import sys
 from betse.util.io.log import logs
-from betse.util.type import types
 from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
@@ -80,10 +79,7 @@ def exit_with_failure(error_message: str = '') -> None:
 
 
 @type_check
-def exit(
-    exit_status: int = FAILURE_DEFAULT,
-    exit_message: str = ''
-) -> None:
+def exit(exit_status: int = FAILURE_DEFAULT, exit_message: str = '') -> None:
     '''
     Halt the current process with the passed exit status, logging the passed
     message if nonempty *or* exiting silently otherwise.

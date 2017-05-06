@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-BETSE-specific exception hierarchy.
+Application-specific exception hierarchy.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -15,7 +15,7 @@ from abc import ABCMeta
 #is non-None, which Python permits by default but which is functionally useless.
 class BetseException(Exception, metaclass=ABCMeta):
     '''
-    Abstract base class of all BETSE-specific exceptions.
+    Abstract base class of all application-specific exceptions.
     '''
     pass
 
