@@ -182,7 +182,7 @@ class HCN2(VgFunABC):
 
         self.v_corr = 0
 
-        # V = V - 20
+        V = V - 10
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V - -99) / 6.2))
@@ -206,7 +206,7 @@ class HCN2(VgFunABC):
 
         self.vrev = -45  # reversal voltage used in model [mV]
 
-        # V = V - 20
+        V = V - 10
 
         self._mInf = 1.0000 / (1 + np.exp((V - -99) / 6.2))
         self._mTau = 184.0000
@@ -240,7 +240,7 @@ class HCN4(VgFunABC):
 
         self.v_corr = 0
 
-        # V = V - 20
+        V = V - 10
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V - -100) / 9.6))
@@ -264,7 +264,7 @@ class HCN4(VgFunABC):
 
         self.vrev = -45  # reversal voltage used in model [mV]
 
-        # V = V - 20
+        V = V - 10
 
         self._mInf = 1.0000 / (1 + np.exp((V - -100) / 9.6))
         self._mTau = 461.0000
@@ -383,11 +383,11 @@ class HCN2_cAMP(VgFunABC):
 
         """
 
-        logs.log_info('You are using the funny current channel: HCN2')
+        logs.log_info('You are using the funny current channel: HCN2_cAMP')
 
         self.v_corr = 0
 
-        V = V - 10
+        V = V - 35
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V + 99) / 6.2))
@@ -411,7 +411,7 @@ class HCN2_cAMP(VgFunABC):
 
         self.vrev = -45  # reversal voltage used in model [mV]
 
-        V = V - 10
+        V = V - 35
 
         self._mInf = 1.0000 / (1 + np.exp((V + 99) / 6.2))
         self._mTau = 184.0000
@@ -446,7 +446,7 @@ class HCN4_cAMP(VgFunABC):
 
         self.v_corr = 0
 
-        V = V - 10
+        V = V - 35
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V  + 100) / 9.6))
@@ -470,7 +470,7 @@ class HCN4_cAMP(VgFunABC):
 
         self.vrev = -45  # reversal voltage used in model [mV]
 
-        V = V - 10
+        V = V - 35
 
         self._mInf = 1.0000 / (1 + np.exp((V + 100) / 9.6))
         self._mTau = 461.0000

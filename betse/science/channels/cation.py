@@ -112,8 +112,8 @@ class CationABC(ChannelsABC, metaclass=ABCMeta):
         self.clip_flux(delta_Q_Na, threshold=p.flux_threshold)
         self.clip_flux(delta_Q_K, threshold=p.flux_threshold)
 
-        self.update_charge(sim.iNa, delta_Q_Na, dyna.targets_vgCat, sim, cells, p)
-        self.update_charge(sim.iK, delta_Q_K, dyna.targets_vgCat, sim, cells, p)
+        self.update_charge(sim.iNa, self._pmNa*delta_Q_Na, dyna.targets_vgCat, sim, cells, p)
+        self.update_charge(sim.iK, self._pmK*delta_Q_K, dyna.targets_vgCat, sim, cells, p)
 
 
     @abstractmethod
@@ -157,6 +157,57 @@ class CatLeak(CationABC):
         # define the power of m and h gates used in the final channel state equation:
         self._mpower = 0
         self._hpower = 0
+
+        # ratio of Na to K membrane permeability of channel
+        self._pmNa = 1.0
+        self._pmK = 1.0
+
+
+    def _calculate_state(self, V, dyna, sim, p):
+        """
+
+        Update the state of m and h gates of the channel given their present value and present
+        simulation Vmem.
+
+        """
+
+        # self.vrev = -45  # reversal voltage used in model [mV]
+
+        self._mInf = 1.0
+        self._mTau = 1.0
+        self._hInf = 1.0
+        self._hTau = 1.0
+
+
+class CatLeak2(CationABC):
+    '''
+
+    Membrane leak channel letting Na+, K+ and Ca2+ into the cell
+
+    '''
+
+    def _init_state(self, V, dyna, sim, p):
+        """
+
+        Run initialization calculation for m and h gates of the channel at starting Vmem value.
+
+        """
+
+        logs.log_info('You are using the cation leak channel Na 2:K 1')
+
+        self.v_corr = 0
+
+        # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
+        dyna.m_Cat = np.ones(sim.mdl)
+        dyna.h_Cat = np.ones(sim.mdl)
+
+        # define the power of m and h gates used in the final channel state equation:
+        self._mpower = 0
+        self._hpower = 0
+
+        # ratio of Na to K membrane permeability of channel
+        self._pmNa = 2.0
+        self._pmK = 1.0
 
 
     def _calculate_state(self, V, dyna, sim, p):

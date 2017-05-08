@@ -4550,16 +4550,23 @@ class Molecule(object):
 
         umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
 
-        cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*sim.Ec + umtn*self.u_mt*cp)
+        if p.cell_polarizability != 0.0:
 
-        # as no net mass must leave this intracellular movement, make the flux divergence-free:
-        cflux = stb.single_cell_div_free(cfluxo, cells)
+            cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*sim.Ec + umtn*self.u_mt*cp)
+            # as no net mass must leave this intracellular movement, make the flux divergence-free:
+            cflux = stb.single_cell_div_free(cfluxo, cells)
 
-        # calculate the actual concentration at membranes by unpacking to concentration vectors:
-        self.cc_at_mem = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
+            # calculate the actual concentration at membranes by unpacking to concentration vectors:
+            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
 
-        # smooth the concentration:
-        self.cc_at_mem = sim.smooth_weight_mem*self.cc_at_mem + sim.smooth_weight_o*cav
+            # smooth the concentration:
+            self.cc_at_mem = sim.smooth_weight_mem * self.cc_at_mem + sim.smooth_weight_o * cav
+
+        else:
+            cflux = np.zeros(sim.mdl)
+            self.cc_at_mem = cav*1
+
+
 
         # # calculate the divergence so we can update the centre concentration:
         # divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol
@@ -4770,6 +4777,7 @@ class Molecule(object):
                 self.c_env[:] = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 
             elif p.sim_ECM is True:
+
                 self.c_bound = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
                 # self.c_bound = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 

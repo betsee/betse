@@ -2053,18 +2053,28 @@ class Simulator(object):
         # calculate normal component of microtubules at membrane:
         # umtn = self.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + self.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
 
-        # small offset added to cell polarizability to prevent 0.0 vector of intracellular current, which crashes streamplot
-        cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*En)*p.cell_polarizability
 
-        # as no net mass must leave this intracellular movement, make the flux divergence-free:
-        cflux = stb.single_cell_div_free(cfluxo, cells)
+        if p.cell_polarizability != 0.0:
 
-        # update the concentration at membranes:
-        # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes
-        self.cc_at_mem[i] = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
+            # small offset added to cell polarizability to prevent 0.0 vector of intracellular current, which crashes streamplot
+            cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*En)*p.cell_polarizability
 
-        # smooth the concentration:
-        self.cc_at_mem[i] = self.smooth_weight_mem*self.cc_at_mem[i] + cav*self.smooth_weight_o
+            # as no net mass must leave this intracellular movement, make the flux divergence-free:
+            cflux = stb.single_cell_div_free(cfluxo, cells)
+
+            # update the concentration at membranes:
+            # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes
+            self.cc_at_mem[i] = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
+
+            # smooth the concentration:
+            self.cc_at_mem[i] = self.smooth_weight_mem*self.cc_at_mem[i] + cav*self.smooth_weight_o
+
+        elif p.cell_polarizability == 0.0:
+
+            cflux = np.zeros(self.mdl)
+            self.cc_at_mem[i] = cav*1
+
+
 
         # self.cc_at_mem[i] = (self.cc_at_mem[i] + cav)/2
 
