@@ -10,6 +10,7 @@ configuration appropriate for use by the current user on the current system.
 '''
 
 # ....................{ IMPORTS                            }....................
+import betse.util.io.files
 from betse import pathtree
 
 #FIXME: This isn't particularly good. Contemplate alternatives, please.
@@ -130,7 +131,7 @@ def _write_file(config_filename: str) -> None:
 
     # Write the default configuration to this file, modifying the latter with
     # "sed"-like global string substitution as detailed above.
-    files.replace_substrs(
+    betse.util.io.files.replace_substrs(
         filename_source=pathtree.get_sim_config_default_filename(),
         filename_target=config_filename,
         replacements=(

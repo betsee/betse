@@ -8,26 +8,26 @@
 
 Command Words Arguments
 ----------
-Most runners accept a mandatory `command_words` parameter, a list of one or more
-shell words comprising this command whose:
+Most runners accept a mandatory ``command_words`` parameter, a list of one or
+more shell words comprising this command whose:
 
 * Mandatory first element is either:
   * This command's absolute or relative path.
   * This command's basename, in which case the first command with that basename
-    in the current `${PATH}` environment variable will be run. If no such
+    in the current ``${PATH}`` environment variable will be run. If no such
     command is found, an exception is raised.
 * Optional subsequent elements are this command's arguments (in order).
 
 `Popen()` Keyword Arguments
 ----------
 Most runners accept the same optional keyword arguments accepted by the
-`subprocess.Popen.__init__()` constructor, including:
+:meth:`subprocess.Popen.__init__` constructor, including:
 
-* `cwd`, the absolute path of the current working directory (CWD) from which
+* ``cwd``, the absolute path of the current working directory (CWD) from which
   this command is to be run. Defaults to the current CWD.
-* `timeout`, the maximum number of milliseconds this command is to be run for.
+* ``timeout``, the maximum number of milliseconds this command is to be run for.
   Commands with execution time exceeding this timeout will be mercifully killed.
-  Defaults to `None`, in which case this command may run indefinitely.
+  Defaults to ``None``, in which case this command may run indefinitely.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -115,7 +115,7 @@ def run_capturing_stdout(
     command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
-    capturing and returning all stdout output by this subprocess _and_ raising
+    capturing and returning all stdout output by this subprocess *and* raising
     an exception on subprocess failure.
 
     Parameters
@@ -190,39 +190,41 @@ def _init_run_args(
     command_words: SequenceTypes, popen_kwargs: MappingType) -> None:
     '''
     Sanitize the dictionary of keyword arguments to be passed to the
-    `subprocess.Popen()` callable with sane defaults.
+    :class:`subprocess.Popen` callable with sane defaults.
 
     `close_fds`
     ----------
-    If the current platform is vanilla Windows _and_ none of the `stdin`,
-    `stdout`, `stderr`, or `close_fds` arguments are passed, the latter argument
-    will be explicitly set to `False` -- causing the command to be run to
-    inherit all file handles (including stdin, stdout, and stderr) from the
-    current process. By default, `subprocess.Popen` documentation insists that:
+    If the current platform is vanilla Windows *and* none of the ``stdin``,
+    ``stdout``, ``stderr``, or ``close_fds`` arguments are passed, the latter
+    argument will be explicitly set to ``False`` -- causing the command to be
+    run to inherit all file handles (including stdin, stdout, and stderr) from
+    the current process. By default, :class:`subprocess.Popen` documentation
+    insists that:
 
-    > On Windows, if `close_fds` is `True` then no handles will be inherited by
-    > the child process.
+    > On Windows, if ``close_fds`` is ``True`` then no handles will be inherited
+    > by the child process.
 
     The child process will then open new file handles for stdin, stdout, and
     stderr. If the current terminal is a Windows Console, the underlying
     terminal devices and hence file handles will remain the same, in which case
-    this is _not_ an issue. If the current terminal is Cygwin-based (e.g.,,
+    this is *not* an issue. If the current terminal is Cygwin-based (e.g.,,
     MinTTY), however, the underlying terminal devices and hence file handles
     will differ, in which case this behaviour prevents interaction between the
     current shell and the vanilla Windows command to be run below. In
     particular, all output from this command will be squelched.
 
     If at least one of stdin, stdout, or stderr are redirected to a blocking
-    pipe, setting `close_fds` to `False` can induce deadlocks under certain
-    edge-case scenarios. Since all such file handles default to `None` and hence
-    are _not_ redirected in this case, `close_fds` may be safely set to `False`.
+    pipe, setting ``close_fds`` to ``False`` can induce deadlocks under certain
+    edge-case scenarios. Since all such file handles default to ``None`` and
+    hence are _not_ redirected in this case, ``close_fds`` may be safely set to
+    ``False``.
 
-    On all other platforms, if `close_fds` is `True`, no file handles _except_
-    stdin, stdout, and stderr will be inherited by the child process. This
-    function fundamentally differs in subtle (and only slightly documented ways)
-    between vanilla Windows and all other platforms. These discrepancies appear
-    to be harmful but probably unavoidable, given the philosophical gulf between
-    vanilla Windows and all other platforms.
+    On all other platforms, if ``close_fds`` is ``True``, no file handles
+    *except* stdin, stdout, and stderr will be inherited by the child process.
+    This function fundamentally differs in subtle (and only slightly documented
+    ways) between vanilla Windows and all other platforms. These discrepancies
+    appear to be harmful but probably unavoidable, given the philosophical gulf
+    between vanilla Windows and all other platforms.
 
     Parameters
     ----------

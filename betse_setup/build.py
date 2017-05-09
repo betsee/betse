@@ -4,25 +4,26 @@
 # See "LICENSE" for further details.
 
 '''
-BETSE-specific monkey patching of `setuptools`'s `ScriptWriter` class.
+Application-specific monkey patching of the :mod:`setuptools`-specific
+:class:`ScriptWriter` class.
 
 Such patching improves the usability of this class with respect to editable
-installations packages (e.g., via BETSE's *nix-specific `symlink` subcommand or
-setuptools' general-purpose `develop` subcommand). The default `ScriptWriter`
-implementation writes scripts attempting to import the `setuptools`-installed
-package resources for these packages. Since no such resources are installed for
-editable installations, these scripts _always_ fail and hence are suitable
-_only_ for use in user-specific venvs.
+installations packages (e.g., via this application's *nix-specific ``symlink``
+subcommand or the general-purpose :mod:`setuptools ``develop`` subcommand). The
+default :class:`ScriptWriter` implementation writes scripts attempting to import
+the :mod:`setuptools`-installed package resources for these packages. Since no
+such resources are installed for editable installations, these scripts *always*
+fail and hence are suitable *only* for use in user-specific venvs.
 
 Such patching corrects this deficiency, albeit at a minor cost of ignoring the
 package resources provided by Python packages installed in the customary way.
 While there exist alternatives, this appears to be the most robust means of
-maintaining backward compatibility with older `setuptools` versions.
+maintaining backward compatibility with older :mod:`setuptools` versions.
 '''
 
 # ....................{ IMPORTS                            }....................
-from distutils.errors import DistutilsClassError
 from betse_setup import util
+from distutils.errors import DistutilsClassError
 from pkg_resources import Distribution
 from setuptools.command import easy_install
 from setuptools.command.easy_install import ScriptWriter, WindowsScriptWriter
@@ -38,14 +39,15 @@ import importlib, sys
 
 def is_module_root(module_name: str) -> bool:
     """
-    `True` only if the Python module with the passed fully-qualified name is a
-    **top-level module** (i.e., module whose name contains no `.` delimiters)
+    ``True`` only if the Python module with the passed fully-qualified name is a
+    **top-level module** (i.e., module whose name contains no ``.`` delimiters)
     importable under the active Python interpreter.
 
-    If this is _not_ a top-level module, an exception is raised. If this top-
-    level module is _not_ importable via the standard `importlib.find_loader()`
-    mechanism (e.g., the OS X-specific `PyObjCTools` package), this module may
-    be imported by this function as an unwanted side effect.
+    If this is *not* a top-level module, an exception is raised. If this top-
+    level module is *not* importable via the standard
+    :func:`importlib.find_loader` mechanism (e.g., the OS X-specific
+    :mod:`PyObjCTools` package), this module may be imported by this function as
+    an unwanted side effect.
     """
     assert isinstance(module_name, str), (
         '"{{}}" not a string.'.format(module_name))
@@ -75,8 +77,9 @@ if __name__ == '__main__':
     # application codebase. Instead, we defer to the next best test.
     if not is_module_root('{entry_package_root}'):
         raise ImportError(
-            'Package "{entry_package_root}" unimportable. Consider running either:\\n'
+            'Package "{entry_package_root}" unimportable. Consider rerunning either:\\n\\n'
             '\\tsudo python3 setup.py install\\n'
+            '\\tsudo python3 setup.py develop\\n'
             '\\tsudo python3 setup.py symlink')
 
     # Import the entry module.
@@ -92,7 +95,8 @@ else:
     print('WARNING: Entry point imported rather than run.', file=sys.stderr)
 '''
 '''
-Script template to be formatted by `ScriptWriterSimple.get_script_args()`.
+Script template to be formatted by the
+:meth:`ScriptWriterSimple.get_script_args` method.
 '''
 
 
@@ -104,19 +108,20 @@ SCRIPT_ENTRY_FUNC_SUBTEMPLATE = '''
     sys.exit(entry_module.{entry_func}())
 '''
 '''
-Script subtemplate to be formatted by `ScriptWriterSimple.get_script_args()`
-for entry points requiring an entry function to be called.
+Script subtemplate to be formatted by the
+:meth:`ScriptWriterSimple.get_script_args` method for entry points requiring an
+entry function to be called.
 
 This excludes entry points for which merely importing the desired entry module
 suffices to implicitly run that entry point -- typically, entry modules with
-basename `__main__`.
+basename ``__main__``.
 '''
 
 # ....................{ COMMANDS                           }....................
 def add_setup_commands(metadata: dict, setup_options: dict) -> None:
     '''
     Add commands building distribution entry points to the passed dictionary of
-    `setuptools` options.
+    :mod:`setuptools` options.
     '''
 
     # If neither of the class functions monkey-patched below exist, setuptools
@@ -166,10 +171,12 @@ def _patched_get_args(
     script_shebang: str = None
 ):
     '''
-    Yield `write_script()` argument tuples for the passed distribution's **entry
-    points** (i.e., platform-specific executables running this distribution).
+    Yield ``write_script()`` argument tuples for the passed distribution's
+    **entry points** (i.e., platform-specific executables running this
+    distribution).
 
-    This function monkey-patches the `ScriptWriter.get_args()` class function.
+    This function monkey-patches the :meth:`ScriptWriter.get_args` class
+    method.
     '''
 
     # Default this shebang line if unpassed.
@@ -227,11 +234,12 @@ def _patched_get_script_args(
     is_windows_vanilla: bool = False
 ):
     '''
-    Yield `write_script()` argument tuples for the passed distribution's **entry
-    points** (i.e., platform-specific executables running this distribution).
+    Yield ``write_script()`` argument tuples for the passed distribution's
+    **entry points** (i.e., platform-specific executables running this
+    distribution).
 
     This function monkey-patches the deprecated
-    `ScriptWriter.get_script_args()` class function.
+    :meth:`ScriptWriter.get_script_args` class method.
     '''
     assert isinstance(cls, type), '"{}" not a class.'.format(cls)
     # print('In BETSE ScriptWriter.get_script_args()!')
@@ -261,8 +269,8 @@ def _patched_get_script_args(
 def _patched_get_script_header(cls: type, *args, **kwargs):
     '''
     Defer to the deprecated
-    `setuptools.command.easy_install.get_script_header()` function under older
-    versions of setuptools.
+    :func:`setuptools.command.easy_install.get_script_header` function under
+    older :mod:setuptools versions.
     '''
 
     from setuptools.command.easy_install import get_script_header

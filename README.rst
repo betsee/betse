@@ -406,6 +406,26 @@ For prospective contributors:
 -  `Freezing <doc/md/FREEZE.md>`__, detailing conversion of the BETSE codebase
    into redistributable platform-specific executable binaries.
 
+.. # ------------------( LINKS ~ betse                      )------------------
+.. _author list:
+   doc/md/AUTHORS.md
+.. _codebase:
+   https://gitlab.com/betse/betse/tree/master
+.. _contributors:
+   https://gitlab.com/betse/betse/graphs/master
+.. _dependencies:
+   doc/md/INSTALL.md
+.. _testing:
+   https://gitlab.com/betse/betse/pipelines
+.. _tarballs:
+   https://gitlab.com/betse/betse/tags
+
+.. # ------------------( LINKS ~ betse : docs               )------------------
+.. _BETSE 0.4 documentation:
+   https://www.dropbox.com/s/n8qfms2oks9cvv2/BETSE04_Documentation_Dec1st2016.pdf?dl=0
+.. _BETSE 0.3 documentation:
+   https://www.dropbox.com/s/fsxhjpipbiog0ru/BETSE_Documentation_Nov1st2015.pdf?dl=0
+
 .. # ------------------( LINKS ~ academia                   )------------------
 .. _Pietak, Alexis:
    https://www.researchgate.net/profile/Alexis_Pietak
@@ -436,26 +456,6 @@ For prospective contributors:
    *Frontiers in Bioengineering and Biotechnology.*
 .. _journal name:
    http://journal.frontiersin.org/journal/bioengineering-and-biotechnology
-
-.. # ------------------( LINKS ~ codebase                   )------------------
-.. _author list:
-   doc/md/AUTHORS.md
-.. _codebase:
-   https://gitlab.com/betse/betse/tree/master
-.. _contributors:
-   https://gitlab.com/betse/betse/graphs/master
-.. _dependencies:
-   doc/md/INSTALL.md
-.. _testing:
-   https://gitlab.com/betse/betse/pipelines
-.. _tarballs:
-   https://gitlab.com/betse/betse/tags
-
-.. # ------------------( LINKS ~ documentation              )------------------
-.. _BETSE 0.4 documentation:
-   https://www.dropbox.com/s/n8qfms2oks9cvv2/BETSE04_Documentation_Dec1st2016.pdf?dl=0
-.. _BETSE 0.3 documentation:
-   https://www.dropbox.com/s/fsxhjpipbiog0ru/BETSE_Documentation_Nov1st2015.pdf?dl=0
 
 .. # ------------------( LINKS ~ science                    )------------------
 .. _bioelectricity:

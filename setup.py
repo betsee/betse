@@ -4,37 +4,24 @@
 # See "LICENSE" for further details.
 
 '''
-BETSE's `setuptools`-based makefile.
+:mod:`setuptools`-based makefile instrumenting all high-level administration
+tasks (e.g., installation, freezing, test running) for this application.
 '''
-
-#FIXME; Add "pyside-uic" integration. This is feasible as demonstrated by the
-#following URL, which appears to be the only online reference for this practice.
-#We could leverage this logic by defining a new "setup_pyside.py" file in the
-#same directory as this file containing the class defined by:
-#
-#   https://gist.github.com/ivanalejandro0/6758741
-#
-#We'll want to retain the "pyside-rcc"-specific portion of that code as well,
-#which compiles ".qrc" resource files (...in XML format, of course) to ".py"
-#files. See the useful answer here concerning usage from the Python perspective:
-#
-#    https://stackoverflow.com/questions/22508491/a-py-file-which-compiled-from-qrc-file-using-pyside-rcc-does-not-work
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid race conditions during setuptools-based installation, this
 # module may import *ONLY* from packages guaranteed to exist at the start of
-# installation. This includes all standard Python and BETSE packages but *NOT*
-# third-party dependencies, which if currently uninstalled will only be
+# installation. This includes all standard Python and application packages but
+# *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
 #
-# Technically, this script may import from all packages in the BETSE codebase
-# including the top-level "betse", "betse_setup", and "betse_test" packages.
-# By Python mandate, the first element of "sys.path" is guaranteed to be the
-# directory containing this script. Hence, Python necessarily searches this
-# directory for imports from the local version of BETSE *BEFORE* any other
-# directories (including system directories containing previously installed
-# versions of BETSE). To quote:
+# Technically, this script may import from all subpackages and submodules of the
+# this application's eponymous package. By Python mandate, the first element of
+# the "sys.path" list is guaranteed to be the directory containing this script.
+# Python necessarily searches this directory for imports from the local version
+# of this application *BEFORE* any other directories (including system
+# directories containing older versions of this application). To quote:
 #
 #     "As initialized upon program startup, the first item of this list,
 #      path[0], is the directory containing the script that was used to invoke
@@ -46,19 +33,18 @@ BETSE's `setuptools`-based makefile.
 import setuptools
 from betse import metadata
 from betse.lib import libs
-from betse.util.io import stderrs
-from betse.util.path import files
-from betse_setup import build, freeze, symlink, test
+from betse_setup import build, freeze, symlink, test, util
 
 # ....................{ METADATA                           }....................
-# PyPI-specific metadata declared here rather than in "betse.metadata" to reduce
-# both space and time complexity for BETSE startup. This metadata is effectively
-# setuptools-specific and hence irrelevant to the main codebase.
+# PyPI-specific metadata declared here rather than in the "betse.metadata"
+# submodule, reducing space and time complexity during application startup. This
+# metadata is relevant only to setuptools and hence irrelevant to the main
+# codebase.
 
-_PYTHON_VERSION_MINOR_MAX = 6
+_PYTHON_VERSION_MINOR_MAX = 7
 '''
 Maximum minor stable version of this major version of Python currently released
-(e.g., `5` if Python 3.5 is the most recent stable version of Python 3.x).
+(e.g., ``5`` if Python 3.5 is the most recent stable version of Python 3.x).
 '''
 
 
@@ -68,11 +54,11 @@ Human-readable multiline description of this application in reStructuredText
 (reST) format.
 
 To minimize synchronization woes, this description is identical to the contents
-of the `README.rst` file. When submitting this application package to PyPI,
-this description is used verbatim as this package's front matter.
+of the :doc:`/README.rst` file. When submitting this application package to
+PyPI, this description is used verbatim as this package's front matter.
 '''
 
-
+# ....................{ METADATA ~ seo                     }....................
 _KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
 '''
 List of all lowercase alphabetic keywords synopsising this application.
@@ -81,7 +67,7 @@ These keywords may be arbitrarily selected so as to pretend to improve search
 engine optimization (SEO). In actuality, they do absolutely nothing.
 '''
 
-# ....................{ METADATA ~ trove                   }....................
+
 # To minimize desynchronization woes, all
 # "Programming Language :: Python :: "-prefixed strings are dynamically appended
 # to this list by the init() function below.
@@ -109,9 +95,9 @@ _CLASSIFIERS = [
 '''
 List of all PyPI-specific trove classifier strings synopsizing this application.
 
-Each such string _must_ be contain either two or three ` :: ` substrings
+Each such string *must* be contain either two or three `` :: `` substrings
 delimiting human-readable capitalized English words formally recognized by the
-`distutils`-specific `register` command.
+:mod:`distutils`-specific ``register`` command.
 
 See Also
 ----------
@@ -147,13 +133,14 @@ def init() -> None:
 
     # Description read from this description file.
     try:
-        _DESCRIPTION = files.get_chars(DESCRIPTION_FILENAME)
+        _DESCRIPTION = util.get_chars(DESCRIPTION_FILENAME)
+        # print('description: {}'.format(_DESCRIPTION))
     # If this file is *NOT* readable, print a non-fatal warning and reduce this
     # description to the empty string. While unfortunate, this description is
     # *NOT* required for most operations and hence mostly ignorable.
     except Exception as exception:
         _DESCRIPTION = ''
-        stderrs.output(
+        util.output_warning(
             'Description file "{}" not found or not readable:\n{}'.format(
                 DESCRIPTION_FILENAME, exception))
 
@@ -194,8 +181,8 @@ setup_options = {
     # such dependencies. Such dependencies are then installable via "pip" by
     # suffixing the name of this project by the "["- and "]"-delimited key
     # defined below whose value lists the dependencies to be installed (e.g.,
-    # "sudo pip3 install betse[all]", installing both BETSE and all mandatory
-    # and optional dependencies transitively required by BETSE).
+    # "sudo pip3 install betse[all]", installing both the application and all
+    # mandatory and optional dependencies required by the application).
     'extras_require': {
         # All optional runtime dependencies. Since the
         # "DEPENDENCIES_RUNTIME_OPTIONAL" global is a dictionary rather than a
@@ -211,18 +198,20 @@ setup_options = {
     # Python modules) to be installed. Currently, this includes the "betse"
     # package and all subpackages of this package excluding:
     #
-    # * "betse_test" and all subpackages of this package, providing
-    #   test-specific functionality *NOT* intended to be installed with BETSE.
-    # * "betse_setup" and all subpackages of this package, providing
-    #   setuptools-specific functionality required only for BETSE installation.
-    # * "build", caching both setuptools-specific metadata and a complete copy
-    #   of this package, required only by a prior BETSE installation.
+    # * The top-level test package and all subpackages of this package, test
+    #   functionality *NOT* intended to be installed with this application.
+    # * The top-level setup package and all subpackages of this package,
+    #   setuptools functionality required only for application installation.
+    # * "build", caching both setuptools metadata and a complete copy of this
+    #   package, required only by a prior application installation.
     # * "freeze", providing PyInstaller-specific functionality required only for
-    #   BETSE freezing (i.e., conversion into an executable binary).
+    #   application freezing (i.e., conversion into an executable binary).
     'packages': setuptools.find_packages(
         exclude = [
-            'betse_test', 'betse_test.*',
-            'betse_setup', 'betse_setup.*',
+            metadata.PACKAGE_NAME + '_test',
+            metadata.PACKAGE_NAME + '_test.*',
+            metadata.PACKAGE_NAME + '_setup',
+            metadata.PACKAGE_NAME + '_setup.*',
             'build',
             'freeze',
         ],
@@ -233,14 +222,9 @@ setup_options = {
     'entry_points': {
         # CLI-specific scripts.
         'console_scripts': [
-            metadata.SCRIPT_BASENAME + ' = betse.__main__:main',
+            '{} = {}.__main__:main'.format(
+                metadata.SCRIPT_BASENAME, metadata.PACKAGE_NAME),
         ],
-
-        #FIXME: After creating a BETSE GUI, uncomment the following logic.
-        # GUI-specific scripts.
-        #'gui_scripts':  [
-        #     metadata.SCRIPT_NAME_GUI + ' = betse.gui.guicli:main',
-        #],
     },
 
     #FIXME; This isn't quite true. Undesirable files are excludable in this
@@ -295,11 +279,11 @@ setup_options = {
     'cmdclass': {},
 }
 '''
-Dictionary passed to the subsequent call to `setup()`.
+Dictionary passed to the subsequent call to the :func:`setup` function.
 
-This dictionary signifies the set of all `betse`-specific `setuptools` options.
-Modules in the `betse`-specific `setup` package customize such options (e.g., by
-defining custom commands).
+This dictionary signifies the set of all application-specific :mod:`setuptools`
+options. Submodules of the top-level :mod:`betse_setup` package subsequently
+customize these options (e.g., by defining custom commands).
 '''
 # print('extras: {}'.format(setup_options['extras_require']))
 
@@ -309,15 +293,16 @@ setup_options_custom = {
 }
 '''
 Non-setuptools-specific metadata, used to inform custom subcommands (e.g.,
-`freeze_file`) of other metadata _not_ already declared by the `setup_options`
-dictionary.
+``freeze_file``) of other metadata *not* already declared by the
+:data:`setup_options` dictionary.
 
-Setuptools raises fatal exceptions when the `setup_options` dictionary contains
-unrecognized keys. For safety, these keys are added to this dictionary instead.
+Setuptools raises fatal exceptions when the :data:`setup_options` dictionary
+contains unrecognized keys. For safety, these keys are added to this dictionary
+instead.
 '''
 
 # ....................{ COMMANDS                           }....................
-# Define all BETSE-specific setuptools commands.
+# Define all application-specific setuptools commands.
 for setup_module in (build, freeze, symlink, test):
     setup_module.add_setup_commands(setup_options_custom, setup_options)
 

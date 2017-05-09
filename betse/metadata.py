@@ -44,16 +44,20 @@ NAME = 'BETSE'
 Human-readable application name.
 '''
 
+
+LICENSE = '2-clause BSD'
+'''
+Human-readable name of the license this application is licensed under.
+'''
+
 # ....................{ PYTHON ~ version                   }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: When modifying the minimum version of Python required by this
-# application below, document:
-#
-# * The justification for doing so in the "Python Version" subsection of this
-#   submodule's docstring above.
-# * The newly required version in front-facing documentation, including:
-#   * "README.rst".
-#   * "doc/md/INSTALL.md".
+# WARNING: Changes to this section *MUST* be synchronized with:
+# * The corresponding section of the "betsee.metadata" submodule.
+# * Front-facing documentation (e.g., "README.rst", "doc/md/INSTALL.md").
+# On bumping the minimum required version of Python, consider also documenting
+# the justification for doing so in the "Python Version" section of this
+# submodule's docstring above.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 PYTHON_VERSION_MIN = '3.4.0'
@@ -252,12 +256,6 @@ human-readable current version of this application (e.g., ``v0.4.0``) to exist.
 Typically, no such tag exists for live versions of this application -- which
 have yet to be stabilized and hence tagged. Hence, this URL is typically valid
 *only* for previously released (rather than live) versions of this application.
-'''
-
-# ....................{ METADATA ~ license                 }....................
-LICENSE = '2-clause BSD'
-'''
-Human-readable name of the license this application is licensed under.
 '''
 
 # ....................{ METADATA ~ python                  }....................

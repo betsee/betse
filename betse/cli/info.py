@@ -76,15 +76,13 @@ def output_info() -> None:
 
     # Notify the current user of a possible wait *BEFORE* importing modules
     # whose importation contributes to this wait.
-    logs.log_info(
-        'Harvesting system information... (This may take a moment.)')
+    logs.log_info('Harvesting system metadata... (This may take a moment.)')
 
     # Defer heavyweight imports.
     from betse.lib import libs
     from betse.util.os import displays, kernels
 
     #FIXME: Shift into a more appropriate general-purpose submodule.
-
     # Tuple of BETSE-specific metadata.
     BETSE_METADATAS = (
         # Application metadata.
@@ -95,7 +93,6 @@ def output_info() -> None:
     )
 
     #FIXME: Shift into a more appropriate general-purpose submodule.
-
     # Tuple of system-specific metadata.
     SYSTEM_METADATAS = (
         # Python metadata.

@@ -4,34 +4,40 @@
 # See "LICENSE" for further details.
 
 '''
-Utility and convenience functions for BETSE-specific `setuptools` subcommands.
+Utility and convenience functions for application-specific :mod:`setuptools`
+subcommands.
 
 Design
 ----------
 This method intentionally duplicates existing utility functions provided by the
-`betse.util` subpackage. While duplication breaks DRY ("Don't Repeat Yourself")
-and hence is typically harmful, there exist valid reasons to do so here. Namely,
-`betse.util` functionality:
+:mod:`betse.util` subpackage. While duplication breaks DRY ("Don't Repeat
+Yourself") and hence is usually harmful, there are valid reasons to do so here.
+Namely, :mod:`betse.util` functionality:
 
-* Assumes logging to be configured. Setuptools, however, assumes logging to
-  _not_ be configured -- and certainly provides no assistance in doing so.
-* Raises BETSE-specific exceptions rooted at the BETSE-specific `BetseException`
-  superclass. Setuptools subcommands, on the other hand, are expected to only
-  raise distutils-specific exceptions rooted at the distutils-specific
-  `DistutilsError` superclass.
-* Could theoretically import third-party dependencies unavailable at setuptools
-  subcommand time (e.g., due to the `install` or `develop` subcommands _not_
-  having been run yet). While no `betse.util` submodules should do so, the grim
-  possibility cannot be discounted.
+* Assumes BETSE to be available. While this is certainly the case when this file
+  resides in the BETSE codebase, this is *not* necessarily the case when this
+  file is copied into and hence resides in the codebases of other projects
+  (e.g., BETSEE). In these projects, BETSE is merely yet another dependency that
+  is typically unavailable at installation time.
+* Raises BETSE-specific exceptions rooted at the BETSE-specific
+  :class:`betse.exception.BetseException` superclass. :mod:`setuptools`
+  subcommands, on the other hand, are expected to only raise
+  :mod:`distutils`-specific exceptions rooted at the :mod:`distutils`-specific
+  :class:`DistutilsError` superclass.
+* Assumes logging to be configured. :mod:`setuptools`, however, assumes
+  logging to *not* be configured -- and provides no assistance in doing so.
+* Could theoretically import third-party dependencies unavailable at
+  :mod:`setuptools subcommand time (e.g., due to the ``install`` or ``develop``
+  subcommands *not* having been run yet). While no :mod:`betse.util` submodules
+  should do so, the horrid possibility remains.
 
 Since duplicating these functions here is no significant maintenance burden
-_and_ since attempting to reuse these functions here would introduce spurious
+*and* since attempting to reuse these functions here would introduce spurious
 side effects, we adopt the former approach.
 '''
 
 # ....................{ IMPORTS                            }....................
 import importlib, os, platform, shutil, subprocess, sys, time
-from betse.util.type.types import type_check
 from distutils.errors import (
     DistutilsExecError, DistutilsFileError, DistutilsModuleError)
 from os import path
@@ -43,10 +49,10 @@ def die_unless_command_succeeds(*command_words) -> None:
     '''
     Raise an exception unless running the passed command succeeds.
 
-    For portability, this command _must_ be passed as a list of shell words
+    For portability, this command *must* be passed as a list of shell words
     whose first element is the pathname of such command and all subsequent
     elements the command-line arguments to be passed to such command (e.g.,
-    `['ls', '/']`).
+    ``['ls', '/']``).
     '''
 
     # If the first passed shell word is *NOT* pathable, raise an exception.
@@ -437,9 +443,6 @@ def get_project_dirname():
     return get_path_dirname(get_path_dirname(__file__))
 
 # ....................{ GETTERS ~ io                       }....................
-#FIXME: Sufficiently useful that we should probably copy this, once complete,
-#to a new betse.util.io.commands.get_output() function.
-
 def get_command_output(*args) -> str:
     '''
     Get all standard output and error captured by running the external shell
@@ -457,11 +460,14 @@ def get_command_output(*args) -> str:
     ----------
     str
         All standard output and error captured by running this command,
-	interleaved together in output order, stripped of all trailing
-	newlines (as under most POSIX shells), _and_ decoded via the current
+        interleaved together in output order, stripped of all trailing
+        newlines (as under most POSIX shells), *and* decoded via the current
         locale's preferred encoding (e.g., UTF-8).
     '''
-    command_output = subprocess.check_output(args,
+
+    command_output = subprocess.check_output(
+        args,
+
         # Redirect standard error to output.
         stderr=subprocess.STDOUT,
 
@@ -471,6 +477,30 @@ def get_command_output(*args) -> str:
 
     # Get this output, stripped of all trailing newlines.
     return command_output.rstrip('\n')
+
+# ....................{ GETTERS ~ io : file                }....................
+def get_chars(filename: str, encoding: str = 'utf-8') -> str:
+    '''
+    String of all characters contained in the plaintext file with the passed
+    filename encoded with the passed encoding.
+
+    Parameters
+    ----------
+    filename : str
+        Relative or absolute path of the plaintext text to be read.
+    encoding : optional[str]
+        Name of the encoding to be used. Defaults to UTF-8.
+
+    Returns
+    ----------
+    str
+        String of all characters decoded from this file's byte content.
+    '''
+    assert isinstance(filename, str), '"{}" not a string.'.format(filename)
+    assert isinstance(encoding, str), '"{}" not a string.'.format(encoding)
+
+    with open(filename, mode='rt', encoding=encoding) as text_file:
+        return text_file.read()
 
 # ....................{ GETTERS ~ path                     }....................
 def get_path_canonicalized(pathname: str) -> str:
@@ -602,7 +632,7 @@ def output_warning(*warnings) -> None:
     '''
     Print the passed warning messages to standard error.
     '''
-    print('WARNING:', *warnings, file = sys.stderr)
+    print('WARNING: ', *warnings, file=sys.stderr)
 
 # ....................{ QUOTERS                            }....................
 def shell_quote(text: str) -> str:
@@ -666,13 +696,14 @@ def make_symlink(pathname_source: str, filename_target: str) -> None:
     '''
     Symbolically link the passed source path to the passed target symlink.
 
-    If such target is an existing symlink, such symlink will be implicitly
+    If this target is an existing symlink, this symlink will be implicitly
     removed before being recreated.
 
-    If such source does _not_ exist, an exception will be raised. Hence, this
-    function does _not_ support creation of **dangling symbolic links** (i.e.,
+    If this source does *not* exist, an exception will be raised. Hence, this
+    function does *not* support creation of **dangling symbolic links** (i.e.,
     links to non-existent paths).
     '''
+
     # If such source path does *NOT* exist, raise an exception.
     die_unless_path(pathname_source)
 
@@ -690,6 +721,7 @@ def move_file(filename_source: str, filename_target: str) -> None:
     '''
     Move the passed source to the passed target file.
     '''
+
     # If such file does *NOT* exist, raise an exception.
     die_unless_file(filename_source)
 
@@ -706,6 +738,7 @@ def remove_path(pathname: str) -> None:
     This is an inherently dangerous operation and hence delayed for several
     seconds, allowing sufficiently aware users to jam the panic button.
     '''
+
     # If such path does *NOT* exist, fail.
     die_unless_path(pathname)
 
@@ -725,6 +758,7 @@ def remove_dir(dirname: str) -> None:
     This is an inherently dangerous operation and hence delayed for several
     seconds, allowing sufficiently aware users to jam the panic button.
     '''
+
     # If such directory does *NOT* exist, fail.
     die_unless_dir(dirname)
 
@@ -743,6 +777,7 @@ def remove_file(filename: str) -> None:
     '''
     Remove the passed non-special file.
     '''
+
     # If such file does *NOT* exist, fail.
     die_unless_file(filename)
 
@@ -755,26 +790,29 @@ def remove_symlink(filename: str) -> None:
     '''
     Remove the passed symbolic link.
     '''
-    # If such link does *NOT* exist, fail.
+
+    # If this link does *NOT* exist, fail.
     die_unless_symlink(filename)
 
-    # Remove such link. Since symbolic links are special files, remove_file()
+    # Remove this link. Since symbolic links are special files, remove_file()
     # fails when passed such link and hence must be reimplemented here.
     print('Removing symbolic link "{}".'.format(filename))
     os.unlink(filename)
 
 # ....................{ SETUPTOOLS                         }....................
-@type_check
 def add_setup_command_classes(
     metadata: dict, setup_options: dict, *command_classes) -> None:
     '''
-    Add one application-specific `setuptools` command for each passed class to
-    the passed dictionary of `setuptools` options.
+    Add one application-specific :mod:`setuptools` command for each passed class
+    to the passed dictionary of :mod:`setuptools` options.
 
     For simplicity, the name of each such command will be the name of the
     corresponding class. Hence, the names of such classes are recommended to be
-    short lowercase strings (e.g., `freeze`, `symlink`).
+    short lowercase strings (e.g., ``freeze``, ``symlink``).
     '''
+    assert isinstance(metadata, dict), '"{}" not a dictionary.'.format(metadata)
+    assert isinstance(setup_options, dict), (
+        '"{}" not a dictionary.'.format(setup_options))
 
     # Add each such command class as a new command of the same name.
     for command_class in command_classes:
@@ -785,7 +823,7 @@ def add_setup_command_classes(
         setup_options['cmdclass'][command_class.__name__] = command_class
 
         # Expose the passed dictionaries to this class by monkey-patching
-        # BETSE-specific private class variables into these classes. While
+        # application-specific private class variables into these classes. While
         # passing these dictionaries to instances of this class (e.g., on
         # instantiation) would be ideal, distutils and hence setuptools
         # requires commands to be registered as classes rather than instances.
@@ -793,7 +831,7 @@ def add_setup_command_classes(
         command_class._setup_options = setup_options
 
 # ....................{ SETUPTOOLS ~ wrappers : generators }....................
-def command_entry_points(command: Command):
+def command_entry_points(command: Command) -> 'GeneratorType':
     '''
     Generator yielding a 3-tuple detailing each wrapper script installed for the
     **Python distribution** (i.e., top-level package) identified by the passed

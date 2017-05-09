@@ -19,6 +19,8 @@ file format encapsulating most input and output data for this application.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import numpy
+
+import betse.util.io.files
 from betse.util.path import files
 from betse.util.type.types import type_check, MappingOrSequenceTypes
 
@@ -56,7 +58,7 @@ def load(filename: str) -> MappingOrSequenceTypes:
     import yaml
 
     # Load and return the contents of this YAML file.
-    with files.read_chars(filename) as yaml_file:
+    with betse.util.io.files.read_chars(filename) as yaml_file:
         return yaml.load(stream=yaml_file)
 
 # ....................{ SAVERS                             }....................
@@ -78,7 +80,7 @@ def save(container: MappingOrSequenceTypes, filename: str) -> None:
     import yaml
 
     # Save this container to this YAML file.
-    with files.write_chars(filename) as yaml_file:
+    with betse.util.io.files.write_chars(filename) as yaml_file:
         yaml.dump(
             data=container,
             stream=yaml_file,

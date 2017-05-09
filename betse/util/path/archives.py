@@ -90,6 +90,7 @@ directories _and_ non-directory files) facilities.
 # ....................{ IMPORTS                            }....................
 from io import BufferedIOBase
 
+import betse.util.io.files
 from betse.exceptions import BetseArchiveException
 from betse.util.type.types import type_check
 
@@ -373,7 +374,7 @@ def _write_bytes_bz2(filename: str, is_overwritable: bool) -> BufferedIOBase:
     from bz2 import BZ2File
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return BZ2File(filename, mode=files.get_mode_write_bytes(is_overwritable))
+    return BZ2File(filename, mode=betse.util.io.files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ gz                            }....................
 def _read_bytes_gz(filename: str) -> BufferedIOBase:
@@ -410,7 +411,7 @@ def _write_bytes_gz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     from gzip import GzipFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return GzipFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
+    return GzipFile(filename, mode=betse.util.io.files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ xz                            }....................
 def _read_bytes_xz(filename: str) -> BufferedIOBase:
@@ -447,7 +448,7 @@ def _write_bytes_xz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     from lzma import LZMAFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return LZMAFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
+    return LZMAFile(filename, mode=betse.util.io.files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ CONSTANTS ~ private                }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

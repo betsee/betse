@@ -82,7 +82,7 @@ https://www.gnu.org/fun/jokes/error-haiku.html
 # ....................{ GETTERS                            }....................
 def get_haiku_random() -> str:
     '''
-    Random haiku to be printed in the event of fatal errors.
+    Random instructive haiku to be printed in the event of fatal errors.
     '''
 
     return '\n'.join(random.choice(HAIKU))
@@ -92,8 +92,8 @@ def output(*objects) -> None:
     '''
     Print all passed objects to stderr *without* logging these objects.
 
-    This function is intentionally *not* named `print()`. Doing so introduces
-    subtle issues elsewhere.
+    This function is intentionally *not* named :func:`print`. Doing so
+    introduces subtle issues elsewhere.
     '''
 
     print(*objects, file=sys.stderr)
@@ -108,7 +108,7 @@ def output_exception(heading: str = None) -> None:
     ----------
     heading : optional[str]
         Optional human-readable heading to be printed before this exception if
-        any _or_ `None` if no heading is to be printed.
+        any *or* ``None`` if no heading is to be printed.
     '''
 
     #FIXME: Assert that an exception has actually been raised here.
@@ -123,7 +123,7 @@ def output_exception(heading: str = None) -> None:
 
 def output_traceback() -> None:
     '''
-    Print the current call stack to stderr _without_ logging this call stack.
+    Print the current call stack to stderr *without* logging this call stack.
     '''
 
     # Avoid circular import dependencies.
