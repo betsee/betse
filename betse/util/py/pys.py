@@ -28,11 +28,11 @@ def init() -> None:
     '''
     Validate the active Python interpreter.
 
-    This function does _not_ validate this interpreter's version, as the
-    top-level module `betse.metadata` already does so at the beginning of
-    application startup. Rather, this function (in order):
+    This function does *not* validate this interpreter's version, as the
+    top-level :mod:`betse.metadata` submodule already does so at the start of
+    application startup. Instead, this function (in order):
 
-    . Logs a non-fatal warning if this interpreter is _not_ 64-bit.
+    #. Logs a non-fatal warning if this interpreter is *not* 64-bit.
     '''
 
     # If this Python interpreter is 32- rather than 64-bit, log a non-fatal
@@ -44,8 +44,8 @@ def init() -> None:
             '{name} will be confined to low-precision datatypes and '
             'at most 4GB of available RAM, '
             'impeding the reliability and scalability of modelling. '
-            'Consider running {name} only under '
-            '64-bit Python interpreters.'.format(name=metadata.NAME)
+            'Consider running {name} only under a '
+            '64-bit Python interpreter.'.format(name=metadata.NAME)
         )
 
 # ....................{ TESTERS                            }....................

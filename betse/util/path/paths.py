@@ -27,14 +27,14 @@ This pathname consists of a single null byte. The operating system kernels for
 both Windows _and_ all POSIX-compatible platforms (e.g., Linux, OS X) prohibit
 pathnames containing null bytes by returning non-zero failure codes from
 filesystem-centric kernel functions passed such pathnames. Python translates
-these errors into raised exceptions. Under Linux, for example, a `TypeError`
-exception of `"embedded NUL character"` is raised.
+these errors into raised exceptions. Under Linux, for example, a
+:class:`TypeError` exception of ``"embedded NUL character"`` is raised.
 '''
 
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames) -> None:
     '''
-    Raise an exception if any passed path exists.
+    Raise an exception if any of the passed path exists.
     '''
 
     for pathname in pathnames:
@@ -66,7 +66,7 @@ def die_if_basename(pathname: str) -> None:
 
     if is_basename(pathname):
         raise BetsePathException(
-            'Path "{}" contains no directory separators '
+            'Pathname "{}" contains no directory separators '
             "(i.e., '{}' characters).".format(pathname, os.sep))
 
 
@@ -83,14 +83,29 @@ def die_unless_basename(pathname: str) -> None:
 
     if not is_basename(pathname):
         raise BetsePathException(
-            'Path "{}" contains one or more directory separators'
+            'Pathname "{}" contains one or more directory separators'
             "(i.e., '{}' characters).".format(pathname, os.sep))
+
+# ....................{ EXCEPTIONS ~ filetype              }....................
+def die_unless_filetype_equals(pathname: str, filetype: str) -> None:
+    '''
+    Raise an exception unless the passed path has the passed filetype.
+
+    See Also
+    ----------
+    is_basename()
+        For further details.
+    '''
+
+    if not is_filetype_equals(pathname, filetype):
+        raise BetsePathException(
+            'Pathname "{}" filetype not "{}".'.format(pathname, filetype))
 
 # ....................{ TESTERS                            }....................
 @type_check
 def is_path(pathname: str) -> bool:
     '''
-    `True` only if the passed path exists _without_ following this path if this
+    ``True`` only if the passed path exists _without_ following this path if this
     path is an existing symbolic link.
 
     If this path is an existing **dangling symbolic link** (i.e., symbolic link
@@ -108,7 +123,7 @@ def is_path(pathname: str) -> bool:
 @type_check
 def is_absolute(pathname: str) -> bool:
     '''
-    `True` only if the passed path is absolute.
+    ``True`` only if the passed path is absolute.
 
     The definition of "absolute" depends on the current operating system. Under:
 
@@ -122,7 +137,7 @@ def is_absolute(pathname: str) -> bool:
 
 def is_relative(pathname: str) -> bool:
     '''
-    `True` only if the passed path is relative.
+    ``True`` only if the passed path is relative.
 
     The definition of "relative" depends on the current operating system. Under:
 
@@ -136,7 +151,7 @@ def is_relative(pathname: str) -> bool:
 @type_check
 def is_basename(pathname: str) -> bool:
     '''
-    `True` only if the passed pathname is a **pure basename** (i.e., contains no
+    ``True`` only if the passed pathname is a **pure basename** (i.e., contains no
     directory separators and hence no directory components).
     '''
 
@@ -146,7 +161,7 @@ def is_basename(pathname: str) -> bool:
 @type_check
 def is_pathname(pathname: str) -> bool:
     '''
-    `True` only if the passed string is a valid pathname (either absolute or
+    ``True`` only if the passed string is a valid pathname (either absolute or
     relative) for the root filesystem of the current platform.
 
     Under:
@@ -273,12 +288,13 @@ def is_pathname(pathname: str) -> bool:
 @type_check
 def is_filetype_equals(pathname: str, filetype: str) -> bool:
     '''
-    `True` only if the passed pathname has a filetype _and_ the **last
+    ``True`` only if the passed pathname has a filetype *and* the **last
     filetype** (i.e., last `.`-prefixed substring of the basename) of this
     pathname is the passed filetype.
 
-    The passed filetype may contain arbitrarily many `.` characters, including
-    an optional prefixing `.`. In all cases, this function behaves as expected.
+    The passed filetype may contain arbitrarily many ``.`` characters, including
+    an optional prefixing ``.``. In all cases, this function behaves as
+    expected.
 
     Parameters
     ----------
@@ -290,7 +306,7 @@ def is_filetype_equals(pathname: str, filetype: str) -> bool:
     Returns
     ----------
     bool
-        `True` only if this pathname has this filetype.
+        ``True`` only if this pathname has this filetype.
     '''
 
     # Avoid circular import dependencies.
@@ -305,9 +321,10 @@ def is_filetype_equals(pathname: str, filetype: str) -> bool:
 def is_filetype_undotted_in(
     pathname: str, filetypes_undotted: ContainerType) -> bool:
     '''
-    `True` only if the passed pathname has a filetype _and_ the **last undotted
-    filetype** (i.e., last `.`-prefixed substring of the basename excluding this
-    `.`) of this pathname is an element of the passed container.
+    ``True`` only if the passed pathname has a filetype *and* the **last
+    undotted filetype** (i.e., last ``.``-prefixed substring of the basename
+    excluding this ``.``) of this pathname is an element of the passed
+    container.
 
     Parameters
     ----------
@@ -315,13 +332,13 @@ def is_filetype_undotted_in(
         Pathname to be tested.
     filetypes: ContainerType
         Container of all undotted filetypes to test this pathname against. Each
-        element of this container should be a string _not_ prefixed the `.`
+        element of this container should be a string *not* prefixed the ``.``
         character.
 
     Returns
     ----------
     bool
-        `True` only if this pathname has a filetype _and_ the last filetype of
+        ``True`` only if this pathname has a filetype *and* the last filetype of
         this pathname is an element of this container.
     '''
 
@@ -348,20 +365,20 @@ def get_basename(pathname: str) -> str:
 
 def get_type_label(pathname: str) -> str:
     '''
-    Get a lowercase human-readable label describing the type of the passed
-    existing path.
+    Lowercase human-readable label describing the type of the passed existing
+    path.
 
     For brevity, this label comprises one lowercase noun optionally preceded by
-    a lowercase adjective unambiguously identifying such path's type:
+    a lowercase adjective unambiguously identifying this path's type:
 
-    * `symbolic link` for an existing symbolic link, regardless of whether that
-      link is **dangling** (i.e., refers to a non-existent path) or not.
-    * `directory` for an existing directory.
-    * `special file` for all other **special files** (e.g., device node, named
+    * ``symbolic link`` for an existing symbolic link, regardless of whether
+      that link is **dangling** (i.e., refers to a non-existent path) or not.
+    * ``directory`` for an existing directory.
+    * ``special file`` for all other **special files** (e.g., device node, named
       pipe, socket).
-    * `file` for an existing regular (i.e., non-special) file).
+    * ``file`` for an existing regular (i.e., non-special) file).
 
-    If this path does _not_ exist, an exception is raised.
+    If this path does *not* exist, an exception is raised.
     '''
 
     # Avoid circular import dependencies.

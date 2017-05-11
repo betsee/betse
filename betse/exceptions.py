@@ -8,6 +8,13 @@ Application-specific exception hierarchy.
 '''
 
 # ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To avoid race conditions during application startup, this module may
+# import *ONLY* from modules guaranteed to exist at startup. This includes all
+# standard Python and application modules but *NOT* third-party dependencies,
+# which if unimportable will only be validated at some later time in startup.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from abc import ABCMeta
 
 # ....................{ EXCEPTIONS                         }....................

@@ -72,7 +72,7 @@ def die_if_special(pathname: str) -> None:
 # ....................{ TESTERS                            }....................
 def is_file(pathname: str) -> bool:
     '''
-    ``True`` only if the passed path is a non-directory file _after_ following
+    ``True`` only if the passed path is a non-directory file *after* following
     symbolic links.
 
     This function does *not* raise an exception if this path does not exist.
@@ -82,15 +82,15 @@ def is_file(pathname: str) -> bool:
     This function intrinsically differs from the standard :func:`path.isfile`
     function. While the latter returns ``True`` only for non-special files and
     hence `False` for all non-directory special files (e.g., device nodes,
-    sockets), this function returns `True` for _all_ non-directory files
+    sockets), this function returns `True` for *all* non-directory files
     regardless of whether these files are special or not.
 
     **Why?** Because this function complies with POSIX semantics, whereas
     :func:`path.isfile` does *not*. The specialness of non-directory files is
     usually irrelevant; in general, it only matters whether these files are
-    directories or not. For example, the external command `rm` removes only
+    directories or not. For example, the external command ``rm`` removes only
     non-directory files (regardless of specialness) while the external command
-    `rmdir` removes only empty directories.
+    ``rmdir`` removes only empty directories.
     '''
 
     # Avoid circular import dependencies.

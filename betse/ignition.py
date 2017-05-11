@@ -79,7 +79,7 @@ def ignite() -> None:
     # Initialize this application.
     init()
 
-    # Initialize these dependencies *AFTER* initializing this application.
+    # Initialize all dependencies *AFTER* initializing this application.
     libs.init()
 
 # ....................{ INITIALIZERS                       }....................
@@ -107,16 +107,16 @@ def reinit() -> None:
 def init() -> None:
     '''
     Initialize the current application if this application has not already been
-    initialized under the active Python process _or_ noop otherwise.
+    initialized under the active Python process *or* noop otherwise.
 
     Specifically, this function:
 
     * Validates core directories and files required at program startup, creating
-      all such directories and files that do _not_ already exist and are
+      all such directories and files that do *not* already exist and are
       reasonably creatable.
 
     To support caller-specific error handling, this function is intended to be
-    called immediately _after_ this program begins catching otherwise uncaught
+    called immediately *after* this program begins catching otherwise uncaught
     exceptions.
     '''
 
