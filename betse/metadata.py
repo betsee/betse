@@ -167,7 +167,6 @@ Human-readable application version as a ``.``-delimited string.
 '''
 
 
-#FIXME: Log on BETSE startup.
 CODENAME = 'Happier Hodgkin'
 '''
 Human-readable code name associated with the current version of this

@@ -49,25 +49,32 @@ High-level application initialization common to both the CLI and GUI.
 #great to emit non-fatal warnings if its size exceeds some reasonable threshold
 #(e.g., 1MB).
 
+# ....................{ IMPORTS                            }....................
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: To defer heavyweight and possibly circular imports, the top-level of
+# this module may import *ONLY* from standard Python packages. All imports from
+# application and third-party packages should be deferred to their point of use.
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 # ....................{ GLOBALS                            }....................
 _IS_IGNITED = False
 '''
-`True` only if the :func:`init` function has already been called.
+``True`` only if the :func:`init` function has already been called.
 
 That function uses this private boolean to guard against repeated invocations of
-that function from multiple modules in the same Python process (e.g.,
-:mod:`betse.science.__init__`, :mod:`betse.cli.cliabc`). While that function
-does technically support repeated calls, each additional call after the first
-inefficiently performs no meaningful work and is thus safely ignorable.
+the :func:`init` function from multiple modules in the same Python process
+(e.g., :mod:`betse.science.__init__`, :mod:`betse.cli.cliabc`). While that
+function does technically support repeated calls, each additional call after the
+first inefficiently performs no meaningful work and is thus safely ignorable.
 '''
 
 # ....................{ IGNITERS                           }....................
 def ignite() -> None:
     '''
-    Initialize both the current application _and_ all mandatory third-party
+    Initialize both the current application *and* all mandatory third-party
     dependencies of this application with sane defaults.
 
-    This high-level convenience function intentionally provides _no_ means of
+    This high-level convenience function intentionally provides *no* means of
     initializing either this application or these dependencies with alternative
     parameters. To do so, callers should call all lower-level initialization
     functions directly (e.g., :func:`init`, :func:`betse.lib.libs.init`).
@@ -89,7 +96,7 @@ def reinit() -> None:
 
     Specifically:
 
-    * If this application has _not_ already been initialized under the active
+    * If this application has *not* already been initialized under the active
       Python process, this application will be initilialized.
     * Else, this application has already been initialized under the active
       Python process. In this case, this application will be re-initilialized.
@@ -109,15 +116,18 @@ def init() -> None:
     Initialize the current application if this application has not already been
     initialized under the active Python process *or* noop otherwise.
 
-    Specifically, this function:
+    Specifically, this function (in order):
 
-    * Validates core directories and files required at program startup, creating
-      all such directories and files that do *not* already exist and are
-      reasonably creatable.
+    #. Validates core directories and files required at program startup,
+       creating all such directories and files that do *not* already exist and
+       are reasonably creatable.
+    #. Validates but does *not* initialize mandatory third-party dependencies of
+       this application, which must be initialized independently by the
+       :func:`betsee.lib.libs.init` function.
 
     To support caller-specific error handling, this function is intended to be
-    called immediately *after* this program begins catching otherwise uncaught
-    exceptions.
+    called immediately *after* this application begins catching otherwise
+    uncaught exceptions.
     '''
 
     # If this function has already been called, noop.
@@ -125,7 +135,7 @@ def init() -> None:
     if     _IS_IGNITED:
         return
 
-    # Defer heavyweight imports to their point of use.
+    # Defer heavyweight and possibly circular imports.
     from betse.lib import libs
     from betse.util.io.log import logconfig
     from betse.util.py import pys

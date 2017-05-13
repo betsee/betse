@@ -48,26 +48,6 @@ def get_metadata() -> OrderedArgsDict:
         'data directory',  pathtree.get_data_dirname(),
     )
 
-# ..................{ LOGGERS                                }..................
-def log_header() -> None:
-    '''
-    Log a one-line synopsis of metadata logged by the ``info`` subcommand.
-    '''
-
-    logs.log_info(
-        'Welcome to <<'
-        '{program_name} {program_version} | '
-        '{py_name} {py_version} | '
-        '{os_name} {os_version}'
-        '>>.'.format(
-            program_name=metadata.NAME,
-            program_version=metadata.VERSION,
-            py_name=interpreters.get_name(),
-            py_version=pys.get_version(),
-            os_name=oses.get_name(),
-            os_version=oses.get_version(),
-        ))
-
 # ..................{ OUTPUTTERS                             }..................
 def output_info() -> None:
     '''

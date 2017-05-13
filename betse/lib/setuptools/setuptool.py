@@ -13,7 +13,6 @@ import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
 from betse.util.type import iterables, modules
-# from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import (
     type_check, GeneratorType, MappingType, ModuleType, NoneType, SequenceTypes)
 from collections import OrderedDict

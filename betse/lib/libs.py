@@ -4,25 +4,24 @@
 # See "LICENSE" for further details.
 
 '''
-High-level **dependency** (i.e., both mandatory and optional third-party Python
-packages imported at runtime) facilities.
+High-level **application dependency** (i.e., both mandatory and optional
+third-party Python packages required by this application) facilities.
 
-This module defines functions intended to be called by high-level interface
-modules (e.g., :mod:`betse.cli.clicli`) *before* attempting to import
-dependencies.
+This low-level submodule defines functions intended to be called by high-level
+submodules (e.g., :mod:`betse.cli.cliabc`) *before* attempting to import any
+such dependencies.
 '''
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
 # the top-level of this module may import *ONLY* from packages guaranteed to
-# exist at installation time (i.e., stock Python and BETSE packages).
+# exist at installation time (i.e., standard Python and application packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
 from betse.exceptions import BetseLibException
-from betse.util.type.types import type_check, StrOrNoneTypes
-from collections import OrderedDict
+from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
 # ....................{ GLOBALS                            }....................
 _IS_INITTED = False
@@ -30,10 +29,10 @@ _IS_INITTED = False
 ``True`` only if the :func:`init` function has already been called.
 
 That function uses this private boolean to guard against repeated invocations of
-that function from multiple modules in the same Python process (e.g.,
-:mod:`betse.science.__init__`, :mod:`betse.cli.cliabc`). While that function
-does technically support repeated calls, each additional call after the first
-inefficiently performs no meaningful work and is thus safely ignorable.
+the :func:`init` function from multiple modules in the same Python process
+(e.g., :mod:`betse.science.__init__`, :mod:`betse.cli.cliabc`). While that
+function does technically support repeated calls, each additional call after the
+first inefficiently performs no meaningful work and is thus safely ignorable.
 '''
 
 # ....................{ EXCEPTIONS                         }....................
@@ -41,12 +40,13 @@ def die_unless_runtime_mandatory_all() -> None:
     '''
     Raise an exception unless all mandatory runtime dependencies of this
     application are **satisfiable** (i.e., both importable and of a satisfactory
-    version).
+    version) *and* all external commands required by these dependencies (e.g.,
+    GraphViz's ``dot`` command) reside in the current ``${PATH}``.
 
     Equivalently, this function raises an exception if at least one such
     dependency is unsatisfied. For importable unsatisfied dependencies with
     :mod:`setuptools`-specific metadata (e.g., ``.egg-info/``-suffixed
-    subdirectories of the `site-packages/` directory for the active Python 3
+    subdirectories of the ``site-packages/`` directory for the active Python 3
     interpreter, typically created by :mod:`setuptools` at install time), this
     function additionally validates the versions of these dependencies to
     satisfy all application requirements.
@@ -57,33 +57,17 @@ def die_unless_runtime_mandatory_all() -> None:
         If at least one mandatory runtime dependency is unsatisfiable.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.util.type import modules
+    die_unless_requirements_dict(metadata.DEPENDENCIES_RUNTIME_MANDATORY)
 
-    # If the "pkg_resources" setuptools dependency is missing, raise an
-    # exception *BEFORE* importing this dependency below.
-    modules.die_unless_module(
-        module_name='pkg_resources',
-        exception_message='Mandatory dependency "pkg_resources" not found.',
-    )
 
-    # Import this submodule *AFTER* validating "pkg_resources" to exist above.
-    from betse.lib.setuptools import setuptool
-
-    # Validate these dependencies.
-    setuptool.die_unless_requirements_dict(
-        metadata.DEPENDENCIES_RUNTIME_MANDATORY)
-
-    # Validate all external commands required by these dependencies.
-    die_unless_commands(*metadata.DEPENDENCIES_RUNTIME_MANDATORY.keys())
-
-# ....................{ EXCEPTIONS ~ names                 }....................
 @type_check
 def die_unless_runtime_optional(*requirement_names: str) -> None:
     '''
     Raise an exception unless all optional runtime dependencies of this
     application with the passed :mod:`setuptools`-specific project names are
-    **satisfiable** (i.e., both importable and of a satisfactory version).
+    **satisfiable** (i.e., both importable and of a satisfactory version)
+    *and* all external commands required by these dependencies (e.g.,
+    GraphViz's ``dot`` command) reside in the current ``${PATH}``.
 
     Parameters
     ----------
@@ -105,17 +89,72 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
         Further details.
     '''
 
+    die_unless_requirements_dict_keys(
+        metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names)
+
+# ....................{ EXCEPTIONS ~ typed                 }....................
+@type_check
+def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
+    '''
+    Raise an exception unless all dependencies described by the passed
+    dictionary are **satisfiable** (i.e., both importable and of a satisfactory
+    version) *and* all external commands required by these dependencies (e.g.,
+    GraphViz's ``dot`` command) reside in the current ``${PATH}``.
+
+    Raises
+    ----------
+    BetseLibException
+        If at least passed dependency is unsatisfiable.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type import modules
+
+    # If the "pkg_resources" setuptools dependency is missing, raise an
+    # exception *BEFORE* importing this dependency below.
+    modules.die_unless_module(
+        module_name='pkg_resources',
+        exception_message='Mandatory dependency "pkg_resources" not found.',
+    )
+
+    # Import this submodule *AFTER* validating "pkg_resources" to exist above.
+    from betse.lib.setuptools import setuptool
+
+    # Validate these dependencies.
+    setuptool.die_unless_requirements_dict(requirements_dict)
+
+    # Validate all external commands required by these dependencies.
+    die_unless_commands(*requirements_dict.keys())
+
+
+
+@type_check
+def die_unless_requirements_dict_keys(
+    requirements_dict: MappingType, *requirement_names: str) -> None:
+    '''
+    Raise an exception unless all dependencies with the passed names described
+    by the passed dictionary are **satisfiable** (i.e., both importable and of a
+    satisfactory version) *and* all external commands required by these
+    dependencies (e.g., GraphViz's ``dot`` command) reside in the current
+    ``${PATH}``.
+
+    Raises
+    ----------
+    BetseLibException
+        If at least passed dependency is unsatisfiable.
+    '''
+
     # Avoid circular import dependencies.
     from betse.lib.setuptools import setuptool
 
     # Validate these dependencies.
     setuptool.die_unless_requirements_dict_keys(
-        metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names)
+        requirements_dict, *requirement_names)
 
     # Validate all external commands required by these dependencies.
     die_unless_commands(*requirement_names)
 
-
+# ....................{ EXCEPTIONS ~ commands              }....................
 @type_check
 def die_unless_commands(*requirement_names: str) -> None:
     '''

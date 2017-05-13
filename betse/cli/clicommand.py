@@ -10,8 +10,9 @@ Subcommands accepted by this application's command line interface (CLI).
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
-# top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
-# raise exceptions on importation.
+# top-level of this module may import *ONLY* from submodules guaranteed to:
+# * Exist, including standard Python and application modules.
+# * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from abc import ABCMeta
@@ -19,12 +20,36 @@ from betse.cli import cliutil
 from betse.util.type.types import (
     type_check, ArgParserType, ArgSubparsersType, IterableTypes, MappingType)
 
+# ....................{ CONSTANTS                          }....................
+SUBCOMMANDS_PREFIX = '''
+Exactly one of the following subcommands must be passed:
+'''
+'''
+Help string template preceding the list of all subcommands.
+'''
+
+
+SUBCOMMANDS_SUFFIX = '''
+subcommand help:
+
+For help with specific subcommands, pass either the "-h" or "--help" argument to
+the desired subcommand. For example, for help with both the "plot" subcommand
+and that subcommand's "seed" subsubcommand:
+
+;    betse plot --help
+;    betse plot seed --help
+'''
+'''
+Help string template for the **program epilog** (i.e., string printed after
+*all* other text in top-level help output).
+'''
+
 # ....................{ SUPERCLASSES                       }....................
 class CLISubcommandABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all **CLI subcommand** (i.e., shell word passed to
-    the external `betse` command signifying a high-level action to be
-    performed) subclasses.
+    Abstract base class of all **CLI subcommand** (i.e., argument passed to
+    the external ``betse`` command signifying a high-level action to perform)
+    subclasses.
 
     This class encapsulates all metadata pertaining to this subcommand,
     including:
@@ -35,17 +60,17 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
     Attributes
     ----------
     name : str
-        Machine-readable name of this CLI subcommand (e.g., `plot`), typically
+        Machine-readable name of this CLI subcommand (e.g., ``plot``), typically
         only a single word.
     synopsis : str
         Human-readable synopsis of this CLI subcommand, typically only one to
-        three lines of lowercase, unpunctuated text. All `{`- and `}`- delimited
-        format substrings (e.g., `{program_name}`) supported by the
+        three lines of lowercase, unpunctuated text. All ``{``- and ``}``-
+        delimited format substrings (e.g., ``{program_name}``) supported by the
         :meth:`cliutil.expand_help` function will be globally replaced.
     description : str
         Human-readable description of this CLI subcommand, typically one to
-        several paragraphs of grammatical sentences. All `{`- and `}`- delimited
-        format substrings (e.g., `{program_name}`) supported by the
+        several paragraphs of grammatical sentences. All ``{``- and ``}``-
+        delimited format substrings (e.g., ``{program_name}``) supported by the
         :meth:`cliutil.expand_help` function will be globally replaced.
     '''
 
@@ -164,29 +189,6 @@ class CLISubcommandYAMLOnly(CLISubcommandABC):
 
         # Return this subparser.
         return arg_subparser
-
-# ....................{ TEMPLATES ~ subcommands            }....................
-SUBCOMMANDS_PREFIX = '''
-Exactly one of the following subcommands must be passed:
-'''
-'''
-Help string template preceding the list of all subcommands.
-'''
-
-SUBCOMMANDS_SUFFIX = '''
-subcommand help:
-
-For help with specific subcommands, either pass the "-h" or "--help" argument to
-the desired subcommand. For example, for help with both the "plot" subcommand
-and that subcommand's "seed" subsubcommand:
-
-;    betse plot --help
-;    betse plot seed --help
-'''
-'''
-Help string template for the **program epilog** (i.e., string printed after
-*all* other text in top-level help output).
-'''
 
 # ....................{ ADDERS ~ top                       }....................
 @type_check

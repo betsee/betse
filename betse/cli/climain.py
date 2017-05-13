@@ -4,28 +4,31 @@
 # See "LICENSE" for further details.
 
 '''
-This application's command line interface (CLI).
+Concrete subclasses defining this application's command line interface (CLI).
 '''
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
-# top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
-# raise exceptions on importation.
+# top-level of this module may import *ONLY* from submodules guaranteed to:
+# * Exist, including standard Python and application modules.
+# * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+from betse import metadata
 from betse.cli import clicommand, cliutil, info
 from betse.cli.cliabc import CLIABC
 from betse.cli.clicommand import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
-from betse.exceptions import BetseTestException
 from betse.util.io.log import logs
 from betse.util.path import files, paths
-from betse.util.py import identifiers, pys
+from betse.util.os import oses
+from betse.util.py import identifiers, interpreters, pys
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.obj import objects
+from betse.util.type.types import MappingType
 
-# ....................{ CLASS                              }....................
-class CLIMain(CLIABC):
+# ....................{ SUBCLASS                           }....................
+class BetseCLI(CLIABC):
     '''
     Command line interface (CLI) for this application.
 
@@ -40,8 +43,9 @@ class CLIMain(CLIABC):
     '''
 
     # ..................{ INITIALIZERS                       }..................
-    def __init__(self):
+    def __init__(self) -> None:
 
+        # Initialize our superclass.
         super().__init__()
 
         # Nullify attributes for safety.
@@ -49,16 +53,38 @@ class CLIMain(CLIABC):
         self._arg_subparsers_top = None
         self._arg_subparsers_plot = None
 
-    # ..................{ SUPERCLASS ~ args                  }..................
-    def _get_arg_parser_top_kwargs(self):
+    # ..................{ SUPERCLASS ~ header                }..................
+    def _show_header(self) -> None:
 
-        # Keyword arguments passed to the top-level argument parser constructor.
+        # Log a one-line synopsis of metadata logged by the ``info`` subcommand.
+        logs.log_info(
+            'Welcome to <<'
+            '{program_name} {program_version} | '
+            '{py_name} {py_version} | '
+            '{os_name} {os_version}'
+            '>>.'.format(
+                program_name=metadata.NAME,
+                program_version=metadata.VERSION,
+                py_name=interpreters.get_name(),
+                py_version=pys.get_version(),
+                os_name=oses.get_name(),
+                os_version=oses.get_version(),
+            ))
+
+    # ..................{ SUPERCLASS ~ args                  }..................
+    @property
+    def _arg_parser_top_kwargs(self) -> MappingType:
+
         return {
+            # Human-readable multi-sentence application description.
+            'description': metadata.DESCRIPTION,
+
+            # Human-readable multi-sentence application help suffix.
             'epilog': SUBCOMMANDS_SUFFIX,
         }
 
 
-    def _config_arg_parsing(self):
+    def _config_arg_parsing(self) -> None:
 
         # Collection of top-level argument subparsers.
         self._arg_subparsers_top = self._arg_parser.add_subparsers(
@@ -131,7 +157,7 @@ class CLIMain(CLIABC):
         # If no subcommand was passed...
         if not self._args.subcommand_name_top:
             #,Print help output. Note that this common case constitutes neither
-            # a fatal error nor non-fatal warning condition.
+            # a fatal error nor a non-fatal warning.
             print()
             self._arg_parser.print_help()
 
@@ -261,15 +287,15 @@ class CLIMain(CLIABC):
         Run the ``plot`` subcommand and return the result of doing so.
         '''
 
-        # If no subcommand was passed, print help output and return. Note that
-        # this does *NOT* constitute a fatal error.
+        # If no subcommand was passed, print help output and return. See the
+        # _do() method for similar logic and commentary.
         if not self._args.subcommand_name_plot:
             print()
             self._arg_parser_plot.print_help()
             return
 
-        # Run this subcommand's passed subcommand and return the result
-        # of doing so. See _run() for details.
+        # Run this subcommand's subcommand and return the result of doing so.
+        # See the _run() method for similar logic and commentary.
         subcommand_name_plot = identifiers.sanitize_snakecase(
             self._args.subcommand_name_plot)
         subcommand_method_name = '_do_plot_' + subcommand_name_plot
@@ -331,6 +357,7 @@ class CLIMain(CLIABC):
         # run by a functional test, prohibit this by raising an exception.
         # Permitting this would probably cause tests to indefinitely hang.
         if pys.is_testing():
+            from betse.exceptions import BetseTestException
             raise BetseTestException(
                 'REPL unavailable during testing for safety.')
 

@@ -10,8 +10,9 @@ Options accepted by this application's command line interface (CLI).
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
-# top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
-# raise exceptions on importation.
+# top-level of this module may import *ONLY* from submodules guaranteed to:
+# * Exist, including standard Python and application modules.
+# * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from abc import ABCMeta

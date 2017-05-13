@@ -15,7 +15,7 @@ This submodule is a thin wrapper intended to be:
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.cli.climain import CLIMain
+from betse.cli.climain import BetseCLI
 from betse.util.path.command import exits
 
 # ....................{ MAIN                               }....................
@@ -42,7 +42,7 @@ def main(arg_list: list = None) -> int:
         (i.e., integer in the range ``[0, 255]``).
     '''
 
-    return CLIMain().run(arg_list)
+    return BetseCLI().run(arg_list)
 
 # ....................{ MAIN                               }....................
 # If this module is imported from the command line, run this application's CLI;

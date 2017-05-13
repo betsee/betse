@@ -4,19 +4,20 @@
 # See "LICENSE" for further details.
 
 '''
-Abstract command line interface (CLI).
+Abstract base classes for defining command line interface (CLI) applications.
 '''
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on application startup, the
-# top-level of this module may import *ONLY* from submodules guaranteed *NOT* to
-# raise exceptions on importation.
+# top-level of this module may import *ONLY* from submodules guaranteed to:
+# * Exist, including standard Python and application modules.
+# * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from abc import ABCMeta, abstractmethod
-from betse import ignition, metadata
+from abc import ABCMeta, abstractmethod, abstractproperty
+from betse import ignition
 from betse.cli import info, clioption
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
@@ -26,9 +27,10 @@ from betse.util.path.command.args import HelpFormatterParagraph
 from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.profilers import profile_callable, ProfileType
 from betse.util.type import types
-from betse.util.type.types import ArgParserType, SequenceTypes
+from betse.util.type.types import (
+    type_check, ArgParserType, MappingType, SequenceOrNoneTypes)
 
-# ....................{ CLASSES                            }....................
+# ....................{ SUPERCLASS                         }....................
 class CLIABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all top-level command line interface (CLI)
@@ -42,14 +44,14 @@ class CLIABC(object, metaclass=ABCMeta):
         `argparse`-specific parser of command-line arguments.
     _arg_parser_kwargs : dict
         Dictionary of keyword arguments which which to create argument parsers,
-        suitable for passing to both the `ArgParserType.__init__()` and
-        `ArgParserType.add_parser()` methods. Since the `argparse` API provides
-        multiple methods rather than a single method for creating argument
-        parsers, this versatile dictionary is preferred over a monolithic
-        factory-based approach (e.g., a `_make_arg_parser()` method).
+        suitable for passing to both the :meth:`ArgParserType.__init__` and
+        :meth:`ArgParserType.add_parser` methods. Since the :mod:`argparse` API
+        provides multiple methods rather than a single method for creating
+        argument parsers, this versatile dictionary is preferred over a
+        monolithic factory-based approach (e.g., a `_make_arg_parser()` method).
     _args : argparse.Namespace
-        `argparse`-specific object of all passed command-line arguments. See
-        "Attributes (_args)" below for further details.
+        :mod:`argparse`-specific container of all passed command-line arguments.
+        See "Attributes (_args)" below for further details.
     _profile_filename : str
         Absolute or relative path of the dumpfile to export a profile of the
         current execution to if :attr:`_profile_type` is
@@ -101,24 +103,25 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = None
         self._profile_type = None
 
-    # ..................{ PUBLIC                             }..................
-    def run(self, arg_list: SequenceTypes = None) -> int:
+    # ..................{ RUNNERS                            }..................
+    @type_check
+    def run(self, arg_list: SequenceOrNoneTypes = None) -> int:
         '''
-        Run the command-line interface (CLI) defined by the subclass with the
-        passed argument list if non-`None` _or_ the external argument list
+        Run the command-line interface (CLI) defined by this subclass with the
+        passed argument list if non-``None`` *or* the external argument list
         passed on the command line (i.e., :data:`sys.argv`) otherwise.
 
         Parameters
         ----------
-        arg_list : SequenceTypes
+        arg_list : optional[SequenceTypes]
             Sequence of zero or more arguments to pass to this interface.
-            Defaults to `None`, in which case arguments passed on the command
-            line (i.e., `sys.argv`) are used instead.
+            Defaults to ``None``, in which case arguments passed on the command
+            line (i.e., :data:`sys.argv`) are used instead.
 
         Returns
         ----------
         int
-            Exit status of this interface, in the range `[0, 255]`.
+            Exit status of this interface in the range ``[0, 255]``.
         '''
 
         # Default unpassed arguments to those passed on the command line,
@@ -135,48 +138,37 @@ class CLIABC(object, metaclass=ABCMeta):
         self._arg_list = arg_list
 
         try:
-            # (Re-)initialize BETSE *BEFORE* subsequent logic. Note that merely
-            # calling the ignition.init() function to initialize BETSE:
-            #
-            # * Suffices when BETSE is *NOT* being run by a test suite.
-            # * Is insufficient when BETSE is being run by a test suite, in
-            #   which case this suite may run each test from within the same
-            #   Python process. Due to caching internally performed by the
-            #   ignition.init() function, calling that function here would fail
-            #   to re-initialize BETSE in any test except the first. To
-            #   model the real world as closely as reasonable, the
-            #   ignition.reinit() function is called instead.
-            #
-            # Doing so initializes logging, validates paths, and ensures sanity.
-            ignition.reinit()
+            # (Re-)initialize this application *BEFORE* performing subsequent
+            # logic assuming this application to have already been initialized.
+            self._ignite_app()
 
             # Parse these arguments *AFTER* initializing logging, ensuring
             # logging of exceptions raised by this parsing.
             self._parse_args()
 
             # (Re-)initialize all mandatory runtime dependencies *AFTER* parsing
-            # all logging-specific CLI options and hence finalizing the logging
-            # configuration for the active Python process. This initialization
-            # integrates the custom logging and debugging schemes implemented by
-            # these dependencies with that implemented by BETSE.
+            # and handling all logging-specific CLI options and hence finalizing
+            # the logging configuration for the active Python process. This
+            # initialization integrates the custom logging and debugging schemes
+            # implemented by these dependencies with that implemented by BETSE.
             libs.reinit(
                 matplotlib_backend_name=self._args.matplotlib_backend_name)
 
-            # Run the command-line interface (CLI) defined by the subclass,
+            # Run the command-line interface (CLI) defined by this subclass,
             # profiled by the type specified by the "--profile-type" option.
             profile_callable(
                 call=self._do,
                 profile_type=self._profile_type,
                 profile_filename=self._profile_filename,
             )
+            # libs.die_unless_runtime_optional('networkx')
             # raise ValueError('Test exception handling.')
 
             # Exit with successful exit status from the current process.
-            # raise Exception('For testing exception handling.')
             return SUCCESS
         except Exception as exception:
-            # Log this exception.
-            logs.log_exception(exception)
+            # Handle this exception.
+            self._handle_exception(exception)
 
             # Exit with failure exit status from the current process. If this
             # exception provides a system-specific exit status, use this status;
@@ -185,7 +177,7 @@ class CLIABC(object, metaclass=ABCMeta):
             # Ignore the Windows-specific "winerror" attribute provided by
             # "WindowsError"-based exceptions. While more fine-grained than the
             # "errno" attribute, "winerror" values are *ONLY* intended to be
-            # used internally rather than returned as exit status.
+            # used internally rather than returned as an exit status.
             return getattr(exception, 'errno', FAILURE_DEFAULT)
 
     # ..................{ ARGS                               }..................
@@ -196,8 +188,8 @@ class CLIABC(object, metaclass=ABCMeta):
         In order, this method:
 
         * Creates and configures an argument parser with sensible defaults.
-        * Calls the subclass-specific `_config_arg_parsing()` method, defaulting
-          to a noop.
+        * Calls the subclass-specific :meth:`_config_arg_parsing` method,
+          defaulting to a noop.
         * Parses all arguments with this parser.
         '''
 
@@ -240,16 +232,13 @@ class CLIABC(object, metaclass=ABCMeta):
         arg_parser_top_kwargs = {
             # Script name.
             'prog': commands.get_current_basename(),
-
-            # Script description.
-            'description': metadata.DESCRIPTION,
         }
 
         # Update this dictionary with preinitialized arguments.
         arg_parser_top_kwargs.update(self._arg_parser_kwargs)
 
         # Update this dictionary with subclass-specific arguments.
-        arg_parser_top_kwargs.update(self._get_arg_parser_top_kwargs())
+        arg_parser_top_kwargs.update(self._arg_parser_top_kwargs)
 
         # Core argument parser.
         self._arg_parser = ArgParserType(**arg_parser_top_kwargs)
@@ -284,8 +273,8 @@ class CLIABC(object, metaclass=ABCMeta):
         log_config.filename = self._args.log_filename
         log_config.file_level = LogLevel[self._args.log_level.upper()]
 
-        # Log a one-line synopsis of metadata logged by the "info" subcommand.
-        info.log_header()
+        # Display a human-readable synopsis of this application.
+        self._show_header()
 
         # Log all string arguments passed to this command.
         logs.log_debug('Passed argument list {}.'.format(self._arg_list))
@@ -303,29 +292,96 @@ class CLIABC(object, metaclass=ABCMeta):
         self._profile_filename = self._args.profile_filename
         self._profile_type = ProfileType[self._args.profile_type.upper()]
 
+    # ..................{ IGNITERS                           }..................
+    def _ignite_app(self) -> None:
+        '''
+        (Re-)initialize this application *BEFORE* performing subsequent logic
+        assuming this application to have already been initialized.
+
+        Defaults to (re-)initializing all low-level BETSE logic. Subclasses may
+        override this method to perform additional initialization, in which
+        case this superclass method should still be called to initialize BETSE.
+        '''
+
+        # (Re-)initialize BETSE. Note that calling the ignition.init() function:
+        #
+        # * Suffices when BETSE is *NOT* running under a test suite.
+        # * Fails to suffice if BETSE is running under a test suite, in
+        #   which case this suite may run each test from within the same
+        #   Python process. Due to caching internally performed by the
+        #   ignition.init() function, calling that function here would fail
+        #   to re-initialize BETSE in any test except the first. To
+        #   model the real world as closely as reasonable, the
+        #   ignition.reinit() function is called instead.
+        ignition.reinit()
+
+    # ..................{ EXCEPTIONS                         }..................
+    @type_check
+    def _handle_exception(self, exception: Exception) -> None:
+        '''
+        Handle the passed uncaught exception, typically by at least logging and
+        optionally displaying this exception's detailed traceback to end users.
+
+        Defaults to merely logging this exception. Subclasses may override this
+        method to perform additional exception handling, in which case this
+        superclass method should still be called to log exceptions.
+        '''
+
+        # Log this exception.
+        logs.log_exception(exception)
+
     # ..................{ SUBCLASS ~ mandatory               }..................
     # The following methods *MUST* be implemented by subclasses.
 
     @abstractmethod
-    def _do(self):
+    def _do(self) -> object:
         '''
-        Perform subclass-specific logic.
+        Perform subclass-specific logic, returning the principal object produced
+        by this logic to be memory profiled when the ``--profile-type=size`` CLI
+        option is passed.
         '''
+
         pass
 
     # ..................{ SUBCLASS ~ optional                }..................
     # The following methods may but need *NOT* be implemented by subclasses.
 
-    def _get_arg_parser_top_kwargs(self):
+    @property
+    def _arg_parser_top_kwargs(self) -> MappingType:
         '''
-        Get a subclass-specific dictionary of keyword arguments to be passed to
-        the top-level argument parser constructor.
+        Subclass-specific dictionary of all keyword arguments to be passed to
+        the :meth:`ArgP"arserType.__init__` method of the top-level argument
+        parser for this CLI.
+
+        Defaults to the empty dictionary.
+
+        See Also
+        ----------
+        :meth:`_init_arg_parser_top`
+            Method initializing this argument parser with this dictionary *and*
+            keyword arguments common to all argument parsers.
         '''
+
         return {}
 
 
-    def _config_arg_parsing(self):
+    def _config_arg_parsing(self) -> None:
         '''
         Configure subclass-specific argument parsing.
+
+        Defaults to a noop.
         '''
+
+        pass
+
+
+    def _show_header(self) -> None:
+        '''
+        Display a human-readable synopsis of this application, typically by
+        logging the basename and current version of this application and various
+        metadata assisting debugging of end user issues.
+
+        Defaults to a noop.
+        '''
+
         pass
