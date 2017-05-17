@@ -92,11 +92,11 @@ def is_dll(pathname: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files, paths
+    from betse.util.path import files, pathnames
     from betse.util.os import kernels
 
     # Filetype of this pathname if any or None otherwise.
-    filetype = paths.get_filetype_undotted_or_none(pathname)
+    filetype = pathnames.get_filetype_undotted_or_none(pathname)
 
     # Name of this platform's low-level kernel (e.g., "Linux", "Darwin").
     kernel_name = kernels.get_name()

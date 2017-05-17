@@ -14,10 +14,10 @@ See Also
 
 # ....................{ IMPORTS                            }....................
 import os, shutil
-from os import path
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
+from os import path
 
 # ....................{ EXCEPTIONS ~ unless                }....................
 def die_unless_file(pathname: str) -> None:
@@ -184,7 +184,7 @@ def copy(filename_source: str, filename_target: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs, paths
+    from betse.util.path import dirs, paths, pathnames
 
     # Log this copy.
     logs.log_debug(
@@ -196,8 +196,8 @@ def copy(filename_source: str, filename_target: str) -> None:
     # If the target file is a directory, append the basename of the passed
     # source file to this directory -- much like the "cp" POSIX command.
     if dirs.is_dir(filename_target):
-        filename_target = paths.join(
-            filename_target, paths.get_basename(filename_source))
+        filename_target = pathnames.join(
+            filename_target, pathnames.get_basename(filename_source))
 
     # Raise an exception if the target file already exists.
     paths.die_if_path(filename_target)

@@ -11,7 +11,7 @@ Matplotlib-specific classes writing animations as frames.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMatplotlibException
-from betse.util.path import dirs, paths
+from betse.util.path import dirs, pathnames
 from matplotlib import verbose
 from matplotlib.animation import writers, MovieWriter
 
@@ -156,7 +156,8 @@ class ImageWriter(NoopWriter):
 
         # Output filetype. Override the superclass' awkward choice of "rgba" as
         # output filetype default.
-        self.frame_format = paths.get_filetype_undotted_or_none(self.outfile)
+        self.frame_format = pathnames.get_filetype_undotted_or_none(
+            self.outfile)
 
         # List of all output filetypes supported by this class.
         #
@@ -173,7 +174,7 @@ class ImageWriter(NoopWriter):
                     self.frame_format, str(out_filetypes_supported)))
 
         # Parent directory of all output files.
-        out_dirname = paths.get_dirname(self.outfile)
+        out_dirname = pathnames.get_dirname(self.outfile)
 
         # Create this directory if needed.
         dirs.make_parent_unless_dir(out_dirname)

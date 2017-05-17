@@ -41,10 +41,10 @@ def is_pathable(command_basename: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # If this string is *NOT* a pure basename, fail.
-    paths.die_unless_basename(command_basename)
+    pathnames.die_unless_basename(command_basename)
 
     # Return whether this command exists or not.
     return shutil.which(command_basename) is not None

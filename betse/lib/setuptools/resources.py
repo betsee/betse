@@ -6,13 +6,13 @@
 '''
 Low-level **resource** (i.e., arbitrary file or directory contained within an
 arbitrary package, regardless of whether that file or directory physically
-exists _or_ is compressed within an EGG-like archive file and therefore only
+exists *or* is compressed within an EGG-like archive file and therefore only
 exists in the abstract) facilities.
 
 See Also
 ----------
 https://setuptools.readthedocs.io/en/latest/pkg_resources.html#resourcemanager-api
-    Official setuptools documentation for the "ResourceManager API."
+    Official :mod:setuptools documentation for the "ResourceManager API."
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -24,30 +24,32 @@ from pkg_resources import Requirement
 @type_check
 def is_dir(module_name: (str, Requirement), dirname: str) -> bool:
     '''
-    `True` only if the resource whose pathname is the concatenation of the
-    following strings is a directory (_in order_):
+    ``True`` only if the resource whose pathname is the concatenation of the
+    following strings is an existing directory (*in order*):
 
-    . The absolute pathname of the module or requirement with the passed name
-      (e.g., `/home/hiroprotagonist/betse/betse/`).
-    . The directory separator for the current platform (e.g., `/` under Linux).
-    . The passed relative pathname (e.g., `data/yaml/sim_config.yaml`).
+    #. The absolute pathname of the top-level directory containing the module or
+       requirement with the passed name (e.g.,
+       ``/home/hiroprotagonist/betse/betse/``).
+    #. The directory separator for the current platform (e.g., ``/`` on
+       POSIX-compatible platforms).
+    #. The passed relative pathname (e.g., ``data/yaml/sim_config.yaml``).
 
     Parameters
     ----------
     module_name : str, Requirement
-        Either the fully-qualified name of the module _or_ the `setuptools`-
-        specific requirement this resource is relative to.
+        Either the fully-qualified name of the module *or* the
+        :mod:`setuptools`- specific requirement this resource is relative to.
     dirname : str
-        `/`-separated pathname relative to this module or requirement. This
-        pathname _must_ be POSIX-compliant and hence separated with the POSIX-
-        specific `/` directory separator rather than the Windows-specific `\`
-        directory separator (e.g., by calling `'\\'.join()` rather than either
+        ``/``-separated pathname relative to this module or requirement. This
+        pathname *must* be POSIX-compliant and hence separated with the POSIX-
+        specific ``/`` directory separator rather than the Windows-specific ``\``
+        directory separator (e.g., by calling ``'\\'.join()`` rather than either
         :func:`betse.util.path.paths.join` or :func:`os.path.join`).
 
     Returns
     ----------
     bool
-        `True` only if this resource is a directory.
+        ``True`` only if this resource is a directory.
     '''
 
     return pkg_resources.resource_isdir(module_name, dirname)
@@ -57,16 +59,17 @@ def is_dir(module_name: (str, Requirement), dirname: str) -> bool:
 def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
     '''
     Absolute path of the resource whose path the pathname of the module or
-    requirement with passed name joined with the passed relative pathname is a
-    directory.
+    requirement with passed name joined with the passed relative pathname is an
+    existing directory.
 
     Caveats
     ----------
     If this resource resides in an EGG-like archive file, this function silently
-    **extracts this resource and all resources transitively required by this
-    resource to a temporary `setuptools`-specific directory** _before_ returning
-    the absolute path of this resource within this directory. To quote the
-    `ResourceManager API`_ documentation:
+    extracts this resource and all resources transitively required by this
+    resource to a temporary :mod:`setuptools`-specific directory *before*
+    returning the absolute path of this resource within this directory.
+
+    To quote the `ResourceManager API`_ documentation:
 
          If the resource is in an archive distribution (such as a zipped egg),
          it will be extracted to a cache directory, and the filename within the
@@ -82,13 +85,13 @@ def get_pathname(module_name: (str, Requirement), pathname: str) -> str:
     Parameters
     ----------
     module_name : str, Requirement
-        Either the fully-qualified name of the module _or_ the `setuptools`-
-        specific requirement this resource is relative to.
+        Either the fully-qualified name of the module *or* the
+        :mod:`setuptools`-specific requirement this resource is relative to.
     pathname : str
-        `/`-separated pathname relative to this module or requirement. This
-        pathname _must_ be POSIX-compliant and hence separated with the POSIX-
-        specific `/` directory separator rather than the Windows-specific `\`
-        directory separator (e.g., by calling `'\\'.join()` rather than either
+        ``/``-separated pathname relative to this module or requirement. This
+        pathname *must* be POSIX-compliant and hence separated with the POSIX-
+        specific ``/`` directory separator rather than the Windows-specific ``\``
+        directory separator (e.g., by calling ``'\\'.join()`` rather than either
         :func:`betse.util.path.paths.join` or :func:`os.path.join`).
 
     Returns

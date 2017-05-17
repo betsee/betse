@@ -19,7 +19,7 @@ from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.science.simulate.pipe.piperun import piperunner
 from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.visual.plot.plotutil import cell_ave
-from betse.util.path import dirs, paths
+from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
@@ -170,7 +170,8 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         csv_column_name_to_values = OrderedArgsDict(*csv_column_name_values)
 
         # Absolute path of the CSV file to export.
-        csv_filename = paths.join(self._phase.save_dirname, 'ExportedData.csv')
+        csv_filename = pathnames.join(
+            self._phase.save_dirname, 'ExportedData.csv')
 
         # Export this data to this CSV file.
         arrays.write_csv(
@@ -225,7 +226,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         )
 
         # Absolute path of the CSV file to export.
-        csv_filename = paths.join(
+        csv_filename = pathnames.join(
             self._phase.save_dirname, 'ExportedData_FFT.csv')
 
         # Export this data to this CSV file.
@@ -287,7 +288,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
 
         # Absolute path of the directory containing all CSV-formatted files
         # exported by this method and creating this directory if needed.
-        csv_dirname = paths.join(self._phase.save_dirname, csv_dir_basename)
+        csv_dirname = pathnames.join(self._phase.save_dirname, csv_dir_basename)
         dirs.make_unless_dir(csv_dirname)
 
         # One-dimensional Numpy arrays of the X and Y coordinates (respectively)
@@ -303,7 +304,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             csv_basename = '{}{}.csv'.format(csv_basename_prefix, time_step)
 
             # Absolute path of this file.
-            csv_filename = paths.join(csv_dirname, csv_basename)
+            csv_filename = pathnames.join(csv_dirname, csv_basename)
 
             # Ordered dictionary mapping from CSV column names to data arrays.
             csv_column_name_to_values = OrderedArgsDict(

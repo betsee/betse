@@ -47,9 +47,10 @@ def die_unless_parent_dir(pathname: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
-    die_unless_dir(paths.get_dirname(pathname))
+    # If the parent directory of this path does *NOT* exist, raise an exception.
+    die_unless_dir(pathnames.get_dirname(pathname))
 
 # ....................{ EXCEPTIONS ~ if                    }....................
 def die_if_dir(*dirnames) -> None:
@@ -197,8 +198,8 @@ def canonicalize_and_make_unless_dir(dirname: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
-    dirname = paths.canonicalize(dirname)
+    from betse.util.path import pathnames
+    dirname = pathnames.canonicalize(dirname)
     make_unless_dir(dirname)
     return dirname
 
@@ -235,14 +236,14 @@ def make_parent_unless_dir(*pathnames: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path.pathnames import get_dirname, canonicalize
 
     # Canonicalize each pathname *BEFORE* attempting to get its dirname.
     # Relative pathnames do *NOT* have sane dirnames (e.g., the dirname for a
     # relative pathname "metatron" is the empty string) and hence *MUST* be
     # converted to absolute pathnames first.
     for pathname in pathnames:
-        make_unless_dir(paths.get_dirname(paths.canonicalize(pathname)))
+        make_unless_dir(get_dirname(canonicalize(pathname)))
 
 # ....................{ COPIERS                            }....................
 @type_check
@@ -265,11 +266,11 @@ def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # Copy us up the directory bomb.
-    basename_source = paths.get_basename(dirname_source)
-    copy(dirname_source, paths.join(dirname_target, basename_source))
+    basename_source = pathnames.get_basename(dirname_source)
+    copy(dirname_source, pathnames.join(dirname_target, basename_source))
 
 
 @type_check

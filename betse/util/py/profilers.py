@@ -27,7 +27,6 @@ Python code, including time and space performance) facilities.
 #    sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
 
 # ....................{ IMPORTS                            }....................
-import betse.util.io.files
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, CallableTypes, MappingType, SequenceTypes,)
@@ -240,7 +239,7 @@ def _profile_callable_line(
 
     # Avoid circular import dependencies.
     from betse.lib import libs
-    from betse.util.path import files
+    from betse.util.io import files
 
     # Log this fact.
     logs.log_debug('Line-granularity profiling enabled.')
@@ -308,7 +307,7 @@ def _profile_callable_line(
             'Writing Callgrind-formatted profile to "%s".', profile_filename)
 
         # Serialize this profile to this file.
-        with betse.util.io.files.write_chars(profile_filename) as profile_file:
+        with files.write_chars(profile_filename) as profile_file:
             profile.callgrind(out=profile_file)
     #FIXME: Eliminate this branch after logging profiling metadata above.
 

@@ -92,7 +92,7 @@ from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
-from betse.util.path import dirs, paths
+from betse.util.path import dirs, pathnames
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.call.memoizers import property_cached
@@ -654,13 +654,13 @@ class MplConfig(object):
             # * Sorting these names in ascending lexicographic order for
             #   readability (e.g., in the "info" subcommand).
             return iterables.sort_ascending([
-                paths.get_pathname_sans_filetype(
+                pathnames.get_pathname_sans_filetype(
                     strs.remove_prefix_if_found(
                         backend_basename, BACKEND_BASENAME_PREFIX))
                 for backend_basename in dirs.list_basenames(backends_dir)
                 if strs.is_prefix(
                     backend_basename, BACKEND_BASENAME_PREFIX) and
-                    paths.is_filetype_equals(backend_basename, 'py')
+                   pathnames.is_filetype_equals(backend_basename, 'py')
             ])
         # Else, this directory does *NOT* exist.
         else:

@@ -104,7 +104,7 @@ from betse.science.visual.layer.vectorfield.lyrvecfldstream import (
     LayerCellsFieldStream)
 from betse.science.visual.visabc import VisualCellsABC
 from betse.util.io.log import logs
-from betse.util.path import dirs, paths
+from betse.util.path import dirs, pathnames
 from betse.util.type import iterables
 from betse.util.type.types import type_check, BoolOrNoneTypes, IntOrNoneTypes
 from matplotlib import pyplot
@@ -311,7 +311,7 @@ class AnimCellsABC(VisualCellsABC):
 
         # If the human-readable name of this animation contains directory
         # separators and hence is *NOT* a valid basename, raise an exception.
-        paths.die_unless_basename(self._label)
+        pathnames.die_unless_basename(self._label)
 
         # Animation configuration localized for convenience.
         anim_config = self._phase.p.anim
@@ -330,7 +330,7 @@ class AnimCellsABC(VisualCellsABC):
 
             # Path of the subdirectory to which these files will be saved,
             # creating this subdirectory and all parents thereof if needed.
-            save_dirname = dirs.canonicalize_and_make_unless_dir(paths.join(
+            save_dirname = dirs.canonicalize_and_make_unless_dir(pathnames.join(
                 self._phase.save_dirname,
                 save_dir_parent_basename,
                 self._label,
@@ -354,7 +354,7 @@ class AnimCellsABC(VisualCellsABC):
 
             # Template expanding to the absolute path of each image to be
             # saved.
-            writer_images_template = paths.join(
+            writer_images_template = pathnames.join(
                 save_dirname, save_frame_template_basename)
 
             # Object writing animation frames as images.
@@ -396,7 +396,7 @@ class AnimCellsABC(VisualCellsABC):
                 self._label, anim_config.video_filetype)
 
             # Absolute path of the video to be written.
-            writer_video_filename = paths.join(
+            writer_video_filename = pathnames.join(
                 save_dirname, save_video_basename)
 
             # Object writing animation frames as video. Matplotlib animation
@@ -682,7 +682,7 @@ class AnimCellsABC(VisualCellsABC):
                     # write this file, pass a filename guaranteed to be invalid
                     # on all supported platforms (e.g., containing null bytes).
                     # For understandable reasons, this parameter is mandatory.
-                    filename=paths.INVALID_PATHNAME,
+                    filename=pathnames.INVALID_PATHNAME,
                 )
 
                 # Finalize saving this animation.

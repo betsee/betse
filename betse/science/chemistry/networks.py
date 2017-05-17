@@ -33,7 +33,7 @@ from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
-from betse.util.path import paths
+from betse.util.path import pathnames
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
 from betse.util.type.types import type_check
 
@@ -2621,7 +2621,7 @@ class MasterOfNetworks(object):
         self.extra_rho_mit = np.zeros(sim.cdl)
         self.extra_J_mem = np.zeros(sim.mdl)
         self.extra_J_env = np.zeros(sim.edl)
-        
+
         globalo = globals()
         localo = locals()
 
@@ -3616,7 +3616,8 @@ class MasterOfNetworks(object):
     def export_equations(self, p):
 
         # Absolute path of the text file to write this solution to:
-        saveData = paths.join(self.resultsPath, 'NetworkModelLatexEquations.csv')
+        saveData = pathnames.join(
+            self.resultsPath, 'NetworkModelLatexEquations.csv')
 
         with open(saveData, 'w', newline='') as csvfile:
             eqwriter = csv.writer(csvfile, delimiter='\t',
@@ -3657,7 +3658,8 @@ class MasterOfNetworks(object):
         # os.makedirs(self.resultsPath, exist_ok=True)
 
         # Absolute path of the text file to write this solution to:
-        saveData = paths.join(self.resultsPath, 'NetworkModelEvalStrings.csv')
+        saveData = pathnames.join(
+            self.resultsPath, 'NetworkModelEvalStrings.csv')
 
         with open(saveData, 'w', newline='') as csvfile:
             eqwriter = csv.writer(csvfile, delimiter='\t',

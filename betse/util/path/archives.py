@@ -89,8 +89,6 @@ directories _and_ non-directory files) facilities.
 
 # ....................{ IMPORTS                            }....................
 from io import BufferedIOBase
-
-import betse.util.io.files
 from betse.exceptions import BetseArchiveException
 from betse.util.type.types import type_check
 
@@ -124,18 +122,18 @@ decompression speed, which is thus ignorable for comparison purposes.
 
 Caveats
 ----------
-This set contains neither the `tar` nor `zip` container filetypes, which remain
-intentionally unsupported by this submodule. Neither the standard :mod:`tarfile`
-module supporting `tar` files nor the standard :mod:`zipfile` module supporting
-`zip` files provide a :class:`file`-like API for reading and writing arbitrary
-bytes or characters to and from these files, the primary use case and hence
-mandate of this submodule.
+This set contains neither the ``tar`` nor ``zip`` container filetypes, which
+remain intentionally unsupported by this submodule. Neither the standard
+:mod:`tarfile` module supporting ``tar`` files nor the standard :mod:`zipfile`
+module supporting ``zip`` files provide a :class:`file`-like API for reading and
+writing arbitrary bytes or characters to and from these files, the primary use
+case and hence mandate of this submodule.
 
 While wrapping the container-oriented APIs provided by these modules with
 :class:`file`-like APIs is feasible, there exists no demonstrable incentive to
 do so. All compression formats supported by these modules are conveniently
 already supported by :class:`file`-like APIs implemented by other standard
-modules (e.g., the :class:`bz2.BZ2File` class, :class:`gzip.GzipFile` class).
+modules (e.g., the :class:`bz2.BZ2File` and :class:`gzip.GzipFile` classes).
 '''
 
 # ....................{ EXCEPTIONS                         }....................
@@ -159,12 +157,12 @@ def die_unless_filetype(pathname: str) -> None:
     # If this pathname is *NOT* suffixed by a supported archive filetype...
     if not is_filetype(pathname):
         # Avoid circular import dependencies.
-        from betse.util.path import paths
+        from betse.util.path import pathnames
         from betse.util.type import modules
         from betse.util.type import strs
 
         # Filetype of this pathname if any or raise an exception otherwise.
-        filetype = paths.get_filetype_undotted(pathname)
+        filetype = pathnames.get_filetype_undotted(pathname)
 
         # Fully-qualified name of the optional stdlib module required to write
         # archives of this filetype if this is a recognized (but unsupported)
@@ -224,10 +222,10 @@ def is_filetype(pathname: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # True only if this pathname is suffixed by an archive filetype.
-    return paths.is_filetype_undotted_in(
+    return pathnames.is_filetype_undotted_in(
         pathname=pathname, filetypes_undotted=ARCHIVE_FILETYPES)
 
 # ....................{ IO                                 }....................
@@ -238,30 +236,31 @@ def read_bytes(filename: str) -> BufferedIOBase:
     with the passed filename.
 
     This function returns a :class:`file`-like object suitable for use wherever
-    the :func:`open` builtin is callable (e.g., in `with` statements).
+    the :func:`open` builtin is callable (e.g., in ``with`` statements).
 
     Parameters
     ----------
     filename : str
         Relative or absolute path of the binary archive file to be read, whose
-        **rightmost filetype** (i.e., substring suffixing the last `.` character
-        in this pathname) _must_ be that of a supported archive format.
+        **rightmost filetype** (i.e., substring suffixing the last ``.``
+        character in this pathname) *must* be that of a supported archive
+        format.
 
     Returns
     ----------
     BufferedIOBase
-        `file`-like object encapsulating this opened file.
+        :class:`file`-like object encapsulating this opened file.
 
     Raises
     ----------
     BetseArchiveException
-        If this filename is _not_ suffixed by a supported archive filetype.
+        If this filename is *not* suffixed by a supported archive filetype.
     BetseFileException
-        If this filename is _not_ that of an existing file.
+        If this filename is *not* that of an existing file.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files, paths
+    from betse.util.path import files, pathnames
 
     # Raise an exception unless this filename has a supported archive filetype
     # *AND* is an existing file.
@@ -271,7 +270,7 @@ def read_bytes(filename: str) -> BufferedIOBase:
     # Filetype of this pathname. By the above validation, this filetype is
     # guaranteed to both exist and be a supported archive filetype. Hence, no
     # additional validation is required.
-    filetype = paths.get_filetype_undotted(filename)
+    filetype = pathnames.get_filetype_undotted(filename)
 
     # Callable reading archives of this filetype.
     reader = _ARCHIVE_FILETYPE_TO_READER[filetype]
@@ -315,7 +314,7 @@ def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs, paths
+    from betse.util.path import dirs, paths, pathnames
 
     # Raise an exception unless this filename has a supported archive filetype.
     die_unless_filetype(filename)
@@ -331,7 +330,7 @@ def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
     # Filetype of this pathname. By the above validation, this filetype is
     # guaranteed to both exist and be a supported archive filetype. Hence, no
     # additional validation is required.
-    filetype = paths.get_filetype_undotted(filename)
+    filetype = pathnames.get_filetype_undotted(filename)
 
     # Callable writing archives of this filetype.
     writer = _ARCHIVE_FILETYPE_TO_WRITER[filetype]
@@ -345,7 +344,7 @@ def _read_bytes_bz2(filename: str) -> BufferedIOBase:
     Open and return a filehandle suitable for reading the binary bzip-archived
     file with the passed filename.
 
-    This private function is intended to be called _only_ by the public
+    This private function is intended to be called *only* by the public
     :func:`read_bytes` function.
     '''
 
@@ -362,19 +361,19 @@ def _write_bytes_bz2(filename: str, is_overwritable: bool) -> BufferedIOBase:
     Open and return a filehandle suitable for writing the binary bzip-archived
     file with the passed filename.
 
-    This private function is intended to be called _only_ by the public
+    This private function is intended to be called *only* by the public
     :func:`write_bytes` function.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files
+    from betse.util.io import files
 
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from bz2 import BZ2File
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return BZ2File(filename, mode=betse.util.io.files.get_mode_write_bytes(is_overwritable))
+    return BZ2File(filename, mode=files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ gz                            }....................
 def _read_bytes_gz(filename: str) -> BufferedIOBase:
@@ -382,7 +381,7 @@ def _read_bytes_gz(filename: str) -> BufferedIOBase:
     Open and return a filehandle suitable for reading the binary gzip-archived
     file with the passed filename.
 
-    This private function is intended to be called _only_ by the public
+    This private function is intended to be called *only* by the public
     :func:`read_bytes` function.
     '''
 
@@ -399,19 +398,19 @@ def _write_bytes_gz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     Open and return a filehandle suitable for writing the binary gzip-archived
     file with the passed filename.
 
-    This private function is intended to be called _only_ by the public
+    This private function is intended to be called *only* by the public
     :func:`write_bytes` function.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files
+    from betse.util.io import files
 
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from gzip import GzipFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return GzipFile(filename, mode=betse.util.io.files.get_mode_write_bytes(is_overwritable))
+    return GzipFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ xz                            }....................
 def _read_bytes_xz(filename: str) -> BufferedIOBase:
@@ -419,7 +418,7 @@ def _read_bytes_xz(filename: str) -> BufferedIOBase:
     Open and return a filehandle suitable for reading the binary LZMA-archived
     file with the passed filename.
 
-    This private function is intended to be called _only_ by the public
+    This private function is intended to be called *only* by the public
     :func:`read_bytes` function.
     '''
 
@@ -436,19 +435,19 @@ def _write_bytes_xz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     Open and return a filehandle suitable for writing the binary LZMA-archived
     file with the passed filename.
 
-    This private function is intended to be called _only_ by the public
+    This private function is intended to be called *only* by the public
     :func:`write_bytes` function.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files
+    from betse.util.io import files
 
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from lzma import LZMAFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return LZMAFile(filename, mode=betse.util.io.files.get_mode_write_bytes(is_overwritable))
+    return LZMAFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
 
 # ....................{ CONSTANTS ~ private                }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

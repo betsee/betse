@@ -69,7 +69,7 @@ from betse.lib.matplotlib import mplutil
 from betse.lib.matplotlib.matplotlibs import mpl_config
 from betse.science.simulate.pipe.pipeabc import SimPipeExportABC
 from betse.util.io.log import logs
-from betse.util.path import dirs, paths
+from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check
 from matplotlib import pyplot as pyplot
@@ -201,7 +201,7 @@ class PlotPipeABC(SimPipeExportABC):
             basename = 'fig_{}.{}'.format(basename, filetype)
 
             # Absolute path of the file to be saved.
-            filename = paths.join(self._phase.save_dirname, basename)
+            filename = pathnames.join(self._phase.save_dirname, basename)
 
             # Log this saving attempt.
             logs.log_debug('Saving plot: %s', filename)

@@ -7,16 +7,12 @@
 High-level constants describing this application's filesystem usage.
 
 These constants provide the absolute paths of files and directories intended for
-general use by both the CLI and GUI. For portability, such constants are
+general use by both this application and downstream reverse dependencies of this
+application (e.g., BETSEE, the BETSE GUI). For portability, these constants are
 initialized in a system-aware manner guaranteed to be sane under various
 installation environments -- including PyInstaller-frozen executables and
-`setuptools`-installed script wrappers.
+:mod:`setuptools`-installed script wrappers.
 '''
-
-#FIXME: Refactor all globals defined below into @callable_cached-decorated
-#module functions. Note that we'll need to preserve the "HOME_DIRECTORY" global
-#for backward compatibility purposes. All other globals *SHOULD* be safely
-#refactorable and then removable.
 
 #FIXME: The current globals-based approach is inefficient in the case of BETSE
 #being installed as a compressed EGG rather than an uncompressed directory. In
@@ -37,27 +33,54 @@ installation environments -- including PyInstaller-frozen executables and
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To raise human-readable exceptions on missing mandatory dependencies,
 # the top-level of this module may import *ONLY* from packages guaranteed to
-# exist at installation time (i.e., stock Python and BETSE packages).
+# exist at installation time (i.e., standard Python packages). Likewise, to
+# avoid circular import dependencies, the top-level of this module should avoid
+# importing application packages except where explicitly required.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+import os
 from betse import metadata
 from betse.exceptions import BetseModuleException
 from betse.util.type.call.memoizers import callable_cached
 from betse.util.type.types import type_check
-from os import environ, path
 
 # ....................{ GETTERS ~ dir                      }....................
 @callable_cached
-def get_home_dirname() -> str:
+def get_root_dirname() -> str:
     '''
-    Absolute path of the home directory of the current user, raising an
-    exception if this directory is *not* found.
+    Absolute path of the root directory suffixed by a directory separator.
+
+    The definition of "root directory" conditionally depends on the current
+    platform. If this platform is:
+
+    * POSIX-compatible (e.g., Linux, OS X), this is simply ``/``.
+    * Microsoft Windows, this is the value of the ``%HOMEDRIVE%`` environment
+      variable. This is the ``:``-suffixed letter of the drive to which Windows
+      was originally installed -- typically but *not* necessarily ``C:\``.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs
+    from betse.util.os import oses
+    from betse.util.os.shell import envs
+
+    # Return this dirname.
+    if oses.is_windows_vanilla():
+        return envs.get_var_or_default('HOMEDRIVE', 'C:') + os.path.sep
+    else:
+        return os.path.sep
+
+
+@callable_cached
+def get_home_dirname() -> str:
+    '''
+    Absolute path of the home directory of the current user if found *or* raise
+    an exception otherwise (i.e., if this directory is *not* found).
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, pathnames
 
     # Absolute path of this directory.
-    home_dirname = path.expanduser('~')
+    home_dirname = pathnames.canonicalize('~')
 
     # If this directory is not found, fail.
     dirs.die_unless_dir(home_dirname)
@@ -83,24 +106,26 @@ def get_dot_dirname() -> str:
 
     * Under Linux, ``~/.betse/``. BETSE does *not* currently comply with the
       _XDG Base Directory Specification (e.g., ``~/.local/share/betse``), which
-      the principal authors of BETSE regard as unhelpful -- if not harmful.
+      the principal authors of BETSE regard as unuseful (if not harmful).
     * Under OS X, ``~/Library/Application Support/betse``.
     * Under Windows,
-      ``C:\Documents and Settings\${User}\Application Data\betse``.
+      ``C:\\Documents and Settings\\${User}\\Application Data\\betse``.
 
-    .. _XDG Base Directory Specification: http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
+    .. _XDG Base Directory Specification:
+        http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs, paths
     from betse.util.os import oses
+    from betse.util.os.shell import envs
+    from betse.util.path import dirs, pathnames
 
     # Absolute path of this directory.
     dot_dirname = None
 
     # If the current platform is macOS, return the appropriate directory.
     if oses.is_macos():
-        dot_dirname = paths.join(
+        dot_dirname = pathnames.join(
             get_home_dirname(),
             'Library',
             'Application Support',
@@ -108,14 +133,14 @@ def get_dot_dirname() -> str:
         )
     # If the current platform is Windows, return the appropriate directory.
     elif oses.is_windows():
-        dot_dirname = paths.join(environ['APPDATA'], metadata.NAME)
+        dot_dirname = pathnames.join(envs.get_var('APPDATA'), metadata.NAME)
     # Else, assume the current platform to be POSIX-compatible.
     else:
         #FIXME: Explicitly assert POSIX compatibility here. To do so, we'll want
         #to define and call a new betse.util.os.oses.die_unless_posix()
         #function here.
 
-        dot_dirname = paths.join(
+        dot_dirname = pathnames.join(
             get_home_dirname(), '.' + metadata.SCRIPT_BASENAME)
 
     # Create this directory if not found.
@@ -128,61 +153,33 @@ def get_dot_dirname() -> str:
 @callable_cached
 def get_data_dirname() -> str:
     '''
-    Absolute path of this application's top-level data directory, raising an
-    exception if this directory is *not* found.
+    Absolute path of this application's top-level data directory if found *or*
+    raise an exception otherwise (i.e., if this directory is *not* found).
 
     This directory contains application-internal resources (e.g., media files)
     required at application runtime.
     '''
 
     # Avoid circular import dependencies.
-    from betse.lib.setuptools import resources
-    from betse.util.path import dirs, paths
-    from betse.util.py import freezers
+    import betse
+    from betse.util.path import dirs, pathnames
 
     # Absolute path of this directory.
-    data_dirname = None
+    data_dirname = pathnames.get_app_pathname(package=betse, pathname='data')
 
-    # Basename of this directory relative to the directory containing this
-    # submodule. Since setuptools-specific resource pathnames expect the POSIX-
-    # rather than Windows-specific directory separator (i.e., "/" rather than
-    # "\"), this basename must *NOT* contain the latter.
-    data_basename = 'data'
-
-    # If the current application is a PyInstaller-frozen executable binary,
-    # defer to the PyInstaller-specific private attribute "_MEIPASS" added
-    # to the canonical "sys" module by the PyInstaller bootloader embedded in
-    # this binary. This attribute provides the absolute path of the temporary
-    # directory containing all application data resources extracted from this
-    # binary by this bootloader. "And it's turtles all the way down."
-    if freezers.is_frozen_pyinstaller():
-        data_dirname = paths.join(
-            freezers.get_app_dirname_pyinstaller(), data_basename)
-    # If the current application is a setuptools-installed script wrapper, the
-    # data directory will have been preserved as is in the setuptools-installed
-    # copy of the current Python package tree. In this case, query setuptools to
-    # obtain this directory's path in a cross-platform manner.
-    elif resources.is_dir(__name__, data_basename):
-        data_dirname = resources.get_pathname(__name__, data_basename)
-    # Else, the current application is either a setuptools-symlinked script
-    # wrapper *OR* was invoked via the hidden "python3 -m betse.cli.cli"
-    # command. In either case, such directory's path is directly obtainable
-    # relative to the absolute path of the current module.
-    else:
-        data_dirname = paths.join(paths.get_dirname(__file__), data_basename)
-
-    # If this directory is not found, fail.
+    # If this directory is not found, raise an exception.
     dirs.die_unless_dir(data_dirname)
 
-    # Return this directory's path.
+    # Return the absolute path of this directory.
     return data_dirname
 
 
 @callable_cached
 def get_data_yaml_dirname() -> str:
     '''
-    Absolute path of this application's top-level YAML-specific data directory,
-    raising an exception if this directory is *not* found.
+    Absolute path of this application's top-level YAML-specific data directory
+    if found *or* raise an exception otherwise (i.e., if this directory is *not*
+    found).
 
     This directory contains:
 
@@ -191,10 +188,10 @@ def get_data_yaml_dirname() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs, paths
+    from betse.util.path import dirs, pathnames
 
     # Absolute path of this directory.
-    data_yaml_dirname = paths.join(get_data_dirname(), 'yaml')
+    data_yaml_dirname = pathnames.join(get_data_dirname(), 'yaml')
 
     # If this directory is not found, fail.
     dirs.die_unless_dir(data_yaml_dirname)
@@ -227,15 +224,15 @@ def get_data_default_asset_dirnames() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs, paths
+    from betse.util.path import dirs, pathnames
 
     # Absolute path of the top-level YAML-specific data directory.
     DATA_YAML_DIRNAME = get_data_yaml_dirname()
 
     # Tuple of the absolute paths of all default asset directories.
     data_default_asset_dirnames = (
-        paths.join(DATA_YAML_DIRNAME, 'geo'),
-        paths.join(DATA_YAML_DIRNAME, 'extra_configs'),
+        pathnames.join(DATA_YAML_DIRNAME, 'geo'),
+        pathnames.join(DATA_YAML_DIRNAME, 'extra_configs'),
     )
 
     # If any such directory is not found, fail.
@@ -254,10 +251,10 @@ def get_log_default_filename() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # Return the absolute path of this file.
-    return paths.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.log')
+    return pathnames.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.log')
 
 
 @callable_cached
@@ -269,10 +266,10 @@ def get_profile_default_filename() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # Return the absolute path of this file.
-    return paths.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.prof')
+    return pathnames.join(get_dot_dirname(), metadata.SCRIPT_BASENAME + '.prof')
 
 
 @callable_cached
@@ -286,10 +283,10 @@ def get_sim_config_default_filename() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files, paths
+    from betse.util.path import files, pathnames
 
     # Absolute path of this file.
-    config_default_filename = paths.join(
+    config_default_filename = pathnames.join(
         get_data_yaml_dirname(), 'sim_config.yaml')
 
     # If this file is not found, fail.
@@ -326,15 +323,15 @@ def get_repl_history_filename(repl_module_name: str) -> dict:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # Absolute path of this application's user-specific dot directory.
     DOT_DIRNAME = get_dot_dirname()
 
     # Dictionary mapping each REPL module name to its history filename.
     REPL_MODULE_NAME_TO_HISTORY_FILENAME = {
-        'ptpython': paths.join(DOT_DIRNAME, 'ptpython.hist'),
-        'readline': paths.join(DOT_DIRNAME, 'readline.hist'),
+        'ptpython': pathnames.join(DOT_DIRNAME, 'ptpython.hist'),
+        'readline': pathnames.join(DOT_DIRNAME, 'readline.hist'),
     }
 
     # If this REPL module name is unrecognized, fail.

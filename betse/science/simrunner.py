@@ -24,13 +24,13 @@ from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
-from betse.util.path import files, paths
+from betse.util.path import files, pathnames
 from betse.util.type.call.callables import deprecated
 
 # ....................{ CLASSES                            }....................
 class SimRunner(object):
     '''
-    High-level simulation class encapsulating the running of _all_ available
+    High-level simulation class encapsulating the running of *all* available
     simulation phases.
 
     This class provides high-level methods for initializing, running, and
@@ -53,7 +53,7 @@ class SimRunner(object):
         # Validate and localize this filename.
         files.die_unless_file(config_filename)
         self._config_filename = config_filename
-        self._config_basename = paths.get_basename(self._config_filename)
+        self._config_basename = pathnames.get_basename(self._config_filename)
 
     # ..................{ RUNNERS                            }..................
     def seed(self) -> SimPhase:

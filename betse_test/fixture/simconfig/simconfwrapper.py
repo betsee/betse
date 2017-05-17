@@ -24,7 +24,6 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 # and is thus *NOT* safely importable in a fixture submodule directly imported
 # by a "conftest" plugin module. To defer the importation of this submodule
 # until *AFTER* test collection, this submodule is intentionally segregated.
-
 from betse.exceptions import BetseNumericException
 from betse.science.config import confdefault, confio
 from betse.science.parameters import Parameters
@@ -33,7 +32,7 @@ from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
 from betse.util.io.log import logs
-from betse.util.path import files, paths
+from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUPERCLASSES                       }....................
@@ -84,10 +83,10 @@ class SimConfigTestWrapper(object):
         self._filename = filename
 
         # Absolute or relative path of the directory containing this file.
-        self._dirname = paths.get_dirname(filename)
+        self._dirname = pathnames.get_dirname(filename)
 
         # Basename of this file.
-        self._basename = paths.get_basename(filename)
+        self._basename = pathnames.get_basename(filename)
 
         # Deserialize this file into a high-level in-memory object.
         self._p = Parameters(config_filename=filename)

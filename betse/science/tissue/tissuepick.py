@@ -12,7 +12,7 @@ import random
 from abc import ABCMeta, abstractmethod
 from betse.exceptions import BetseSimConfigException
 from betse.science.math import toolbox
-from betse.util.path import files, paths
+from betse.util.path import files, pathnames
 from betse.util.type.types import (
     type_check, MappingType, NumericTypes, SequenceTypes)
 
@@ -122,8 +122,8 @@ class TissuePickerBitmap(TissuePickerABC):
 
         # If this is a relative path, convert this into an absolute path
         # relative to the directory containing the source configuration file.
-        if paths.is_relative(filename):
-            filename = paths.join(dirname, filename)
+        if pathnames.is_relative(filename):
+            filename = pathnames.join(dirname, filename)
 
         # If this absolute path is *NOT* an existing file, raise an exception.
         files.die_unless_file(filename)
@@ -327,8 +327,7 @@ def make(
 
 @type_check
 def make_bitmap(
-    p: 'betse.science.parameters.Parameters',
-    conf: MappingType,
+    p: 'betse.science.parameters.Parameters', conf: MappingType,
 ) -> TissuePickerBitmap:
     '''
     Create and return an instance of this class from the passed bitmap-specific

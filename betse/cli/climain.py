@@ -14,13 +14,12 @@ Concrete subclasses defining this application's command line interface (CLI).
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 from betse import metadata
 from betse.cli import clicommand, cliutil, info
 from betse.cli.cliabc import CLIABC
 from betse.cli.clicommand import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
 from betse.util.io.log import logs
-from betse.util.path import files, paths
+from betse.util.path import files, pathnames
 from betse.util.os import oses
 from betse.util.py import identifiers, interpreters, pys
 from betse.util.type.call.memoizers import property_cached
@@ -202,7 +201,8 @@ class BetseCLI(CLIABC):
         config_basename = 'sample_sim.yaml'
 
         # Relative path of this file, relative to the current directory.
-        self._args.config_filename = paths.join('sample_sim', config_basename)
+        self._args.config_filename = pathnames.join(
+            'sample_sim', config_basename)
 
         #FIXME: Insufficient. We only want to reuse this file if this file's
         #version is identical to that of the default YAML configuration file's

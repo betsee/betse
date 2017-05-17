@@ -17,7 +17,7 @@ from betse.exceptions import BetseSimConfigException
 from betse.lib import libs
 from betse.science.chemistry.netplot import set_net_opts
 from betse.util.io.log import logs
-from betse.util.path import paths
+from betse.util.path import pathnames
 from betse.util.type.mappings import DynamicValue, DynamicValueDict
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -1643,7 +1643,8 @@ class SimMaster(object):
     def export_eval_strings(self, p):
 
         # Absolute path of the text file to write this solution to:
-        saveData = paths.join(self.resultsPath, 'NetworkModelEvalStrings.csv')
+        saveData = pathnames.join(
+            self.resultsPath, 'NetworkModelEvalStrings.csv')
 
         with open(saveData, 'w', newline='') as csvfile:
             eqwriter = csv.writer(csvfile, delimiter='\t',

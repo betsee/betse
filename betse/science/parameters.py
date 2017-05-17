@@ -16,7 +16,7 @@ from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
-from betse.util.path import paths
+from betse.util.path import pathnames
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
 from collections import OrderedDict
 
@@ -153,8 +153,8 @@ class Parameters(object):
         # Unique absolute path of the passed file and directory containing this
         # file. Since the latter uses the former, this dirname is guaranteed to
         # be non-empty and hence *NOT* raise an exception.
-        self.config_filename = paths.canonicalize(config_filename)
-        self.config_dirname = paths.get_dirname(self.config_filename)
+        self.config_filename = pathnames.canonicalize(config_filename)
+        self.config_dirname = pathnames.get_dirname(self.config_filename)
 
         # Dictionary loaded from this YAML file.
         self._conf = confio.read(self.config_filename)
@@ -190,13 +190,13 @@ class Parameters(object):
         #  do so once for each variable.
 
          # Define paths for saving initialization runs, simulation runs, and results:
-        self.init_path = paths.join(
+        self.init_path = pathnames.join(
             self.config_dirname, self._conf['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
-        self.sim_path = paths.join(
+        self.sim_path = pathnames.join(
             self.config_dirname, self._conf['sim file saving']['directory']) # folder to save unique simulation and data linked to init
-        self.sim_results = paths.join(
+        self.sim_results = pathnames.join(
             self.config_dirname, self._conf['results file saving']['sim directory']) # folder to auto-save results (graphs, images, animations)
-        self.init_results = paths.join(
+        self.init_results = pathnames.join(
             self.config_dirname, self._conf['results file saving']['init directory']) # folder to auto-save results (graphs, images, ani
 
         #---------------------------------------------------------------------------------------------------------------

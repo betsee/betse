@@ -10,7 +10,7 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 # ....................{ IMPORTS                            }....................
 from betse.util.io.log import logs
 from betse.util.os import dlls, oses
-from betse.util.path import dirs, files, paths
+from betse.util.path import dirs, files, pathnames
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.mappings import OrderedArgsDict
 from betse.util.type.types import BoolOrNoneTypes
@@ -529,7 +529,7 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
     for (numpy_linked_lib_basename, numpy_linked_lib_filename) in (
         dlls.iter_linked_filenames(numpy_lib_filename)):
         # Basename excluding all suffixing filetypes of this library.
-        numpy_linked_lib_rootname = paths.get_pathname_sans_filetypes(
+        numpy_linked_lib_rootname = pathnames.get_pathname_sans_filetypes(
             numpy_linked_lib_basename)
         # print('rootname: {}; basename: {}; filename: {}'.format(numpy_linked_lib_rootname, numpy_linked_lib_basename, numpy_linked_lib_filename))
 
@@ -546,17 +546,17 @@ def _is_blas_optimized_posix_symlink() -> BoolOrNoneTypes:
         # Else, this library is actually a symbolic link to another library.
 
         # Absolute path of the target library to which this library links.
-        numpy_linked_lib_target_filename = paths.canonicalize(
+        numpy_linked_lib_target_filename = pathnames.canonicalize(
             numpy_linked_lib_filename)
         # print('target filename: {}'.format(numpy_linked_lib_target_filename))
 
         # If either the basename or dirname of this path corresponds to that of
         # an optimized BLAS library, return True.
         if regexes.is_match(
-            text=paths.get_basename(numpy_linked_lib_target_filename),
+            text=pathnames.get_basename(numpy_linked_lib_target_filename),
             regex=_OPTIMIZED_BLAS_LINKED_LIB_BASENAME_REGEX,
         ) or regexes.is_match(
-            text=paths.get_dirname(numpy_linked_lib_target_filename),
+            text=pathnames.get_dirname(numpy_linked_lib_target_filename),
             regex=_OPTIMIZED_BLAS_LINKED_LIB_DIRNAME_REGEX,
         ):
             return True

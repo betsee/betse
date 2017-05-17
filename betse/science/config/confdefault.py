@@ -10,15 +10,13 @@ configuration appropriate for use by the current user on the current system.
 '''
 
 # ....................{ IMPORTS                            }....................
-import betse.util.io.files
 from betse import pathtree
-
 #FIXME: This isn't particularly good. Contemplate alternatives, please.
 #Actually, this will probably go away when we refactor to use SimConfigWrapper.
 from betse.science.config.confio import _write_check
-
+from betse.util.io import files
 from betse.util.io.log import logs
-from betse.util.path import paths, dirs, files
+from betse.util.path import dirs, pathnames
 from betse.util.type.types import type_check
 
 # ....................{ WRITERS                            }....................
@@ -87,7 +85,7 @@ def _write_dir(config_filename: str) -> None:
     '''
 
     # Parent directory of this file if any or the current directory otherwise.
-    target_dirname = paths.get_dirname_or_current_dirname(config_filename)
+    target_dirname = pathnames.get_dirname_or_current_dirname(config_filename)
 
     # Create this directory if needed.
     dirs.make_unless_dir(target_dirname)
@@ -96,8 +94,8 @@ def _write_dir(config_filename: str) -> None:
     # required by this file...
     for source_asset_dirname in pathtree.get_data_default_asset_dirnames():
         # Absolute path of the corresponding target subdirectory.
-        target_asset_dirname = paths.join(
-            target_dirname, paths.get_basename(source_asset_dirname))
+        target_asset_dirname = pathnames.join(
+            target_dirname, pathnames.get_basename(source_asset_dirname))
 
         # If this subdirectory already exists, log a non-fatal warning.
         if dirs.is_dir(target_asset_dirname):
@@ -131,7 +129,7 @@ def _write_file(config_filename: str) -> None:
 
     # Write the default configuration to this file, modifying the latter with
     # "sed"-like global string substitution as detailed above.
-    betse.util.io.files.replace_substrs(
+    files.replace_substrs(
         filename_source=pathtree.get_sim_config_default_filename(),
         filename_target=config_filename,
         replacements=(

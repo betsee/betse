@@ -155,7 +155,7 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # Resolve this module's object.
     module = _resolve_module(module)
@@ -171,7 +171,7 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
     module_filename = get_filename(module)
 
     # "."-prefixed filetype of this path if any or "None" otherwise.
-    module_filetype = paths.get_filetype_dotted_or_none(module_filename)
+    module_filetype = pathnames.get_filetype_dotted_or_none(module_filename)
     # print('module_filetype: {}'.format(module_filetype))
 
     #FIXME: Mildly inefficient, as "EXTENSION_SUFFIXES" is a list rather than a
@@ -206,10 +206,10 @@ def get_dirname(module: ModuleOrStrTypes) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # Return this dirname.
-    return paths.get_dirname(get_filename(module))
+    return pathnames.get_dirname(get_filename(module))
 
 
 #FIXME: The current approach is trivial and therefore terrible, breaking down

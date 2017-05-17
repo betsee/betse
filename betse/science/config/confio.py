@@ -14,7 +14,7 @@ YAML-formatted simulation configuration file functionality.
 # ....................{ IMPORTS                            }....................
 from betse.lib.yaml import yamls
 from betse.util.io.log import logs
-from betse.util.path import files, paths
+from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, MappingType
 
 # ....................{ LOADERS                            }....................
@@ -122,8 +122,8 @@ def _write_check(config_filename: str) -> None:
     '''
 
     # Basename and filetype of this file.
-    config_basename = paths.get_basename(config_filename)
-    config_filetype = paths.get_filetype_undotted_or_none(config_basename)
+    config_basename = pathnames.get_basename(config_filename)
+    config_filetype = pathnames.get_filetype_undotted_or_none(config_basename)
 
     # If this file already exists, fail.
     files.die_if_file(config_filename)

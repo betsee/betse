@@ -61,7 +61,7 @@ def is_command(pathname: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files, paths
+    from betse.util.path import files, pathnames
     from betse.util.path.command import pathables
 
     # This path is that of an existing command if and only if either...
@@ -69,7 +69,7 @@ def is_command(pathname: str) -> None:
         # This path is that of an executable file *OR*
         files.is_file_executable(pathname) or (
         # This path is that of a basename in the current ${PATH}.
-        paths.is_basename(pathname) and pathables.is_pathable(pathname))
+        pathnames.is_basename(pathname) and pathables.is_pathable(pathname))
     )
 
 # ....................{ GETTERS                            }....................
@@ -91,7 +91,7 @@ def get_current_basename() -> str:
         return _CURRENT_BASENAME
 
     # Avoid circular import dependencies.
-    from betse.util.path import paths
+    from betse.util.path import pathnames
 
     # Raw absolute or relative path of the current command.
     _CURRENT_BASENAME = sys.argv[0]
@@ -102,7 +102,7 @@ def get_current_basename() -> str:
         _CURRENT_BASENAME = SCRIPT_BASENAME
     # Else, reduce this absolute or relative path to a basename.
     else:
-        _CURRENT_BASENAME = paths.get_basename(_CURRENT_BASENAME)
+        _CURRENT_BASENAME = pathnames.get_basename(_CURRENT_BASENAME)
 
     # Return this basename.
     return _CURRENT_BASENAME

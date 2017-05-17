@@ -38,6 +38,15 @@ class BetseOSException(BetseException):
     '''
     General-purpose Low-level operating system (OS) exception.
     '''
+
+    pass
+
+
+class BetseOSShellEnvException(BetseOSException):
+    '''
+    Shell environment-specific exception.
+    '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ python                }....................

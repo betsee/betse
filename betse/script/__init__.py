@@ -27,7 +27,7 @@ from betse.science.sim import Simulator
 # It would be great to be able run simulations
 from betse.science.simrunner import SimRunner
 # Generating logs is useful
-import betse.util.io.log.logs as logs
+from betse.util.io.log import logs
 # But typing "logs.<function>" is cluttersome
 from betse.util.io.log.logs import log_info, log_exception
 
