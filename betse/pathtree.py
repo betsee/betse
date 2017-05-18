@@ -177,9 +177,9 @@ def get_data_dirname() -> str:
 @callable_cached
 def get_data_yaml_dirname() -> str:
     '''
-    Absolute path of this application's top-level YAML-specific data directory
-    if found *or* raise an exception otherwise (i.e., if this directory is *not*
-    found).
+    Absolute path of this application's data subdirectory containing
+    YAML-formatted files if found *or* raise an exception otherwise (i.e., if
+    this directory is *not* found).
 
     This directory contains:
 
@@ -188,16 +188,10 @@ def get_data_yaml_dirname() -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import dirs, pathnames
+    from betse.util.path import dirs
 
-    # Absolute path of this directory.
-    data_yaml_dirname = pathnames.join(get_data_dirname(), 'yaml')
-
-    # If this directory is not found, fail.
-    dirs.die_unless_dir(data_yaml_dirname)
-
-    # Return this directory's path.
-    return data_yaml_dirname
+    # Return this dirname if this directory exists or raise an exception.
+    return dirs.join_and_die_unless_dir(get_data_dirname(), 'yaml')
 
 
 @callable_cached
@@ -205,8 +199,8 @@ def get_data_default_asset_dirnames() -> str:
     '''
     Tuple of the absolute paths of all directories containing assets (e.g.,
     media files, YAML files) referenced and hence required by this application's
-    default simulation configuration file, raising an exception if any such
-    directory is *not* found.
+    default simulation configuration file if found *or* raise an exception
+    otherwise (i.e., if any such directory is *not* found).
 
     This includes directories containing (in no particular order):
 
@@ -275,25 +269,20 @@ def get_profile_default_filename() -> str:
 @callable_cached
 def get_sim_config_default_filename() -> str:
     '''
-    Absolute path of this application's default simulation configuration file,
-    raising an exception if this file does *not* exist.
+    Absolute path of this application's default simulation configuration file
+    if found *or* raise an exception otherwise (i.e., if this file is *not*
+    found).
 
     This is the plaintext YAML-formatted file from which all new simulation
     configurations derive.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path import files, pathnames
+    from betse.util.path import files
 
-    # Absolute path of this file.
-    config_default_filename = pathnames.join(
+    # Return this dirname if this directory exists or raise an exception.
+    return files.join_and_die_unless_file(
         get_data_yaml_dirname(), 'sim_config.yaml')
-
-    # If this file is not found, fail.
-    files.die_unless_file(config_default_filename)
-
-    # Return this file's path.
-    return config_default_filename
 
 # ....................{ GETTERS ~ file : arg               }....................
 @type_check
@@ -301,7 +290,7 @@ def get_repl_history_filename(repl_module_name: str) -> dict:
     '''
     Absolute path of this application's default user-specific history file for
     the read–eval–print loop (REPL) implemented by the third-party module with
-    the passed name..
+    the passed name.
 
     This history file is a plaintext file to which this REPL appends each read
     user command for preserving command history between REPL sessions.

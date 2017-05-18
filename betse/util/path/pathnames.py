@@ -449,7 +449,7 @@ def get_pathname_sans_filetypes(pathname: str) -> str:
     # If this path contains a dirname, return the concatenation of this dirname
     # as is by this stripped basename.
     if dirname:
-        return os.path.join(dirname, basename)
+        return join(dirname, basename)
     # Else, return merely this stripped basename.
     else:
         return basename
@@ -577,10 +577,11 @@ def canonicalize(pathname: str) -> str:
 #doing so, but such function inefficiently returns a tuple. "Who cares about
 #efficiency under Windows?" is my retort! *shrug*
 
-def join(*pathnames) -> str:
+@type_check
+def join(*pathnames: str) -> str:
     '''
-    Join the passed pathnames on the directory separator specific to the current
-    operating system.
+    Join (i.e., concatenate) the passed pathnames with the directory separator
+    specific to the current platform.
 
     This is a convenience function wrapping the standard :func:`os.path.join`
     function *without* adding functionality to that function -- principally to

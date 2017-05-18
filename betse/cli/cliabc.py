@@ -16,9 +16,9 @@ Abstract base classes for defining command line interface (CLI) applications.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from betse import ignition
-from betse.cli import info, clioption
+from betse.cli import clioption
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
@@ -336,9 +336,9 @@ class CLIABC(object, metaclass=ABCMeta):
     @abstractmethod
     def _do(self) -> object:
         '''
-        Perform subclass-specific logic, returning the principal object produced
-        by this logic to be memory profiled when the ``--profile-type=size`` CLI
-        option is passed.
+        Implement this command-line interface (CLI) in a subclass-specific
+        manner, returning an arbitrary object produced by this logic to be
+        memory profiled when the ``--profile-type=size`` CLI option is passed.
         '''
 
         pass

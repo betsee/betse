@@ -29,8 +29,19 @@ Specifically, under:
 * All other platforms, this is `/`.
 '''
 
-# ....................{ EXCEPTIONS ~ unless                }....................
-def die_unless_dir(*dirnames) -> None:
+# ....................{ EXCEPTIONS                         }....................
+def die_if_dir(*dirnames: str) -> None:
+    '''
+    Raise an exception if any of the passed directories exist.
+    '''
+
+    for dirname in dirnames:
+        if is_dir(dirname):
+            raise BetseDirException(
+                'Directory "{}" already exists.'.format(dirname))
+
+
+def die_unless_dir(*dirnames: str) -> None:
     '''
     Raise an exception unless all passed directories exist.
     '''
@@ -41,6 +52,33 @@ def die_unless_dir(*dirnames) -> None:
                 'Directory "{}" not found or unreadable.'.format(dirname))
 
 
+def join_and_die_unless_dir(*pathnames: str) -> str:
+    '''
+    Pathname of the directory produced by joining (i.e., concatenating) the
+    passed pathnames with the directory separator specific to the current
+    platform if this directory exists *or* raise an exception otherwise (i.e.,
+    if this directory does *not* exist).
+
+    See Also
+    -----------
+    :func:`betse.util.path.pathnames.join`
+    :func:`die_unless_dir`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path.pathnames import join
+
+    # Dirname producing by joining these pathnames.
+    dirname = join(*pathnames)
+
+    # If this directory does *NOT* exist, raise an exception.
+    die_unless_dir(dirname)
+
+    # Return this dirname.
+    return dirname
+
+# ....................{ EXCEPTIONS ~ parent                }....................
 def die_unless_parent_dir(pathname: str) -> None:
     '''
     Raise an exception unless the parent directory of the passed path exists.
@@ -52,39 +90,30 @@ def die_unless_parent_dir(pathname: str) -> None:
     # If the parent directory of this path does *NOT* exist, raise an exception.
     die_unless_dir(pathnames.get_dirname(pathname))
 
-# ....................{ EXCEPTIONS ~ if                    }....................
-def die_if_dir(*dirnames) -> None:
-    '''
-    Raise an exception if any of the passed directories exist.
-    '''
-
-    for dirname in dirnames:
-        if is_dir(dirname):
-            raise BetseDirException(
-                'Directory "{}" already exists.'.format(dirname))
-
 # ....................{ TESTERS                            }....................
 @type_check
 def is_dir(dirname: str) -> bool:
     '''
-    `True` only if the passed directory exists.
+    ``True`` only if the passed directory exists.
     '''
 
     return path.isdir(dirname)
 
 # ....................{ GETTERS                            }....................
+#FIXME: For disambiguity, rename to get_cwd().
 def get_current_dirname() -> str:
     '''
-    Get the **current working dirname** (i.e., absolute path of the current
-    working directory (CWD)) of the active Python process.
+    **Current working dirname** (i.e., absolute path of the current working
+    directory (CWD)) of the active Python process.
 
     Unless subsequently changed, this is the absolute path of the directory from
-    which BETSE was initially run.
+    which this application was initially run.
     '''
 
     return os.getcwd()
 
 # ....................{ SETTERS                            }....................
+#FIXME: For disambiguity, rename to set_cwd().
 @type_check
 def set_current(dirname: str) -> None:
     '''
@@ -108,6 +137,7 @@ def set_current(dirname: str) -> None:
     os.chdir(dirname)
 
 # ....................{ CONTEXTS                           }....................
+#FIXME: For disambiguity, rename to cwd().
 @contextmanager
 @type_check
 def current(dirname: str) -> GeneratorType:
@@ -187,20 +217,23 @@ def canonicalize_and_make_unless_dir(dirname: str) -> str:
     directory *and* create this directory if this directory does not already
     exist.
 
-    This convenience function simply passes this directory to the
-    func:`paths.canonicalize` and :func:`make_unless_dir` functions (in that
-    order) and then returns this directory.
-
     See Also
     -----------
+    :func:`betse.util.path.pathnames.canonicalize`
     :func:`make_unless_dir`
         Further details.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.path import pathnames
+
+    # Convert this dirname into canonical form.
     dirname = pathnames.canonicalize(dirname)
+
+    # Create this directory if needed.
     make_unless_dir(dirname)
+
+    # Return this dirname.
     return dirname
 
 

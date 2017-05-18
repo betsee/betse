@@ -8,7 +8,7 @@ Low-level non-directory filename facilities.
 
 See Also
 ----------
-:mod:`betse.util.io.files`
+:mod:`betse.util.io.iofiles`
     Low-level non-directory file content facilities.
 '''
 
@@ -19,11 +19,33 @@ from betse.util.io.log import logs
 from betse.util.type.types import type_check
 from os import path
 
-# ....................{ EXCEPTIONS ~ unless                }....................
+# ....................{ EXCEPTIONS                         }....................
+def die_if_file(pathname: str) -> None:
+    '''
+    Raise an exception if the passed path is an existing non-directory file
+    *after* following symbolic links.
+
+    See Also
+    ----------
+    :func:`is_file`
+        Further details.
+    '''
+
+    # If this file exists...
+    if is_file(pathname):
+        # Avoid circular import dependencies.
+        from betse.util.path import paths
+
+        # Raise a human-readable exception.
+        raise BetseFileException(
+            'Path "{}" already an existing {}.'.format(
+                pathname, paths.get_type_label(pathname)))
+
+
 def die_unless_file(pathname: str) -> None:
     '''
-    Raise an exception unless the passed path is a non-directory file *after*
-    following symbolic links.
+    Raise an exception unless the passed path is an existing non-directory file
+    *after* following symbolic links.
 
     See Also
     ----------
@@ -35,25 +57,37 @@ def die_unless_file(pathname: str) -> None:
         raise BetseFileException(
             'File "{}" not found or unreadable.'.format(pathname))
 
-# ....................{ EXCEPTIONS ~ if                    }....................
-def die_if_file(pathname: str) -> None:
+
+def join_and_die_unless_file(*pathnames: str) -> str:
     '''
-    Raise an exception if the passed path is a non-directory file *after*
-    following symbolic links.
+    Pathname of the file produced by joining (i.e., concatenating) the passed
+    pathnames with the directory separator specific to the current platform if
+    this file exists *or* raise an exception otherwise (i.e., if this file does
+    *not* exist).
 
     See Also
-    ----------
-    :func:`is_file`
+    -----------
+    :func:`betse.util.path.pathnames.join`
+    :func:`die_unless_file`
         Further details.
     '''
 
-    if is_file(pathname):
-        raise BetseFileException('File "{}" already exists.'.format(pathname))
+    # Avoid circular import dependencies.
+    from betse.util.path.pathnames import join
 
+    # Filename producing by joining these pathnames.
+    filename = join(*pathnames)
 
+    # If this file does *NOT* exist, raise an exception.
+    die_unless_file(filename)
+
+    # Return this dirname.
+    return filename
+
+# ....................{ EXCEPTIONS ~ special               }....................
 def die_if_special(pathname: str) -> None:
     '''
-    Raise an exception if the passed path is a special file.
+    Raise an exception if the passed path is an existing special file.
 
     See Also
     ----------
@@ -61,12 +95,14 @@ def die_if_special(pathname: str) -> None:
         Further details.
     '''
 
+    # If this special file exists...
     if is_special(pathname):
         # Avoid circular import dependencies.
         from betse.util.path import paths
 
+        # Raise a human-readable exception.
         raise BetseFileException(
-            'File "{}" already an existing {}.'.format(
+            'Path "{}" already an existing {}.'.format(
                 pathname, paths.get_type_label(pathname)))
 
 # ....................{ TESTERS                            }....................

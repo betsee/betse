@@ -14,7 +14,7 @@ from betse import pathtree
 #FIXME: This isn't particularly good. Contemplate alternatives, please.
 #Actually, this will probably go away when we refactor to use SimConfigWrapper.
 from betse.science.config.confio import _write_check
-from betse.util.io import files
+from betse.util.io import iofiles
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.types import type_check
@@ -129,7 +129,7 @@ def _write_file(config_filename: str) -> None:
 
     # Write the default configuration to this file, modifying the latter with
     # "sed"-like global string substitution as detailed above.
-    files.replace_substrs(
+    iofiles.replace_substrs(
         filename_source=pathtree.get_sim_config_default_filename(),
         filename_target=config_filename,
         replacements=(

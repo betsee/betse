@@ -51,7 +51,6 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 import logging, sys, traceback
 from betse.util.type import types
 from betse.util.type.types import type_check
-from io import StringIO
 
 # ....................{ GETTERS                            }....................
 def get(logger_name: str = None) -> logging.Logger:
@@ -143,195 +142,27 @@ def log_exception(exception: Exception) -> None:
     Log the passed exception with the root logger.
     '''
 
+    # While all loggers provide an exception() method for logging exceptions,
+    # the output produced by these methods is in the same format as that
+    # produced by the Python interpreter on uncaught exceptions. In order, this
+    # is:
+    #
+    # * This exception's non-human-readable stack trace.
+    # * This exception's human-readable error message.
+    #
+    # Since this format is (arguably) unreadable for non-developers, this
+    # exception is reformatted for readability. Sadly, this precludes calling
+    # our logger's exception() method.
+    #
+    # Attempt to...
     try:
         # Avoid circular import dependencies.
-        from betse.util.io import stderrs
+        from betse.util.io import exceptions, stderrs
         from betse.util.io.log import logconfig
         from betse.util.io.log.logenum import LogLevel
-        from betse.util.py import identifiers
-        from betse.util.type import regexes, strs
 
-        # While all loggers provide an exception() method for logging
-        # exceptions, the output produced by these methods is in the same
-        # format as that produced by the Python interpreter on uncaught
-        # exceptions. In order, this is:
-        #
-        # * This exception's non-human-readable stack trace.
-        # * This exception's human-readable error message.
-        #
-        # Since this format is (arguably) unreadable for non-developers,
-        # this exception is reformatted for readability. Sadly, this
-        # precludes us from calling our logger's exception() method.
-
-        # Traceback object for this exception.
-        _, _, exc_traceback = sys.exc_info()
-
-        # Generator yielding 2-tuples "(exception, traceback)" for all parent
-        # exceptions of this exception *AND* this exception (in that order),
-        # where "exception" is each exception and "traceback" is the traceback
-        # stored for each exception.
-        #
-        # Sadly, this list is only gettable via the private
-        # traceback._iter_chain() function in older versions of Python. Since
-        # this function is unavailable in newer versions of Python, a
-        # BETSE-specific compatibility function is called instead.
-        exc_parents_generator = stderrs._iter_chain(exception, exc_traceback)
-
-        # Tuple of 2-tuples "(exception, traceback)" in the reverse order
-        # yielded by this generator, preserving readability by ensuring that
-        # this exception is logged first, the parent exception of this exception
-        # (if any) is logged second, and so forth.
-        exc_parents = tuple(reversed(tuple(exc_parents_generator)))
-
-        # 0-based index of the last exception in this list.
-        exc_parent_last_index = len(exc_parents) - 1
-
-        # String buffer containing a human-readable synopsis of each
-        # exception in this chain, unconditionally output to stderr.
-        exc_iota_buffer = StringIO()
-
-        # String buffer containing a non-human-readable traceback of each
-        # exception in this chain, conditionally logged to the logfile.
-        exc_full_buffer = StringIO()
-
-        # Human-readable header prefixing each such buffer.
-        buffer_header = 'Exiting prematurely due to fatal error:\n\n'
-
-        # Initialize these buffers to this header.
-        exc_iota_buffer.write(buffer_header)
-        exc_full_buffer.write(buffer_header)
-
-        # For each parent exception and that exception's traceback...
-        for exc_parent_index, (exc_parent, exc_parent_traceback) in (
-            enumerate(exc_parents)):
-            # If this exception is a string, append this string to the
-            # synopsis buffer as is and continue to the next parent. This is
-            # an edge case that should *NEVER* happen... but could.
-            if types.is_str(exc_parent):
-                exc_iota_buffer.write(exc_parent + '\n')
-                continue
-
-            # List of traceback lines, excluding this exception's message.
-            exc_traceback_lines = traceback.format_exception(
-                type(exc_parent),
-                exc_parent,
-                exc_parent_traceback)
-            exc_traceback_lines.pop()
-
-            # List of exception message lines, excluding traceback and hence
-            # consisting only of this exception type and original message.
-            exc_message_lines = traceback.format_exception_only(
-                type(exc_parent), exc_parent)
-
-            # If the exception type prefixing the last line of this message is
-            # itself prefixed by the expected and hence ignorable
-            # fully-qualified name of the subpackage defining BETSE exceptions,
-            # truncate this prefix for brevity.
-            #
-            # Note that the format_exception_only() function guarantees the
-            # last line of this message to *ALWAYS* be "the message indicating
-            # which exception occurred."
-            if exc_message_lines[-1].startswith('betse.exceptions.'):
-                exc_message_lines[-1] = exc_message_lines[-1][
-                    len('betse.exceptions.'):]
-
-            # Last line of this message. By design, the format_exception_only()
-            # function guarantees this line to *ALWAYS* be "the message
-            # indicating which exception occurred."
-            exc_message_line = exc_message_lines[-1]
-
-            # Append this message to the traceback buffer *BEFORE* appending a
-            # truncation of this message to the message buffer.
-            exc_full_buffer.write(strs.join(exc_message_lines))
-            #print('exception string: '+ exc_message_lines[-1])
-
-            # Split the last line of this message into a non-human-readable
-            # exception class and ideally human-readable exception message. If
-            # this exception is not "None" *AND* is convertable without raising
-            # exceptions into a string, both format_exception_only() and
-            # _format_final_exc_line() guarantee this line to be formatted as:
-            #     "${exc_class}: ${exc_message}"
-            assert types.is_sequence_nonstr_nonempty(exc_message_lines), (
-                types.assert_not_sequence_nonstr_nonempty(
-                    exc_message_lines, 'Exception message lines'))
-            exc_message_match_groups = regexes.get_match_groups_numbered(
-                exc_message_line, r'^({})(?:\s*|:\s+(.+))$'.format(
-                    identifiers.IDENTIFIER_QUALIFIED_REGEX))
-
-            # This message is guaranteed to be prefixed by a class name.
-            exc_class_name = exc_message_match_groups[0]
-
-            # This message is *NOT* guaranteed to be prefixed by a non-empty
-            # message (e.g., assert statements passed no message).
-            #
-            # If a non-empty message matched, use that.
-            exc_message = None
-            if exc_message_match_groups[1] is not None:
-                exc_message = exc_message_match_groups[1]
-            # Else if a debug assertion failed with no explicit message, use
-            # the exception context directly detailing this assertion.
-            elif exc_class_name == 'AssertionError':
-                exc_message = 'Debug assertion failed: {}'.format(
-                    # A traceback line typically contains an internal
-                    # newline. The substring preceding this newline details
-                    # the file and function containing the corresponding
-                    # call; the substring following this newline is this
-                    # call. Hence, ignore the former.
-                    regexes.remove_substrs(
-                        exc_traceback_lines[-1], r'^.+\n\s*'))
-            # Else, convert this exception's class name into a
-            # human-readable message (e.g., from "FileNotFoundError" to
-            # "File not found error."). Well, try... at least!
-            else:
-                exc_message = strs.uppercase_first_char(
-                    identifiers.convert_camelcase_to_whitespaced_lowercase(
-                        exc_class_name))
-            assert types.is_str_nonempty(exc_message), (
-                types.assert_not_str_nonempty(
-                    exc_message, 'Exception message'))
-
-            # If this class is "KeyError", this message is the single-quoted
-            # name of a non-existent key in a dictionary whose access raised
-            # this exception. Replace this by a human-readable message.
-            if exc_class_name == 'KeyError':
-                exc_message = 'Dictionary key {} not found.'.format(
-                    exc_message)
-
-            # Append this message to the synopsis buffer. For readability,
-            # this message is wrapped to the default terminal width and
-            # each wrapped line prefixed by indentation.
-            exc_iota_buffer.write(strs.wrap(
-                text=exc_message, line_prefix='    '))
-
-            # If this exception has a traceback, append this traceback to
-            # the traceback but *NOT* synopsis buffer.
-            if exc_parent_traceback:
-                # Append a traceback header.
-                exc_full_buffer.write(
-                    '\nTraceback (most recent call last):\n')
-
-                # Append this traceback.
-                exc_full_buffer.write(strs.join(
-                    # List of lines formatted from this list.
-                    traceback.format_list(
-                        # List of stack trace entries from this traceback.
-                        traceback.extract_tb(
-                            exc_parent_traceback))))
-
-            # If this exception is *NOT* the last, append an explanatory header.
-            if exc_parent_index != exc_parent_last_index:
-                exc_full_buffer.write(
-                    '\n'
-                    'The above exception wrapped '
-                    'the following originating exception:'
-                    '\n\n'
-                )
-
-        # Append a random error haiku to the traceback buffer... *BECAUSE*!
-        exc_full_buffer.write('\n{}'.format(stderrs.get_haiku_random()))
-
-        # String contents of the traceback buffer.
-        exc_full = exc_full_buffer.getvalue()
+        # Terse synopsis and verbose traceback for this exception.
+        exc_synopsis, exc_traceback = exceptions.get_metadata(exception)
 
         # Singleton logging configuration for the current Python process.
         log_config = logconfig.get()
@@ -340,7 +171,7 @@ def log_exception(exception: Exception) -> None:
         # request by logging tracebacks to the error level and hence stderr.
         # (Avoid printing the synopsis already embedded in these tracebacks.)
         if log_config.file_level >= LogLevel.NONE:
-            log_error(exc_full)
+            log_error(exc_traceback)
         # Else, the end user requested that at least something be logged to
         # disk. For debuggability, the logging level of the file handler is
         # temporarily decreased to the debug level, guaranteeing that tracebacks
@@ -352,16 +183,11 @@ def log_exception(exception: Exception) -> None:
             # else, tracebacks containing this synopsis are already
             # output to stderr by logging performed below.
             if not log_config.is_verbose:
-                # Append a reference to the file being logged to to the
-                # synopsis buffer.
-                exc_iota_buffer.write(
-                    '\n\nFor details, see "{}".'.format(log_config.filename))
-
-                # String contents of the synopsis buffer.
-                exc_iota = exc_iota_buffer.getvalue()
-
-                # Print this synopsis.
-                stderrs.output(exc_iota)
+                # Print this synopsis followed by a human-readable reference to
+                # the current logfile.
+                stderrs.output(
+                    '{}\n\nFor details, see "{}".'.format(
+                        exc_synopsis, log_config.filename))
 
             # Previous minimum level of messages to log to disk.
             log_config_file_level = log_config.file_level
@@ -375,7 +201,7 @@ def log_exception(exception: Exception) -> None:
                 # Log tracebacks to the debug level and hence *NOT* stderr by
                 # default, isolating tracebacks to disk. This is a Good Thing.
                 # Tracebacks supply more detail than desired by typical users.
-                log_debug(exc_full)
+                log_debug(exc_traceback)
             # Revert to the previous level even if an exception is raised.
             finally:
                 log_config.file_level = log_config_file_level

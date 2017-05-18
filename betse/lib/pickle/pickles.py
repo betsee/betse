@@ -24,7 +24,7 @@ application, including:
 
 # ....................{ IMPORTS                            }....................
 import dill as pickle
-from betse.util.io import files
+from betse.util.io import iofiles
 from betse.util.io.log import logs
 from betse.util.type.call.memoizers import CALLABLE_CACHED_VAR_NAME_PREFIX
 from betse.util.type.types import type_check
@@ -149,7 +149,7 @@ def load(filename: str) -> object:
 
     # Load and return all objects saved to this file, silently decompressing
     # this file if compressed.
-    with files.read_bytes(filename) as unpickle_file:
+    with iofiles.read_bytes(filename) as unpickle_file:
         return pickle.load(file=unpickle_file)
 
 # ....................{ SAVERS                             }....................
@@ -195,7 +195,7 @@ def save(
 
     # Save these objects to this file, silently compressing this file if this
     # filename is suffixed by an archive filetype.
-    with files.write_bytes(
+    with iofiles.write_bytes(
         filename, is_overwritable=is_overwritable) as pickle_file:
         pickle.dump(
             objects,

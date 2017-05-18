@@ -366,14 +366,14 @@ def _write_bytes_bz2(filename: str, is_overwritable: bool) -> BufferedIOBase:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.io import files
+    from betse.util.io import iofiles
 
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from bz2 import BZ2File
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return BZ2File(filename, mode=files.get_mode_write_bytes(is_overwritable))
+    return BZ2File(filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ gz                            }....................
 def _read_bytes_gz(filename: str) -> BufferedIOBase:
@@ -403,14 +403,14 @@ def _write_bytes_gz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.io import files
+    from betse.util.io import iofiles
 
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from gzip import GzipFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return GzipFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
+    return GzipFile(filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
 
 # ....................{ IO ~ xz                            }....................
 def _read_bytes_xz(filename: str) -> BufferedIOBase:
@@ -440,14 +440,14 @@ def _write_bytes_xz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.io import files
+    from betse.util.io import iofiles
 
     # This optional stdlib module is guaranteed to exist and hence be safely
     # importable here, due to the above die_unless_filetype() call.
     from lzma import LZMAFile
 
     # Open and return a filehandle suitable for e(x)clusively writing this file.
-    return LZMAFile(filename, mode=files.get_mode_write_bytes(is_overwritable))
+    return LZMAFile(filename, mode=iofiles.get_mode_write_bytes(is_overwritable))
 
 # ....................{ CONSTANTS ~ private                }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
