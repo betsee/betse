@@ -13,6 +13,7 @@ import pkg_resources
 from betse.exceptions import BetseLibException
 from betse.util.io.log import logs
 from betse.util.type import iterables, modules
+from betse.util.type.modules import DISTUTILS_PROJECT_NAME_TO_MODULE_NAME
 from betse.util.type.types import (
     type_check, GeneratorType, MappingType, ModuleType, NoneType, SequenceTypes)
 from collections import OrderedDict
@@ -23,34 +24,6 @@ from pkg_resources import (
     UnknownExtra,
     VersionConflict,
 )
-
-# ....................{ GLOBALS ~ dict                     }....................
-SETUPTOOLS_TO_MODULE_NAME = {
-    'Numpy': 'numpy',
-    'Pillow': 'PIL',
-    'PyYAML': 'yaml',
-    'SciPy': 'numpy',
-    'dill': 'dill',
-    'matplotlib': 'matplotlib',
-    'networkx': 'networkx',
-    'numba': 'numba',
-    'pprofile': 'pprofile',
-    'ptpython': 'ptpython',
-    'pydot': 'pydot',
-    'pympler': 'pympler',
-    'pytest': 'pytest',
-    'setuptools': 'setuptools',
-    'six': 'six',
-    'yamale': 'yamale',
-}
-'''
-Dictionary mapping each relevant :mod:`setuptools`-specific project name (e.g.,
-`PyYAML`) to the fully-qualified name of the corresponding top-level module or
-package providing that project (e.g., `yaml`).
-
-For consistency, the size of this dictionary should be greater than or equal to
-the size of the `betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY` unordered set.
-'''
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -192,7 +165,8 @@ def die_unless_requirement(requirement: Requirement) -> None:
         raise betse_exception
 
     # Fully-qualified name of this requirement's package.
-    package_name = get_requirement_module_name(requirement)
+    package_name = DISTUTILS_PROJECT_NAME_TO_MODULE_NAME[
+        requirement.project_name]
 
     # Attempt to manually import this requirement's package.
     try:
@@ -438,42 +412,9 @@ def get_requirement_distribution_or_none(
         raise
 
 # ....................{ GETTERS ~ requirement : metadata   }....................
-@type_check
-def get_requirement_module_name(requirement: Requirement) -> str:
-    '''
-    Fully-qualified name of the top-level module or package (e.g., :mod:`yaml`)
-    providing the passed :mod:`setuptools`-specific requirement.
-
-    Parameters
-    ----------
-    requirement : Requirement
-        Object describing this module or package's required name and version.
-
-    Returns
-    ----------
-    str
-        Fully-qualified name of this module or package.
-
-    Raises
-    ----------
-    BetseLibException
-        If this name is unrecognized (i.e., is _not_ a key of the
-        :data:`SETUPTOOLS_TO_MODULE_NAME` dictionary).
-    '''
-
-    # Name of this requirement.
-    requirement_name = requirement.project_name
-
-    # If this name is unrecognized, raise an exception.
-    if requirement_name not in SETUPTOOLS_TO_MODULE_NAME:
-        raise BetseLibException(
-            'Requirement "{}" unrecognized.'.format(requirement_name))
-
-    # Return the name of this requirement's module or package.
-    return SETUPTOOLS_TO_MODULE_NAME[requirement_name]
-
-
 #FIXME: Excise this.
+#FIXME: Uhm. How? Why? Sadly, we neglected to comment on why or how this needed
+#to be excised... and therefore elect to ignore our past selves. (Thanks alot.)
 @type_check
 def get_requirement_pathname_readable(requirement: Requirement) -> str:
     '''
@@ -881,7 +822,8 @@ def import_requirement(requirement: Requirement) -> ModuleType:
     '''
 
     # Fully-qualified name of this requirement's package.
-    package_name = get_requirement_module_name(requirement)
+    package_name = DISTUTILS_PROJECT_NAME_TO_MODULE_NAME[
+        requirement.project_name]
 
     # Log this importation, which can often have unexpected side effects.
     logs.log_debug('Importing third-party package "%s"...', package_name)

@@ -12,6 +12,8 @@ spreadsheets in comma-separated value (CSV) format.
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from numpy import ndarray
+
 from betse.exceptions import BetseMethodUnimplementedException
 from betse.lib.numpy import arrays
 from betse.science.export import expmath
@@ -21,9 +23,9 @@ from betse.science.simulate.simphase import SimPhase, SimPhaseKind
 from betse.science.visual.plot.plotutil import cell_ave
 from betse.util.path import dirs, pathnames
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.mappings import OrderedArgsDict
+from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
-from numpy import ndarray
+
 
 # ....................{ SUBCLASSES                         }....................
 class SimPipelinerExportCSV(SimPipeExportABC):

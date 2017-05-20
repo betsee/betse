@@ -14,8 +14,10 @@ Caveats
 
 # ....................{ IMPORTS                            }....................
 import platform
+
 from betse.util.type.call.memoizers import callable_cached
-from betse.util.type.mappings import OrderedArgsDict
+from betse.util.type.mapping.mapcls import OrderedArgsDict
+
 
 # ....................{ GETTERS                            }....................
 @callable_cached

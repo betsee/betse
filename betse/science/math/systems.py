@@ -4,22 +4,20 @@
 
 # ....................{ IMPORTS                            }....................
 import csv
-import math
 import os
 import os.path
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
-from collections import OrderedDict
-from matplotlib import cm
 from matplotlib import colors
-from scipy.optimize import basinhopping
+
 from betse.exceptions import BetseSimConfigException
 from betse.lib import libs
-from betse.science.chemistry.netplot import set_net_opts
 from betse.util.io.log import logs
 from betse.util.path import pathnames
-from betse.util.type.mappings import DynamicValue, DynamicValueDict
-from mpl_toolkits.mplot3d import Axes3D
+from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
+
 
 # ....................{ CLASSES                            }....................
 class SimMaster(object):

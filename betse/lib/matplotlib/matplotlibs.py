@@ -88,6 +88,8 @@ Footnote descriptions are as follows:
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import sys
+from contextlib import contextmanager
+
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
@@ -96,9 +98,8 @@ from betse.util.path import dirs, pathnames
 from betse.util.py import freezers
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.call.memoizers import property_cached
-from betse.util.type.mappings import OrderedArgsDict
+from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import type_check, StrOrNoneTypes
-from contextlib import contextmanager
 
 # ....................{ CONSTANTS                          }....................
 RC_PARAMS = {

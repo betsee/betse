@@ -32,10 +32,13 @@ Most runners accept the same optional keyword arguments accepted by the
 
 # ....................{ IMPORTS                            }....................
 import subprocess
+from subprocess import CalledProcessError, TimeoutExpired
+
+import betse.util.type.mapping.maputil
 from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, MappingType, SequenceTypes
-from subprocess import CalledProcessError, TimeoutExpired
+
 
 # ....................{ RUNNERS                            }....................
 def run(command_words: SequenceTypes, **popen_kwargs) -> None:
@@ -238,7 +241,7 @@ def _init_run_args(
     from betse.util.path.command import commands
     from betse.util.os import oses
     from betse.util.os.shell import envs
-    from betse.util.type import mappings
+    from betse.util.type.mapping import mapcls
 
     # If the passed list of shell words is empty, raise an exception.
     if not command_words:
@@ -251,7 +254,7 @@ def _init_run_args(
     logs.log_debug('Running command: %s', ' '.join(command_words))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if oses.is_windows_vanilla() and not mappings.is_keys(
+    if oses.is_windows_vanilla() and not betse.util.type.mapping.maputil.is_keys(
         popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
         popen_kwargs['close_fds'] = False
 

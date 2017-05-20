@@ -10,15 +10,16 @@ Matplotlib-specific classes writing animations as video.
 #FIXME: Consider contributing most or all of this submodule back to matplotlib.
 
 # ....................{ IMPORTS                            }....................
+from matplotlib.animation import FFMpegBase, MovieWriter, writers
+
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
 from betse.util.path.command import runners
 from betse.util.type import regexes, strs
-from betse.util.type.mappings import ReversibleDict
 from betse.util.type.cls import classes
+from betse.util.type.mapping.mapcls import ReversibleDict
 from betse.util.type.types import (
     type_check, ClassType, NoneType, SequenceTypes, StrOrNoneTypes)
-from matplotlib.animation import FFMpegBase, MovieWriter, writers
 
 # ....................{ DICTS                              }....................
 WRITER_NAME_TO_COMMAND_BASENAME = ReversibleDict(

@@ -16,12 +16,15 @@ poor form. Call these functions _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-import platform, sys
+import platform
+import sys
+
 from betse import metadata
 from betse.exceptions import BetsePyException
 from betse.util.io.log import logs
-from betse.util.type.mappings import OrderedArgsDict
+from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import type_check, SequenceTypes
+
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:

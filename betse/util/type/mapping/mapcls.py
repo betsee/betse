@@ -4,11 +4,11 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level dictionary facilities.
+Low-level **mapping classes** (i.e., classes implementing dictionary-like
+functionality, typically by subclassing :class:`dict` or an analogue thereof).
 '''
 
 # ....................{ IMPORTS                            }....................
-import pprint
 from betse.exceptions import (
     BetseMappingException, BetseMethodUnimplementedException)
 from betse.util.type import types
@@ -22,7 +22,78 @@ from betse.util.type.types import (
 )
 from collections import OrderedDict
 
-# ....................{ CLASSES ~ dict : dynamic           }....................
+# ....................{ GLOBALS                            }....................
+_DEFAULT_DICT_ID = 0
+'''
+Unique arbitrary identifier with which to uniquify the class name of the next
+:func:`DefaultDict`-derived type.
+'''
+
+# ....................{ CLASSES ~ default                  }....................
+#FIXME: Donate back to StackOverflow. The standard "defaultdict" class is
+#sufficiently useless that numerous users would probably find this useful.
+@type_check
+def DefaultDict(
+    missing_key_value: CallableTypes,
+    initial_mapping: MappingType = None,
+) -> MappingType:
+    '''
+    Sane **default dictionary** (i.e., dictionary implicitly setting an unset
+    key to the value returned by a caller-defined callable passed that key).
+
+    Design
+    ----------
+    The standard :class:`collections.defaultdict` class is sadly insane.
+    Happily, this custom class is not. Specifically, that class:
+
+    * Requires that the caller-defined callable accept *no* arguments rather
+      than the current key to generate a default value for.
+    * Requires that the initial key-value pairs to seed this dictionary with be
+      awkwardly defined as keyword arguments rather than key-value pairs.
+
+    Parameters
+    ----------
+    missing_key_value : CallableTypes
+        Callable (e.g., function, lambda, method) called to generate the
+        default value for a "missing" (i.e., undefined) key on the first
+        attempt to access that key, passed first this dictionary and then this
+        key and returning this value. Hence, this callable should have a
+        signature resembling:
+        ``def missing_key_value(self: DefaultDict, missing_key: object) ->
+        object``. Equivalently, this callable should have the exact same
+        signature as the optional :meth:`dict.__missing__` method.
+    initial_mapping : optional[MappingType]
+        Non-default dictionary providing the initial key-value pairs of this
+        default dictionary. Defaults to ``None``, in which case this
+        default dictionary is initially empty.
+
+    Returns
+    ----------
+    MappingType
+        Default dictionary initialized as described above.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.cls import classes
+
+    # Default dictionary class specific to this missing key value callable.
+    default_dict_class = classes.define_class(
+        class_name=_get_default_dict_class_name(),
+        class_attr_name_to_value={'__missing__': missing_key_value,},
+        base_classes=(dict,),
+    )
+
+    # Instantiate the first and only instance of this class.
+    default_dict = default_dict_class()
+
+    # If an initial dictionary was passed, add all of its key-value pairs.
+    if initial_mapping is not None:
+        default_dict.update(initial_mapping)
+
+    # Return this instance.
+    return default_dict
+
+# ....................{ CLASSES ~ dynamic                  }....................
 class DynamicValue(object):
     '''
     **Dynamic value** (i.e., qbject encapsulating a single variable gettable and
@@ -219,7 +290,7 @@ class DynamicValueDict(MutableMappingType):
 
         return iter(self._key_to_dynamic_value)
 
-# ....................{ CLASSES ~ dict : ordered           }....................
+# ....................{ CLASSES ~ ordered                  }....................
 class OrderedArgsDict(OrderedDict):
     '''
     Ordered dictionary initialized by a sequence of key-value pairs.
@@ -237,7 +308,7 @@ class OrderedArgsDict(OrderedDict):
 
     Examples
     ----------
-    >>> from betse.util.type.mappings import OrderedArgsDict
+    >>> from betse.util.type.mapping.mapcls import OrderedArgsDict
     >>> from collections import OrderedDict
     >>> tuatha_de_danann = OrderedArgsDict(
     ...     'Nuada', 'Nodens',
@@ -300,7 +371,7 @@ class OrderedArgsDict(OrderedDict):
         # Initialize the superclass with this zip.
         super().__init__(key_value_pairs_nested)
 
-# ....................{ CLASSES ~ dict : reversible        }....................
+# ....................{ CLASSES ~ reversible               }....................
 #FIXME: Unit test this.
 class ReversibleDict(dict):
     '''
@@ -381,76 +452,23 @@ class ReversibleDict(dict):
         if not self.reverse[value]:
             del self.reverse[value]
 
-# ....................{ TESTERS                            }....................
-@type_check
-def is_keys(mapping: MappingType, *keys: HashableType) -> bool:
+# ....................{ PRIVATE                            }....................
+def _get_default_dict_class_name() -> str:
     '''
-    `True` only if the passed dictionary contains _all_ passed keys.
+    Name of the class of the next data descriptor created and returned by the
+    next call to the :func:`DefaultDict` function, guaranteed to be unique
+    across all such classes.
 
-    Parameters
-    ----------
-    mapping : MappingType
-        Dictionary to be tested.
-    keys : tuple[HashableType]
-        Tuple of all keys to be tested for.
-
-    Returns
-    ----------
-    bool
-        `True` only if this dictionary contains _all_ passed keys.
+    Since the human-readability of this name is neither required nor desired,
+    this is a non-human-readable name efficiently constructed from a private
+    prefix and a unique arbitrary identifier.
     '''
 
-    # Yes, this is ridiculously awesome.
-    return set(keys).issubset(mapping)
+    # Global variable set below.
+    global _DEFAULT_DICT_ID
 
-# ....................{ FORMATTERS                         }....................
-@type_check
-def format(mapping: MappingType) -> str:
-    '''
-    Convert the passed dictionary into a human-readable string.
-    '''
+    # Increment this identifier, preserving uniqueness.
+    _DEFAULT_DICT_ID += 1
 
-    return pprint.pformat(mapping)
-
-# ....................{ MERGERS                            }....................
-@type_check
-def merge(*dicts: MappingType) -> MappingType:
-    '''
-    Dictionary of all key-value pairs merged together from all passed
-    dictionaries (_in the passed order_).
-
-    Parameters
-    ----------
-    mappings : Tuple[MappingType]
-        Tuple of all dictionaries to be merged.
-
-    Returns
-    ----------
-    MappingType
-        Dictionary merged from and of the same type as the passed dictionaries.
-        For efficiency, this dictionary is only a shallow rather than deep copy
-        of these dictionaries. Note lastly that the class of the passed
-        dictionary _must_ define an `__init__()` method accepting a dictionary
-        comprehension.
-    '''
-
-    # Type of dictionary to be returned.
-    dict_type = type(dicts[0])
-
-    # Dictionary merged from the passed dictionaries via a doubly-nested
-    # dictionary comprehension. While there exist a countably infinite number of
-    # approaches to merging dictionaries in Python, this approach is known to be
-    # the most efficient for general-purpose merging of arbitrarily many
-    # dictionaries under Python >= 3.4. See also Trey Hunter's exhaustive
-    # commentary replete with timings at:
-    #     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python/
-    dict_merged = {
-        key: value
-        for dict_cur in dicts
-        for key, value in dict_cur.items()
-    }
-
-    # Return a dictionary of this type converted from this dictionary. If the
-    # desired type is a "dict", this dictionary is returned as is; else, this
-    # dictionary is converted into an instance of the desired type.
-    return dict_merged if dict_type is dict else dict_type(dict_merged)
+    # Return a unique name suffixed by this identifier.
+    return '__DefaultDict' + str(_DEFAULT_DICT_ID)

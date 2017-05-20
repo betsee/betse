@@ -21,9 +21,12 @@ the the active Python interpreter) facilities.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # ....................{ IMPORTS                            }....................
+from os import environ
+
+import betse.util.type.mapping.maputil
 from betse.exceptions import BetseOSShellEnvException
 from betse.util.type.types import type_check, MappingType
-from os import environ
+
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -74,11 +77,11 @@ def is_var(*names: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import mappings
+    from betse.util.type.mapping import mapcls
 
     # Return True only if the names of these environment variables are all keys
     # of the corresponding dictionary global.
-    return mappings.is_keys(environ, *names)
+    return betse.util.type.mapping.maputil.is_keys(environ, *names)
 
 # ....................{ GETTERS                            }....................
 def get_env() -> MappingType:

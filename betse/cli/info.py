@@ -19,12 +19,14 @@
 # effectively mandatory.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+from collections import OrderedDict
+
 from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.py import interpreters, pys
-from betse.util.type.mappings import OrderedArgsDict
-from collections import OrderedDict
+from betse.util.type.mapping.mapcls import OrderedArgsDict
+
 
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedArgsDict:

@@ -112,7 +112,10 @@ def iter_methods_matching(
 # ....................{ DEFINERS                           }....................
 @type_check
 def define_class(
+    # Mandatory parameters.
     class_name: str,
+
+    # Optional parameters.
     class_attr_name_to_value: MappingType = {},
     base_classes: SequenceTypes = (),
 ) -> ClassType:

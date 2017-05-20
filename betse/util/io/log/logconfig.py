@@ -19,13 +19,16 @@ Low-level logging configuration.
 # circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import logging, os, sys
-from betse import metadata, pathtree
-from betse.util.io.log.loghandler import SafeRotatingFileHandler
-from betse.util.io.log.logenum import LogLevel
-from betse.util.type.types import type_check
+import logging
+import os
+import sys
 from logging import Filter, Formatter, LogRecord, StreamHandler
 from os import path
+
+from betse import metadata, pathtree
+from betse.util.io.log.logenum import LogLevel
+from betse.util.io.log.loghandler import SafeRotatingFileHandler
+from betse.util.type.types import type_check
 
 # ....................{ GLOBALS                            }....................
 # See below for utility functions accessing this singleton.
@@ -548,7 +551,7 @@ def get_metadata():
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.mappings import OrderedArgsDict
+    from betse.util.type.mapping.mapcls import OrderedArgsDict
 
     # Return this dictionary.
     return OrderedArgsDict(

@@ -12,7 +12,7 @@ High-level operating system (OS)-specific display facilities.
 
 # ....................{ IMPORTS                            }....................
 from betse.util.type.call.memoizers import callable_cached
-from betse.util.type.mappings import OrderedArgsDict
+from betse.util.type.mapping.mapcls import OrderedArgsDict
 
 # ....................{ TESTERS                            }....................
 # For efficiency, cache the returned boolean for the duration of this process.

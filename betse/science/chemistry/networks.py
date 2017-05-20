@@ -7,12 +7,14 @@ import csv
 import math
 import os
 import os.path
+from collections import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
-from collections import OrderedDict
 from matplotlib import cm
 from matplotlib import colors
 from scipy.ndimage.filters import gaussian_filter
+
 # from scipy.optimize import basinhopping
 from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
 from betse.lib import libs
@@ -34,8 +36,9 @@ from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeS
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
 from betse.util.path import pathnames
-from betse.util.type.mappings import DynamicValue, DynamicValueDict
+from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
 from betse.util.type.types import type_check
+
 
 # FIXME: if moving to have unpacked membrane concs, update transporters...
 

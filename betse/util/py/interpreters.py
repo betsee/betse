@@ -16,7 +16,9 @@ functions _only_ where necessary.
 
 # ....................{ IMPORTS                            }....................
 import platform
-from betse.util.type.mappings import OrderedArgsDict
+
+from betse.util.type.mapping.mapcls import OrderedArgsDict
+
 
 # ....................{ TESTERS                            }....................
 def is_cpython() -> bool:

@@ -15,10 +15,11 @@ Low-level module facilities.
 # stock Python packages.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import collections, importlib, sys
+import importlib, sys
 from betse.exceptions import BetseModuleException
 from betse.util.io.log import logs
 from betse.util.type import types
+from betse.util.type.mapping.mapcls import DefaultDict
 from betse.util.type.types import (
     type_check,
     ModuleType,
@@ -26,24 +27,45 @@ from betse.util.type.types import (
     SetType,
     StrOrNoneTypes,
 )
+from collections import defaultdict
 from importlib import util as importlib_util
 from importlib.machinery import ExtensionFileLoader, EXTENSION_SUFFIXES
 
 # ....................{ GLOBALS ~ dict                     }....................
-MODULE_TO_VERSION_ATTR_NAME = collections.defaultdict(
+DISTUTILS_PROJECT_NAME_TO_MODULE_NAME = DefaultDict(
+    missing_key_value=lambda self, missing_key: missing_key,
+    initial_mapping={
+        'Numpy': 'numpy',
+        'Pillow': 'PIL',
+        'PyYAML': 'yaml',
+        'SciPy': 'scipy',
+    }
+)
+'''
+Dictionary mapping a relevant :mod:`distutils`-specific project name (e.g.,
+``PyYAML``) to the fully-qualified name of the corresponding module or package
+providing that project (e.g., ``yaml``).
+
+All modules and packages explicitly unmapped by this dictionary default to the
+identity mapping -- that is, mapping the fully-qualified names of those modules
+and packages to themselves (e.g., from ``pytest`` to ``pytest``).
+'''
+
+
+MODULE_NAME_TO_VERSION_ATTR_NAME = defaultdict(
     # Default attribute name to be returned for all unmapped modules.
     lambda: '__version__',
 
     # Module-specific attribute names.
-    PIL = 'PILLOW_VERSION',
+    PIL='PILLOW_VERSION',
 )
 '''
 Dictionary mapping the fully-qualified name of a module or package (e.g.,
 :mod:``PIL``) to the name of the attribute (e.g., ``PILLOW_VERSION``) declared
 by that module or package, providing that module or package's version specifier.
 
-All modules and packages unmapped by this dictionary default to the canonical
-``__version__`` attribute name.
+All modules and packages explicitly unmapped by this dictionary default to the
+canonical ``__version__`` attribute name.
 '''
 
 # ....................{ EXCEPTIONS                         }....................
@@ -363,7 +385,7 @@ def get_version_or_none(module: ModuleOrStrTypes) -> StrOrNoneTypes:
 
     # Name of the version specifier attribute defined by that module. For sane
     # modules, this is "__version__". Insane modules, however, exist.
-    module_version_attr_name = MODULE_TO_VERSION_ATTR_NAME[module.__name__]
+    module_version_attr_name = MODULE_NAME_TO_VERSION_ATTR_NAME[module.__name__]
 
     # This attribute defined by this module if any or "None" otherwise.
     module_version = getattr(module, module_version_attr_name, None)

@@ -9,7 +9,8 @@ type.
 '''
 
 # ....................{ IMPORTS                            }....................
-import pytest, sys
+import pytest
+import sys
 from pytest import fixture
 
 # ....................{ GLOBALS                            }....................
@@ -52,7 +53,7 @@ def betse_dynamicvaluedict() -> 'DynamicValueDict':
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type.mappings import DynamicValue, DynamicValueDict
+    from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
 
     # Create and return an instance of this type.
     return DynamicValueDict({
