@@ -66,7 +66,7 @@ BETSE CLI in the active Python interpreter.
 # ....................{ IMPORTS                            }....................
 from pytest import fixture
 
-from betse.util.path.command import exits
+from betse.util.path.command import cmdexits
 from betse.util.type.types import type_check
 
 # ....................{ CONSTANTS                          }....................
@@ -162,7 +162,7 @@ class CLITester(object):
         exit_status = main(args_evolved)
 
         # If this exit status signifies failure, fail the current test.
-        assert exits.is_success(exit_status), (
+        assert cmdexits.is_success(exit_status), (
             'BETSE CLI failed with exit status {} '
             'given arguments: {}'.format(exit_status, args_evolved))
 

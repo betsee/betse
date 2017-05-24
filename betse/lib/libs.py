@@ -176,7 +176,7 @@ def die_unless_commands(*requirement_names: str) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import pathables
+    from betse.util.path.command import cmdpaths
 
     # If any external command required by any such dependency is *NOT* found,
     # iteratively search for the first such missing command and raise a
@@ -191,7 +191,7 @@ def die_unless_commands(*requirement_names: str) -> None:
             for dependency_command in metadata.DEPENDENCIES_COMMANDS.get(
                 requirement_name, ()):
                 # If this command is *NOT* in the ${PATH}, raise an exception.
-                if not pathables.is_pathable(dependency_command.basename):
+                if not cmdpaths.is_pathable(dependency_command.basename):
                     raise BetseLibException(
                         'Dependency "{}" unsatisfied, as '
                         '{} not installed '
@@ -218,12 +218,12 @@ def is_commands(*requirement_names: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import pathables
+    from betse.util.path.command import cmdpaths
 
     # Return True only if...
     return all(
         # Each external command required by each dependency is in the ${PATH}.
-        pathables.is_pathable(dependency_command.basename)
+        cmdpaths.is_pathable(dependency_command.basename)
         # For the name of each passed dependency...
         for requirement_name in requirement_names
         # For the tuple of all "betse.metadata.DependencyCommand" instances

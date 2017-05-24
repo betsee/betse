@@ -70,7 +70,7 @@ operating system:
 * [Pillow](https://python-pillow.github.io) >= 2.3.0.
 * [PyYaml](http://pyyaml.org) >= 3.10.
 * [SciPy](http://www.scipy.org) >= 0.12.0.
-* [matplotlib](http://matplotlib.org) >= 1.4.0.
+* [matplotlib](http://matplotlib.org) >= 1.5.0.
 * [setuptools](https://pythonhosted.org/setuptools) >= 3.3.
 * [six](https://pythonhosted.org/six) >= 1.5.2.
 

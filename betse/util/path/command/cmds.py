@@ -62,14 +62,14 @@ def is_command(pathname: str) -> None:
 
     # Avoid circular import dependencies.
     from betse.util.path import files, pathnames
-    from betse.util.path.command import pathables
+    from betse.util.path.command import cmdpaths
 
     # This path is that of an existing command if and only if either...
     return (
         # This path is that of an executable file *OR*
         files.is_file_executable(pathname) or (
         # This path is that of a basename in the current ${PATH}.
-        pathnames.is_basename(pathname) and pathables.is_pathable(pathname))
+        pathnames.is_basename(pathname) and cmdpaths.is_pathable(pathname))
     )
 
 # ....................{ GETTERS                            }....................

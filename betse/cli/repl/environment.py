@@ -44,10 +44,10 @@ def quit() -> None:
 
     # Avoid polluting the module namespace captured into the "repl_env" global
     # below with these function-specific attributes.
-    from betse.util.path.command import exits
+    from betse.util.path.command import cmdexits
 
     # Exit us up.
-    raise exits.raise_success()
+    raise cmdexits.raise_success()
 
 
 #FIXME: Single-letter parameters cause me to poke my eyes out. Would it be

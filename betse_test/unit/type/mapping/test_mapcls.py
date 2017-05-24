@@ -29,12 +29,12 @@ def test_defaultdict_pass() -> None:
             missing_key + ' the deep heart’s core.',
         initial_mapping={
             'There midnight’s all': 'a glimmer',
-            'and noon': 'a purple glow,',
-            'And evening full': 'of the linnet’s wings.',
+            'and noon':             'a purple glow,',
+            'And evening full':     'of the linnet’s wings.',
         },
     )
 
-    # Test whether this dictionary contains an initial key-value pair.
+    # Test whether this dictionary contains a non-missing key initialized above.
     assert lake_isle_of_innisfree['and noon'] == 'a purple glow,'
 
     # Test whether a missing key defaults to the expected value.

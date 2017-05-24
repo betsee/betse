@@ -27,21 +27,52 @@ Most runners accept the same optional keyword arguments accepted by the
   this command is to be run. Defaults to the current CWD.
 * ``timeout``, the maximum number of milliseconds this command is to be run for.
   Commands with execution time exceeding this timeout will be mercifully killed.
-  Defaults to ``None``, in which case this command may run indefinitely.
+  Defaults to ``None``, in which case this command is run indefinitely.
 '''
 
 # ....................{ IMPORTS                            }....................
 import subprocess
-from subprocess import CalledProcessError, TimeoutExpired
-
-import betse.util.type.mapping.maputil
 from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
+from betse.util.io.log.logenum import LogLevel
+from betse.util.type.mapping import maputil
 from betse.util.type.types import type_check, MappingType, SequenceTypes
+from io import TextIOWrapper
+from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
+from threading import Thread
 
+# ....................{ GLOBALS                            }....................
+BUFFER_SIZE_DEFAULT = -1
+'''
+Default subprocess buffer size for the current platform (synonymous with the
+current :data:`io.DEFAULT_BUFFER_SIZE`) suitable for passing as the ``bufsize``
+parameter accepted by :meth:`subprocess.Popen.__init__` method.
+'''
+
+
+BUFFER_SIZE_NONE = 0
+'''
+Unbuffered subprocess buffer size suitable for passing as the ``bufsize``
+parameter accepted by :meth:`subprocess.Popen.__init__` method.
+
+Both reading from and writing to an unbuffered subprocess is guaranteed to
+perform exactly one system call (``read()`` and ``write()``, respectively) and
+can return short (i.e., produce less bytes than the requested number of bytes).
+'''
+
+
+BUFFER_SIZE_LINE = 1
+'''
+Line-buffered subprocess buffer size suitable for passing as the ``bufsize``
+parameter accepted by :meth:`subprocess.Popen.__init__` method.
+
+Reading from a line-buffered subprocess is guaranteed to block until the
+subprocess emits a newline, at which point all output emitted between that
+newline inclusive and the prior newline exclusive is consumed.
+'''
 
 # ....................{ RUNNERS                            }....................
-def run(command_words: SequenceTypes, **popen_kwargs) -> None:
+def run_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
     '''
     Run the passed command as a subprocess of the current Python process,
     raising an exception on subprocess failure.
@@ -53,7 +84,8 @@ def run(command_words: SequenceTypes, **popen_kwargs) -> None:
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
-        Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
+        Dictionary of keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method.
 
     Raises
     ----------
@@ -62,31 +94,32 @@ def run(command_words: SequenceTypes, **popen_kwargs) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import exits
+    from betse.util.path.command import cmdexits
 
     # Run this command, raising an exception on command failure. For
     # reusability, reimplement the subprocess.check_call() function here rather
     # than explicitly call this function. The latter approach would require
-    # duplicating logic between this and the run_nonfatal() function.
-    exit_status = run_nonfatal(command_words, popen_kwargs)
-    if exits.is_failure(exit_status):
+    # duplicating logic between this and the get_exit_status() function.
+    exit_status = get_exit_status(command_words, popen_kwargs)
+    if cmdexits.is_failure(exit_status):
         raise CalledProcessError(exit_status, command_words)
 
-
-def run_nonfatal(command_words: SequenceTypes, **popen_kwargs) -> int:
+# ....................{ GETTERS                            }....................
+def get_exit_status(command_words: SequenceTypes, **popen_kwargs) -> int:
     '''
     Run the passed command as a subprocess of the current Python process,
     returning only the exit status of this subprocess.
 
-    This function does _not_ raise exceptions on subprocess failure. To do so,
-    consider calling `run()` instead.
+    This function raises *no* exceptions on subprocess failure. To do so,
+    consider calling the :func:`run` function instead.
 
     Parameters
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
-        Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
+        Dictionary of keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method.
 
     Returns
     ----------
@@ -98,7 +131,7 @@ def run_nonfatal(command_words: SequenceTypes, **popen_kwargs) -> int:
     from betse.util.path.command import FAILURE_DEFAULT
 
     # Sanitize these arguments.
-    _init_run_args(popen_kwargs)
+    _init_popen_kwargs(command_words, popen_kwargs)
 
     # Run this command *WITHOUT* raising an exception on command failure.
     try:
@@ -113,9 +146,8 @@ def run_nonfatal(command_words: SequenceTypes, **popen_kwargs) -> int:
     # Return this exit status.
     return exit_status
 
-# ....................{ RUNNERS ~ stdout                   }....................
-def run_capturing_stdout(
-    command_words: SequenceTypes, **popen_kwargs) -> str:
+# ....................{ GETTERS ~ stdout                   }....................
+def get_stdout_or_die(command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout output by this subprocess *and* raising
@@ -126,13 +158,14 @@ def run_capturing_stdout(
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
-        Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
+        Dictionary of keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method.
 
     Returns
     ----------
     str
         All stdout captured from this subprocess, stripped of all trailing
-        newlines (as under most POSIX shells) _and_ decoded with the current
+        newlines (as under most POSIX shells) *and* decoded with the current
         locale's preferred encoding (e.g., UTF-8).
 
     Raises
@@ -142,7 +175,7 @@ def run_capturing_stdout(
     '''
 
     # Sanitize these arguments.
-    _init_run_args(command_words, popen_kwargs)
+    _init_popen_kwargs(command_words, popen_kwargs)
 
     # Capture this command's stdout, raising an exception on command failure
     # (including failure due to an expired timeout).
@@ -152,12 +185,16 @@ def run_capturing_stdout(
     return command_stdout.rstrip('\n')
 
 
-def run_interleaving_output(
+#FIXME: Define a new log_output_interleaved_or_die() function inspired by the
+#following StackOverflow solution:
+#    https://stackoverflow.com/a/21978778/2809027
+
+def get_output_interleaved_or_die(
     command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout and stderr output by this subprocess
-    interleaved together (in arbitrary order) _and_ raising an exception on
+    interleaved together (in arbitrary order) *and* raising an exception on
     subprocess failure.
 
     Parameters
@@ -165,14 +202,15 @@ def run_interleaving_output(
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
     popen_kwargs : Mapping
-        Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
+        Dictionary of keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method.
 
     Returns
     ----------
     str
         All stdout and stderr captured from this subprocess, interleaved
         together in output order, stripped of all trailing newlines (as under
-        most POSIX shells) _and_ decoded with the current locale's preferred
+        most POSIX shells) *and* decoded with the current locale's preferred
         encoding (e.g., UTF-8).
 
     Raises
@@ -185,14 +223,100 @@ def run_interleaving_output(
     popen_kwargs['stderr'] = subprocess.STDOUT
 
     # Capture and return this command's stdout and stderr.
-    return run_capturing_stdout(command_words, **popen_kwargs)
+    return get_stdout_or_die(command_words, **popen_kwargs)
+
+# ....................{ LOGGERS                            }....................
+def log_output_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
+    '''
+    Run the passed command as a subprocess of the current Python process,
+    capturing and logging all stdout output by this subprocess with logging
+    level ``INFO`` *and* all stderr output by this subprocess with logging
+    level ``ERROR``, raising an exception on subprocess failure.
+
+    For both space efficiency and logging responsiveness, this function captures
+    and logs subprocess output in a line-buffered manner. Specifically:
+
+    * Each line of stdout output by this subprocess is logged with logging level
+      :attr:`LogLevel.INFO` with multi-threaded asynchronous I/O.
+    * Each line of stdout output by this subprocess is logged with logging level
+      :attr:`LogLevel.INFO` with multi-threaded asynchronous I/O.
+
+    Parameters
+    ----------
+    command_words : SequenceTypes
+        List of one or more shell words comprising this command.
+    popen_kwargs : Mapping
+        Dictionary of keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method.
+
+    Raises
+    ----------
+    CalledProcessError
+        Exception raised on subprocess failure.
+    '''
+
+    # Sanitize these arguments.
+    _init_popen_kwargs(command_words, popen_kwargs)
+
+    # Subprocess forked from this process, redirecting both stdout and stderr to
+    # consumable pipes in a line-buffered manner.
+    subprocess = Popen(
+        args=command_words, stdout=PIPE, stderr=PIPE, bufsize=BUFFER_SIZE_LINE)
+
+    # Threads logging each line of stdout and stderr output by this subprocess
+    # with the appropriate logging levels.
+    stdout_logger = Thread(
+        target=_log_pipe_lines, args=(subprocess.stdout, LogLevel.INFO))
+    stderr_logger = Thread(
+        target=_log_pipe_lines, args=(subprocess.stderr, LogLevel.ERROR))
+
+    # Run this subprocess in a multi-threaded manner logged by these
+    # asynchronous threads, raising an exception on subprocess failure.
+    stdout_logger.start()
+    stderr_logger.start()
+
+
+@type_check
+def _log_pipe_lines(pipe: TextIOWrapper, log_level: LogLevel) -> None:
+    '''
+    Iteratively log each line buffered by the passed subprocess pipe as a new
+    log message with the passed log level.
+
+    Parameters
+    ----------
+    command_words : SequenceTypes
+        List of one or more shell words comprising this command.
+    popen_kwargs : Mapping
+        Dictionary of keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.io.iofiles import READLINE_EOF
+    from betse.util.type import strs
+
+    # With this pipe contextually opened for reading...
+    with pipe:
+        # For each plaintext line emitted by this pipe (falling back to the
+        # standard EOF emitted by the readline() method in the event of
+        # unexpected pipe closure)...
+        for line in iter(pipe.readline, READLINE_EOF):
+            # If this line signifies end-of-file (EOF), stop consuming lines.
+            if line == READLINE_EOF:
+                break
+
+            # Message to be logged, stripped of trailing newline if any.
+            message = strs.remove_newlines_suffix(line)
+
+            # Log this line as a new log message with this logging level.
+            logs.log_levelled(message, log_level)
 
 # ....................{ PRIVATE                            }....................
 @type_check
-def _init_run_args(
+def _init_popen_kwargs(
     command_words: SequenceTypes, popen_kwargs: MappingType) -> None:
     '''
-    Sanitize the dictionary of keyword arguments to be passed to the
+    Sanitize the dictionary of keyword arguments to pass to the
     :class:`subprocess.Popen` callable with sane defaults.
 
     `close_fds`
@@ -219,7 +343,7 @@ def _init_run_args(
     If at least one of stdin, stdout, or stderr are redirected to a blocking
     pipe, setting ``close_fds`` to ``False`` can induce deadlocks under certain
     edge-case scenarios. Since all such file handles default to ``None`` and
-    hence are _not_ redirected in this case, ``close_fds`` may be safely set to
+    hence are *not* redirected in this case, ``close_fds`` may be safely set to
     ``False``.
 
     On all other platforms, if ``close_fds`` is ``True``, no file handles
@@ -238,23 +362,22 @@ def _init_run_args(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import commands
+    from betse.util.path.command import cmds
     from betse.util.os import oses
     from betse.util.os.shell import envs
-    from betse.util.type.mapping import mapcls
 
     # If the passed list of shell words is empty, raise an exception.
     if not command_words:
         raise BetseCommandException('Non-empty command expected.')
 
     # If the first shell word is this list is unrunnable, raise an exception.
-    commands.die_unless_command(command_words[0])
+    cmds.die_unless_command(command_words[0])
 
     # Log the command to be run before doing so.
     logs.log_debug('Running command: %s', ' '.join(command_words))
 
     # If this is vanilla Windows, sanitize the "close_fds" argument.
-    if oses.is_windows_vanilla() and not betse.util.type.mapping.maputil.is_keys(
+    if oses.is_windows_vanilla() and not maputil.is_keys(
         popen_kwargs, 'stdin', 'stdout', 'stderr', 'close_fds'):
         popen_kwargs['close_fds'] = False
 

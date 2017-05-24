@@ -49,6 +49,7 @@ logger to be unconfigured, messages will be logged _only_ by the root logger.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import logging, sys, traceback
+from betse.util.io.log.logenum import LogLevel
 from betse.util.type import types
 from betse.util.type.types import type_check
 
@@ -85,13 +86,38 @@ def get(logger_name: str = None) -> logging.Logger:
 
 # ....................{ LOGGERS                            }....................
 @type_check
+def log_levelled(message: str, level: LogLevel, *args, **kwargs) -> None:
+    '''
+    Log the passed message of the passed logging level (e.g.,
+    :attr:`LogLevel.INFO`) with the root logger, formatted with the passed
+    ``%``-style positional and keyword arguments.
+
+    This function expects the :class:`LogConfig` class globally configuring
+    logging to be instantiated as a singleton.
+
+    Parameters
+    ----------
+    message : str
+        Message to log containing zero or more ``%``-style format specifiers.
+    level : LogLevel
+        Logging level to log this message with (e.g., :attr:`LogLevel.INFO`).
+
+    ALl remaining parameters are interpolated into the message according to the
+    ``%``-style format specifiers embedded in this message.
+    '''
+
+    # The Logger.log() method accepts these parameters in the opposite order.
+    logging.log(level, message, *args, **kwargs)
+
+# ....................{ LOGGERS ~ level                    }....................
+@type_check
 def log_debug(message: str, *args, **kwargs) -> None:
     '''
     Log the passed debug message with the root logger, formatted with the passed
-    `%`-style positional and keyword arguments.
+    ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class to have been previously
-    instantiated, which globally configures logging.
+    This function expects the :class:`LogConfig` class globally configuring
+    logging to be instantiated as a singleton.
     '''
 
     logging.debug(message, *args, **kwargs)
@@ -101,10 +127,10 @@ def log_debug(message: str, *args, **kwargs) -> None:
 def log_info(message: str, *args, **kwargs) -> None:
     '''
     Log the passed informational message with the root logger, formatted with
-    the passed `%`-style positional and keyword arguments.
+    the passed ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class to have been previously
-    instantiated, which globally configures logging.
+    This function expects the :class:`LogConfig` class globally configuring
+    logging to be instantiated as a singleton.
     '''
 
     logging.info(message, *args, **kwargs)
@@ -114,10 +140,10 @@ def log_info(message: str, *args, **kwargs) -> None:
 def log_warning(message: str, *args, **kwargs) -> None:
     '''
     Log the passed warning message with the root logger, formatted with the
-    passed `%`-style positional and keyword arguments.
+    passed ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class to have been previously
-    instantiated, which globally configures logging.
+    This function expects the :class:`LogConfig` class globally configuring
+    logging to be instantiated as a singleton.
     '''
 
     logging.warning(message, *args, **kwargs)
@@ -127,15 +153,15 @@ def log_warning(message: str, *args, **kwargs) -> None:
 def log_error(message: str, *args, **kwargs) -> None:
     '''
     Log the passed error message with the root logger, formatted with the
-    passed `%`-style positional and keyword arguments.
+    passed ``%``-style positional and keyword arguments.
 
-    This function expects the :class:`LogConfig` class to have been previously
-    instantiated, which globally configures logging.
+    This function expects the :class:`LogConfig` class globally configuring
+    logging to be instantiated as a singleton.
     '''
 
     logging.error(message, *args, **kwargs)
 
-
+# ....................{ LOGGERS ~ exception                }....................
 @type_check
 def log_exception(exception: Exception) -> None:
     '''

@@ -279,9 +279,9 @@ installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
-# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary, converting
-#   between the setuptools-specific names listed below and the Python-specific
-#   module names imported by this application.
+# * The "betse.util.type.modules.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
+#   dictionary, converting between the setuptools-specific names listed below
+#   and the Python-specific module names imported by this application.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -295,7 +295,9 @@ DEPENDENCIES_RUNTIME_MANDATORY = {
     'PyYAML': '>= 3.10',
     'SciPy': '>= 0.12.0',
     'dill': '>= 0.2.3',
-    'matplotlib': '>= 1.4.0',
+
+    # Matplotlib >= 1.5.0 is required for the newly added "viridis" colormap.
+    'matplotlib': '>= 1.5.0',
 
     # Dependencies indirectly required by this application but only optionally
     # required by dependencies directly required by this application. Since the
@@ -353,7 +355,8 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
-# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary. See above.
+# * The "betse.util.type.modules.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
+#   dictionary. See above.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -396,7 +399,8 @@ See Also
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: Changes to this dictionary *MUST* be synchronized with:
 # * Front-facing documentation (e.g., the top-level "README.rst").
-# * The "betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary. See above.
+# * The "betse.util.type.modules.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
+#   dictionary. See above.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

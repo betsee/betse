@@ -39,6 +39,16 @@ class LogLevel(IntEnum):
         # "DEBUG" is less and hence more inclusive than "INFO".
         >>> LogLevel.DEBUG < LogLevel.INFO
         True
+
+    Usability
+    ----------
+    Enumeration members are integer constants and hence implicitly usable
+    wherever an integer r-value (i.e., value in the right-hand side of a
+    variable assignment statement) is expected: e.g.,
+
+        # Instruct the root logger to entertain all log requests. Neat-o, eh?
+        >>> import logging
+        >>> logging.getLogger('').setLevel(LogLevel.ALL)
     '''
 
 

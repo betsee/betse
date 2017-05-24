@@ -324,7 +324,8 @@ simulations and analyses.
         CLISubcommandNoArg(
             name='info',
             synopsis=(
-                'print metadata on {program_name} and the current system'),
+                'print metadata synopsizing '
+                '{program_name} and current system'),
             description='''
 Print informational metadata in ":"-delimited key-value format, including:
 

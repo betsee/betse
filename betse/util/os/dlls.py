@@ -146,7 +146,7 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
-    from betse.util.path.command import runners
+    from betse.util.path.command import cmdruns
     from betse.util.type import regexes, strs
 
     # If this library does *NOT* exist, raise an exception.
@@ -172,7 +172,7 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
         # 	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f9af2da5000)
         # 	libdl.so.2 => /lib64/libdl.so.2 (0x00007f9af2ba0000)
         # 	libutil.so.1 => /lib64/libutil.so.1 (0x00007f9af299d000)
-        ldd_stdout = runners.run_capturing_stdout(ldd_command_words)
+        ldd_stdout = cmdruns.get_stdout_or_die(ldd_command_words)
 
         # For each line containing a "=>"-delimited basename and absolute path
         # pair and hence ignoring both pseudo-libraries that do *NOT* actually

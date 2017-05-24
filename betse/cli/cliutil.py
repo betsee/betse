@@ -16,7 +16,7 @@ Low-level command line interface (CLI) utilities.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
-from betse.util.path.command import commands
+from betse.util.path.command import cmds
 from betse.util.type import strs
 from betse.util.type.types import type_check
 
@@ -27,7 +27,7 @@ def get_version() -> str:
     '''
 
     return '{} {}'.format(
-        commands.get_current_basename(), metadata.VERSION)
+        cmds.get_current_basename(), metadata.VERSION)
 
 # ....................{ EXPANDERS                          }....................
 @type_check
@@ -48,6 +48,6 @@ def expand_help(text: str, **kwargs) -> str:
 
     return strs.remove_whitespace_presuffix(text.format(
         program_name=metadata.NAME,
-        script_basename=commands.get_current_basename(),
+        script_basename=cmds.get_current_basename(),
         **kwargs
     ))

@@ -18,6 +18,23 @@ from betse.util.io.log import logs
 from betse.util.type.types import type_check, SequenceTypes
 from io import BufferedIOBase, TextIOWrapper
 
+# ....................{ GLOBALS                            }....................
+READLINE_EOF = ''
+'''
+String returned by the :class:`file.readline` method of all :class:`file`-like
+objects signifying end-of-file (EOF).
+
+By design, this method is guaranteed to unambiguously return this string if and
+only if no additional lines exist to read. For readability, testing against this
+human-readable global is strongly preferable to testing against the equally
+valid empty string.
+
+See Also
+----------
+https://docs.python.org/3/tutorial/inputoutput.html#methods-of-file-objects
+    Further details.
+'''
+
 # ....................{ GETTERS                            }....................
 @type_check
 def get_chars(filename: str, encoding: str = 'utf-8') -> str:

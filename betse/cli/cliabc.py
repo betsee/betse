@@ -22,9 +22,9 @@ from betse.cli import clioption
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
-from betse.util.path.command import commands
-from betse.util.path.command.args import HelpFormatterParagraph
-from betse.util.path.command.exits import SUCCESS, FAILURE_DEFAULT
+from betse.util.path.command import cmds
+from betse.util.path.command.cmdargs import HelpFormatterParagraph
+from betse.util.path.command.cmdexits import SUCCESS, FAILURE_DEFAULT
 from betse.util.py.profilers import profile_callable, ProfileType
 from betse.util.type import types
 from betse.util.type.types import (
@@ -231,7 +231,7 @@ class CLIABC(object, metaclass=ABCMeta):
         # Dictionary of keyword arguments initializing the core argument parser.
         arg_parser_top_kwargs = {
             # Script name.
-            'prog': commands.get_current_basename(),
+            'prog': cmds.get_current_basename(),
         }
 
         # Update this dictionary with preinitialized arguments.

@@ -87,11 +87,11 @@ def skip_unless_command(pathname: str):
     '''
 
     # Defer heavyweight imports.
-    from betse.util.path.command import commands
+    from betse.util.path.command import cmds
     from betse.util.type.decorators import noop
 
     # If this command exists, reduce this decoration to a noop.
-    if commands.is_command(pathname):
+    if cmds.is_command(pathname):
         return noop
     # Else, skip this test with a human-readable justification.
     else:

@@ -448,7 +448,16 @@ def double_quote(text: str) -> str:
     # Double quote this string.
     return '"{}"'.format(text)
 
-# ....................{ REMOVERS                           }....................
+# ....................{ REMOVERS ~ newline                 }....................
+@type_check
+def remove_newlines_suffix(text: str) -> str:
+    '''
+    Passed string with all suffixing (but *not* prefixing) newlines removed.
+    '''
+
+    return text.rstrip('\n')
+
+# ....................{ REMOVERS ~ space                   }....................
 @type_check
 def remove_whitespace_presuffix(text: str) -> str:
     '''

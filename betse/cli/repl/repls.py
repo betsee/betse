@@ -16,7 +16,7 @@ from betse.cli.repl import environment
 from betse.lib import libs
 from betse.util.io.log import logs
 from betse.util.path import files
-from betse.util.path.command import exits
+from betse.util.path.command import cmdexits
 from betse.util.type.types import type_check
 from enum import Enum
 
@@ -107,7 +107,7 @@ def start_ptpython_repl() -> None:
         )
     # When this REPL halts with error, reraise this exception.
     except SystemExit as exit:
-        if exits.is_failure(exit.code):
+        if cmdexits.is_failure(exit.code):
             raise
 
 
@@ -142,7 +142,7 @@ def start_code_repl() -> None:
     # When this REPL halts...
     except SystemExit as exit:
         # If this REPL halted with error, reraise this exception.
-        if exits.is_failure(exit.code):
+        if cmdexits.is_failure(exit.code):
             raise
         # Else, this REPL halted without error. Silently ignore this exception.
     # Serialize this REPL's history back to disk regardless of whether an

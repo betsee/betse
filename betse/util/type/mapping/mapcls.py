@@ -34,34 +34,34 @@ Unique arbitrary identifier with which to uniquify the class name of the next
 #sufficiently useless that numerous users would probably find this useful.
 @type_check
 def DefaultDict(
+    #FIXME: For disambiguity, rename to "missing_key_maker".
     missing_key_value: CallableTypes,
     initial_mapping: MappingType = None,
 ) -> MappingType:
     '''
     Sane **default dictionary** (i.e., dictionary implicitly setting an unset
-    key to the value returned by a caller-defined callable passed that key).
+    key to the value returned by a caller-defined callable passed both this
+    dictionary and that key).
 
-    Design
+    Motivation
     ----------
     The standard :class:`collections.defaultdict` class is sadly insane.
     Happily, this custom class is not. Specifically, that class:
 
-    * Requires that the caller-defined callable accept *no* arguments rather
-      than the current key to generate a default value for.
+    * Requires that the caller-defined callable accept *no* arguments.
     * Requires that the initial key-value pairs to seed this dictionary with be
       awkwardly defined as keyword arguments rather than key-value pairs.
 
     Parameters
     ----------
     missing_key_value : CallableTypes
-        Callable (e.g., function, lambda, method) called to generate the
-        default value for a "missing" (i.e., undefined) key on the first
-        attempt to access that key, passed first this dictionary and then this
-        key and returning this value. Hence, this callable should have a
-        signature resembling:
+        Callable (e.g., function, lambda, method) called to generate the default
+        value for a "missing" (i.e., undefined) key on the first attempt to
+        access that key, passed first this dictionary and then this key and
+        returning this value. This callable should have a signature resembling:
         ``def missing_key_value(self: DefaultDict, missing_key: object) ->
         object``. Equivalently, this callable should have the exact same
-        signature as the optional :meth:`dict.__missing__` method.
+        signature as that of the optional :meth:`dict.__missing__` method.
     initial_mapping : optional[MappingType]
         Non-default dictionary providing the initial key-value pairs of this
         default dictionary. Defaults to ``None``, in which case this
@@ -76,7 +76,7 @@ def DefaultDict(
     # Avoid circular import dependencies.
     from betse.util.type.cls import classes
 
-    # Default dictionary class specific to this missing key value callable.
+    # Dynamically generated default dictionary class specific to this callable.
     default_dict_class = classes.define_class(
         class_name=_get_default_dict_class_name(),
         class_attr_name_to_value={'__missing__': missing_key_value,},
@@ -464,11 +464,11 @@ def _get_default_dict_class_name() -> str:
     prefix and a unique arbitrary identifier.
     '''
 
-    # Global variable set below.
+    # Global variable modified below.
     global _DEFAULT_DICT_ID
 
-    # Increment this identifier, preserving uniqueness.
+    # Increment this identifier to preserve uniqueness.
     _DEFAULT_DICT_ID += 1
 
-    # Return a unique name suffixed by this identifier.
+    # Return a unique classname suffixed by this identifier.
     return '__DefaultDict' + str(_DEFAULT_DICT_ID)

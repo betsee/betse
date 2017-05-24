@@ -19,16 +19,13 @@ Low-level logging configuration.
 # circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import logging
-import os
-import sys
-from logging import Filter, Formatter, LogRecord, StreamHandler
-from os import path
-
+import logging, os, sys
 from betse import metadata, pathtree
 from betse.util.io.log.logenum import LogLevel
 from betse.util.io.log.loghandler import SafeRotatingFileHandler
 from betse.util.type.types import type_check
+from logging import Filter, Formatter, LogRecord, StreamHandler
+from os import path
 
 # ....................{ GLOBALS                            }....................
 # See below for utility functions accessing this singleton.
@@ -170,7 +167,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.path.command import commands
+        from betse.util.path.command import cmds
 
         # Initialize the stdout handler to:
         #
@@ -210,7 +207,7 @@ class LogConfig(object):
         # Note that "{{" and "}}" substrings in format() strings escape literal
         # "{" and "}" characters, respectively.
         stream_format = '[{}] {{message}}'.format(
-            commands.get_current_basename())
+            cmds.get_current_basename())
 
         # Formatters for these formats.
         stream_formatter = LoggerFormatterStream(stream_format, style='{')
@@ -234,7 +231,7 @@ class LogConfig(object):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.path.command import commands
+        from betse.util.path.command import cmds
         from betse.util.type import ints
 
         # Absolute or relative path of the directory containing this file.
@@ -308,7 +305,7 @@ class LogConfig(object):
         file_format = (
             '[{{asctime}}] {} {{levelname}} '
             '({{module}}.py:{{funcName}}():{{lineno}}):\n'
-            '    {{message}}'.format(commands.get_current_basename()))
+            '    {{message}}'.format(cmds.get_current_basename()))
 
         # Format this file according to this format.
         file_formatter = LoggerFormatterStream(file_format, style='{')

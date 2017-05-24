@@ -200,7 +200,7 @@ def get_metadata() -> OrderedArgsDict:
 
 # ....................{ RUNNERS                            }....................
 @type_check
-def run(command_args: SequenceTypes, **popen_kwargs) -> None:
+def rerun_or_die(command_args: SequenceTypes, **popen_kwargs) -> None:
     '''
     Rerun the active Python interpreter as a subprocess of the current Python
     process, raising an exception on subprocess failure.
@@ -208,9 +208,10 @@ def run(command_args: SequenceTypes, **popen_kwargs) -> None:
     Parameters
     ----------
     command_args : list
-        List of zero or more arguments to be passed to this interpreter.
+        List of zero or more arguments to pass to this interpreter.
     popen_kwargs : dict
-        Dictionary of keyword arguments to be passed to `subprocess.Popen()`.
+        Dictionary of keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method.
 
     See Also
     ----------
@@ -219,10 +220,10 @@ def run(command_args: SequenceTypes, **popen_kwargs) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import runners
+    from betse.util.path.command import cmdruns
 
     # List of one or more shell words comprising this command.
     command_words = get_command_line_prefix() + command_args
 
     # Rerun this interpreter.
-    return runners.run(command_words, **popen_kwargs)
+    return cmdruns.run_or_die(command_words, **popen_kwargs)
