@@ -27,7 +27,7 @@ def is_headfull() -> bool:
     # Avoid circular import dependencies.
     from betse.util.os import oses
     from betse.util.os.brand import macos
-    from betse.util.os.shell import envs
+    from betse.util.os.shell import shellenv
 
     # The current process is headfull if and only if...
     return (
@@ -44,7 +44,7 @@ def is_headfull() -> bool:
         # X11 display server, we efficiently test for the accessibility of this
         # server via the ${DISPLAY} environment variable inherited from the
         # parent shell environment first.
-        envs.is_var('DISPLAY') or
+        shellenv.is_var('DISPLAY') or
 
         # Else, all possible alternative display servers specific to the current
         # platform *MUST* be iteratively tested for.
@@ -56,7 +56,7 @@ def is_headfull() -> bool:
         #
         # Ergo, the current process is headfull if and only if one of these
         # variables is inherited from the parent shell environment.
-        (oses.is_linux() and envs.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY',)) or
+        (oses.is_linux() and shellenv.is_var('MIR_SOCKET', 'WAYLAND_DISPLAY', )) or
 
         # If this is OS X, the only remaining display server is Aqua.
         (oses.is_macos() and macos.is_aqua())

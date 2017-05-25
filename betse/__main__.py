@@ -16,7 +16,7 @@ This submodule is a thin wrapper intended to be:
 
 # ....................{ IMPORTS                            }....................
 from betse.cli.climain import BetseCLI
-from betse.util.path.command import cmdexits
+from betse.util.path.command import cmdexit
 
 # ....................{ MAIN                               }....................
 def main(arg_list: list = None) -> int:
@@ -49,4 +49,4 @@ def main(arg_list: list = None) -> int:
 # else, noop. For POSIX compliance, the exit status returned by this function
 # is propagated to the caller as this script's exit status.
 if __name__ == '__main__':
-    cmdexits.exit(main())
+    cmdexit.exit(main())

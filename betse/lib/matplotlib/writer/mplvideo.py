@@ -12,9 +12,10 @@ Matplotlib-specific classes writing animations as video.
 # ....................{ IMPORTS                            }....................
 from matplotlib.animation import FFMpegBase, MovieWriter, writers
 
+import betse.util.os.shell.shellstr
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
-from betse.util.path.command import cmdruns
+from betse.util.path.command import cmdrun
 from betse.util.type import regexes, strs
 from betse.util.type.cls import classes
 from betse.util.type.mapping.mapcls import ReversibleDict
@@ -474,11 +475,11 @@ def is_writer_command_codec(
         ffmpeg_command_words = (
             writer_filename,
             '-help',
-            'encoder=' + strs.shell_quote(codec_name),
+            'encoder=' + betse.util.os.shell.shellstr.shell_quote(codec_name),
         )
 
         # Help documentation for this codec captured from "ffmpeg".
-        ffmpeg_codec_help = cmdruns.get_stdout_or_die(ffmpeg_command_words)
+        ffmpeg_codec_help = cmdrun.get_stdout_or_die(ffmpeg_command_words)
 
         # Return whether this documentation is suffixed by a string implying
         # this codec to be unrecognized or not. If this codec is unrecognized,
@@ -492,11 +493,11 @@ def is_writer_command_codec(
         avconv_command_words = (
             writer_filename,
             '-help',
-            'encoder=' + strs.shell_quote(codec_name),
+            'encoder=' + betse.util.os.shell.shellstr.shell_quote(codec_name),
         )
 
         # Help documentation for this codec captured from "avconv".
-        avconv_codec_help = cmdruns.get_stdout_or_die(avconv_command_words)
+        avconv_codec_help = cmdrun.get_stdout_or_die(avconv_command_words)
         # print('avconv_command_words: {}'.format(avconv_command_words))
         # print('avconv_codec_help: {}'.format(avconv_codec_help))
 
@@ -508,7 +509,7 @@ def is_writer_command_codec(
     # the above FFmpeg-specific logic to specifically detect this codec.
     elif writer_basename == 'mencoder':
         # Help documentation for all codecs captured from "mencoder".
-        mencoder_codecs_help = cmdruns.get_stdout_or_die(command_words=(
+        mencoder_codecs_help = cmdrun.get_stdout_or_die((
             writer_filename, '-ovc', 'help'))
         # print('mencoder codecs help: ' + mencoder_codecs_help)
 

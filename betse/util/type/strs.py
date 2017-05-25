@@ -9,14 +9,15 @@ Low-level string facilities.
 
 # ....................{ IMPORTS                            }....................
 import textwrap
-from betse.exceptions import BetseStrException
-from betse.util.type import types
-from betse.util.type.types import type_check, IterableTypes, StrOrNoneTypes
 from textwrap import TextWrapper
 
+from betse.exceptions import BetseStrException
+from betse.util.type import types
 # For convenience, permit callers to import the general-purpose trim() function
 # from this submodule rather than the "types" submodule.
 from betse.util.type.types import trim
+from betse.util.type.types import type_check, IterableTypes, StrOrNoneTypes
+
 if False: trim  # silence IDE warnings
 
 # ....................{ SINGLETONS                         }....................
@@ -619,42 +620,6 @@ def uppercase_first_char(text: str) -> str:
         text[0].upper() + (text[1:] if len(text) > 2 else '')
         if len(text) else ''
     )
-
-# ....................{ QUOTERS                            }....................
-@type_check
-def shell_quote(text: str) -> str:
-    '''
-    Shell-quote the passed string in a platform-specific manner.
-
-    If the current platform is:
-
-    * _Not_ Windows (e.g., Linux, OS X), the returned string is guaranteed to be
-      suitable for passing as an arbitrary positional argument to external
-      commands.
-    * Windows, the returned string is suitable for passing _only_ to external
-      commands parsing arguments in the same manner as the Microsoft C runtime.
-      While _all_ applications on POSIX-compliant systems are required to parse
-      arguments in the same manner (i.e., according to Bourne shell lexing), no
-      such standard applies to Windows applications. Shell quoting is therefore
-      fragile under Windows -- like pretty much everything.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.os import oses
-
-    # If the current OS is Windows, do *NOT* perform POSIX-compatible quoting.
-    # Windows is POSIX-incompatible and hence does *NOT* parse command-line
-    # arguments according to POSIX standards. In particular, Windows does *NOT*
-    # treat single-quoted arguments as single arguments but rather as multiple
-    # shell words delimited by the raw literal `'`. This is circumventable by
-    # calling an officially undocumented Windows-specific function. (Awesome.)
-    if oses.is_windows():
-        import subprocess
-        return subprocess.list2cmdline([text])
-    # Else, perform POSIX-compatible quoting.
-    else:
-        import shlex
-        return shlex.quote(text)
 
 # ....................{ WRAPPERS                           }....................
 def wrap_lines(lines: IterableTypes, **kwargs) -> str:

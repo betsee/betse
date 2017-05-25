@@ -8,6 +8,8 @@ Low-level **environment** (i.e., set of all external shell variables exported to
 the the active Python interpreter) facilities.
 '''
 
+#FIXME: For disambiguity, rename this submodule to "shellenv".
+
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: For safety, all attempts to get, set, or unset environment variables
 # should act on the low-level global "os.environ" dictionary directly rather
@@ -22,11 +24,8 @@ the the active Python interpreter) facilities.
 
 # ....................{ IMPORTS                            }....................
 from os import environ
-
-import betse.util.type.mapping.maputil
 from betse.exceptions import BetseOSShellEnvException
 from betse.util.type.types import type_check, MappingType
-
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -77,11 +76,11 @@ def is_var(*names: str) -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type.mapping import mapcls
+    from betse.util.type.mapping import maputil
 
     # Return True only if the names of these environment variables are all keys
     # of the corresponding dictionary global.
-    return betse.util.type.mapping.maputil.is_keys(environ, *names)
+    return maputil.is_keys(environ, *names)
 
 # ....................{ GETTERS                            }....................
 def get_env() -> MappingType:

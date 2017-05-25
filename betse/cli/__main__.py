@@ -10,11 +10,11 @@ backward compatibility with prior versions.
 
 # ....................{ IMPORTS                            }....................
 from betse.__main__ import main
-from betse.util.path.command import cmdexits
+from betse.util.path.command import cmdexit
 
 # ....................{ MAIN                               }....................
 # If this module is imported from the command line, run BETSE's CLI; else, noop.
 # For POSIX compliance, the exit status returned by this function is propagated
 # to the caller as this script's exit status.
 if __name__ == '__main__':
-    cmdexits.exit(main())
+    cmdexit.exit(main())

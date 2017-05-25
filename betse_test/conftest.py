@@ -13,7 +13,7 @@ _all_ test modules.
 # ....................{ IMPORTS                            }....................
 import pytest
 from betse import metadata
-from betse.util.os.shell import envs
+from betse.util.os.shell import shellenv
 from betse_test.exceptions import BetseTestHookException
 from betse_test.util.testabc import SerialTestABC
 
@@ -89,7 +89,7 @@ def pytest_configure(config):
     # Since unsetting environment variables is fast, doing so here transparently
     # supports both use cases detailed above with no discernable downside. See
     # the docstring for additional commentary.
-    envs.unset_var_if_set('DISPLAY')
+    shellenv.unset_var_if_set('DISPLAY')
 
 
 def pytest_unconfigure(config):

@@ -60,11 +60,11 @@ def get_root_dirname() -> str:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
-    from betse.util.os.shell import envs
+    from betse.util.os.shell import shellenv
 
     # Return this dirname.
     if oses.is_windows_vanilla():
-        return envs.get_var_or_default('HOMEDRIVE', 'C:') + os.path.sep
+        return shellenv.get_var_or_default('HOMEDRIVE', 'C:') + os.path.sep
     else:
         return os.path.sep
 
@@ -96,9 +96,9 @@ def get_dot_dirname() -> str:
     directory of the current user, silently creating this directory if *not*
     already found.
 
-    This directory contains application-external resources (e.g., configuration
-    files) created at application runtime and subsequently editable by external
-    users and utilities.
+    This directory contains user-specific files (e.g., logfiles, profile files)
+    both read from and written to at application runtime. These are typically
+    plaintext files consumable by external users and third-party utilities.
 
     Locations
     ----------
@@ -117,7 +117,7 @@ def get_dot_dirname() -> str:
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
-    from betse.util.os.shell import envs
+    from betse.util.os.shell import shellenv
     from betse.util.path import dirs, pathnames
 
     # Absolute path of this directory.
@@ -133,7 +133,7 @@ def get_dot_dirname() -> str:
         )
     # If the current platform is Windows, return the appropriate directory.
     elif oses.is_windows():
-        dot_dirname = pathnames.join(envs.get_var('APPDATA'), metadata.NAME)
+        dot_dirname = pathnames.join(shellenv.get_var('APPDATA'), metadata.NAME)
     # Else, assume the current platform to be POSIX-compatible.
     else:
         #FIXME: Explicitly assert POSIX compatibility here. To do so, we'll want

@@ -90,7 +90,7 @@ def is_aqua() -> bool:
 
     # Avoid circular import dependencies.
     from betse.util.path import files
-    from betse.util.path.command.cmdexits import SUCCESS
+    from betse.util.path.command.cmdexit import SUCCESS
 
     # Raise an exception unless the current platform is macOS.
     die_unless_macos()

@@ -578,7 +578,7 @@ def canonicalize(pathname: str) -> str:
 #efficiency under Windows?" is my retort! *shrug*
 
 @type_check
-def join(*pathnames: str) -> str:
+def join(*partnames: str) -> str:
     '''
     Join (i.e., concatenate) the passed pathnames with the directory separator
     specific to the current platform.
@@ -588,4 +588,4 @@ def join(*pathnames: str) -> str:
     unify and hence simplify ``import`` statements in other modules.
     '''
 
-    return os.path.join(*pathnames)
+    return os.path.join(*partnames)

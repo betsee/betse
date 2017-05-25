@@ -211,32 +211,6 @@ def list_basenames(dirname: str) -> list:
     return os.listdir(dirname)
 
 # ....................{ MAKERS                             }....................
-def canonicalize_and_make_unless_dir(dirname: str) -> str:
-    '''
-    Get the **canonical form** (i.e., unique absolute path) of the passed
-    directory *and* create this directory if this directory does not already
-    exist.
-
-    See Also
-    -----------
-    :func:`betse.util.path.pathnames.canonicalize`
-    :func:`make_unless_dir`
-        Further details.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.path import pathnames
-
-    # Convert this dirname into canonical form.
-    dirname = pathnames.canonicalize(dirname)
-
-    # Create this directory if needed.
-    make_unless_dir(dirname)
-
-    # Return this dirname.
-    return dirname
-
-
 @type_check
 def make_unless_dir(dirname: str) -> None:
     '''
@@ -277,6 +251,54 @@ def make_parent_unless_dir(*pathnames: str) -> None:
     # converted to absolute pathnames first.
     for pathname in pathnames:
         make_unless_dir(get_dirname(canonicalize(pathname)))
+
+# ....................{ MAKERS ~ convenience               }....................
+def canonicalize_and_make_unless_dir(dirname: str) -> str:
+    '''
+    Create the directory with the passed absolute or relative path if this
+    directory does not already exist and return the **canonical form** (i.e.,
+    unique absolute path) of this path.
+
+    This convenience function chains the lower-level
+    :func:`betse.util.path.pathnames.canonicalize` and
+    :func:`make_unless_dir` functions.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # Dirname canonicalized from this possibly non-canonical dirname.
+    dirname = pathnames.canonicalize(dirname)
+
+    # Create this directory if needed.
+    make_unless_dir(dirname)
+
+    # Return this dirname.
+    return dirname
+
+
+def join_and_make_unless_dir(*partnames: str) -> str:
+    '''
+    Join (i.e., concatenate) the passed pathnames with the directory separator
+    specific to the current platform, create the directory with the resulting
+    absolute or relative path, and return this path.
+
+    This convenience function chains the lower-level
+    :func:`betse.util.path.pathnames.join` and :func:`make_unless_dir`
+    functions.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # Dirname joined from these pathnames.
+    dirname = pathnames.join(*partnames)
+
+    # Create this directory if needed.
+    make_unless_dir(dirname)
+
+    # Return this dirname.
+    return dirname
 
 # ....................{ COPIERS                            }....................
 @type_check

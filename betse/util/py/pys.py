@@ -16,15 +16,13 @@ poor form. Call these functions _only_ where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-import platform
-import sys
-
 from betse import metadata
 from betse.exceptions import BetsePyException
 from betse.util.io.log import logs
 from betse.util.type.mapping.mapcls import OrderedArgsDict
-from betse.util.type.types import type_check, SequenceTypes
-
+from betse.util.type.types import (
+    type_check, MappingOrNoneTypes, SequenceTypes)
+import platform, sys
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -200,18 +198,21 @@ def get_metadata() -> OrderedArgsDict:
 
 # ....................{ RUNNERS                            }....................
 @type_check
-def rerun_or_die(command_args: SequenceTypes, **popen_kwargs) -> None:
+def rerun_or_die(
+    command_args: SequenceTypes,
+    popen_kwargs: MappingOrNoneTypes = None) -> None:
     '''
     Rerun the active Python interpreter as a subprocess of the current Python
     process, raising an exception on subprocess failure.
 
     Parameters
     ----------
-    command_args : list
+    command_args : SequenceTypes
         List of zero or more arguments to pass to this interpreter.
-    popen_kwargs : dict
-        Dictionary of keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method.
+    popen_kwargs : optional[MappingType]
+        Dictionary of all keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
+        case the empty dictionary is assumed.
 
     See Also
     ----------
@@ -220,10 +221,11 @@ def rerun_or_die(command_args: SequenceTypes, **popen_kwargs) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmdruns
+    from betse.util.path.command import cmdrun
 
     # List of one or more shell words comprising this command.
     command_words = get_command_line_prefix() + command_args
 
     # Rerun this interpreter.
-    return cmdruns.run_or_die(command_words, **popen_kwargs)
+    return cmdrun.run_or_die(
+        command_words=command_words, popen_kwargs=popen_kwargs)

@@ -11,12 +11,25 @@ Command Words Arguments
 Most runners accept a mandatory ``command_words`` parameter, a list of one or
 more shell words comprising this command whose:
 
-* Mandatory first element is either:
+* Mandatory first item is either:
+
   * This command's absolute or relative path.
   * This command's basename, in which case the first command with that basename
     in the current ``${PATH}`` environment variable will be run. If no such
     command is found, an exception is raised.
-* Optional subsequent elements are this command's arguments (in order).
+
+* Optional subsequent items are this command's arguments (in order). Note that
+  these arguments are passed as is to a low-level system call rather than
+  intprereted by a high-level shell (e.g., ``/bin/sh`` on POSIX-compatible
+  platforms) and hence should *not* be shell-quoted. Indeed, shell quoting these
+  arguments is likely to result in erroneous command behaviour. The principal
+  exception to this heuristic are **GNU-style long value options** (i.e.,
+  ``--``-prefixed options accepting a ``=``-delimited value), whose values
+  should either be:
+
+  * Passed as a separate argument *without* being shell-quoted.
+  * Concatenated to the current ``--``-prefixed argument delimited by ``=`` and
+    shell-quoted.
 
 `Popen()` Keyword Arguments
 ----------
@@ -36,7 +49,8 @@ from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.mapping import maputil
-from betse.util.type.types import type_check, MappingType, SequenceTypes
+from betse.util.type.types import (
+    type_check, MappingType, MappingOrNoneTypes, SequenceTypes)
 from io import TextIOWrapper
 from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
 from threading import Thread
@@ -72,7 +86,9 @@ newline inclusive and the prior newline exclusive is consumed.
 '''
 
 # ....................{ RUNNERS                            }....................
-def run_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
+def run_or_die(
+    command_words: SequenceTypes, popen_kwargs: MappingOrNoneTypes = None
+) -> None:
     '''
     Run the passed command as a subprocess of the current Python process,
     raising an exception on subprocess failure.
@@ -83,9 +99,10 @@ def run_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    popen_kwargs : Mapping
-        Dictionary of keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method.
+    popen_kwargs : optional[MappingType]
+        Dictionary of all keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
+        case the empty dictionary is assumed.
 
     Raises
     ----------
@@ -94,18 +111,21 @@ def run_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.path.command import cmdexits
+    from betse.util.path.command import cmdexit
 
     # Run this command, raising an exception on command failure. For
     # reusability, reimplement the subprocess.check_call() function here rather
     # than explicitly call this function. The latter approach would require
     # duplicating logic between this and the get_exit_status() function.
-    exit_status = get_exit_status(command_words, popen_kwargs)
-    if cmdexits.is_failure(exit_status):
+    exit_status = get_exit_status(
+        command_words=command_words, popen_kwargs=popen_kwargs)
+    if cmdexit.is_failure(exit_status):
         raise CalledProcessError(exit_status, command_words)
 
 # ....................{ GETTERS                            }....................
-def get_exit_status(command_words: SequenceTypes, **popen_kwargs) -> int:
+def get_exit_status(
+    command_words: SequenceTypes, popen_kwargs: MappingOrNoneTypes = None
+) -> int:
     '''
     Run the passed command as a subprocess of the current Python process,
     returning only the exit status of this subprocess.
@@ -117,9 +137,10 @@ def get_exit_status(command_words: SequenceTypes, **popen_kwargs) -> int:
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    popen_kwargs : Mapping
-        Dictionary of keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method.
+    popen_kwargs : optional[MappingType]
+        Dictionary of all keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
+        case the empty dictionary is assumed.
 
     Returns
     ----------
@@ -131,7 +152,7 @@ def get_exit_status(command_words: SequenceTypes, **popen_kwargs) -> int:
     from betse.util.path.command import FAILURE_DEFAULT
 
     # Sanitize these arguments.
-    _init_popen_kwargs(command_words, popen_kwargs)
+    popen_kwargs = _init_popen_kwargs(command_words, popen_kwargs)
 
     # Run this command *WITHOUT* raising an exception on command failure.
     try:
@@ -147,7 +168,9 @@ def get_exit_status(command_words: SequenceTypes, **popen_kwargs) -> int:
     return exit_status
 
 # ....................{ GETTERS ~ stdout                   }....................
-def get_stdout_or_die(command_words: SequenceTypes, **popen_kwargs) -> str:
+def get_stdout_or_die(
+    command_words: SequenceTypes, popen_kwargs: MappingOrNoneTypes = None
+) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout output by this subprocess *and* raising
@@ -157,9 +180,10 @@ def get_stdout_or_die(command_words: SequenceTypes, **popen_kwargs) -> str:
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    popen_kwargs : Mapping
-        Dictionary of keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method.
+    popen_kwargs : optional[MappingType]
+        Dictionary of all keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
+        case the empty dictionary is assumed.
 
     Returns
     ----------
@@ -175,7 +199,7 @@ def get_stdout_or_die(command_words: SequenceTypes, **popen_kwargs) -> str:
     '''
 
     # Sanitize these arguments.
-    _init_popen_kwargs(command_words, popen_kwargs)
+    popen_kwargs = _init_popen_kwargs(command_words, popen_kwargs)
 
     # Capture this command's stdout, raising an exception on command failure
     # (including failure due to an expired timeout).
@@ -185,12 +209,9 @@ def get_stdout_or_die(command_words: SequenceTypes, **popen_kwargs) -> str:
     return command_stdout.rstrip('\n')
 
 
-#FIXME: Define a new log_output_interleaved_or_die() function inspired by the
-#following StackOverflow solution:
-#    https://stackoverflow.com/a/21978778/2809027
-
 def get_output_interleaved_or_die(
-    command_words: SequenceTypes, **popen_kwargs) -> str:
+    command_words: SequenceTypes, popen_kwargs: MappingOrNoneTypes = None
+) -> str:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and returning all stdout and stderr output by this subprocess
@@ -201,9 +222,10 @@ def get_output_interleaved_or_die(
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    popen_kwargs : Mapping
-        Dictionary of keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method.
+    popen_kwargs : optional[MappingType]
+        Dictionary of all keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
+        case the empty dictionary is assumed.
 
     Returns
     ----------
@@ -219,14 +241,21 @@ def get_output_interleaved_or_die(
         Exception raised on subprocess failure.
     '''
 
+    # If these keyword arguments are empty, default to the empty dictionary.
+    if not popen_kwargs:
+        popen_kwargs = {}
+
     # Redirect stderr to stdout.
     popen_kwargs['stderr'] = subprocess.STDOUT
 
     # Capture and return this command's stdout and stderr.
-    return get_stdout_or_die(command_words, **popen_kwargs)
+    return get_stdout_or_die(
+        command_words=command_words, popen_kwargs=popen_kwargs)
 
 # ....................{ LOGGERS                            }....................
-def log_output_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
+def log_output_or_die(
+    command_words: SequenceTypes, popen_kwargs: MappingOrNoneTypes = None
+) -> None:
     '''
     Run the passed command as a subprocess of the current Python process,
     capturing and logging all stdout output by this subprocess with logging
@@ -245,9 +274,10 @@ def log_output_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    popen_kwargs : Mapping
-        Dictionary of keyword arguments to pass to the
-        :meth:`subprocess.Popen.__init__` method.
+    popen_kwargs : optional[MappingType]
+        Dictionary of all keyword arguments to pass to the
+        :meth:`subprocess.Popen.__init__` method. Defaults to ``None``, in which
+        case the empty dictionary is assumed.
 
     Raises
     ----------
@@ -256,12 +286,17 @@ def log_output_or_die(command_words: SequenceTypes, **popen_kwargs) -> None:
     '''
 
     # Sanitize these arguments.
-    _init_popen_kwargs(command_words, popen_kwargs)
+    popen_kwargs = _init_popen_kwargs(command_words, popen_kwargs)
 
     # Subprocess forked from this process, redirecting both stdout and stderr to
     # consumable pipes in a line-buffered manner.
     subprocess = Popen(
-        args=command_words, stdout=PIPE, stderr=PIPE, bufsize=BUFFER_SIZE_LINE)
+        args=command_words,
+        stdout=PIPE,
+        stderr=PIPE,
+        bufsize=BUFFER_SIZE_LINE,
+        **popen_kwargs
+    )
 
     # Threads logging each line of stdout and stderr output by this subprocess
     # with the appropriate logging levels.
@@ -314,10 +349,12 @@ def _log_pipe_lines(pipe: TextIOWrapper, log_level: LogLevel) -> None:
 # ....................{ PRIVATE                            }....................
 @type_check
 def _init_popen_kwargs(
-    command_words: SequenceTypes, popen_kwargs: MappingType) -> None:
+    command_words: SequenceTypes, popen_kwargs: MappingOrNoneTypes
+) -> MappingType:
     '''
-    Sanitize the dictionary of keyword arguments to pass to the
-    :class:`subprocess.Popen` callable with sane defaults.
+    Sanitized dictionary of all keyword arguments to pass to the
+    :class:`subprocess.Popen` callable when running the command specified by the
+    passed shell words with the passed user-defined keyword arguments.
 
     `close_fds`
     ----------
@@ -357,18 +394,23 @@ def _init_popen_kwargs(
     ----------
     command_words : SequenceTypes
         List of one or more shell words comprising this command.
-    popen_kwargs : MappingType
-        Dictionary of keyword arguments to be sanitized.
+    popen_kwargs : optional[MappingType]
+        Dictionary of all keyword arguments to be sanitized. Defaults to
+        ``None``, in which case the empty dictionary is assumed.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.path.command import cmds
     from betse.util.os import oses
-    from betse.util.os.shell import envs
+    from betse.util.os.shell import shellenv
 
-    # If the passed list of shell words is empty, raise an exception.
+    # If this list of shell words is empty, raise an exception.
     if not command_words:
         raise BetseCommandException('Non-empty command expected.')
+
+    # If these keyword arguments are empty, default to the empty dictionary.
+    if not popen_kwargs:
+        popen_kwargs = {}
 
     # If the first shell word is this list is unrunnable, raise an exception.
     cmds.die_unless_command(command_words[0])
@@ -384,7 +426,10 @@ def _init_popen_kwargs(
     # Isolate the current set of environment variables to this command,
     # preventing concurrent changes in these variables in the current process
     # from affecting this command's subprocess.
-    popen_kwargs['env'] = envs.get_env()
+    popen_kwargs['env'] = shellenv.get_env()
 
     # Decode command output with the current locale's preferred encoding.
     popen_kwargs['universal_newlines'] = True
+
+    # Return these keyword arguments.
+    return popen_kwargs

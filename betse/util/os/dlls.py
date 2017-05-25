@@ -70,14 +70,14 @@ def die_unless_dll(pathname: str) -> None:
 @type_check
 def is_dll(pathname: str) -> bool:
     '''
-    `True` only if the passed path is that of an existing shared library
-    specific to the current platform (e.g., suffixed by `.so` on Linux).
+    ``True`` only if the passed path is that of an existing shared library
+    specific to the current platform (e.g., suffixed by ``.so`` on Linux).
 
-    This function returns `False` if either:
+    This function returns ``False`` if either:
 
-    * This path is _not_ that of an existing file.
+    * This path is *not* that of an existing file.
     * This pathname has no filetype.
-    * This pathname's filetype is _not_ that of a shared library supported by
+    * This pathname's filetype is *not* that of a shared library supported by
       the current platform.
 
     Parameters
@@ -88,7 +88,7 @@ def is_dll(pathname: str) -> bool:
     Returns
     ----------
     bool
-        `True` only if this path is that of an existing shared library.
+        ``True`` only if this path is that of an existing shared library.
     '''
 
     # Avoid circular import dependencies.
@@ -134,29 +134,25 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
     filename : str
         Absolute or relative path of the shared library to inspect.
 
-    Returns
+    Yields
     ----------
-    GeneratorType
-        Generator iteratively yielding the 2-tuple
-        `(linked_lib_basename, linked_lib_pathname`), where:
-        * `linked_lib_basename` is the basename of a shared library dynamically
-          linked to the shared library with the passed path.
-        * `linked_lib_pathname` is the absolute pathname of the same library.
+    (str, str)
+        2-tuple ``(linked_lib_basename, linked_lib_pathname``), where:
+        * ``linked_lib_basename`` is the basename of a shared library
+          dynamically linked to the shared library with the passed path.
+        * ``linked_lib_pathname`` is the absolute pathname of the same library.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.os import oses
-    from betse.util.path.command import cmdruns
-    from betse.util.type import regexes, strs
+    from betse.util.path.command import cmdrun
+    from betse.util.type import regexes
 
     # If this library does *NOT* exist, raise an exception.
     die_unless_dll(filename)
 
     # If the current platform is Linux...
     if oses.is_linux():
-        # Tuple of all shell words comprising the "ldd" command to be run.
-        ldd_command_words = ('ldd', strs.shell_quote(filename))
-
         # String listing all libraries linked to by this library captured from
         # stdout printed by this command. For example, when passed the absolute
         # path of the file defining the "numpy.core.multiarray" C extension,
@@ -172,7 +168,7 @@ def iter_linked_filenames(filename: str) -> GeneratorType:
         # 	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f9af2da5000)
         # 	libdl.so.2 => /lib64/libdl.so.2 (0x00007f9af2ba0000)
         # 	libutil.so.1 => /lib64/libutil.so.1 (0x00007f9af299d000)
-        ldd_stdout = cmdruns.get_stdout_or_die(ldd_command_words)
+        ldd_stdout = cmdrun.get_stdout_or_die(command_words=('ldd', filename))
 
         # For each line containing a "=>"-delimited basename and absolute path
         # pair and hence ignoring both pseudo-libraries that do *NOT* actually
