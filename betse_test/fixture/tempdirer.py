@@ -25,13 +25,13 @@ def betse_temp_dir(
 
     This directory is guaranteed to be specific to this test. The basename of
     this directory is the name of this test excluding the prefixing substring
-    `test_`. When requested by the `test_cli_sim_default` test, for example,
-    this fixture creates a temporary directory `{tmpdir}/cli_sim_default` for
-    the absolute path `{tmpdir}` of this test session's root temporary directory
-    (e.g., `/tmp/pytest-0/cli_sim_default`).
+    ``test_``. When requested by the ``test_cli_sim_default`` test, for example,
+    this fixture creates a temporary directory ``{tmpdir}/cli_sim_default`` for
+    the absolute path ``{tmpdir}`` of this test session's root temporary
+    directory (e.g., ``/tmp/pytest-0/cli_sim_default``).
 
-    This directory is safely accessible _only_ for the duration of this test.
-    Subsequently run tests and fixtures _cannot_ safely reuse this directory,
+    This directory is safely accessible *only* for the duration of this test.
+    Subsequently run tests and fixtures *cannot* safely reuse this directory,
     although doing so is technically feasible in unreliable edge-cases.
 
     Parameters
@@ -39,7 +39,7 @@ def betse_temp_dir(
     request : _pytest.python.FixtureRequest
         Builtin fixture describing the parent fixture or test of this fixture.
     tmpdir_factory : _pytest.tmpdir.tmpdir_factory
-        Builtin session-scoped fixture whose `mktemp()` method returns a
+        Builtin session-scoped fixture whose ``mktemp()`` method returns a
         :class:`py.path.local` instance encapsulating a new temporary directory.
 
     Returns

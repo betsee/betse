@@ -12,7 +12,8 @@ and non-directory files.
 import os, shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, NumericTypes
+from os import path
 
 # ....................{ EXCEPTIONS ~ path                  }....................
 def die_if_path(*pathnames: str) -> None:
@@ -116,6 +117,40 @@ def get_type_label(pathname: str) -> str:
     # now in question.
     raise BetsePathException(
         'Path "{}" type unrecognized.'.format(pathname))
+
+# ....................{ GETTERS ~ time                     }....................
+@type_check
+def get_mtime(pathname: str) -> NumericTypes:
+    '''
+    Mtime (i.e., modification time) of the passed path.
+
+    If this path is:
+
+    * A directory, this is the most recent time at which the contents of this
+      directory were created, modified, or deleted.
+    * A file, this is the most recent time at which the contents of this file
+      were created or modified.
+    * A symbolic link, this is the most recent time at which this symbolic link
+      was created. Hence, this function does *not* follow symbolic links.
+
+    This time does *not* consider the most recent time at which the metadata
+    (e.g., permissions) of this path was created or modified, which the
+    :func:`get_ctime` function provides.
+
+    Parameters
+    -----------
+    pathname : str
+        Relative or absolute path to inspect.
+
+    Returns
+    -----------
+    NumericTypes
+        Mtime of this path as either an integer or float, depending on the
+        boolean returned by the platform-specific :func:`os.stat_float_times`
+        function.
+    '''
+
+    return path.getmtime(pathname)
 
 # ....................{ MOVERS                             }....................
 @type_check

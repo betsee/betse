@@ -11,7 +11,7 @@ Low-level directory facilities.
 import os, shutil
 from betse.exceptions import BetseDirException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, GeneratorType
+from betse.util.type.types import type_check, GeneratorType, NumericTypes
 from contextlib import contextmanager
 from os import path
 
@@ -100,8 +100,8 @@ def is_dir(dirname: str) -> bool:
     return path.isdir(dirname)
 
 # ....................{ GETTERS                            }....................
-#FIXME: For disambiguity, rename to get_cwd().
-def get_current_dirname() -> str:
+#FIXME: Shift into a new "betse.util.os.shell.shelldir" submodule.
+def get_cwd_dirname() -> str:
     '''
     **Current working dirname** (i.e., absolute path of the current working
     directory (CWD)) of the active Python process.
@@ -112,10 +112,147 @@ def get_current_dirname() -> str:
 
     return os.getcwd()
 
-# ....................{ SETTERS                            }....................
-#FIXME: For disambiguity, rename to set_cwd().
+# ....................{ GETTERS ~ time                     }....................
+# If the current platform provides the os.fwalk() function *AND* the os.stat()
+# function implemented by this platform accepts directory handles (which is
+# currently equivalent to testing if this platform is POSIX-compatible),
+# optimize this recursion by leveraging these handles.
+
+if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
+
+    #FIXME: Refactor to call both os.fwalk() and os.stat(..., dir_fd=...).
+    @type_check
+    def get_mtime_newest(dirname: str) -> NumericTypes:
+
+        # Log this recursion.
+        logs.log_debug('Recursively computing newest mtime of: %s', dirname)
+
+        # Return the maximum of all mtimes in the...
+        return max(
+            # Generator expression recursively yielding the maximum mtime of all
+            # files and subdirectories of each subdirectory of this directory
+            # including this directory.
+            (
+                # Maximum of this subdirectory's mtime and the mtimes of all
+                # files in this subdirectory, whose filenames are produced by a
+                # tuple comprehension joining this subdirectory's dirname to
+                # each file's basename. By recursion, the mtimes of all
+                # subdirectories of this subdirectory are implicitly computed
+                # and hence need *NOT* be explicitly included here.
+                max(
+                    (path.getmtime(parent_dirname),) + tuple(
+                        path.getmtime(path.join(
+                            parent_dirname, child_file_basename))
+                        for child_file_basename in child_file_basenames
+                    ),
+                )
+                # For the currently visited directory's dirname, a sequence of the
+                # dirnames of all subdirectories of this directory, and a sequence
+                # of the filenames of all files in this directory such that errors
+                # emitted by low-level functions called by the os.walk() function
+                # (e.g., os.listdir()) are *NOT* silently ignored...
+                for parent_dirname,
+                    child_dir_basenames,
+                    child_file_basenames in os.walk(
+                        dirname, onerror=_raise_exception)
+            ),
+        )
+
+# Else, fallback to unoptimized recursion leveraging dirnames.
+else:
+    @type_check
+    def get_mtime_newest(dirname: str) -> NumericTypes:
+
+        # Log this recursion.
+        logs.log_debug('Recursively computing newest mtime of: %s', dirname)
+
+        # Return the maximum of all mtimes in the...
+        return max(
+            # Generator expression recursively yielding the maximum mtime of all
+            # files and subdirectories of each subdirectory of this directory
+            # including this directory.
+            (
+                # Maximum of this subdirectory's mtime and the mtimes of all
+                # files in this subdirectory, whose filenames are produced by a
+                # tuple comprehension joining this subdirectory's dirname to
+                # each file's basename. By recursion, the mtimes of all
+                # subdirectories of this subdirectory are implicitly computed
+                # and hence need *NOT* be explicitly included here.
+                max(
+                    (path.getmtime(parent_dirname),) + tuple(
+                        path.getmtime(path.join(
+                            parent_dirname, child_file_basename))
+                        for child_file_basename in child_file_basenames
+                    ),
+                )
+                # For the currently visited directory's dirname, a sequence of the
+                # dirnames of all subdirectories of this directory, and a sequence
+                # of the filenames of all files in this directory such that errors
+                # emitted by low-level functions called by the os.walk() function
+                # (e.g., os.listdir()) are *NOT* silently ignored...
+                for parent_dirname,
+                    child_dir_basenames,
+                    child_file_basenames in os.walk(
+                        dirname, onerror=_raise_exception)
+            ),
+        )
+
+# Docstring dynamically set for the getter defined above.
+get_mtime_newest.__doc__ = '''
+    Most recent mtime (i.e., modification time) of all paths in the set of this
+    directory and all files and subdirectories transitively reachable from this
+    directory *without* following symbolic links to directories.
+
+    Caveats
+    -----------
+    Note that symbolic links whose transitive targets are:
+
+    * Directories are *not* followed, avoiding infinite recursion in edge cases
+      (e.g., directories containing symbolic links to themselves). Such links
+      are effectively non-directory files. Since the mtime of a symbolic link is
+      typically its ctime (i.e., creation time), such links thus contribute
+      their own ctime to this calculation.
+    * Files are followed, improving the accuracy of this calculation.
+
+    Parameters
+    -----------
+    dirname : str
+        Relative or absolute path of the directory to inspect.
+
+    Returns
+    -----------
+    NumericTypes
+        Most recent mtime of this directory calculated recursively as either an
+        integer or float, depending on the boolean returned by the
+        platform-specific :func:`os.stat_float_times` function.
+
+    Raises
+    -----------
+    OSError
+        If either this directory *or* any file or subdirectory reachable from
+        this directory is unreadable by the current user (e.g., due to
+        insufficient permissions).
+    '''
+
+
 @type_check
-def set_current(dirname: str) -> None:
+def _raise_exception(exception: Exception) -> None:
+    '''
+    Raise the passed exception.
+
+    This function is principally intended to be passed as the value of the
+    ``onerror`` parameter accepted by the :func:`os.walk` and :func:`os.fwalk`
+    functions, preventing errors emitted by low-level functions called by these
+    functions (e.g., :func:`os.listdir`) from being ignored. (By default, these
+    functions silently ignore a subset of these errors.)
+    '''
+
+    raise exception
+
+# ....................{ SETTERS                            }....................
+#FIXME: Shift into a new "betse.util.os.shell.shelldir" submodule.
+@type_check
+def set_cwd(dirname: str) -> None:
     '''
     Set the **current working directory** (CWD) of the active Python process to
     the passed directory.
@@ -131,13 +268,77 @@ def set_current(dirname: str) -> None:
     '''
 
     # Log this change.
-    logs.log_debug('Changing current working directory to "%s".', dirname)
+    logs.log_debug('Changing current working directory to: %s', dirname)
 
     # Change to this directory.
     os.chdir(dirname)
 
+# ....................{ COPIERS                            }....................
+@type_check
+def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
+    '''
+    Recursively copy the passed source directory to a subdirectory of the passed
+    target directory having the same basename as such source directory.
+
+    See Also
+    ----------
+    :func:`copy`
+        For further details.
+
+    Examples
+    ----------
+        >>> from betse.util.path import dirs
+        >>> dirs.copy_into_target_dir('/usr/src/linux/', '/tmp/')
+        >>> dirs.is_dir('/tmp/linux/')
+        True
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # Copy us up the directory bomb.
+    basename_source = pathnames.get_basename(dirname_source)
+    copy(dirname_source, pathnames.join(dirname_target, basename_source))
+
+
+@type_check
+def copy(dirname_source: str, dirname_target: str) -> None:
+    '''
+    Recursively copy the passed source to target directory.
+
+    All nonexistent parents of the target directory will be recursively created,
+    mimicking the action of the `mkdir -p` shell command. All symbolic links in
+    the source directory will be preserved (i.e., copied as is rather than their
+    transitive targets copied instead).
+
+    If either the source directory does not exist *or* the target directory
+    already exists, an exception will be raised.
+    '''
+
+    # Log this copy.
+    logs.log_debug(
+        'Copying directory "%s" to "%s"...', dirname_source, dirname_target)
+
+    # Raise an exception unless the source directory exists.
+    die_unless_dir(dirname_source)
+
+    # Raise an exception if the target directory already exists. While we could
+    # defer to the exception raised by the shutil.copytree() function for such
+    # case, such exception's message erroneously refers to such directory as a
+    # file and is hence best avoided: e.g.,
+    #
+    #     [Errno 17] File exists: 'sample_sim'
+    die_if_dir(dirname_target)
+
+    # Perform such copy.
+    shutil.copytree(
+        src=dirname_source,
+        dst=dirname_target,
+        symlinks=True,
+    )
 # ....................{ CONTEXTS                           }....................
 #FIXME: For disambiguity, rename to cwd().
+#FIXME: Shift into a new "betse.util.os.shell.shelldir" submodule.
 @contextmanager
 @type_check
 def current(dirname: str) -> GeneratorType:
@@ -173,25 +374,25 @@ def current(dirname: str) -> GeneratorType:
     Examples
     -----------
     >>> from betse.util.paths import dirs
-    >>> print('CWD: ' + dirs.get_current_dirname())
+    >>> print('CWD: ' + dirs.get_cwd_dirname())
     CWD: /home/azrael
     >>> with dirs.current('/home/uriel/urial/nuriel/uryan/jeremiel'):
-    ...     print('CWD: ' + dirs.get_current_dirname())
+    ...     print('CWD: ' + dirs.get_cwd_dirname())
     ...     raise ValueError(
     ...         'But unknown, abstracted, brooding secret the dark power hid')
     CWD: /home/uriel/urial/nuriel/uryan/jeremiel
     ValueError: But unknown, abstracted, brooding secret the dark power hid.
-    >>> print('CWD: ' + dirs.get_current_dirname())
+    >>> print('CWD: ' + dirs.get_cwd_dirname())
     CWD: /home/azrael
     '''
 
     # Absolute path of the current CWD.
-    dirname_prior = get_current_dirname()
+    dirname_prior = get_cwd_dirname()
 
     # Temporarily change to the passed directory. Since Python performs this
     # change only if this call raises no exceptions, this call need *NOT* be
     # embedded in the "try" block below.
-    set_current(dirname)
+    set_cwd(dirname)
 
     # Yield control to the body of the caller's "with" block.
     try:
@@ -299,67 +500,3 @@ def join_and_make_unless_dir(*partnames: str) -> str:
 
     # Return this dirname.
     return dirname
-
-# ....................{ COPIERS                            }....................
-@type_check
-def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
-    '''
-    Recursively copy the passed source directory to a subdirectory of the passed
-    target directory having the same basename as such source directory.
-
-    See Also
-    ----------
-    copy()
-        For further details.
-
-    Examples
-    ----------
-        >>> from betse.util.path import dirs
-        >>> dirs.copy_into_target_dir('/usr/src/linux/', '/tmp/')
-        >>> dirs.is_dir('/tmp/linux/')
-        True
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.path import pathnames
-
-    # Copy us up the directory bomb.
-    basename_source = pathnames.get_basename(dirname_source)
-    copy(dirname_source, pathnames.join(dirname_target, basename_source))
-
-
-@type_check
-def copy(dirname_source: str, dirname_target: str) -> None:
-    '''
-    Recursively copy the passed source to target directory.
-
-    All nonexistent parents of the target directory will be recursively created,
-    mimicking the action of the `mkdir -p` shell command. All symbolic links in
-    the source directory will be preserved (i.e., copied as is rather than their
-    transitive targets copied instead).
-
-    If either the source directory does not exist *or* the target directory
-    already exists, an exception will be raised.
-    '''
-
-    # Log this copy.
-    logs.log_debug(
-        'Copying directory "%s" to "%s".', dirname_source, dirname_target)
-
-    # Raise an exception unless the source directory exists.
-    die_unless_dir(dirname_source)
-
-    # Raise an exception if the target directory already exists. While we could
-    # defer to the exception raised by the shutil.copytree() function for such
-    # case, such exception's message erroneously refers to such directory as a
-    # file and is hence best avoided: e.g.,
-    #
-    #     [Errno 17] File exists: 'sample_sim'
-    die_if_dir(dirname_target)
-
-    # Perform such copy.
-    shutil.copytree(
-        src=dirname_source,
-        dst=dirname_target,
-        symlinks=True,
-    )

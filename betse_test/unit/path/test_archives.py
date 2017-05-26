@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Unit tests for the :mod:`betse.util.path.archives` submodule
+Unit tests for the :mod:`betse.util.path.archives` submodule.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -40,7 +40,7 @@ ARCHIVE_FILETYPES = (
 '''
 Tuple of all supported archive filetypes, ignoring those whose corresponding
 optional stdlib modules are unimportable under the active Python interpreter and
-hence _not_ installed at Python installation time.
+hence *not* installed at Python installation time.
 '''
 
 
@@ -59,7 +59,7 @@ Arbitrary sequence of bytes to be archived.
 
 # ....................{ TESTS                              }....................
 @pytest.mark.parametrize(('filetype',), ARCHIVE_FILETYPES,)
-def test_archive_read_write_bytes(
+def test_archives_read_write_bytes(
     betse_temp_dir: 'LocalPath', filetype: str) -> None:
     '''
     Unit test both the :func:`read_bytes` and :func:`write_bytes` functions of
