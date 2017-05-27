@@ -12,7 +12,8 @@ Unit tests for the :mod:`betse.util.path.dirs` submodule.
 # ....................{ TESTS                              }....................
 def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
     '''
-    Unit test the :func:`betse.util.path.dirs.get_mtime_newest` function with a
+    Unit test the :func:`betse.util.path.dirs.get_mtime_newest` and
+    related :func:`betse.util.path.paths.get_mtime_newest` functions with a
     directory tree fabricated in the passed temporary directory.
 
     Parameters
@@ -45,7 +46,19 @@ def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
 
     # Relevant paths as strings rather than "LocalPath" objects.
     dirname = str(betse_temp_dir)
+    subsubdirname = str(subsubdirpath)
     subsubfilename2 = str(subsubfilepath2)
 
     # Ensure the last path created above to be the most recent.
     assert dirs.get_mtime_newest(dirname) == paths.get_mtime(subsubfilename2)
+
+    # Update the mtime of an arbitrary subdirectory.
+    subsubdirpath.setmtime()
+
+    # Ensure this subdirectory to now be the most recent.
+    assert dirs.get_mtime_newest(dirname) == paths.get_mtime(subsubdirname)
+
+    # Ensure this subdirectory to now be the most recent when queried through
+    # the related paths.get_mtime_newest() function.
+    assert paths.get_mtime_newest(dirname, subsubdirname, subsubfilename2) == (
+        paths.get_mtime(subsubdirname))

@@ -95,7 +95,7 @@ from betse.util.io.log import logconfig, logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.os import displays, kernels, oses
 from betse.util.path import dirs, pathnames
-from betse.util.py import freezers
+from betse.util.py import pyfreeze
 from betse.util.type import iterables, regexes, strs, modules
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
@@ -668,7 +668,7 @@ class MplConfig(object):
             # If the active Python interpreter is frozen, this is expected
             # and hence ignorable; else, this is unexpected, in which case a
             # non-fatal warning is logged and such list is cleared.
-            if not freezers.is_frozen():
+            if not pyfreeze.is_frozen():
                 logs.log_warning(
                     'Directory "{}" not found. '
                     'Matplotlib backends not queryable.'.format(

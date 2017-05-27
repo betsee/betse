@@ -11,19 +11,17 @@ facilities.
 Caveats
 ----------
 Implementation-specific functions are generally considered poor form. Call these
-functions _only_ where necessary.
+functions *only* where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
 import platform
-
 from betse.util.type.mapping.mapcls import OrderedArgsDict
-
 
 # ....................{ TESTERS                            }....................
 def is_cpython() -> bool:
     '''
-    `True` only if the active Python interpreter is an instance of the official
+    ``True`` only if the active Python interpreter is an instance of the official
     CPython implementation.
     '''
 
@@ -33,7 +31,7 @@ def is_cpython() -> bool:
 
 def is_pypy() -> bool:
     '''
-    `True` only if the active Python interpreter is an instance of the
+    ``True`` only if the active Python interpreter is an instance of the
     third-party PyPy implementation.
     '''
 
@@ -44,7 +42,7 @@ def is_pypy() -> bool:
 def get_name() -> str:
     '''
     Human-readable name of the active Python interpreter's implementation (e.g.,
-    `CPython`, `IronPython`, `Jython`, `PyPy`).
+    ``CPython``, ``IronPython``, ``Jython``, ``PyPy``).
     '''
 
     return platform.python_implementation()

@@ -24,7 +24,7 @@ from collections import OrderedDict
 from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
-from betse.util.py import interpreters, pys
+from betse.util.py import pyimpl, pys
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 
 
@@ -79,7 +79,7 @@ def output_info() -> None:
     SYSTEM_METADATAS = (
         # Python metadata.
         ('python', pys.get_metadata()),
-        ('python interpreter', interpreters.get_metadata()),
+        ('python interpreter', pyimpl.get_metadata()),
 
         # Operating system (OS) metadata.
         ('os', oses.get_metadata()),

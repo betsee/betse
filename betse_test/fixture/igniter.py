@@ -21,17 +21,18 @@ def betse_init() -> None:
 
     * Initializes the BETSE core.
     * Initializes all third-party dependencies thereof.
-    * Enables the default non-interactive matplotlib backend `Agg`, _guaranteed_
-      to be usable on all platforms. By default, matplotlib enables an
-      interactive backend (e.g., `Qt5Agg`) unsuitable for use under typically
-      headless test automation.
+    * Increases logging verbosity to the maximum level (i.e., ``DEBUG``).
+    * Enables the default non-interactive matplotlib backend ``Agg``,
+      *guaranteed* to be usable on all platforms. By default, matplotlib enables
+      an interactive backend (e.g., ``Qt5Agg``) unsuitable for use under
+      typically headless test automation.
 
     Motivation
     ----------
-    This fixture is automatically requested by _all_ tests (functional, unit,
+    This fixture is automatically requested by *all* tests (functional, unit,
     or otherwise) without needing to be explicitly requested. Moreover, this
-    fixture is imported into the top-level `betse_test.conftest` plugin and
-    hence _guaranteed_ to be run prior to all other BETSE-specific fixtures.
+    fixture is imported into the top-level :mod:`betse_test.conftest` plugin and
+    hence *guaranteed* to be run prior to all other BETSE-specific fixtures.
     Doing so avoids spurious issues in other fixtures and tests.
 
     Notably, the early test-specific initialization of both BETSE and
@@ -47,6 +48,7 @@ def betse_init() -> None:
     # Defer heavyweight imports.
     from betse import ignition
     from betse.lib import libs
+    from betse.util.io.log import logconfig
 
     # Inform users of this initialization.
     print('\n[py.test] Initializing BETSE...')
@@ -56,5 +58,12 @@ def betse_init() -> None:
     # so could erroneously enable a headfull matplotlib backend.
     ignition.init()
 
-    # Initialize all dependencies *AFTER* the core application.
+    # Singleton logging configuration for the current Python process retrieved
+    # *AFTER* initializing the core application.
+    log_config = logconfig.get()
+
+    # Increase logging verbosity to the maximum level (i.e., "DEBUG").
+    log_config.is_verbose = True
+
+    # Initialize all dependencies *AFTER* both the core application and logging.
     libs.init(matplotlib_backend_name='Agg')

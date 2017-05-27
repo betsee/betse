@@ -20,10 +20,11 @@ def proxy_weak(obj: object) -> WeakRefProxyTypes:
     If the passed object is:
 
     * Already a proxy object, this object is returned as is.
-    * Callable, a `CallableProxyType` object proxying this object is returned.
-    * Uncallable, a `ProxyType` object proxying this object is returned.
+    * Callable, a :class:`CallableProxyType` object proxying this object is
+      returned.
+    * Uncallable, a :class:`ProxyType` object proxying this object is returned.
 
-    This function should _always_ be called in lieu of the lower-level
+    This function should *always* be called in lieu of the lower-level
     :func:`weakref.proxy` function, which unsafely raises the following
     exception when passed an existing proxy object:
 
@@ -38,9 +39,9 @@ def proxy_weak(obj: object) -> WeakRefProxyTypes:
     ----------
     WeakRefProxyTypes
         Weak reference to the passed object as a proxy object. When the passed
-        object is garbage collected, this proxy object yields `None` rather than
-        the passed object. This proxy object is unhashable regardless of the
-        hashability of the passed object, minimizing issues arising from the
+        object is garbage collected, this proxy object yields ``None`` rather
+        than the passed object. This proxy object is unhashable regardless of
+        the hashability of the passed object, minimizing issues arising from the
         fundamentally mutable nature of weak references and preventing their use
         as dictionary keys.
     '''

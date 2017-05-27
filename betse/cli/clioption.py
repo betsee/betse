@@ -21,8 +21,8 @@ from betse.cli import cliutil
 from betse.exceptions import BetseCLIArgException
 from betse.util.io.log import logconfig
 from betse.util.io.log.logenum import LogLevel
-from betse.util.py import identifiers
-from betse.util.py.profilers import ProfileType
+from betse.util.py import pyident
+from betse.util.py.pyprof import ProfileType
 from betse.util.type import strs
 from betse.util.type.types import (
     type_check,
@@ -171,7 +171,7 @@ class CLIOptionABC(object, metaclass=ABCMeta):
 
             # Replace this option's identifier by this long variant, sanitizing.
             # all hyphens with underscores to generate a conformant identifier.
-            var_name_default = identifiers.sanitize_snakecase(long_name)
+            var_name_default = pyident.sanitize_snakecase(long_name)
 
             # (Re)prefix this variant by "--".
             long_name = '--' + long_name

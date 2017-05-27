@@ -21,7 +21,7 @@ from betse.cli.clicommand import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.os import oses
-from betse.util.py import identifiers, interpreters, pys
+from betse.util.py import pyident, pyimpl, pys
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.obj import objects
 from betse.util.type.types import MappingType
@@ -64,7 +64,7 @@ class BetseCLI(CLIABC):
             '>>.'.format(
                 program_name=metadata.NAME,
                 program_version=metadata.VERSION,
-                py_name=interpreters.get_name(),
+                py_name=pyimpl.get_name(),
                 py_version=pys.get_version(),
                 os_name=oses.get_name(),
                 os_version=oses.get_version(),
@@ -167,7 +167,7 @@ class BetseCLI(CLIABC):
         # Else, a subcommand was passed.
         #
         # Sanitized name of this subcommand.
-        subcommand_name_top = identifiers.sanitize_snakecase(
+        subcommand_name_top = pyident.sanitize_snakecase(
             self._args.subcommand_name_top)
 
         # Name of the method running this subcommand.
@@ -296,7 +296,7 @@ class BetseCLI(CLIABC):
 
         # Run this subcommand's subcommand and return the result of doing so.
         # See the _run() method for similar logic and commentary.
-        subcommand_name_plot = identifiers.sanitize_snakecase(
+        subcommand_name_plot = pyident.sanitize_snakecase(
             self._args.subcommand_name_plot)
         subcommand_method_name = '_do_plot_' + subcommand_name_plot
         subcommand_method = getattr(self, subcommand_method_name)

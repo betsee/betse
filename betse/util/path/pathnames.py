@@ -363,13 +363,13 @@ def get_app_pathname(package: ModuleType, pathname: str) -> str:
 
     # Avoid circular import dependencies.
     from betse.lib.setuptools import resources
-    from betse.util.py import freezers
+    from betse.util.py import pyfreeze
 
     # If this application is frozen by PyInstaller, canonicalize this path
     # relative to the directory to which this application is unfrozen.
-    if freezers.is_frozen_pyinstaller():
+    if pyfreeze.is_frozen_pyinstaller():
         app_pathname = join(
-            freezers.get_app_dirname_pyinstaller(), pathname)
+            pyfreeze.get_app_dirname_pyinstaller(), pathname)
     # Else if this application is a setuptools-installed script wrapper,
     # canonicalize this path by deferring to the setuptools resource API.
     elif resources.is_dir(

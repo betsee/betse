@@ -16,8 +16,8 @@ from betse.util.type.types import type_check, RegexMatchType
 # ....................{ CLASSES                            }....................
 IDENTIFIER_ALPHANUMERIC_CHAR_CLASS = r'a-zA-Z0-9'
 '''
-Character class (excluding `[` and `]` delimiters) matching any character of a
-**Python identifier** (i.e., class, module, or attribute name), excluding the
+Character class (excluding ``[`` and ``]`` delimiters) matching any character of
+a **Python identifier** (i.e., class, module, or attribute name), excluding the
 underscore character.
 
 Of necessity, this character class is equivalent to the character class of all

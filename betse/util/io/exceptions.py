@@ -35,7 +35,7 @@ def get_metadata(exception: Exception) -> tuple:
 
     # Avoid circular import dependencies.
     from betse.util.io import stderrs
-    from betse.util.py import identifiers
+    from betse.util.py import pyident
     from betse.util.type import regexes, strs
 
     # Generator yielding 2-tuples "(exception, traceback)" for all parent
@@ -128,7 +128,7 @@ def get_metadata(exception: Exception) -> tuple:
         #     "${exc_class}: ${exc_message}"
         exc_message_match_groups = regexes.get_match_groups_numbered(
             exc_message_line, r'^({})(?:\s*|:\s+(.+))$'.format(
-                identifiers.IDENTIFIER_QUALIFIED_REGEX))
+                pyident.IDENTIFIER_QUALIFIED_REGEX))
 
         # This message is guaranteed to be prefixed by a class name.
         exc_class_name = exc_message_match_groups[0]
@@ -155,7 +155,7 @@ def get_metadata(exception: Exception) -> tuple:
         # Well, try... at least!
         else:
             exc_message = strs.uppercase_first_char(
-                identifiers.convert_camelcase_to_whitespaced_lowercase(
+                pyident.convert_camelcase_to_whitespaced_lowercase(
                     exc_class_name))
         assert types.is_str_nonempty(exc_message), (
             types.assert_not_str_nonempty(

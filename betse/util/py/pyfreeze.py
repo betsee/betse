@@ -16,9 +16,9 @@ from betse.exceptions import BetsePyFrozenException
 # ....................{ TESTERS                            }....................
 def is_frozen() -> bool:
     '''
-    `True` only if the active Python interpreter is **frozen** (i.e., embedded
-    in a platform-specific compressed executable archiving `betse` and all
-    transitive dependencies thereof).
+    ``True`` only if the active Python interpreter is **frozen** (i.e., embedded
+    in a platform-specific compressed executable archiving this application and
+    all transitive dependencies thereof).
     '''
 
     # If the "sys" module has an attribute:
@@ -31,17 +31,17 @@ def is_frozen() -> bool:
 
 def is_frozen_pyinstaller() -> bool:
     '''
-    `True` only if the active Python interpreter is frozen with PyInstaller.
+    ``True`` only if the active Python interpreter is frozen with PyInstaller.
 
-    This function returns `True` only if the PyInstaller-specific private
-    attribute `_MEIPASS` added to the canonical :mod:`sys` module by the
+    This function returns ``True`` only if the PyInstaller-specific private
+    attribute ``_MEIPASS`` added to the canonical :mod:`sys` module by the
     PyInstaller bootloader embedded in this frozen executable (if any) exists.
     '''
 
     # Hear no evil, code no evil, comment no evil.
     return hasattr(sys, '_MEIPASS')
 
-# ....................{ GETTERS ~ path : frozen            }....................
+# ....................{ GETTERS                            }....................
 def get_app_dirname_pyinstaller() -> str:
     '''
     Absolute path of the temporary directory extracted by the PyInstaller

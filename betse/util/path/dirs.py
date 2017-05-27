@@ -113,19 +113,22 @@ def get_cwd_dirname() -> str:
     return os.getcwd()
 
 # ....................{ GETTERS ~ time                     }....................
+#FIXME: Consider contributing the get_mtime_newest() function as an answer to
+#the following StackOverflow question:
+#    https://stackoverflow.com/questions/26498285/find-last-update-time-of-a-directory-includes-all-levels-of-sub-folders
+
 # If the current platform provides the os.fwalk() function *AND* the os.stat()
 # function implemented by this platform accepts directory handles (which is
 # currently equivalent to testing if this platform is POSIX-compatible),
 # optimize this recursion by leveraging these handles.
-
 if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
 
-    #FIXME: Refactor to call both os.fwalk() and os.stat(..., dir_fd=...).
     @type_check
     def get_mtime_newest(dirname: str) -> NumericTypes:
 
         # Log this recursion.
-        logs.log_debug('Recursively computing newest mtime of: %s', dirname)
+        logs.log_debug(
+            'Recursively computing newest fwalk()-based mtime of: %s', dirname)
 
         # Return the maximum of all mtimes in the...
         return max(
@@ -139,22 +142,26 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
                 # each file's basename. By recursion, the mtimes of all
                 # subdirectories of this subdirectory are implicitly computed
                 # and hence need *NOT* be explicitly included here.
+                #
+                # For parity with the unoptimized get_mtime_newest()
+                # implementation defined below as well to avoid unwanted
+                # complications, symbolic links are *NOT* followed. Hence,
+                # os.lstat() rather than os.stat() is intentionally called.
                 max(
-                    (path.getmtime(parent_dirname),) + tuple(
-                        path.getmtime(path.join(
-                            parent_dirname, child_file_basename))
+                    (os.fstat(parent_dir_fd).st_mtime,) + tuple(
+                        os.lstat(
+                            child_file_basename, dir_fd=parent_dir_fd).st_mtime
                         for child_file_basename in child_file_basenames
                     ),
                 )
-                # For the currently visited directory's dirname, a sequence of the
-                # dirnames of all subdirectories of this directory, and a sequence
-                # of the filenames of all files in this directory such that errors
-                # emitted by low-level functions called by the os.walk() function
-                # (e.g., os.listdir()) are *NOT* silently ignored...
-                for parent_dirname,
-                    child_dir_basenames,
-                    child_file_basenames in os.walk(
-                        dirname, onerror=_raise_exception)
+                # For the currently visited directory's dirname, a sequence of
+                # the dirnames of all subdirectories of this directory, a
+                # sequence of the filenames of all files in this directory, and
+                # a directory handle to this directory such that errors emitted
+                # by low-level functions called by os.walk() (e.g.,
+                # os.listdir()) are *NOT* silently ignored...
+                for _, _, child_file_basenames, parent_dir_fd
+                 in os.fwalk(dirname, onerror=_raise_exception)
             ),
         )
 
@@ -164,7 +171,8 @@ else:
     def get_mtime_newest(dirname: str) -> NumericTypes:
 
         # Log this recursion.
-        logs.log_debug('Recursively computing newest mtime of: %s', dirname)
+        logs.log_debug(
+            'Recursively computing newest walk()-based mtime of: %s', dirname)
 
         # Return the maximum of all mtimes in the...
         return max(
@@ -185,23 +193,22 @@ else:
                         for child_file_basename in child_file_basenames
                     ),
                 )
-                # For the currently visited directory's dirname, a sequence of the
-                # dirnames of all subdirectories of this directory, and a sequence
-                # of the filenames of all files in this directory such that errors
-                # emitted by low-level functions called by the os.walk() function
-                # (e.g., os.listdir()) are *NOT* silently ignored...
-                for parent_dirname,
-                    child_dir_basenames,
-                    child_file_basenames in os.walk(
-                        dirname, onerror=_raise_exception)
+                # For the currently visited directory's dirname, a sequence of
+                # the dirnames of all subdirectories of this directory, and a
+                # sequence of the filenames of all files in this directory such
+                # that errors emitted by low-level functions called by
+                # os.walk() (e.g., os.listdir()) are *NOT* silently ignored...
+                for parent_dirname, _, child_file_basenames
+                 in os.walk(dirname, onerror=_raise_exception)
             ),
         )
 
 # Docstring dynamically set for the getter defined above.
 get_mtime_newest.__doc__ = '''
-    Most recent mtime (i.e., modification time) of all paths in the set of this
-    directory and all files and subdirectories transitively reachable from this
-    directory *without* following symbolic links to directories.
+    Most recent mtime (i.e., modification time) in seconds of all paths in the
+    set of this directory and all files and subdirectories transitively
+    reachable from this directory *without* following symbolic links to
+    directories.
 
     Caveats
     -----------
@@ -222,8 +229,8 @@ get_mtime_newest.__doc__ = '''
     Returns
     -----------
     NumericTypes
-        Most recent mtime of this directory calculated recursively as either an
-        integer or float, depending on the boolean returned by the
+        Most recent mtime in seconds of this directory calculated recursively as
+        either an integer or float, depending on the boolean returned by the
         platform-specific :func:`os.stat_float_times` function.
 
     Raises

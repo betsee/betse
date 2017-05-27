@@ -26,7 +26,7 @@ from betse.science.simulate.simphase import SimPhase
 from betse.science.visual.layer.lyrabc import LayerCellsABC
 from betse.science.visual.layer.lyrtext import LayerCellsIndex
 from betse.util.io.log import logs
-from betse.util.py import references
+from betse.util.py import pyref
 from betse.util.type import iterables, types
 from betse.util.type.obj import objects
 from betse.util.type.types import (
@@ -267,14 +267,14 @@ class VisualCellsABC(object, metaclass=ABCMeta):
         # explicitly closed -- either non-interactively by a close() call or
         # interactively by the corresponding GUI window being closed. Hence,
         # strong figure references should typically *NOT* be retained.
-        self._figure = references.proxy_weak(pyplot.figure())
+        self._figure = pyref.proxy_weak(pyplot.figure())
 
         # Figure axes scaled to the extent of the current 2D environment as a
         # weak rather than strong (the default) reference, thus avoiding
         # circular references and complications thereof (e.g., memory
         # overhead). Since figures already contain their axes as a strong
         # reference, we need *NOT* do so as well here.
-        self._axes = references.proxy_weak(pyplot.subplot(111))
+        self._axes = pyref.proxy_weak(pyplot.subplot(111))
 
         # If this object was initialized with both a figure and axes title,
         # display the former above the latter.

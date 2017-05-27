@@ -25,7 +25,7 @@ from betse.util.io.log.logenum import LogLevel
 from betse.util.path.command import cmds
 from betse.util.path.command.cmdarg import HelpFormatterParagraph
 from betse.util.path.command.cmdexit import SUCCESS, FAILURE_DEFAULT
-from betse.util.py.profilers import profile_callable, ProfileType
+from betse.util.py.pyprof import profile_callable, ProfileType
 from betse.util.type import types
 from betse.util.type.types import (
     type_check, ArgParserType, MappingType, SequenceOrNoneTypes)

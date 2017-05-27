@@ -43,7 +43,7 @@ plotting onto the cell cluster.
 from abc import ABCMeta, abstractmethod, abstractproperty
 from betse.exceptions import BetseSimVisualLayerException
 from betse.util.io.log import logs
-from betse.util.py import references
+from betse.util.py import pyref
 from betse.util.type import iterables, types
 from betse.util.type.types import (
     type_check, IterableTypes, SequenceOrNoneTypes,)
@@ -143,7 +143,7 @@ class LayerCellsABC(object, metaclass=ABCMeta):
         # this layer, no complications arise. Ergo, this attribute *ALWAYS*
         # yields this object (rather than non-deterministically yielding "None"
         # if this object is unexpectedly garbage-collected).
-        self._visual = references.proxy_weak(visual)
+        self._visual = pyref.proxy_weak(visual)
 
         # Classify this zorder unmodified.
         self._zorder = zorder

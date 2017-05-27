@@ -11,18 +11,17 @@ as a whole.
 
 Caveats
 ----------
-Word size-specific functions (e.g., `is_wordsize_64()`) are generally considered
-poor form. Call these functions _only_ where necessary.
+Word size-specific functions (e.g., :func:`is_wordsize_64`) are generally
+considered poor form. Call these functions *only* where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
+import platform, sys
 from betse import metadata
 from betse.exceptions import BetsePyException
 from betse.util.io.log import logs
-from betse.util.type.mapping.mapcls import OrderedArgsDict
 from betse.util.type.types import (
     type_check, MappingOrNoneTypes, SequenceTypes)
-import platform, sys
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -107,9 +106,9 @@ def get_wordsize() -> int:
 
 def get_version() -> str:
     '''
-    Human-readable `.`-delimited string specifying the most recent version of
+    Human-readable ``.``-delimited string specifying the most recent version of
     the Python language supported by the active Python interpreter (e.g.,
-    `2.7.10`, `3.4.1`).
+    ``2.7.10``, ``3.4.1``).
     '''
 
     return platform.python_version()
@@ -122,15 +121,15 @@ def get_command_line_prefix() -> list:
 
     Since the absolute path of the executable binary for the active Python
     interpreter is insufficient to unambiguously run this binary under the
-    active machine architecture, this function should _always_ be called in lieu
-    of `get_filename()` when attempting to rerun this interpreter as a
+    active machine architecture, this function should *always* be called in lieu
+    of :func:`get_filename` when attempting to rerun this interpreter as a
     subprocess of the current Python process. As example:
 
-    * Under OS X, the executable binary for this interpreter may be bundled with
-      one or more other executable binaries targetting different machine
+    * Under macOS, the executable binary for this interpreter may be bundled
+      with one or more other executable binaries targetting different machine
       architectures (e.g., 32-bit, 64-bit) in a single so-called "universal
       binary." Distinguishing between these bundled binaries requires passing
-      this interpreter to a prefixing OS X-specific command, `arch`.
+      this interpreter to a prefixing macOS-specific command, ``arch``.
     '''
 
     # Avoid circular import dependencies.
@@ -181,20 +180,65 @@ def get_filename() -> str:
     return py_filename
 
 # ....................{ GETTERS ~ metadata                 }....................
-def get_metadata() -> OrderedArgsDict:
+def get_metadata() -> 'OrderedArgsDict':
     '''
     Ordered dictionary synopsizing the active Python interpreter.
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.py import freezers
+    from betse.util.py import pyfreeze
+    from betse.util.type.mapping.mapcls import OrderedArgsDict
 
     # Return this dictionary.
     return OrderedArgsDict(
         'version', get_version(),
         'wordsize', get_wordsize(),
-        'is frozen', freezers.is_frozen(),
+        'is frozen', pyfreeze.is_frozen(),
     )
+
+# ....................{ ADDERS                             }....................
+@type_check
+def add_import_dirname(dirname: str) -> None:
+    '''
+    Register all files and subdirectories of the directory with the passed path
+    to be importable modules and packages (respectively) for the remainder of
+    the current Python process if this directory has not already been registered
+    *or* noop otherwise.
+
+    Specifically, this function appends this dirname to the current
+    :data:`sys.path` listing (in order) the dirnames of all directories to be
+    iteratively searched for any module or package on first importing that
+    module or package. To comply with Python standards in which the first item
+    of this list is either the dirname of the directory containing the script
+    from which this process was invoked *or* the empty string (signifying the
+    current directory), this list is appended to rather than prepended to.
+
+    Parameters
+    ----------
+    dirname : str
+        Absolute or relative path of the directory to be registered.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs
+
+    # Log this addition.
+    logs.log_debug('Registering import directory: %s', dirname)
+
+    # If this directory does *NOT* exist or is unreadable, raise an exception.
+    dirs.die_unless_dir(dirname)
+
+    # If the current PYTHONPATH already contains this directory...
+    if dirname in sys.path:
+        # Log this edge case.
+        logs.log_debug('Ignoring already registered import directory.')
+
+        # Noop.
+        return
+    # Else, the current PYTHONPATH does *NOT* already contain this directory.
+
+    # Append this directory to the current PYTHONPATH.
+    sys.path.append(dirname)
 
 # ....................{ RUNNERS                            }....................
 @type_check
@@ -216,7 +260,7 @@ def rerun_or_die(
 
     See Also
     ----------
-    run()
+    :func:`betse.util.path.command.cmdrun.run_or_die`
         Low-level commentary on subprocess execution.
     '''
 

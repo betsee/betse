@@ -11,7 +11,7 @@ constructed large-scale objects for a simulation phase) functionality.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta  # , abstractmethod
 from betse.science.simulate.simphase import SimPhase
-from betse.util.py import references
+from betse.util.py import pyref
 from betse.util.type.types import type_check
 
 # ....................{ CLASSES                            }....................
@@ -90,4 +90,4 @@ class SimPhaseCacheABC(object, metaclass=ABCMeta):
 
         # Classify all passed parameters as weak rather than strong reference,
         # circumventing circular references and complications thereof.
-        self._phase = references.proxy_weak(phase)
+        self._phase = pyref.proxy_weak(phase)
