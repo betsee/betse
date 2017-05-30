@@ -345,7 +345,7 @@ def _read_bytes_bz2(filename: str) -> BufferedIOBase:
     file with the passed filename.
 
     This private function is intended to be called *only* by the public
-    :func:`read_bytes` function.
+    :func:`reading_bytes` function.
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
@@ -362,7 +362,7 @@ def _write_bytes_bz2(filename: str, is_overwritable: bool) -> BufferedIOBase:
     file with the passed filename.
 
     This private function is intended to be called *only* by the public
-    :func:`write_bytes` function.
+    :func:`writing_bytes` function.
     '''
 
     # Avoid circular import dependencies.
@@ -382,7 +382,7 @@ def _read_bytes_gz(filename: str) -> BufferedIOBase:
     file with the passed filename.
 
     This private function is intended to be called *only* by the public
-    :func:`read_bytes` function.
+    :func:`reading_bytes` function.
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
@@ -399,7 +399,7 @@ def _write_bytes_gz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     file with the passed filename.
 
     This private function is intended to be called *only* by the public
-    :func:`write_bytes` function.
+    :func:`writing_bytes` function.
     '''
 
     # Avoid circular import dependencies.
@@ -419,7 +419,7 @@ def _read_bytes_xz(filename: str) -> BufferedIOBase:
     file with the passed filename.
 
     This private function is intended to be called *only* by the public
-    :func:`read_bytes` function.
+    :func:`reading_bytes` function.
     '''
 
     # This optional stdlib module is guaranteed to exist and hence be safely
@@ -436,7 +436,7 @@ def _write_bytes_xz(filename: str, is_overwritable: bool) -> BufferedIOBase:
     file with the passed filename.
 
     This private function is intended to be called *only* by the public
-    :func:`write_bytes` function.
+    :func:`writing_bytes` function.
     '''
 
     # Avoid circular import dependencies.

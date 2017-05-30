@@ -25,6 +25,7 @@ from collections.abc import (
 )
 from enum import Enum, EnumMeta
 from functools import wraps
+from io import IOBase
 from inspect import Parameter, Signature
 from sre_parse import Pattern
 from weakref import CallableProxyType, ProxyType
@@ -76,10 +77,20 @@ permitting callers to avoid importing that class.
 '''
 
 
+FileType = IOBase
+'''
+Abstract base class implemented by all **file-like objects** (i.e., objects
+implementing the standard ``read()`` and ``write()`` methods).
+
+This class is a synonym of the `io.IOBase` class, provided merely as a
+convenience to callers preferring to avoid importing that class.
+'''
+
+
 HashableType = Hashable
 '''
 Abstract interface implemented by all **hashables** (i.e., objects implementing
-the standard `__hash__()` method required by all dictionary keys).
+the standard ``__hash__()`` method required by all dictionary keys).
 
 This class is a synonym of the `collections.abc.Hashable` class, provided
 merely as a convenience to callers preferring to avoid importing that class.

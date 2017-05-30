@@ -60,5 +60,7 @@ def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
 
     # Ensure this subdirectory to now be the most recent when queried through
     # the related paths.get_mtime_newest() function.
-    assert paths.get_mtime_newest(dirname, subsubdirname, subsubfilename2) == (
-        paths.get_mtime(subsubdirname))
+    assert (
+        paths.get_mtime_newest((dirname, subsubdirname, subsubfilename2)) ==
+        paths.get_mtime(subsubdirname)
+    )

@@ -210,8 +210,10 @@ def is_c_extension(module: ModuleOrStrTypes) -> bool:
 @type_check
 def get_dirname(module: ModuleOrStrTypes) -> str:
     '''
-    Absolute path of the directory containing the file providing the passed
-    module or package.
+    Absolute path of the directory containing the passed module.
+
+    If this module is a non-namespace package, this is the directory containing
+    this package's top-level ``__init__`` submodule.
 
     Parameters
     ----------

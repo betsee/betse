@@ -12,7 +12,7 @@ and non-directory files.
 import os, shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, NumericTypes
+from betse.util.type.types import type_check, IterableTypes, NumericTypes
 from os import path
 
 # ....................{ EXCEPTIONS ~ path                  }....................
@@ -156,7 +156,7 @@ def get_mtime(pathname: str) -> NumericTypes:
 
 
 @type_check
-def get_mtime_newest(*pathnames: str) -> NumericTypes:
+def get_mtime_newest(pathnames: IterableTypes) -> NumericTypes:
     '''
     Mtime (i.e., modification time) in seconds of the most recent passed path.
 
@@ -173,8 +173,8 @@ def get_mtime_newest(*pathnames: str) -> NumericTypes:
 
     Parameters
     -----------
-    pathnames : tuple[str]
-        Tuple of all relative and absolute paths to inspect.
+    pathnames : IterableTypes[str]
+        Iterable of all relative and absolute paths to inspect.
 
     Returns
     -----------

@@ -149,7 +149,7 @@ def load(filename: str) -> object:
 
     # Load and return all objects saved to this file, silently decompressing
     # this file if compressed.
-    with iofiles.read_bytes(filename) as unpickle_file:
+    with iofiles.reading_bytes(filename) as unpickle_file:
         return pickle.load(file=unpickle_file)
 
 # ....................{ SAVERS                             }....................
@@ -195,8 +195,8 @@ def save(
 
     # Save these objects to this file, silently compressing this file if this
     # filename is suffixed by an archive filetype.
-    with iofiles.write_bytes(
-        filename, is_overwritable=is_overwritable) as pickle_file:
+    with iofiles.writing_bytes(
+        filename=filename, is_overwritable=is_overwritable) as pickle_file:
         pickle.dump(
             objects,
             file=pickle_file,

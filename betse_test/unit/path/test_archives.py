@@ -62,7 +62,7 @@ Arbitrary sequence of bytes to be archived.
 def test_archives_read_write_bytes(
     betse_temp_dir: 'LocalPath', filetype: str) -> None:
     '''
-    Unit test both the :func:`read_bytes` and :func:`write_bytes` functions of
+    Unit test both the :func:`reading_bytes` and :func:`writing_bytes` functions of
     the :mod:`betse.util.path.archives` submodule for the passed archive
     filetype guaranteed to be supported by the active Python interpreter.
 

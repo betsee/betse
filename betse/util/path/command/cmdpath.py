@@ -49,15 +49,46 @@ def is_pathable(command_basename: str) -> bool:
     # Return whether this command exists or not.
     return shutil.which(command_basename) is not None
 
+# ....................{ GETTERS                            }....................
+@type_check
+def get_filename(command_basename) -> str:
+    '''
+    Absolute path of the command in the current ``${PATH}`` with the passed
+    basename if found *or* raise an exception otherwise.
+
+    Parameters
+    ----------
+    command_basename : SequenceTypes
+        Basename of the command to return the absolute path of.
+
+    Returns
+    ----------
+    str
+        Absolute path of this command.
+
+    Raises
+    ----------
+    BetseCommandException
+        If no such command is found.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # If this string is *NOT* a pure basename, fail.
+    pathnames.die_unless_basename(command_basename)
+
+    # Return the absolute path of this command.
+    return shutil.which(command_basename)
+
 # ....................{ GETTERS ~ first                    }....................
 @type_check
 def get_first_basename(
     command_basenames: SequenceTypes, exception_message: str = None) -> str:
     '''
     First pathable string in the passed list (i.e., the first string that is the
-    basename of a command in the current ``${PATH}``).
-
-    If no such strings are pathable, an exception is raised.
+    basename of a command in the current ``${PATH}``) if any *or* raise an
+    exception otherwise.
 
     Parameters
     ----------
@@ -66,8 +97,8 @@ def get_first_basename(
         (in descending order of preference).
     exception_message : optional[str]
         Optional exception message to be raised if no such string is pathable.
-        Defaults to `None`, in which case an exception message synthesized from
-        the passed strings is raised.
+        Defaults to ``None``, in which case an exception message synthesized
+        from the passed strings is raised.
 
     Returns
     ----------

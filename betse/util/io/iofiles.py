@@ -15,7 +15,7 @@ See Also
 # ....................{ IMPORTS                            }....................
 import re, shutil
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, FileType, SequenceTypes
 from io import BufferedIOBase, TextIOWrapper
 
 # ....................{ GLOBALS                            }....................
@@ -55,8 +55,36 @@ def get_chars(filename: str, encoding: str = 'utf-8') -> str:
         String of all characters decoded from this file's byte content.
     '''
 
-    with read_chars(filename=filename, encoding=encoding) as text_file:
+    with reading_chars(filename=filename, encoding=encoding) as text_file:
         return text_file.read()
+
+# ....................{ GETTERS ~ mode                     }....................
+@type_check
+def get_mode_write_chars(is_overwritable: bool = False) -> str:
+    '''
+    Mode string suitable for opening a file handle for character-oriented
+    writing via the ``mode`` parameter to the :func:`open` builtin.
+
+    This low-level I/O function is principally intended to be called by
+    higher-level I/O functions (e.g., :func:`writing_chars`).
+
+    Parameters
+    ----------
+    is_overwritable : optional[bool]
+        ``True`` if overwriting this file when this file already exists *or*
+        ``False`` if raising an exception when this file already exists.
+        Defaults to ``False`` for safety.
+
+    Returns
+    ----------
+    str
+        If the ``is_overwritable`` parameter is:
+        * ``True``, this is ``"xt"``, raising exceptions when attempting to
+          write files that already exist with this mode.
+        * ``False``, this is ``"wt"``, silently overwriting such files.
+    '''
+
+    return 'wt' if is_overwritable else 'xt'
 
 
 @type_check
@@ -65,8 +93,8 @@ def get_mode_write_bytes(is_overwritable: bool = False) -> str:
     Mode string suitable for opening a file handle for byte-oriented writing via
     the ``mode`` parameter to the :func:`open` builtin.
 
-    This low-level utility function is intended to be called *only* by
-    higher-level utility functions (e.g., :func:`write_bytes`).
+    This low-level I/O function is principally intended to be called by
+    higher-level I/O functions (e.g., :func:`writing_bytes`).
 
     Parameters
     ----------
@@ -86,9 +114,9 @@ def get_mode_write_bytes(is_overwritable: bool = False) -> str:
 
     return 'wb' if is_overwritable else 'xb'
 
-# ....................{ READERS                            }....................
+# ....................{ READERS ~ context                  }....................
 @type_check
-def read_bytes(filename: str) -> BufferedIOBase:
+def reading_bytes(filename: str) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for reading the binary file with the
     passed filename, transparently decompressing this file if the filetype of
@@ -137,7 +165,7 @@ def read_bytes(filename: str) -> BufferedIOBase:
 
 
 @type_check
-def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
+def reading_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     '''
     Open and return a filehandle suitable for reading the plaintext file with
     the passed filename encoded with the passed encoding.
@@ -172,14 +200,80 @@ def read_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
 
 # ....................{ WRITERS                            }....................
 @type_check
-def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
+def write_file_to_filename(
+    input_file: FileType, output_filename: str, **kwargs) -> None:
+    '''
+    Overwrite the output file with the passed filename with the contents of the
+    passed open readable file-like object.
+
+    To copy the entirety of this input file, the seek position of this object is
+    reset to the first bytes of this file. Callers requiring that this position
+    be preserved should do so manually.
+
+    Parameters
+    ----------
+    input_file : FileType
+        Open readable file-like object to copy.
+    output_filename : str
+        Absolute or relative path of the file to copy into.
+
+    All remaining keyword arguments are passed as is to the
+    :func:`writing_chars` context manager.
+    '''
+
+    #FIXME: Actually, wouldn't it be preferable to conditionally:
+    #
+    #* Call the writing_bytes() function if this "input_file" is currently open
+    #  in a byte-orintied manner.
+    #* Call the writing_chars() function in all other cases as a fallback.
+    #
+    #How, exactly, would one perform the former check?
+
+    # For portability, open this output file for character-oriented writing.
+    # Opening this file for byte-oriented writing would technically be more
+    # efficient but fail for all character-oriented file-like objects (e.g.,
+    # instances of the standard "io.StringIO" class).
+    with writing_chars(filename=output_filename, **kwargs) as output_file:
+        write_file_to_file(input_file=input_file, output_file=output_file)
+
+
+@type_check
+def write_file_to_file(input_file: FileType, output_file: FileType) -> None:
+    '''
+    Overwrite the passed open writable file-like object with the contents of the
+    passed open readable file-like object.
+
+    To copy the entirety of this input file, the seek positions of both this
+    objects are reset to the first bytes of their corresponding files. Callers
+    requiring that these positions be preserved should do so manually.
+
+    Parameters
+    ----------
+    input_file : FileType
+        Open readable file-like object to copy.
+    output_file : FileType
+        Open writable file-like object to copy into.
+    '''
+
+    # Reset the seek positions of both objects.
+    input_file.seek(0)
+    output_file.seek(0)
+
+    # Safely copy in a manner avoiding space (i.e., memory) exhaustion.
+    # print('types: {}, {}'.format(type(input_file), type(output_file)))
+    shutil.copyfileobj(input_file, output_file)
+
+# ....................{ WRITERS ~ context                  }....................
+@type_check
+def writing_bytes(
+    filename: str, is_overwritable: bool = False) -> BufferedIOBase:
     '''
     Open and return a filehandle suitable for writing the binary file with the
     passed filename, transparently compressing this file if the filetype of
     this filename is that of a supported archive format.
 
-    This function returns a :class:`file`-like object suitable for use wherever
-    the :func:`open` builtin is callable (e.g., in `with` statements).
+    This function returns a file-like object suitable for use wherever the
+    :func:`open` builtin is callable (e.g., in ``with`` statements).
 
     Parameters
     ----------
@@ -197,7 +291,7 @@ def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
     Returns
     ----------
     BufferedIOBase
-        :class:`file`-like object encapsulating this opened file.
+        File-like object encapsulating this opened file.
     '''
 
     # Avoid circular import dependencies.
@@ -227,28 +321,34 @@ def write_bytes(filename: str, is_overwritable: bool = False) -> BufferedIOBase:
         return open(filename, mode=mode)
 
 
-#FIXME: Add the "is_overwritable" parameter, implemented similarly to the same
-#parameter accepted by the write_bytes() function.
 @type_check
-def write_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
+def writing_chars(
+    filename: str,
+    is_overwritable: bool = False,
+    encoding: str = 'utf-8',
+) -> TextIOWrapper:
     '''
     Open and return a filehandle suitable for writing the plaintext file with
     the passed filename encoded with the passed encoding.
 
-    This function returns a :class:`file`-like object suitable for use wherever
-    the :func:`open` builtin is callable (e.g., in `with` statements).
+    This function returns a file-like object suitable for use wherever the
+    :func:`open` builtin is callable (e.g., in ``with`` statements).
 
     Parameters
     ----------
     filename : str
         Relative or absolute path of the plaintext file to be written.
+    is_overwritable : optional[bool]
+        ``True`` if overwriting this file when this file already exists *or*
+        ``False`` if raising an exception when this file already exists.
+        Defaults to ``False`` for safety.
     encoding : optional[str]
         Name of the encoding to be used. Defaults to UTF-8.
 
     Returns
     ----------
     TextIOWrapper
-        :class:`file`-like object encapsulating this opened file.
+        File-like object encapsulating this opened file.
     '''
 
     # Avoid circular import dependencies.
@@ -257,14 +357,19 @@ def write_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
     # Log this I/O operation.
     logs.log_debug('Writing chars: %s', filename)
 
-    # Raise an exception if this path already exists.
-    paths.die_if_path(filename)
+    # If this file is *NOT* overwritable, raise an exception if this path
+    # already exists.
+    if not is_overwritable:
+        paths.die_if_path(filename)
 
     # Create the parent directory of this file if needed.
     dirs.make_parent_unless_dir(filename)
 
-    # Open this file.
-    return open(filename, mode='xt', encoding=encoding)
+    # Mode with which to open this file for character-oriented writing.
+    mode = get_mode_write_chars(is_overwritable)
+
+    # Open and return a file handle writing uncompressed bytes to this file.
+    return open(filename, mode=mode, encoding=encoding)
 
 # ....................{ REPLACERS                          }....................
 def replace_substrs_inplace(
@@ -362,7 +467,7 @@ def replace_substrs(
     # obscures such writes from other threads and/or processes, avoiding
     # potential race conditions elsewhere.
     with temps.write_chars() as file_target_temp:
-        with read_chars(filename_source) as file_source:
+        with reading_chars(filename_source) as file_source:
             # For each line of the source file...
             for line in file_source:
                 # For each passed regular expression and corresponding

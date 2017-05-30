@@ -56,7 +56,7 @@ def load(filename: str) -> MappingOrSequenceTypes:
     import yaml
 
     # Load and return the contents of this YAML file.
-    with iofiles.read_chars(filename) as yaml_file:
+    with iofiles.reading_chars(filename) as yaml_file:
         return yaml.load(stream=yaml_file)
 
 # ....................{ SAVERS                             }....................
@@ -78,7 +78,7 @@ def save(container: MappingOrSequenceTypes, filename: str) -> None:
     import yaml
 
     # Save this container to this YAML file.
-    with iofiles.write_chars(filename) as yaml_file:
+    with iofiles.writing_chars(filename) as yaml_file:
         yaml.dump(
             data=container,
             stream=yaml_file,

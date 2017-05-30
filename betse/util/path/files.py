@@ -201,6 +201,19 @@ def is_symlink_valid(pathname: str) -> bool:
     # This is why human-readable function names is a good thing, people.
     return is_symlink(pathname) and path.exists(pathname)
 
+# ....................{ GETTERS                            }....................
+@type_check
+def get_size(filename: str) -> int:
+    '''
+    Size in bytes of the contents of the file with the passed filename.
+    '''
+
+    # If this file does *NOT* exist, raise an exception.
+    die_unless_file(filename)
+
+    # Return this filesize.
+    return path.getsize(filename)
+
 # ....................{ COPIERS                            }....................
 @type_check
 def copy(filename_source: str, filename_target: str) -> None:
@@ -226,7 +239,7 @@ def copy(filename_source: str, filename_target: str) -> None:
     logs.log_debug(
         'Copying file "%s" to "%s".', filename_source, filename_target)
 
-    # Raise an exception unless the source file exists.
+    # If this source file does *NOT* exist, raise an exception.
     die_unless_file(filename_source)
 
     # If the target file is a directory, append the basename of the passed
