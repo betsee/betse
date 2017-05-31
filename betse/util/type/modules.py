@@ -405,10 +405,8 @@ def import_module(
     module_name: str, exception_message: StrOrNoneTypes = None) -> ModuleType:
     '''
     Dynamically import and return the module, package, or C extension with the
-    passed fully-qualified name.
-
-    If this module is unimportable, an exception with the passed message is
-    raised.
+    passed fully-qualified name if importable *or* raise an exception with the
+    passed message otherwise.
     '''
 
     # If this module is unimportable, raise an exception.

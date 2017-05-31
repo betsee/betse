@@ -42,9 +42,9 @@ def die_if_file(pathname: str) -> None:
                 pathname, paths.get_type_label(pathname)))
 
 
-def die_unless_file(pathname: str) -> None:
+def die_unless_file(*pathnames: str) -> None:
     '''
-    Raise an exception unless the passed path is an existing non-directory file
+    Raise an exception unless all passed paths are existing non-directory files
     *after* following symbolic links.
 
     See Also
@@ -53,9 +53,14 @@ def die_unless_file(pathname: str) -> None:
         Further details.
     '''
 
-    if not is_file(pathname):
-        raise BetseFileException(
-            'File "{}" not found or unreadable.'.format(pathname))
+    # If at least one passed path is *NOT* an existing non-directory file...
+    if not is_file(*pathnames):
+        # For each such path...
+        for pathname in pathnames:
+            # If this path *NOT* such a file, raise an exception.
+            if not is_file(*pathnames):
+                raise BetseFileException(
+                    'File "{}" not found or unreadable.'.format(pathname))
 
 
 def join_and_die_unless_file(*pathnames: str) -> str:
@@ -106,14 +111,16 @@ def die_if_special(pathname: str) -> None:
                 pathname, paths.get_type_label(pathname)))
 
 # ....................{ TESTERS                            }....................
-def is_file(pathname: str) -> bool:
+@type_check
+def is_file(*pathnames: str) -> bool:
     '''
-    ``True`` only if the passed path is a non-directory file *after* following
-    symbolic links.
+    ``True`` only if all passed paths are existing non-directory files *after*
+    following symbolic links.
 
-    This function does *not* raise an exception if this path does not exist.
+    If any such path does *not* exist, this function silently ignores this path
+    rather than raising an exception.
 
-    Versus `path.isfile()`
+    Versus :func:`path.isfile`
     ----------
     This function intrinsically differs from the standard :func:`path.isfile`
     function. While the latter returns ``True`` only for non-special files and
@@ -127,13 +134,29 @@ def is_file(pathname: str) -> bool:
     directories or not. For example, the external command ``rm`` removes only
     non-directory files (regardless of specialness) while the external command
     ``rmdir`` removes only empty directories.
+
+    Parameters
+    ----------
+    pathnames: tuple[str]
+        Tuple of all paths to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if all such paths are existing non-directory files *after*
+        following symbolic links.
     '''
 
     # Avoid circular import dependencies.
     from betse.util.path import dirs, paths
 
-    # This path is a file if this path both exists and is *NOT* a directory.
-    return paths.is_path(pathname) and not dirs.is_dir(pathname)
+    # Return true only if...
+    return any(
+        # This path both exists and is *NOT* a directory...
+        paths.is_path(pathname) and not dirs.is_dir(pathname)
+        # For each such path.
+        for pathname in pathnames
+    )
 
 
 def is_file_executable(pathname: str) -> bool:
