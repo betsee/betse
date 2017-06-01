@@ -130,6 +130,7 @@ def _preserve_backward_importability() -> None:
     from betse.science.tissue import tissuepick
     from betse.science.config import export
     from betse.science.config.export import confanim, confplot, confvis
+    from betse.util.type.mapping import mapcls
 
     # Alias obsolete module names to current module objects.
     sys.modules['betse.science.config.export.confvisabc'] = confvis
@@ -144,6 +145,7 @@ def _preserve_backward_importability() -> None:
     sys.modules['betse.science.plot.anim.animconfig'] = confanim
     sys.modules['betse.science.visual.anim.animconfig'] = confanim
     sys.modules['betse.science.visual.plot.plotconfig'] = confplot
+    sys.modules['betse.util.type.mappings'] = mapcls
 
     # Alias obsolete to current class names.
     confanim.SimConfAnimOne = confvis.SimConfVisualCellsListItem
