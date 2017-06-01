@@ -14,8 +14,7 @@ import numpy as np
 from matplotlib import cm
 from matplotlib import colors
 from scipy.ndimage.filters import gaussian_filter
-
-# from scipy.optimize import basinhopping
+from scipy.optimize import basinhopping
 from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
@@ -2968,6 +2967,591 @@ class MasterOfNetworks(object):
                                                "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
                                                "and 'V-ATPase', 'Ca-ATPase', and 'Na/Ca-Exch' ")
 
+    #----optimizer------------------------------------------------------------------------------------------------------
+    def optimizer(self, sim, cells, p):
+        """
+        Runs an optimization routine returning reaction maximum rates (for
+        growth and decay, chemical reactions, and transporters) that match to a
+        user-specified set of target concentrations for all substances at
+        steady-state.
+
+        The optimization is performed using cell, environmental, and
+        mitochondrial concentrations defined in the network config file as
+        targets to fit to.
+
+        The optimization uses basin-hopping, a randomized function optimization
+        technique similar/analogous to genetic algorithm searching. The
+        optimization aims to find the global minimum of the network, which
+        represents the steady state. Specifically, it minimizes the chi-square
+        value of the set of calculated versus target concentrations given a
+        certain maximum rate vector.
+
+        Calling this method will write a CSV file containing the optimized
+        reaction rates to the results folder of the main simulation. It also
+        prints these values to the screen, and generates a graph of the
+        reaction network that has been optimized.
+        """
+
+        # FIXME option to set all reaction rates and D_mems automatically after a network optimization
+
+        # -----------------------------------------------------
+
+        self.globals = globals()
+        self.locals = locals()
+
+        # If either NetworkX or PyDot are unimportable, raise an exception.
+        libs.die_unless_runtime_optional('networkx', 'pydot')
+
+        # Import NetworkX and NetworkX's PyDot interface:
+        from networkx import nx_pydot
+
+        mssg = "Optimizing with {} in {} iterations".format(
+            self.opti_method, self.opti_N)
+        logs.log_info(mssg)
+
+        # set the Vmem to target value requested by user:
+        sim.vm = self.target_vmem
+
+        if self.mit_enabled:
+            # set Vmit to standard value
+            self.mit.Vmit[:] = -150.0e-3
+
+        self.init_saving(cells, p, plot_type='init', nested_folder_name='Network_Opt')
+
+        # create the reaction and concentration handlers, which organize different kinds of reactions and
+        # concentrations:
+
+        # create a complete graph using pydot and the network plotting method:
+        grapha = self.build_reaction_network(p)
+
+        # if saving is enabled, export the graph of the network used in the optimization:
+        if p.autosave is True and p.plot_network is True:
+            savename = self.imagePath + 'OptimizedNetworkGraph' + '.svg'
+            grapha.write_svg(savename, prog='dot')
+
+        # convert the graph into a networkx format so it's easy to manipulate:
+        network = nx_pydot.from_pydot(grapha)
+
+        self.net_graph = network
+
+        self.build_indices(sim, cells, p)
+
+        # initialize Dm_extra dictionary to handle channel effect on membrane (for Vmem calculation)
+        Dm_extra = {}
+        Dm_extra['K'] = []
+        Dm_extra['Na'] = []
+        Dm_extra['Cl'] = []
+
+        # initialize dictionary to hold index to channels in react_handler:
+        channel_index = {}
+        channel_index['K'] = []
+        channel_index['Na'] = []
+        channel_index['Cl'] = []
+
+        #Initialize channels, if there are any:
+        if len(self.channels):
+
+            sim.rho_channel = 1
+
+            self.run_loop_channels(sim, cells, p)
+
+            for ch_k, ch_v in self.channels.items():
+
+                chin = self.react_handler_index[ch_k]
+
+                if ch_v.channel_class == 'K':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+
+                elif ch_v.channel_class == 'Na':
+
+                    Dm_extra['Na'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['Na'].append(chin)
+
+                elif ch_v.channel_class == 'Cl':
+
+                    Dm_extra['Cl'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['Cl'].append(chin)
+
+                elif ch_v.channel_class == 'Fun':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+                    Dm_extra['Na'].append(0.2 * ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+                    channel_index['Na'].append(chin)
+
+                elif ch_v.channel_class == 'Cat':
+
+                    Dm_extra['K'].append(ch_v.channel_core.Dmem_time.mean())
+                    Dm_extra['Na'].append(ch_v.channel_core.Dmem_time.mean())
+
+                    channel_index['K'].append(chin)
+                    channel_index['Na'].append(chin)
+
+        self.Dm_extra = Dm_extra
+        self.channel_index = channel_index
+
+        # Optimization Matrix for Concentrations:----------------------------------------------------------------------
+
+        # build a network matrix in order to easily organize reaction relationships needed for the optimization:
+        self.network_opt_M = np.zeros((len(self.conc_handler), len(self.react_handler)))
+
+        # build the reaction matrix based on the network reaction graph:
+        for node_a, node_b in network.edges():
+
+            # get the coefficient of stoichiometry used in the reaction relationship:
+            edge_coeff = network.edge[node_a][node_b][0]['coeff']
+
+            # when building the graph, the node shape was used to signify the item:
+            node_type_a = network.node[node_a].get('shape', None)
+            node_type_b = network.node[node_b].get('shape', None)
+
+            # if node a is a concentration and b is a reaction, we must be dealing with a reactant:
+            if node_type_a is self.conc_shape and node_type_b == self.reaction_shape:
+
+                # find the numerical index of the reactant (node_a) and reaction (node_b) in the handlers:
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                # add them to the optimization matrix:
+                self.network_opt_M[row_i, col_j] = -1 * edge_coeff
+
+            # perform a similar type of reasoning for the opposite relationship (indicating a product):
+            elif node_type_a == self.reaction_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1 * edge_coeff
+
+            # the next two blocks to do exactly the same thing as above, except with transporters, which
+            # have a diamond shape as they're treated differently:
+            elif node_type_a is self.conc_shape and node_type_b == self.transporter_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.transporter_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+            elif node_type_a == self.conc_shape and node_type_b is self.ed_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.ed_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+            elif node_type_a == self.conc_shape and node_type_b is self.channel_shape:
+
+                row_i = self.conc_handler_index[node_a]
+                col_j = self.react_handler_index[node_b]
+
+                self.network_opt_M[row_i, col_j] = -1.0 * edge_coeff
+
+            elif node_type_a == self.channel_shape and node_type_b is self.conc_shape:
+
+                row_i = self.conc_handler_index[node_b]
+                col_j = self.react_handler_index[node_a]
+
+                self.network_opt_M[row_i, col_j] = 1.0 * edge_coeff
+
+        self.network_opt_M_full = self.network_opt_M * 1
+
+        # --------------------------------------------------
+        # This is idiotic, but refine the above matrix, assuming environmental concentrations are constant, and
+        # adding in a row to take care of zero transmembrane current at steady-state
+
+        # restructure the optimization matrix, first by removing the environmental values as we'll assume they're constant:
+        MM = []
+        self.output_handler = OrderedDict({})
+
+        for i, (k, v) in enumerate(self.conc_handler.items()):
+
+            # Don't include environmental concentrations in the optimization (assume they're constant)
+
+            if k.endswith("_env"):
+
+                pass
+
+            else:
+                MM.append(self.network_opt_M[i, :].tolist())
+
+                name_tag = 'd/dt ' + str(k)
+                self.output_handler[name_tag] = v
+
+        # next define a current expression as the final row:
+        Jrow = [0 for nn in self.react_handler]
+
+        # create another vector that will give total sum of pump/transporter currents only
+        self.Jpumps = [0 for nn in self.react_handler]
+
+        #current scaling factor requires conversion back to flux units:
+        ff = -1.0 * (cells.cell_vol.mean() / cells.cell_sa.mean()) * p.F
+
+        for i, (k, v) in enumerate(self.react_handler.items()):
+
+            if k.endswith("_ed"):  # if we're dealing with an electrodiffusing item...
+
+                kk = k[:-3]  # get the proper keyname...
+                z = self.zmol[kk]  # get the charge value...
+                Jrow[i] = z * ff
+
+            if k in self.transporters:
+
+                for li in self.transporters[k].transport_in_list:
+                    z = self.zmol[li]
+                    coeff = self.net_graph.edge[k][li][0]['coeff']
+                    Jrow[i] += -coeff * z * ff
+                    self.Jpumps[i] += -coeff * z * ff
+
+                for lo in self.transporters[k].transport_out_list:
+                    z = self.zmol[lo]
+                    coeff = self.net_graph.edge[lo][k][0]['coeff']
+                    Jrow[i] += coeff * z * ff
+                    self.Jpumps[i] += coeff * z * ff
+
+            if k in self.channels:
+
+                chan_type = self.channels[k].channel_class
+
+                if chan_type == 'K' or chan_type == 'Na':
+
+                    Jrow[i] = ff
+
+                elif chan_type == 'Cl':
+
+                    Jrow[i] = -ff
+
+                elif chan_type == 'Fun' or chan_type == 'Cat':
+
+                    Jrow[i] = ff
+
+        MM.append(Jrow)
+        self.output_handler['Jmem'] = 0
+
+        MM = np.array(MM)
+
+        self.network_opt_M = MM
+
+        # system determinism:
+        ri, ci = self.network_opt_M.shape
+
+        # -----report on system constraints:-------------------------------
+
+        system_determination = ri - ci + 1
+
+        logs.log_info("---------------------------------------------------")
+        if system_determination < 0:
+
+            logs.log_warning("WARNING!: equation system is under-determined: ")
+
+        elif system_determination == 0:
+
+            logs.log_info("System is exactly determined: ")
+
+        elif system_determination > 0:
+
+            logs.log_info("System is overdetermined: ")
+
+        logs.log_info("degrees of freedom: " + str(system_determination))
+        logs.log_info("Optimizing " + str(ci) + " variables with " + str(ri + 1) + " constraints.")
+        logs.log_info("---------------------------------------------------")
+
+        # initialize guess vector for reaction rates (they will be extracted from user vmax settings in file):
+        vmax_o = np.ones(len(self.react_handler))
+
+        origin_o = np.ones(len(self.react_handler))
+
+        for i, rea_name in enumerate(self.react_handler):
+
+            if rea_name.endswith('_growth'):
+
+                name = rea_name[:-7]
+
+                origin_o[i] = self.molecules[name].r_production
+
+            elif rea_name.endswith('_decay'):
+
+                name = rea_name[:-6]
+
+                origin_o[i] = self.molecules[name].r_decay
+
+            elif rea_name.endswith('_ed'):
+
+                name = rea_name[:-3]
+
+                origin_o[i] = self.Dmem[name]
+
+            elif rea_name in self.reactions:
+
+                origin_o[i] = self.reactions[rea_name].vmax
+
+            elif rea_name in self.transporters:
+
+                origin_o[i] = self.transporters[rea_name].vmax
+
+            elif rea_name in self.channels:
+
+                origin_o[i] = self.channels[rea_name].channelMax
+
+        logs.log_info("Initiating optimization with reaction rates: ")
+        logs.log_info("-----------------------------------------")
+
+        self.constraints = []
+        # tell the user what initial values they're using and build constraints vector:
+        for i, (nme, v) in enumerate(self.react_handler.items()):
+
+            if nme.endswith('_ed'):
+
+                nme = 'Dmem_' + nme[:-3]
+                self.constraints.append((0.1, 1000.0))
+
+            else:
+                self.constraints.append((0.0, 1000.0))
+
+            msg = "{}: {}".format(nme, origin_o[i])
+
+            logs.log_info(msg)
+
+        logs.log_info("Target Vmem: " + str(1.0e3 * self.target_vmem) + ' mV')
+
+        logs.log_info("-----------------------------------------")
+
+        self.origin_o = origin_o
+
+        # calculate the reaction rates at the target concentrations:
+        # r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
+
+        # create a vector of target concentrations:
+        c_base = np.asarray([self.conc_handler[cname] for cname in self.conc_handler])
+        c_fix = np.ones(len(self.conc_handler))
+
+        # get rid of zeros so the optimization function calculation of chi squared is not dividing by zero:
+        zero_c = (c_base == 0.0).nonzero()
+        c_base[zero_c] = 1.0
+        c_fix[zero_c] = 0.0
+
+        # define Pmem indices to access in the vmax vector:
+        iNa = self.react_handler_index['Na_ed']
+        iK = self.react_handler_index['K_ed']
+
+        if 'Cl_ed' in self.react_handler_index:
+
+            iCl = self.react_handler_index['Cl_ed']
+
+
+        else:
+
+            iCl = None
+
+        # define an optimization function: this one solves for Vmem using the Goldman equation and the present
+        # fit's value of Pmem adjustments. It then recalculates r_base and optimizes steady-state by
+        # finding minimum concentration changes,
+        # zero transmembrane currents, and target Vmem values:
+
+        def opt_funk(v_base_o):
+
+            r_base = [eval(self.react_handler[rea], self.globals, self.locals).mean() for rea in self.react_handler]
+
+            outputs = np.dot(MM, np.abs(v_base_o) * r_base)
+
+            # pump_current = np.dot(self.Jpumps, np.abs(v_base_o) * r_base)
+
+            # # Total current across the membrane for use in Goldman equation Vmem estimate:
+            # gg = pump_current * p.tm * (1 / p.F)
+            #
+            # recalculate Vmem:
+            if iCl is None:
+
+                # remake the membrane diffusion constants
+
+                DmK_dyn = np.abs(v_base_o[iK]) * self.Dmem['K']
+                DmNa_dyn = np.abs(v_base_o[iNa]) * self.Dmem['Na']
+
+                for dmNa, jNa in zip(self.Dm_extra['Na'], self.channel_index['Na']):
+                    DmNa_dyn += dmNa * np.abs(v_base_o[jNa])
+
+                for dmK, jK in zip(self.Dm_extra['K'], self.channel_index['K']):
+                    DmK_dyn += dmK * np.abs(v_base_o[jK])
+
+                sim.vm = (p.R * sim.T / p.F) * np.log(
+                    (DmNa_dyn * self.conc_handler['Na_env'] +
+                     DmK_dyn * self.conc_handler['K_env']
+                     ) /
+                    (DmNa_dyn * self.conc_handler['Na'] +
+                     DmK_dyn * self.conc_handler['K']
+                     ))
+
+            else:
+
+                # remake the membrane diffusion constants
+
+                DmK_dyn = np.abs(v_base_o[iK]) * self.Dmem['K']
+                DmNa_dyn = np.abs(v_base_o[iNa]) * self.Dmem['Na']
+                DmCl_dyn = np.abs(v_base_o[iCl]) * self.Dmem['Cl']
+
+                for dmNa, jNa in zip(self.Dm_extra['Na'], self.channel_index['Na']):
+                    DmNa_dyn += dmNa * np.abs(v_base_o[jNa])
+
+                for dmK, jK in zip(self.Dm_extra['K'], self.channel_index['K']):
+                    DmK_dyn += dmK * np.abs(v_base_o[jK])
+
+                for dmCl, jCl in zip(self.Dm_extra['Cl'], self.channel_index['Cl']):
+                    DmCl_dyn += dmCl * np.abs(v_base_o[jCl])
+
+                sim.vm = (p.R * sim.T / p.F) * np.log(
+                    (DmNa_dyn * self.conc_handler['Na_env'] +
+                     DmK_dyn * self.conc_handler['K_env'] +
+                     DmCl_dyn * self.conc_handler['Cl']) /
+                    (DmNa_dyn * self.conc_handler['Na'] +
+                     DmK_dyn * self.conc_handler['K'] +
+                     DmCl_dyn * self.conc_handler['Cl_env'])
+                )
+
+            delta_c = (outputs) ** 2
+
+            cc2 = ((sim.vm - self.target_vmem) * 1e3) ** 2
+
+            chi_sqr = np.sum(delta_c) + np.sum(cc2)
+            # chi_sqr = np.sum(delta_c)
+
+            return chi_sqr
+
+        # Calculate a "Jacobian" estimate for the minimization function:
+        def opt_jac(v_base_o):
+
+            deltag = 0.05
+            vv = v_base_o * 1
+
+            jac_base = opt_funk(v_base_o)
+            jj = []
+
+            for i, vi in enumerate(v_base_o):
+                vv[i] = v_base_o[i] + deltag
+                jj.append(opt_funk(vv))
+
+            jaco = np.asarray((jj - jac_base) / deltag)
+
+            return jaco
+
+        # initialize a list that will hold alternative solutions:
+        alt_sols = []
+
+        # and a messaging function to give feedback to the user on basin hopping progress:
+        def print_fun(x, f, accepted):
+
+            mssg = "at minimum {} accepted {}".format(f, accepted)
+            logs.log_info(mssg)
+
+            if f <= 0.015:
+                # save alternative solutions with exceptional chi sqr values
+                alt_sols.append(x * origin_o)
+
+        minimizer_opts = {'method': self.opti_method}
+
+        if self.opti_method != 'COBYLA' and self.opti_method != 'Nelder-Mead':
+            minimizer_opts['jac'] = opt_jac
+
+        # run the basin hopping algorithm
+        sol = basinhopping(opt_funk, vmax_o, T=self.opti_T, stepsize=self.opti_step, niter=self.opti_N,
+                           minimizer_kwargs=minimizer_opts, callback=print_fun)
+
+        rkeys = list(self.react_handler.keys())
+
+        # Absolute path to  write alt solutions:
+        saveAlts = pathnames.join(self.resultsPath, 'OptimizationTargetConcsVmem.csv')
+        with open(saveAlts, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                                  quotechar='|', quoting=csv.QUOTE_NONE)
+            for k, v in self.conc_handler.items():
+                eqwriter.writerow([k, v])
+
+            eqwriter.writerow(['Vmem', self.target_vmem])
+
+        # Absolute path to  write alt solutions:
+        saveAlts = pathnames.join(self.resultsPath, 'AlternativeSolutions.csv')
+        with open(saveAlts, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                                  quotechar='|', quoting=csv.QUOTE_NONE)
+            for soli in alt_sols:
+                for ss, rk in zip(soli, rkeys):
+
+                    if rk.endswith('_ed'):
+                        name = rk[:-3]
+                        rk2 = "Dmem_" + name
+
+                    else:
+                        rk2 = rk
+
+                    ss = np.abs(ss)
+                    eqwriter.writerow([rk2, ss])
+                eqwriter.writerow(['------------'])
+
+        # define the solution vector in a convenient way so we can save and print it:
+        self.sol_x = np.abs(sol.x * origin_o)
+        self.sol_v = sol.x
+
+        # Absolute path of the YAML file to write this solution to.
+        saveData = pathnames.join(self.resultsPath, 'OptimizedReactionRates.csv')
+
+        # save the results to file:
+        with open(saveData, 'w', newline='') as csvfile:
+            eqwriter = csv.writer(csvfile, delimiter='\t',
+                                  quotechar='|', quoting=csv.QUOTE_NONE)
+
+            eqwriter.writerow(['Sum of squares value', sol.fun])
+
+            for rea_name, vmax in zip(self.react_handler.keys(), self.sol_x.tolist()):
+
+                if rea_name.endswith('_ed'):
+                    name = rea_name[:-3]
+                    rk2 = "Dmem_" + name
+
+                else:
+                    rk2 = rea_name
+
+                eqwriter.writerow([rk2, vmax])
+
+        # give the user a message about the results of basin hopping optimization:
+        finalmess = "Final Sum of Squares value: {}".format(sol.fun)
+        logs.log_info(finalmess)
+
+        logs.log_info("Optimization-recommended reaction rates: ")
+        logs.log_info("-----------------------------------------")
+
+        for i, (k, v) in enumerate(self.react_handler.items()):
+
+            if k.endswith('_ed'):
+
+                name = k[:-3]
+                Pm = "Dmem_" + name
+                message = Pm + ": " + str(self.sol_x[i])
+
+            else:
+                message = k + ": " + str(self.sol_x[i])
+
+            logs.log_info(message)
+
+        logs.log_info("-----------------------------------------")
+
     # ------Utility Methods--------------------------------------------------------------------------------------------
     def bal_charge(self, Q, sim, tag, p):
 
@@ -4069,16 +4653,22 @@ class MasterOfNetworks(object):
 
                 # First deal with the fact that Km may be voltage sensitive if the substance is charged:
                 # get the charge value for the substance:
-                za = self.molecules[name].z
+                if in_mem_tag is True and vs_request is True:
 
-                if in_mem_tag is True and za != 0.0 and vs_request is True:
+                    za = self.molecules[name].z
 
-                    msg = "Vmem-sensitive gating used for activator: "+ name
+                    if za != 0.0:
 
-                    logs.log_info(msg)
+                        msg = "Vmem-sensitive gating used for activator: "+ name
 
-                    Kmc = '({}*np.exp(-(sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
-                    Kme = '({}*np.exp((sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
+                        logs.log_info(msg)
+
+                        Kmc = '({}*np.exp(-(sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
+                        Kme = '({}*np.exp((sim.vm*{}*p.F)/(p.R*p.T)))'.format(Kmo, za)
+
+                    else:
+                        Kmc = '{}'.format(Kmo)
+                        Kme = '{}'.format(Kmo)
 
                 else:
                     Kmc = '{}'.format(Kmo)
