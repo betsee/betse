@@ -23,10 +23,21 @@ Frontiers Group`_.
 
 BETSE is `portably implemented <codebase_>`__ in pure `Python 3`_, `continuously
 stress-tested <testing_>`__ with GitLab-CI_ **×** Appveyor_ **+** py.test_, and
-`permissively distributed <License_>`__ under the `BSD 2-clause license`_. While
-a high-level graphical user interface (GUI) supporting all popular platforms is
-planned, BETSE currently *only* provides a low-level command line interface
-(CLI).
+`permissively distributed <License_>`__ under the `BSD 2-clause license`_.
+
+======
+BETSEE
+======
+
+BETSEE_ (\ **BETSE E**\ nvironment) is an external graphical user interface
+(GUI) wrapping the command-line interface (CLI) bundled with BETSE. BETSEE_
+provides an interactive modelling environment simplifying the creation,
+configuration, running, and management of BETSE simulations. New users are
+strongly encouraged to install both BETSE and BETSEE_.
+
+Like BETSE, BETSEE_ is `portably implemented <BETSEE codebase_>`__ in `Python
+3`_ via the official PySide2_-based `Qt 5 <Qt_>`_ bindings and `permissively
+distributed <License_>`__ under the `BSD 2-clause license`_.
 
 .. # ------------------( TABLE OF CONTENTS                  )------------------
 .. # Blank line. By default, Docutils appears to only separate the subsequent
@@ -155,41 +166,41 @@ repository and prior stable releases – is manually installable as follows:
 
    - **The unstable BETSE repository** as follows:
 
-     - Install Git_.
-     - Clone the `master` branch of this repository.
+     #. Install Git_.
+     #. Clone the ``master`` branch of this repository.
 
-       .. code:: bash
+        .. code:: bash
 
-          git clone https://gitlab.com/betse/betse.git
+           git clone https://gitlab.com/betse/betse.git
 
-     - Prepare for installation.
+     #. Prepare for installation.
 
-       .. code:: bash
+        .. code:: bash
 
-          cd betse
+           cd betse
 
    - **Any stable BETSE release,** including the most recent, as follows:
 
-     - Visit our `source tarball archive <tarballs_>`__.
-     - Click the download icon to the right of the desired release and select
-       *Download tar.gz*.
-     - Extract the downloaded tarball into the current directory.
+     #. Visit our `source tarball archive <tarballs_>`__.
+     #. Click the download icon to the right of the desired release and select
+        *Download tar.gz*.
+     #. Extract the downloaded tarball into the current directory.
 
-       .. code:: bash
+        .. code:: bash
 
-          tar -xvzf betse-*.tar.gz
+           tar -xvzf betse-*.tar.gz
 
-     - (\ *Optional*\ ) Remove this tarball.
+     #. (\ *Optional*\ ) Remove this tarball.
 
-       .. code:: bash
+        .. code:: bash
 
-          rm betse-*.tar.gz
+           rm betse-*.tar.gz
 
-     - Prepare for installation.
+     #. Prepare for installation.
 
-       .. code:: bash
+        .. code:: bash
 
-          cd betse-*
+           cd betse-*
 
 #. **Install BETSE** either:
 
@@ -208,7 +219,7 @@ repository and prior stable releases – is manually installable as follows:
 
         sudo python3 setup.py install
 
-1. (\ *Optional*\ ) **Test BETSE.** Run all modelling phases of a sample
+#. (\ *Optional*\ ) **Test BETSE,** running all modelling phases of a sample
    simulation from a new directory.
 
    .. code:: bash
@@ -232,11 +243,18 @@ repository and prior stable releases – is manually installable as follows:
 Usage
 ============
 
-See the following external documents for detailed usage instructions – complete
-with explanatory examples, sample plots, and ample screenshots:
+BETSE itself provides the ``betse`` command, a low-level command line interface
+(CLI) optimized for non-interactive scripting (e.g., for implementing massively
+parallel `genetic algorithms`_). See the following external documents for
+detailed usage instructions – complete with explanatory examples, sample plots,
+and ample screenshots:
 
 - Official `BETSE 0.4 documentation`_. (\ *PDF format; 72 pages.*\ )
 - Official `BETSE 0.3 documentation`_. (\ *PDF format; 77 pages.*\ )
+
+Alternately, our sister project BETSEE_ provides the ``betsee`` command, a
+high-level graphical user interface (GUI) optimized for interactive
+experimentation.
 
 Introduction
 ============
@@ -426,6 +444,12 @@ For prospective contributors:
 .. _BETSE 0.3 documentation:
    https://www.dropbox.com/s/fsxhjpipbiog0ru/BETSE_Documentation_Nov1st2015.pdf?dl=0
 
+.. # ------------------( LINKS ~ betsee                     )------------------
+.. _BETSEE:
+   https://gitlab.com/betse/betsee
+.. _BETSEE codebase:
+   https://gitlab.com/betse/betsee/tree/master
+
 .. # ------------------( LINKS ~ academia                   )------------------
 .. _Pietak, Alexis:
    https://www.researchgate.net/profile/Alexis_Pietak
@@ -572,6 +596,8 @@ For prospective contributors:
    https://en.wikipedia.org/wiki/Continuous_integration
 .. _directed graphs:
    https://en.wikipedia.org/wiki/Directed_graph
+.. _genenic algorithms:
+   https://en.wikipedia.org/wiki/Genetic_algorithm
 .. _knowledge-based systems:
    https://en.wikipedia.org/wiki/Knowledge-based_systems
 
@@ -616,3 +642,17 @@ For prospective contributors:
    http://www.scipy.org
 .. _YAML:
    http://yaml.org
+
+.. # ------------------( LINKS ~ software : pyside2         )------------------
+.. _PySide2:
+   https://wiki.qt.io/PySide2
+.. _PySide2 5.6:
+   https://code.qt.io/cgit/pyside/pyside.git/log/?h=5.6
+.. _PySide2 installation:
+   https://wiki.qt.io/PySide2_GettingStarted
+.. _PySide2 PPA:
+   https://launchpad.net/~thopiekar/+archive/ubuntu/pyside-git
+.. _Qt:
+   https://www.qt.io
+.. _Qt 5.6:
+   https://wiki.qt.io/Qt_5.6_Release
