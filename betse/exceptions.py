@@ -165,6 +165,7 @@ class BetseLibException(BetseException):
     '''
     General-purpose exception applicable to third-party dependencies.
     '''
+
     pass
 
 
@@ -172,6 +173,7 @@ class BetseMatplotlibException(BetseLibException):
     '''
     Matplotlib-specific exception.
     '''
+
     pass
 
 
@@ -179,6 +181,15 @@ class BetsePyDotException(BetseLibException):
     '''
     PyDot-specific exception.
     '''
+
+    pass
+
+# ....................{ EXCEPTIONS ~ math                  }....................
+class BetseMathException(BetseException):
+    '''
+    Math-specific exception.
+    '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ path                  }....................
@@ -186,6 +197,7 @@ class BetsePathException(BetseException):
     '''
     Path-specific exception.
     '''
+
     pass
 
 
@@ -193,6 +205,7 @@ class BetseDirException(BetsePathException):
     '''
     Directory-specific exception.
     '''
+
     pass
 
 
@@ -200,6 +213,7 @@ class BetseFileException(BetsePathException):
     '''
     File-specific exception.
     '''
+
     pass
 
 
@@ -207,6 +221,7 @@ class BetseArchiveException(BetsePathException):
     '''
     Archive-specific exception.
     '''
+
     pass
 
 
@@ -214,6 +229,7 @@ class BetseCommandException(BetseFileException):
     '''
     Command-specific exception.
     '''
+
     pass
 
 # ....................{ EXCEPTIONS ~ test                  }....................

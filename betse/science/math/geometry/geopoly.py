@@ -3,7 +3,7 @@
 # See "LICENSE" for further details.
 
 '''
-Primitive polygon functionality.
+Primitive two-dimensional polygon functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
