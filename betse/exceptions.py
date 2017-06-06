@@ -187,11 +187,26 @@ class BetsePyDotException(BetseLibException):
 # ....................{ EXCEPTIONS ~ math                  }....................
 class BetseMathException(BetseException):
     '''
-    Math-specific exception.
+    General-purpose exception applicable to all low-level math algorithms.
     '''
 
     pass
 
+
+class BetseMathLineException(BetseMathException):
+    '''
+    Line- and line segment-specific math exception.
+    '''
+
+    pass
+
+
+class BetseMathPointException(BetseMathException):
+    '''
+    Point-specific math exception.
+    '''
+
+    pass
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetsePathException(BetseException):
     '''

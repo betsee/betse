@@ -7,7 +7,7 @@ Primitive two-dimensional point functionality.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.exceptions import BetseMathException
+from betse.exceptions import BetseMathLineException, BetseMathPointException
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ EXCEPTIONS                         }....................
@@ -22,14 +22,14 @@ def die_unless_point(*points: SequenceTypes) -> None:
 
     Raises
     ----------
-    BetseMathException
+    BetseMathPointException
         If any such sequence does *not* contain exactly two numbers.
     '''
 
     if not is_point(*points):
         for point in points:
             if not is_point(point):
-                raise BetseMathException(
+                raise BetseMathPointException(
                     'Sequence not a two-dimensional point '
                     '(i.e., length != 2): {!r}'.format(point))
 
@@ -176,11 +176,16 @@ def is_left_of_vector(
        ux·vy - uy·vx = det(u × v) > 0
        ux·vy > uy·vx
 
-    However, this function accepts points rather than vectors, necessitating
-    translation from the former to the latter. Denote ``h`` the passed head
-    point, ``t`` the passed tail point, ``p`` the passed subject point, and
-    ``v`` the corresponding subject vector. Given these points, the vector
-    components of ``u`` and ``v``  are defined as follows:
+    Since this function accepts points rather than vectors, the former must be
+    translated to the latter. Let:
+
+    * ``h`` be the passed head point.
+    * ``t`` be the passed tail point.
+    * ``p`` be the passed subject point.
+    * ``v`` be the corresponding subject vector.
+
+    The X and Y components of ``u`` and ``v``  may then be defined in terms of
+    these points as follows:
 
     * ``ux = hx - tx``.
     * ``uy = hy - ty``.
@@ -225,3 +230,216 @@ def is_left_of_vector(
         (vector_head_point[1] - vector_tail_point[1])*
             (subject_point[0] - vector_tail_point[0])
     )
+
+# ....................{ INTERSECTERS                       }....................
+#FIXME: Unit test us up.
+@type_check
+def intersect_lines(
+    line1_point1: SequenceTypes,
+    line1_point2: SequenceTypes,
+    line2_point1: SequenceTypes,
+    line2_point2: SequenceTypes,
+) -> SequenceTypes:
+    '''
+    Two-dimensional point intersecting the pair of lines defined by the passed
+    pairs of two-dimensional points if any *or* raise an exception if these
+    lines either infinitely overlap (i.e., are collinear) or never overlap
+    (i.e., are parallel).
+
+    Derivation
+    ----------
+    We now derive the implementation of this function from the two-point form of
+    a two-dimensional line. Let:
+
+    * ``c`` be the first passed point defining the first line.
+    * ``d`` be the second passed point defining the first line.
+    * ``s`` be the first passed point defining the second line.
+    * ``t`` be the second passed point defining the second line.
+    * ``e`` be any point residing on the first line.
+    * ``u`` be any point residing on the second line.
+
+    The intersection of these lines if any is the point satisfying the equality
+    ``e = u``. For simplicity, let ``x = ex = ux`` and ``y = ex = ux`` be the
+    X and Y coordinates of this point. The two-point form of the lines defined
+    by these points constrained to intersect at this point is as follows:
+
+    .. code::
+
+                (dy - cy)(x - cx)
+                -----------------
+       y - cy =  dx - cx
+                (ty - sy)(x - sx)
+                ------------------
+       y - sy =  tx - sx
+
+    Determining this intersection point if any reduces to solving this system of
+    two linear equations of two variables, which typically proceeds as follows:
+
+    .. code::
+
+       (y - cy)(dx - cx) = (dy - cy)(x - cx)
+       (y - sy)(tx - sx) = (ty - sy)(x - sx)
+
+       y·dx - y·cx - cy·dx + cy·cx = x·dy - dy·cx - x·cy + cy·cx
+       y·tx - y·sx - sy·tx + sy·sx = x·ty - ty·sx - x·sy + sy·sx
+
+       (cy - dy)x + (dx - cx)y = dx·cy - dy·cx
+       (sy - ty)x + (tx - sx)y = tx·sy - ty·sx
+
+    Let ``M`` be the coefficient matrix describing this linear system of
+    equations such that:
+
+    .. code::
+
+           |cy-dy  dx-cx|
+       M = |sy-ty  tx-sx|
+
+    The determinant ``det(M)`` of this matrix is given by:
+
+    .. code::
+
+       det(M) = (cy-dy)·(tx-sx) - (dx-cx)·(sy-ty)
+
+    This linear system of equations is then equivalent to this matrix equation:
+
+    .. code::
+
+        |x|   |dx·cy-dy·cx|
+       M|y| = |tx·sy-ty·sx|
+
+    This linear system of equations has a unique solution (implying these lines
+    to intersect in a single point) if and only if:
+
+    .. code::
+
+       det(M) = (cy-dy)·(tx-sx) -  (dx-cx)·(sy-ty) != 0
+                (cy-dy)·(tx-sx) != (dx-cx)·(sy-ty)
+
+    Suppose ``det(M) != 0``, in which case this linear system of equastions has
+    a unique solution. While there exist various (equally valid) means of
+    obtaining this solution, the simplest is by invocation of Cramer's Rule.
+    Let ``Mx`` be the matrix formed by replacing the first column of the
+    coefficient matrix with the constant column vector and ``My`` the matrix
+    formed by replacing the second column of the coefficient matrix with the
+    constant column vector such that:
+
+    .. code::
+
+            |dx·cy-dy·cx  dx-cx      |
+       Mx = |tx·sy-ty·sx  tx-sx      |
+            |cy-dy        dx·cy-dy·cx|
+       My = |sy-ty        tx·sy-ty·sx|
+
+    The determinants ``det(Mx)`` and ``det(My)`` of these matrices are given by:
+
+    .. code::
+
+       det(Mx) = (dx·cy-dy·cx)(tx-sx) - (tx·sy-ty·sx)(dx-cx)
+       det(My) = (tx·sy-ty·sx)(cy-dy) - (dx·cy-dy·cx)(sy-ty)
+
+    Cramer's Rule then yields the X and Y coordinates of this point of
+    intersection (with respect to these determinants) as follows:
+
+    .. code::
+
+           det(Mx)   (dx·cy-dy·cx)(tx-sx) - (tx·sy-ty·sx)(dx-cx)
+           ------- = -------------------------------------------
+       x = det(M)    (cy-dy)·(tx-sx) - (dx-cx)·(sy-ty)
+           det(My)   (tx·sy-ty·sx)(cy-dy) - (dx·cy-dy·cx)(sy-ty)
+           ------- = -------------------------------------------
+       y = det(M)    (cy-dy)·(tx-sx) - (dx-cx)·(sy-ty)
+
+    For efficiency, this solution is often rewritten into the equivalent form:
+
+           (dx·cy-dy·cx)(tx-sx) - (tx·sy-ty·sx)(dx-cx)
+           -------------------------------------------
+       x = (dx-cx)·(ty-sy) - (dy-cy)·(tx-sx)
+           (dx·cy-dy·cx)(ty-sy) - (tx·sy-ty·sx)(dy-cy)
+           -------------------------------------------
+       y = (dx-cx)·(ty-sy) - (dy-cy)·(tx-sx)
+
+    The implementation of this function trivially follows.
+
+    Parameters
+    ----------
+    line1_point1 : SequenceTypes
+        2-sequence of the X and Y coordinates of the first two-dimensional point
+        residing on the first of these lines (in any order) such that:
+        * The first item is the X coordinate of this point.
+        * The second item is the Y coordinate of this point.
+    line1_point2 : SequenceTypes
+        2-sequence of the X and Y coordinates of the second two-dimensional
+        point residing on the first of these lines (in any order).
+    line2_point1 : SequenceTypes
+        2-sequence of the X and Y coordinates of the first two-dimensional
+        point residing on the second of these lines (in any order).
+    line2_point2 : SequenceTypes
+        2-sequence of the X and Y coordinates of the second two-dimensional
+        point residing on the second of these lines (in any order).
+
+    Returns
+    ----------
+    SequenceTypes
+        2-sequence of the X and Y coordinates of the two-dimensional point
+        intersecting the pair of lines defined by these two-dimensional points.
+
+    Raises
+    ----------
+    BetseMathLineException
+        If these lines either:
+        * Infinitely overlap (i.e., are collinear).
+        * Never overlap (i.e., are parallel).
+    '''
+
+    # If any passed sequence is *NOT* a point, raise an exception.
+    die_unless_point(
+        line1_point1, line1_point2, line2_point1, line2_point2)
+
+    # X coordinates of these points in the nomenclature documented above.
+    cx = line1_point1[0]
+    dx = line1_point2[0]
+    sx = line2_point1[0]
+    tx = line2_point2[0]
+
+    # Y coordinates of these points in the nomenclature documented above.
+    cy = line1_point1[1]
+    dy = line1_point2[1]
+    sy = line2_point1[1]
+    ty = line2_point2[1]
+
+    # Run and rise of the slope of the first line.
+    dcx = dx - cx
+    dcy = dy - cy
+
+    # Run and rise of the slope of the second line.
+    tsx = tx - sx
+    tsy = ty - sy
+
+    # Determinant of the coefficient matrix solving this intersection.
+    detM = dcx*tsy - dcy*tsx
+
+    # If this determinant is zero, no unique solution exists, in which case
+    # these lines either infinitely or never intersect. Since this constitutes
+    # an error condition in either case, raise an exception. While we could
+    # detect and differentiate these two error conditions in this exception
+    # message, a lazy approach currently bests an accurate approach.
+    if detM == 0:
+        raise BetseMathLineException(
+            'Line through points {!r} and {!r} and '
+            'line through points {!r} and {!r} '
+            'either infinitely or never intersect.'.format(
+                cx, dx, sx, tx))
+    # Else, this determinant is non-zero, in which a unique solution exists and
+    # these lines uniquely intersect at a single point, which we now obtain.
+
+    #                                  |dx dy|
+    # Determinant of the ad-hoc matrix |cx cy|.
+    detdc = dx*cy - dy*cx
+
+    #                                  |tx ty|
+    # Determinant of the ad-hoc matrix |sx sy|.
+    detts = tx*sy - ty*sx
+
+    # Return the 2-sequence of the X and Y coordinates of this intersection,
+    # calculated according to Cramer's Rule from the requisite determinants.
+    return (detdc*tsx - detts*dcx / detM, detdc*tsy - detts*dcy / detM)
