@@ -10,8 +10,8 @@ implementing a rudimentary subset of PEP 484-style type checking based on Python
 '''
 
 # ....................{ IMPORTS                            }....................
-from random import Random
 import pytest
+from random import Random
 
 # ....................{ TESTS                              }....................
 def test_type_check_noop() -> None:

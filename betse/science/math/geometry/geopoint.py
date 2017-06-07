@@ -442,4 +442,7 @@ def intersect_lines(
 
     # Return the 2-sequence of the X and Y coordinates of this intersection,
     # calculated according to Cramer's Rule from the requisite determinants.
-    return (detdc*tsx - detts*dcx / detM, detdc*tsy - detts*dcy / detM)
+    return (
+        (detdc*tsx - detts*dcx) / detM,
+        (detdc*tsy - detts*dcy) / detM,
+    )
