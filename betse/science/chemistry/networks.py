@@ -1202,7 +1202,8 @@ class MasterOfNetworks(object):
 
                 tex_name = name
 
-                denomo_string_Q += "(self.cell_concs['{}']".format(name)
+                # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                denomo_string_Q += "(1.0e-3*self.cell_concs['{}']".format(name)
 
                 denomo_string_Q += "**{})".format(coeff)
 
@@ -1221,7 +1222,9 @@ class MasterOfNetworks(object):
             for i, (name, coeff) in enumerate(zip(product_names, product_coeff)):
 
                 tex_name = name
-                numo_string_Q += "(self.cell_concs['{}']".format(name)
+
+                # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                numo_string_Q += "(1.0e-3*self.cell_concs['{}']".format(name)
 
                 numo_string_Q += "**{})".format(coeff)
 
@@ -1454,7 +1457,8 @@ class MasterOfNetworks(object):
 
                 tex_name = name + '_{mit}'
 
-                denomo_string_Q += "(self.mit_concs['{}']".format(name)
+                # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                denomo_string_Q += "(1.0e-3*self.mit_concs['{}']".format(name)
 
                 denomo_string_Q += "**{})".format(coeff)
 
@@ -1473,7 +1477,9 @@ class MasterOfNetworks(object):
             for i, (name, coeff) in enumerate(zip(product_names, product_coeff)):
 
                 tex_name = name + "_{mit}"
-                numo_string_Q += "(self.mit_concs['{}']".format(name)
+
+                # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                numo_string_Q += "(1.0e-3*self.mit_concs['{}']".format(name)
 
                 numo_string_Q += "**{})".format(coeff)
 
@@ -1708,7 +1714,8 @@ class MasterOfNetworks(object):
 
                 tex_name = name
 
-                denomo_string_Q += "(self.env_concs['{}']".format(name)
+                # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                denomo_string_Q += "(1.0e-3*self.env_concs['{}']".format(name)
 
                 denomo_string_Q += "**{})".format(coeff)
 
@@ -1726,7 +1733,9 @@ class MasterOfNetworks(object):
             for i, (name, coeff) in enumerate(zip(product_names, product_coeff)):
 
                 tex_name = name
-                numo_string_Q += "(self.env_concs['{}']".format(name)
+
+                # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                numo_string_Q += "(1.0e-3*self.env_concs['{}']".format(name)
 
                 numo_string_Q += "**{})".format(coeff)
 
@@ -2172,15 +2181,18 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    denomo_string_Q += "(self.{}['{}']".format(tag, name)
+                    # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                    denomo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
                     tex_name = name
 
                 elif tag == 'mit_concs':
-                    denomo_string_Q += "(self.{}['{}']".format(tag, name)
+                    # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                    denomo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
                     tex_name = name + '_{mit}'
 
                 elif tag == 'cell_concs':
-                    denomo_string_Q += "(self.{}['{}']".format(tag, name)
+                    # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                    denomo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
                     tex_name = name
 
                 # get the concentration from the environment, mapped to respective membranes:
@@ -2188,10 +2200,11 @@ class MasterOfNetworks(object):
 
                     if p.sim_ECM is True:
 
-                        denomo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+                        # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                        denomo_string_Q += "(1.0e-3*self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
 
                     else:
-                        denomo_string_Q += "(self.{}['{}']".format(tag, name)
+                        denomo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
 
                     tex_name = name + '_{env}'
 
@@ -2216,27 +2229,32 @@ class MasterOfNetworks(object):
 
                 if tag == 'mem_concs':
 
-                    numo_string_Q += "(self.{}['{}']".format(tag, name)
+                    # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                    numo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
                     tex_name = name
 
                 elif tag == 'mit_concs':
 
-                    numo_string_Q += "(self.{}['{}']".format(tag, name)
+                    # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                    numo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
                     tex_name = name + "_{mit}"
 
                 elif tag == 'cell_concs':
 
-                    numo_string_Q += "(self.{}['{}']".format(tag, name)
+                    # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+                    numo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
                     tex_name = name
 
                 # get the concentration from the environment mapped to the respective membranes:
                 elif tag == 'env_concs':
 
+                    # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
+
                     if p.sim_ECM is True:
-                        numo_string_Q += "(self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
+                        numo_string_Q += "(1.0e-3*self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
 
                     else:
-                        numo_string_Q += "(self.{}['{}']".format(tag, name)
+                        numo_string_Q += "(1.0e-3*self.{}['{}']".format(tag, name)
 
                     tex_name = name + "_{env}"
 
@@ -5787,8 +5805,6 @@ class Transporter(object):
         self.init_reaction(cells, p)
 
 class Channel(object):
-
-    # FIXME something is wrong with channels -- biased along y axis.
 
     def __init__(self, sim, cells, p):
 
