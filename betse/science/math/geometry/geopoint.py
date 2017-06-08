@@ -232,7 +232,6 @@ def is_left_of_vector(
     )
 
 # ....................{ INTERSECTERS                       }....................
-#FIXME: Unit test us up.
 @type_check
 def intersect_lines(
     line1_point1: SequenceTypes,

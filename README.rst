@@ -71,6 +71,12 @@ For new users, BETSE is readily installable as follows:
 #. Open a **terminal.** [#terminal]_
 #. Run the following commands in this terminal.
 
+   #. Install dill_. [#why_dill]_
+
+      .. code:: bash
+
+         conda install dill
+
    #. **Install BETSE.** [#pip3_not]_
 
       .. code:: bash
@@ -94,6 +100,10 @@ For new users, BETSE is readily installable as follows:
 
          betse try
 
+
+.. [#why_dill]
+   `Dill <dill_>`__ is the only mandatory dependency of BETSE *not* already
+   bundled by default with Anaconda_.
 
 .. [#python2_not]
    Do *not* install the **Python 2.7** variant of Anaconda_. BETSE requires
@@ -612,6 +622,8 @@ For prospective contributors:
    http://www.windowscentral.com/how-install-bash-shell-command-line-windows-10
 .. _BSD 2-clause license:
    https://opensource.org/licenses/BSD-2-Clause
+.. _dill:
+   https://pypi.python.org/pypi/dill
 .. _FFmpeg:
    https://ffmpeg.org
 .. _Git:
