@@ -1845,7 +1845,6 @@ class Simulator(object):
                 #                (1 / (2 * p.cm))*self.Jmem*p.dt
                 #                + (1/self.cedl_env)*Jme*p.dt)
 
-
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
 
