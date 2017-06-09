@@ -806,6 +806,7 @@ class Cells(object):
 
                             verts = vor.vertices[region]   # get the vertices for this region
                             region = np.asarray(region)      # convert region to a numpy array so it can be sorted
+
                             cent = verts.mean(axis=0)     # calculate the centre point
                             angles = np.arctan2(verts[:,1]-cent[1], verts[:,0] - cent[0])  # calculate point angles
                             #self.vor.regions[j] = region[np.argsort(angles)]   # sort indices counter-clockwise

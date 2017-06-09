@@ -13,7 +13,7 @@ from betse.util.type.types import type_check, SequenceTypes
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_point(*points: SequenceTypes) -> None:
     '''
-    Raise an exception unless all passed sequences contain exactly two numbers.
+    Raise an exception unless all passed sequences are two-dimensional points.
 
     Parameters
     ----------
@@ -23,7 +23,12 @@ def die_unless_point(*points: SequenceTypes) -> None:
     Raises
     ----------
     BetseMathPointException
-        If any such sequence does *not* contain exactly two numbers.
+        If any such sequence is *not* a two-dimensional point.
+
+    See Also
+    ----------
+    :func:`is_point`
+        Further details.
     '''
 
     if not is_point(*points):
@@ -37,8 +42,9 @@ def die_unless_point(*points: SequenceTypes) -> None:
 @type_check
 def is_point(*points: SequenceTypes) -> bool:
     '''
-    ``True`` only if all passed sequences contain exactly two numbers,
-    presumably signifying the X and Y coordinates (in order) of points.
+    ``True`` only if all passed sequences are **two-dimensional points** (i.e.,
+    contain exactly two numbers providing the X and Y coordinates of these
+    points).
 
     Parameters
     ----------
@@ -48,7 +54,7 @@ def is_point(*points: SequenceTypes) -> bool:
     Returns
     ----------
     bool
-        ``True`` only if these sequences all contain exactly two numbers.
+        ``True`` only if these sequences are all two-dimensional points.
     '''
 
     # For efficiency, avoid testing whether these items are actually numbers.

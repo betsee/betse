@@ -284,12 +284,12 @@ before_script:
 #
 # These stages were immplemented by the following two jobs:
 #
-# * "betse-build", implementing the "build" stage by installing dependencies.
-# * "betse-test", implementing the "test" stage by testing this application.
+# * "betse_build", implementing the "build" stage by installing dependencies.
+# * "betse_test", implementing the "test" stage by testing this application.
 #
 # Sadly, this seemingly reasonable partition of the pipeline workflow silently
 # ceased working at some unidentifiable time in the development history. To
-# remedy this, all work previously previously performed by the "betse-build"
+# remedy this, all work previously previously performed by the "betse_build"
 # job is now performed as a global "before_script" key. While non-ideal, there
 # appears to be no remedy as yet.
 stages:
@@ -311,7 +311,7 @@ stages:
 
 # ....................{ JOBS ~ test                        }....................
 # Test-specific job, exercising the entire test suite for this application.
-betse-test:
+betse_test:
   # Stage to run this job under. Note that "test" is technically the default
   # stage and hence need *NOT* be explicitly specified here. For disambiguity,
   # we do so anyway.

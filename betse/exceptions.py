@@ -207,6 +207,15 @@ class BetseMathPointException(BetseMathException):
     '''
 
     pass
+
+
+class BetseMathPolygonException(BetseMathException):
+    '''
+    Polygon-specific math exception.
+    '''
+
+    pass
+
 # ....................{ EXCEPTIONS ~ path                  }....................
 class BetsePathException(BetseException):
     '''

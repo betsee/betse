@@ -10,6 +10,7 @@ boundary remain strictly inside the polygon) functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.science.math.geometry import geopoint
+from betse.science.math.geometry.polygon import geopoly
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ TESTERS                            }....................
@@ -23,29 +24,29 @@ from betse.util.type.types import type_check, SequenceTypes
 #For a partial derivation, see:
 #    https://en.wikipedia.org/wiki/Curve_orientation#Practical_considerations
 #FIXME: Unit test us up.
-@type_check
-def is_orientation_counterclockwise(polygon: SequenceTypes) -> bool:
-    '''
-    ``True`` only if the passed convex polygon is **oriented positively** (i.e.,
-    the vertices of this polygon are specified in counter-clockwise order).
-
-    Parameters
-    ----------
-    polygon : SequenceTypes
-        Two-dimensional sequence of all points defining the convex
-        two-dimensional polygon to be tested such that:
-        * The first dimension indexes each such point (in arbitrary order).
-        * The second dimension indexes each coordinate of this point such that:
-          * The first item is the X coordinate of this point.
-          * The second item is the Y coordinate of this point.
-
-    Returns
-    ----------
-    bool
-        ``True`` only if this convex polygon is oriented positively.
-    '''
-
-    pass
+# @type_check
+# def is_oriented_counterclockwise(polygon: SequenceTypes) -> bool:
+#     '''
+#     ``True`` only if the passed convex polygon is **oriented positively** (i.e.,
+#     the vertices of this polygon are specified in counter-clockwise order).
+#
+#     Parameters
+#     ----------
+#     polygon : SequenceTypes
+#         Two-dimensional sequence of all points defining the convex
+#         two-dimensional polygon to be tested such that:
+#         * The first dimension indexes each such point (in arbitrary order).
+#         * The second dimension indexes each coordinate of this point such that:
+#           * The first item is the X coordinate of this point.
+#           * The second item is the Y coordinate of this point.
+#
+#     Returns
+#     ----------
+#     bool
+#         ``True`` only if this convex polygon is oriented positively.
+#     '''
+#
+#     pass
 
 # ....................{ CLIPPERS                           }....................
 #FIXME: Unit test us up.
@@ -60,8 +61,8 @@ def clip(
 
     This function implements the Sutherland-Hodgman polygon clipping algorithm.
     Unlike most brute-force implementations of this algorithm, this
-    implementation does *not* require that the vertices of this clip polygon be
-    presorted in either clockwise or counter-clockwise order.
+    implementation does *not* mandate the vertices of either polygon to be
+    oriented (i.e., sorted) in either clockwise or counter-clockwise order.
 
     Parameters
     ----------
@@ -73,12 +74,16 @@ def clip(
         * The second dimension indexes each coordinate of this point such that:
           * The first item is the X coordinate of this point.
           * The second item is the Y coordinate of this point.
+        Note that this function expects the type of this sequence to define an
+        ``__init__()`` method accepting a passed list as its first and only
+        positional argument. Unsurprisingly, all builtin sequences (e.g.,
+        :class:`tuple`, :class:`list`) *and* :mod:`numpy` sequences (e.g.,
+        :class:`numpy.ndarray`) satisfy this requirement.
     clip_polygon : SequenceTypes
         Two-dimensional sequence of all points defining the **clip polygon**
         (i.e., strictly convex two-dimensional polygon to clip the subject
         polygon against) such that:
-        * The first dimension indexes each such point (in strict clockwise
-          order).
+        * The first dimension indexes each such point (in arbitrary order).
         * The second dimension indexes each coordinate of this point such that:
           * The first item is the X coordinate of this point.
           * The second item is the Y coordinate of this point.
@@ -86,17 +91,18 @@ def clip(
     Returns
     ----------
     SequenceTypes
-        Copy of this subject polygon clipped to this clip polygon.
+        Copy of this subject polygon clipped to this clip polygon. The type of
+        this sequence is the same as that of this subject polygon.
     '''
 
-    # Sort the vertices of this clip polygon counter-clockwise.
-    clip_polygon = orient_counterclockwise(clip_polygon)
+    # Orient the vertices of these polygons counter-clockwise.
+    subject_polygon = geopoly.orient_counterclockwise(subject_polygon)
+    clip_polygon    = geopoly.orient_counterclockwise(clip_polygon)
 
-    # Clip this subject polygon to this clip polygon oriented counter-clockwise.
+    # Clip this oriented subject polygon to this oriented clip polygon.
     return clip_counterclockwise(subject_polygon, clip_polygon)
 
 
-#FIXME: Unit test us up.
 #FIXME: Optimize. At the least, the geopoint.is_left_of_vector() function
 #should be inlined; ideally, so should geopoint.intersect_lines()
 @type_check
@@ -110,20 +116,32 @@ def clip_counterclockwise(
 
     This function implements the Sutherland-Hodgman polygon clipping algorithm.
     Like most brute-force implementations of this algorithm, this implementation
-    requires that the vertices of this clip polygon be presorted in
-    counter-clockwise order.
+    mandates the vertices of both polygons to be oriented (i.e., sorted) in
+    strict counter-clockwise order. If the caller cannot guarantee this to be
+    the case, the general-purpose but less efficient :func:`clip` function
+    should be called instead. According to the GIGO (Garbage In, Garbage Out)
+    principle, if the caller passes improperly oriented polygons, this function
+    returns an improperly clipped polygon.
 
     See Also
     ----------
+    :func:`clip`
+        Further details on function signature (e.g., parameters, return value).
     https://en.wikipedia.org/wiki/Sutherland%E2%80%93Hodgman_algorithm
         Pseudocode outlining this algorithm.
     '''
 
+    # If any passed sequence is *NOT* a polygon, raise an exception.
+    geopoly.die_unless_polygon(subject_polygon, clip_polygon)
+
     #FIXME: If this clip polygon is *NOT* convex, raise an exception.
 
-    #FIXME: Actually raise an exception here.
-    # if not is_convex_orientation_counterclockwise(clip_polygon):
-    #     pass
+    #FIXME: Uncomment us up after implemented. Sadly, a minor issue remains:
+    #while this will behave as expected for the convex clip polygon, this will
+    #*NOT* behave as expected for the possibly non-convex subject polygon.
+    #Detecting orientation in the latter case requires searching for the subject
+    #polygon vertex with the smallest X and Y coordinates. *sigh*
+    #die_unless_oriented_counterclockwise(subject_polygon, clip_polygon)
 
     # Current version of the clipped subject polygon to be returned, where
     # current implies the version of this subject polygon to be used in the
@@ -159,6 +177,13 @@ def clip_counterclockwise(
 
     # For each next vertex of the clip polygon to clip against...
     for clip_vert_next in clip_polygon:
+        # If the previous iteration of the inner loop clipped the last three
+        # vertices from the subject polygon, then the subject polygon resides
+        # entirely outside of the clip polygon. In this case, the clipped
+        # subject polygon is empty and no further work remains to be done.
+        if not subj_poly_curr:
+            break
+
         # Preserve the previous version of the clipped subject polygon produced
         # by the previous iteration of the inner loop below *BEFORE* destroying
         # this sequence.
@@ -183,7 +208,7 @@ def clip_counterclockwise(
         # * Head is the next vertex of this clip polygon.
         # * Tail is the current vertex of this clip polygon.
         is_subj_vert_curr_inside = geopoint.is_left_of_vector(
-            subj_point=subj_vert_curr,
+            subject_point=subj_vert_curr,
             vector_head_point=clip_vert_next,
             vector_tail_point=clip_vert_curr,)
 
@@ -193,7 +218,7 @@ def clip_counterclockwise(
             # This vertex resides inside this clip polygon if and only if this
             # vertex is spatially situated to the left of the same vector.
             is_subj_vert_next_inside = geopoint.is_left_of_vector(
-                subj_point=subj_vert_next,
+                subject_point=subj_vert_next,
                 vector_head_point=clip_vert_next,
                 vector_tail_point=clip_vert_curr,)
 
@@ -239,36 +264,6 @@ def clip_counterclockwise(
         # Rotate the current vertex of the clip polygon to the next such vertex.
         clip_vert_curr = clip_vert_next
 
-    # Return the current and hence final version of the clipped subject polygon.
-    return subj_poly_curr
-
-# ....................{ ORIENTERS                          }....................
-#FIXME: Implement us up. For a useful Lua algorithm to use as a starting point,
-#see the following StackOverflow question:
-#    https://stackoverflow.com/questions/6989100/sort-points-in-clockwise-order
-#FIXME: Unit test us up.
-@type_check
-def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
-    '''
-    Positively orient the passed polygon.
-
-    This function returns a copy of this polygon whose points are guaranteed to
-    be **positively oriented** (i.e., sorted in counter-clockwise order).
-
-    Parameters
-    ----------
-    polygon : SequenceTypes
-        Two-dimensional sequence of all points defining the possibly non-convex
-        two-dimensional polygon to be positively oriented such that:
-        * The first dimension indexes each such point (in arbitrary order).
-        * The second dimension indexes each coordinate of this point such that:
-          * The first item is the X coordinate of this point.
-          * The second item is the Y coordinate of this point.
-
-    Returns
-    ----------
-    SequenceTypes
-        Copy of this polygon positively oriented.
-    '''
-
-    pass
+    # Return the current and hence final version of the clipped subject polygon,
+    # cast to a sequence of the same type as the original subject polygon.
+    return type(subject_polygon)(subj_poly_curr)
