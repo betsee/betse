@@ -1296,6 +1296,8 @@ class Simulator(object):
             # update the general molecules handler-----------------------------------------------------------------
             if p.molecules_enabled:
 
+                self.molecules.core.clear_run_loop(self)
+
                 if self.molecules.transporters:
                     self.molecules.core.run_loop_transporters(t, self, cells, p)
 
@@ -1310,6 +1312,9 @@ class Simulator(object):
             # update metabolic handler----------------------------------------------------------------------
 
             if p.metabolism_enabled:
+
+                self.metabo.core.clear_run_loop(self)
+
                 if self.metabo.transporters:
                     self.metabo.core.run_loop_transporters(t, self, cells, p)
 
@@ -1324,6 +1329,8 @@ class Simulator(object):
             # update gene regulatory network handler--------------------------------------------------------
 
             if p.grn_enabled:
+
+                self.grn.core.clear_run_loop(self)
 
                 if self.grn.transporters:
                     self.grn.core.run_loop_transporters(t, self, cells, p)
@@ -1801,7 +1808,7 @@ class Simulator(object):
             sqrconvF = 1.0
 
 
-            if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour
+            if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour  # FIXME do this as above! needs Jn not Jmem
 
                 drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
                 drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa

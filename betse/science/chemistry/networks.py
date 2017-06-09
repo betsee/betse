@@ -2621,11 +2621,23 @@ class MasterOfNetworks(object):
                 self.reaction_matrix_env[i, j] += coeff
 
     #------runners------------------------------------------------------------------------------------------------------
+    def clear_run_loop(self, sim):
+
+
+        self.extra_rho_cells = np.zeros(sim.cdl)
+        self.extra_rho_mems = np.zeros(sim.mdl)
+        self.extra_rho_env = np.zeros(sim.edl)
+        self.extra_rho_mit = np.zeros(sim.cdl)
+        self.extra_J_mem = np.zeros(sim.mdl)
+        self.extra_J_env = np.zeros(sim.edl)
+
+
     def run_loop(self, t, sim, cells, p):
         """
         Runs the main simulation loop steps for each of the molecules included in the simulation.
 
         """
+
 
         gad_rates_o = []
 
@@ -2634,13 +2646,6 @@ class MasterOfNetworks(object):
         init_rates = []
 
         gad_rates = []
-
-        self.extra_rho_cells = np.zeros(sim.cdl)
-        self.extra_rho_mems = np.zeros(sim.mdl)
-        self.extra_rho_env = np.zeros(sim.edl)
-        self.extra_rho_mit = np.zeros(sim.cdl)
-        self.extra_J_mem = np.zeros(sim.mdl)
-        self.extra_J_env = np.zeros(sim.edl)
 
         globalo = globals()
         localo = locals()
@@ -2756,7 +2761,7 @@ class MasterOfNetworks(object):
                     # calculate the charge density this substance contributes to cell and environment:
                     self.extra_rho_cells[:] += p.F*obj.c_cells*obj.z
                     self.extra_rho_env[:] += p.F*obj.c_env*obj.z
-                    self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F + obj.z*obj.f_gj*p.F
+                    # self.extra_J_mem[:] +=  -obj.z*obj.f_mem*p.F + obj.z*obj.f_gj*p.F
                     self.extra_rho_mems[:] += p.F*obj.cc_at_mem*obj.z
 
 
@@ -2808,6 +2813,8 @@ class MasterOfNetworks(object):
 
             self.extra_J_mem += self.transporters[name].net_z*self.transporters[name].flux*p.F
             sim.extra_J_mem = self.extra_J_mem
+
+
 
             # finally, update the concentrations using the final eval statements:
             for i, (delc, coeff) in enumerate(zip(self.transporters[name].delta_react_eval_strings,

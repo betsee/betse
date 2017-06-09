@@ -15,13 +15,13 @@ def get_current(sim, cells, p):
     # nmy = cells.mem_vects_flat[:,3]
 
     # calculate membrane current density (- as fluxes were defined into cell)
-    sim.Jmem = -np.dot(sim.zs * p.F, sim.fluxes_mem)
+    sim.Jmem = -np.dot(sim.zs * p.F, sim.fluxes_mem) + sim.extra_J_mem
 
     # calculate current density across cell membranes via gap junctions:
     sim.Jgj = np.dot(sim.zs * p.F, sim.fluxes_gj)
 
     # add the free current sources together into a single transmembrane current:
-    sim.Jn = sim.Jmem + sim.Jgj + sim.extra_J_mem
+    sim.Jn = sim.Jmem + sim.Jgj
 
     # multiply final result by membrane surface area to obtain current (direction into cell is +)
     sim.I_mem = -sim.Jn*cells.mem_sa
