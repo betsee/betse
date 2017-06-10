@@ -746,10 +746,10 @@ class K_Slow(VgKABC):
         inds_lt50 = (V < -50).nonzero()
         inds_gt50 = (V >= -50).nonzero()
 
-        self._mTau = np.zeros(len(dyna.targets_vgK))
+        self._mTau = np.zeros(sim.mdl)
 
-        self._mTau[inds_lt50] = (1.25+175.03 * np.exp(-V * -0.026))
-        self._mTau[inds_gt50] = (1.25+13 * np.exp(-V * 0.026))
+        self._mTau[inds_lt50] = (1.25+175.03 * np.exp(-V[inds_lt50] * -0.026))
+        self._mTau[inds_gt50] = (1.25+13 * np.exp(-V[inds_gt50] * 0.026))
 
         self._hInf = 1 / (1 + np.exp(-(V + 54) / -11))
         self._hTau = 360 + (1010 + 24 * (V + 55)) * np.exp(-((V + 75) / 48)**2)
