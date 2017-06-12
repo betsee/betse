@@ -21,6 +21,7 @@ from betse.util.io.log import logs
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes,)
+from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise as clip
 
 # ....................{ CLASSES                            }....................
 # FIXME create a new option for seed points: Fibonacci radial-spiral array
@@ -730,8 +731,23 @@ class Cells(object):
         self.ymin = np.min(xypts[:,1])
         self.ymax = np.max(xypts[:,1])
 
+        bbox = np.asarray([[self.xmin, self.ymin], [self.xmax, self.ymin], [self.xmax, self.ymax],
+                                [self.xmin, self.ymax]])
+
+
         self.centre = xypts.mean(axis=0)
-        self.clust_xy = xypts
+        # self.clust_xy = xypts
+
+        self.clust_xy = np.vstack((xypts, bbox))
+
+        # alter the actual bounding box to create a nice clipping and plotting polygon
+        self.bbox = np.asarray([[self.xmin - p.rc, self.ymin - p.rc], [self.xmax + p.rc, self.ymin - p.rc],
+                                [self.xmax + p.rc, self.ymax + p.rc],[self.xmin - p.rc, self.ymax + p.rc]])
+
+        self.xmin = self.xmin - p.rc
+        self.ymin = self.ymin - p.rc
+        self.xmax = self.xmax + p.rc
+        self.ymax = self.ymax + p.rc
 
     def makeVoronoi(self, p):
         """
@@ -2115,22 +2131,12 @@ class Cells(object):
         voronoi_verts = []
 
         for verts in self.voronoi_verts:
-            a = np.asarray(verts)
+            verts_clip = clip(verts, self.bbox)
+            voronoi_verts.append(verts_clip)
 
-            inds_highx = (a[:,0] <= self.xmax).nonzero()
-            inds_lowx  = (a[:,0] >= self.xmin).nonzero()
-            inds_highy = (a[:,1] <= self.ymax).nonzero()
-            inds_lowy  = (a[:,1] >= self.ymin).nonzero()
-
-            if (
-                len(inds_highx[0]) == len(a[:,0]) and
-                len(inds_lowx [0]) == len(a[:,0]) and
-                len(inds_highy[0]) == len(a[:,0]) and
-                len(inds_lowy[0] ) == len(a[:,0])
-            ):
-                voronoi_verts.append(verts)
 
         self.voronoi_verts = np.asarray(voronoi_verts)
+
 
         #----------------------------------------------
         voronoi_grid = set()
