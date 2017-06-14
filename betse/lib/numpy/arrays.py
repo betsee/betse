@@ -15,7 +15,7 @@ import numpy as np
 from betse.exceptions import BetseSequenceException, BetseStrException
 from betse.util.path import dirs
 from betse.util.type import sequences, strs, types
-from betse.util.type.types import type_check, IterableTypes
+from betse.util.type.types import type_check, ClassType, IterableTypes
 from collections import OrderedDict
 from numpy import ndarray
 
@@ -29,8 +29,8 @@ def from_iterable(iterable: IterableTypes) -> ndarray:
 
     * A non-sequence (e.g., generator), this iterable is first converted into a
       sequence and finally into a Numpy array.
-    * A non-Numpy sequence (e.g., list), this sequence is directly converted
-      into a Numpy array.
+    * A non-Numpy sequence (e.g., :class:`list`), this sequence is directly
+      converted into a Numpy array.
     * A Numpy array, this array is returned unmodified.
 
     Caveats
@@ -55,13 +55,13 @@ def from_iterable(iterable: IterableTypes) -> ndarray:
 
     Parameters
     ----------
-    sequence : SequenceTypes
-        Sequence to be converted into a Numpy array.
+    iterable : IterableTypes
+        Iterable to be converted into a Numpy array.
 
     Returns
     ----------
     ndarray
-        Numpy array converted from this sequence.
+        Numpy array converted from this iterable.
     '''
 
     # Sequence converted from this iterable. If this iterable is already a
@@ -72,6 +72,47 @@ def from_iterable(iterable: IterableTypes) -> ndarray:
 
     # Numpy array converted from this sequence.
     return np.asarray(sequence)
+
+
+@type_check
+def to_iterable(array: ndarray, cls: ClassType) -> IterableTypes:
+    '''
+    Convert the passed Numpy array into an iterable of the passed type.
+
+    If the type of this iterable is that of:
+
+    * A non-Numpy iterable (e.g., :class:`list`), this array is first converted
+      into a :class:`list` and then into an iterable of this type. To do so,
+      this type's ``__init__`` method is expected to accept this :class:`list`
+      as a single positional argument.
+    * A Numpy array, this array is returned unmodified.
+
+    Parameters
+    ----------
+    array : ndarray
+        Numpy array to be converted.
+    iterable_type : ClassType
+        Type of the iterable to convert this array into.
+
+    Returns
+    ----------
+    IterableTypes
+        Iterable converted from this Numpy array.
+    '''
+
+    # If the iterable to be returned is a Numpy array, return this array as is.
+    if cls is ndarray:
+        return array
+
+    # List converted from this array.
+    array_list = array.tolist()
+
+    # If the iterable to be returned is a list, return this list as is.
+    if cls is list:
+        return array_list
+
+    # Else, return an iterable converted from this list.
+    return cls(array_list)
 
 # ....................{ WRITERS                            }....................
 @type_check

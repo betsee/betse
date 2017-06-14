@@ -1201,18 +1201,6 @@ def is_matplotlib_trimesh(obj: object) -> bool:
     from matplotlib.collections import TriMesh
     return isinstance(obj, TriMesh)
 
-# ....................{ TESTERS ~ lib : numpy              }....................
-#FIXME: Rename to is_np_array().
-def is_numpy_array(obj: object) -> bool:
-    '''
-    ``True`` only if the passed object is a **Numpy array or matrix** (i.e.,
-    instance of the `numpy.ndarray` superclass).
-    '''
-
-    # Avoid importing third-party packages at the top level.
-    from numpy import ndarray
-    return isinstance(obj, ndarray)
-
 # ....................{ TESTERS ~ lib : py                 }....................
 def is_py_path_local(obj: object) -> bool:
     '''

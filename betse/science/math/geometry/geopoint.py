@@ -387,6 +387,7 @@ def intersect_lines(
     SequenceTypes
         2-sequence of the X and Y coordinates of the two-dimensional point
         intersecting the pair of lines defined by these two-dimensional points.
+        The type of this sequence is the same as that of the first passed point.
 
     Raises
     ----------
@@ -445,9 +446,13 @@ def intersect_lines(
     # Determinant of the ad-hoc matrix |sx sy|.
     detts = tx*sy - ty*sx
 
-    # Return the 2-sequence of the X and Y coordinates of this intersection,
-    # calculated according to Cramer's Rule from the requisite determinants.
-    return (
+    # 2-tuple of the X and Y coordinates of this intersection, calculated via
+    # Cramer's Rule from the requisite determinants.
+    intersection_point = (
         (detdc*tsx - detts*dcx) / detM,
         (detdc*tsy - detts*dcy) / detM,
     )
+
+    # Return this intersection as a sequence of the same type as the first
+    # passed point.
+    return type(line1_point1)(intersection_point)

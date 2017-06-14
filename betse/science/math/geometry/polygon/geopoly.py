@@ -146,6 +146,9 @@ def orient_counterclockwise(polygon: SequenceTypes) -> SequenceTypes:
     # polygon, sorted in counter-clockwise order.
     poly_verts_sorted_index = poly_angles.argsort()
 
-    # Return the two-dimensional polygon of vertices sorted in this order, cast
-    # to a sequence of the same type as the original polygon.
-    return type(polygon)(poly_verts[poly_verts_sorted_index])
+    # Two-dimensional Numpy array of the polygon to be returned, containing all
+    # vertices sorted in this order.
+    poly_verts_sorted = poly_verts[poly_verts_sorted_index]
+
+    # Return a sequence of the same type as the passed polygon.
+    return arrays.to_iterable(array=poly_verts_sorted, cls=type(polygon))

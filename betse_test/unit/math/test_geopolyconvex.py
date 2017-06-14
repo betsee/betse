@@ -10,6 +10,39 @@ Unit tests for the :mod:`betse.science.math.geometry.geopolyconvex` submodule.
 # ....................{ IMPORTS                            }....................
 
 # ....................{ TESTS                              }....................
+def test_clip() -> None:
+    '''
+    Unit test the :func:`betse.science.math.geometry.geopolyconvex.clip`
+    function.
+    '''
+
+    # Defer heavyweight imports.
+    from betse.science.math.geometry.polygon import geopolyconvex
+
+    # Rectangle to clip all subject polygons by, oriented randomly rather than
+    # counter-clockwise. Due to trivial limitations of the
+    # betse.lib.numpy.arrays.to_iterable() function, this rectangle is defined
+    # as a list of lists rather than tuple of tuples.
+    clip_rectangle = [[2, 2], [2, -1], [-1, -1], [-1, 2],]
+
+    # Parallelogram to be clipped, oriented randomly rather than
+    # counter-clockwise.
+    subject_parallelogram = [[0, 1], [2, 3], [3, 3], [1, 1]]
+
+    # Assert a parallelogram clipped by this rectangle to produce a smaller
+    # parallelogram of the same general shape. Since the
+    # test_clip_counterclockwise() test exercises all other edge cases, this
+    # single assertion suffices here.
+    assert geopolyconvex.clip(
+        subject_polygon=subject_parallelogram,
+        clip_polygon=clip_rectangle,
+    # Smaller parallelogram clipped by this rectangle, oriented
+    # counter-clockwise. Due to issues in the underlying numpy.ndarray.tolist()
+    # method internally called by this call, point coordinates are of differing
+    # types. While odd, this does *NO* harm and is thus ignorable.
+    ) == [[1.0, 2.0], [0, 1], [1, 1], [2.0, 2.0],]
+
+
 def test_clip_counterclockwise() -> None:
     '''
     Unit test the

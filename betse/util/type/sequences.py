@@ -99,9 +99,8 @@ def die_unless_len(
         # Raise this exception.
         raise BetseSequenceException(exception_message)
 
-# ....................{ TESTERS                            }....................
-@type_check
-def is_sequence(*objs) -> bool:
+# ....................{ TESTERS ~ type                     }....................
+def is_sequence(*objs: object) -> bool:
     '''
     ``True`` only if all passed objects are **sequences** (i.e., of types
     conforming to but *not* necessarily subclassing the canonical
@@ -109,7 +108,7 @@ def is_sequence(*objs) -> bool:
 
     Parameters
     ----------
-    objs: tuple
+    objs: tuple[object]
         Tuple of all objects to be tested.
 
     Returns
@@ -127,6 +126,29 @@ def is_sequence(*objs) -> bool:
     return all(isinstance(obj, SequenceTypes) for obj in objs)
 
 
+def is_numpy_array(*objs: object) -> bool:
+    '''
+    ``True`` only if all passed objects are **Numpy arrays** (i.e., instances of
+    the :class:`numpy.ndarray` superclass).
+
+    Parameters
+    ----------
+    objs: tuple[object]
+        Tuple of all objects to be tested.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these objects are all Numpy arrays.
+    '''
+
+    # Avoid importing third-party packages at the top level, for safety.
+    from numpy import ndarray
+
+    # all(). It exceeds at all the tests.
+    return all(isinstance(obj, ndarray) for obj in objs)
+
+# ....................{ TESTERS ~ len                      }....................
 @type_check
 def is_empty(*sequences: SequenceTypes) -> bool:
     '''
