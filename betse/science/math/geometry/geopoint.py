@@ -8,6 +8,7 @@ Primitive two-dimensional point functionality.
 
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import BetseMathLineException, BetseMathPointException
+from betse.util.type import iterables
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ EXCEPTIONS                         }....................
@@ -455,4 +456,5 @@ def intersect_lines(
 
     # Return this intersection as a sequence of the same type as the first
     # passed point.
-    return type(line1_point1)(intersection_point)
+    return iterables.to_iterable(
+        iterable=intersection_point, cls=type(line1_point1))

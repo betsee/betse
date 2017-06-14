@@ -11,6 +11,7 @@ boundary remain strictly inside the polygon) functionality.
 # ....................{ IMPORTS                            }....................
 from betse.science.math.geometry import geopoint
 from betse.science.math.geometry.polygon import geopoly
+from betse.util.type import iterables
 from betse.util.type.types import type_check, SequenceTypes
 
 # ....................{ TESTERS                            }....................
@@ -264,6 +265,7 @@ def clip_counterclockwise(
         # Rotate the current vertex of the clip polygon to the next such vertex.
         clip_vert_curr = clip_vert_next
 
-    # Return the current and hence final version of the clipped subject polygon,
-    # cast to a sequence of the same type as the original subject polygon.
-    return type(subject_polygon)(subj_poly_curr)
+    # Return the current and hence final version of the clipped subject polygon
+    # as a sequence of the same type as the subject polygon.
+    return iterables.to_iterable(
+        iterable=subj_poly_curr, cls=type(subject_polygon))

@@ -20,6 +20,7 @@ from betse.util.type import types
 from betse.util.type.types import (
     type_check,
     CallableTypes,
+    ClassType,
     GeneratorType,
     IterableTypes,
     SizedType,
@@ -534,6 +535,62 @@ def get_item_last_satisfying(
         predicate=predicate,
         exception_message=exception_message,
     )
+
+# ....................{ CONVERTERS                         }....................
+@type_check
+def to_iterable(iterable: IterableTypes, cls: ClassType) -> IterableTypes:
+    '''
+    Convert the passed iterable into an iterable of the passed type.
+
+    If this iterable is:
+
+    * Of the same type as the passed type, this iterable is returned as is.
+    * A non-Numpy iterable (e.g., :class:`list`) and the passed type is that of:
+      * Another non-Numpy iterable (e.g., :class:`tuple`), this iterable is
+        converted into an instance of this type. To do so, this type's
+        ``__init__`` method is expected to accept this :class:`list` as a single
+        positional argument.
+      * A Numpy array, this iterable is converted to a Numpy array via the
+        :func:`betse.lib.numpy.arrays.from_iterable` function.
+    * A Numpy array, this array is converted to the passed type via the
+      :func:`betse.lib.numpy.arrays.to_iterable` function.
+
+    Parameters
+    ----------
+    iterable: IterableTypes
+        Source iterable to be converted.
+    cls : ClassType
+        Type of the target iterable to convert this source iterable into.
+
+    Returns
+    ----------
+    IterableTypes
+        Target iterable converted from this source iterable.
+    '''
+
+    # Avoid importing third-party packages at the top level, for safety.
+    from betse.lib.numpy import arrays
+    from numpy import ndarray
+
+    # Type of the source iterable.
+    iterable_src_type = type(iterable)
+
+    # If the source and target iterables are of the same type, return this
+    # source iterable as is.
+    if iterable_src_type is cls:
+        return iterable
+
+    # If the source iterable is a Numpy array, defer to functionality elsewhere.
+    if iterable_src_type is ndarray:
+        return arrays.to_iterable(array=iterable, cls=cls)
+
+    # If the target iterable is a Numpy array, defer to functionality elsewhere.
+    if cls is ndarray:
+        return arrays.from_iterable(iterable)
+
+    # Else, the source iterable is a non-Numpy iterable. Defer to the
+    # constructor of the target iterable for conversion.
+    return cls(iterable)
 
 # ....................{ CONSUMERS                          }....................
 @type_check

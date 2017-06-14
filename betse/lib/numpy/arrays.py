@@ -91,7 +91,7 @@ def to_iterable(array: ndarray, cls: ClassType) -> IterableTypes:
     ----------
     array : ndarray
         Numpy array to be converted.
-    iterable_type : ClassType
+    cls : ClassType
         Type of the iterable to convert this array into.
 
     Returns

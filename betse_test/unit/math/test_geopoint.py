@@ -48,16 +48,28 @@ def test_intersect_lines() -> None:
     '''
 
     # Defer heavyweight imports.
+    import numpy
     from betse.exceptions import BetseMathLineException
     from betse.science.math.geometry import geopoint
+    from numpy import array
 
-    # Assert the expected intersection of two intersecting lines.
+    # Assert the expected intersection of two intersecting lines given tuples.
     assert geopoint.intersect_lines(
         line1_point1=( 1,  2),
         line1_point2=(-2, -1),
         line2_point1=(-2,  1),
         line2_point2=( 1, -2),
     ) == (-1, 0)
+
+    # Assert the same intersection of the same intersecting lines given Numpy
+    # arrays.
+    intersection_array = geopoint.intersect_lines(
+        line1_point1=array(( 1,  2)),
+        line1_point2=array((-2, -1)),
+        line2_point1=array((-2,  1)),
+        line2_point2=array(( 1, -2)),
+    )
+    assert numpy.array_equal(intersection_array, array((-1, 0)))
 
     # Assert two collinear lines to have no unique intersection.
     with pytest.raises(BetseMathLineException):
