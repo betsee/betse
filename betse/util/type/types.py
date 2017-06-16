@@ -57,12 +57,7 @@ if False: (wraps, GeneratorType, ModuleType,)
 # ....................{ TYPES                              }....................
 ClassType = type
 '''
-Class of all classes, including both new- and old-style classes.
-
-See Also
-----------
-:func:`is_class_new`
-    Tester function differentiating new- from old-style classes.
+Type of all types.
 '''
 
 
@@ -129,7 +124,7 @@ merely as a convenience to callers preferring to avoid importing that class.
 
 NoneType = type(None)
 '''
-Type of the singleton `None` object.
+Type of the singleton ``None`` object.
 
 Curiously, although the type of the ``None`` object is a class object whose
 ``__name__`` attribute is ``NoneType``, there exists no globally accessible
@@ -175,8 +170,8 @@ as a convenience to callers preferring to avoid importing that class.
 # ....................{ TYPES ~ arg                        }....................
 ArgParserType = ArgumentParser
 '''
-Argument parser parsing all command-line arguments for either the top-level
-command *or* subcommand of that command.
+Type of argument parsers parsing all command-line arguments for either top-level
+commands *or* subcommands of those commands.
 
 This class is a synonym of the :class:`argparse.ArgumentParser` class,
 permitting callers to avoid importing that class.
@@ -185,8 +180,8 @@ permitting callers to avoid importing that class.
 
 ArgSubparsersType = _SubParsersAction
 '''
-Container of all argument subparsers parsing subcommands for a parent argument
-parser parsing either the top-level command *or* subcommand of that command.
+Type of argument subparser containers parsing subcommands for parent argument
+parsers parsing either top-level commands *or* subcommands of those commands.
 
 This class is a synonym of the :class:`argparse._SubParsersAction` class,
 permitting callers to avoid importing that private class.
@@ -241,18 +236,6 @@ built-in or user-defined functions).
 '''
 
 
-IterableTypes = None
-'''
-Tuple of all container base classes conforming to (but _not_ necessarily
-subclassing) the canonical `collections.abc.Iterable` API.
-
-See Also
-----------
-:class:`SequenceTypes`
-    Further details.
-'''
-
-
 MethodTypes = (BuiltinMethodType, MethodType,)
 '''
 Tuple of all **method classes** (i.e., classes whose instances are either
@@ -276,7 +259,46 @@ This tuple contains classes matching both integer and real number types.
 '''
 
 
-# This tuple is declared here for documentation purposes but initialized below.
+TestableTypes = (ClassType, tuple)
+'''
+Tuple of all **testable types** (i.e., types suitable for use as the second
+parameter passed to the :func:`isinstance` and :func:`issubclass` builtins).
+'''
+
+
+WeakRefProxyTypes = (CallableProxyType, ProxyType)
+'''
+Tuple of all **weak reference proxy classes** (i.e., classes whose instances
+are weak references to other instances masquerading as those instances).
+
+This tuple contains classes matching both callable and uncallable weak
+reference proxies.
+'''
+
+# ....................{ TUPLES : init                      }....................
+# These tuples are declared here for documentation purposes but defined below.
+
+NumpyArrayType = None
+'''
+Type of Numpy arrays if :class:`numpy` is importable *or* ``None`` otherwise.
+
+This class is a synonym of the :class:`numpy.ndarray` class, permitting callers
+to avoid importing that class.
+'''
+
+
+IterableTypes = None
+'''
+Tuple of all container base classes conforming to (but *not* necessarily
+subclassing) the canonical :class:`collections.abc.Iterable` API.
+
+See Also
+----------
+:class:`SequenceTypes`
+    Further details.
+'''
+
+
 SequenceTypes = None
 '''
 Tuple of all container base classes conforming to (but *not* necessarily
@@ -302,23 +324,6 @@ that that API.
 '''
 
 
-TestableTypes = (ClassType, tuple)
-'''
-Tuple of all **testable types** (i.e., types suitable for use as the second
-parameter passed to the :func:`isinstance` and :func:`issubclass` builtins).
-'''
-
-
-WeakRefProxyTypes = (CallableProxyType, ProxyType)
-'''
-Tuple of all **weak reference proxy classes** (i.e., classes whose instances
-are weak references to other instances masquerading as those instances).
-
-This tuple contains classes matching both callable and uncallable weak
-reference proxies.
-'''
-
-# ....................{ TUPLES : init                      }....................
 # Conditionally add sequence types to previously declared tuples.
 #
 # If Numpy is available, add both core APIs and the Numpy array type (which
@@ -330,10 +335,13 @@ reference proxies.
 # this error is silently ignored here.
 try:
     from numpy import ndarray
-    IterableTypes = (Iterable, ndarray)
-    SequenceTypes = (Sequence, ndarray)
+
+    NumpyArrayType = ndarray
+    IterableTypes = (Iterable, NumpyArrayType)
+    SequenceTypes = (Sequence, NumpyArrayType)
 # Else, Numpy is unavailable. Add only core APIs.
 except:
+    NumpyArrayType = None
     IterableTypes = (Iterable,)
     SequenceTypes = (Sequence,)
 

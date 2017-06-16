@@ -41,7 +41,7 @@ By default:
 # ....................{ TESTERS                            }....................
 def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
-    `True` only if zero or more characters anchored to the beginning of the
+    ``True`` only if zero or more characters anchored to the beginning of the
     passed string match the passed regular expression.
 
     Parameters
@@ -50,8 +50,8 @@ def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.match` function.
@@ -59,7 +59,7 @@ def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
     Returns
     ----------
     bool
-        `True` only if this string matches this regular expression.
+        ``True`` only if this string matches this regular expression.
     '''
 
     return get_match_if_any(text, regex, **kwargs) is not None
@@ -67,7 +67,7 @@ def is_match(text: str, regex: RegexTypes, **kwargs) -> bool:
 
 def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
     '''
-    `True` only if at least one line of the passed string match the passed
+    ``True`` only if at least one line of the passed string match the passed
     regular expression.
 
     This function implicitly enables the :data:`FLAG_MULTILINE` flag for this
@@ -80,8 +80,8 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.search` function.
@@ -89,7 +89,7 @@ def is_match_line(text: str, regex: RegexTypes, **kwargs) -> bool:
     Returns
     ----------
     bool
-        `True` only if this string matches this regular expression.
+        ``True`` only if this string matches this regular expression.
     '''
 
     return get_match_line_if_any(text, regex, **kwargs) is not None
@@ -113,8 +113,8 @@ def get_match_groups_named(
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.match` function.
@@ -154,8 +154,8 @@ def get_match_groups_numbered(
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.match` function.
@@ -194,8 +194,8 @@ def get_match_groups_numbered_if_any(
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.match` function.
@@ -227,8 +227,8 @@ def get_match(text: str, regex: RegexTypes, **kwargs) -> RegexMatchType:
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.match` function.
@@ -277,8 +277,8 @@ def get_match_if_any(
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as
     :func:`re.match`.
@@ -328,8 +328,8 @@ def get_match_line_if_any(
         String to match.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.search` function.
@@ -379,8 +379,8 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
         Subject string to match on.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.finditer` function.
@@ -432,8 +432,8 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
         Subject string to match on.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as the
     :func:`re.finditer` function.
@@ -472,8 +472,8 @@ def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
     ----------
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
 
     This function accepts the same optional keyword arguments as
     :func:`re.sub`.
@@ -509,8 +509,8 @@ def replace_substrs(
         String to perform these replacements in.
     regex : RegexTypes
         Regular expression to be matched. This object should be either of type:
-        * `str`, signifying an uncompiled regular expression.
-        * `Pattern`, signifying a compiled regular expression object.
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
     replacement : CallableOrStrTypes
         Substitution to be performed, either a:
         * String.
