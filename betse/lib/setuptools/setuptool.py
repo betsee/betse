@@ -198,6 +198,16 @@ def die_unless_requirement(requirement: Requirement) -> None:
     if betse_exception:
         raise betse_exception
 
+    # If this requirement is unversioned, return immediately for safety. While
+    # the __contains__() methods of unversioned requirements implicitly called
+    # by the "in" operator below do correctly return True for all possible
+    # versions, this package may *NOT* declare the optional "__version__"
+    # attribute; in that case, calling the modules.get_version() function below
+    # would raise a fatal exception. Avoid this by short-circuiting immediately.
+    if not _is_requirement_versioned(requirement):
+        return
+    # Else, this requirement is versioned.
+
     # Package version if any or raise an exception otherwise.
     package_version = modules.get_version(package)
 
@@ -285,11 +295,51 @@ def is_requirement(requirement: Requirement) -> bool:
     except ImportError:
         return False
 
+    # If this requirement is unversioned, all possible versions of this package
+    # satisfy this requirement, in which case this requirement is satisfied.
+    if not _is_requirement_versioned(requirement):
+        return True
+    # Else, this requirement is versioned.
+
     # Package version if any or "None" otherwise.
     package_version = modules.get_version_or_none(package)
 
     # Return "True" only if this version exists and satisfies this requirement.
     return package_version is not None and package_version in requirement
+
+# ....................{ TESTERS ~ private                  }....................
+@type_check
+def _is_requirement_versioned(requirement: Requirement) -> bool:
+    '''
+    ``True`` only if the passed :mod:`setuptools`-specific requirement is
+    **versioned** (i.e., constrained to require only a subset of all available
+    versions of this requirement's distribution).
+
+    This
+
+    Parameters
+    ----------
+    requirement : Requirement
+        Object describing this module or package's required name and version.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this requirement is versioned.
+    '''
+
+    # The "Requirement.specifier" instance variable of type "SpecifierSet"
+    # encapsulates the set of all versions required by this requirement. Note:
+    #
+    # * The SpecifierSet.__init__() method accepts a string defining this set
+    #   (e.g., ">= 3.1415"), which is the empty string when no specific versions
+    #   are required, in which case this set is empty.
+    # * The SpecifierSet.__eq__() method permits such sets to compared against
+    #   such strings.
+    #
+    # Together, these two methods imply that a requirement is versioned if and
+    # only if this requirement's specifier is *NOT* the empty string.
+    return requirement.specifier != ''
 
 # ....................{ GETTERS                            }....................
 @type_check
@@ -412,66 +462,6 @@ def get_requirement_distribution_or_none(
         raise
 
 # ....................{ GETTERS ~ requirement : metadata   }....................
-#FIXME: Excise this.
-#FIXME: Uhm. How? Why? Sadly, we neglected to comment on why or how this needed
-#to be excised... and therefore elect to ignore our past selves. (Thanks alot.)
-@type_check
-def get_requirement_pathname_readable(requirement: Requirement) -> str:
-    '''
-    Human-readable pathname for the currently installed version of the
-    third-party module or package corresponding to (but *not* necessarily
-    satisfying) the passed :mod:`setuptools`-specific requirement.
-
-    This function is principally intended for use in printing package metadata
-    in a non-critical manner and hence is guaranteed to *never* raise fatal
-    exceptions. If this module or package:
-
-    * Is importable but fails to satisfy this requirement, a string describing
-      this conflict is returned.
-    * Is unimportable, the string ``not installed`` is returned.
-    * Has no ``__path__`` attribute, the string ``unknown path`` is returned.
-
-    Parameters
-    ----------
-    requirement : Requirement
-        Object describing this module or package's required name and version.
-
-    Returns
-    ----------
-    str
-        Absolute pathname for the currently installed version of this module or
-        package if any *or* the string ``not installed`` or ``unknown path``
-        otherwise (as detailed above).
-    '''
-
-    try:
-        # Object describing the currently installed version of the package or
-        # module satisfying this requirement if any or "None" if this
-        # requirement cannot be guaranteed to be unsatisfied.
-        distribution = get_requirement_distribution_or_none(requirement)
-
-        # If this requirement is satisfied, return its pathname.
-        if distribution is not None:
-            return distribution.location
-    # If setuptools found only requirements of insufficient version, return this
-    # version regardless (with a suffix noting this to be the case).
-    except VersionConflict as version_conflict:
-        return '{} <fails to satisfy {}>'.format(
-            version_conflict.dist.version,
-            version_conflict.req)
-    #FIXME: Handle the "UnknownExtra" exception as well.
-
-    # Attempt to manually import this requirement's package.
-    try:
-        package = import_requirement(requirement)
-    # If this package is unimportable, return an appropriate string.
-    except ImportError:
-        return 'not installed'
-
-    # Return this package's path as is.
-    return modules.get_filename(package)
-
-
 @type_check
 def get_requirement_metadata(requirement: Requirement) -> str:
     '''
@@ -795,8 +785,16 @@ def convert_requirements_dict_key_to_str(
         raise BetseLibException(
             'Dependency "{}" unrecognized.'.format(requirement_name))
 
-    # Convert this key-value pair into a requirements string.
-    return '{} {}'.format(requirement_name, requirements_dict[requirement_name])
+    # String constraining this requirement (e.g., ">= 3.14159265359", "[svg]")
+    # if any or "None" otherwise.
+    requirement_constraints = requirements_dict[requirement_name]
+
+    # If this requirement is unconstrained, return only this requirement's name.
+    if requirement_constraints is None:
+        return requirement_name
+    # Else, return the concatenation of this requirement's name and constraints.
+    else:
+        return '{} {}'.format(requirement_name, requirement_constraints)
 
 # ....................{ IMPORTERS                          }....................
 @type_check
