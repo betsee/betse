@@ -7,6 +7,7 @@ from betse.exceptions import BetseSimException
 from betse.util.path import files, paths
 from scipy import interpolate as interp
 from scipy import misc
+from scipy.spatial import ConvexHull
 
 
 class BitMapper(object):
@@ -101,6 +102,30 @@ class BitMapper(object):
             xpts, ypts, self.clipping_matrix)
         self.clipping_function_fast = interp.RectBivariateSpline(
             xpts, ypts, self.clipping_matrix)
+
+        # Store some additional information relating to bounding polygon of the clipping image:
+        Xclip, Yclip = np.meshgrid(xpts, ypts)
+
+        indsN = (self.clipping_matrix == 1.0).nonzero()
+
+        ptsx = Xclip[indsN].ravel()
+        ptsy = Yclip[indsN].ravel()
+
+        # points stack
+        ppts = np.column_stack((ptsx, ptsy))
+
+        # Calculate convex hull of shape:
+        bclip = ConvexHull(ppts)
+
+        # calculate
+        bverts = bclip.vertices
+
+        # store boundary points of the clipping poly representing the image shape:
+        bx = ptsx[bverts]
+        by = ptsy[bverts]
+
+        # store the points of the clipping poly curve:
+        self.clipcurve = np.column_stack((bx, by))
 
     def clipPoints(self, point_list_x, point_list_y):
         '''

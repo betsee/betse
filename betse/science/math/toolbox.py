@@ -11,7 +11,6 @@ BETSE project.
 import numpy as np
 import scipy.spatial as sps
 from scipy import interpolate as interp
-# from scipy.special import expit
 import math
 import copy
 
@@ -80,6 +79,19 @@ def area(p):
     x, exactly in the way a planimeter works.
     """
     return 0.5 * abs(sum(x0*y1 - x1*y0 for ((x0, y0), (x1, y1)) in zip(p, p[1:] + [p[0]])))
+
+def side_check(p):
+
+    # cent = np.mean(p, axis = 0)
+    # rads = p - cent
+    p1 = np.roll(p, 1, axis=0)
+
+    rads = p1 - p
+
+    Rm =  np.sqrt(rads[:,0]**2 + rads[:,1]**2)
+    check_stat = Rm.min()
+
+    return check_stat
 
 def alpha_shape(points, alpha):
     """

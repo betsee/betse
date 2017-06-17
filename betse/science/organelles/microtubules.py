@@ -68,6 +68,8 @@ class Mtubes(object):
         self.mtdf = ((mtdx[cells.mem_to_cells]*cells.mem_vects_flat[:,2] +
                                          mtdy[cells.mem_to_cells]*cells.mem_vects_flat[:,3]))
 
+        self.modulator = np.ones(sim.mdl)  # initialize a modulator structure for the microtubule dynamics
+
     def reinit(self, cells, p):
 
         # microtubule diffusion constant:
@@ -87,7 +89,7 @@ class Mtubes(object):
         flux_theta = -self.D*gc_mtdf + (self.D/(self.Imit*self.visc))*Et_mit
 
         # update the angle of the microtubules:
-        self.mt_theta = self.mt_theta + flux_theta*(2 / cells.R_rads)*p.dt
+        self.mt_theta = self.mt_theta + flux_theta*(2 / cells.R_rads)*p.dt*self.modulator
 
         # update the microtubule coordinates with the new angle:
         self.mtubes_x = np.cos(self.mt_theta)
@@ -125,6 +127,9 @@ class Mtubes(object):
 
         th2 = np.delete(self.mt_theta, target_inds_mem)
         self.mt_theta = th2*1
+
+        mod2 = np.delete(self.modulator, target_inds_mem)
+        self.modulator = mod2*1
 
 
 #-----WASTELANDS

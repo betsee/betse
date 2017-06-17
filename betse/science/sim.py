@@ -756,6 +756,7 @@ class Simulator(object):
         # load in the microtubules object:
         self.mtubes = Mtubes(self, cells, p)
 
+
         # smoothing weights for membrane and central values:
         self.smooth_weight_mem = ((2*cells.num_mems[cells.mem_to_cells] -1)/(2*cells.num_mems[cells.mem_to_cells]))
         self.smooth_weight_o = 1/(2*cells.num_mems[cells.mem_to_cells])

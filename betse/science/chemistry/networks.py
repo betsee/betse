@@ -2631,7 +2631,6 @@ class MasterOfNetworks(object):
         self.extra_J_mem = np.zeros(sim.mdl)
         self.extra_J_env = np.zeros(sim.edl)
 
-
     def run_loop(self, t, sim, cells, p):
         """
         Runs the main simulation loop steps for each of the molecules included in the simulation.
@@ -2960,7 +2959,7 @@ class MasterOfNetworks(object):
             # print(modulator.min())
             # print("-----------")
 
-            if obj.target_label == 'gj':
+            if obj.target_label == 'GJ':
 
                 sim.gj_block = modulator
 
@@ -2968,21 +2967,10 @@ class MasterOfNetworks(object):
 
                 sim.NaKATP_block = modulator
 
-            elif obj.target_label == 'H/K-ATPase':
+            elif obj.target_label == 'MT':
 
-                sim.HKATP_block = modulator
+                sim.mtubes.modulator = modulator
 
-            elif obj.target_label == 'V-ATPase':
-
-                sim.VATP_block = modulator
-
-            elif obj.target_label == 'Ca-ATPase':
-
-                sim.CaATP_block = modulator
-
-            elif obj.target_label == 'Na/Ca-Exch':
-
-                sim.NaCaExch_block = modulator
 
             else:
 
@@ -4874,9 +4862,9 @@ class MasterOfNetworks(object):
                     name = name[:-1]
                     direct_tag = True
 
-                zi =self.molecules[name].z
+                if in_mem_tag is True and vs_request is True:
 
-                if in_mem_tag is True and zi != 0.0 and vs_request is True:
+                    zi = self.molecules[name].z
 
                     msg = "Vmem-sensitive gating used for inhibitor: " + name
 
@@ -5163,16 +5151,20 @@ class Molecule(object):
         cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav) / cells.R_rads  # concentration gradients
 
+
+        # normal component of electric field at membranes:
+        En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+              sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
         # calculate normal component of microtubules at membrane:
+        umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
+        umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
 
-        # umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
-        # umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
-
-        umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
+        # umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
 
         if p.cell_polarizability != 0.0:
 
-            cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*sim.Ec + umtn*self.u_mt*cp)
+            cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*En + umtn*self.u_mt*cp)
             # as no net mass must leave this intracellular movement, make the flux divergence-free:
             cflux = stb.single_cell_div_free(cfluxo, cells)
 
@@ -5181,6 +5173,22 @@ class Molecule(object):
 
             # smooth the concentration:
             self.cc_at_mem = sim.smooth_weight_mem * self.cc_at_mem + sim.smooth_weight_o * cav
+
+
+        # elif p.cell_polarizability == 0.0 and self.u_mt != 0.0:
+        elif p.cell_polarizability == 0.0:
+
+            cfluxo = (-Do * cg + ((Do * p.q * cp * z) / (p.kb * sim.T)) * En + umtn * self.u_mt * cp)
+            # cfluxo = (-Do*cg  + umtn*self.u_mt*cp)
+
+            # as no net mass must leave this intracellular movement, make the flux divergence-free:
+            cflux = stb.single_cell_div_free(cfluxo, cells)
+
+            # calculate the actual concentration at membranes by unpacking to concentration vectors:
+            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
+
+            # smooth the concentration:
+            self.cc_at_mem = sim.smooth_weight_mem*self.cc_at_mem + sim.smooth_weight_o*cav
 
         else:
             cflux = np.zeros(sim.mdl)
@@ -5933,7 +5941,7 @@ class Modulator(object):
 
     def init_modulator(self, sim, cells, p):
 
-        if self.target_label == 'gj':
+        if self.target_label == 'GJ':
 
             sim.gj_block_o = np.ones(sim.mdl)
 
@@ -5941,21 +5949,18 @@ class Modulator(object):
 
             sim.NaKATP_block_o =  np.ones(sim.mdl)
 
-        elif self.target_label == 'H/K-ATPase':
+        elif self.target_label == 'MT':
 
-            sim.HKATP_block_o =  np.ones(sim.mdl)
+            sim.mtubes.modulator = np.ones(sim.mdl)
 
-        elif self.target_label == 'V-ATPase':
 
-            sim.VATP_block_o =  np.ones(sim.mdl)
 
         else:
 
             raise BetseSimConfigException("You have requested a "
                                            "sim modulator that is not "
                                            "available. Available choices "
-                                           "are: 'gj', 'Na/K-ATPase', 'H/K-ATPase', "
-                                           "and 'V-ATPase' ")
+                                           "are: 'GJ', 'Na/K-ATPase' and 'MT' ")
 
 def rgba2hex(rgb_col, alpha_val):
     """

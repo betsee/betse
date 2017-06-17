@@ -22,6 +22,7 @@ from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes,)
 from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise as clip
+from betse.science.math.geometry.polygon.geopolyconvex import clip as clip_raw
 
 # ....................{ CLASSES                            }....................
 # FIXME create a new option for seed points: Fibonacci radial-spiral array
@@ -376,8 +377,6 @@ class Cells(object):
 
         logs.log_info('Creating computational matrices for cell-cell transfers... ')
         self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
-        # self.intra_updater(p)    # creates matrix used for finite volume integration on cell patch
-
         self.cell_vols(p)   # calculate the volume of cell and its internal regions
         # self.cellDivM(p)    # create matrix to invert divergence
         # self.memLaplacian()   # creates an inverse matrix to calculate voltage on individual membranes
@@ -773,8 +772,19 @@ class Cells(object):
         """
 
 
+        # Load the bitmap used to clip the cell cluster and create a clipping function:
+        self.bitmasker = BitMapper(
+            p.clipping_bitmap_matcher,
+            self.xmin, self.xmax, self.ymin, self.ymax)
+
+        # add the bitmasker clipping curve to the points:
+
+        seed_points = np.vstack((self.clust_xy, self.bitmasker.clipcurve))
+
         # define the Voronoi diagram from the seed points:
-        vor = sps.Voronoi(self.clust_xy)
+        # vor = sps.Voronoi(self.clust_xy)
+
+        vor = sps.Voronoi(seed_points)
 
         # round the x,y values of the vertices so that duplicates aren't formed when we use search algorithms later:
         vor.vertices = np.round(vor.vertices,6)
@@ -835,12 +845,10 @@ class Cells(object):
 
         self.voronoi_verts = []  # track all voronoi cells, even those not in cluster (used as grid for masking)
 
-        # Load the bitmap used to clip the cell cluster and create a clipping function:
-        self.bitmasker = BitMapper(
-            p.clipping_bitmap_matcher,
-            self.xmin, self.xmax, self.ymin, self.ymax)
+        ave_area = np.pi*p.rc**2
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
+
             if len(poly_ind) >= p.cell_sides:
                 cell_poly = vor.vertices[poly_ind]
                 point_check = np.zeros(len(cell_poly))
@@ -854,11 +862,16 @@ class Cells(object):
                 cell_polya = cell_poly.tolist()
                 self.voronoi_verts.append(cell_polya)
 
-                if point_check.all() == 1.0:  # if all of the region's point are in the clipping func range
-                    self.ecm_verts.append(cell_polya) # This makes a jagged boundary of cells
+                if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
 
-                # if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
-                #     self.ecm_verts.append(cell_polya)   # this makes a more solid boundary of cells
+                    verts_clip = clip(cell_polya, self.bitmasker.clipcurve)
+
+                    if len(verts_clip):
+
+                        area_check = (tb.area(verts_clip) / ave_area)
+
+                        if area_check > 0.4:
+                            self.ecm_verts.append(verts_clip)   # this makes a more solid boundary of cells
 
         self.cluster_mask = self.bitmasker.clipping_matrix  # keep track of cluster mask and its size
         self.msize = self.bitmasker.msize
@@ -931,6 +944,32 @@ class Cells(object):
         self.ecm_verts_unique = [list(verts) for verts in list(ecm_verts_set)]
 
         self.ecm_verts_unique = np.asarray(self.ecm_verts_unique)  # convert to numpy array
+
+    def refineMesh(self, p):
+
+        ecm_verts2 = []
+        vol_mean = p.cell_height*np.pi*p.rc**2
+
+        for i, poly in enumerate(self.ecm_verts):
+
+            mem_is = self.cell_to_mems[i]
+
+            vol_i = self.mem_vol[mem_is]
+
+            vol_check = vol_i/vol_mean
+
+            inds_small = (vol_check < 0.01).nonzero()
+
+            if not len(inds_small[0]):
+
+                ecm_verts2.append(poly)
+
+        self.ecm_verts = ecm_verts2
+
+        self.cell_index(p)  # Calculate the correct centre and index for each cell
+        self.cellVerts(p)  # create individual cell polygon vertices
+        self.cellMatrices(p)  # creates a variety of matrices used in routine cells calculations
+        self.cell_vols(p)   # calculate the volume of cell and its internal regions
 
     def cell_index(self,p):
 

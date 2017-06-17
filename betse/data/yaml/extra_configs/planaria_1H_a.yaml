@@ -1,35 +1,13 @@
 %YAML 1.1
 ---
-# Default BETSE simulation configuration file.
-#
-# The following settings can be changed to customize simulations in BETSE. When
-# editing the file, note that it is essential that the line indentations (tabs)
-# are maintained in their current order, and that only variable assignments are
-# changed. Variable names must not be changed. Comments are prefixed by "#" and
-# may be altered.
-#
-# Note that each BETSE simulation requires an initialization run. The
-# initialization is required to ensure that a simulation begins with a system in
-# a steady state. Each subsequent simulation depends on an initialization run
-# specific to the cell geometry and initialized parameters.
-#
-# Note: parameters listed under the "INTERNAL USE ONLY" section should be
-# modified only with care.
-#
-# Pathnames
-# ----------
-# For portability, files and directories are configured below as relative rather
-# than absolute pathnames (e.g., as "sim_init.betse" rather than
-# "/Users/iamawesome/my_sim/sim_init.betse"). Such pathnames are relative to the
-# directory containing this file. This allows the directory to be safely moved
-# without breaking existing tissue simulations.
-#
-# A Note on YAML
-# ----------
-# This file is formatted according to the YAML ([Y]AML [A]in't [M]arkup
-# [L]anguage) standard. YAML is a human-readable data serialization format
-# useful for configuration files -- like this one. For details, please see
-# https://en.wikipedia.org/wiki/YAML.
+# Full planaria network with 1H configuration.
+# Lower Notum inhibition of WNT, so GJ block/MT disruption would result in 2H + depolarization
+# No WNT polar transport
+# All interactions have higher Hill exponents. 
+# No second Ca2+ channel
+# Lower Cat Channel max permeability.
+# Increased production rate of substances 
+# Different control gradient
 
 # ------------------------------------------------------------------------------
 # FILE HANDLING
@@ -45,18 +23,18 @@ init file saving:                # Initialization paths to save and load.
                                  # ".betse.gz" (very fast minimal compression),
                                  # ".betse.bz2" (slow medium compression), and
                                  # ".betse.xz" (fast maximal compression).
-    file: init_1.betse.gz        # File containing all initialization objects.
+    file: init_1H_g.betse.gz        # File containing all initialization objects.
                                  # Supported filetypes are as above.
 
 sim file saving:                 # Simulation paths to save and load.
     directory: SIMS              # Directory containing the following files.
-    file: sim_1.betse.gz         # File containing all simulation objects.
+    file: sim_1H_g.betse.gz         # File containing all simulation objects.
                                  # Supported filetypes are as above.
 
 results file saving:          # Initialization and simulation exports to save.
-    init directory: RESULTS/init_1  # Directory containing all initialization
+    init directory: RESULTS/init_1H_g  # Directory containing all initialization
                                     # exports (e.g., plots, animations).
-    sim directory: RESULTS/sim_1    # Directory containing all simulation
+    sim directory: RESULTS/sim_1H_g    # Directory containing all simulation
                                     # exports (e.g., plots, animations).
 
 # ------------------------------------------------------------------------------
@@ -66,8 +44,8 @@ results file saving:          # Initialization and simulation exports to save.
 
 init time settings:
   time step: 1.0e-2           # time step-size [s] (recommended at least 1.0e-3 or smaller)
-  total time: 1.0             # end time [s] (recommend 5 seconds or more)
-  sampling rate: 0.1          # time interval to sample data [s] (at least value of time-step or larger)
+  total time: 200.0             # end time [s] (recommend 5 seconds or more)
+  sampling rate: 1.0          # time interval to sample data [s] (at least value of time-step or larger)
 
 # ------------------------------------------------------------------------------
 # SIMULATION SETTINGS
@@ -79,8 +57,8 @@ automatically run initialization: True     # If init file is not found, do you w
 sim time settings:
 
   time step: 1.0e-2       # time step-size [s] (recommended 1.0e-3 or smaller)
-  total time: 1.0         # time to end sim run [s]
-  sampling rate: 0.1      # period to sample data [s] (at least time step or larger)
+  total time: 200.0         # time to end sim run [s]
+  sampling rate: 1.0      # period to sample data [s] (at least time step or larger)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # GENERAL OPTIONS
@@ -96,7 +74,7 @@ general options:
 
   simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
 
-  ion profile: basic   # ion profile options:
+  ion profile: animal   # ion profile options:
                        # 'basic' (Na+, K+, M-, and proteins-)
                        # 'basic_Ca' (Na+, K+, Ca2+, M- and proteins-)
                        # 'animal' (Na+, K+, Cl-, Ca2+, H+, HCO3- and proteins-) typical mammal
@@ -109,19 +87,19 @@ general options:
                                # note both extracellular and cytosolic levels of all
                                # ions must sum to zero charge.
 
-    extracellular Na+ concentration: 145.0          # extracellular sodium [mmol/L]
-    extracellular K+ concentration: 5.0             # extracellular potassium [mmol/L]
-    extracellular Cl- concentration: 105.0          # extracellular chloride [mmol/L]
-    extracellular Ca2+ concentration: 1.0           # extracellular calcium [mmol/L]
-    extracellular HCO3- concentration: 36.0         # extracellular bicarbonate [mmol/L]
-    extracellular protein- concentration: 10.0       # extracellular protein [mmol/L]
+    extracellular Na+ concentration: 101.8          # 145.0 extracellular sodium [mmol/L]
+    extracellular K+ concentration: 3.7             # 5. 0extracellular potassium [mmol/L]
+    extracellular Cl- concentration: 37.6          # 105.0 extracellular chloride [mmol/L]
+    extracellular Ca2+ concentration: 1.5           # 1.0 extracellular calcium [mmol/L]
+    extracellular HCO3- concentration: 60.9         # 24.5 extracellular bicarbonate [mmol/L]
+    extracellular protein- concentration: 10.0     #27.5  # 10.0 extracellular protein [mmol/L]
 
-    cytosolic Na+ concentration: 8.0                # intracellular sodium [mmol/L]
-    cytosolic K+ concentration: 125.00              # intracellular potassium [mmol/L]
-    cytosolic Cl- concentration: 20.0                # intracellular chloride [mmol/L]
-    cytosolic Ca2+ concentration: 1.0e-4            # intracellular calcium [mmol/L]
-    cytosolic HCO3- concentration: 13.0             # intracellular bicarbonate [mmol/L]
-    cytosolic protein- concentration: 100.0         # intracellular protein [mmol/L]
+    cytosolic Na+ concentration: 10.0                # 8.0  intracellular sodium [mmol/L]
+    cytosolic K+ concentration: 91.0              # 125.00 intracellular potassium [mmol/L]
+    cytosolic Cl- concentration: 39.2                # 20.0 intracellular chloride [mmol/L]
+    cytosolic Ca2+ concentration: 50.0e-6            # 1.0e-4 intracellular calcium [mmol/L]
+    cytosolic HCO3- concentration: 18.5             # 25.5 intracellular bicarbonate [mmol/L]
+    cytosolic protein- concentration: 53.3   #71.5      # 100.0 intracellular protein [mmol/L]
 
     endoplasmic reticulum Ca2+: 0.1             # starting level of Ca2+ in the ER store [mmol/L]
 
@@ -136,7 +114,7 @@ general options:
 
 world options:
 
-  world size: 250e-6      # dimension of the square world space [m]
+  world size: 400e-6      # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1000e-6 m
 
@@ -154,7 +132,7 @@ world options:
   lattice type: hex           # form of the base lattice (before adding lattice disorder)
                               # options: 'hex' for hegagonal or 'rect' for rectilinear
 
-  lattice disorder: 0.4       # noise level for the lattice
+  lattice disorder: 0.25       # noise level for the lattice
                               # recommended range 0 to 0.8
                               # this randomizes lattice points from the rectangular or
                               # hexagonal base grid. If equal to 0, a perfect
@@ -182,7 +160,7 @@ tissue profile definition:
 
     clipping:     # geometry mask defining shape of global cell cluster
         bitmap:   # bitmap whose coloured pixel area defines this mask
-            file: geo/circle/circle_base.png  # bitmap path relative to config file location;
+            file: geo/multiworm/1worm_base.png  # bitmap path relative to config file location;
                                                   # if "None", clipping will be disabled
 
     profiles enabled: True   # Are tissue and cut profiles listed below applied ("True") or ignored ("False")?
@@ -195,8 +173,8 @@ tissue profile definition:
 
         diffusion constants: # constants applied to all targetted cells
           Dm_Na: 1.0e-18     # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 15.0e-18     # K+ membrane diffusion constant [m2/s]
-          Dm_Cl: 2.0e-18     # Cl- membrane diffusion constant [m2/s]
+          Dm_K: 1.0e-18     # K+ membrane diffusion constant [m2/s]
+          Dm_Cl: 1.0e-18     # Cl- membrane diffusion constant [m2/s]
           Dm_Ca: 1.0e-18     # Ca2+ membrane diffusion constant [m2/s]
           Dm_H: 1.0e-18      # H+ membrane diffusion constant [m2/s]
           Dm_M: 1.0e-18      # M- membrane diffusion constant [m2/s]
@@ -210,7 +188,7 @@ tissue profile definition:
 
           bitmap:  # if "type: bitmap" specified above, supply path to bitmap; otherwise this is ignored
 
-            file: geo/circle/circle_base.png  # Absolute or relative bitmap path
+            file: geo/multiworm/1worm_base.png  # Absolute or relative bitmap path
 
           indices: [3, 14, 15, 9, 265] # If "type: indices" specified above list cell indices for profile;
                                        # otherwise this is ignored. This must be a list of positive integers
@@ -223,55 +201,13 @@ tissue profile definition:
                                      # ranging from 0 to 100 (e.g., "50" randomly applies this profile
                                      # to 50% of all cells).
 
-      # Example tissue profile for a small, slightly depolarized cluster of
-      # cells near the cluster centre.
-      - type: tissue
-        name: spot
-        insular: False
-
-        diffusion constants:
-          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 1.0e-18    # K+ membrane diffusion constant [m2/s]
-          Dm_Cl: 1.0e-18   # Cl- membrane diffusion constant [m2/s]
-          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
-          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
-          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
-
-        cell targets:
-          type: bitmap
-          bitmap: { file: geo/circle/mini_spot.png }
-          indices: [3, 14, 15, 9, 265]
-          random: 50
-
-      # Example tissue profile for a small, slightly depolarized cluster of
-      # cells near the cluster boundary.
-      - type: tissue
-        name: wound
-        insular: False
-
-        diffusion constants:
-          Dm_Na: 1.0e-18   # Na+ membrane diffusion constant [m2/s]
-          Dm_K: 150.0e-18  # K+ membrane diffusion constant [m2/s]
-          Dm_Cl: 2.0e-18   # Cl- membrane diffusion constant [m2/s]
-          Dm_Ca: 1.0e-18   # Ca2+ membrane diffusion constant [m2/s]
-          Dm_H: 1.0e-18    # H+ membrane diffusion constant [m2/s]
-          Dm_M: 1.0e-18    # M- membrane diffusion constant [m2/s]
-          Dm_P: 0.0        # proteins membrane diffusion constant [m2/s]
-
-        cell targets:
-          type: bitmap
-          bitmap: { file: geo/circle/wedge.png }
-          indices: [3, 14, 15, 9, 265]
-          random: 50
-
       # Example cut profile for a small cluster of cells near the boundary.
       - type: cut       # unique type for cut profiles
         name: surgery   # unique profile name
 
         bitmap: # Bitmap whose coloured pixel area defines the subregion of the
                 # cell cluster to be removed.
-          file: geo/circle/wedge.png
+          file: geo/multiworm/1worm_cuts.png
 
 #-----------------------------------------------------------------------------------------------------------------------
 # TARGETED INTERVENTIONS
@@ -284,13 +220,13 @@ tissue profile definition:
 # and init.
 
 change Na mem:       # Change the membrane permeability to Na+
-    event happens: True        # turn the event on (True) or off (False)
-    change start: 1.0e-3                # time to start change [s]
-    change finish: 20.0e-3               # time to end change and return to original [s]
-    change rate: 2.0e-3                 # rate of change [s]
-    multiplier: 50.0                # factor to multiply base level
+    event happens: False        # turn the event on (True) or off (False)
+    change start: 1.0                # time to start change [s]
+    change finish: 2.0               # time to end change and return to original [s]
+    change rate: 0.1                 # rate of change [s]
+    multiplier: 10.0                # factor to multiply base level
     modulator function: None               # spatial function:'gradient_x','gradient_y', 'gradient_r' or 'None'
-    apply to: ['spot']          # name(s) of the tissue profile(s) to apply intervention to
+    apply to: ['all']          # name(s) of the tissue profile(s) to apply intervention to
 
 change K mem:       # Change the membrane permeability to K+
     event happens: False              # turn the event on (True) or off (False)
@@ -366,13 +302,6 @@ cutting event:
       max conductivity: 1.0e-8   # maximum conductivity of the channel to sodium when fully open
       closure delay: 5.0       # how fast does the channel close after activation? (larger = faster decay)
 
-      activators: None         # list of defined substances or simulation ions activating channel
-      Km activators: None      # list of half-maximum values for activators
-      n activators: None       # list of Hill exponent of activators
-      inhibitors: None   # list of defined substances or simulation ions inhibiting channel
-      Km inhibitors: None      # list of half-maximum values for inhibitors
-      n inhibitors: None        # list of Hill exponent of inhibitors
-
 #-----------------------------------------------------------------------------------------------------------------------
 # MODULATOR FUNCTION PROPERTIES
 #-----------------------------------------------------------------------------------------------------------------------
@@ -405,7 +334,7 @@ modulator function properties:   # set properties of modulating functions which 
       end frequency: 1e3            # end frequency
 
   gradient_bitmap:           # generate a spatial gradient of a property from an imported bitmap image (png)
-      file: geo/ellipse/gradient.png
+      file: geo/multiworm/1Hgradient.png
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS
@@ -572,7 +501,7 @@ interventions:
 
 general network:
 
-  implement network: False     # Turn the entire network defined below on (True) or off (False)
+  implement network: True     # Turn the entire network defined below on (True) or off (False)
 
   enable mitochondria: False   # Enable distinct mitochondrial volumes in each cell?
 
@@ -596,6 +525,274 @@ general network:
 
   biomolecules:  # specify the properties of any number of auxillary chemicals
 
+    - name: 'X'    # non-mobile K+ ion channel protein (expressed)
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 0.0          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 0.0        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 1.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: gradient_bitmap   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: True   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      plotting:
+        plot 2D: False         # create a unique set of plots for the substance
+        animate: False         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 2.0                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'Hh'    # Hedgehog
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 1.0e-12        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 1.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # double_yr function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.04    # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.04          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: all       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+        inhibitors: ['Ca']         # list of defined substances or simulation ions activating expression
+        Km inhibitors: [0.25e-3]      # list of half-maximum values for activators
+        n inhibitors: [3.0]       # list of Hill exponent of activators
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 2.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'WNT'    # WNT "Tail" signalling pathway
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 1.0e-12        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.04   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.04          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+        activators: ['Hh']         # list of defined substances or simulation ions activating expression
+        Km activators: [0.5]      # list of half-maximum values for activators
+        n activators: [3.0]       # list of Hill exponent of activators
+        inhibitors: ['Notum']         # list of defined substances or simulation ions activating expression
+        Km inhibitors: [0.75]      # list of half-maximum values for activators
+        n inhibitors: [3.0]       # list of Hill exponent of activators
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'Notum'    # Notum enzyme, WNT inhibitor
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 1.0e-12        # effective diffusion constant through gap junctions
+      u_mtube: -5.0e-6           # rate of transport via motor proteins (max of about 5.0e-6 m/s)
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.02   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.02          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'APC'    # Adenomatous polyposis coli factor
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 0.0        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: True   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.1   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.1          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+        inhibitors: ['WNT']         # list of defined substances or simulation ions activating expression
+        Km inhibitors: [0.25]     # @@0.5 original # list of half-maximum values for activators
+        n inhibitors: [2.0]       # list of Hill exponent of activators
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'betaCat'    # beta-Catenin transcription factor
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 1.0e-12        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: False   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.1   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.1          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+        inhibitors: ['APC']         # list of defined substances or simulation ions activating expression
+        Km inhibitors: [0.5]    #@@ 0.5 originally  # list of half-maximum values for activators
+        n inhibitors: [2.0]       # list of Hill exponent of activators
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'Head_Factor'    # Unknown signalling factor(s) inducing head (anterior pole) formation
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 0.0        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: True   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.04   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.04          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+        inhibitors: ['betaCat']         # list of defined substances or simulation ions activating expression
+        Km inhibitors: [0.25]      # list of half-maximum values for activators
+        n inhibitors: [2.0]       # list of Hill exponent of activators
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'Tail_Factor'    # Unknown signalling factor(s) inducing head (anterior pole) formation
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-12          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 0.0        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: True   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.05   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.05          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+        activators: ['betaCat']         # list of defined substances or simulation ions activating expression
+        Km activators: [0.50]      # list of half-maximum values for activators
+        n activators: [2.0]       # list of Hill exponent of activators
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'PCP'    # Planar cell polarity molecule
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-15          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 0.0        # effective diffusion constant through gap junctions
+      u_mtube: 5.0e-6           # rate of transport via motor proteins (max of about 5.0e-6 m/s)
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: True   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.001   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.001          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
+    - name: 'MTS'    # Microtubule stability
+
+      Dm: 0.0          #  membrane diffusion coefficient [m2/s]
+      Do: 1.0e-15          # free diffusion constant in extra and intracellular spaces [m2/s]
+      Dgj: 0.0        # effective diffusion constant through gap junctions
+      z: 0               # charge (oxidation state)
+      env conc: 0.0        # initial concentration in the environment [mmol/L]
+      cell conc: 0.0     # initial concentration in the cytoplasm [mmol/L]
+      initial asymmetry: None   # function applied to initial cell concentrations ('gradient_x', 'gradient_y', 'gradient_r' or 'None')
+      TJ permeable: False      # can substances pass through tight junctions (e.g. dissolved oxygen)
+      GJ impermeable: True   # are substances impermeable through gap junctions (i.e. due to size)
+      TJ factor: 1.0       # TJ factor (relative factor to decrease tight junction permeability)
+      ignore ECM: False    # treat extracellular spaces as full grid square volume (True)?
+      growth and decay:    # settings for production/decay of substances (standard GRN model)
+        production rate: 0.001   # maximum rate at which molecule is produced in the cytoplasm
+        decay rate: 0.001          # maximum rate at which molecule is degraded in the cytoplasm
+        apply to: ['all']       # apply growth only to a specific tissue profile ['spot', 'crest'], or 'all' for everything
+        modulator function: None  # spatial modulation of production, options 'gradient_x','gradient_y', 'gradient_r' or 'None'
+      plotting:
+        plot 2D: True         # create a unique set of plots for the substance
+        animate: True         # animate the substance during the sampled time-steps of the simulation
+        autoscale colorbar: True      # autoscale the min-max values of the colorbar?
+        max val: 0.5                # if autoscale is False, max value to use for plot in umol/L
+        min val: 0.0                    # if autoscale is False, min value to use for plot in umol/L
+
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHEMICAL REACTIONS
 #-----------------------------------------------------------------------------------------------------------------------
@@ -603,6 +800,7 @@ general network:
 # See "extra_config_template.yaml" in the "extra_configs" directory for examples.
 
   reactions:
+
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM TRANSPORTERS
@@ -613,6 +811,7 @@ general network:
 
   transporters:
 
+
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHANNELS
 #-----------------------------------------------------------------------------------------------------------------------
@@ -622,6 +821,50 @@ general network:
 
   channels:
 
+    - name: K_Channel
+
+      channel class: K        #class of the channels: Na, K, Ca, Cl, Fun, and Cat
+      channel type: KLeak    #identify the channel as one of the available voltage gated types in each class
+      max conductivity: 1.5e-8  #         maximum membrane conductivity to ion when channel fully open
+      apply to: all                #    list of profiles to apply channel to or 'all' for all cells
+#      channel activators: ['X']    # additional defined substances or ions decreasing activity of transporter
+#      activator Km: [0.5]  #1.5
+#      activator n: [1.0]
+#      activator zone: ['cell']
+      channel inhibitors: ['X']    # additional defined substances or ions decreasing activity of transporter
+      inhibitor Km: [0.5]  #1.5
+      inhibitor n: [1.0]
+      inhibitor zone: ['cell']
+
+    - name: Cat_Channel
+
+      channel class: Cat        #class of the channels: Na, K, Ca, Cl, Fun, and Cat
+      channel type: CatLeak    #identify the channel as one of the available voltage gated types in each class
+      max conductivity: 1.5e-8  #         maximum membrane conductivity to ion when channel fully open
+      apply to: all                #    list of profiles to apply channel to or 'all' for all cells
+      channel activators: ['Head_Factor']    # additional defined substances or ions decreasing activity of transporter
+      activator Km: [1.0]  #1.5
+      activator n: [2.0]
+      activator zone: ['cell']
+#      channel inhibitors: ['WNT']    # additional defined substances or ions decreasing activity of transporter
+#      inhibitor Km: [0.20]  #1.5
+#      inhibitor n: [1.0]
+#      inhibitor zone: ['cell']
+
+#    - name: CaVo
+
+#      channel class: Ca        #class of the channels: Na, K, Ca, Cl, Fun, and Cat
+#      channel type: Ca_L2    #identify the channel as one of the available voltage gated types in each class
+#      max conductivity: 1.0e-4  #         maximum membrane conductivity to ion when channel fully open
+#      apply to: all                #    list of profiles to apply channel to or 'all' for all cells
+
+    - name: CaV
+
+      channel class: Ca        #class of the channels: Na, K, Ca, Cl, Fun, and Cat
+      channel type: Ca_L3    #identify the channel as one of the available voltage gated types in each class
+      max conductivity: 2.0e-4  #         maximum membrane conductivity to ion when channel fully open
+      apply to: all                #    list of profiles to apply channel to or 'all' for all cells
+
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM MODULATORS
 #-----------------------------------------------------------------------------------------------------------------------
@@ -630,6 +873,16 @@ general network:
 # directory for examples.
 
   modulators:
+
+
+    - name: MT-Stabilizer
+
+      target: MT       # sim entity targeted: GJ (for gap junctions), Na/K-ATP, or MT (for microtubule dynamics)
+      max effect: 1.0        # maximum value of modulation
+      inhibitors: ['MTS']    # additional defined substances or ions decreasing activity of transporter
+      inhibitor Km: [0.05]
+      inhibitor n: [1.0]
+      inhibitor zone: ['cell']
 
 
 #-----------------------------------------------------------------------------------------------------------------------
@@ -678,8 +931,8 @@ variable settings:
   default tissue properties:     # specify the base membrane diffusion constants below (if applicable)
 
       Dm_Na: 1.0e-18       # Na+ membrane diffusion constant [m2/s]
-      Dm_K: 15.0e-18       # K+ membrane diffusion constant [m2/s]
-      Dm_Cl: 2.0e-18       # Cl- membrane diffusion constant [m2/s]
+      Dm_K: 1.0e-18       # K+ membrane diffusion constant [m2/s]
+      Dm_Cl: 1.0e-18       # Cl- membrane diffusion constant [m2/s]
       Dm_Ca: 1.0e-18       # Ca2+ membrane diffusion constant [m2/s]
       Dm_H: 1.0e-18        # H+ membrane diffusion constant [m2/s]
       Dm_M: 1.0e-18        # M- membrane diffusion constant [m2/s]
@@ -689,12 +942,12 @@ variable settings:
                                  # altering these is an easy way to change extracellular ion concentrations
                                  # uncomment the fields below to set new env boundaries, otherwise feature ignored!
 
-#    Na: 145.0    # Na+ concentration at bound [mM]
-#    K: 5.0      # K+ concentration at bound [mM]
-#    Cl: 105.0    # Cl- concentration at bound [mM]
-#    Ca: 1.0     # Ca2+ concentration at bound [mM]
-#    P: 10.0      # Protein- concentration at bound [mM]
-#    M: 37.0     # Anion (bicarbonate) concentration at bound [mM]
+#    Na: 10.0    # Na+ concentration at bound [mM]
+#    K: 0.5      # K+ concentration at bound [mM]
+#    Cl: 9.0    # Cl- concentration at bound [mM]
+#    Ca: 0.1     # Ca2+ concentration at bound [mM]
+#    P: 0.0      # Protein- concentration at bound [mM]
+#    M: 1.7     # Anion (bicarbonate) concentration at bound [mM]
 
   temperature: 310            # system temperature [K]
 
@@ -742,7 +995,7 @@ variable settings:
 
   gap junctions:
 
-    gap junction surface area: 5.0e-8 # surface area of gj as fraction of cell area (1.0e-5 extremely open, 1e-9 closed)
+    gap junction surface area: 1.0e-7 # surface area of gj as fraction of cell area (1.0e-5 extremely open, 1e-9 closed)
 
     voltage sensitive gj: True   # gj close with voltage difference between cells?
 
@@ -925,7 +1178,21 @@ results options:
             maximum:  10.0    # Maximum fixed colorbar value. Ignored if
                               # "autoscale" is True.
         # Example final cell cluster intracellular electric field plot.
-        - type: electric_intra
+        - type: microtubule
+          enabled: True
+          colorbar:
+            autoscale: True
+            minimum: -70.0
+            maximum:  10.0
+
+        - type: currents_intra
+          enabled: True
+          colorbar:
+            autoscale: True
+            minimum: -70.0
+            maximum:  10.0
+
+        - type: ion_calcium_intra
           enabled: True
           colorbar:
             autoscale: True
@@ -978,7 +1245,14 @@ results options:
             maximum:  10.0    # Maximum fixed colorbar value. Ignored if
                               # "autoscale" is True.
         # Example intracellular electric field animation.
-        - type: electric_intra
+        - type: microtubule
+          enabled: True
+          colorbar:
+            autoscale: True
+            minimum: -70.0
+            maximum:  10.0
+
+        - type: currents_intra
           enabled: True
           colorbar:
             autoscale: True
@@ -1085,7 +1359,7 @@ internal parameters:
 
   alpha_NaK:  1.0e-7   # max rate Na-K-ATPase pump [m/mol*s] (1.0e-6 to 1.0e-12)
 
-  alpha_Ca:  1.0e-7    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
+  alpha_Ca:  5.0e-8    # pump rate for calcium ATPase in membrane per unit surface area [m/mol*s]
 
   gaussian smoothing: 0.0    # level for smoothing kernal, in grid points, larger is stronger. Recommend 0.0 to 1.0.
 
@@ -1099,7 +1373,7 @@ internal parameters:
 
   cell polarizability: 0.0  # constant defining rate of cell polarizability change in electric fields (0.0 to 1.0e-3)
 
-  cytoplasm viscocity: 1.0 # viscocity of the cytoplasm [Pa.s]
+  cytoplasm viscocity: 1.0e-1 # viscocity of the cytoplasm [Pa.s]
 
   microtubule diffusion: 1.0e-12  # effective diffusion coefficient of microtubule (mobility) [m2/s]
 

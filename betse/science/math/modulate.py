@@ -4,6 +4,10 @@
 
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from scipy.ndimage import imread
+from scipy import interpolate
+from scipy.ndimage.filters import gaussian_filter
+import os
 
 # ....................{ IMPORTS                            }....................
 def periodic(pc,cells,p):
@@ -457,3 +461,56 @@ def double_xr(pc, cells,p):
     dynamics = lambda t: 1
 
     return fy, dynamics
+
+def gradient_bitmap(pc, cells, p):
+
+    if len(pc) == len(cells.mem_i):
+        xmap = cells.map_mem2ecm
+        # xx = cells.mem_mids_flat[:,0]
+        # yy = cells.mem_mids_flat[:,1]
+
+
+    elif len(pc) == len(cells.cell_i):
+        xmap = cells.map_cell2ecm
+        # xx = cells.cell_centres[:,0]
+        # yy = cells.cell_centres[:,1]
+
+    xmi = cells.xmin - 4*p.rc
+    ymi = cells.ymin - 4*p.rc
+    xma = cells.xmax + 4*p.rc
+    yma = cells.ymax + 4*p.rc
+
+    # xx = np.linspace(xmi, xma, cells.X.shape[1])
+    # yy = np.linspace(ymi, yma, cells.X.shape[0])
+
+    xx = np.linspace(cells.xmin, cells.xmax, cells.X.shape[1])
+    yy = np.linspace(cells.ymin, cells.ymax, cells.X.shape[0])
+
+    fn1 = os.path.join(p.config_dirname, p.grad_bm_fn)
+
+    a1 = imread(fn1, mode='RGB')
+
+    a1_F = ((a1[:, :, 0] - 255) / 255)
+
+    a1_F = np.flipud(a1_F)
+
+    # a1_F = gaussian_filter(a1_F, 2)
+
+    xa = np.linspace(xmi, xma, a1_F.shape[1])
+    ya = np.linspace(ymi, yma, a1_F.shape[0])
+
+    spline_F = interpolate.interp2d(xa, ya, a1_F, kind='linear', fill_value=0.0)
+    fe = spline_F(xx, yy)
+
+    indz = (fe < 0.0).nonzero()
+    fe[indz] = 0.0
+
+    # fe = gaussian_filter(fe, 2)
+
+    f = fe.ravel()[xmap]
+
+
+
+    dynamics = lambda t:1
+
+    return f, dynamics

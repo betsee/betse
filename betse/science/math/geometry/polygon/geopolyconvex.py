@@ -182,7 +182,7 @@ def clip_counterclockwise(
         # vertices from the subject polygon, then the subject polygon resides
         # entirely outside of the clip polygon. In this case, the clipped
         # subject polygon is empty and no further work remains to be done.
-        if not subj_poly_curr:
+        if len(subj_poly_curr) == 0:
             break
 
         # Preserve the previous version of the clipped subject polygon produced

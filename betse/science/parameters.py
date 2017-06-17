@@ -680,6 +680,15 @@ class Parameters(object):
 
         self.f_scan_properties['f slope'] = None
 
+        # filename to read for bitmap loading gradient definition:
+        chk = self._conf['modulator function properties'].get('gradient_bitmap', None)
+
+        if chk is not None:
+            self.grad_bm_fn = self._conf['modulator function properties']['gradient_bitmap']['file']
+
+        else:
+            self.grad_bm_fn = None
+
         # ................{ EXPORTS                            }................
         ro = self._conf['results options']
 
