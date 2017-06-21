@@ -1809,7 +1809,7 @@ class Simulator(object):
             sqrconvF = 1.0
 
 
-            if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour  # FIXME do this as above! needs Jn not Jmem
+            if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour
 
                 drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
                 drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
