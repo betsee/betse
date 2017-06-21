@@ -789,12 +789,13 @@ def convert_requirements_dict_key_to_str(
     # if any or "None" otherwise.
     requirement_constraints = requirements_dict[requirement_name]
 
-    # If this requirement is unconstrained, return only this requirement's name.
-    if requirement_constraints is None:
-        return requirement_name
-    # Else, return the concatenation of this requirement's name and constraints.
-    else:
+    # If this requirement is constrained, return the concatenation of this
+    # requirement's name and constraints.
+    if requirement_constraints:
         return '{} {}'.format(requirement_name, requirement_constraints)
+    # Else, return only this requirement's name.
+    else:
+        return requirement_name
 
 # ....................{ IMPORTERS                          }....................
 @type_check

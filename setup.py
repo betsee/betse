@@ -124,8 +124,7 @@ def init() -> None:
     # For each minor version of Python 3.x supported by this application,
     # formally classify this version as such.
     for python_version_minor in range(
-        metadata.PYTHON_VERSION_MIN_PARTS[1],
-        _PYTHON_VERSION_MINOR_MAX + 1):
+        metadata.PYTHON_VERSION_MIN_PARTS[1], _PYTHON_VERSION_MINOR_MAX + 1):
         _CLASSIFIERS.append(
             'Programming Language :: Python :: {}.{}'.format(
                 PYTHON_VERSION_MAJOR, python_version_minor,))

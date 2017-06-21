@@ -9,14 +9,14 @@ Low-level string facilities.
 
 # ....................{ IMPORTS                            }....................
 import textwrap
-from textwrap import TextWrapper
-
 from betse.exceptions import BetseStrException
 from betse.util.type import types
+from betse.util.type.types import type_check, IterableTypes, StrOrNoneTypes
+from textwrap import TextWrapper
+
 # For convenience, permit callers to import the general-purpose trim() function
 # from this submodule rather than the "types" submodule.
 from betse.util.type.types import trim
-from betse.util.type.types import type_check, IterableTypes, StrOrNoneTypes
 
 if False: trim  # silence IDE warnings
 
@@ -25,9 +25,9 @@ text_wrapper = TextWrapper()
 '''
 Singleton :class:`TextWrapper` instance with which to wrap text.
 
-Such singleton improves efficiency -- occasionally dramatically. *All* public
+This singleton improves efficiency -- occasionally dramatically. *All* public
 functions provided by the :mod:`textwrap` module implicitly instantiate
-temporary :class:`TextWrapper` instances on each call to such functions.
+temporary :class:`TextWrapper` instances on each function call.
 '''
 
 # ....................{ EXCEPTIONS                         }....................

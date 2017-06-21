@@ -335,6 +335,24 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     _IS_INITTED = True
 
 # ....................{ GETTERS                            }....................
+def get_runtime_mandatory_tuple() -> tuple:
+    '''
+    Tuple listing the :mod:`setuptools`-specific requirement string containing
+    the mandatory name and optional version and extras constraints of each
+    optional runtime dependency for this application.
+
+    This tuple is dynamically converted from the
+    :data:`metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.lib.setuptools import setuptool
+
+    # Convert this dictionary into a tuple.
+    return setuptool.convert_requirements_dict_to_tuple(
+        metadata.DEPENDENCIES_RUNTIME_MANDATORY)
+
+
 def get_runtime_optional_tuple() -> tuple:
     '''
     Tuple listing the :mod:`setuptools`-specific requirement string containing

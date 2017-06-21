@@ -7,9 +7,6 @@
 Low-level logging configuration.
 '''
 
-#FIXME: For disambiguity, embed the current process ID (PID) in each message
-#written to the logfile.
-
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: To avoid circular import dependencies, avoid importing from *ANY*
@@ -22,9 +19,12 @@ Low-level logging configuration.
 import logging, os, sys
 from betse import metadata, pathtree
 from betse.util.io.log.logenum import LogLevel
-from betse.util.io.log.loghandler import SafeRotatingFileHandler
+from betse.util.io.log.logfilter import (
+    LogFilterThirdPartyDebug, LogFilterMoreThanInfo)
+from betse.util.io.log.logformat import LogFormatterWrap
+from betse.util.io.log.loghandle import LogHandlerFileRotateSafe
 from betse.util.type.types import type_check
-from logging import Filter, Formatter, LogRecord, StreamHandler
+from logging import Handler, RootLogger, StreamHandler
 from os import path
 
 # ....................{ GLOBALS                            }....................
@@ -134,7 +134,10 @@ class LogConfig(object):
 
     def _init_logger_root(self) -> None:
         '''
-        Initialize the root logger with all previously initialized handlers.
+        Initialize the root logger.
+
+        For safety, this function removes all previously initialized handlers
+        from this logger.
         '''
 
         # Root logger.
@@ -179,7 +182,7 @@ class LogConfig(object):
         # "level" attribute accepted by its superclass constructor.
         self._logger_root_handler_stdout = StreamHandler(sys.stdout)
         self._logger_root_handler_stdout.setLevel(LogLevel.INFO)
-        self._logger_root_handler_stdout.addFilter(LoggerFilterMoreThanInfo())
+        self._logger_root_handler_stdout.addFilter(LogFilterMoreThanInfo())
 
         # Initialize the stderr handler to:
         #
@@ -189,9 +192,9 @@ class LogConfig(object):
         self._logger_root_handler_stderr = StreamHandler(sys.stderr)
         self._logger_root_handler_stderr.setLevel(LogLevel.WARNING)
 
-        # Prevent third-party debug messages from being printed to the terminal.
-        self._logger_root_handler_stdout.addFilter(LoggerFilterDebugNonBetse())
-        self._logger_root_handler_stderr.addFilter(LoggerFilterDebugNonBetse())
+        # Avoid printing third-party debug messages to the terminal.
+        self._logger_root_handler_stdout.addFilter(LogFilterThirdPartyDebug())
+        self._logger_root_handler_stderr.addFilter(LogFilterThirdPartyDebug())
 
         #FIXME: Consider colourizing this format string.
 
@@ -200,17 +203,12 @@ class LogConfig(object):
         #
         #     https://docs.python.org/3/library/logging.html#logrecord-attributes
         #
-        # Note that the "processName" attribute appears to *ALWAYS* expand to
-        # "MainProcess", which is not terribly descriptive. Hence, the name of
-        # the current process is manually embedded in such format.
-        #
         # Note that "{{" and "}}" substrings in format() strings escape literal
         # "{" and "}" characters, respectively.
-        stream_format = '[{}] {{message}}'.format(
-            cmds.get_current_basename())
+        stream_format = '[{}] {{message}}'.format(cmds.get_current_basename())
 
-        # Formatters for these formats.
-        stream_formatter = LoggerFormatterStream(stream_format, style='{')
+        # Formatter for this format.
+        stream_formatter = LogFormatterWrap(fmt=stream_format, style='{')
 
         # Assign these formatters to these handlers.
         self._logger_root_handler_stdout.setFormatter(stream_formatter)
@@ -264,7 +262,7 @@ class LogConfig(object):
             os.makedirs(file_dirname, exist_ok=True)
 
         # Root logger file handler, preconfigured as documented above.
-        self._logger_root_handler_file = SafeRotatingFileHandler(
+        self._logger_root_handler_file = LogHandlerFileRotateSafe(
             filename=self._filename,
 
             # Append rather than overwrite this file.
@@ -299,20 +297,65 @@ class LogConfig(object):
         self._logger_root_handler_file.setLevel(file_level)
 
         # Prevent third-party debug messages from being logged to disk.
-        self._logger_root_handler_file.addFilter(LoggerFilterDebugNonBetse())
+        self._logger_root_handler_file.addFilter(LogFilterThirdPartyDebug())
 
         # Linux-style logfile format.
+        #
+        # Note that the "processName" attribute appears to *ALWAYS* expand to
+        # "MainProcess", which is not terribly descriptive. Hence, the name of
+        # the current process is manually embedded in this format.
         file_format = (
-            '[{{asctime}}] {} {{levelname}} '
-            '({{module}}.py:{{funcName}}():{{lineno}}):\n'
+            '[{{asctime}}] '
+            '{} {{levelname}} '
+            '({{module}}.py:{{funcName}}():{{lineno}}) '
+            '<PID {{process}}>:\n'
             '    {{message}}'.format(cmds.get_current_basename()))
 
         # Format this file according to this format.
-        file_formatter = LoggerFormatterStream(file_format, style='{')
+        file_formatter = LogFormatterWrap(fmt=file_format, style='{')
         self._logger_root_handler_file.setFormatter(file_formatter)
 
         # Register this handler with the root logger.
         self._logger_root.addHandler(self._logger_root_handler_file)
+
+    # ..................{ PROPERTIES ~ logger                }..................
+    # Read-only properties prohibiting write access to external callers.
+
+    @property
+    def logger_root(self) -> RootLogger:
+        '''
+        **Root logger** (i.e., transitive parent of all other loggers).
+        '''
+
+        return self._logger_root
+
+    # ..................{ PROPERTIES ~ handler               }..................
+    @property
+    def handler_file(self) -> Handler:
+        '''
+        Root logger handler appending to the current logfile if file logging is
+        enabled *or* ``None`` otherwise.
+        '''
+
+        return self._logger_root_handler_file
+
+
+    @property
+    def handler_stderr(self) -> Handler:
+        '''
+        Root logger handler printing to standard error.
+        '''
+
+        return self._logger_root_handler_stderr
+
+
+    @property
+    def handler_stdout(self) -> Handler:
+        '''
+        Root logger handler printing to standard output.
+        '''
+
+        return self._logger_root_handler_stdout
 
     # ..................{ PROPERTIES ~ level                 }..................
     @property
@@ -400,127 +443,6 @@ class LogConfig(object):
 
         # Destroy and recreate the file handler.
         self._init_logger_root_handler_file()
-
-    # ..................{ PROPERTIES ~ handler               }..................
-    # Read-only properties prohibiting write access to external callers.
-
-    @property
-    def handler_file(self) -> logging.Handler:
-        '''
-        Root logger handler appending to the current logfile if file logging is
-        enabled *or* ``None`` otherwise.
-        '''
-
-        return self._logger_root_handler_file
-
-
-    @property
-    def handler_stderr(self) -> logging.Handler:
-        '''
-        Root logger handler printing to standard error.
-        '''
-
-        return self._logger_root_handler_stderr
-
-
-    @property
-    def handler_stdout(self) -> logging.Handler:
-        '''
-        Root logger handler printing to standard output.
-        '''
-
-        return self._logger_root_handler_stdout
-
-# ....................{ CLASSES ~ filter                   }....................
-class LoggerFilterDebugNonBetse(Filter):
-    '''
-    Log filter ignoring all log records with logging levels less than or equal
-    to :attr:`LogLevel.DEBUG` *and* names not prefixed by ``betse``.
-
-    Equivalently, this log filter *only* retains log records with either:
-
-    * Logging levels greater than :attr:`LogLevel.DEBUG`.
-    * Names prefixed by ``betse``.
-
-    This log filter prevents ignorable debug messages logged by third-party
-    frameworks (e.g., Pillow) from polluting this application's debug output.
-    '''
-
-    @type_check
-    def filter(self, log_record: LogRecord) -> bool:
-        '''
-        ``True`` only if the passed log record is to be retained.
-        '''
-
-        # print('log record name: {}'.format(log_record.name))
-        return (
-            log_record.levelno > LogLevel.DEBUG or
-            log_record.name.startswith(metadata.PACKAGE_NAME))
-
-
-class LoggerFilterMoreThanInfo(Filter):
-    '''
-    Log filter ignoring all log records with logging levels greater than
-    :attr:`LogLevel.INFO``.
-
-    Equivalently, this log filter *only* retains log records with logging levels
-    less than or equal to :attr:`LogLevel.INFO``.
-    '''
-
-    @type_check
-    def filter(self, log_record: LogRecord) -> bool:
-        '''
-        ``True`` only if the passed log record is to be retained.
-        '''
-
-        return log_record.levelno <= LogLevel.INFO
-
-# ....................{ CLASSES ~ formatter                }....................
-#FIXME: Unfortunately, this fundamentally fails to work. The reason why? The
-#"TextWrapper" class inserts spurious newlines *EVEN WHEN YOU EXPLICITLY TELL
-#IT NOT TO*. This is crazy, but noted in the documentation:
-#
-#    "If replace_whitespace is False, newlines may appear in the middle of a
-#     line and cause strange output. For this reason, text should be split into
-#     paragraphs (using str.splitlines() or similar) which are wrapped
-#     separately."
-#
-#Until this is resolved, the only remaining means of wrapping log messages will
-#be to define new top-level module functions suffixed by "_wrapped" ensuring
-#that the appropriate formatter is used (e.g., a new log_info_wrapped()
-#function). For now, let's just avoid the topic entirely. It's all a bit
-#cumbersome and we're rather weary of it.
-
-class LoggerFormatterStream(Formatter):
-    '''
-    Formatter wrapping lines in log messages to the default line length.
-
-    Attributes
-    ----------
-    _text_wrapper : TextWrapper
-        Object with which to wrap log messages, cached for efficiency.
-    '''
-
-    pass
-    # def __init__(self, *args, **kwargs):
-    #     super().__init__(*args, **kwargs)
-    #     self._text_wrapper = TextWrapper(
-    #         drop_whitespace = False,
-    #         replace_whitespace = False,
-    #     )
-
-    # def format(self, log_record: LogRecord) -> str:
-    #     # Avoid circular import dependencies.
-    #     from betse.util.type import strs
-    #
-    #     # Get such message by (in order):
-    #     #
-    #     # * Formatting such message according to our superclass.
-    #     # * Wrapping such formatted message.
-    #     return strs.wrap(
-    #         text = super().format(log_record),
-    #         text_wrapper = self._text_wrapper,
-    #     )
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:

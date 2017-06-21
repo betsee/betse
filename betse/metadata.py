@@ -271,13 +271,9 @@ Basename of the CLI-specific Python script wrapper created by :mod:`setuptools`
 installation.
 '''
 
-# ....................{ METADATA ~ libs : runtime          }....................
-#FIXME: Add a new unit test asserting that, for each dependency listed in the
-#various globals defined below, a corresponding key of the
-#"betse.util.py.modules.SETUPTOOLS_TO_MODULE_NAME" dictionary exists.
-
+# ....................{ METADATA ~ libs                    }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: Changes to this dictionary *MUST* be synchronized with:
+# WARNING: Changes to this subsection *MUST* be synchronized with:
 # * Front-facing documentation (e.g., "doc/md/INSTALL.md").
 # * The "betse.util.type.modules.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
 #   dictionary, converting between the setuptools-specific names listed below
@@ -285,6 +281,7 @@ installation.
 # * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
 # * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 DEPENDENCIES_RUNTIME_MANDATORY = {
     # setuptools is currently required at both install and runtime. At runtime,
     # setuptools is used to validate that dependencies are available.
@@ -317,7 +314,7 @@ mandatory runtime dependency for this application to the suffix of a
 :mod:`setuptools`-specific requirements string constraining this dependency.
 
 To simplify subsequent lookup, these dependencies are contained by a dictionary
-rather than a simple set or sequence such that each dictionary:
+rather than a simple set or sequence such that each:
 
 * Key is the name of a :mod:`setuptools`-specific project identifying this
   dependency, which may have no relation to the name of that project's top-level
@@ -325,13 +322,21 @@ rather than a simple set or sequence such that each dictionary:
   :mod:`yaml`). For human readability in error messages, this name should
   typically be case-sensitively capitalized -- despite being parsed
   case-insensitively by :mod:`setuptools`.
-* Value is a string of the form ``{comparator} {version}``, where:
-
-  * ``{comparator}`` is a comparison operator (e.g., ``>=``, ``!=``).
-  * ``{version}`` is the required version of this project to compare.
+* Value is either:
+  * ``None`` or the empty string, in which case this dependency is unconstrained
+    (i.e., any version of this dependency is sufficient).
+  * A string of the form ``{comparator} {version}``, where:
+    * ``{comparator}`` is a comparison operator (e.g., ``>=``, ``!=``).
+    * ``{version}`` is the required version of this project to compare.
 
 Concatenating each such key and value yields a :mod:`setuptools`-specific
-requirements string of the form ``{project_name} {comparator} {version}``.
+requirements string of the form either ``{project_name}`` or ``{project_name}
+{comparator} {version}``.
+
+Official :mod:`setuptools` documentation suggests the ``install_requires`` and
+``setup_requires`` keys of the ``setup()`` packaging function to accept only
+sequences rather than dictionaries of strings. While undocumented, these keys
+*do* actually accept both sequences and dictionaries of strings.
 
 Caveats
 ----------
@@ -339,11 +344,13 @@ This application requires :mod:`setuptools` at both installation time *and*
 runtime -- in the latter case, to validate all application dependencies at
 runtime. Note that doing so technically only requires the :mod:`pkg_resources`
 package installed with :mod:`setuptools` rather than the :mod:`setuptools`
-package itself.  Since there exists no means of asserting a dependency on only
+package itself. Since there exists no means of asserting a dependency on only
 :mod:`pkg_resources`, however, :mod:`setuptools` is depended upon instead.
 
 See Also
 ----------
+https://setuptools.readthedocs.io/en/latest/setuptools.html#id12
+    Further details on the :mod:`setuptools` string format for dependencies.
 :download:`/doc/md/INSTALL.md`
     Human-readable list of these dependencies.
 '''
@@ -351,15 +358,6 @@ See Also
 
 #FIXME: Should these be dependencies also be added to our "setup.py" metadata,
 #perhaps as so-called "extras"? Contemplate. Consider. Devise.
-
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: Changes to this dictionary *MUST* be synchronized with:
-# * Front-facing documentation (e.g., "doc/md/INSTALL.md").
-# * The "betse.util.type.modules.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
-#   dictionary. See above.
-# * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
-# * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 DEPENDENCIES_RUNTIME_OPTIONAL = {
     # To simplify subsequent lookup at runtime, project names for optional
     # dependencies should be *STRICTLY LOWERCASE*. Since setuptools parses
@@ -395,15 +393,7 @@ See Also
     of strings (e.g., within :download:`/setup.py`).
 '''
 
-# ....................{ METADATA ~ libs : testing          }....................
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# WARNING: Changes to this dictionary *MUST* be synchronized with:
-# * Front-facing documentation (e.g., the top-level "README.rst").
-# * The "betse.util.type.modules.DISTUTILS_PROJECT_NAME_TO_MODULE_NAME"
-#   dictionary. See above.
-# * Gitlab-CI configuration (e.g., the top-level "requirements-conda.txt" file).
-# * Third-party platform-specific packages (e.g., Gentoo Linux ebuilds).
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 DEPENDENCIES_TESTING_MANDATORY = {
     # For simplicity, py.test should remain the only hard dependency for testing
     # on local machines. While our setuptools-driven testing regime optionally

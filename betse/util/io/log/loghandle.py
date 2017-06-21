@@ -24,7 +24,7 @@ from betse.util.io import stderrs
 from logging.handlers import RotatingFileHandler
 
 # ....................{ SUBCLASSES                         }....................
-class SafeRotatingFileHandler(RotatingFileHandler):
+class LogHandlerFileRotateSafe(RotatingFileHandler):
     '''
     Process-safe rotating file handler.
 
@@ -121,8 +121,9 @@ class SafeRotatingFileHandler(RotatingFileHandler):
         analysis concluding with similar deficiencies and lack of solutions.
     '''
 
-    # ..................{ PUBLIC                             }..................
+    # ..................{ EMITTERS                           }..................
     def emit(self, record) -> None:
+
         # Attempt to emit this record to this logfile and conditionally rotate
         # this logfile in the default non-process-safe manner.
         try:
