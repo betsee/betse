@@ -338,7 +338,7 @@ apply external voltage:
     change finish: 1.0    # time [s] at which to cease applying voltage
     change rate: 0.1      # time [s] over which voltage proceeds from background
                           # to peak and from peak to background
-    peak voltage: 0.100   # max voltage [V] applied by this event
+    peak voltage: 1.0e-3   # max voltage [V] applied by this event
 
     positive voltage boundary: top     # env boundary to apply positive voltage
                                        # ("top", "bottom", "left", or "right")
