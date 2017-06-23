@@ -167,7 +167,7 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
 # Else, fallback to unoptimized recursion leveraging dirnames.
 else:
     @type_check
-    def get_mtime_newest(dirname: str) -> NumericTypes:
+    def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
 
         # Log this recursion.
         logs.log_debug(
@@ -206,7 +206,7 @@ else:
 get_mtime_recursive_newest.__doc__ = '''
     Most recent **recursive mtime** (i.e., recursively calculated modification
     time) in seconds of all paths in the set of this directory and all files and
-    subdirectories transitively reachable from this directory *without*
+    subdirectories transitively reachable from this directory *witthout*
     following symbolic links to directories.
 
     Caveats
