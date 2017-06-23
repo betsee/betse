@@ -314,12 +314,12 @@ def get_match_line_if_any(
     text: str, regex: RegexTypes, **kwargs) -> RegexMatchOrNoneTypes:
     '''
     Match object obtained by matching the passed string against the passed
-    regular expression in a line-oriented manner if any such match exists _or_
-    `None` otherwise.
+    regular expression in a line-oriented manner if any such match exists *or*
+    ``None`` otherwise.
 
     To ensure that only single lines are matched, this regular expression should
-    typically be prefixed by the `^` special character and/or suffixed by the
-    `$` special character, thus anchoring matches to the start and/or end of
+    typically be prefixed by the ``^`` special character and/or suffixed by the
+    ``$`` special character, thus anchoring matches to the start and/or end of
     this string as a whole and each line of this string.
 
     Parameters
@@ -338,13 +338,10 @@ def get_match_line_if_any(
     ----------
     For convenience, the following match flags will be enabled by default:
 
-    * `re.DOTALL`, forcing the `.` special character to match any character
-      including newline. By default, this character matches any character
-      excluding newline. The former is almost always preferable, however.
-    * `re.MULTILINE`, forcing the `^` and `$` special characters to match both
-      at the start and end of this string _and_ at the start and end of each
-      line of this string. By default, these characters match only at the
-      former. Line-oriented requires both, however.
+    * :data:`re.MULTILINE`, forcing the ``^`` and ``$`` special characters to
+      match both at the start and end of this string *and* at the start and end
+      of each line of this string. By default, these characters match only at
+      the former. Line-oriented matching requires both, however.
 
     Returns
     ----------
@@ -426,6 +423,15 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     `$` special character, thus anchoring matches to the start and/or end of
     this string as a whole and each line of this string.
 
+    Match Flags
+    ----------
+    For convenience, the following match flags will be enabled by default:
+
+    * :data:`re.MULTILINE`, forcing the ``^`` and ``$`` special characters to
+      match both at the start and end of this string *and* at the start and end
+      of each line of this string. By default, these characters match only at
+      the former. Line-oriented matching requires both, however.
+
     Parameters
     ----------
     text : str
@@ -437,18 +443,6 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
 
     This function accepts the same optional keyword arguments as the
     :func:`re.finditer` function.
-
-    Match Flags
-    ----------
-    For convenience, the following match flags will be enabled by default:
-
-    * :data:`re.DOTALL`, forcing the `.` special character to match any
-      character including newline. By default, this character matches any
-      character excluding newline. The former is almost always preferable.
-    * :data:`re.MULTILINE`, forcing the `^` and `$` special characters to match
-      both at the start and end of this string _and_ at the start and end of
-      each line of this string. By default, these characters match only at the
-      former. Line-oriented requires both, however.
 
     Returns
     ----------
@@ -492,6 +486,7 @@ def remove_substrs(text: str, regex: RegexTypes, **kwargs) -> str:
     return replace_substrs(text=text, regex=regex, replacement='', **kwargs)
 
 # ....................{ REPLACERS                          }....................
+#FIXME: For disambiguity, rename to replace_substrs_nonline().
 @type_check
 def replace_substrs(
     text: str,
@@ -501,7 +496,16 @@ def replace_substrs(
 ) -> str:
     '''
     Passed string with all substrings matching the passed regular expression
-    globally replaced with the passed substitution.
+    globally replaced with the passed substitution in a non-line-oriented
+    manner.
+
+    Match Flags
+    ----------
+    For convenience, the following match flags will be enabled by default:
+
+    * :data:`re.DOTALL`, forcing the ``.`` special character to match any
+      character including newline. By default, this character matches any
+      character excluding newline. The former is almost always preferable.
 
     Parameters
     ----------
@@ -516,8 +520,8 @@ def replace_substrs(
         * String.
         * Callable (e.g., function, lambda, method).
 
-    This function accepts the same optional keyword arguments as
-    :func:`re.sub`.
+    This function accepts the same optional keyword arguments as the
+    :func:`re.sub` function.
 
     Returns
     ----------
@@ -537,15 +541,72 @@ def replace_substrs(
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
 
+
+@type_check
+def replace_substrs_line(
+    text: str,
+    regex: RegexTypes,
+    replacement: CallableOrStrTypes,
+    **kwargs
+) -> str:
+    '''
+    Passed string with all substrings matching the passed regular expression
+    globally replaced with the passed substitution in a line-oriented manner.
+
+    Match Flags
+    ----------
+    For convenience, the following match flags will be enabled by default:
+
+    * :data:`re.MULTILINE`, forcing the ``^`` and ``$`` special characters to
+      match both at the start and end of this string *and* at the start and end
+      of each line of this string. By default, these characters match only at
+      the former. Line-oriented matching requires both, however.
+
+    Parameters
+    ----------
+    text : str
+        String to perform these replacements in.
+    regex : RegexTypes
+        Regular expression to be matched. This object should be either of type:
+        * :class:`str`, signifying an uncompiled regular expression.
+        * :class:`Pattern`, signifying a compiled regular expression object.
+    replacement : CallableOrStrTypes
+        Substitution to be performed, either a:
+        * String.
+        * Callable (e.g., function, lambda, method).
+
+    This function accepts the same optional keyword arguments as the
+    :func:`re.sub` function.
+
+    Returns
+    ----------
+    str
+        Passed string with all substrings matching this regular expression
+        globally replaced with this substitution.
+
+    See Also
+    ----------
+    https://docs.python.org/3/library/re.html#re.sub
+        Further details on regular expressions and keyword arguments.
+    '''
+
+    # Sanitize the passed match flags in a line-oriented manner.
+    _init_kwargs_flags_line(kwargs)
+
+    # Substitute, if you please.
+    return re.sub(regex, replacement, text, **kwargs)
+
 # ....................{ SUBSTITUTERS                       }....................
+#FIXME: For disambiguity, rename to _init_kwargs_flags_nonline().
 @type_check
 def _init_kwargs_flags(kwargs: MappingType) -> None:
     '''
-    Sanitize the list of match flags in the passed dictionary.
+    Sanitize the list of match flags in the passed dictionary for
+    non-line-oriented matching.
 
     Specifically, this function adds the :data:`re.DOTALL` flag to the integer
-    value of the `flags` key of this dictionary (defaulting to zero if currently
-    unset).
+    value of the ``flags`` key of this dictionary (defaulting to zero if
+    currently unset).
     '''
 
     kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL
@@ -557,9 +618,9 @@ def _init_kwargs_flags_line(kwargs: MappingType) -> None:
     Sanitize the list of match flags in the passed dictionary for line-oriented
     matching.
 
-    Specifically, this function adds both the :data:`re.DOTALL` and
-    :data:`re.MULTILINE` flags to the integer value of the `flags` key of this
-    dictionary (defaulting to zero if currently unset).
+    Specifically, this function adds the :data:`re.MULTILINE` flag to the
+    integer value of the ``flags`` key of this dictionary (defaulting to zero if
+    currently unset).
     '''
 
-    kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL | re.MULTILINE
+    kwargs['flags'] = kwargs.get('flags', 0) | re.MULTILINE

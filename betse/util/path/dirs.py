@@ -112,8 +112,8 @@ def get_cwd_dirname() -> str:
 
     return os.getcwd()
 
-# ....................{ GETTERS ~ time                     }....................
-#FIXME: Consider contributing the get_mtime_newest() function as an answer to
+# ....................{ GETTERS ~ mtime : recursive        }....................
+#FIXME: Consider contributing the get_mtime_recursive_newest() function as an answer to
 #the following StackOverflow question:
 #    https://stackoverflow.com/questions/26498285/find-last-update-time-of-a-directory-includes-all-levels-of-sub-folders
 
@@ -122,9 +122,8 @@ def get_cwd_dirname() -> str:
 # currently equivalent to testing if this platform is POSIX-compatible),
 # optimize this recursion by leveraging these handles.
 if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
-
     @type_check
-    def get_mtime_newest(dirname: str) -> NumericTypes:
+    def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
 
         # Log this recursion.
         logs.log_debug(
@@ -143,7 +142,7 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
                 # subdirectories of this subdirectory are implicitly computed
                 # and hence need *NOT* be explicitly included here.
                 #
-                # For parity with the unoptimized get_mtime_newest()
+                # For parity with the unoptimized get_mtime_recursive_newest()
                 # implementation defined below as well to avoid unwanted
                 # complications, symbolic links are *NOT* followed. Hence,
                 # os.lstat() rather than os.stat() is intentionally called.
@@ -204,11 +203,11 @@ else:
         )
 
 # Docstring dynamically set for the getter defined above.
-get_mtime_newest.__doc__ = '''
-    Most recent mtime (i.e., modification time) in seconds of all paths in the
-    set of this directory and all files and subdirectories transitively
-    reachable from this directory *without* following symbolic links to
-    directories.
+get_mtime_recursive_newest.__doc__ = '''
+    Most recent **recursive mtime** (i.e., recursively calculated modification
+    time) in seconds of all paths in the set of this directory and all files and
+    subdirectories transitively reachable from this directory *without*
+    following symbolic links to directories.
 
     Caveats
     -----------

@@ -14,7 +14,7 @@ from betse import pathtree
 #FIXME: This isn't particularly good. Contemplate alternatives, please.
 #Actually, this will probably go away when we refactor to use SimConfigWrapper.
 from betse.science.config.confio import _write_check
-from betse.util.io import iofiles
+from betse.util.path import files
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
 from betse.util.type.types import type_check
@@ -112,28 +112,12 @@ def _write_dir(config_filename: str) -> None:
 def _write_file(config_filename: str) -> None:
     '''
     Write a default YAML simulation configuration file to the passed path,
-    assumed to _not_ already exist.
+    assumed to *not* already exist.
 
     Parameters
     ----------
     config_filename : str
-        Absolute or relative path of the YAML file to be written.
+        Absolute or relative path of the output YAML file to be written.
     '''
 
-    #FIXME: Ideally, we should be using ruamel.yaml to munge YAML data in a
-    #well-structured and hence sane manner rather than the admittedly crude
-    #"sed"-like approach leveraged below. Unfortunately, given the complex
-    #nature of this data, it's unclear whether or not ruamel.yaml would
-    #adequately preserve the entirety of this data in a roundtrip manner. For
-    #now, the "sed"-like approach prevails.
-
-    # Write the default configuration to this file, modifying the latter with
-    # "sed"-like global string substitution as detailed above.
-    iofiles.replace_substrs(
-        filename_source=pathtree.get_sim_config_default_filename(),
-        filename_target=config_filename,
-        replacements=(
-            # Prevent static plots from being displayed by default.
-            (r'^(\s*plot after solving:\s+)True\b(.*)$', r'\1False\2'),
-        ),
-    )
+    files.copy(pathtree.get_sim_config_default_filename(), config_filename)

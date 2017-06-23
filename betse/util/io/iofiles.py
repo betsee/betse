@@ -200,15 +200,36 @@ def reading_chars(filename: str, encoding: str = 'utf-8') -> TextIOWrapper:
 
 # ....................{ WRITERS                            }....................
 @type_check
+def write_str_to_filename(text: str, output_filename: str, **kwargs) -> None:
+    '''
+    Overwrite the plaintext output file with the passed filename with the
+    passed string.
+
+    Parameters
+    ----------
+    text : FileType
+        Contents to be written to this plaintext file.
+    output_filename : str
+        Absolute or relative path of the plaintext file to be overwritten.
+
+    All remaining keyword arguments are passed as is to the
+    :func:`writing_chars` context manager.
+    '''
+
+    with writing_chars(filename=output_filename, **kwargs) as output_file:
+        output_file.write(text)
+
+
+@type_check
 def write_file_to_filename(
     input_file: FileType, output_filename: str, **kwargs) -> None:
     '''
     Overwrite the output file with the passed filename with the contents of the
     passed open readable file-like object.
 
-    To copy the entirety of this input file, the seek position of this object is
-    reset to the first bytes of this file. Callers requiring that this position
-    be preserved should do so manually.
+    To copy the entirety of this input file, the seek position of this file-like
+    object is reset to the first byte of this file. Callers preferring that this
+    position be preserved should do so manually.
 
     Parameters
     ----------

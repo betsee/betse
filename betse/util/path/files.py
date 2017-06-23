@@ -249,7 +249,7 @@ def copy(filename_source: str, filename_target: str) -> None:
     The target file will be copied in a manner maximally preserving metadata
     (e.g., owner, group, permissions, times, extended file system attributes).
     If the target file is a directory, the basename of the source file will be
-    appended to this directory -- much like the standard `cp` POSIX command.
+    appended to this directory -- much like the standard ``cp`` POSIX command.
 
     If either the source file does not exist *or* the target file already
     exists, an exception will be raised.
@@ -260,7 +260,7 @@ def copy(filename_source: str, filename_target: str) -> None:
 
     # Log this copy.
     logs.log_debug(
-        'Copying file "%s" to "%s".', filename_source, filename_target)
+        'Copying file: "%s" -> "%s"', filename_source, filename_target)
 
     # If this source file does *NOT* exist, raise an exception.
     die_unless_file(filename_source)

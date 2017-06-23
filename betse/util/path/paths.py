@@ -75,6 +75,57 @@ def is_path(pathname: str) -> bool:
     # common usage patterns and should *NOT* be discriminated against here.
     return os.path.lexists(pathname)
 
+# ....................{ TESTERS ~ mtime : recursive        }....................
+@type_check
+def is_mtime_recursive_older_than_paths(
+    pathname: str, pathnames: IterableTypes) -> bool:
+    '''
+    ``True`` only if the **recursive mtime** (i.e., recursively calculated
+    modification time) of the passed path is strictly less than that of at
+    least one path in the passed iterable.
+
+    For efficiency, this function short-circuits at the first path in this
+    iterable newer than than this path. Callers are thus recommended to pass an
+    iterable pre-sorted such that:
+
+    * Non-directory files (whose recursive mtime reduces to an efficient
+      constant-time operation) are ordered *before* directories (whose recursive
+      mtime requires performing an inefficient filesystem walk).
+    * Directories expected to contain fewer files and subdirectories are ordered
+      *before* directories expected to contain more files and subdirectories.
+
+    This function is functionally equivalent to (but substantially faster in
+    both the worst and common case than) the following conditional logic:
+
+    .. code:: python
+
+       get_mtime_recursive(pathname) < get_mtime_recursive_newest(pathnames)
+
+    Parameters
+    ----------
+    pathname : str
+        Absolute or relative pathname of the path to be tested.
+    pathnames: IterableTypes[str]
+        Iterable of the absolute or relative pathnames of paths to test this
+        path against.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this path's recursive mtime is strictly less than that
+        of at least one path in this iterable.
+    '''
+
+    # Recursive mtime of this path.
+    path_mtime_recursive = get_mtime_recursive(pathname)
+
+    # Return True only if...
+    return any(
+        # This mtime is less than that of at least one path in this iterable.
+        path_mtime_recursive < get_mtime_recursive(pathname)
+        for pathname in pathnames
+    )
+
 # ....................{ GETTERS                            }....................
 @type_check
 def get_type_label(pathname: str) -> str:
@@ -118,11 +169,12 @@ def get_type_label(pathname: str) -> str:
     raise BetsePathException(
         'Path "{}" type unrecognized.'.format(pathname))
 
-# ....................{ GETTERS ~ time                     }....................
+# ....................{ GETTERS ~ mtime : non-recursive    }....................
 @type_check
-def get_mtime(pathname: str) -> NumericTypes:
+def get_mtime_nonrecursive(pathname: str) -> NumericTypes:
     '''
-    Mtime (i.e., modification time) in seconds of the passed path.
+    **Non-recursive mtime** (i.e., non-recursively retrieved modification time) in
+    in seconds of the passed path.
 
     If this path is:
 
@@ -154,13 +206,14 @@ def get_mtime(pathname: str) -> NumericTypes:
 
     return path.getmtime(pathname)
 
-
+# ....................{ GETTERS ~ mtime : recursive        }....................
 @type_check
-def get_mtime_newest(pathnames: IterableTypes) -> NumericTypes:
+def get_mtime_recursive(pathname: str) -> NumericTypes:
     '''
-    Mtime (i.e., modification time) in seconds of the most recent passed path.
+    **Recursive mtime** (i.e., recursively calculated modification time) in
+    seconds of the passed path.
 
-    For each such path, if this path is:
+    If this path is:
 
     * A directory, this is the most recent time at which the recursive contents
       of this directory were created, modified, or deleted. Since this function
@@ -187,19 +240,42 @@ def get_mtime_newest(pathnames: IterableTypes) -> NumericTypes:
     # Avoid circular import dependencies.
     from betse.util.path import dirs
 
-    # Return the maximum of all mtimes in the...
-    return max(
-        # Generator expression yielding the...
-        (
-            # If this path is a:
-            # * Non-directory file, the mtime of this file.
-            # * Directory, the mtime of the most recent path in this directory.
-            dirs.get_mtime_newest(pathname) if dirs.is_dir(pathname) else
-            get_mtime(pathname)
-            # For each passed pathname.
-            for pathname in pathnames
-        )
+    # Return, if this path is a:
+    return (
+        # * Directory, the mtime of the most recent path in this directory.
+        dirs.get_mtime_recursive_newest(pathname) if dirs.is_dir(pathname) else
+        # * Non-directory file, the mtime of this file as is.
+        get_mtime_nonrecursive(pathname)
     )
+
+
+@type_check
+def get_mtime_recursive_newest(pathnames: IterableTypes) -> NumericTypes:
+    '''
+    **Recursive mtime** (i.e., recursively calculated modification time) in
+    seconds of the most recent passed path.
+
+    Parameters
+    -----------
+    pathnames : IterableTypes[str]
+        Iterable of all relative and absolute paths to be inspected.
+
+    Returns
+    -----------
+    NumericTypes
+        Mtime in seconds of the most recent path as either an integer or float,
+        depending on the boolean returned by the platform-specific
+        :func:`os.stat_float_times` function.
+
+    See Also
+    -----------
+    :func:`get_mtime_recursive`
+        Further details.
+    '''
+
+    # Return the maximum of a generator expression yielding the recursive mtimes
+    # of all passed paths.
+    return max(get_mtime_recursive(pathname) for pathname in pathnames)
 
 # ....................{ MOVERS                             }....................
 @type_check
