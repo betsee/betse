@@ -520,7 +520,7 @@ class Simulator(object):
         if p.sim_ECM:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
-            self.phi_env = np.zeros(self.mdl) # voltage at the external membrane (at the outer edl)
+            # self.phi_env = np.zeros(self.mdl) # voltage at the external membrane (at the outer edl)
             self.v_env = np.zeros(self.edl)   # voltage in the full environment
             self.rho_env = np.zeros(self.edl) # charge in the full environment
 
@@ -775,12 +775,11 @@ class Simulator(object):
         if p.v_sensitive_gj:
             self.gj_funk = Gap_Junction(self, cells, p)
 
+        # Initialize diffusion constants for the extracellular transport:
+        self.initDenv(cells, p)
+
         if p.sim_ECM:
-            #  Initialize diffusion constants for the extracellular transport:
-            self.initDenv(cells,p)
-
             # re-init global boundary fixed concentrations:
-
             for key, val in p.ions_dict.items():
 
                 if val == 1 and key != 'H':
@@ -1781,70 +1780,48 @@ class Simulator(object):
 
         if p.sim_ECM is False:
 
-            # if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
+            if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
-            # change in charge density at the membrane:
-            drho = np.dot(cells.M_sum_mems, -self.Jn*cells.mem_sa)/cells.cell_sa
+                # change in charge density at the membrane:
+                self.vm = self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
 
-            self.vm = self.vm + (1/p.cm)*drho[cells.mem_to_cells]*p.dt
+            else:
 
-            # else:
-            #
-            #     self.vm = (self.vm
-            #                - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from all sources
-            #                - (1 / (self.cgj)) * self.Jgj * p.dt  # current across the membrane from gj
-            #                + (1 / self.cedl_cell) * self.Jc * p.dt  # current in intracellular space, interacting with edl
-            #                # current in extracellular space, interacting with edl
-            #                )
+                drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
 
-                # self.v_cell = (self.v_cell
-                #                -(1/(2*p.cm))*self.Jmem*p.dt
-                #                - (1 / (2*self.cgj))*self.Jgj*p.dt
-                #                + (1/self.cedl_cell)*self.Jc*p.dt)
+                self.vm = (self.vm
+                           - (1/p.cm)*self.Jmem*p.dt
+                           + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt
+                           + (1/p.cm)*self.Jme*p.dt*p.cell_polarizability
+
+                           )
+
 
         else: # if simulating extracellular spaces
 
             if p.cell_polarizability == 0.0: # allow users to have "simple" case behaviour
 
-                drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
                 drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
 
-                self.vm = (self.vm + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt
+                self.vm = (self.vm + (1/p.cm)*self.divJ_cell[cells.mem_to_cells]*p.dt
                           + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt
 
                            )
 
-
-                # self.v_cell = (self.v_cell -
-                #                (1/(2*p.cm))*self.Jmem*p.dt
-                #                - (1/(2*self.cgj))*self.Jgj*p.dt)
-
             else:
 
-
-                # Vmem with double layer interaction modelled (optional with "cell polarizability"):
-                # self.vm = (self.vm
-                #                     # - (1/p.cm)*divJ[cells.mem_to_cells]*p.dt
-                #                     - (1/p.cm)*self.Jmem*p.dt  # current across the membrane from all sources
-                #                     - (1/(self.cgj))*self.Jgj*p.dt  # current across the membrane from gj
-                #                     + (1/self.cedl_cell)*self.Jc*p.dt  # current in intracellular space, interacting with edl
-                #                     +  (1/self.cedl_env)*self.Jme*p.dt # current in extracellular space, interacting with edl
-                #
-                #            )
-
-                drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
+                # drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
                 drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
 
-                self.vm = (self.vm + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt
+                self.vm = (self.vm
+                           # + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt
+                           - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from all sources
                           + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt
+                          # + (1/p.cm)*self.Jc*p.dt*p.cell_polarizability
                           + (1/p.cm)*self.Jme*p.dt*p.cell_polarizability
 
                            )
 
-                # self.v_cell = (self.v_cell -
-                #                (1/(2*p.cm))*self.Jmem*p.dt
-                #                - (1/(2*self.cgj))*self.Jgj*p.dt
-                #                + (1/self.cedl_cell)*self.Jc*p.dt)
 
         # calculate the derivative of Vmem:
         self.dvm = (self.vm - vmo)/p.dt
@@ -1852,24 +1829,12 @@ class Simulator(object):
         # average vm:
         self.vm_ave = np.dot(cells.M_sum_mems, self.vm)/cells.num_mems
 
-        # vcell_ave = np.dot(cells.M_sum_mems, self.v_cell*cells.mem_sa)/cells.cell_sa
-
         # smooth voltages at the membrane:
         self.vm = self.smooth_weight_mem*self.vm + self.vm_ave[cells.mem_to_cells]*self.smooth_weight_o
-
-        # calculate the electric field in the cell, given it must satisfy the Laplace equation (i.e. respect
-        # boundary conditions and be a linear gradient):
-        # self.Ec = -(self.v_cell - vcell_ave[cells.mem_to_cells])/cells.R_rads
-
-        # if p.cell_polarizability == 0.0:
 
         self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1 + 1.0e-6))
         self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1 + 1.0e-6))
 
-        # else:
-        #     # average the field in the cell to a central point:
-        #     self.E_cell_x = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,2]*cells.mem_sa)/cells.cell_sa
-        #     self.E_cell_y = np.dot(cells.M_sum_mems, self.Ec*cells.mem_vects_flat[:,3]*cells.mem_sa)/cells.cell_sa
 
     def acid_handler(self, cells, p) -> None:
         '''
@@ -2139,26 +2104,46 @@ class Simulator(object):
         matrices, including tight and adherin junctions.
         '''
 
-        for i, dmat in enumerate(self.D_env):
+        if p.sim_ECM is True:
 
-            Denv_o = np.ones(self.edl) * self.D_free[i]
+            for i, dmat in enumerate(self.D_env):
+
+                Denv_o = np.ones(self.edl) * self.D_free[i]
+
+                # if p.env_type is True:
+                Denv_o[cells.all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
+                Denv_o[cells.interior_bound_mem_inds] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+                Denv_o[cells.ecm_inds_bound_cell] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+
+                # Denv_o[cells.inds_outmem] = self.D_free[i]
+
+                # Denv_o = gaussian_filter(Denv_o.reshape(cells.X.shape), 1).ravel()
+
+                # create an ecm diffusion grid filled with the environmental values
+                self.D_env[i] = Denv_o*1.0
+
+            # create a matrix that weights the relative transport efficiency in the world space:
+            D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
+            self.D_env_weight = D_env_weight.reshape(cells.X.shape)
+            self.D_env_weight_base = np.copy(self.D_env_weight)
+
+        else:
+
+            Denv_o = np.ones(len(cells.xypts))
 
             # if p.env_type is True:
-            Denv_o[cells.all_bound_mem_inds] = self.D_free[i]*p.D_tj*self.Dtj_rel[i]
-            Denv_o[cells.interior_bound_mem_inds] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
-            Denv_o[cells.ecm_inds_bound_cell] = self.D_free[i] * p.D_tj * self.Dtj_rel[i]
+            Denv_o[cells.all_bound_mem_inds] = p.D_tj
+            Denv_o[cells.interior_bound_mem_inds] = p.D_tj
+            Denv_o[cells.ecm_inds_bound_cell] = p.D_tj
 
-            Denv_o[cells.inds_outmem] = self.D_free[i]
+            Denv_o = gaussian_filter(Denv_o.reshape(cells.X.shape), 1.0)
 
-            # Denv_o = gaussian_filter(Denv_o.reshape(cells.X.shape), 1).ravel()
 
-            # create an ecm diffusion grid filled with the environmental values
-            self.D_env[i] = Denv_o*1.0
+            # create a matrix that weights the relative transport efficiency in the world space:
+            self.D_env_weight = Denv_o.reshape(cells.X.shape)
+            self.D_env_weight_base = np.copy(self.D_env_weight)
 
-        # create a matrix that weights the relative transport efficiency in the world space:
-        D_env_weight = self.D_env[self.iP]/self.D_env[self.iP].max()
-        self.D_env_weight = D_env_weight.reshape(cells.X.shape)
-        self.D_env_weight_base = np.copy(self.D_env_weight)
+
 
     # ..................{ PLOTTERS                           }..................
     def _plot_loop(self, phase: SimPhase) -> tuple:

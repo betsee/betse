@@ -1105,6 +1105,10 @@ internal parameters:
 
   microtubule eosmo: 0.0  # electroosmotic flow term along microtubule (0.0 to 1.0e-9 [m/s])
 
+  microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
+
+  microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
+
 
 
 

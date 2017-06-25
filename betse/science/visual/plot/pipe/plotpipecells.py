@@ -104,7 +104,7 @@ class PlotCellsPipe(PlotPipeABC):
 
     @piperunner(
         categories=('Current Density', 'Extracellular',),
-        requirements={piperunreq.ECM,},
+        # requirements={piperunreq.ECM,},
     )
     def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''

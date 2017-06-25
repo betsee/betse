@@ -9,7 +9,8 @@ flux through cells) functionality.
 
 import numpy as np
 from betse.exceptions import BetseSimInstabilityException
-from betse.science import sim_toolbox as stb
+from betse.util.io.log import logs
+from betse.science.math import modulate as mods
 
 
 class Mtubes(object):
@@ -70,6 +71,59 @@ class Mtubes(object):
 
         self.modulator = np.ones(sim.mdl)  # initialize a modulator structure for the microtubule dynamics
 
+        # Initialize microtubules with mini-simulation to define initial state
+
+        gXo = np.zeros(sim.cdl)
+        gYo = np.zeros(sim.cdl)
+
+        if p.init_mtx != 'None' and p.init_mtx is not None:
+            Ixo, _ = getattr(mods, p.init_mtx)(cells.cell_i, cells, p)
+
+            gXo = -(Ixo / Ixo.max())
+
+            gX = gXo[cells.mem_to_cells]
+
+        else:
+            p.init_mtx = None
+            gX = gXo[cells.mem_to_cells]
+
+        if p.init_mty != 'None' and p.init_mty is not None:
+            Iyo, _ = getattr(mods, p.init_mty)(cells.cell_i, cells, p)
+
+            gYo = -(Iyo / Iyo.max())
+
+            gY = gYo[cells.mem_to_cells]
+
+        else:
+            p.init_mty = None
+            gY = gYo[cells.mem_to_cells]
+
+        if p.init_mtx is not None or p.init_mty is not None:
+
+            logs.log_info("Running initialization sequence for microtubules...")
+
+            for tt in range(0, 300):
+                # cross-product with director
+                Fmt = (self.mtubes_x*gY - self.mtubes_y*gX)/(2*np.pi)
+
+                # calculate rotational flux of microtubule:
+                gc_mtdf = np.dot(cells.gradTheta, self.mtdf)
+
+                flux_theta = Fmt - gc_mtdf*1.0e-8
+                # flux_theta = Fmt
+
+                self.mt_theta +=  flux_theta*0.15
+
+                # recalculate the new cell microtubule density function:
+                mtdx = np.dot(cells.M_sum_mems, self.mtubes_x * cells.mem_sa) / cells.cell_sa
+                mtdy = np.dot(cells.M_sum_mems, self.mtubes_y * cells.mem_sa) / cells.cell_sa
+
+                self.mtdf = (mtdx[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+                        mtdy[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+
+                self.mtubes_x = np.cos(self.mt_theta)
+                self.mtubes_y = np.sin(self.mt_theta)
+
     def reinit(self, cells, p):
 
         # microtubule diffusion constant:
@@ -87,6 +141,7 @@ class Mtubes(object):
         gc_mtdf = np.dot(cells.gradTheta, self.mtdf)
 
         flux_theta = -self.D*gc_mtdf + (self.D/(self.Imit*self.visc))*Et_mit
+        # flux_theta = -self.D*gc_mtdf + ((self.D*p.q)/(p.kb*p.T))*Et_mit
 
         # update the angle of the microtubules:
         self.mt_theta = self.mt_theta + flux_theta*(2 / cells.R_rads)*p.dt*self.modulator

@@ -509,6 +509,8 @@ def gradient_bitmap(pc, cells, p):
 
     f = fe.ravel()[xmap]
 
+    f = f/f.max()
+
 
 
     dynamics = lambda t:1

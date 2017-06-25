@@ -5151,7 +5151,6 @@ class Molecule(object):
         cp = (cav + cmi) / 2  # concentration at midpoint between cell centre and membrane
         cg = (cmi - cav) / cells.R_rads  # concentration gradients
 
-
         # normal component of electric field at membranes:
         En = (sim.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
               sim.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
@@ -5160,41 +5159,17 @@ class Molecule(object):
         umx, umy = sim.mtubes.mtubes_to_cell(cells, p)
         umtn = umx[cells.mem_to_cells]*cells.mem_vects_flat[:, 2] + umy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3]
 
-        # umtn = sim.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + sim.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
+        cfluxo = (-Do * cg + ((Do * p.q * cp * z) / (p.kb * sim.T)) * En + umtn * self.u_mt * cp)
+        # cfluxo = (-Do*cg  + umtn*self.u_mt*cp)
 
-        if p.cell_polarizability != 0.0:
+        # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        cflux = stb.single_cell_div_free(cfluxo, cells)
 
-            cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*sim.T))*En + umtn*self.u_mt*cp)
-            # as no net mass must leave this intracellular movement, make the flux divergence-free:
-            cflux = stb.single_cell_div_free(cfluxo, cells)
+        # calculate the actual concentration at membranes by unpacking to concentration vectors:
+        self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
 
-            # calculate the actual concentration at membranes by unpacking to concentration vectors:
-            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
-
-            # smooth the concentration:
-            self.cc_at_mem = sim.smooth_weight_mem * self.cc_at_mem + sim.smooth_weight_o * cav
-
-
-        # elif p.cell_polarizability == 0.0 and self.u_mt != 0.0:
-        elif p.cell_polarizability == 0.0:
-
-            cfluxo = (-Do * cg + ((Do * p.q * cp * z) / (p.kb * sim.T)) * En + umtn * self.u_mt * cp)
-            # cfluxo = (-Do*cg  + umtn*self.u_mt*cp)
-
-            # as no net mass must leave this intracellular movement, make the flux divergence-free:
-            cflux = stb.single_cell_div_free(cfluxo, cells)
-
-            # calculate the actual concentration at membranes by unpacking to concentration vectors:
-            self.cc_at_mem = cmi + cflux * (cells.mem_sa / cells.mem_vol) * p.dt
-
-            # smooth the concentration:
-            self.cc_at_mem = sim.smooth_weight_mem*self.cc_at_mem + sim.smooth_weight_o*cav
-
-        else:
-            cflux = np.zeros(sim.mdl)
-            self.cc_at_mem = cav*1
-
-
+        # smooth the concentration:
+        self.cc_at_mem = sim.smooth_weight_mem*self.cc_at_mem + sim.smooth_weight_o*cav
 
         # # calculate the divergence so we can update the centre concentration:
         # divJ = np.dot(cells.M_sum_mems, -cflux*cells.mem_sa)/cells.cell_vol

@@ -393,6 +393,16 @@ class Cells(object):
         self.make_maskM(p)
         # self.env_weighting(p)
 
+        logs.log_info('Creating environmental Poisson solver for voltage...')
+        bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
+        self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
+        self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+
+        logs.log_info('Creating environmental Poisson solver for currents...')
+        bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}
+        self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
+        self.lapENV_P = None
+
         if p.sim_ECM is True:
 
             self.sim_ECM = True
@@ -400,10 +410,10 @@ class Cells(object):
             # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
-            logs.log_info('Creating environmental Poisson solver for voltage...')
-            bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
-            self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
-            self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
+            # logs.log_info('Creating environmental Poisson solver for voltage...')
+            # bdic = {'N': 'value', 'S': 'value', 'E': 'value', 'W': 'value'}
+            # self.lapENV, self.lapENVinv = self.grid_obj.makeLaplacian(bound=bdic)
+            # self.lapENV = None  # get rid of the non-inverse matrix as it only hogs memory...
 
             # logs.log_info('Creating environmental Poisson solver for currents...')
             # bdic = {'N': 'flux', 'S': 'flux', 'E': 'flux', 'W': 'flux'}

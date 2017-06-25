@@ -870,6 +870,9 @@ class Parameters(object):
 
         self.D_mtube = float(iu.get('microtubule diffusion', 1.0e-12))
 
+        self.init_mtx = iu.get('microtubule initial x component', None)
+        self.init_mty = iu.get('microtubule initial y component', None)
+
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':
 

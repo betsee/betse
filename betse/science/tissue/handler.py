@@ -678,9 +678,9 @@ class TissueHandler(object):
                 self.scalar_P*self.dyna_P(t)*self.rate_P*tb.pulse(
                     t,self.t_onP, self.t_offP, self.t_changeP))
 
-        if p.sim_ECM is True:
+        if p.scheduled_options['ecmJ'] != 0:
 
-            if p.scheduled_options['ecmJ'] != 0:
+            if p.sim_ECM is True:
                 for i, dmat in enumerate(sim.D_env):
 
                     effector_ecmJ = self.mult_ecmJ*tb.pulse(
@@ -700,33 +700,22 @@ class TissueHandler(object):
                     sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
                     sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
-                # for i, dmat in enumerate(sim.D_env):
-                #     if p.env_type is True:
-                #         sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = sim.D_free[i])
-                #         sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value=sim.D_free[i])
-                #
-                #     else:
-                #         sim.D_env_u[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                #             (cells.grid_obj.u_X,cells.grid_obj.u_Y),method='nearest',fill_value = 0)
-                #
-                #         sim.D_env_v[i] = interp.griddata((cells.xypts[:,0],cells.xypts[:,1]),dmat.ravel(),
-                #             (cells.grid_obj.v_X,cells.grid_obj.v_Y),method='nearest',fill_value = 0)
-                #
-                # sim.D_env_weight_u = sim.D_env_u[sim.iP]/sim.D_env_u[sim.iP].max()
-                # sim.D_env_weight_v = sim.D_env_v[sim.iP]/sim.D_env_v[sim.iP].max()
+            else:
 
-                # if p.closed_bound is True:  # set full no slip boundary condition at exterior bounds
-                #     sim.D_env_weight_u[:,0] = 0
-                #     sim.D_env_weight_u[:,-1] = 0
-                #     sim.D_env_weight_u[0,:] = 0
-                #     sim.D_env_weight_u[-1,:] = 0
-                #
-                #     sim.D_env_weight_v[:,0] = 0
-                #     sim.D_env_weight_v[:,-1] = 0
-                #     sim.D_env_weight_v[0,:] = 0
-                #     sim.D_env_weight_v[-1,:] = 0
+                effector_ecmJ = self.mult_ecmJ * tb.pulse(
+                    t, self.t_on_ecmJ, self.t_off_ecmJ, self.t_change_ecmJ)
+
+                sim.D_env_weight = sim.D_env_weight.ravel()
+                sim.D_env_weight_base = sim.D_env_weight_base.ravel()
+
+                sim.D_env_weight[self.targets_ecmJ] = \
+                    sim.D_env_weight_base[self.targets_ecmJ] * (1 - effector_ecmJ) + \
+                    effector_ecmJ
+
+                sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
+                sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
+
+
 
         soc = p.scheduled_options['cuts']
         if soc is not None and not soc._is_fired and t >= soc.time:
@@ -1273,43 +1262,43 @@ class TissueHandler(object):
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
-        if p.sim_ECM is True:
+        # if p.sim_ECM is True:
 
-            # if desire for cut away space to lack tight junctions, remove new bflags from set:
-            new_bcells = np.copy(cells.bflags_cells)
-            new_bmems = np.copy(cells.bflags_mems)
+        # if desire for cut away space to lack tight junctions, remove new bflags from set:
+        new_bcells = np.copy(cells.bflags_cells)
+        new_bmems = np.copy(cells.bflags_mems)
 
-            searchTree = sps.KDTree(cells.cell_centres)
-            original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
-            cells.bflags_cells = original_pt_inds
+        searchTree = sps.KDTree(cells.cell_centres)
+        original_pt_inds = list(searchTree.query(old_bflag_cellxy))[1]
+        cells.bflags_cells = original_pt_inds
 
-            searchTree_m = sps.KDTree(cells.mem_mids_flat)
-            original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
-            cells.bflags_mems = original_pt_inds_m
+        searchTree_m = sps.KDTree(cells.mem_mids_flat)
+        original_pt_inds_m = list(searchTree_m.query(old_bflag_memxy))[1]
+        cells.bflags_mems = original_pt_inds_m
 
-            # calculate indices to tag TJ at boundary in terms of original boundary flags
-            neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
-            all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
-            interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
-            interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
-            all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
+        # calculate indices to tag TJ at boundary in terms of original boundary flags
+        neigh_to_bcells, _, _ = tb.flatten(cells.cell_nn[cells.bflags_cells])
+        all_bound_mem_inds_o = cells.cell_to_mems[cells.bflags_cells]
+        interior_bound_mem_inds_o = cells.cell_to_mems[neigh_to_bcells]
+        interior_bound_mem_inds_o, _, _ = tb.flatten(interior_bound_mem_inds_o)
+        all_bound_mem_inds_o, _, _ = tb.flatten(all_bound_mem_inds_o)
 
-            cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
-            cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
-            cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
-            cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
+        cells.all_bound_mem_inds = cells.map_mem2ecm[all_bound_mem_inds_o]
+        cells.interior_bound_mem_inds = cells.map_mem2ecm[interior_bound_mem_inds_o]
+        cells.inds_outmem = cells.map_mem2ecm[cells.bflags_mems]
+        cells.ecm_inds_bound_cell = cells.map_cell2ecm[cells.bflags_cells]
 
 
-            # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
+        # if hole_tag is False: # if we're not defining a hole at the beginning, reassign to new bflags
 
-            sim.initDenv(cells,p)
+        sim.initDenv(cells,p)
 
-            # re-assign the boundary flags to the new configuration:
-            cells.bflags_cells = new_bcells
-            cells.bflags_mems = new_bmems
+        # re-assign the boundary flags to the new configuration:
+        cells.bflags_cells = new_bcells
+        cells.bflags_mems = new_bmems
 
-            sim.conc_J_x = np.zeros(len(cells.xypts))
-            sim.conc_J_y = np.zeros(len(cells.xypts))
+        sim.conc_J_x = np.zeros(len(cells.xypts))
+        sim.conc_J_y = np.zeros(len(cells.xypts))
 
         if p.fluid_flow is True or p.deformation is True:
             # make a laplacian and solver for discrete transfers on closed, irregular cell network:
