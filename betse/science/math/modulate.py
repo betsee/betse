@@ -464,16 +464,27 @@ def double_xr(pc, cells,p):
 
 def gradient_bitmap(pc, cells, p):
 
+    """
+    This modulator reads in a bitmap supplied by the user from the
+    directory in params.
+
+    Red is treated as positive, blue is treated as negative, and
+    black is treated as zero.
+
+    Parameters
+    ------------
+
+    pc:   array of cell centre or membrane midpoints
+    cells:  BETSE cells object
+    p:      BETSE parameters object
+
+    """
+
     if len(pc) == len(cells.mem_i):
         xmap = cells.map_mem2ecm
-        # xx = cells.mem_mids_flat[:,0]
-        # yy = cells.mem_mids_flat[:,1]
-
 
     elif len(pc) == len(cells.cell_i):
         xmap = cells.map_cell2ecm
-        # xx = cells.cell_centres[:,0]
-        # yy = cells.cell_centres[:,1]
 
     xmi = cells.xmin - 4*p.rc
     ymi = cells.ymin - 4*p.rc
@@ -490,7 +501,7 @@ def gradient_bitmap(pc, cells, p):
 
     a1 = imread(fn1, mode='RGB')
 
-    a1_F = ((a1[:, :, 0] - 255) / 255)
+    a1_F = ((a1[:, :, 0] - 255) / 255) - ((a1[:, :, 2] - 255) / 255)
 
     a1_F = np.flipud(a1_F)
 
