@@ -102,10 +102,7 @@ class PlotCellsPipe(PlotPipeABC):
         self._export(basename='Final_Current_gj')
 
 
-    @piperunner(
-        categories=('Current Density', 'Extracellular',),
-        # requirements={piperunreq.ECM,},
-    )
+    @piperunner(categories=('Current Density', 'Extracellular',))
     def export_currents_extra(self, conf: SimConfVisualCellsListItem) -> None:
         '''
         Plot all extracellular current densities for the cell cluster

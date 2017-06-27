@@ -36,22 +36,6 @@ class LayerCellsVectorSmoothGrids(LayerCellsVectorColorfulABC):
         self._surface_image = None
 
     # ..................{ SUPERCLASS                         }..................
-    # def prep(self, *args, **kwargs):
-    #     super().prep(*args, **kwargs)
-    #     import numpy as np
-    #     _current_density_x_time_series = 100*np.asarray(self._phase.sim.I_tot_x_time)
-    #     _current_density_y_time_series = 100*np.asarray(self._phase.sim.I_tot_y_time)
-    #
-    #     # Time series of all current density magnitudes (i.e., `Jmag_M`),
-    #     # multiplying by 100 to obtain current density in units of uA/cm2.
-    #     self._current_density_magnitude_time_series = np.sqrt(
-    #         np.asarray(_current_density_x_time_series) ** 2 +
-    #         np.asarray(_current_density_y_time_series) ** 2) + 1e-15
-    #
-    #     print('good[-1][0]: {}'.format(self._current_density_magnitude_time_series[-1][0]))
-    #     print('badd[-1][0]: {}'.format(self._vector.times_grids_centre[-1][0]))
-
-
     @property
     def color_data(self) -> SequenceOrNoneTypes:
         return self._vector.times_grids_centre

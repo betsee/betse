@@ -94,22 +94,38 @@ class Simulator(object):
 
     Attributes (Current Density: Extracellular)
     ----------
-    I_tot_x_time : list
-        Two-dimensional list of the X components of all extracellular current
-        densities, whose:
-        * First dimension indexes each sampled time step.
-        * Second dimension indexes each square environmental grid space (in
+    J_env_x : ndarray
+        One-dimensional Numpy array of the X components of all extracellular
+        current densities for the current time step, whose:
+        * Only dimension indexes each square environmental grid space (in
           either dimension) such that each element is the X component of the
           extracellular current density vector spatially situated at the centre
           of that space for this time step.
-    I_tot_y_time : list
-        Two-dimensional list of the Y components of all extracellular current
-        densities, whose:
-        * First dimension indexes each sampled time step.
-        * Second dimension indexes each square environmental grid space (in
+    J_env_y : ndarray
+        One-dimensional Numpy array of the Y components of all extracellular
+        current densities for the current time step, whose:
+        * Only dimension indexes each square environmental grid space (in
           either dimension) such that each element is the Y component of the
           extracellular current density vector spatially situated at the centre
           of that space for this time step.
+    I_tot_x_time : list
+        Two-dimensional list of the X components of all extracellular current
+        densities over all time steps, whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension yields a one-dimensional Numpy array of the X
+          components of all extracellular current densities for this time step,
+          defined as for the corresponding :attr:`J_env_x` array.
+        Equivalently, this list is the concatenation of all :attr:`J_env_x`
+        arrays for all sampled time steps.
+    I_tot_y_time : list
+        Two-dimensional list of the Y components of all extracellular current
+        densities over all time steps, whose:
+        * First dimension indexes each sampled time step.
+        * Second dimension yields a one-dimensional Numpy array of the Y
+          components of all extracellular current densities for this time step,
+          defined as for the corresponding :attr:`J_env_y` array.
+        Equivalently, this list is the concatenation of all :attr:`J_env_y`
+        arrays for all sampled time steps.
 
     Attributes (Current Density: Intracellular)
     ----------
@@ -197,7 +213,7 @@ class Simulator(object):
           grid space corresponding to the current row and column.
     efield_ecm_x_time : list
         Three-dimensional list of the X components of the extracellular
-        electric fields for all time steps, whose:
+        electric fields over all time steps, whose:
         * First dimension indexes each sampled time step.
         * Second dimension yields a two-dimensional Numpy array of the X
           components of the extracellular electric field for this time step,
@@ -206,7 +222,7 @@ class Simulator(object):
         arrays for all sampled time steps.
     efield_ecm_y_time : list
         Three-dimensional list of the Y components of the extracellular
-        electric fields for all time steps, whose:
+        electric fields over all time steps, whose:
         * First dimension indexes each sampled time step.
         * Second dimension yields a two-dimensional Numpy array of the Y
           components of the extracellular electric field for this time step,

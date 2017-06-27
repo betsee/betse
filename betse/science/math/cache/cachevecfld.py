@@ -55,17 +55,9 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
 
         For readability of units in exported visuals (e.g., plots), this cache
         additionally upscales these densities to units of uA/cm^2.
-
-        Raises
-        ----------
-        BetseSimConfigException
-            If this simulation has disabled extracellular spaces.
         '''
 
-        # If extracellular spaces are disabled, raise an exception.
-        self._phase.p.die_unless_ecm()
-
-        # Create and return this field.
+        # Create, return, and cache this field.
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,
@@ -140,7 +132,7 @@ class SimPhaseCacheVectorFieldCells(SimPhaseCacheABC):
         # If extracellular spaces are disabled, raise an exception.
         self._phase.p.die_unless_ecm()
 
-        # Create and return this field.
+        # Create, return, and cache this field.
         return VectorFieldCellsCache(
             x=VectorCellsCache(
                 phase=self._phase,

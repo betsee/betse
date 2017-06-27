@@ -11,6 +11,7 @@ import numpy as np
 from betse.exceptions import BetseSimVectorException
 from betse.lib.numpy import arrays
 from betse.science.math.cache.cacheabc import SimPhaseCacheABC
+from betse.util.type import sequences
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableOrNoneTypes
 from numpy import ndarray
@@ -108,6 +109,10 @@ class VectorCellsCache(SimPhaseCacheABC):
             If exactly one of the ``times_cells_centre``,
             ``times_grids_centre``, and ``times_membranes_midpoint`` parameters
             is *not* passed.
+        BetseSequenceException
+            If any of the ``times_cells_centre``, ``times_grids_centre``, and
+            ``times_membranes_midpoint`` parameters that are passed are empty
+            (i.e., sequences of length 0).
         '''
 
         # Initialize our superclass.
@@ -123,14 +128,24 @@ class VectorCellsCache(SimPhaseCacheABC):
                 'Parameters "times_cells_centre", "times_grids_centre", and '
                 '"times_membranes_midpoint" not passed.')
 
-        # Convert each passed iterable into a Numpy array for efficiency.
+        # Convert each passed iterable into a Numpy array for efficiency,
+        # raising an exception if any such iterable is empty.
         if times_cells_centre is not None:
             times_cells_centre = arrays.from_iterable(times_cells_centre)
+            sequences.die_if_empty(
+                times_cells_centre,
+                label='Parameter "times_cells_centre"')
         if times_grids_centre is not None:
             times_grids_centre = arrays.from_iterable(times_grids_centre)
+            sequences.die_if_empty(
+                times_grids_centre,
+                label='Parameter "times_grids_centre"')
         if times_membranes_midpoint is not None:
             times_membranes_midpoint = arrays.from_iterable(
                 times_membranes_midpoint)
+            sequences.die_if_empty(
+                times_membranes_midpoint,
+                label='Parameter "times_membranes_midpoint"')
 
         # Classify all passed parameters.
         self._times_cells_centre = times_cells_centre

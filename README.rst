@@ -29,15 +29,15 @@ stress-tested <testing_>`__ with GitLab-CI_ **×** Appveyor_ **+** py.test_, and
 BETSEE
 ======
 
-BETSEE_ (\ **BETSE E**\ nvironment) is an external graphical user interface
-(GUI) wrapping the command-line interface (CLI) bundled with BETSE. BETSEE_
-provides an interactive modelling environment simplifying the creation,
-configuration, running, and management of BETSE simulations. New users are
-strongly encouraged to install both BETSE and BETSEE_.
+BETSEE_ (\ **BETSE E**\ nvironment) is the official open-source cross-platform
+graphical user interface (GUI) for BETSE. BETSEE_ wraps the low-level
+command-line interface (CLI) bundled with BETSE in a high-level interactive
+modelling environment optimized for both new and advanced users alike.
 
 Like BETSE, BETSEE_ is `portably implemented <BETSEE codebase_>`__ in `Python
-3`_ via the official PySide2_-based `Qt 5 <Qt_>`_ bindings and `permissively
-distributed <License_>`__ under the `BSD 2-clause license`_.
+3`_ and `permissively distributed <License_>`__ under the `BSD 2-clause
+license`_. Unlike BETSE, BETSEE_ leverages the industry-standard PySide2_-based
+`Qt 5 <Qt_>`_ application framework to deliver a modern scientific workflow.
 
 .. # ------------------( TABLE OF CONTENTS                  )------------------
 .. # Blank line. By default, Docutils appears to only separate the subsequent
