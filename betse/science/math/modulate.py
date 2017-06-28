@@ -513,8 +513,8 @@ def gradient_bitmap(pc, cells, p):
     spline_F = interpolate.interp2d(xa, ya, a1_F, kind='linear', fill_value=0.0)
     fe = spline_F(xx, yy)
 
-    indz = (fe < 0.0).nonzero()
-    fe[indz] = 0.0
+    # indz = (fe < 0.0).nonzero()
+    # fe[indz] = 0.0
 
     # fe = gaussian_filter(fe, 2)
 
