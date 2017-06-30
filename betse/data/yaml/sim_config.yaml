@@ -769,6 +769,18 @@ variable settings:
   adherens junction scaling: 1.0   # factor by which cell-cell junctions scale
                                    # free-diffusion
 
+  microtubules:
+
+    use microtubules: False      # compute microtubule dynamics?
+    tubulin unit charge: -20.0   # charge of tubulin molecule in electron charge units
+    tubulin unit dipole: 1750   # Dipole of tubulin molecule in Debye units
+    cytoplasm viscocity: 1.0e-2  # Viscocity of the cytoplasm in Pa s
+    microtubule diffusion: 1.0e-12   # thermal noise (homogenizing) influence on microtubule orientation
+    microtubules orient parallel: True    # Do microtubules orient parallel to the field (True) or perpendicular (False)
+    microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
+    microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
+
+
   use Goldman calculator: True   # calculate alternative Vmem with Goldman-Hodgkin-Katz (GHK) 
                                  # voltage equation for comparison purposes?
 
@@ -1099,19 +1111,7 @@ internal parameters:
 
   cell polarizability: 0.0  # constant defining rate of cell polarizability change in electric fields (0.0 to 1.0e-3)
 
-  cytoplasm viscocity: 1.0 # viscocity of the cytoplasm [Pa.s]
-
-  microtubule diffusion: 1.0e-12  # effective diffusion coefficient of microtubule (mobility) [m2/s]
-
-  microtubule eosmo: 0.0  # electroosmotic flow term along microtubule (0.0 to 1.0e-9 [m/s])
-
-  microtubule initial x asymmetry: None # initial asymmetry of microtubules 'x' component
-
-  microtubule initial y asymmetry: None # initial asymmetry of microtubules 'y' component
-
-
-
 
 # Configuration file version that this file conforms to. For reliable
 # comparability, this is stored as a string rather than float scalar.
-version: "0.4.0"
+version: "0.5.0"

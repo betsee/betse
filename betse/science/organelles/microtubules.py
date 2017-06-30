@@ -42,15 +42,18 @@ class Mtubes(object):
 
         # basic parameters for microtubule units:
         tubulin_mass = 1.66e-27 * 1e3 * 100    # kg (assumes tubulin mass of ~ 50 kDa)
-        tubulin_length = 4.5e-9                # m
+        self.tubulin_length = 4.5e-9                # in meters
+
+        self.rmt = 12.0e-9 # radius of a microtubule
+
+        self.tubulin_N = (cells.R.mean()/self.tubulin_length) # total number of tubulin molecules
+
+        self.charge_mtube = self.tubulin_N * p.tubulin_charge * p.q  # charge on the microtubule
 
         self.visc = p.cytoplasm_viscocity   # viscocity of cytoplasm
 
-        # microtubule moment of inertia :
-        self.Imit = (tubulin_mass * (cells.R.mean() / tubulin_length)) * (cells.R.mean()) ** 2
-
         # microtubule dipole moment [C m] (assumed to be sum of tubulin dimer dipole moments, which are 1740 D each):
-        self.pmit = (cells.R.mean()/tubulin_length)*1740*3.33e-30
+        self.p_mtube = self.tubulin_N * p.tubulin_dipole * 3.33e-30
 
         # microtubule diffusion constant:
         self.D = p.D_mtube
@@ -126,25 +129,47 @@ class Mtubes(object):
 
     def reinit(self, cells, p):
 
+        """
+        Reinitialize key microtubule parameters that may have changed in config file since init.
+
+        """
+
         # microtubule diffusion constant:
         self.D = p.D_mtube
-
         self.visc = p.cytoplasm_viscocity  # viscocity of cytoplasm
+        self.charge_mtube = self.tubulin_N*p.tubulin_charge*p.q  # charge on the microtubule
+        # microtubule dipole moment [C m] (assumed to be sum of tubulin dimer dipole moments, which are 1740 D each):
+        self.p_mtube = self.tubulin_N * p.tubulin_dipole * 3.33e-30
 
     def update_mtubes(self, cells, sim, p):
 
-        # tangential component of electric field with present microtubule orientation:
-        Et_mit = (self.pmit*np.cos(self.mt_theta)*sim.E_cell_y[cells.mem_to_cells] -
-                  self.pmit*np.sin(self.mt_theta)*sim.E_cell_x[cells.mem_to_cells])
+        # Force on microtubule due to net charge:
+        Fqx = self.charge_mtube*sim.E_cell_x[cells.mem_to_cells]
+        Fqy = self.charge_mtube*sim.E_cell_y[cells.mem_to_cells]
+
+        # Torque on microtubule due to net charge 'q':
+        if p.microtubules_orient_parallel is True:
+
+            Tq = (self.mtubes_x*Fqy - self.mtubes_y*Fqx)*cells.R_rads
+
+        else:
+            Tq = (self.mtubes_x*Fqx + self.mtubes_y*Fqy)*cells.R_rads
+
+        # Torque on microtubule due to dipole component 'p':
+        Tp = (self.p_mtube*self.mtubes_x*sim.E_cell_y[cells.mem_to_cells] -
+                  self.p_mtube*self.mtubes_y*sim.E_cell_x[cells.mem_to_cells])
+
+        # Drag force torque on microtubule:
+        alpha_drag = (p.kb*p.T)
 
         # calculate rotational flux of microtubule:
         gc_mtdf = np.dot(cells.gradTheta, self.mtdf)
 
-        flux_theta = -self.D*gc_mtdf + (self.D/(self.Imit*self.visc))*Et_mit
-        # flux_theta = -self.D*gc_mtdf + ((self.D*p.q)/(p.kb*p.T))*Et_mit
+        # angular velocity flux of microtubule:
+        flux_theta = -(self.D*gc_mtdf)/(cells.R_rads) + ((Tq + Tp)/alpha_drag)
+        # flux_theta = ((Tq + Tp)/alpha_drag)
 
-        # update the angle of the microtubules:
-        self.mt_theta = self.mt_theta + flux_theta*(2 / cells.R_rads)*p.dt*self.modulator
+        self.mt_theta = self.mt_theta + flux_theta*p.dt*self.modulator
 
         # update the microtubule coordinates with the new angle:
         self.mtubes_x = np.cos(self.mt_theta)

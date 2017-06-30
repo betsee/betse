@@ -1307,7 +1307,9 @@ class Simulator(object):
             #     self.acid_handler(cells, p)
 
             # update the microtubules:------------------------------------------------------------------------------
-            self.mtubes.update_mtubes(cells, self, p)
+
+            if p.use_microtubules:
+                self.mtubes.update_mtubes(cells, self, p)
 
             # update the general molecules handler-----------------------------------------------------------------
             if p.molecules_enabled:
@@ -1600,9 +1602,6 @@ class Simulator(object):
 
         self.vm_time.append(self.vm[:])
 
-        # vm_ave = np.dot(cells.M_sum_mems,self.vm)/cells.num_mems
-        # self.vm_ave_time.append(vm_ave)
-
         self.rho_cells_time.append(self.rho_cells[:])
         self.rate_NaKATP_time.append(self.rate_NaKATP[:])
         self.P_cells_time.append(self.P_cells)
@@ -1647,18 +1646,12 @@ class Simulator(object):
         if p.Ca_dyn == 1 and p.ions_dict['Ca'] == 1:
             self.endo_retic.write_cache(self)
 
+        self.I_tot_x_time.append(self.J_env_x[:])
+        self.I_tot_y_time.append(self.J_env_y[:])
+
         if p.sim_ECM:
             self.efield_ecm_x_time.append(self.E_env_x[:])
             self.efield_ecm_y_time.append(self.E_env_y[:])
-
-            self.I_tot_x_time.append(self.J_env_x[:])
-            self.I_tot_y_time.append(self.J_env_y[:])
-
-            # if p.smooth_level == 0.0:
-            #     vv = self.v_env.reshape(cells.X.shape)
-            #     vvenv = gaussian_filter(vv, 1.0, mode = 'constant').ravel()
-            # else:
-            #     vvenv = self.v_env*1
 
             self.venv_time.append(self.v_env*1)
 
@@ -1803,10 +1796,12 @@ class Simulator(object):
 
             else:
 
+                drho_mem = np.dot(cells.M_sum_mems, -self.Jmem * cells.mem_sa) / cells.cell_sa
                 drho_gj = np.dot(cells.M_sum_mems, -self.Jgj * cells.mem_sa) / cells.cell_sa
 
                 self.vm = (self.vm
-                           - (1/p.cm)*self.Jmem*p.dt
+                           +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
+                           # - (1/p.cm)*self.Jmem*p.dt
                            + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt
                            + (1/p.cm)*self.Jme*p.dt*p.cell_polarizability
 
@@ -1826,14 +1821,13 @@ class Simulator(object):
 
             else:
 
-                # drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
+                drho_mem = np.dot(cells.M_sum_mems, -self.Jmem*cells.mem_sa)/cells.cell_sa
                 drho_gj = np.dot(cells.M_sum_mems, -self.Jgj*cells.mem_sa) / cells.cell_sa
 
                 self.vm = (self.vm
-                           # + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt
-                           - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from all sources
-                          + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt
-                          # + (1/p.cm)*self.Jc*p.dt*p.cell_polarizability
+                           + (1/p.cm)*drho_mem[cells.mem_to_cells]*p.dt # current across the membrane from pumps/channels
+                           # - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from pumps/channels
+                          + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt # current from GJ
                           + (1/p.cm)*self.Jme*p.dt*p.cell_polarizability
 
                            )
@@ -1848,8 +1842,8 @@ class Simulator(object):
         # smooth voltages at the membrane:
         self.vm = self.smooth_weight_mem*self.vm + self.vm_ave[cells.mem_to_cells]*self.smooth_weight_o
 
-        self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1 + 1.0e-6))
-        self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1 + 1.0e-6))
+        self.E_cell_x = self.J_cell_x*(1/(self.sigma + 1.0e-6))
+        self.E_cell_y = self.J_cell_y*(1/(self.sigma + 1.0e-6))
 
 
     def acid_handler(self, cells, p) -> None:
@@ -2021,60 +2015,63 @@ class Simulator(object):
 
     def update_intra(self, cells, p, i):
 
+        # With the new method of calculating cell polarization in terms of Maxwell's current equation, we don't
+        # need to do this as it's intrinsically handled.
+
         # print(self.cc_cells[self.iNa].mean())
 
         cav = self.cc_cells[i][cells.mem_to_cells]  # concentration at cell centre
         cmi = self.cc_at_mem[i]  # concentration at membrane
-        z = self.zs[i]    # charge of ion
-        Do = 0.1*self.D_free[i]  # diffusion constant of ion, assuming diffusion in cytoplasm is 10x slower than free
-
-        cp = (cav + cmi)/2   # concentration at midpoint between cell centre and membrane
-        cg = (cmi - cav)/cells.R_rads  # concentration gradients
-
-        # normal component of electric field at membranes:
-        En = (self.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
-              self.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
+        # z = self.zs[i]    # charge of ion
+        # Do = 0.1*self.D_free[i]  # diffusion constant of ion, assuming diffusion in cytoplasm is 10x slower than free
+        #
+        # cp = (cav + cmi)/2   # concentration at midpoint between cell centre and membrane
+        # cg = (cmi - cav)/cells.R_rads  # concentration gradients
+        #
+        # # normal component of electric field at membranes:
+        # En = (self.E_cell_x[cells.mem_to_cells] * cells.mem_vects_flat[:, 2] +
+        #       self.E_cell_y[cells.mem_to_cells] * cells.mem_vects_flat[:, 3])
 
         # calculate normal component of microtubules at membrane:
         # umtn = self.mtubes.mtubes_x*cells.mem_vects_flat[:, 2] + self.mtubes.mtubes_y*cells.mem_vects_flat[:, 3]
 
 
-        if p.cell_polarizability != 0.0:
+        # if p.cell_polarizability != 0.0:
+        #
+        #     # cflux = np.zeros(self.mdl)
+        #     # self.cc_at_mem[i] = cav*1
+        #
+        #     cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*En)*p.cell_polarizability
+        #
+        #     # as no net mass must leave this intracellular movement, make the flux divergence-free:
+        #     cflux = stb.single_cell_div_free(cfluxo, cells)
+        #
+        #     # update the concentration at membranes:
+        #     # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes
+        #     self.cc_at_mem[i] = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
+        #
+        #     # smooth the concentration:
+        #     self.cc_at_mem[i] = self.smooth_weight_mem*self.cc_at_mem[i] + cav*self.smooth_weight_o
+        #
+        # elif p.cell_polarizability == 0.0:
 
             # cflux = np.zeros(self.mdl)
             # self.cc_at_mem[i] = cav*1
 
-            cfluxo = (-Do*cg + ((Do*p.q*cp*z)/(p.kb*self.T))*En)*p.cell_polarizability
-
-            # as no net mass must leave this intracellular movement, make the flux divergence-free:
-            cflux = stb.single_cell_div_free(cfluxo, cells)
-
-            # update the concentration at membranes:
-            # flux is positive as the field is internal to the cell, working in the opposite direction to transmem fluxes
-            self.cc_at_mem[i] = cmi + cflux*(cells.mem_sa/cells.mem_vol)*p.dt
-
-            # smooth the concentration:
-            self.cc_at_mem[i] = self.smooth_weight_mem*self.cc_at_mem[i] + cav*self.smooth_weight_o
-
-        elif p.cell_polarizability == 0.0:
-
-            cflux = np.zeros(self.mdl)
-            self.cc_at_mem[i] = cav*1
-
 
         # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
-        indsZ = (self.cc_at_mem[i] < 0.0).nonzero()
-
-        if len(indsZ[0]):
-
-            raise BetseSimInstabilityException("Ion concentration value on membrane below zero! Your simulation has"
-                                               " become unstable.")
-
-        # update the main matrices:
-        self.fluxes_intra[i] = cflux * 1
+        # indsZ = (self.cc_at_mem[i] < 0.0).nonzero()
+        #
+        # if len(indsZ[0]):
+        #
+        #     raise BetseSimInstabilityException("Ion concentration value on membrane below zero! Your simulation has"
+        #                                        " become unstable.")
+        #
+        # # update the main matrices:
+        # self.fluxes_intra[i] = cflux * 1
 
         # uncomment this to skip the above computational loop ---------------
-        # self.cc_at_mem[i] = cav*1
+        self.cc_at_mem[i] = cav*1
 
     def get_rho_mem(self, cells, p):
 
@@ -2158,6 +2155,11 @@ class Simulator(object):
             # create a matrix that weights the relative transport efficiency in the world space:
             self.D_env_weight = Denv_o.reshape(cells.X.shape)
             self.D_env_weight_base = np.copy(self.D_env_weight)
+
+        self.Chi = np.ones(len(cells.xypts)) * p.er  # electrical susceptibility of pure water
+        # self.Chi[cells.envInds_inClust] = 2.0e5  # electrical susceptibility of tissue
+
+        self.Chi = gaussian_filter(self.Chi.reshape(cells.X.shape), 2)
 
 
 

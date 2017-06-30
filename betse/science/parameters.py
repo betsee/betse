@@ -609,6 +609,40 @@ class Parameters(object):
         self.gj_respond_flow = False # (feature currently unsupported)
         self.v_sensitive_gj = self._conf['variable settings']['gap junctions']['voltage sensitive gj']
 
+        # Microtubule properties........................................................................................
+
+        mtb = self.config['variable settings'].get('microtubules', {})
+
+        # if mtb is not None:
+
+        self.use_microtubules = mtb.get('use microtubules', True)
+
+        self.tubulin_charge = float(mtb.get('tubulin unit charge', -20.0))
+        self.tubulin_dipole = float(mtb.get('tubulin unit dipole', 1750))
+
+        self.cytoplasm_viscocity = float(mtb.get('cytoplasm viscocity', 1.0e-2))
+
+        self.D_mtube = float(mtb.get('microtubule diffusion', 1.0e-12))
+
+        self.init_mtx = mtb.get('microtubule initial x component', None)
+        self.init_mty = mtb.get('microtubule initial y component', None)
+
+        self.microtubules_orient_parallel = mtb.get('microtubules orient parallel', True)
+
+        # else:
+        #
+        #     self.tubulin_charge = 0.0
+        #     self.tubulin_dipole = 1750
+        #
+        #     self.cytoplasm_viscocity = 0.1
+        #
+        #     self.D_mtube = 1.0e-14
+        #
+        #     self.init_mtx = None
+        #     self.init_mty = None
+
+        #...............................................................................................................
+
         # Environmental features and tight junctions ---------------------------------------------------
         self.env_type = True # for now, can't handle air boundaries
         self.cluster_open = True
@@ -864,14 +898,6 @@ class Parameters(object):
 
         self.vm_ph = 0.1             # rate constant for bicarbonate buffer [mol/s] 5.0e-5 originally
 
-        self.cytoplasm_viscocity = float(iu.get('cytoplasm viscocity', 1.0))
-
-        self.u_mtube = float(iu.get('microtubule eosmo', 0.0))
-
-        self.D_mtube = float(iu.get('microtubule diffusion', 1.0e-12))
-
-        self.init_mtx = iu.get('microtubule initial x component', None)
-        self.init_mty = iu.get('microtubule initial y component', None)
 
         # simplest ion ion_profile giving realistic results with minimal ions (Na+ & K+ focus):
         if self.ion_profile == 'basic':
