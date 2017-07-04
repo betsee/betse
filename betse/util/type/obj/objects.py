@@ -258,7 +258,7 @@ def get_method_or_none(obj: object, method_name: str) -> CallableOrNoneTypes:
     # If this attribute is a method, return this attribute; else, return None.
     return method if method is not None and callable(method) else None
 
-# ....................{ ITERATORS ~ attributes             }....................
+# ....................{ ITERATORS ~ attrs                  }....................
 @type_check
 def iter_attrs_matching(
     obj: object, predicate: CallableTypes) -> GeneratorType:
@@ -455,7 +455,7 @@ def iter_vars(obj: object) -> GeneratorType:
         If any variable of this object is a property whose
         :func:`property`-decorated method raises an exception. To avoid handling
         such exceptions, consider instead calling the
-        :func:`iter_vars_simple_custom` generator excluding all properties.
+        :func:`iter_vars_custom_simple` generator excluding all properties.
     '''
 
     # Return a generator comprehension...
@@ -500,9 +500,89 @@ def iter_vars_custom(obj: object) -> GeneratorType:
         if not (var_name.startswith('__') and var_name.endswith('__')):
             yield var_name, var_value
 
+# ....................{ ITERATORS ~ vars : custom simple   }....................
+@type_check
+def iter_vars_custom_simple_matching(
+    obj: object, predicate: CallableTypes) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each **non-builtin
+    non-property variable** (i.e., variable whose name is *not* both prefixed
+    and suffixed by ``__`` and whose value is *not* dynamically defined by the
+    `@property` decorator to be the implicit result of a method call) bound to
+    the passed object whose name and/or value also matches the passed predicate
+    (in ascending lexicographic order of variable name).
 
-#FIXME: For orthogonality, rename to iter_vars_custom_simple().
-def iter_vars_simple_custom(obj: object) -> GeneratorType:
+    Only variables statically registered in this object's internal dictionary
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
+    defined by this object's ``__getattr__()`` method or related runtime magic
+    are simply ignored.
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all non-builtin non-property variables of.
+    predicate : CallableTypes
+        Callable iteratively passed both the name and value of each attribute
+        bound to this object, returning ``True`` only if that name and/or value
+        matches this predicate.
+
+    Yields
+    ----------
+    (var_name, var_value)
+        2-tuple of the name and value of each matching non-builtin non-property
+        variable bound to this object (in ascending lexicographic order of
+        variable name).
+    '''
+
+    # Ideally, this function would be reimplemented in terms of the
+    # iter_attrs_matching() function calling the canonical inspect.getmembers()
+    # function. Dynamic inspection is surprisingly non-trivial in the general
+    # case, particularly when virtual base classes rear their diamond-studded
+    # faces. Moreover, doing so would support edge-case attributes when passed
+    # class objects, including:
+    #
+    # * Metaclass attributes of the passed class.
+    # * Attributes decorated by "@DynamicClassAttribute" of the passed class.
+    #
+    # Sadly, inspect.getmembers() internally accesses attributes via the
+    # dangerous getattr() builtin rather than the safe inspect.getattr_static()
+    # function. This function explicitly requires the latter and hence *MUST*
+    # reimplement rather than defer to inspect.getmembers(). (Sadness reigns.)
+    #
+    # For the same reason, the unsafe vars() builtin cannot be called either.
+    # Since that builtin fails for builtin containers (e.g., "dict", "list"),
+    # this is not altogether a bad thing.
+    for attr_name in dir(obj):
+        # If this attribute is *NOT* a builtin...
+        if not (attr_name.startswith('__') and attr_name.endswith('__')):
+            # Value of this attribute guaranteed to be statically rather than
+            # dynamically retrieved. The getattr() builtin performs the latter,
+            # dynamically calling this attribute's getter if this attribute is
+            # a property. Since that call could conceivably raise unwanted
+            # exceptions *AND* since this function explicitly ignores
+            # properties, static attribute retrievable is unavoidable.
+            attr_value = inspect.getattr_static(obj, attr_name)
+
+            # If all of the following conditions apply:
+            if (
+                # This value is neither callable nor a property, this attribute
+                # must necessarily be a non-property variable.
+                not (
+                    callable(attr_value) or
+                    isinstance(attr_value, property)
+                ) and
+                # This non-property variable matches this predicate. For safety,
+                # this predicate is passed this attribute only *AFTER* this
+                # attribute has been guaranteed to be such a variable; this
+                # predicate may thus safely assume this to be the case.
+                predicate(attr_name, attr_value)
+            # ...yield this matching variable.
+            ):
+                yield attr_name, attr_value
+
+
+#FIXME: Refactor in terms of iter_vars_custom_simple_matching).
+def iter_vars_custom_simple(obj: object) -> GeneratorType:
     '''
     Generator yielding 2-tuples of the name and value of each **non-builtin
     non-property variable** (i.e., variable whose name is *not* both prefixed
@@ -528,36 +608,19 @@ def iter_vars_simple_custom(obj: object) -> GeneratorType:
         name).
     '''
 
-    # Ideally, this function would be reimplemented in terms of the iter_vars()
-    # function calling the canonical inspect.getmembers() function. Dynamic
-    # inspection is surprisingly non-trivial in the general case, particularly
-    # when virtual base classes rear their diamond-studded faces. Moreover,
-    # doing so would support edge-case attributes when passed class objects,
-    # including:
-    #
-    # * Metaclass attributes of the passed class.
-    # * Attributes decorated by "@DynamicClassAttribute" of the passed class.
-    #
-    # Sadly, inspect.getmembers() internally accesses attributes via the
-    # dangerous getattr() builtin rather than the safe inspect.getattr_static()
-    # function. This function explicitly requires the latter and hence *MUST*
-    # reimplement rather than defer to inspect.getmembers(). (Sadness reigns.)
-    #
-    # For the same reason, the unsafe vars() builtin cannot be called either.
-    # Since that builtin fails for builtin containers (e.g., "dict", "list"),
-    # this is not altogether a bad thing.
-    for var_name in dir(obj):
-        # If this attribute is *NOT* a builtin...
-        if not (var_name.startswith('__') and var_name.endswith('__')):
-            # Value of this attribute guaranteed to be statically rather than
-            # dynamically retrieved. The getattr() builtin performs the latter,
-            # dynamically calling this attribute's getter if this attribute is
-            # a property. Since that call could conceivably raise unwanted
-            # exceptions *AND* since this function explicitly ignores
-            # properties, static attribute retrievable is unavoidable.
-            var_value = inspect.getattr_static(obj, var_name)
+    # Defer to this iterator with the null predicate unconditionally accepting
+    # all such variables regardless of name or value.
+    yield from iter_vars_custom_simple_matching(
+        obj=obj, predicate=noop_attr_predicate)
 
-            # If this value is neither callable nor a property, this attribute
-            # is a non-property variable. Yield this variable.
-            if not (callable(var_value) or isinstance(var_value, property)):
-                yield var_name, var_value
+# ....................{ PREDICATES                         }....................
+def noop_attr_predicate(attr_name: object, attr_value: object) -> bool:
+    '''
+    Null attribute predicate unconditionally returning ``True`` for all passed
+    attribute name and value combinations, suitable for passing as the value of
+    the ``predicate`` parameter accepted by attribute iterators in this
+    submodule (e.g., :func:`iter_attrs_matching`).
+    '''
+
+    # ...our work is done here, folks.
+    return True

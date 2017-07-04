@@ -460,6 +460,35 @@ def remove_newlines_suffix(text: str) -> str:
 
 # ....................{ REMOVERS ~ space                   }....................
 @type_check
+def remove_whitespace(text: str) -> str:
+    '''
+    Passed string with *all* whitespace removed, including all prefixing and
+    suffixing whitespace and whitespace interspersed through this string.
+
+    Parameters
+    ----------
+    text : str
+        String to remove all whitespace from.
+
+    Returns
+    ----------
+    str
+        String with all whitespace removed.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/8270124/2809027
+        StackOverflow answer strongly inspiring this implementation.
+    '''
+
+    # While a regular expression-based implementation is also feasible, the
+    # current approach of splitting this string on whitespace into substrings
+    # containing no whitespace and then concatenating these substrings is
+    # substantially more Pythonic (and presumably efficient).
+    return ''.join(text.split())
+
+
+@type_check
 def remove_whitespace_presuffix(text: str) -> str:
     '''
     Passed string with all prefixing and suffixing whitespace removed.
@@ -481,8 +510,7 @@ def remove_whitespace_suffix(text: str) -> str:
 def remove_prefix(text: str, prefix: str, exception_message: str = None) -> str:
     '''
     Passed string with the passed prefix removed if present *or* raise an
-    exception with the passed message (defaulting to a message synthesized from
-    the passed arguments) otherwise.
+    exception with the passed message otherwise.
 
     Parameters
     ----------
@@ -534,7 +562,7 @@ def remove_prefix_if_found(text: str, prefix: str) -> str:
 @type_check
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
-    Passed string with the passed suffix removed if present _or_ the passed
+    Passed string with the passed suffix removed if present *or* the passed
     string as is otherwise.
 
     Parameters
