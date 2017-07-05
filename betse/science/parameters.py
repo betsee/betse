@@ -617,12 +617,19 @@ class Parameters(object):
 
         self.use_microtubules = mtb.get('use microtubules', True)
 
-        self.tubulin_charge = float(mtb.get('tubulin unit charge', -20.0))
+        self.length_charge = float(mtb.get('charge per micrometer', -360.0))
+        self.mt_radius = float(mtb.get('radius', 15.0e-9))
+        self.mt_length = float(mtb.get('length', 5.0e-6))
         self.tubulin_dipole = float(mtb.get('tubulin unit dipole', 1750))
+        self.tubulin_polar = float(mtb.get('tubulin polarizability', 50.0))
 
-        self.cytoplasm_viscocity = float(mtb.get('cytoplasm viscocity', 1.0e-2))
+        self.tethered_tubule = (mtb.get('tethered tubule', True))
 
-        self.D_mtube = float(mtb.get('microtubule diffusion', 1.0e-12))
+        self.cytoplasm_viscocity = 1.0e-3
+
+        self.D_mtube = float(mtb.get('microtubule diffusion', 1.0))
+
+        self.dilate_mtube_dt = float(mtb.get('time dilation factor', 1.0))
 
         self.init_mtx = mtb.get('microtubule initial x component', None)
         self.init_mty = mtb.get('microtubule initial y component', None)
@@ -792,7 +799,7 @@ class Parameters(object):
         self.smooth_concs = iu['smooth concentrations']
 
         # self.media_rho = float(iu['media resistivity'])
-        # self.tissue_rho = float(iu['tissue resistivity'])
+        self.tissue_rho = 0.03
 
         self.substances_affect_charge = iu['substances affect Vmem']
 

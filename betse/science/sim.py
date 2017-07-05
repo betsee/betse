@@ -772,10 +772,11 @@ class Simulator(object):
         # load in the microtubules object:
         self.mtubes = Mtubes(self, cells, p)
 
-
         # smoothing weights for membrane and central values:
         self.smooth_weight_mem = ((2*cells.num_mems[cells.mem_to_cells] -1)/(2*cells.num_mems[cells.mem_to_cells]))
         self.smooth_weight_o = 1/(2*cells.num_mems[cells.mem_to_cells])
+
+        self.cedl = 0.8  # electrical double layer capacitance #FIXME recalculate this
 
     def init_tissue(self, cells, p):
         '''
@@ -1803,7 +1804,7 @@ class Simulator(object):
                            +(1/p.cm)*drho_mem[cells.mem_to_cells] * p.dt  # current across the membrane from pumps/channels
                            # - (1/p.cm)*self.Jmem*p.dt
                            + (1 / self.cgj) * drho_gj[cells.mem_to_cells] * p.dt
-                           + (1/p.cm)*self.Jme*p.dt*p.cell_polarizability
+                           + (1/self.cedl)*self.Jme*p.dt*p.cell_polarizability
 
                            )
 
@@ -1829,7 +1830,7 @@ class Simulator(object):
                            # - (1 / p.cm) * self.Jmem * p.dt  # current across the membrane from pumps/channels
                           + (1/self.cgj)*drho_gj[cells.mem_to_cells]*p.dt # current from GJ
                           + (1/p.cm)*self.Jme*p.dt*p.cell_polarizability
-
+                           # + (1 /self.cedl) * self.Jme * p.dt * p.cell_polarizability
                            )
 
 
@@ -1842,9 +1843,8 @@ class Simulator(object):
         # smooth voltages at the membrane:
         self.vm = self.smooth_weight_mem*self.vm + self.vm_ave[cells.mem_to_cells]*self.smooth_weight_o
 
-        self.E_cell_x = self.J_cell_x*(1/(self.sigma + 1.0e-6))
-        self.E_cell_y = self.J_cell_y*(1/(self.sigma + 1.0e-6))
-
+        self.E_cell_x = self.J_cell_x*(1/(self.sigma*0.1 + 1.0e-6))
+        self.E_cell_y = self.J_cell_y*(1/(self.sigma*0.1 + 1.0e-6))
 
     def acid_handler(self, cells, p) -> None:
         '''

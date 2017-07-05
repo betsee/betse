@@ -49,27 +49,31 @@ def get_current(sim, cells, p):
         J_env_y_o = np.dot(p.F*sim.zs, sim.fluxes_env_y)
 
         # add in cell currents
-        J_env_x_o[cells.map_cell2ecm] += sim.J_cell_x
-        J_env_y_o[cells.map_cell2ecm] += sim.J_cell_y
+        # J_env_x_o[cells.map_cell2ecm] += sim.J_cell_x
+        # J_env_y_o[cells.map_cell2ecm] += sim.J_cell_y
 
         # reshape the matrix:
         J_env_x_o = J_env_x_o.reshape(cells.X.shape)
         J_env_y_o = J_env_y_o.reshape(cells.X.shape)
 
-        # take the divergence:
-        divJ = fd.divergence(J_env_x_o/ (sim.Chi*p.eo), J_env_y_o / (sim.Chi*p.eo), cells.delta, cells.delta)
+        # # Method #2-------------------------------
+        #
+        # # take the divergence:
+        # divJ = fd.divergence(J_env_x_o/ (sim.Chi*p.eo), J_env_y_o / (sim.Chi*p.eo), cells.delta, cells.delta)
+        #
+        # # calculate the rate of change of polarization (macroscopic) voltage:
+        # dPhi = np.dot(cells.lapENV_P_inv, divJ.ravel())
+        #
+        # dPhi = dPhi.reshape(cells.X.shape)
+        #
+        # # gradient of the polarization voltage yields the electric field
+        # gdPhix, gdPhiy = fd.gradient(dPhi, cells.delta)
+        #
+        # # correct the current by the polarization field:
+        # J_env_x_o = J_env_x_o - sim.Chi * p.eo * gdPhix
+        # J_env_y_o = J_env_y_o - sim.Chi * p.eo * gdPhiy
 
-        # calculate the rate of change of polarization (macroscopic) voltage:
-        dPhi = np.dot(cells.lapENV_P_inv, divJ.ravel())
-
-        dPhi = dPhi.reshape(cells.X.shape)
-
-        # gradient of the polarization voltage yields the electric field
-        gdPhix, gdPhiy = fd.gradient(dPhi, cells.delta)
-
-        # correct the current by the polarization field:
-        J_env_x_o = J_env_x_o - sim.Chi * p.eo * gdPhix
-        J_env_y_o = J_env_y_o - sim.Chi * p.eo * gdPhiy
+        #---------------------------------------------
 
         #Helmholtz-Hodge decomposition to obtain divergence-free projection of actual currents (zero n_hat at boundary):
         _, sim.J_env_x, sim.J_env_y, BB, Jbx, Jby = stb.HH_Decomp(J_env_x_o, J_env_y_o, cells)
@@ -80,19 +84,26 @@ def get_current(sim, cells, p):
         sim.J_env_x += sim.E_env_x*sim.sigma
         sim.J_env_y += sim.E_env_y*sim.sigma
 
-        # Jtx = sim.J_env_x + Jbx
-        # Jty = sim.J_env_y + Jby
-        #
-        # # map current from extracellular space to membrane normal
-        # sim.Jme = (Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-        #        Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
-        dPx = -sim.Chi.ravel()*p.eo*gdPhix.ravel()
-        dPy = -sim.Chi.ravel()*p.eo*gdPhiy.ravel()
+        # Method #1 -----------------------------------------
+
+        Jtx = sim.J_env_x + Jbx
+        Jty = sim.J_env_y + Jby
 
         # map current from extracellular space to membrane normal
-        sim.Jme = (dPx[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-               dPy[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+        sim.Jme = (Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+               Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+
+        # # Method #2 ------------------------------------------
+        #
+        # dPx = -sim.Chi.ravel()*p.eo*gdPhix.ravel()
+        # dPy = -sim.Chi.ravel()*p.eo*gdPhiy.ravel()
+        #
+        # # map current from extracellular space to membrane normal
+        # sim.Jme = (dPx[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+        #        dPy[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+
+        #-------------------------------------------------------
 
 
         # Calculate any field resulting from an applied voltage:

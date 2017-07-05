@@ -11,6 +11,7 @@ import numpy as np
 from betse.exceptions import BetseSimInstabilityException
 from betse.util.io.log import logs
 from betse.science.math import modulate as mods
+# from betse.science.math import finitediff as fd
 
 
 class Mtubes(object):
@@ -41,22 +42,29 @@ class Mtubes(object):
     def __init__(self, sim, cells, p):
 
         # basic parameters for microtubule units:
-        tubulin_mass = 1.66e-27 * 1e3 * 100    # kg (assumes tubulin mass of ~ 50 kDa)
-        self.tubulin_length = 4.5e-9                # in meters
+        self.rmt = p.mt_radius # radius of a microtubule
 
-        self.rmt = 12.0e-9 # radius of a microtubule
+        self.L = p.mt_length*(cells.R_rads/cells.R_rads.mean())
 
-        self.tubulin_N = (cells.R.mean()/self.tubulin_length) # total number of tubulin molecules
+        self.tubulin_N = (222/1.0e-6)*self.L # total number of tubulin molecules per microtubule
 
-        self.charge_mtube = self.tubulin_N * p.tubulin_charge * p.q  # charge on the microtubule
+        self.charge_mtube = (p.length_charge*p.q*self.L)/1.0e-6  # charge on the microtubule in Coulombs
 
         self.visc = p.cytoplasm_viscocity   # viscocity of cytoplasm
 
         # microtubule dipole moment [C m] (assumed to be sum of tubulin dimer dipole moments, which are 1740 D each):
-        self.p_mtube = self.tubulin_N * p.tubulin_dipole * 3.33e-30
+        self.p_mtube = self.tubulin_N*p.tubulin_dipole*3.33e-30
 
-        # microtubule diffusion constant:
-        self.D = p.D_mtube
+        self.p_ind = self.tubulin_N*p.tubulin_polar*1.0e-40 # inducible polarizability of tubulin C m2/V
+
+        # calculate drag co-efficients (from drag force on cylinders Broersma et al, Hunt et al 1994)
+        self.drag_C(cells)
+
+        # radial drag force on the microtubule from Stokes-Einstein relation "Rotational Diffusion" theory:
+        self.drag_r = self.C_rad*p.cytoplasm_viscocity*(self.L**3)
+
+        # microtubule rotational diffusion constant:
+        self.Dr = ((p.kb*p.T)/self.drag_r)
 
         # initial angle of microtubules:
         self.mt_theta = np.arctan2(cells.mem_vects_flat[:,3], cells.mem_vects_flat[:,2])
@@ -127,6 +135,20 @@ class Mtubes(object):
                 self.mtubes_x = np.cos(self.mt_theta)
                 self.mtubes_y = np.sin(self.mt_theta)
 
+    def drag_C(self, cells):
+
+        # calculate drag co-efficients for the microtubules:
+
+        v = 1 / (np.log(self.L/self.rmt))
+
+        g_para = -0.114 - 0.15 * v - 13.5 * (v ** 2) + 37 * (v ** 3) - 22 * (v ** 4)
+        g_perp = 0.866 - 0.15 * v - 8.1 * (v ** 2) + 18 * (v ** 3) - 9 * (v ** 4)
+        g_rad = -0.446 - 0.2 * v - 16 * (v ** 2) + 63 * (v ** 3) - 62 * (v ** 4)
+
+        self.C_para = (2 * np.pi) / (np.log(self.L / (2 * self.rmt)) + g_para)
+        self.C_perp = (4 * np.pi) / (np.log(self.L / (2 * self.rmt)) + g_perp)
+        self.C_rad = ((1 / 3) * np.pi) / (np.log(self.L / (2 * self.rmt)) + g_rad)
+
     def reinit(self, cells, p):
 
         """
@@ -134,53 +156,102 @@ class Mtubes(object):
 
         """
 
-        # microtubule diffusion constant:
-        self.D = p.D_mtube
-        self.visc = p.cytoplasm_viscocity  # viscocity of cytoplasm
-        self.charge_mtube = self.tubulin_N*p.tubulin_charge*p.q  # charge on the microtubule
+        # basic parameters for microtubule units:
+        self.rmt = p.mt_radius # radius of a microtubule
+
+        self.L = p.mt_length*(cells.R_rads/cells.R_rads.mean()) # length of microtubule
+
+        self.tubulin_N = (222/1.0e-6)*self.L # total number of tubulin molecules per microtubule
+
+        self.charge_mtube = (p.length_charge*p.q*self.L)/1.0e-6  # charge on the microtubule in Coulombs
+
+        self.visc = p.cytoplasm_viscocity   # viscocity of cytoplasm
+
         # microtubule dipole moment [C m] (assumed to be sum of tubulin dimer dipole moments, which are 1740 D each):
-        self.p_mtube = self.tubulin_N * p.tubulin_dipole * 3.33e-30
+        self.p_mtube = self.tubulin_N*p.tubulin_dipole*3.33e-30
+
+        self.p_ind = self.tubulin_N*p.tubulin_polar*1.0e-40 # inducible polarizability of tubulin C m2/V
+
+        # calculate drag co-efficients (from drag force on cylinders Broersma et al, Hunt et al 1994)
+        self.drag_C(cells)
+
+        # radial drag force on the microtubule from Stokes-Einstein relation "Rotational Diffusion" theory:
+        self.drag_r = self.C_rad*p.cytoplasm_viscocity*(self.L**3)
+
+        # microtubule rotational diffusion constant:
+        self.Dr = ((p.kb*p.T)/self.drag_r)
+
+
 
     def update_mtubes(self, cells, sim, p):
 
-        # Force on microtubule due to net charge:
-        Fqx = self.charge_mtube*sim.E_cell_x[cells.mem_to_cells]
-        Fqy = self.charge_mtube*sim.E_cell_y[cells.mem_to_cells]
+        # microtubule radial vectors:
+        ui = self.mtubes_x*self.L
+        vi = self.mtubes_y*self.L
 
-        # Torque on microtubule due to net charge 'q':
-        if p.microtubules_orient_parallel is True:
+        ui_hat = self.mtubes_x
+        vi_hat = self.mtubes_y
 
-            Tq = (self.mtubes_x*Fqy - self.mtubes_y*Fqx)*cells.R_rads
+        Ex = sim.E_cell_x[cells.mem_to_cells]
+        Ey = sim.E_cell_y[cells.mem_to_cells]
 
+
+        gEx = (Ex[cells.cell_nn_i[:, 1]] - Ex[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+
+        gExx = gEx*cells.nn_tx
+        gExy = gEx*cells.nn_ty
+
+        gEy = (Ey[cells.cell_nn_i[:, 1]] - Ey[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+
+        gEyx = gEy*cells.nn_tx
+        gEyy = gEy*cells.nn_ty
+
+
+        q_tube = self.charge_mtube
+
+        if p.tethered_tubule is False:
+
+            torque_tether = np.zeros(sim.mdl)
+
+            # gradient of the field will torque the monopole by applying different forces at ends:
+            torque_gradient = (q_tube * (ui) * (gEyx.ravel() * ui + gEyy.ravel() * vi) -
+                               q_tube * (vi) * (gExx.ravel() * ui + gExy.ravel() * vi))
+
+            # fiber will also align such that ends are at the same voltage:
+            torque_monopole = (q_tube * (ui) * Ex.ravel() + q_tube * (vi) * Ey.ravel())
+
+            # fiber will also align via its dipole in the electric field:
+            torque_dipole = -(self.p_ind * ui_hat * Ey.ravel() - self.p_ind * vi_hat * Ex.ravel())
+
+
+        # if fiber is tethered, any perpendicular force will represent a torque:
         else:
-            Tq = (self.mtubes_x*Fqx + self.mtubes_y*Fqy)*cells.R_rads
 
-        # Torque on microtubule due to dipole component 'p':
-        Tp = (self.p_mtube*self.mtubes_x*sim.E_cell_y[cells.mem_to_cells] -
-                  self.p_mtube*self.mtubes_y*sim.E_cell_x[cells.mem_to_cells])
+            torque_tether = (q_tube * ui * Ey.ravel() - q_tube * vi * Ex.ravel())
 
-        # Drag force torque on microtubule:
-        alpha_drag = (p.kb*p.T)
+            # gradient of the field will torque the monopole by applying different forces at ends:
+            torque_gradient = np.zeros(sim.mdl)
 
-        # calculate rotational flux of microtubule:
-        gc_mtdf = np.dot(cells.gradTheta, self.mtdf)
+            # fiber will also align such that ends are at the same voltage:
+            torque_monopole = np.zeros(sim.mdl)
 
-        # angular velocity flux of microtubule:
-        flux_theta = -(self.D*gc_mtdf)/(cells.R_rads) + ((Tq + Tp)/alpha_drag)
-        # flux_theta = ((Tq + Tp)/alpha_drag)
+            # fiber will also align via its dipole in the electric field:
+            torque_dipole = (self.p_ind * ui_hat * Ey.ravel() - self.p_ind * vi_hat * Ex.ravel())
 
-        self.mt_theta = self.mt_theta + flux_theta*p.dt*self.modulator
+        flux_theta = (
+            + (torque_tether / self.drag_r)
+            + (torque_dipole / self.drag_r)
+            + (torque_monopole / self.drag_r)
+            + (torque_gradient / self.drag_r)
+            + ((p.kb * p.T) / self.drag_r) * (0.5 - np.random.rand(len(self.mt_theta)))
+        )
+
+        # update the microtubule angle:
+        self.mt_theta = self.mt_theta + flux_theta*p.dt*p.dilate_mtube_dt*self.modulator
 
         # update the microtubule coordinates with the new angle:
         self.mtubes_x = np.cos(self.mt_theta)
         self.mtubes_y = np.sin(self.mt_theta)
-
-        # recalculate the new cell microtubule density function:
-        mtdx = np.dot(cells.M_sum_mems, self.mtubes_x*cells.mem_sa) / cells.cell_sa
-        mtdy = np.dot(cells.M_sum_mems, self.mtubes_y*cells.mem_sa) / cells.cell_sa
-
-        self.mtdf = (mtdx[cells.mem_to_cells]*cells.mem_vects_flat[:,2] +
-                     mtdy[cells.mem_to_cells]*cells.mem_vects_flat[:, 3])
 
     def mtubes_to_cell(self, cells, p):
 
@@ -211,69 +282,23 @@ class Mtubes(object):
         mod2 = np.delete(self.modulator, target_inds_mem)
         self.modulator = mod2*1
 
+        L2 = np.delete(self.L, target_inds_mem)
+        self.L = L2*1
 
-#-----WASTELANDS
-    # def update_mtubes_1(self, cells, sim, p):
-    #
-    #     cav = 1.0  # concentration at cell centre
-    #     cpi = self.cp  # concentration at membrane
-    #     z = self.z  # charge of ion
-    #     Do = self.D  # diffusion constant of ion
-    #
-    #     cap = (cav + cpi) / 2  # concentration at midpoint between cell centre and membrane
-    #     cgp = (cpi - cav) / cells.R_rads  # concentration gradients
-    #
-    #     cfluxpo = -Do*cgp + ((Do * p.q * cap * z)/(p.kb * sim.T))*sim.Ec
-    #
-    #     # as no net mass must leave this intracellular movement, make the flux divergence-free:
-    #     cfluxp = stb.single_cell_div_free(cfluxpo, cells)
-    #
-    #     # calculate the actual concentration at membranes by unpacking to concentration vectors:
-    #     self.cp = cpi + cfluxp*(cells.mem_sa/cells.mem_vol)*p.dt
-    #
-    #     # smooth the concentration:
-    #     # self.cp = sim.smooth_weight_mem*self.cp + sim.smooth_weight_o*cav
-    #
-    #
-    #     #-----calculate a "negative end" concentration that has equal and opposite value of z:
-    #     can = (1.0 + self.cn) / 2  # concentration at midpoint between cell centre and membrane
-    #     cgn = (self.cn - 1.0) / cells.R_rads  # concentration gradients
-    #
-    #     cfluxno = -Do*cgn - ((Do * p.q * can * z)/(p.kb * sim.T))*sim.Ec
-    #
-    #     # as no net mass must leave this intracellular movement, make the flux divergence-free:
-    #     cfluxn = stb.single_cell_div_free(cfluxno, cells)
-    #
-    #     # calculate the actual concentration at membranes by unpacking to concentration vectors:
-    #     self.cn = self.cn + cfluxn*(cells.mem_sa/cells.mem_vol)*p.dt
-    #
-    #     # smooth the concentration:
-    #     # self.cn = sim.smooth_weight_mem*self.cn + sim.smooth_weight_o*cav
-    #
-    #     # deal with the fact that our coarse diffusion model may leave some sub-zero concentrations:
-    #     indsZ = (self.cp < 0.0).nonzero()
-    #
-    #     if len(indsZ[0]):
-    #         raise BetseSimInstabilityException(
-    #             "A microtubule calculation has lead to simulation instability.")
-    #
-    #     # define microtubule direction vectors in terms of density difference between plus and central minus end:
-    #     # component normal to the membrane:
-    #
-    #     mtno = (self.cp - self.cn)*self.sensitivity
-    #
-    #     mtx = np.dot(cells.M_sum_mems, mtno*cells.mem_vects_flat[:, 2]*cells.mem_sa) / cells.cell_sa
-    #     mty = np.dot(cells.M_sum_mems, mtno*cells.mem_vects_flat[:, 3]*cells.mem_sa) / cells.cell_sa
-    #
-    #     self.mtubes_xo = cells.mem_vects_flat[:, 2] + mtx[cells.mem_to_cells]
-    #     self.mtubes_yo = cells.mem_vects_flat[:, 3] + mty[cells.mem_to_cells]
-    #
-    #     mtmag = np.sqrt(sim.mtubes.mtubes_xo ** 2 + sim.mtubes.mtubes_yo ** 2)
-    #
-    #     mtmag[mtmag == 0.0] = 1.0
-    #
-    #     # normalized microtubule vectors from the cell centre point:
-    #     self.mtubes_x = self.mtubes_xo / mtmag
-    #     self.mtubes_y = self.mtubes_yo / mtmag
+        cmt2 = np.delete(self.charge_mtube, target_inds_mem)
+        self.charge_mtube = cmt2*1
+
+        tn2 = np.delete(self.tubulin_N, target_inds_mem)
+        self.tubulin_N = tn2*1
+
+        pi2 = np.delete(self.p_ind, target_inds_mem)
+        self.p_ind = pi2*1
+
+        dra2 = np.delete(self.drag_r, target_inds_mem)
+        self.drag_r = dra2*1
+
+        d2 = np.delete( self.Dr, target_inds_mem)
+        self.Dr = d2*1
+
 
 
