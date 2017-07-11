@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-`info` subcommand for `betse`'s command line interface (CLI).
+Implementation of the ``info`` subcommand for this command line interface (CLI).
 '''
 
 #FIXME; For aesthetics, convert to yppy-style "cli.memory_table" output.
@@ -19,19 +19,37 @@
 # effectively mandatory.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-from collections import OrderedDict
-
 from betse import metadata
 from betse.util.io.log import logconfig, logs
 from betse.util.os import oses
 from betse.util.py import pyimpl, pys
 from betse.util.type.mapping.mapcls import OrderedArgsDict
+from collections import OrderedDict
+
+# ....................{ GETTERS                            }....................
+def get_header() -> str:
+    '''
+    Single-line string synopsizing the current installation of this application.
+    '''
+
+    return (
+        'Welcome to <<'
+        '{program_name} {program_version} | '
+        '{py_name} {py_version} | '
+        '{os_name} {os_version}'
+        '>>.'.format(
+            program_name=metadata.NAME,
+            program_version=metadata.VERSION,
+            py_name=pyimpl.get_name(),
+            py_version=pys.get_version(),
+            os_name=oses.get_name(),
+            os_version=oses.get_version(),
+        ))
 
 
-# ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedArgsDict:
     '''
-    Ordered dictionary synopsizing the active Python interpreter.
+    Ordered dictionary synopsizing the current installation of this application.
     '''
 
     # Defer heavyweight imports.
@@ -50,10 +68,10 @@ def get_metadata() -> OrderedArgsDict:
         'data directory',  pathtree.get_data_dirname(),
     )
 
-# ..................{ OUTPUTTERS                             }..................
-def output_info() -> None:
+# ..................{ LOGGERS                                }..................
+def log_info() -> None:
     '''
-    Print all output for the ``info`` subcommand.
+    Logs and hence outputs all metadata required by the ``info`` subcommand.
     '''
 
     # Notify the current user of a possible wait *BEFORE* importing modules

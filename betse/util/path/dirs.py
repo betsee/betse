@@ -342,6 +342,7 @@ def copy(dirname_source: str, dirname_target: str) -> None:
         dst=dirname_target,
         symlinks=True,
     )
+
 # ....................{ CONTEXTS                           }....................
 #FIXME: For disambiguity, rename to cwd().
 #FIXME: Shift into a new "betse.util.os.shell.shelldir" submodule.
@@ -369,8 +370,8 @@ def current(dirname: str) -> GeneratorType:
     Yields
     -----------
     None
-        Since this context manager yields no value, the caller's `with`
-        statement must be suffixed by _no_ `as` clause.
+        Since this context manager yields no values, the caller's ``with``
+        statement must be suffixed by *no* ``as`` clause.
 
     See Also
     -----------

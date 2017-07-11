@@ -14,14 +14,14 @@ Concrete subclasses defining this application's command line interface (CLI).
 # * Exist, including standard Python and application modules.
 # * Never raise exceptions on importation (e.g., due to module-level logic).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from betse import metadata
-from betse.cli import clicommand, cliutil, info
+from betse.cli import clicommand, cliinfo, cliutil
 from betse.cli.cliabc import CLIABC
 from betse.cli.clicommand import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
-from betse.util.os import oses
-from betse.util.py import pyident, pyimpl, pys
+from betse.util.py import pyident, pys
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.obj import objects
 from betse.util.type.types import MappingType
@@ -51,24 +51,6 @@ class BetseCLI(CLIABC):
         self._arg_parser_plot = None
         self._arg_subparsers_top = None
         self._arg_subparsers_plot = None
-
-    # ..................{ SUPERCLASS ~ header                }..................
-    def _show_header(self) -> None:
-
-        # Log a one-line synopsis of metadata logged by the ``info`` subcommand.
-        logs.log_info(
-            'Welcome to <<'
-            '{program_name} {program_version} | '
-            '{py_name} {py_version} | '
-            '{os_name} {os_version}'
-            '>>.'.format(
-                program_name=metadata.NAME,
-                program_version=metadata.VERSION,
-                py_name=pyimpl.get_name(),
-                py_version=pys.get_version(),
-                os_name=oses.get_name(),
-                os_version=oses.get_version(),
-            ))
 
     # ..................{ SUPERCLASS ~ args                  }..................
     @property
@@ -184,12 +166,17 @@ class BetseCLI(CLIABC):
         return subcommand_method()
 
     # ..................{ SUBCOMMANDS_TOP ~ info                 }..................
+    def _show_header(self) -> None:
+
+        logs.log_info(cliinfo.get_header())
+
+
     def _do_info(self) -> None:
         '''
         Run the ``info`` subcommand.
         '''
 
-        info.output_info()
+        cliinfo.log_info()
 
     # ..................{ SUBCOMMANDS_TOP ~ sim                  }..................
     def _do_try(self) -> object:
