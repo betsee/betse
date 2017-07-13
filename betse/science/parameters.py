@@ -631,8 +631,8 @@ class Parameters(object):
 
         self.dilate_mtube_dt = float(mtb.get('time dilation factor', 1.0))
 
-        self.init_mtx = mtb.get('microtubule initial x component', None)
-        self.init_mty = mtb.get('microtubule initial y component', None)
+        self.init_mtx = mtb.get('microtubule initial x asymmetry', None)
+        self.init_mty = mtb.get('microtubule initial y asymmetry', None)
 
         self.microtubules_orient_parallel = mtb.get('microtubules orient parallel', True)
 

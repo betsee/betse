@@ -807,8 +807,7 @@ class SimRunner(object):
         # run the molecules plots:
         if p.molecules_enabled and sim.molecules is not None:
             # reinit settings for plots, in case they've changed:
-            # sim.molecules.core.plot_init(p.molecules_config)
-
+            sim.molecules.core.plot_init(p.network_config, p)
             sim.molecules.core.init_saving(cells, p, plot_type='sim')
             sim.molecules.core.export_all_data(sim, cells, p, message='auxiliary molecules')
             sim.molecules.core.plot(sim, cells, p, message='auxiliary molecules')

@@ -383,11 +383,11 @@ class HCN2_cAMP(VgFunABC):
 
         """
 
-        logs.log_info('You are using the funny current channel: HCN2_cAMP')
+        logs.log_info('You are using the funny current channel: HCN2 with cAMP activation.')
 
         self.v_corr = 0
 
-        V = V - 35
+        V = V - 20
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V + 99) / 6.2))
@@ -411,7 +411,7 @@ class HCN2_cAMP(VgFunABC):
 
         self.vrev = -45  # reversal voltage used in model [mV]
 
-        V = V - 35
+        V = V - 20
 
         self._mInf = 1.0000 / (1 + np.exp((V + 99) / 6.2))
         self._mTau = 184.0000
@@ -442,11 +442,11 @@ class HCN4_cAMP(VgFunABC):
 
         """
 
-        logs.log_info('You are using the funny current channel: HCN4')
+        logs.log_info('You are using the funny current channel: HCN4 with cAMP activation.')
 
         self.v_corr = 0
 
-        V = V - 35
+        V = V - 20
 
         # initialize values of the m and h gates of the HCN2 based on m_inf and h_inf:
         dyna.m_Fun = 1.0000 / (1 + np.exp((V  + 100) / 9.6))
@@ -470,7 +470,7 @@ class HCN4_cAMP(VgFunABC):
 
         self.vrev = -45  # reversal voltage used in model [mV]
 
-        V = V - 35
+        V = V - 20
 
         self._mInf = 1.0000 / (1 + np.exp((V + 100) / 9.6))
         self._mTau = 461.0000

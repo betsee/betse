@@ -90,7 +90,7 @@ class Mtubes(object):
         if p.init_mtx != 'None' and p.init_mtx is not None:
             Ixo, _ = getattr(mods, p.init_mtx)(cells.cell_i, cells, p)
 
-            gXo = -(Ixo / Ixo.max())
+            gXo = (Ixo / Ixo.max())
 
             gX = gXo[cells.mem_to_cells]
 
@@ -101,7 +101,7 @@ class Mtubes(object):
         if p.init_mty != 'None' and p.init_mty is not None:
             Iyo, _ = getattr(mods, p.init_mty)(cells.cell_i, cells, p)
 
-            gYo = -(Iyo / Iyo.max())
+            gYo = (Iyo / Iyo.max())
 
             gY = gYo[cells.mem_to_cells]
 
