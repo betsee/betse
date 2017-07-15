@@ -501,6 +501,73 @@ def iter_vars_custom(obj: object) -> GeneratorType:
             yield var_name, var_value
 
 # ....................{ ITERATORS ~ vars : custom simple   }....................
+def iter_vars_custom_simple(obj: object) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each **non-builtin
+    non-property variable** (i.e., variable whose name is *not* both prefixed
+    and suffixed by ``__`` and whose value is *not* dynamically defined by the
+    ``@property`` decorator to be the implicit result of a method call) bound to
+    the passed object (in ascending lexicographic order of variable name).
+
+    Only variables statically registered in this object's internal dictionary
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
+    defined by this object's ``__getattr__()`` method or related runtime magic
+    are simply ignored.
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all non-builtin non-property variables of.
+
+    Yields
+    ----------
+    (var_name, var_value)
+        2-tuple of the name and value of each non-builtin non-property variable
+        bound to this object (in ascending lexicographic order of variable
+        name).
+    '''
+
+    # Defer to this iterator with the null predicate unconditionally accepting
+    # all such variables regardless of name or value.
+    yield from iter_vars_custom_simple_matching(
+        obj=obj, predicate=noop_attr_predicate)
+
+
+def iter_vars_custom_simple_prefixed(obj: object, prefix: str) -> GeneratorType:
+    '''
+    Generator yielding 2-tuples of the name and value of each **non-builtin
+    non-property prefixed variable** (i.e., variable whose name is prefixed by
+    the passed substring and *not* both prefixed and suffixed by ``__`` and
+    whose value is *not* dynamically defined by the ``@property`` decorator to
+    be the implicit result of a method call) bound to the passed object (in
+    ascending lexicographic order of variable name).
+
+    Only variables statically registered in this object's internal dictionary
+    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
+    defined by this object's ``__getattr__()`` method or related runtime magic
+    are simply ignored.
+
+    Parameters
+    ----------
+    obj : object
+        Object to yield all non-builtin non-property prefixed variables of.
+    prefix : str
+        Substring prefixing the names of all such variables.
+
+    Yields
+    ----------
+    (var_name, var_value)
+        2-tuple of the name and value of each non-builtin non-property prefixed
+        variable bound to this object (in ascending lexicographic order of
+        variable name).
+    '''
+
+    # Defer to this iterator.
+    yield from iter_vars_custom_simple_matching(
+        obj=obj, predicate=lambda var_name, var_value: (
+            var_name.startswith(prefix)))
+
+
 @type_check
 def iter_vars_custom_simple_matching(
     obj: object, predicate: CallableTypes) -> GeneratorType:
@@ -508,7 +575,7 @@ def iter_vars_custom_simple_matching(
     Generator yielding 2-tuples of the name and value of each **non-builtin
     non-property variable** (i.e., variable whose name is *not* both prefixed
     and suffixed by ``__`` and whose value is *not* dynamically defined by the
-    `@property` decorator to be the implicit result of a method call) bound to
+    ``@property`` decorator to be the implicit result of a method call) bound to
     the passed object whose name and/or value also matches the passed predicate
     (in ascending lexicographic order of variable name).
 
@@ -579,39 +646,6 @@ def iter_vars_custom_simple_matching(
             # ...yield this matching variable.
             ):
                 yield attr_name, attr_value
-
-
-#FIXME: Refactor in terms of iter_vars_custom_simple_matching).
-def iter_vars_custom_simple(obj: object) -> GeneratorType:
-    '''
-    Generator yielding 2-tuples of the name and value of each **non-builtin
-    non-property variable** (i.e., variable whose name is *not* both prefixed
-    and suffixed by ``__`` and whose value is *not* dynamically defined by the
-    `@property` decorator to be the implicit result of a method call) bound to
-    the passed object (in ascending lexicographic order of variable name).
-
-    Only variables statically registered in this object's internal dictionary
-    (e.g., ``__dict__`` in unslotted objects) are yielded. Variables dynamically
-    defined by this object's ``__getattr__()`` method or related runtime magic
-    are simply ignored.
-
-    Parameters
-    ----------
-    obj : object
-        Object to yield all non-builtin non-property variables of.
-
-    Yields
-    ----------
-    (var_name, var_value)
-        2-tuple of the name and value of each non-builtin non-property variable
-        bound to this object (in ascending lexicographic order of variable
-        name).
-    '''
-
-    # Defer to this iterator with the null predicate unconditionally accepting
-    # all such variables regardless of name or value.
-    yield from iter_vars_custom_simple_matching(
-        obj=obj, predicate=noop_attr_predicate)
 
 # ....................{ PREDICATES                         }....................
 def noop_attr_predicate(attr_name: object, attr_value: object) -> bool:

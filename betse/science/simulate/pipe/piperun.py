@@ -230,7 +230,7 @@ class SimPipeRunner(MethodDecorator):
         # Defer to the superclass implementation to run this runner.
         return super().__call__(pipeline, *args, **kwargs)
 
-# ....................{ INTERFACES                         }....................
+# ....................{ MIXINS                             }....................
 class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
     '''
     Abstract base class of all **simulation pipeline runner argument list**
@@ -241,9 +241,11 @@ class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
     :class:`SimPipeABC`-subclassed pipeline class accepts exactly one
     parameter of this type.
 
+    Design
+    ----------
     This class is suitable for use as a multiple-inheritance mixin. To preserve
     the expected method resolution order (MRO) semantics, this class should
-    typically be the *last* rather than *first* base class inherited from.
+    typically be subclassed *first* rather than *last* in subclasses.
 
     See Also
     ----------
