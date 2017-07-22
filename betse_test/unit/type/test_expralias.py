@@ -8,9 +8,10 @@ Unit tests exercising the :func:`betse.util.type.cls.descriptors.expr_alias`
 descriptor.
 '''
 
+from enum import Enum
+
 # ....................{ IMPORTS                            }....................
 import pytest
-from enum import Enum
 from pytest import fixture
 
 # ....................{ GLOBALS                            }....................
@@ -35,8 +36,9 @@ def betse_expralias() -> object:
     '''
 
     # Imports deferred for safety.
-    from betse.util.type.cls.expralias import (
-        ExprAliasBound, expr_alias, expr_enum_alias)
+    from betse.util.type.descriptor.expralias import (
+        expr_alias, expr_enum_alias)
+    from betse.util.type.descriptor.datadescs import DataDescriptorBound
 
     # Class containing instances of this descriptor.
     class SongOfAragorn(object):
@@ -127,12 +129,13 @@ def betse_expralias() -> object:
 
             # Object aliasing an existing dictionary entry with class typing.
             # For coverage, the optional "obj_name" parameter is also exercised.
-            self.line_eight = ExprAliasBound(
-                expr='THE_CROWNLESS_AGAIN["shall be"]',
-                cls=str,
+            self.line_eight = DataDescriptorBound(
                 obj=the_crownless_again,
-                obj_name='THE_CROWNLESS_AGAIN',
-            )
+                data_desc=expr_alias(
+                    expr='THE_CROWNLESS_AGAIN["shall be"]',
+                    cls=str,
+                    obj_name='THE_CROWNLESS_AGAIN',
+                ))
 
     # Create and return an instance of this type.
     return SongOfAragorn()
@@ -226,7 +229,7 @@ def test_expralias_fail(betse_expralias) -> None:
 
     # Imports deferred for safety.
     from betse.exceptions import BetseEnumException, BetseTypeException
-    from betse.util.type.cls.expralias import expr_enum_alias
+    from betse.util.type.descriptor.expralias import expr_enum_alias
 
     # Test instantiating the enumeration-typed data descriptor with an
     # enumeration type failing to satisfy this descriptor's requirements.

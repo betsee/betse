@@ -4,7 +4,7 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level object facilities.
+Low-level class facilities.
 '''
 
 # ....................{ IMPORTS                            }....................

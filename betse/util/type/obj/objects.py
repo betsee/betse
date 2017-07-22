@@ -32,11 +32,36 @@ def die_unless_instance(obj: object, cls: ClassType) -> None:
         raise BetseTypeException(
             'Object {!r} not an instance of class {!r}'.format(obj, cls))
 
+
+@type_check
+def die_unless_method(obj: object, *method_names: str) -> None:
+    '''
+    Raise an exception unless the passed object provides all methods with the
+    passed names.
+
+    Parameters
+    ----------
+    obj : object
+        Object to test for these methods.
+    method_names : tuple[str]
+        Tuple of the names of all methods to test this object for.
+
+    Raises
+    ----------
+    BetseMethodException
+        If one or more such methods are *not* bound to this object.
+    '''
+
+    for method_name in method_names:
+        if not is_method(obj, method_name):
+            raise BetseMethodException(
+                'Object "{}" method {}() undefined.'.format(obj, method_name))
+
 # ....................{ TESTERS                            }....................
 @type_check
 def is_method(obj: object, method_name: str) -> bool:
     '''
-    ``True`` only if the passed object has a method with the passed name.
+    ``True`` only if the passed object provides a method with the passed name.
 
     Parameters
     ----------
