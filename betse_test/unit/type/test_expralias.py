@@ -31,8 +31,8 @@ _Namarie = Enum('_Namarie', (
 @fixture(scope='session')
 def betse_expralias() -> object:
     '''
-    Fixture creating and returning a mock object whose class contains instances
-    of all expression alias descriptors to be unit-tested.
+    Fixture creating and returning a mock object whose ad-hoc class contains
+    instances of all expression alias descriptors to be unit tested.
     '''
 
     # Imports deferred for safety.

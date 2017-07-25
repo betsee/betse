@@ -9,7 +9,8 @@ YAML-backed simulation visual subconfigurations.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
 from betse.science.config.confabc import (
-    SimConfABC, SimConfListableABC, SimConfListItemTypedABC, conf_alias)
+    SimConfABC, SimConfListableABC, SimConfListItemTypedABC)
+from betse.science.config.confalias import conf_alias
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 

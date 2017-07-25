@@ -7,7 +7,7 @@ import numpy as np
 from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
 from betse.lib.matplotlib import mplutil
 from betse.science.config import confio #, confalias
-from betse.science.config.confabc import conf_alias
+from betse.science.config.confalias import conf_alias
 from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
 from betse.science.config.export.confanim import SimConfAnimAll
@@ -24,12 +24,9 @@ from collections import OrderedDict
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
 class Parameters(object):
     '''
-    Storage for all user-defined parameters used in world-building,
-    simulation, and plotting.
-
-    These parameters are *deserialized* (i.e., read, loaded, and converted)
-    from the user-defined YAML configuration file passed to this object on
-    initialization.
+    High-level simulation configuration encapsulating the low-level dictionary
+    deserialized (i.e., parsed) from the user-defined YAML-formatted file
+    underlying the current simulation.
 
     Attributes (Private)
     ----------
@@ -41,7 +38,7 @@ class Parameters(object):
         this dictionary are safely retrievable and modifiable by callers *only*
         via the public :func:`conf_alias` data descriptors in this class.
 
-    Attributes (General: Path)
+    Attributes (Path)
     ----------
     config_dirname : str
         Absolute path of the directory containing the source YAML configuration
@@ -51,6 +48,37 @@ class Parameters(object):
     config_filename : str
         Absolute path of the source YAML configuration file from which this
         object was first deserialized.
+
+    Attributes (Path: Export)
+    ----------
+    export_init_dirname : str
+        Relative path of the directory containing all results exported by this
+        simulation's most recent initialization, relative to the absolute path
+        of the directory containing this simulation configuration's YAML file.
+    export_sim_dirname : str
+        Relative path of the directory containing all results exported by this
+        simulation's most recent simulation, relative to the absolute path of
+        the directory containing this simulation configuration's YAML file.
+
+    Attributes (Path: Pickle)
+    ----------
+    pickle_seed_basename : str
+        Basename of the pickled file providing this simulation's most recently
+        seeded cell cluster within the current :attr:`init_dirname`.
+    pickle_init_basename : str
+        Basename of the pickled file providing this simulation's most recent
+        initialization within the current :attr:`init_dirname`.
+    pickle_init_dirname : str
+        Relative path of the directory containing both the :attr:`init_basename`
+        and :attr:`init_basename` files, relative to the absolute path of the
+        directory containing this simulation configuration's YAML file.
+    pickle_sim_basename : str
+        Basename of the pickled file providing this simulation's most recent
+        simulation within the current :attr:`sim_dirname`.
+    pickle_init_dirname : str
+        Relative path of the directory containing the :attr:`sim_basename` file,
+        relative to the absolute path of the directory containing this
+        simulation configuration's YAML file.
 
     Attributes (General: Boolean)
     ----------
@@ -121,10 +149,20 @@ class Parameters(object):
         to be associated with particular simulation constants and parameters).
     '''
 
-    # ..................{ ALIASES ~ path                     }..................
-    world_filename = conf_alias("['init file saving']['worldfile']", str)
-    init_filename  = conf_alias("['init file saving']['file']", str)
-    sim_filename   = conf_alias("['sim file saving']['file']", str)
+    # ..................{ ALIASES ~ export : dir             }..................
+    export_init_dirname = conf_alias(
+        "['results file saving']['init directory']", str)
+    export_sim_dirname  = conf_alias(
+        "['results file saving']['sim directory']", str)
+
+    # ..................{ ALIASES ~ pickle : dir             }..................
+    pickle_init_dirname = conf_alias("['init file saving']['directory']", str)
+    pickle_sim_dirname  = conf_alias("['sim file saving']['directory']", str)
+
+    # ..................{ ALIASES ~ pickle : base            }..................
+    pickle_seed_basename = conf_alias("['init file saving']['worldfile']", str)
+    pickle_init_basename = conf_alias("['init file saving']['file']", str)
+    pickle_sim_basename  = conf_alias("['sim file saving']['file']", str)
 
     # ..................{ ALIASES ~ bool                     }..................
     sim_ECM = conf_alias(
@@ -189,15 +227,19 @@ class Parameters(object):
         #  *ALWAYS* wraps these variables with os.path.expanduser(), let's just
         #  do so once for each variable.
 
-         # Define paths for saving initialization runs, simulation runs, and results:
+        # Absolute or relative paths of the directories containing saved
+        # initialization and simulation runs.
         self.init_path = pathnames.join(
-            self.config_dirname, self._conf['init file saving']['directory'])  # world, inits, and sims are saved and read to/from this directory.
+            self.config_dirname, self.pickle_init_dirname)
         self.sim_path = pathnames.join(
-            self.config_dirname, self._conf['sim file saving']['directory']) # folder to save unique simulation and data linked to init
-        self.sim_results = pathnames.join(
-            self.config_dirname, self._conf['results file saving']['sim directory']) # folder to auto-save results (graphs, images, animations)
+            self.config_dirname, self.pickle_sim_dirname)
+
+        # Absolute or relative paths of the directories containing saved
+        # initialization and simulation results.
         self.init_results = pathnames.join(
-            self.config_dirname, self._conf['results file saving']['init directory']) # folder to auto-save results (graphs, images, ani
+            self.config_dirname, self.export_init_dirname)
+        self.sim_results = pathnames.join(
+            self.config_dirname, self.export_sim_dirname)
 
         #---------------------------------------------------------------------------------------------------------------
         # INIT & SIM SETTINGS

@@ -194,8 +194,15 @@ def get_data_yaml_dirname() -> str:
     return dirs.join_and_die_unless_dir(get_data_dirname(), 'yaml')
 
 
+#FIXME: Arguably silly. The "betse.data.yaml" subdirectory now contains exactly
+#the contents of the default simulation configuration -- no more and no less.
+#At the very least, this getter should probably be reduced to simply iterating
+#over and returning the absolute paths of the immediate subdirectories of
+#get_data_yaml_dirname(). At the most, this getter should be elimated entirely;
+#indeed, this getter is currently only called once in the codebase and otherwise
+#appears to serve no purpose. *sigh*
 @callable_cached
-def get_data_default_asset_dirnames() -> str:
+def get_data_default_asset_dirnames() -> tuple:
     '''
     Tuple of the absolute paths of all directories containing assets (e.g.,
     media files, YAML files) referenced and hence required by this application's
@@ -223,11 +230,11 @@ def get_data_default_asset_dirnames() -> str:
     # Absolute path of the top-level YAML-specific data directory.
     DATA_YAML_DIRNAME = get_data_yaml_dirname()
 
-    # Tuple of the absolute paths of all default asset directories.
-    data_default_asset_dirnames = (
-        pathnames.join(DATA_YAML_DIRNAME, 'geo'),
-        pathnames.join(DATA_YAML_DIRNAME, 'extra_configs'),
-    )
+    # Tuple comprehension of the absolute paths of default asset directories.
+    data_default_asset_dirnames = tuple(
+        pathnames.join(DATA_YAML_DIRNAME, asset_basename)
+        for asset_basename in (
+            'INITS', 'RESULTS', 'SIMS', 'extra_configs', 'geo',))
 
     # If any such directory is not found, fail.
     dirs.die_unless_dir(*data_default_asset_dirnames)

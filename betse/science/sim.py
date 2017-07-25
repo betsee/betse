@@ -439,8 +439,8 @@ class Simulator(object):
         os.makedirs(sim_cache_dir, exist_ok=True)
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedInit = os.path.join(betse_cache_dir, p.init_filename)
-        self.savedSim = os.path.join(sim_cache_dir, p.sim_filename)
+        self.savedInit = os.path.join(betse_cache_dir, p.pickle_init_basename)
+        self.savedSim = os.path.join(sim_cache_dir, p.pickle_sim_basename)
 
     def baseInit_all(self, cells, p):
         """

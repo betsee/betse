@@ -12,7 +12,8 @@ YAML-backed simulation animation subconfigurations.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confabc import SimConfABC, SimConfList, conf_alias
+from betse.science.config.confabc import SimConfABC, SimConfList
+from betse.science.config.confalias import conf_alias
 from betse.science.config.export.confvis import (
     SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
 from betse.util.type import ints

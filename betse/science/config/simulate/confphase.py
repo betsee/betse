@@ -7,7 +7,10 @@ YAML-backed simulation phase subconfigurations.
 '''
 
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confabc import SimConfABC, conf_alias
+from betse.science.config.confabc import SimConfABC
+from betse.science.config.confalias import conf_alias
+
+
 # from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUBCLASSES                         }....................

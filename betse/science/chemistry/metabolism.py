@@ -2,17 +2,18 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
-"""
+'''
+Create and electrodiffuses a suite of customizable general molecule in the BETSE
+ecosystem, including functionality to pump the molecule, use it as a gating
+ligand, produce and consume it, and use it an enzyme to facilitate another
+reaction.
 
-Create and electrodiffuses a suite of customizable general molecule in the BETSE ecosystem,
-including functionality to pump the molecule, use it as a gating ligand, produce and consume it,
-and use it an enzyme to facilitate another reaction. The molecule is assumed to be at low
-concentrations and to not have a significant effect on system voltages or currents. This
-module creates a structure containing all user-defined molecules, along with the facilities
-to initialize, define the core computations for a simulation loop, save and report on data,
-and plot.
-
-"""
+The molecule is assumed to be at low concentrations and to not have a
+significant effect on system voltages or currents. This module creates a
+structure containing all user-defined molecules, along with the facilities to
+initialize, define the core computations for a simulation loop, save and report
+on data, and plot.
+'''
 
 import os
 import os.path

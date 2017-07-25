@@ -357,7 +357,7 @@ class Cells(object):
         os.makedirs(betse_cache_dir, exist_ok=True)
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedWorld = os.path.join(betse_cache_dir, p.world_filename)
+        self.savedWorld = os.path.join(betse_cache_dir, p.pickle_seed_basename)
 
     def makeWorld(self, p):
         """

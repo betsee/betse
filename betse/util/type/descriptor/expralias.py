@@ -18,6 +18,7 @@ from betse.util.type.types import (
     type_check,
     CallableOrNoneTypes,
     EnumType,
+    SequenceTypes,
     StrOrNoneTypes,
     TestableOrNoneTypes,
 )
@@ -41,6 +42,7 @@ def expr_alias(
     # to this function is required to be the "cls" parameter; doing so permits
     # callers to concisely call this function with positional parameters only.
     cls: TestableOrNoneTypes = None,
+    base_classes: SequenceTypes = (),
     expr_settable: StrOrNoneTypes = None,
     predicate: CallableOrNoneTypes = None,
     predicate_expr: StrOrNoneTypes = None,
@@ -51,9 +53,10 @@ def expr_alias(
     Expression alias **data descriptor** (i.e., object satisfying the data
     descriptor protocol, usually defined at class scope), dynamically aliasing a
     target variable of the passed type and/or satisfying the passed predicate
-    bound to instances of the class instantiating this descriptor to an
-    arbitrarily complex source Python expression suitable for use as both the
-    left- and right-hand sides of Python assignment statements.
+    bound to instances of the class subclassing the passed base classes and
+    instantiating this descriptor to an arbitrarily complex source Python
+    expression suitable for use as both the left- and right-hand sides of Python
+    assignment statements.
 
     This function (in order):
 
@@ -154,6 +157,12 @@ def expr_alias(
         * ``__set__()`` implementation embeds the value of this parameter.
         Defaults to ``None``, in which case this parameter defaults to the
         value of the ``expr`` parameter.
+    base_classes : optional[SequenceTypes]
+        Sequence of all base classes of the class dynamically synthesized by
+        this function for the returned expression alias data descriptor, usually
+        used to unify all such descriptors under a common abstract base class.
+        Defaults to the empty tuple, equivalent to the 1-tuple ``(object,)``
+        containing only the root base class of all classes.
     cls : optional[TestableTypes]
         Either:
         * A class, in which case an exception is raised if the value of this
@@ -192,17 +201,17 @@ def expr_alias(
 
     Returns
     ----------
-    object
-        Expression alias data descriptor as detailed above.
+    base_classes
+        Expression alias data descriptor as detailed above, guaranteed to be an
+        instance of all passed base classes.
 
     See Also
     ----------
-    :class:`ExprAliasBound`
-    :class:`ExprAliasUnbound`
-        Higher-level class encapsulating the data descriptor returned by this
-        lower-level function, intended to be used where declaring a descriptor
-        at class scope is inappropriate (e.g., where the expression to be
-        aliased is unknown at class definition time).
+    :class:`betse.util.type.descriptor.datadesc`
+        Submodule providing higher-level classes encapsulating data descriptors
+        returned by this lower-level function, intended for use where declaring
+        a descriptor at class scope is inappropriate (e.g., where the expression
+        to be aliased is unknown at class definition time).
     '''
 
     # Avoid circular import dependencies.
@@ -275,7 +284,7 @@ def expr_alias(
                 value, self_descriptor.__expr_alias_cls))
     '''
 
-    # If a validational predicate was passed...
+    # If a predicate was passed...
     if predicate is not None:
         # If no predicate label was passed, raise an exception.
         if predicate_label is None:
@@ -297,7 +306,7 @@ def expr_alias(
             'Expression alias value {{!r}} not {predicate_label}.'.format(value))
     '''.format(predicate_label=predicate_label)
 
-    # If a validational predicate expression was passed...
+    # If a predicate expression was passed...
     if predicate_expr is not None:
         # If no predicate label was passed, raise an exception.
         if predicate_label is None:
@@ -318,10 +327,30 @@ def expr_alias(
         class_init_body = '''
     pass'''
 
+    # Prefix all possible implementations of the __get__() method body with a
+    # conditional handling the two styles with which Python calls this method --
+    # specifically, class attribute access. This conditional is common
+    # boilerplate prefixing most implementations of this method.
+    #
+    # To quote the official documentation:
+    #
+    #   "object.__get__(self, instance, owner)
+    #
+    #    Called to get the attribute of the "owner" class (class attribute
+    #    access) or of an instance of that class (instance attribute access).
+    #    "owner" is always the owner class, while "instance" is the instance
+    #    that the attribute was accessed through, or None when the attribute is
+    #    accessed through the owner. This method should return the (computed)
+    #    attribute value or raise an AttributeError exception."
+    class_get_body = '''
+    if {obj_name} is None:
+        return self_descriptor
+    '''.format(obj_name=obj_name)
+
     # If this expression is validated...
     if value_test_block:
         # Implement the __get__() method body to validate this expression.
-        class_get_body = '''
+        class_get_body += '''
     # Value to which this expression evaluates to be returned.
     value = {expr_gettable}
 
@@ -343,7 +372,7 @@ def expr_alias(
     # Else, this expression is unvalidated. For efficiency, reduce the
     # __get__() and __set__() method bodies to the expected one-liners.
     else:
-        class_get_body = '''
+        class_get_body += '''
     return {expr_gettable}'''.format(expr_gettable=expr_gettable)
         class_set_body = '''
     {expr_settable} = value'''.format(expr_settable=expr_settable)
@@ -403,6 +432,7 @@ def __set__(self_descriptor, {obj_name}, value):
 
     # Descriptor class with this name containing only these methods.
     expr_alias_class = classes.define_class(
+        base_classes=base_classes,
         class_name=_get_expr_alias_class_name(),
         class_attr_name_to_value=class_method_name_to_func,
     )
@@ -412,14 +442,21 @@ def __set__(self_descriptor, {obj_name}, value):
 
 # ....................{ DESCRIPTORS ~ enum                 }....................
 @type_check
-def expr_enum_alias(expr: str, enum_type: EnumType) -> object:
+def expr_enum_alias(
+    # Mandatory parameters.
+    expr: str,
+    enum_type: EnumType,
+
+    # Optional parameters.
+    base_classes: SequenceTypes = (),
+) -> object:
     '''
     Enumeration-specific expression alias **data descriptor** (i.e., object
     satisfying the data descriptor protocol), dynamically aliasing a target
     variable of the passed enumeration type bound to instances of the class
-    instantiating this descriptor to an arbitrarily complex source Python
-    expression suitable for use as both the left- and right-hand sides of Python
-    assignment statements.
+    subclassing the passed base classes and instantiating this descriptor to an
+    arbitrarily complex source Python expression suitable for use as both the
+    left- and right-hand sides of Python assignment statements.
 
     Invariants
     ----------
@@ -461,11 +498,18 @@ def expr_enum_alias(expr: str, enum_type: EnumType) -> object:
         Enumeration that the value of this variable *must* be a member of.
         Setting this variable to a value *not* a member of this enumeration will
         raise an exception.
+    base_classes : optional[SequenceTypes]
+        Sequence of all base classes of the class dynamically synthesized by
+        this function for the returned expression alias data descriptor, usually
+        used to unify all such descriptors under a common abstract base class.
+        Defaults to the empty tuple, equivalent to the 1-tuple ``(object,)``
+        containing only the root base class of all classes.
 
     Returns
     ----------
-    object
-        Enemuration-specific expression alias data descriptor as detailed above.
+    base_classes
+        Enemuration-specific expression alias data descriptor as detailed above,
+        guaranteed to be an instance of all passed base classes.
 
     See Also
     ----------
@@ -500,6 +544,12 @@ def __init__(self_descriptor, __expr_enum_alias_type=__expr_enum_alias_type):
 
 # Convert this variable's low-level string into a high-level enumeration member.
 def __get__(self_descriptor, self, cls):
+
+    # If this data descriptor is accessed as a class attribute, return this data
+    # descriptor as is. See enum_expr() for further details.
+    if self is None:
+        return self_descriptor
+
     # Name of the corresponding enumeration member to be returned.
     enum_member_name = {expr}
 
@@ -552,6 +602,7 @@ def __set__(self_descriptor, self, enum_member):
 
     # Descriptor class with this name containing only these methods.
     expr_alias_class = classes.define_class(
+        base_classes=base_classes,
         class_name=_get_expr_alias_class_name(),
         class_attr_name_to_value=expr_alias_class_methods,
     )
