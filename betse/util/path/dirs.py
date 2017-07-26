@@ -344,7 +344,7 @@ def copy(dirname_source: str, dirname_target: str) -> None:
     )
 
 # ....................{ CONTEXTS                           }....................
-#FIXME: For disambiguity, rename to cwd().
+#FIXME: For disambiguity, rename to setting_cwd().
 #FIXME: Shift into a new "betse.util.os.shell.shelldir" submodule.
 @contextmanager
 @type_check

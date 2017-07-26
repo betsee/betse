@@ -14,18 +14,31 @@ from enum import Enum
 import pytest
 from pytest import fixture
 
+# ....................{ SUPERCLASSES                       }....................
+class ExprAliasBaseClass(object):
+    '''
+    Placeholder superclass of an arbitrary expression alias instantiated below.
+    '''
+
+    pass
+
 # ....................{ GLOBALS                            }....................
-# Enumeration type to be aliased by the subsequent class. As required by the
-# expr_enum_alias() data descriptor, the names of all members of this
-# enumeration *MUST* be uppercase.
 _ElendilsOath = Enum('_ElendilsOath', (
     'SINOME', 'MARUVAN', 'AR', 'HILDINYAR', 'TENN' 'AMBAR', 'METTA',))
+'''
+Enumeration type to be aliased by the subsequent class. As required by the
+:func:`expr_enum_alias` data descriptor, the names of all members of this
+enumeration *must* be uppercase.
+'''
 
-# Enumeration type failing to satisfy the requirements of the
-# expr_enum_alias() data descriptor. Specifically, at least one of the names of
-# a member of this enumeration is *NOT* uppercase.
+
 _Namarie = Enum('_Namarie', (
     'NU', 'LUINI', 'YASSEN', 'TINTILAR', 'i', 'ELENI',))
+'''
+Enumeration type failing to satisfy the requirements of the
+:func:`expr_enum_alias(`data descriptor. Specifically, at least one of the names
+of a member of this enumeration is *not* uppercase.
+'''
 
 # ....................{ FIXTURES                           }....................
 @fixture(scope='session')
@@ -42,9 +55,13 @@ def betse_expralias() -> object:
 
     # Class containing instances of this descriptor.
     class SongOfAragorn(object):
-        # Descriptor aliasing an existing dictionary entry with class typing.
+        # Descriptor aliasing an existing dictionary entry with class typing
+        # and subclassing an ad-hoc base class.
         line_four = expr_alias(
-            expr='self._deep_roots["are not"]["reached by"]', cls=str)
+            expr='self._deep_roots["are not"]["reached by"]',
+            cls=str,
+            base_classes=(ExprAliasBaseClass,),
+        )
 
         # Descriptor aliasing an existing dictionary entry with predicate
         # typing.
@@ -215,6 +232,10 @@ def test_expralias_pass(betse_expralias) -> None:
     assert betse_expralias._deep_roots["The crownless again"]["shall be"] == (
         prince_of_morocco)
 
+    # Test calling the class-typed data descriptor's __get__() implementation as
+    # a class rather than instance variable.
+    assert isinstance(betse_expralias.__class__.line_four, ExprAliasBaseClass)
+
 
 def test_expralias_fail(betse_expralias) -> None:
     '''
@@ -237,12 +258,6 @@ def test_expralias_fail(betse_expralias) -> None:
         expr_enum_alias(
             expr='wherein the stars tremble in the song of her voice,',
             enum_type=_Namarie)
-
-    # Test calling the class-typed data descriptor's __get__() implementation as
-    # a class rather than instance variable. Since this implementation expects
-    # to be called only as an instance variable, an exception is raised.
-    with pytest.raises(AttributeError):
-        betse_expralias.__class__.line_four
 
     # Test passing the class-typed data descriptor's __set__() implementation a
     # non-string value.

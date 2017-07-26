@@ -913,26 +913,27 @@ class MplConfig(object):
         return metadata
 
     # ..................{ CONTEXTS                           }..................
+    #FIXME: For orthogonality, rename to enabling_verbosity_debug_if_helpful().
     @contextmanager
     def verbosity_debug_if_helpful(self):
         '''
         Context manager setting the matplotlib-specific verbosity level to
-        `debug` if currently `helpful` for the duration of this context.
+        ``debug`` if currently ``helpful`` for the duration of this context.
 
         This context manager temporarily increases this level by one level.
-        Although the `helpful` and `debug` levels _both_ produce debug output,
-        only the latter produces debug output for external commands invoked by
-        matplotlib (e.g., for encoding video via `ffmpeg`); the former produces
-        _no_ such output. However, the latter is overly verbose for general use
-        and hence useful only for specific cases. Consider instead:
+        Although the ``helpful`` and ``debug`` levels *both* produce debug
+        output, only the latter produces debug output for external commands
+        invoked by matplotlib (e.g., for encoding video via ``ffmpeg``); the
+        former produces *no* such output. Since the latter is overly verbose for
+        general use and hence useful only for specific cases, consider instead:
 
-        * Defaulting to the `helpful` level.
-        * Escalating to the `debug` level by explicitly entering this context
+        * Defaulting to the ``helpful`` level.
+        * Escalating to the ``debug`` level by explicitly entering this context
           manager for the duration of special-case work requiring verbosity.
 
         This context manager guaranteeably reverts this level to the prior
-        level even when fatal exceptions are raised. If this level is _not_
-        currently `helpful`, this context manager is a noop.
+        level even when fatal exceptions are raised. If this level is *not*
+        currently ``helpful``, this context manager is a noop.
 
         Returns
         -----------
@@ -942,8 +943,8 @@ class MplConfig(object):
         Yields
         -----------
         None
-            Since this context manager yields no value, the caller's `with`
-            statement must be suffixed by _no_ `as` clause.
+            Since this context manager yields no value, the caller's ``with``
+            statement must be suffixed by *no* ``as`` clause.
         '''
 
         # If the current level is "helpful"...

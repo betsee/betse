@@ -9,7 +9,7 @@ Low-level pathname (e.g., basename, dirname, filetype) facilities.
 
 # ....................{ IMPORTS                            }....................
 import errno, os
-from betse.exceptions import BetsePathException
+from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, ModuleType, ContainerType
 
@@ -26,7 +26,23 @@ these errors into raised exceptions. Under Linux, for example, a
 :class:`TypeError` exception of message ``"embedded NUL character"`` is raised.
 '''
 
-# ....................{ EXCEPTIONS                         }....................
+# ....................{ EXCEPTIONS ~ absolute              }....................
+def die_if_relative(pathname: str) -> None:
+    '''
+    Raise an exception if the passed path is relative (i.e., unless the passed
+    path is absolute).
+
+    See Also
+    ----------
+    :func:`is_relative`
+        Further details.
+    '''
+
+    if is_relative(pathname):
+        raise BetsePathnameException(
+            'Pathname "{}" relative rather than absolute.'.format(pathname))
+
+# ....................{ EXCEPTIONS ~ basename              }....................
 def die_if_basename(pathname: str) -> None:
     '''
     Raise an exception if the passed path contains no directory separators.
@@ -38,9 +54,9 @@ def die_if_basename(pathname: str) -> None:
     '''
 
     if is_basename(pathname):
-        raise BetsePathException(
+        raise BetsePathnameException(
             'Pathname "{}" contains no directory separators '
-            "(i.e., '{}' characters).".format(pathname, os.sep))
+            "(i.e., '{}' characters).".format(pathname, os.path.sep))
 
 
 def die_unless_basename(pathname: str) -> None:
@@ -55,9 +71,33 @@ def die_unless_basename(pathname: str) -> None:
     '''
 
     if not is_basename(pathname):
-        raise BetsePathException(
+        raise BetsePathnameException(
             'Pathname "{}" contains one or more directory separators'
-            "(i.e., '{}' characters).".format(pathname, os.sep))
+            "(i.e., '{}' characters).".format(pathname, os.path.sep))
+
+# ....................{ EXCEPTIONS ~ parent                }....................
+def die_unless_parent(parent_dirname: str, child_pathname: str) -> bool:
+    '''
+    Raise an exception unless the second passed pathname is a child of (i.e.,
+    prefixed by) the first passed dirname.
+
+    Parameters
+    ----------
+    parent_dirname : str
+        Absolute or relative pathname of the candidate parent directory.
+    child_pathname : str
+        Absolute or relative pathname of the candidate child path.
+
+    See Also
+    ----------
+    :func:`is_parent`
+        Further details.
+    '''
+
+    if not is_parent(parent_dirname, child_pathname):
+        raise BetsePathnameException(
+            'Pathname "{}" not in dirname "{}".'.format(
+                child_pathname, parent_dirname,))
 
 # ....................{ EXCEPTIONS ~ filetype              }....................
 def die_unless_filetype_equals(pathname: str, filetype: str) -> None:
@@ -71,7 +111,7 @@ def die_unless_filetype_equals(pathname: str, filetype: str) -> None:
     '''
 
     if not is_filetype_equals(pathname, filetype):
-        raise BetsePathException(
+        raise BetsePathnameException(
             'Pathname "{}" filetype not "{}".'.format(pathname, filetype))
 
 # ....................{ TESTERS                            }....................
@@ -202,16 +242,6 @@ def is_pathname(pathname: str) -> bool:
     # If any other exception was raised, this is an unrelated fatal issue
     # (e.g., a bug). Permit this exception to unwind the call stack.
 
-
-@type_check
-def is_basename(pathname: str) -> bool:
-    '''
-    ``True`` only if the passed pathname is a **pure basename** (i.e., contains
-    no directory separators and hence no directory components).
-    '''
-
-    return os.path.sep not in pathname
-
 # ....................{ TESTERS ~ absolute                 }....................
 @type_check
 def is_absolute(pathname: str) -> bool:
@@ -240,6 +270,48 @@ def is_relative(pathname: str) -> bool:
     '''
 
     return not is_absolute(pathname)
+
+# ....................{ TESTERS ~ basename                 }....................
+@type_check
+def is_basename(pathname: str) -> bool:
+    '''
+    ``True`` only if the passed pathname is a **pure basename** (i.e., contains
+    no directory separators and hence no directory components).
+    '''
+
+    return os.path.sep not in pathname
+
+# ....................{ TESTERS ~ parent                   }....................
+@type_check
+def is_parent(parent_dirname: str, child_pathname: str) -> bool:
+    '''
+    ``True`` only if the second passed pathname is a child of (i.e., prefixed
+    by) the first passed dirname.
+
+    Parameters
+    ----------
+    parent_dirname : str
+        Absolute or relative pathname of the candidate parent directory.
+    child_pathname : str
+        Absolute or relative pathname of the candidate child path.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this child path is a child of this parent directory.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type import strs
+
+    # Absolute or relative pathname of the candidate parent directory, suffixed
+    # by this platform's directory separator to ensure this child is actually a
+    # contained child of this parent directory.
+    parent_dirname_suffixed = strs.add_suffix_unless_found(
+        text=parent_dirname, suffix=os.path.sep)
+
+    # True only if this child pathname is suffixed by this dirname.
+    return strs.is_prefix(text=child_pathname, prefix=parent_dirname_suffixed)
 
 # ....................{ TESTERS ~ filetype                 }....................
 @type_check
@@ -490,7 +562,7 @@ def get_filetype_undotted(pathname: str) -> str:
 
     Raises
     ----------
-    :exc:`BetsePathException`
+    :exc:`BetsePathnameException`
         If this pathname is *not* suffixed by a filetype.
 
     See Also
@@ -504,7 +576,8 @@ def get_filetype_undotted(pathname: str) -> str:
 
     # If this pathname has no filetype, raise an exception.
     if filetype is None:
-        raise BetsePathException('Path "{}" has no filetype.'.format(pathname))
+        raise BetsePathnameException(
+            'Path "{}" has no filetype.'.format(pathname))
 
     # Else, return this filetype.
     return filetype
@@ -540,7 +613,7 @@ def canonicalize(pathname: str) -> str:
     Specifically (in order):
 
     . Transitively resolve all symbolic links, producing a pathname that either
-      does not exist _or_ does exist but is not a symbolic link.
+      does not exist *or* does exist but is not a symbolic link.
     . Perform **tilde expansion,** replacing a ``~`` character prefixing this
       path by the absolute path of the current user's home directory.
     . Perform **path normalization,** thus (in no particular order):
@@ -589,3 +662,26 @@ def join(*partnames: str) -> str:
     '''
 
     return os.path.join(*partnames)
+
+# ....................{ RELATIVIZERS                       }....................
+@type_check
+def relativize(trg_pathname: str, src_dirname: str) -> str:
+    '''
+    Relative pathname of the second passed absolute or relative pathname
+    relative to the first passed absolute or relative dirname.
+
+    Parameters
+    ----------
+    src_dirname : str
+        Absolute or relative pathname of the source directory.
+    trg_pathname : str
+        Absolute or relative pathname of the target path.
+
+    Returns
+    ----------
+    str
+        Absolute or relative pathname of the target path converted into a
+        relative path relative to the source directory.
+    '''
+
+    return os.path.relpath(trg_pathname, start=src_dirname)

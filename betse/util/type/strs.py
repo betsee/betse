@@ -159,8 +159,20 @@ def is_suffix(text: str, suffix: str) -> bool:
 # ....................{ ADDERS                             }....................
 def add_prefix_unless_found(text: str, prefix: str) -> str:
     '''
-    Prefix the passed string by the passed prefix unless such string is already
-    prefixed by such prefix.
+    Prefix the passed string by the passed prefix unless the former is already
+    prefixed by the latter.
+
+    Parameters
+    ----------
+    text : str
+        String to add this prefix to.
+    prefix : str
+        Prefix to add to this string.
+
+    Returns
+    ----------
+    str
+        The former prefixed by the latter.
     '''
 
     return text if is_prefix(text, prefix) else prefix + text
@@ -168,8 +180,20 @@ def add_prefix_unless_found(text: str, prefix: str) -> str:
 
 def add_suffix_unless_found(text: str, suffix: str) -> str:
     '''
-    Suffix the passed string by the passed suffix unless such string is already
-    suffixed by such suffix.
+    Suffix the passed string by the passed suffix unless the former is already
+    suffixed by the latter.
+
+    Parameters
+    ----------
+    text : str
+        String to add this suffix to.
+    suffix : str
+        Suffix to add to this string.
+
+    Returns
+    ----------
+    str
+        The former suffixed by the latter.
     '''
 
     return text if is_suffix(text, suffix) else text + suffix
@@ -558,7 +582,7 @@ def remove_prefix_if_found(text: str, prefix: str) -> str:
 
     return text[len(prefix):] if is_prefix(text, prefix) else text
 
-# ....................{ REMOVERS ~ prefix                  }....................
+# ....................{ REMOVERS ~ suffix                  }....................
 @type_check
 def remove_suffix_if_found(text: str, suffix: str) -> str:
     '''
