@@ -1,0 +1,10 @@
+# --------------------( LICENSE                            )--------------------
+# Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Empty ".gitignore" forcing Git to track this otherwise empty directory.
+#
+# --------------------( SEE ALSO                           )--------------------
+# For further details, see the following StackOverflow discussion:
+#     https://stackoverflow.com/questions/115983/how-can-i-add-an-empty-directory-to-a-git-repository
