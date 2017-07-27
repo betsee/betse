@@ -11,7 +11,13 @@ Low-level directory facilities.
 import os, shutil
 from betse.exceptions import BetseDirException
 from betse.util.io.log import logs
-from betse.util.type.types import type_check, GeneratorType, NumericTypes
+from betse.util.type.types import (
+    type_check,
+    GeneratorType,
+    IterableOrNoneTypes,
+    NumericTypes,
+    SequenceTypes,
+)
 from contextlib import contextmanager
 from os import path
 
@@ -113,8 +119,8 @@ def get_cwd_dirname() -> str:
     return os.getcwd()
 
 # ....................{ GETTERS ~ mtime : recursive        }....................
-#FIXME: Consider contributing the get_mtime_recursive_newest() function as an answer to
-#the following StackOverflow question:
+#FIXME: Consider contributing the get_mtime_recursive_newest() function as an
+#answer to the following StackOverflow question:
 #    https://stackoverflow.com/questions/26498285/find-last-update-time-of-a-directory-includes-all-levels-of-sub-folders
 
 # If the current platform provides the os.fwalk() function *AND* the os.stat()
@@ -124,6 +130,9 @@ def get_cwd_dirname() -> str:
 if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
     @type_check
     def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
+
+        # Avoid circular import dependencies.
+        from betse.util.io.exceptions import raise_exception
 
         # Log this recursion.
         logs.log_debug(
@@ -160,7 +169,7 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
                 # by low-level functions called by os.walk() (e.g.,
                 # os.listdir()) are *NOT* silently ignored...
                 for _, _, child_file_basenames, parent_dir_fd
-                 in os.fwalk(dirname, onerror=_raise_exception)
+                 in os.fwalk(dirname, onerror=raise_exception)
             ),
         )
 
@@ -168,6 +177,9 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
 else:
     @type_check
     def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
+
+        # Avoid circular import dependencies.
+        from betse.util.io.exceptions import raise_exception
 
         # Log this recursion.
         logs.log_debug(
@@ -198,7 +210,7 @@ else:
                 # that errors emitted by low-level functions called by
                 # os.walk() (e.g., os.listdir()) are *NOT* silently ignored...
                 for parent_dirname, _, child_file_basenames
-                 in os.walk(dirname, onerror=_raise_exception)
+                 in os.walk(dirname, onerror=raise_exception)
             ),
         )
 
@@ -223,7 +235,7 @@ get_mtime_recursive_newest.__doc__ = '''
     Parameters
     -----------
     dirname : str
-        Relative or absolute path of the directory to inspect.
+        Absolute or relative path of the directory to inspect.
 
     Returns
     -----------
@@ -240,21 +252,6 @@ get_mtime_recursive_newest.__doc__ = '''
         insufficient permissions).
     '''
 
-
-@type_check
-def _raise_exception(exception: Exception) -> None:
-    '''
-    Raise the passed exception.
-
-    This function is principally intended to be passed as the value of the
-    ``onerror`` parameter accepted by the :func:`os.walk` and :func:`os.fwalk`
-    functions, preventing errors emitted by low-level functions called by these
-    functions (e.g., :func:`os.listdir`) from being ignored. (By default, these
-    functions silently ignore a subset of these errors.)
-    '''
-
-    raise exception
-
 # ....................{ SETTERS                            }....................
 #FIXME: Shift into a new "betse.util.os.shell.shelldir" submodule.
 @type_check
@@ -270,7 +267,7 @@ def set_cwd(dirname: str) -> None:
     Parameters
     -----------
     dirname : str
-        Relative or absolute path of the directory to change to.
+        Absolute or relative path of the directory to change to.
     '''
 
     # Log this change.
@@ -281,20 +278,30 @@ def set_cwd(dirname: str) -> None:
 
 # ....................{ COPIERS                            }....................
 @type_check
-def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
+def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     '''
     Recursively copy the passed source directory to a subdirectory of the passed
-    target directory having the same basename as such source directory.
+    target directory having the same basename as this source directory.
+
+    Parameters
+    -----------
+    src_dirname : str
+        Absolute or relative path of the source directory to be recursively
+        copied from.
+    trg_dirname : str
+        Absolute or relative path of the target directory to copy into.
+
+    All remaining parameters are passed as is to the :func:`copy` function.
 
     See Also
     ----------
     :func:`copy`
-        For further details.
+        Further details.
 
     Examples
     ----------
         >>> from betse.util.path import dirs
-        >>> dirs.copy_into_target_dir('/usr/src/linux/', '/tmp/')
+        >>> dirs.copy_into_dir('/usr/src/linux/', '/tmp/')
         >>> dirs.is_dir('/tmp/linux/')
         True
     '''
@@ -302,46 +309,118 @@ def copy_into_target_dir(dirname_source: str, dirname_target: str) -> None:
     # Avoid circular import dependencies.
     from betse.util.path import pathnames
 
-    # Copy us up the directory bomb.
-    basename_source = pathnames.get_basename(dirname_source)
-    copy(dirname_source, pathnames.join(dirname_target, basename_source))
+    # Basename of this source directory.
+    src_basename = pathnames.get_basename(src_dirname)
+
+    # Absolute or relative path of the target directory to copy to.
+    trg_subdirname = pathnames.join(trg_dirname, src_basename)
+
+    # Recursively copy this source to target directory.
+    copy(src_dirname, trg_subdirname, *args, **kwargs)
 
 
+#FIXME: Note that, if we ever need to recursively copy a source directory into a
+#target directory that already exists, the existing
+#distutils.dir_util.copy_tree() function should be called instead. Ideally, this
+#function would internally choose whether to call shutil.copytree() or
+#distutils.dir_util.copy_tree() based on whether or not "trg_dirname" exists.
+#Maybe? Or perhaps the fact that we currently raise an exception on this
+#condition is useful and we should instead define a new copy_overwrite()
+#function to preserve the existing semantics.
 @type_check
-def copy(dirname_source: str, dirname_target: str) -> None:
+def copy(
+    # Mandatory parameters.
+    src_dirname: str,
+    trg_dirname: str,
+
+    # Optional parameters.
+    ignore_basename_globs: IterableOrNoneTypes = None,
+) -> None:
     '''
     Recursively copy the passed source to target directory.
 
     All nonexistent parents of the target directory will be recursively created,
-    mimicking the action of the `mkdir -p` shell command. All symbolic links in
-    the source directory will be preserved (i.e., copied as is rather than their
-    transitive targets copied instead).
+    mimicking the action of the ``mkdir -p`` shell command. All symbolic links
+    in the source directory will be preserved (i.e., copied as is rather than
+    their transitive targets copied instead).
 
-    If either the source directory does not exist *or* the target directory
-    already exists, an exception will be raised.
+    Parameters
+    -----------
+    src_dirname : str
+        Absolute or relative path of the source directory to be recursively
+        copied from.
+    trg_dirname : str
+        Absolute or relative path of the target directory to recursively copy to.
+    ignore_basename_globs : optional[IterableTypes]
+        Iterable of shell-style globs (e.g., ``('*.tmp', '.keep')``) matching
+        the basenames of all paths transitively owned by this source directory
+        to be ignored during recursion and hence neither copied nor visited.
+        Defaults to ``None``, in which case *all* paths transitively owned by
+        this source directory are unconditionally copied and visited.
+
+    Raises
+    -----------
+    BetseDirException
+        If:
+        * The source directory does not exist.
+        * One or more subdirectories of the target directory already exist that
+          are also subdirectories of the source directory. For safety, this
+          function always preserves rather than overwrites existing target
+          subdirectories.
     '''
 
     # Log this copy.
-    logs.log_debug(
-        'Copying directory "%s" to "%s"...', dirname_source, dirname_target)
+    logs.log_debug('Copying directory: %s -> %s', src_dirname, trg_dirname)
 
     # Raise an exception unless the source directory exists.
-    die_unless_dir(dirname_source)
+    die_unless_dir(src_dirname)
 
-    # Raise an exception if the target directory already exists. While we could
-    # defer to the exception raised by the shutil.copytree() function for such
-    # case, such exception's message erroneously refers to such directory as a
-    # file and is hence best avoided: e.g.,
+    # Dictionary of all keyword arguments to pass to shutil.copytree() below.
+    kwargs = {
+        'symlinks': True,
+    }
+
+    # If an iterable of shell-style globs matching basenames to be ignored was
+    # passed, convert this iterable into a predicate function of the form
+    # required by the shutil.copytree() function.
+    if ignore_basename_globs is not None:
+        kwargs['ignore'] = shutil.ignore_patterns(*ignore_basename_globs)
+
+    # If the target directory already exists, avoid passing this directory to
+    # the shutil.copytree() function, which refuses to copy to existing target
+    # directories by raising non-human-readable exceptions resembling:
     #
     #     [Errno 17] File exists: 'sample_sim'
-    die_if_dir(dirname_target)
+    #
+    # Technically, this is trivially circumventable by calling the
+    # distutils.dir_util.copy_tree() function, which happily copies to existing
+    # target directories by silently overwriting all conflicting target paths.
+    # Since such behaviour is arguably unsafe in the general case, this function
+    # instead iteratively copies all direct paths of the source directory into
+    # this target directory with the safer shutil.copytree() function.
+    if is_dir(trg_dirname):
+        #FIXME: Implement a iter_subpathnames() function and, after doing so,
+        #implement the following iteration properly:
+        #
+        # _, src_subdirnames, src_subfilenames = next(os.walk(src_dirname))
+        # for src_subdirname in src_subdirnames:
+        #     shutil.copytree(
+        #         src=src_subdirname, dst=pathnames.join(
+        #             trg_dirname, pathnames.get_basename(src_subdirname), **kwargs)
+        #
+        #For now, the following exception suffices.
 
-    # Perform such copy.
-    shutil.copytree(
-        src=dirname_source,
-        dst=dirname_target,
-        symlinks=True,
-    )
+        # Raise an exception if the target directory already exists. While we
+        # could defer to the exception raised by the shutil.copytree() function
+        # for this case, this exception's message erroneously refers to this
+        # directory as a file and is hence best avoided as non-human-readable:
+        #
+        #     [Errno 17] File exists: 'sample_sim'
+        die_if_dir(trg_dirname)
+    # Else, the target directory does *NOT* already exist, in which case calling
+    # the shutil.copytree() function is the optimum choice.
+    else:
+        shutil.copytree(src=src_dirname, dst=trg_dirname, **kwargs)
 
 # ....................{ CONTEXTS                           }....................
 #FIXME: For disambiguity, rename to setting_cwd().
@@ -360,7 +439,7 @@ def current(dirname: str) -> GeneratorType:
     Parameters
     -----------
     dirname : str
-        Relative or absolute path of the directory to change to.
+        Absolute or relative path of the directory to change to.
 
     Returns
     -----------
@@ -407,16 +486,6 @@ def current(dirname: str) -> GeneratorType:
     # Revert to the prior CWD even if that block raised an exception.
     finally:
         os.chdir(dirname_prior)
-
-# ....................{ LISTERS                            }....................
-def list_basenames(dirname: str) -> list:
-    '''
-    Get a list of the basenames of all files and subdirectories in the passed
-    directory.
-    '''
-
-    die_unless_dir(dirname)
-    return os.listdir(dirname)
 
 # ....................{ MAKERS                             }....................
 @type_check
@@ -507,3 +576,67 @@ def join_and_make_unless_dir(*partnames: str) -> str:
 
     # Return this dirname.
     return dirname
+
+# ....................{ ITERATORS                          }....................
+#FIXME: For orthogonality, rename to iter_basenames().
+def list_basenames(dirname: str) -> SequenceTypes:
+    '''
+    Sequence of the basenames of all paths (e.g., non-directory files,
+    subdirectories) directly contained within the passed directory.
+    '''
+
+    # If this directory does *NOT* exist, raise an exception.
+    die_unless_dir(dirname)
+
+    # Sequence of all such basenames.
+    return os.listdir(dirname)
+
+
+def iter_subdirnames(dirname: str) -> GeneratorType:
+    '''
+    Generator yielding the pathname of each direct subdirectory of the passed
+    parent directory.
+
+    Parameters
+    -----------
+    dirname : str
+        Absolute or relative path of the parent directory to inspect.
+
+    Returns
+    -----------
+    GeneratorType
+        Generator yielding direct subdirectory pathnames.
+
+    Yields
+    -----------
+    str
+        Absolute or relative path of each direct subdirectory of this directory.
+
+    See Also
+    -----------
+    https://stackoverflow.com/a/25705093/2809027
+        StackOverflow answer strongly inspiring this implementation.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.io.exceptions import raise_exception
+
+    # Sequence of the basenames of all subdirectories of this directory
+    # implemented as follows:
+    #
+    # * The generator returned by os.walk() is iterated once and then promptly
+    #   discarded, yielding:
+    #   * The ignorable absolute or relative path of this parent directory,
+    #     which we (of course) were passed as input and thus already have.
+    #   * This desired sequence.
+    #   * An ignorable sequence of the basenames of all files of this directory.
+    # * Errors emitted by low-level functions called by os.walk() (e.g.,
+    #   os.listdir()) are *NOT* silently ignored.
+    _, subdir_basenames, _ = next(os.walk(dirname, onerror=raise_exception))
+
+    # Return a generator comprehension prefixing each such basename by the
+    # absolute or relative path of the parent directory.
+    return (
+        path.join(dirname, subdir_basename)
+        for subdir_basename in subdir_basenames
+    )

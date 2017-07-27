@@ -193,55 +193,6 @@ def get_data_yaml_dirname() -> str:
     # Return this dirname if this directory exists or raise an exception.
     return dirs.join_and_die_unless_dir(get_data_dirname(), 'yaml')
 
-
-#FIXME: Arguably silly. The "betse.data.yaml" subdirectory now contains exactly
-#the contents of the default simulation configuration -- no more and no less.
-#At the very least, this getter should probably be reduced to simply iterating
-#over and returning the absolute paths of the immediate subdirectories of
-#get_data_yaml_dirname(). At the most, this getter should be elimated entirely;
-#indeed, this getter is currently only called once in the codebase and otherwise
-#appears to serve no purpose. *sigh*
-@callable_cached
-def get_data_default_asset_dirnames() -> tuple:
-    '''
-    Tuple of the absolute paths of all directories containing assets (e.g.,
-    media files, YAML files) referenced and hence required by this application's
-    default simulation configuration file if found *or* raise an exception
-    otherwise (i.e., if any such directory is *not* found).
-
-    This includes directories containing (in no particular order):
-
-    * YAML-formatted configuration files specifying fine-grained simulation
-      settings, including:
-      * The biochemical reaction network (BRN) to be simulated if any.
-      * The gene regulatory network (GRN) to be simulated if any.
-    * Ancillary media files, including:
-      * Sample images typically used as input geometries for tissue profiles.
-        Each image defines a cell cluster shape typically corresponding to some
-        species (e.g., planaria) or organ (e.g., heart), complete with internal
-        cellular structure and exterior cellular boundary. Each spatial
-        subdivision of this shape is then associated with a real-world tissue
-        profile in the configuration file(s) referencing this image.
-    '''
-
-    # Avoid circular import dependencies.
-    from betse.util.path import dirs, pathnames
-
-    # Absolute path of the top-level YAML-specific data directory.
-    DATA_YAML_DIRNAME = get_data_yaml_dirname()
-
-    # Tuple comprehension of the absolute paths of default asset directories.
-    data_default_asset_dirnames = tuple(
-        pathnames.join(DATA_YAML_DIRNAME, asset_basename)
-        for asset_basename in (
-            'INITS', 'RESULTS', 'SIMS', 'extra_configs', 'geo',))
-
-    # If any such directory is not found, fail.
-    dirs.die_unless_dir(*data_default_asset_dirnames)
-
-    # Return this tuple.
-    return data_default_asset_dirnames
-
 # ....................{ GETTERS ~ file                     }....................
 @callable_cached
 def get_log_default_filename() -> str:

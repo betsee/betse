@@ -239,7 +239,7 @@ def get_size(filename: str) -> int:
 
 # ....................{ COPIERS                            }....................
 @type_check
-def copy(filename_source: str, filename_target: str) -> None:
+def copy(src_filename: str, trg_filename: str) -> None:
     '''
     Copy the passed source file to the passed target file or directory.
 
@@ -259,23 +259,22 @@ def copy(filename_source: str, filename_target: str) -> None:
     from betse.util.path import dirs, paths, pathnames
 
     # Log this copy.
-    logs.log_debug(
-        'Copying file: "%s" -> "%s"', filename_source, filename_target)
+    logs.log_debug('Copying file: %s -> %s', src_filename, trg_filename)
 
     # If this source file does *NOT* exist, raise an exception.
-    die_unless_file(filename_source)
+    die_unless_file(src_filename)
 
     # If the target file is a directory, append the basename of the passed
     # source file to this directory -- much like the "cp" POSIX command.
-    if dirs.is_dir(filename_target):
-        filename_target = pathnames.join(
-            filename_target, pathnames.get_basename(filename_source))
+    if dirs.is_dir(trg_filename):
+        trg_filename = pathnames.join(
+            trg_filename, pathnames.get_basename(src_filename))
 
     # Raise an exception if the target file already exists.
-    paths.die_if_path(filename_target)
+    paths.die_if_path(trg_filename)
 
     # Perform this copy in a manner preserving metadata and symbolic links.
-    shutil.copy2(filename_source, filename_target, follow_symlinks=False)
+    shutil.copy2(src_filename, trg_filename, follow_symlinks=False)
 
 # ....................{ REMOVERS                           }....................
 @type_check

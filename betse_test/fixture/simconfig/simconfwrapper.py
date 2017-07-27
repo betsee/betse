@@ -3,6 +3,11 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry.
 # See "LICENSE" for further details.
 
+'''
+Test-specific simulation configuration classes wrapping low-level dictionaries
+both serialized to and deserialized from on-disk YAML-formatted files.
+'''
+
 #FIXME: This submodule requires heavy refactoring away from the current
 #low-level approach in favour of the new high-level "confabc"-based approach --
 #namely, the "SimConfABC" base class coupled with the conf_alias() data
@@ -14,18 +19,13 @@
 #* Replace all usage of the low-level "self._p._conf" dictionary with high-level
 #  data descriptors defined by "self._p".
 
-'''
-Test-specific simulation configuration classes wrapping low-level dictionaries
-both serialized to and deserialized from on-disk YAML-formatted files.
-'''
-
 # ....................{ IMPORTS                            }....................
 # This subclass necessarily imports from submodules defined by the main codebase
 # and is thus *NOT* safely importable in a fixture submodule directly imported
 # by a "conftest" plugin module. To defer the importation of this submodule
 # until *AFTER* test collection, this submodule is intentionally segregated.
 from betse.exceptions import BetseNumericException
-from betse.science.config import confdefault, confio
+from betse.science.config import confio
 from betse.science.parameters import Parameters
 from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
@@ -92,9 +92,6 @@ class SimConfigTestWrapper(object):
         self._p = Parameters(config_filename=filename)
 
 
-    #FIXME: Eliminate this method in favour of the existing
-    #sim_config.write() function *AFTER* refactoring that method as
-    #documented in that submodule.
     @classmethod
     def wrap_new_default(cls, filename: str) -> None:
         '''
@@ -128,10 +125,10 @@ class SimConfigTestWrapper(object):
         '''
 
         # Create this YAML file.
-        confdefault.write(filename)
+        confio.write_default(filename)
 
         # Create and return an instance of this class wrapping this file.
-        return cls(filename=filename)
+        return cls(filename)
 
     # ..................{ PROPERTIES                         }..................
     # For safety, these properties lack setters and hence are read-only.

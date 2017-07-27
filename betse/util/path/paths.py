@@ -147,7 +147,7 @@ def get_type_label(pathname: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.paths import dirs, files
+    from betse.util.path import dirs, files
 
     # Raise an exception unless this path exists.
     die_unless_path(pathname)
