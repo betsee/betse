@@ -40,7 +40,7 @@ def seed(source: (SimRunner, str)) -> SimRunner:
         source.makeWorld()
         return source
     else:
-        runner = SimRunner(config_filename=source)
+        runner = SimRunner(conf_filename=source)
         return seed(runner)
 
 @type_check
@@ -98,20 +98,20 @@ def simulate(source : (SimRunner, str)) -> SimRunner:
         return simulate(runner)
 
 @type_check
-def read_config(config_filename : str) -> Parameters:
+def read_config(conf_filename : str) -> Parameters:
     '''
     Read a configuration file into a `Parameters` object.
 
     Parameters
     ----------
-    config_filename : str
+    conf_filename : str
         The filename of the YAML configuration file
 
     Returns
     -------
     A `Parameters` instance
     '''
-    return Parameters(config_filename)
+    return Parameters(conf_filename)
 
 @type_check
 def load_world(source : (Cells, Parameters, str)) -> tuple:

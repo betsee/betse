@@ -89,7 +89,7 @@ class SimConfigTestWrapper(object):
         self._basename = pathnames.get_basename(filename)
 
         # Deserialize this file into a high-level in-memory object.
-        self._p = Parameters(config_filename=filename)
+        self._p = Parameters(conf_filename=filename)
 
 
     @classmethod

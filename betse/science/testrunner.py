@@ -9,12 +9,12 @@ from betse.science.simrunner import SimRunner
 if __name__ == '__main__':
     # Simulation specified by the default configuration file.
     # sim_runner = SimRunner(
-    #     config_filename = pathtree.get_sim_config_default_filename())
+    #     conf_filename = pathtree.get_sim_config_default_filename())
 
     # print(pathtree.get_sim_config_default_filename())
 
     sim_runner = SimRunner(
-        config_filename = '/home/pietakio/Documents/BETSE_Study/GRN/test_gene.yaml')
+        conf_filename = '/home/pietakio/Documents/BETSE_Study/GRN/test_gene.yaml')
 
     # Run such simulation.
     # sim_runner.initialize()

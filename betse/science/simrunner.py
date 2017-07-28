@@ -46,13 +46,13 @@ class SimRunner(object):
         Basename of the YAML file configuring this simulation.
     '''
 
-    def __init__(self, config_filename: str) -> None:
+    def __init__(self, conf_filename: str) -> None:
 
         super().__init__()
 
         # Validate and localize this filename.
-        files.die_unless_file(config_filename)
-        self._config_filename = config_filename
+        files.die_unless_file(conf_filename)
+        self._config_filename = conf_filename
         self._config_basename = pathnames.get_basename(self._config_filename)
 
     # ..................{ RUNNERS                            }..................
@@ -76,7 +76,7 @@ class SimRunner(object):
             self._config_basename)
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
 
         #FIXME: Cease coercing this to "False" both here and below. Instead,
         #improve overlay handling in the "animabc" superclass to detect the
@@ -169,7 +169,7 @@ class SimRunner(object):
         #FIXME comment preceding the set_time_profile() method for details.
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False # let the simulator know we're just running an initialization
 
@@ -251,7 +251,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.SIM
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
 
@@ -343,7 +343,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
@@ -429,7 +429,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
@@ -508,7 +508,7 @@ class SimRunner(object):
             self._config_basename)
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
 
         # Disable the current overlay. Plotting this artist requires simulation
         # data subsequently defined by the "init" phase and hence unavailable at
@@ -667,7 +667,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         # Simulation simulator.
@@ -714,7 +714,7 @@ class SimRunner(object):
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.metabolism_enabled and sim.metabo is not None:
-            configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
+            configPath = os.path.join(p.conf_dirname, p.metabo_config_filename)
 
             # read the config file into a dictionary:
             config_dic = confio.read_metabo(configPath)
@@ -728,7 +728,7 @@ class SimRunner(object):
             sim.metabo.core.anim(phase=phase, message='metabolic molecules')
 
         if p.grn_enabled and sim.grn is not None:
-            configPath = os.path.join(p.config_dirname, p.grn_config_filename)
+            configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
 
             # read the config file into a dictionary:
             config_dic = confio.read_metabo(configPath)
@@ -778,7 +778,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.SIM
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be simulation
 
         # Simulation simulator.
@@ -814,7 +814,7 @@ class SimRunner(object):
             sim.molecules.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.metabolism_enabled and sim.metabo is not None:
-            configPath = os.path.join(p.config_dirname, p.metabo_config_filename)
+            configPath = os.path.join(p.conf_dirname, p.metabo_config_filename)
 
             # read the config file into a dictionary:
             config_dic = confio.read_metabo(configPath)
@@ -827,7 +827,7 @@ class SimRunner(object):
             sim.metabo.core.anim(phase=phase, message='auxiliary molecules')
 
         if p.grn_enabled and sim.grn is not None:
-            configPath = os.path.join(p.config_dirname, p.grn_config_filename)
+            configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
 
             # read the config file into a dictionary:
             config_dic = confio.read_metabo(configPath)
@@ -872,7 +872,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         MoM = MasterOfMetabolism(p)
@@ -920,7 +920,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(config_filename=self._config_filename)
+        p = Parameters(conf_filename=self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         MoG = MasterOfGenes(p)

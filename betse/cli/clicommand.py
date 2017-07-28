@@ -182,7 +182,7 @@ class CLISubcommandYAMLOnly(CLISubcommandABC):
 
         # Configure this subparser to require a configuration file argument.
         arg_subparser.add_argument(
-            'config_filename',
+            'conf_filename',
             metavar='CONFIG_FILE',
             help='simulation configuration file',
         )

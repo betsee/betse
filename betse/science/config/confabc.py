@@ -9,8 +9,10 @@ well as functionality pertaining to such classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
+from betse.lib.yaml import yamls
 from betse.science.config.confalias import conf_alias
 from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
+from betse.util.path import pathnames
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.types import (
@@ -44,7 +46,7 @@ class SimConfABC(object, metaclass=ABCMeta):
         Associate this high-level simulation configuration with the passed
         low-level dictionary.
 
-        Attributes
+        Parameters
         ----------
         conf : MappingType
             Low-level dictionary of related configuration settings both loaded
@@ -68,6 +70,121 @@ class SimConfABC(object, metaclass=ABCMeta):
 
         return self._conf
 
+# ....................{ SUPERCLASSES ~ serializable        }....................
+#FIXME: Refactor the "Parameters" class to subclass this superclass. After doing
+#so, remove the read(), write(), and make_default() functions from the "confio"
+#submodule, which should then be obsolete.
+class SimConfSerializableABC(SimConfABC):
+    '''
+    Abstract base class of all top-level simulation configuration subclasses,
+    each directly backed by an low-level simulation configuration file in YAML
+    format and hence both **serializable** (i.e., writable) to and
+    **deserializable** (i.e., readable) from that file.
+
+    Attributes
+    ----------
+    _conf_dirname : str
+        Absolute path of the directory containing:
+          * The file whose filename is :attr:`conf_filename`.
+          * Subdirectories containing external files referenced by this
+            configuration file.
+    _conf_filename : str
+        Absolute path of the low-level YAML-formatted simulation configuration
+        file from which this object was most recently deserialized.
+    '''
+
+    # ..................{ MAKERS                             }..................
+    #FIXME: Implement in the "Parameters" subclass.
+    @classmethod
+    @abstractmethod
+    def make_default(self):
+        '''
+        Create a new low-level top-level simulation configuration file and all
+        required assets (e.g., subdirectories containing external files
+        referenced by this configuration file) providing default configuration
+        settings *and* return an instance of this subclass backed by this file.
+        '''
+
+        pass
+
+    # ..................{ INITIALIZERS                       }..................
+    @type_check
+    def __init__(self, conf_filename: str) -> None:
+        '''
+        Associate this high-level simulation configuration with the passed
+        low-level YAML-formatted simulation configuration file.
+
+        Parameters
+        ----------------------------
+        conf_filename : str
+            Absolute or relative path of this file.
+        '''
+
+        # Initialize our superclass with the empty dictionary, which the
+        # subsequent call to the read() method replaces with a non-empty
+        # dictionary. While awkward, this approach avoids even *MORE* awkward
+        # chicken-and-egg API issues.
+        super(conf={})
+
+        # Nullify all instance variables for safety.
+        self._conf_dirname = None
+        self._conf_filename = None
+
+    # ..................{ READERS                            }..................
+    #FIXME: Validate the contents of this file (e.g., via "yamale").
+    @type_check
+    def read(self, conf_filename: str) -> None:
+        '''
+        Deserialize the passed YAML-formatted simulation configuration file into
+        a low-level dictionary internally stored in this object, replacing the
+        prior contents of this dictionary.
+
+        Parameters
+        ----------
+        conf_filename : str
+            Absolute or relative path of the file to be deserialized.
+        '''
+
+        # Load this dictionary from this YAML file.
+        self._conf = yamls.load(conf_filename)
+
+        # Unique absolute path of this file assigned *BEFORE* this file's
+        # parent directory, ensuring the latter is non-empty.
+        self._conf_filename = pathnames.canonicalize(conf_filename)
+
+        # Unique absolute path of the parent directory of this file.
+        self._conf_dirname = pathnames.get_dirname(self.conf_filename)
+
+    # ..................{ WRITERS                            }..................
+    #FIXME: Define the following two writers:
+    #
+    #* overwrite(), implementing the "Save..." metaphor. This method should
+    #  simply internally call:
+    #    self.write(self._conf_filename)
+    #* Shift confio.write() here, implementing the "Save As..." metaphor.
+
+    # ..................{ PROPERTIES ~ read-only             }..................
+    # Read-only properties, preventing callers from resetting these attributes.
+
+    @property
+    def conf_dirname(self) -> str:
+        '''
+        Absolute path of the directory containing the file whose filename is
+        :attr:`conf_filename`.
+        '''
+
+        return self._conf_dirname
+
+
+    @property
+    def conf_filename(self) -> str:
+        '''
+        Absolute path of the low-level YAML-formatted simulation configuration
+        file from which this object was most recently deserialized.
+        '''
+
+        return self._conf_filename
+
 # ....................{ SUPERCLASSES ~ list item           }....................
 #FIXME: Rename to "SimConfListItemABC".
 class SimConfListableABC(SimPipeRunnerConfMixin, SimConfABC):
@@ -78,8 +195,8 @@ class SimConfListableABC(SimPipeRunnerConfMixin, SimConfABC):
 
     Design
     ----------
-    This class subclasses the :class:`SimPipeRunnerConfMixin` mixin, allowing all
-    instances of:
+    This class subclasses the :class:`SimPipeRunnerConfMixin` mixin, allowing
+    all instances of:
 
     * This class to be used as **simulation pipeline runner arguments** (i.e.,
       simple objects encapsulating all input parameters to be passed to a method
@@ -89,12 +206,12 @@ class SimConfListableABC(SimPipeRunnerConfMixin, SimConfABC):
       :class:`SimPipeABC._runners_conf_enabled` property.
     '''
 
-    # ..................{ CLASS                              }..................
+    # ..................{ MAKERS                             }..................
     @classmethod
     @abstractmethod
     def make_default(self):
         '''
-        Create and return an instance of this class encapsulating a new
+        Create and return an instance of this subclass encapsulating a new
         dictionary containing default configuration settings.
 
         This method is principally intended to be called by the

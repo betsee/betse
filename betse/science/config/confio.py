@@ -20,7 +20,7 @@ from betse.util.type.types import type_check, MappingType
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
-def die_unless_writable(config_filename: str) -> None:
+def die_unless_writable(conf_filename: str) -> None:
     '''
     Raise an exception unless the passed path is suitable for writing a
     YAML-formatted simulation configuration file to.
@@ -33,7 +33,7 @@ def die_unless_writable(config_filename: str) -> None:
 
     Parameters
     ----------------------------
-    config_filename : str
+    conf_filename : str
         Absolute or relative path of the target YAML file to be validated.
 
     Raises
@@ -43,11 +43,11 @@ def die_unless_writable(config_filename: str) -> None:
     '''
 
     # Basename and filetype of this file.
-    config_basename = pathnames.get_basename(config_filename)
+    config_basename = pathnames.get_basename(conf_filename)
     config_filetype = pathnames.get_filetype_undotted_or_none(config_basename)
 
     # If this file already exists, fail.
-    files.die_if_file(config_filename)
+    files.die_if_file(conf_filename)
 
     # If this filename is suffixed by neither ".yml" nor ".yaml", log a warning.
     if config_filetype not in ('yaml', 'yml'):
@@ -71,14 +71,14 @@ def die_unless_writable(config_filename: str) -> None:
 #  such as "MasterOfMolecules", perhaps?
 
 @type_check
-def read(config_filename: str) -> MappingType:
+def read(conf_filename: str) -> MappingType:
     '''
     Deserialize the passed YAML-formatted simulation configuration file into a
     dictionary; then, validate and return this dictionary.
 
     Parameters
     ----------
-    config_filename : str
+    conf_filename : str
         Absolute or relative path of the source YAML file to be deserialized.
 
     Returns
@@ -88,7 +88,7 @@ def read(config_filename: str) -> MappingType:
     '''
 
     # Load this dictionary from this YAML file.
-    config = yamls.load(config_filename)
+    config = yamls.load(conf_filename)
 
     #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
     # Validate the contents of this file.
@@ -99,14 +99,14 @@ def read(config_filename: str) -> MappingType:
 
 #FIXME: Fix docstring and code duplicated from above.
 @type_check
-def read_metabo(config_filename: str) -> dict:
+def read_metabo(conf_filename: str) -> dict:
     '''
     Deserialize the passed YAML-formatted simulation configuration file into a
     dictionary; then, validate and return this dictionary.
 
     Parameters
     ----------
-    config_filename : str
+    conf_filename : str
         Absolute or relative path of the source YAML file to be deserialized.
 
     Returns
@@ -116,7 +116,7 @@ def read_metabo(config_filename: str) -> dict:
     '''
 
     # Load this dictionary from this YAML file.
-    config = yamls.load(config_filename)
+    config = yamls.load(conf_filename)
 
     #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
     # Validate the contents of this file.
@@ -126,14 +126,14 @@ def read_metabo(config_filename: str) -> dict:
 
 # ....................{ WRITERS                            }....................
 @type_check
-def write(config_filename: str, config: MappingType) -> None:
+def write(conf_filename: str, config: MappingType) -> None:
     '''
     Serialize the passed dictionary to the passed YAML-formatted simulation
     configuration file.
 
     Parameters
     ----------
-    config_filename : str
+    conf_filename : str
         Absolute or relative path of the target YAML file to be written.
     config : MappingType
         Dictionary to serialize to this file.
@@ -145,14 +145,14 @@ def write(config_filename: str, config: MappingType) -> None:
     '''
 
     # Validate this file *BEFORE* writing this file.
-    die_unless_writable(config_filename)
+    die_unless_writable(conf_filename)
 
     # Save this dictionary to this YAML file.
-    yamls.save(config, config_filename)
+    yamls.save(config, conf_filename)
 
 
 @type_check
-def write_default(config_filename: str) -> None:
+def write_default(conf_filename: str) -> None:
     '''
     Write a default YAML simulation configuration to the file with the passed
     path *and* recursively copy all external resources (e.g., images) required
@@ -163,7 +163,7 @@ def write_default(config_filename: str) -> None:
 
     Parameters
     ----------
-    config_filename : str
+    conf_filename : str
         Absolute or relative path of the target YAML file to be written.
 
     Raises
@@ -176,17 +176,17 @@ def write_default(config_filename: str) -> None:
     logs.log_info('Writing default simulation configuration...')
 
     # Validate this file *BEFORE* writing this file.
-    die_unless_writable(config_filename)
+    die_unless_writable(conf_filename)
 
     # Copy the default source simulation configuration file to this target file.
-    files.copy(pathtree.get_sim_config_default_filename(), config_filename)
+    files.copy(pathtree.get_sim_config_default_filename(), conf_filename)
 
     # Source directory containing the default simulation configuration.
     src_dirname = pathtree.get_data_yaml_dirname()
 
     # Note that the simple solution of recursively copying this source directory
     # into the parent directory of the passed target file (e.g., by calling
-    # "dirs.copy(src_dirname, pathnames.get_dirname(config_filename))") fails
+    # "dirs.copy(src_dirname, pathnames.get_dirname(conf_filename))") fails
     # for the following subtle reasons:
     #
     # * This target directory may be already exist, which dirs.copy() prohibits
@@ -200,11 +200,11 @@ def write_default(config_filename: str) -> None:
         # Recursively copy from this subdirectory into the target directory.
         dirs.copy_into_dir(
             src_dirname=src_subdirname,
-            trg_dirname=pathnames.get_dirname(config_filename),
+            trg_dirname=pathnames.get_dirname(conf_filename),
 
             # Ignore all empty ".gitignore" files in all subdirectories of this
-            # source directory. These files serve as placeholders instructing Git to
-            # track their parent subdirectories, but otherwise serve no purpose.
-            # Preserving these files only invites end user confusion. Which is bad.
+            # source directory. These files serve as placeholders instructing
+            # Git to track their parent subdirectories, but otherwise serve no
+            # purpose. Preserving these files only invites end user confusion.
             ignore_basename_globs=('.gitignore',),
         )

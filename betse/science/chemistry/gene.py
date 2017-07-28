@@ -36,7 +36,7 @@ class MasterOfGenes(object):
 
         # create the path to read the metabolism config file:
 
-        self.configPath = os.path.join(p.config_dirname, p.grn_config_filename)
+        self.configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)
@@ -127,7 +127,7 @@ class MasterOfGenes(object):
 
         # create the path to read the metabolism config file:
 
-        self.configPath = os.path.join(p.config_dirname, p.grn_config_filename)
+        self.configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)

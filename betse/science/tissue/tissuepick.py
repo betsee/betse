@@ -349,4 +349,4 @@ def make_bitmap(
     '''
 
     return TissuePickerBitmap(
-        filename=conf['file'], dirname=p.config_dirname)
+        filename=conf['file'], dirname=p.conf_dirname)

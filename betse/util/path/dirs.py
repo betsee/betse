@@ -491,10 +491,16 @@ def current(dirname: str) -> GeneratorType:
 @type_check
 def make_unless_dir(dirname: str) -> None:
     '''
-    Create the passed directory if this directory does *not* already exist.
+    Create the directory with the passed path if this directory does not already
+    exist *or* noop otherwise.
 
-    All nonexistent parents of this directory will also be recursively created,
-    mimicking the action of the standard ``mkdir -p`` shell command.
+    All nonexistent parents of this directory are also recursively created,
+    reproducing the action of the POSIX-compliant ``mkdir -p`` shell command.
+
+    See Also
+    -----------
+    :func:`make_parent_unless_dir`
+        Related function creating the parent directory of this path.
     '''
 
     # If this directory does *NOT* already exist, create this directory. To
@@ -512,11 +518,13 @@ def make_unless_dir(dirname: str) -> None:
 
 def make_parent_unless_dir(*pathnames: str) -> None:
     '''
-    Create the parent directory of each passed path for any such directory that
-    does *not* already exist.
+    Create the parent directory of each passed path for each such directory that
+    does not already exist.
 
-    All nonexistent parents of each such directory will also be recursively
-    created, mimicking the action of the standard ``mkdir -p`` shell command.
+    See Also
+    -----------
+    :func:`make_unless_dir`
+        Further details.
     '''
 
     # Avoid circular import dependencies.

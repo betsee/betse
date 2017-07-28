@@ -264,14 +264,18 @@ def copy(src_filename: str, trg_filename: str) -> None:
     # If this source file does *NOT* exist, raise an exception.
     die_unless_file(src_filename)
 
-    # If the target file is a directory, append the basename of the passed
+    # If this target file is a directory, append the basename of the passed
     # source file to this directory -- much like the "cp" POSIX command.
     if dirs.is_dir(trg_filename):
         trg_filename = pathnames.join(
             trg_filename, pathnames.get_basename(src_filename))
 
-    # Raise an exception if the target file already exists.
+    # If this target file already exists, raise an exception.
     paths.die_if_path(trg_filename)
+
+    # Create the directory containing this target file *BEFORE* calling the
+    # shutil.copy2() function, which assumes this directory to exist.
+    dirs.make_parent_unless_dir(trg_filename)
 
     # Perform this copy in a manner preserving metadata and symbolic links.
     shutil.copy2(src_filename, trg_filename, follow_symlinks=False)

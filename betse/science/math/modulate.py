@@ -497,7 +497,7 @@ def gradient_bitmap(pc, cells, p):
     xx = np.linspace(cells.xmin, cells.xmax, cells.X.shape[1])
     yy = np.linspace(cells.ymin, cells.ymax, cells.X.shape[0])
 
-    fn1 = os.path.join(p.config_dirname, p.grad_bm_fn)
+    fn1 = os.path.join(p.conf_dirname, p.grad_bm_fn)
 
     a1 = imread(fn1, mode='RGB')
 

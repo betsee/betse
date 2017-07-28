@@ -30,7 +30,7 @@ class Parameters(object):
 
     Attributes (Private)
     ----------
-    _config : MappingType
+    _conf : MappingType
         Low-level dictionary containing this entire simulation configuration,
         deserialized from this configuration's YAML-formatted file and safely
         deserializable back to the same file. This private dictionary should
@@ -40,12 +40,12 @@ class Parameters(object):
 
     Attributes (Path)
     ----------
-    config_dirname : str
+    conf_dirname : str
         Absolute path of the directory containing the source YAML configuration
         file from which this object was first deserialized. This directory
         typically also contains example resources for use by BETSE's default
         configuration file (e.g., geometry-defining bitmaps).
-    config_filename : str
+    conf_filename : str
         Absolute path of the source YAML configuration file from which this
         object was first deserialized.
 
@@ -174,28 +174,28 @@ class Parameters(object):
 
     # ..................{ INITIALIZERS                       }..................
     #FIXME: Convert all or most of the variables parsed in the __init__() method
-    #below should be converted into aliases of the above form. Brainy rainbows!
+    #below into aliases of the above form. Brainy rainbows!
 
     @type_check
-    def __init__(self, config_filename: str) -> None:
+    def __init__(self, conf_filename: str) -> None:
         '''
         Parse all settings from the passed YAML-formatted simulation
         configuration file.
 
         Parameters
         ----------------------------
-        config_filename : str
+        conf_filename : str
             Absolute or relative path of this file.
         '''
 
         # Unique absolute path of the passed file and directory containing this
         # file. Since the latter uses the former, this dirname is guaranteed to
         # be non-empty and hence *NOT* raise an exception.
-        self.config_filename = pathnames.canonicalize(config_filename)
-        self.config_dirname = pathnames.get_dirname(self.config_filename)
+        self.conf_filename = pathnames.canonicalize(conf_filename)
+        self.conf_dirname = pathnames.get_dirname(self.conf_filename)
 
         # Dictionary loaded from this YAML file.
-        self._conf = confio.read(self.config_filename)
+        self._conf = confio.read(self.conf_filename)
 
         # Preserve backward compatibility with prior configuration formats.
         self._init_backward_compatibility()
@@ -218,10 +218,10 @@ class Parameters(object):
         #* We set each such path using:
         #
         #     # ...this:
-        #     os.path.expanduser(paths.join(self.config_dirname, ...))
+        #     os.path.expanduser(paths.join(self.conf_dirname, ...))
         #
         #     # ...rather than merely this:
-        #     paths.join(self.config_dirname, ...)
+        #     paths.join(self.conf_dirname, ...)
         #
         #  Since all logic that accesses these variables in the codebase
         #  *ALWAYS* wraps these variables with os.path.expanduser(), let's just
@@ -230,16 +230,16 @@ class Parameters(object):
         # Absolute or relative paths of the directories containing saved
         # initialization and simulation runs.
         self.init_path = pathnames.join(
-            self.config_dirname, self.pickle_init_dirname)
+            self.conf_dirname, self.pickle_init_dirname)
         self.sim_path = pathnames.join(
-            self.config_dirname, self.pickle_sim_dirname)
+            self.conf_dirname, self.pickle_sim_dirname)
 
         # Absolute or relative paths of the directories containing saved
         # initialization and simulation results.
         self.init_results = pathnames.join(
-            self.config_dirname, self.export_init_dirname)
+            self.conf_dirname, self.export_init_dirname)
         self.sim_results = pathnames.join(
-            self.config_dirname, self.export_sim_dirname)
+            self.conf_dirname, self.export_sim_dirname)
 
         #---------------------------------------------------------------------------------------------------------------
         # INIT & SIM SETTINGS
@@ -1413,13 +1413,13 @@ class Parameters(object):
         self.default_tissue_name = (
             self._conf['variable settings']['default tissue name'])
         self.clipping_bitmap_matcher = TissuePickerBitmap(
-            tpd['clipping']['bitmap']['file'], self.config_dirname)
+            tpd['clipping']['bitmap']['file'], self.conf_dirname)
 
         model_hole = tpd.get('internal pore file', None)
 
         if model_hole is not None:
             self.clipping_bitmap_hole = TissuePickerBitmap(
-                tpd['internal pore file'], self.config_dirname)
+                tpd['internal pore file'], self.conf_dirname)
         else:
             self.clipping_bitmap_hole = None
 

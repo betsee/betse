@@ -188,7 +188,7 @@ class BetseCLI(CLIABC):
         config_basename = 'sample_sim.yaml'
 
         # Relative path of this file, relative to the current directory.
-        self._args.config_filename = pathnames.join(
+        self._args.conf_filename = pathnames.join(
             'sample_sim', config_basename)
 
         #FIXME: Insufficient. We only want to reuse this file if this file's
@@ -197,7 +197,7 @@ class BetseCLI(CLIABC):
         #probably into "betse.science.sim_config".
 
         # If this file already exists, reuse this file.
-        if files.is_file(self._args.config_filename):
+        if files.is_file(self._args.conf_filename):
             logs.log_info(
                 'Reusing simulation configuration "%s".', config_basename)
         # Else, create this file.
@@ -226,7 +226,7 @@ class BetseCLI(CLIABC):
 
         # Avoid importing modules importing dependencies at the top level.
         from betse.science.config import confio
-        confio.write_default(self._args.config_filename)
+        confio.write_default(self._args.conf_filename)
 
 
     def _do_seed(self) -> object:
@@ -365,4 +365,4 @@ class BetseCLI(CLIABC):
         from betse.science.simrunner import SimRunner
 
         # Return this runner.
-        return SimRunner(config_filename=self._args.config_filename)
+        return SimRunner(conf_filename=self._args.conf_filename)
