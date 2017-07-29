@@ -10,9 +10,11 @@ well as functionality pertaining to such classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from betse.lib.yaml import yamls
+from betse.science.config import confio
 from betse.science.config.confalias import conf_alias
 from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
-from betse.util.path import pathnames
+from betse.util.io.log import logs
+from betse.util.path import files, pathnames
 from betse.util.type.cls import classes
 from betse.util.type.obj import objects
 from betse.util.type.types import (
@@ -20,6 +22,7 @@ from betse.util.type.types import (
     ClassType,
     MappingType,
     SequenceOrNoneTypes,
+    StrOrNoneTypes,
 )
 from collections.abc import MutableSequence
 
@@ -70,61 +73,97 @@ class SimConfABC(object, metaclass=ABCMeta):
 
         return self._conf
 
-# ....................{ SUPERCLASSES ~ serializable        }....................
+# ....................{ SUPERCLASSES ~ yaml                }....................
 #FIXME: Refactor the "Parameters" class to subclass this superclass. After doing
 #so, remove the read(), write(), and make_default() functions from the "confio"
 #submodule, which should then be obsolete.
-class SimConfSerializableABC(SimConfABC):
+class SimConfYamlABC(SimConfABC):
     '''
     Abstract base class of all top-level simulation configuration subclasses,
     each directly backed by an low-level simulation configuration file in YAML
     format and hence both **serializable** (i.e., writable) to and
     **deserializable** (i.e., readable) from that file.
 
+    Caveats
+    ----------
+    The ``conf_filename`` parameter accepted by most methods of this class
+    (e.g., :meth:`read`, :meth:`write`) should be suffixed by a valid YAML
+    filetype -- namely, either ``.yml`` or ``.yaml``. This class does *not*
+    erforce this recommendation but does log non-fatal warnings where violated.
+
+    External callers should ideally *never* access the public :meth:`conf`
+    property returning a low-level dictionary containing this entire simulation
+    configuration. The settings encapsulated by this dictionary are safely
+    retrievable and modifiable by callers *only* via public :func:`conf_alias`
+    data descriptors leveraged by subclasses.
+
     Attributes
     ----------
-    _conf_dirname : str
-        Absolute path of the directory containing:
-          * The file whose filename is :attr:`conf_filename`.
-          * Subdirectories containing external files referenced by this
-            configuration file.
-    _conf_filename : str
+    _conf_dirname : StrOrNoneTypes
+        Absolute path of the directory containing the file whose filename is
+        :attr:`conf_filename` and subdirectories with files referenced by this
+        configuration file if such a file has been read (e.g., by a prior call
+        to the :meth:`read` method) *or* ``None`` otherwise.
+    _conf_filename : StrOrNoneTypes
         Absolute path of the low-level YAML-formatted simulation configuration
-        file from which this object was most recently deserialized.
+        file from which this object was most recently deserialized if such a
+        file has been read (e.g., by a prior call to the :meth:`read` method)
+        *or* ``None`` otherwise.
     '''
 
     # ..................{ MAKERS                             }..................
-    #FIXME: Implement in the "Parameters" subclass.
     @classmethod
-    @abstractmethod
-    def make_default(self):
+    @type_check
+    def make(cls, conf_filename: str) -> (
+        'betse.science.config.confabc.SimConfYamlABC'):
         '''
-        Create a new low-level top-level simulation configuration file and all
-        required assets (e.g., subdirectories containing external files
-        referenced by this configuration file) providing default configuration
-        settings *and* return an instance of this subclass backed by this file.
+        Create return an instance of this subclass deserialized (i.e., read)
+        from the passed YAML-formatted simulation configuration file.
+
+        Parameters
+        ----------
+        conf_filename : str
+            Absolute or relative path of the source file to be deserialized.
         '''
 
-        pass
+        params = cls()
+        params.read(conf_filename)
+        return params
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
-    def __init__(self, conf_filename: str) -> None:
+    def __init__(self) -> None:
         '''
-        Associate this high-level simulation configuration with the passed
-        low-level YAML-formatted simulation configuration file.
-
-        Parameters
-        ----------------------------
-        conf_filename : str
-            Absolute or relative path of this file.
+        Initialize this simulation configuration in the **closed state** (i.e.,
+        associated with *no* low-level YAML-formatted simulation configuration
+        file).
         '''
 
         # Initialize our superclass with the empty dictionary, which the
         # subsequent call to the read() method replaces with a non-empty
         # dictionary. While awkward, this approach avoids even *MORE* awkward
         # chicken-and-egg API issues.
-        super(conf={})
+        super().__init__(conf={})
+
+        # Initialize this simulation configuration in the closed state. To avoid
+        # extraneous logging, the body of the close() method is duplicated here.
+        self._conf_dirname = None
+        self._conf_filename = None
+
+    # ..................{ CLOSERS                            }..................
+    def close(self) -> None:
+        '''
+        Deassociate this high-level simulation configuration from its low-level
+        YAML-formatted simulation configuration file if such a file has been
+        read (e.g., by a prior call to the :meth:`read` method) *or* silently
+        noop otherwise.
+        '''
+
+        # Log this operation.
+        logs.log_info('Closing simulation configuration...')
+
+        # Preserve the superclass contract that this variable be non-None.
+        self._conf = {}
 
         # Nullify all instance variables for safety.
         self._conf_dirname = None
@@ -142,48 +181,121 @@ class SimConfSerializableABC(SimConfABC):
         Parameters
         ----------
         conf_filename : str
-            Absolute or relative path of the file to be deserialized.
+            Absolute or relative path of the source file to be deserialized.
         '''
 
-        # Load this dictionary from this YAML file.
+        # Log this operation.
+        logs.log_info(
+            'Reading simulation configuration "%s"...',
+            pathnames.get_basename(conf_filename))
+
+        # Associate this object with this file.
+        self._set_conf_filename(conf_filename)
+
+        # Deserialize this file into this dictionary.
         self._conf = yamls.load(conf_filename)
 
-        # Unique absolute path of this file assigned *BEFORE* this file's
-        # parent directory, ensuring the latter is non-empty.
-        self._conf_filename = pathnames.canonicalize(conf_filename)
-
-        # Unique absolute path of the parent directory of this file.
-        self._conf_dirname = pathnames.get_dirname(self.conf_filename)
-
     # ..................{ WRITERS                            }..................
-    #FIXME: Define the following two writers:
-    #
-    #* overwrite(), implementing the "Save..." metaphor. This method should
-    #  simply internally call:
-    #    self.write(self._conf_filename)
-    #* Shift confio.write() here, implementing the "Save As..." metaphor.
+    @type_check
+    def overwrite(self) -> None:
+        '''
+        Serialize the low-level dictionary internally stored in this object to
+        the current YAML-formatted simulation configuration file associated with
+        this object, replacing the prior contents of this file.
+
+        This method effectively implements the "Save" GUI metaphor.
+        '''
+
+        # Log this operation.
+        logs.log_info('Overwriting simulation configuration...')
+
+        # Delete this file (if found), preventing the subsequent write from
+        # raising an otherwise ignorable exception.
+        files.remove_if_found(self._conf_filename)
+
+        # Resave this dictionary to this file.
+        yamls.save(container=self._conf, filename=self._conf_filename)
+
+
+    @type_check
+    def write(self, conf_filename: str) -> None:
+        '''
+        Serialize the low-level dictionary internally stored in this object to
+        the passed YAML-formatted simulation configuration file, replacing the
+        prior contents of this file, *and* associate this object with this file.
+
+        This method effectively implements the "Save As..." GUI metaphor.
+
+        Parameters
+        ----------
+        conf_filename : str
+            Absolute or relative path of the target file to be serialized.
+
+        Raises
+        ----------
+        BetseFileException
+            If this file already exists.
+        '''
+
+        # Log this operation.
+        logs.log_info(
+            'Writing simulation configuration "%s"...',
+            pathnames.get_basename(conf_filename))
+
+        # Validate this file *BEFORE* writing this file.
+        confio.die_unless_writable(conf_filename)
+
+        # Associate this object with this file.
+        self._set_conf_filename(conf_filename)
+
+        # Save this dictionary to this file.
+        yamls.save(container=self._conf, filename=self._conf_filename)
 
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
 
     @property
-    def conf_dirname(self) -> str:
+    def conf_dirname(self) -> StrOrNoneTypes:
         '''
         Absolute path of the directory containing the file whose filename is
-        :attr:`conf_filename`.
+        :attr:`conf_filename` if such a file has been read (e.g., by a prior
+        call to the :meth:`read` method) *or* ``None`` otherwise.
         '''
 
         return self._conf_dirname
 
 
     @property
-    def conf_filename(self) -> str:
+    def conf_filename(self) -> StrOrNoneTypes:
         '''
         Absolute path of the low-level YAML-formatted simulation configuration
-        file from which this object was most recently deserialized.
+        file from which this object was most recently deserialized if such a
+        file has been read (e.g., by a prior call to the :meth:`read` method)
+        *or* ``None`` otherwise.
         '''
 
         return self._conf_filename
+
+    # ..................{ SETTERS                            }..................
+    @type_check
+    def _set_conf_filename(self, conf_filename: str) -> None:
+        '''
+        Set the absolute path of the YAML-formatted file associated with this
+        simulation configuration.
+
+        Design
+        ----------
+        To prevent external callers from unsafely setting this path, this setter
+        is intentionally implemented as an manual setter rather than a more
+        preferable :meth:`conf_filename` property setter.
+        '''
+
+        # Unique absolute path of this file assigned *BEFORE* this file's
+        # parent directory, ensuring the latter is non-empty.
+        self._conf_filename = pathnames.canonicalize(conf_filename)
+
+        # Unique absolute path of the parent directory of this file.
+        self._conf_dirname = pathnames.get_dirname(self._conf_filename)
 
 # ....................{ SUPERCLASSES ~ list item           }....................
 #FIXME: Rename to "SimConfListItemABC".
@@ -209,7 +321,7 @@ class SimConfListableABC(SimPipeRunnerConfMixin, SimConfABC):
     # ..................{ MAKERS                             }..................
     @classmethod
     @abstractmethod
-    def make_default(self):
+    def make_default(cls) -> 'betse.science.config.confabc.SimConfListableABC':
         '''
         Create and return an instance of this subclass encapsulating a new
         dictionary containing default configuration settings.

@@ -97,87 +97,98 @@ def simulate(source : (SimRunner, str)) -> SimRunner:
         runner = SimRunner(source)
         return simulate(runner)
 
-@type_check
-def read_config(conf_filename : str) -> Parameters:
-    '''
-    Read a configuration file into a `Parameters` object.
+#FIXME: The following functionality no longer complies with the existing BETSE
+#API -- particularly, the "Parameters" API. Since the "betse.script" subpackage
+#is only currently imported by the "betse.cli.repl" subpackage, since no one
+#actually appears to use the "betse repl" enviroonment, *AND* since we currently
+#lack sufficient resources to maintain this logic, we should now begin the
+#laborous process of excising all of the following subpackages from the
+#codebase:
+#
+#* "betse.script".
+#* "betse.cli.repl".
 
-    Parameters
-    ----------
-    conf_filename : str
-        The filename of the YAML configuration file
-
-    Returns
-    -------
-    A `Parameters` instance
-    '''
-    return Parameters(conf_filename)
-
-@type_check
-def load_world(source : (Cells, Parameters, str)) -> tuple:
-    '''
-    Load a world from some *source*.
-
-    Parameters
-    ----------
-    source
-        An instance of `Cells` or `Parameters`, or a path to a YAML
-        configuration file
-
-    Returns
-    -------
-    (Cells, Parameters)
-        A 2-tuple `(cells, p)` as loaded from the *source*
-    '''
-    if types.is_cells(source):
-        return loadWorld(source.savedWorld)
-    elif types.is_parameters(source):
-        return load_world(Cells(source))
-    else:
-        return load_world(Parameters(source))
-
-@type_check
-def load_init(source : (Simulator, Parameters, str)) -> tuple:
-    '''
-    Load an initialization simulation from some *source*.
-
-    Parameters
-    ----------
-    source
-        An instance of `Simulator` or `Parameters`, or a path to a YAML
-        configuration file
-
-    Returns
-    -------
-    (Simulator, Cells, Parameters)
-        A 3-tuple `(sim, cells, p)` as loaded from the *source*
-    '''
-    if types.is_simulator(source):
-        return loadSim(source.savedInit)
-    elif types.is_parameters(source):
-        return load_init(Simulator(source))
-    else:
-        return load_init(Parameters(source))
-
-@type_check
-def load_sim(source : (Simulator, Parameters, str)) -> tuple:
-    '''
-    Load a simulation from some *source*.
-
-    Parameters
-    ----------
-    source
-        An instance of `Simulator` or `Parameters`, or a path to a YAML
-        configuration file
-
-    Returns
-    -------
-    (Simulator, Cells, Parameters)
-        A 3-tuple `(sim, cells, p)` as loaded from the *source*
-    '''
-    if types.is_simulator(source):
-        return loadSim(source.savedSim)
-    elif types.is_parameters(source):
-        return load_sim(Simulator(source))
-    else:
-        return load_sim(Parameters(source))
+# @type_check
+# def read_config(conf_filename : str) -> Parameters:
+#     '''
+#     Read a configuration file into a `Parameters` object.
+#
+#     Parameters
+#     ----------
+#     conf_filename : str
+#         The filename of the YAML configuration file
+#
+#     Returns
+#     -------
+#     A `Parameters` instance
+#     '''
+#     return Parameters(conf_filename)
+#
+# @type_check
+# def load_world(source : (Cells, Parameters, str)) -> tuple:
+#     '''
+#     Load a world from some *source*.
+#
+#     Parameters
+#     ----------
+#     source
+#         An instance of `Cells` or `Parameters`, or a path to a YAML
+#         configuration file
+#
+#     Returns
+#     -------
+#     (Cells, Parameters)
+#         A 2-tuple `(cells, p)` as loaded from the *source*
+#     '''
+#     if types.is_cells(source):
+#         return loadWorld(source.savedWorld)
+#     elif types.is_parameters(source):
+#         return load_world(Cells(source))
+#     else:
+#         return load_world(Parameters(source))
+#
+# @type_check
+# def load_init(source : (Simulator, Parameters, str)) -> tuple:
+#     '''
+#     Load an initialization simulation from some *source*.
+#
+#     Parameters
+#     ----------
+#     source
+#         An instance of `Simulator` or `Parameters`, or a path to a YAML
+#         configuration file
+#
+#     Returns
+#     -------
+#     (Simulator, Cells, Parameters)
+#         A 3-tuple `(sim, cells, p)` as loaded from the *source*
+#     '''
+#     if types.is_simulator(source):
+#         return loadSim(source.savedInit)
+#     elif types.is_parameters(source):
+#         return load_init(Simulator(source))
+#     else:
+#         return load_init(Parameters(source))
+#
+# @type_check
+# def load_sim(source : (Simulator, Parameters, str)) -> tuple:
+#     '''
+#     Load a simulation from some *source*.
+#
+#     Parameters
+#     ----------
+#     source
+#         An instance of `Simulator` or `Parameters`, or a path to a YAML
+#         configuration file
+#
+#     Returns
+#     -------
+#     (Simulator, Cells, Parameters)
+#         A 3-tuple `(sim, cells, p)` as loaded from the *source*
+#     '''
+#     if types.is_simulator(source):
+#         return loadSim(source.savedSim)
+#     elif types.is_parameters(source):
+#         return load_sim(Simulator(source))
+#     else:
+#         return load_sim(Parameters(source))

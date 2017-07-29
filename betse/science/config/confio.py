@@ -16,7 +16,7 @@ from betse import pathtree
 from betse.lib.yaml import yamls
 from betse.util.io.log import logs
 from betse.util.path import dirs, files, pathnames
-from betse.util.type.types import type_check, MappingType
+from betse.util.type.types import type_check  #, MappingType
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -49,7 +49,7 @@ def die_unless_writable(conf_filename: str) -> None:
     # If this file already exists, fail.
     files.die_if_file(conf_filename)
 
-    # If this filename is suffixed by neither ".yml" nor ".yaml", log a warning.
+    # If this filename has no YAML filetype, log a warning.
     if config_filetype not in ('yaml', 'yml'):
         logs.log_warning(
             'Config file "%s" filetype "%s" neither "yaml" nor "yml".',
@@ -70,34 +70,6 @@ def die_unless_writable(conf_filename: str) -> None:
 #* Likewise for all similar top-level classes currently calling these methods
 #  such as "MasterOfMolecules", perhaps?
 
-@type_check
-def read(conf_filename: str) -> MappingType:
-    '''
-    Deserialize the passed YAML-formatted simulation configuration file into a
-    dictionary; then, validate and return this dictionary.
-
-    Parameters
-    ----------
-    conf_filename : str
-        Absolute or relative path of the source YAML file to be deserialized.
-
-    Returns
-    ----------
-    MappingType
-        Dictionary deserialized from this file.
-    '''
-
-    # Load this dictionary from this YAML file.
-    config = yamls.load(conf_filename)
-
-    #FIXME: Implement me *AFTER* the structure of such file settles down a tad.
-    # Validate the contents of this file.
-
-    # Return this dictionary.
-    return config
-
-
-#FIXME: Fix docstring and code duplicated from above.
 @type_check
 def read_metabo(conf_filename: str) -> dict:
     '''
@@ -125,32 +97,6 @@ def read_metabo(conf_filename: str) -> dict:
     return config
 
 # ....................{ WRITERS                            }....................
-@type_check
-def write(conf_filename: str, config: MappingType) -> None:
-    '''
-    Serialize the passed dictionary to the passed YAML-formatted simulation
-    configuration file.
-
-    Parameters
-    ----------
-    conf_filename : str
-        Absolute or relative path of the target YAML file to be written.
-    config : MappingType
-        Dictionary to serialize to this file.
-
-    Raises
-    ----------
-    BetseFileException
-        If this file already exists.
-    '''
-
-    # Validate this file *BEFORE* writing this file.
-    die_unless_writable(conf_filename)
-
-    # Save this dictionary to this YAML file.
-    yamls.save(config, conf_filename)
-
-
 @type_check
 def write_default(conf_filename: str) -> None:
     '''

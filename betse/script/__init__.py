@@ -44,7 +44,7 @@ from betse.script.argparse import ArgumentParser, argv
 
 # The following API imports make scripting cleaner and the REPL easier to use.
 from betse.script.api import seed, initialize, simulate
-from betse.script.api import read_config, load_world, load_init, load_sim
+# from betse.script.api import read_config, load_world, load_init, load_sim
 
 # ....................{ INITIALIZATIONS                    }....................
 # We also need to initialze the BETSE environment. That said, `betse.science`

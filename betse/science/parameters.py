@@ -6,7 +6,7 @@
 import numpy as np
 from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
 from betse.lib.matplotlib import mplutil
-from betse.science.config import confio #, confalias
+from betse.science.config.confabc import SimConfYamlABC
 from betse.science.config.confalias import conf_alias
 from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
@@ -22,32 +22,11 @@ from collections import OrderedDict
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
-class Parameters(object):
+class Parameters(SimConfYamlABC):
     '''
     High-level simulation configuration encapsulating the low-level dictionary
     deserialized (i.e., parsed) from the user-defined YAML-formatted file
     underlying the current simulation.
-
-    Attributes (Private)
-    ----------
-    _conf : MappingType
-        Low-level dictionary containing this entire simulation configuration,
-        deserialized from this configuration's YAML-formatted file and safely
-        deserializable back to the same file. This private dictionary should
-        *never* be accessed directly. Note that the settings encapsulated by
-        this dictionary are safely retrievable and modifiable by callers *only*
-        via the public :func:`conf_alias` data descriptors in this class.
-
-    Attributes (Path)
-    ----------
-    conf_dirname : str
-        Absolute path of the directory containing the source YAML configuration
-        file from which this object was first deserialized. This directory
-        typically also contains example resources for use by BETSE's default
-        configuration file (e.g., geometry-defining bitmaps).
-    conf_filename : str
-        Absolute path of the source YAML configuration file from which this
-        object was first deserialized.
 
     Attributes (Path: Export)
     ----------
@@ -172,30 +151,14 @@ class Parameters(object):
     cell_polarizability = conf_alias(
         "['internal parameters']['cell polarizability']", NumericTypes)
 
-    # ..................{ INITIALIZERS                       }..................
-    #FIXME: Convert all or most of the variables parsed in the __init__() method
+    # ..................{ READERS                            }..................
+    #FIXME: Convert all or most of the variables parsed in the read() method
     #below into aliases of the above form. Brainy rainbows!
-
     @type_check
-    def __init__(self, conf_filename: str) -> None:
-        '''
-        Parse all settings from the passed YAML-formatted simulation
-        configuration file.
+    def read(self, *args, **kwargs) -> None:
 
-        Parameters
-        ----------------------------
-        conf_filename : str
-            Absolute or relative path of this file.
-        '''
-
-        # Unique absolute path of the passed file and directory containing this
-        # file. Since the latter uses the former, this dirname is guaranteed to
-        # be non-empty and hence *NOT* raise an exception.
-        self.conf_filename = pathnames.canonicalize(conf_filename)
-        self.conf_dirname = pathnames.get_dirname(self.conf_filename)
-
-        # Dictionary loaded from this YAML file.
-        self._conf = confio.read(self.conf_filename)
+        # Defer to the superclass implementation.
+        super().read(*args, **kwargs)
 
         # Preserve backward compatibility with prior configuration formats.
         self._init_backward_compatibility()

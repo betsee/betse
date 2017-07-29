@@ -71,12 +71,11 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
-        logs.log_info(
-            'Seeding simulation with configuration file "%s"...',
-            self._config_basename)
+        # Log this attempt.
+        logs.log_info('Seeding simulation...')
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
 
         #FIXME: Cease coercing this to "False" both here and below. Instead,
         #improve overlay handling in the "animabc" superclass to detect the
@@ -95,7 +94,7 @@ class SimRunner(object):
         phase = SimPhase(
             kind=SimPhaseKind.SEED, cells=cells, p=p, sim=sim)
 
-        logs.log_info('Cell cluster is being created...')
+        logs.log_info('Creating cell cluster...')
         cells.makeWorld(p)  # call function to create the world
         dyna = TissueHandler(sim, cells, p)
 
@@ -151,9 +150,8 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
-        logs.log_info(
-            'Initializing simulation with configuration file "%s".',
-            self._config_basename)
+        # Log this attempt.
+        logs.log_info('Initializing simulation...')
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -169,7 +167,7 @@ class SimRunner(object):
         #FIXME comment preceding the set_time_profile() method for details.
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False # let the simulator know we're just running an initialization
 
@@ -241,9 +239,8 @@ class SimRunner(object):
             internally created by this method to run this phase.
         '''
 
-        logs.log_info(
-            'Running simulation with configuration file "%s".',
-            self._config_basename)
+        # Log this attempt.
+        logs.log_info('Running simulation...')
 
         start_time = time.time()  # get a start value for timing the simulation
 
@@ -251,7 +248,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.SIM
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = True    # set on the fly a boolean to let simulator know we're running a full simulation
 
@@ -343,7 +340,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
@@ -429,7 +426,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
         p.run_sim = False
 
@@ -508,7 +505,7 @@ class SimRunner(object):
             self._config_basename)
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
 
         # Disable the current overlay. Plotting this artist requires simulation
         # data subsequently defined by the "init" phase and hence unavailable at
@@ -667,7 +664,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         # Simulation simulator.
@@ -778,7 +775,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.SIM
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be simulation
 
         # Simulation simulator.
@@ -872,7 +869,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         MoM = MasterOfMetabolism(p)
@@ -920,7 +917,7 @@ class SimRunner(object):
         phase_kind = SimPhaseKind.INIT
 
         # Simulation configuration.
-        p = Parameters(conf_filename=self._config_filename)
+        p = Parameters.make(self._config_filename)
         p.set_time_profile(phase_kind)  # force the time profile to be initialize
 
         MoG = MasterOfGenes(p)

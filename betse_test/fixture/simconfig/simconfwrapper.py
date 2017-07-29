@@ -18,6 +18,9 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 #* Eliminate all properties defined below.
 #* Replace all usage of the low-level "self._p._conf" dictionary with high-level
 #  data descriptors defined by "self._p".
+#FIXME: Ideally, after implementing the above, use of the "SimConfigTestWrapper"
+#wrapper will be able to be replaced everywhere in tests by direct use of the
+#"Parameters" object. We're not quite there yet -- but we will be, eventually.
 
 # ....................{ IMPORTS                            }....................
 # This subclass necessarily imports from submodules defined by the main codebase
@@ -31,8 +34,6 @@ from betse.science.simulate.pipe import piperunreq
 from betse.science.visual.anim.animpipe import AnimCellsPipe
 from betse.science.visual.plot.pipe.plotpipecell import PlotCellPipe
 from betse.science.visual.plot.pipe.plotpipecells import PlotCellsPipe
-from betse.util.io.log import logs
-from betse.util.path import files, pathnames
 from betse.util.type.types import type_check, NumericTypes
 
 # ....................{ SUPERCLASSES                       }....................
@@ -56,15 +57,8 @@ class SimConfigTestWrapper(object):
 
     Attributes
     ----------
-    _config : dict
-        Low-level dictionary deserialized from :attr:`_filename`.
-    _basename : str
-        Basename of :attr:`_filename`.
-    _dirname : str
-        Absolute or relative path of the directory containing :attr:`_filename`.
-    _filename : str
-        Absolute or relative path of the YAML-formatted simulation configuration
-        file deserialized into :attr:`_config`.
+    _p : Parameters
+        High-level simulation configuration encapsulated by this test wrapper.
     '''
 
     # ..................{ INITIALIZERS                       }..................
@@ -79,17 +73,8 @@ class SimConfigTestWrapper(object):
             Absolute or relative path of this file.
         '''
 
-        # Classify the passed parameters.
-        self._filename = filename
-
-        # Absolute or relative path of the directory containing this file.
-        self._dirname = pathnames.get_dirname(filename)
-
-        # Basename of this file.
-        self._basename = pathnames.get_basename(filename)
-
         # Deserialize this file into a high-level in-memory object.
-        self._p = Parameters(conf_filename=filename)
+        self._p = Parameters.make(filename)
 
 
     @classmethod
@@ -134,22 +119,13 @@ class SimConfigTestWrapper(object):
     # For safety, these properties lack setters and hence are read-only.
 
     @property
-    def basename(self) -> str:
-        '''
-        Basename of the configuration file wrapped by this encapsulation object.
-        '''
-
-        return self._basename
-
-
-    @property
     def dirname(self) -> str:
         '''
         Absolute or relative path of the directory containing the configuration
         file wrapped by this encapsulation object.
         '''
 
-        return self._dirname
+        return self._p.conf_dirname
 
 
     @property
@@ -159,53 +135,17 @@ class SimConfigTestWrapper(object):
         encapsulation object.
         '''
 
-        return self._filename
+        return self._p.conf_filename
 
     # ..................{ WRITERS                            }..................
     def overwrite(self) -> None:
         '''
         Reserialize the current low-level configuration dictionary to the
-        current configuration file.
-
-        This method silently overwrites the contents of this file with the
-        (possibly modified) contents of this dictionary.
+        current configuration file, silently overwriting the contents of this
+        file with the possibly modified contents of this dictionary.
         '''
 
-        # Log this overwrite attempt.
-        logs.log_info('Overwriting current simulation configuration...')
-
-        # Delete this configuration file, preventing the subsequent write from
-        # raising an ignorable exception.
-        files.remove_if_found(self._filename)
-
-        # Recreate this configuration file.
-        self.write(self._filename)
-
-
-    @type_check
-    def write(self, filename: str) -> None:
-        '''
-        Serialize the current low-level configuration dictionary to the passed
-        simulation configuration file in YAML format.
-
-        If this file already exists, an exception is raised.
-
-        Parameters
-        ----------
-        filename : str
-            Absolute or relative path of the simulation configuration file to be
-            written. Since this file will be YAML-formatted, this filename
-            should ideally be suffixed by a valid YAML filetype: namely, either
-            `.yml` or `.yaml`. This is _not_ strictly necessary, but is strongly
-            recommended.
-
-        Raises
-        ----------
-        BetseFileException
-            If this file already exists.
-        '''
-
-        confio.write(filename, self._p._conf)
+        self._p.overwrite()
 
     # ..................{ PROPERTIES ~ float                 }..................
     @property
