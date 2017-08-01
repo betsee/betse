@@ -10,6 +10,7 @@ configurations so as to exercise specific feature sets and edge cases.
 '''
 
 # ....................{ IMPORTS                            }....................
+import betse.util.os.shell.shelldir
 from betse.util.type.types import type_check
 from pytest import fixture
 from py._path.local import LocalPath
@@ -107,7 +108,7 @@ class SimTestState(object):
         from betse.util.path import dirs
 
         # Defer to the generator returned by the following utility function.
-        return dirs.current(self.config.dirname)
+        return betse.util.os.shell.shelldir.setting_cwd(self.config.dirname)
 
 # ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each discrete test.

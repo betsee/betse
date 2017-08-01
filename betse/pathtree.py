@@ -4,14 +4,14 @@
 # See "LICENSE" for further details.
 
 '''
-High-level constants describing this application's filesystem usage.
+Collection of the absolute paths of numerous critical files and directories
+describing the structure of this application on the local filesystem.
 
-These constants provide the absolute paths of files and directories intended for
-general use by both this application and downstream reverse dependencies of this
-application (e.g., BETSEE, the BETSE GUI). For portability, these constants are
-initialized in a system-aware manner guaranteed to be sane under various
-installation environments -- including PyInstaller-frozen executables and
-:mod:`setuptools`-installed script wrappers.
+These are intended for consumption by both this application and downstream
+reverse dependencies of this application (e.g., BETSEE, the BETSE GUI). For
+portability, these paths are initialized in a system-aware manner guaranteed to
+be sane under insane installation environments -- including PyInstaller-frozen
+executables and :mod:`setuptools`-installed script wrappers.
 '''
 
 #FIXME: The current globals-based approach is inefficient in the case of BETSE

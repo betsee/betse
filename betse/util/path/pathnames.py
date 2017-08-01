@@ -9,6 +9,8 @@ Low-level pathname (e.g., basename, dirname, filetype) facilities.
 
 # ....................{ IMPORTS                            }....................
 import errno, os
+
+import betse.util.os.shell.shelldir
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, ModuleType, ContainerType
@@ -487,7 +489,7 @@ def get_dirname_or_current_dirname(pathname: str) -> str:
     # Avoid circular import dependencies.
     from betse.util.path import dirs
     dirname = get_dirname_or_empty(pathname)
-    return dirname if dirname else dirs.get_cwd_dirname()
+    return dirname if dirname else betse.util.os.shell.shelldir.get_cwd_dirname()
 
 
 @type_check

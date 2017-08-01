@@ -150,6 +150,20 @@ class SimConfYamlABC(SimConfABC):
         self._conf_dirname = None
         self._conf_filename = None
 
+    # ..................{ PROPERTIES                         }..................
+    @property
+    def is_open(self) -> bool:
+        '''
+        ``True`` only if this simulation configuration is in the **open state**
+        (i.e., associated with a low-level YAML-formatted simulation
+        configuration file).
+
+        If ``True``, *all* methods of this base class (e.g., :meth:`read`,
+        :meth:`close`) are safely callable by callers; else, none are.
+        '''
+
+        return self._conf_filename is None
+
     # ..................{ CLOSERS                            }..................
     def close(self) -> None:
         '''

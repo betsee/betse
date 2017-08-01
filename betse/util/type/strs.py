@@ -252,6 +252,17 @@ def join_on_newline(*texts) -> str:
     return join_on(*texts, delimiter='\n')
 
 
+def join_on_space(*texts) -> str:
+    '''
+    Join the passed strings with space as the separating delimiter.
+
+    This is a convnience function wrapping the standard
+    ``" ".join((...))`` method, whose syntax is arguably overly verbose.
+    '''
+
+    return join_on(*texts, delimiter=' ')
+
+
 @type_check
 def join_on(*texts: IterableTypes, delimiter: str) -> str:
     '''
