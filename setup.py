@@ -31,7 +31,7 @@ tasks (e.g., installation, freezing, test running) for this application.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import setuptools
-from betse import metadata
+from betse import metadata, metadeps
 from betse.lib import libs
 from betse_setup import build, freeze, symlink, test, util
 
@@ -57,6 +57,7 @@ To minimize synchronization woes, this description is identical to the contents
 of the :doc:`/README.rst` file. When submitting this application package to
 PyPI, this description is used verbatim as this package's front matter.
 '''
+
 
 # ....................{ METADATA ~ seo                     }....................
 _KEYWORDS = ['biology', 'multiphysics', 'science', 'simulator',]
@@ -108,7 +109,15 @@ https://pypi.python.org/pypi?%3Aaction=list_classifiers
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
     '''
-    Finalize the definition of all globals declared by this module.
+    Finalize the definition of all globals declared by this script.
+    '''
+
+    init_description()
+
+
+def init_description() -> None:
+    '''
+    Finalize the :data:`_DESCRIPTION` global declared by this script.
     '''
 
     # Global variables assigned to below.
@@ -143,7 +152,7 @@ def init() -> None:
             'Description file "{}" not found or not readable:\n{}'.format(
                 DESCRIPTION_FILENAME, exception))
 
-
+# ....................{ INITIALIZERS ~ main                }....................
 # Finalize the definition of all globals declared by this module.
 init()
 
@@ -171,8 +180,8 @@ setup_options = {
     'license': metadata.LICENSE,
 
     # ..................{ DEPENDENCIES                       }..................
-    # Mandatory nuntime dependencies.
-    'install_requires': metadata.DEPENDENCIES_RUNTIME_MANDATORY,
+    # Mandatory runtime dependencies.
+    'install_requires': metadeps.RUNTIME_MANDATORY,
 
     # Optional nuntime dependencies. Whereas mandatory dependencies are defined
     # as sequences, optional dependencies are defined as a dictionary mapping
@@ -183,14 +192,13 @@ setup_options = {
     # "sudo pip3 install betse[all]", installing both the application and all
     # mandatory and optional dependencies required by the application).
     'extras_require': {
-        # All optional runtime dependencies. Since the
-        # "DEPENDENCIES_RUNTIME_OPTIONAL" global is a dictionary rather than a
-        # sequence, a function converting this global into a tuple is called.
+        # All optional runtime dependencies, dynamically converted into a
+        # sequence from the "metadeps.RUNTIME_OPTIONAL" dictionary global.
         'all': libs.get_runtime_optional_tuple(),
     },
 
     # Mandatory testing dependencies.
-    'tests_require': metadata.DEPENDENCIES_TESTING_MANDATORY,
+    'tests_require': metadeps.TESTING_MANDATORY,
 
     # ..................{ PACKAGES                           }..................
     # List of all Python packages (i.e., directories containing zero or more

@@ -18,43 +18,6 @@ from betse.util.io.log import logs
 from betse.util.path import dirs, files, pathnames
 from betse.util.type.types import type_check  #, MappingType
 
-# ....................{ EXCEPTIONS                         }....................
-@type_check
-def die_unless_writable(conf_filename: str) -> None:
-    '''
-    Raise an exception unless the passed path is suitable for writing a
-    YAML-formatted simulation configuration file to.
-
-    Specifically:
-
-    * If this file already exists, an exception is raised for safety.
-    * If this file's filetype is neither ``.yaml`` nor ``.yml``, a non-fatal
-      warning is logged.
-
-    Parameters
-    ----------------------------
-    conf_filename : str
-        Absolute or relative path of the target YAML file to be validated.
-
-    Raises
-    ----------
-    BetseFileException
-        If this file already exists.
-    '''
-
-    # Basename and filetype of this file.
-    config_basename = pathnames.get_basename(conf_filename)
-    config_filetype = pathnames.get_filetype_undotted_or_none(config_basename)
-
-    # If this file already exists, fail.
-    files.die_if_file(conf_filename)
-
-    # If this filename has no YAML filetype, log a warning.
-    if config_filetype not in ('yaml', 'yml'):
-        logs.log_warning(
-            'Config file "%s" filetype "%s" neither "yaml" nor "yml".',
-            config_basename, config_filetype)
-
 # ....................{ LOADERS                            }....................
 #FIXME: All functions defined in the "LOADERS" and "WRITERS" sections below are
 #patently silly and, ideally, should be replaced by the following non-silly
@@ -122,7 +85,7 @@ def write_default(conf_filename: str) -> None:
     logs.log_info('Writing default simulation configuration...')
 
     # Validate this file *BEFORE* writing this file.
-    die_unless_writable(conf_filename)
+    files.die_if_file(conf_filename)
 
     # Copy the default source simulation configuration file to this target file.
     files.copy(pathtree.get_sim_config_default_filename(), conf_filename)

@@ -18,8 +18,7 @@ such dependencies.
 # the top-level of this module may import *ONLY* from packages guaranteed to
 # exist at installation time (i.e., standard Python and application packages).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-from betse import metadata
+from betse import metadeps
 from betse.exceptions import BetseLibException
 from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
@@ -57,7 +56,7 @@ def die_unless_runtime_mandatory_all() -> None:
         If at least one mandatory runtime dependency is unsatisfiable.
     '''
 
-    die_unless_requirements_dict(metadata.DEPENDENCIES_RUNTIME_MANDATORY)
+    die_unless_requirements_dict(metadeps.RUNTIME_MANDATORY)
 
 
 @type_check
@@ -75,7 +74,7 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
         Tuple of the names of all :mod:`setuptools`-specific projects
         corresponding to these dependencies (e.g., ``NetworkX``). If any such
         name is *not* a key of the
-        :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary and is
+        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary and is
         thus unrecognized, an exception is raised.
 
     Raises
@@ -90,7 +89,7 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
     '''
 
     die_unless_requirements_dict_keys(
-        metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names)
+        metadeps.RUNTIME_OPTIONAL, *requirement_names)
 
 # ....................{ EXCEPTIONS ~ typed                 }....................
 @type_check
@@ -188,7 +187,7 @@ def die_unless_commands(*requirement_names: str) -> None:
             # For each "betse.metadata.DependencyCommand" instance
             # describing each external command required by this dependency if
             # any *OR* the empty tuple otherwise...
-            for dependency_command in metadata.DEPENDENCIES_COMMANDS.get(
+            for dependency_command in metadeps.EXTERNAL_COMMANDS.get(
                 requirement_name, ()):
                 # If this command is *NOT* in the ${PATH}, raise an exception.
                 if not cmdpath.is_pathable(dependency_command.basename):
@@ -229,7 +228,7 @@ def is_commands(*requirement_names: str) -> bool:
         # For the tuple of all "betse.metadata.DependencyCommand" instances
         # describing all external commands required by this dependency if any
         # *OR* the empty tuple otherwise...
-        for dependency_command in metadata.DEPENDENCIES_COMMANDS.get(
+        for dependency_command in metadeps.EXTERNAL_COMMANDS.get(
             requirement_name, ())
     )
 
@@ -247,7 +246,7 @@ def is_runtime_optional(*requirement_names: str) -> bool:
         Tuple of the names of all :mod:`setuptools`-specific projects
         corresponding to these dependencies (e.g., ``NetworkX``). If any such
         name is *not* a key of the
-        :data:`betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary and is
+        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary and is
         thus unrecognized, an exception is raised.
 
     See Also
@@ -265,7 +264,7 @@ def is_runtime_optional(*requirement_names: str) -> bool:
         # of these requirements into a tuple of requirements strings.
         setuptool.is_requirement_str(
             *setuptool.convert_requirements_dict_keys_to_tuple(
-                metadata.DEPENDENCIES_RUNTIME_OPTIONAL, *requirement_names)) and
+                metadeps.RUNTIME_OPTIONAL, *requirement_names)) and
 
         # All external commands required by these dependencies are installed.
         is_commands(*requirement_names)
@@ -310,10 +309,10 @@ def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
     Parameters
     ----------
     matplotlib_backend_name: optional[str]
-        Name of the matplotlib backend to explicitly enable. Defaults to `None`,
-        in which case this method implicitly enables the first importable
-        backend known to be both usable and supported by application
-        requirements (_in descending order of preference_).
+        Name of the matplotlib backend to explicitly enable. Defaults to
+        ``None``, in which case this method implicitly enables the first
+        importable backend known to be both usable and supported by application
+        requirements (in descending order of preference).
     '''
 
     # If this function has already been called, noop.
@@ -342,7 +341,7 @@ def get_runtime_mandatory_tuple() -> tuple:
     optional runtime dependency for this application.
 
     This tuple is dynamically converted from the
-    :data:`metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary.
+    :data:`metadata.RUNTIME_OPTIONAL` dictionary.
     '''
 
     # Avoid circular import dependencies.
@@ -350,7 +349,7 @@ def get_runtime_mandatory_tuple() -> tuple:
 
     # Convert this dictionary into a tuple.
     return setuptool.convert_requirements_dict_to_tuple(
-        metadata.DEPENDENCIES_RUNTIME_MANDATORY)
+        metadeps.RUNTIME_MANDATORY)
 
 
 def get_runtime_optional_tuple() -> tuple:
@@ -360,7 +359,7 @@ def get_runtime_optional_tuple() -> tuple:
     optional runtime dependency for this application.
 
     This tuple is dynamically converted from the
-    :data:`metadata.DEPENDENCIES_RUNTIME_OPTIONAL` dictionary.
+    :data:`metadata.RUNTIME_OPTIONAL` dictionary.
     '''
 
     # Avoid circular import dependencies.
@@ -368,7 +367,7 @@ def get_runtime_optional_tuple() -> tuple:
 
     # Convert this dictionary into a tuple.
     return setuptool.convert_requirements_dict_to_tuple(
-        metadata.DEPENDENCIES_RUNTIME_OPTIONAL)
+        metadeps.RUNTIME_OPTIONAL)
 
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadatas() -> tuple:
@@ -387,14 +386,11 @@ def get_metadatas() -> tuple:
     LIB_VERSION_METADATA = (
         # Dependencies metadata.
         ('runtime dependencies (mandatory)',
-         setuptool.get_requirements_dict_metadata(
-             metadata.DEPENDENCIES_RUNTIME_MANDATORY)),
+         setuptool.get_requirements_dict_metadata(metadeps.RUNTIME_MANDATORY)),
         ('runtime dependencies (optional)',
-         setuptool.get_requirements_dict_metadata(
-             metadata.DEPENDENCIES_RUNTIME_OPTIONAL)),
+         setuptool.get_requirements_dict_metadata(metadeps.RUNTIME_OPTIONAL)),
         ('testing dependencies (mandatory)',
-         setuptool.get_requirements_dict_metadata(
-            metadata.DEPENDENCIES_TESTING_MANDATORY)),
+         setuptool.get_requirements_dict_metadata(metadeps.TESTING_MANDATORY)),
     )
 
     # Tuple of all dependency-specific metadata.

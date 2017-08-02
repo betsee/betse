@@ -8,8 +8,28 @@ High-level support facilities for Yet Another Markup Language (YAML), the
 file format encapsulating most input and output data for this application.
 '''
 
+#FIXME: Add support for "ruamel.yaml" and "ruamel_yaml". First, note that the
+#currently selected YAML implementation is given by
+#"betse.metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME". Next, note that
+#supporting the new object-oriented "ruamel.yaml" API will require considerably
+#different logic from that of PyYAML. To support both, consider:
+#
+#* Defining the following new functions:
+#  * _load_pyyaml(), implementing PyYAML-specific load functionality.
+#  * _load_ruamel(), implementing both "ruamel.yaml" and "ruamel_yaml"-specific
+#    load functionality. For space efficiency, don't both preserving the object
+#    required by this API; just discard it when the function returns.
+#* Ditto for save functionality.
+#* The top-level load() and save() functions should then internally call the
+#  appropriate private implementations manually switched on the value of the
+#  "betse.metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME" global. *DO NOT BOTHER
+#  WITH A DICTIONARY MAPPING.* We are serious. There are only two available
+#  choices. Do *NOT* go overkill here, please.
+#FIXME: Actually, note that there is currently no point in supporting
+#"ruamel_yaml" -- which is painfully obsolete and unlikely to ever catch up.
+
 #FIXME: Consider contributing various portions of this submodule back to
-#"ruamel.yaml".
+#"ruamel.yaml" -- particularly the Numpy-type-to-YAML-native-type conversions.
 
 # ....................{ IMPORTS                            }....................
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -20,19 +40,48 @@ file format encapsulating most input and output data for this application.
 
 import numpy
 from betse.util.io import iofiles
+from betse.util.io.log import logs
+from betse.util.path import pathnames
 from betse.util.type.types import type_check, MappingOrSequenceTypes
 
-# ....................{ CONSTANTS                          }....................
-#FIXME: Initialize and leverage this below.
-_PACKAGE_NAME = None
+# ....................{ GLOBALS                            }....................
+FILETYPES = {'yaml', 'yml',}
 '''
+Set of all YAML-compliant filetypes.
 '''
 
-
+# ....................{ GLOBALS ~ private                  }....................
 _TAG_NUMPY_NDARRAY = '!ndarray'
 '''
 YAML-formatted tag identifying each YAML sequence converted from a Numpy array.
 '''
+
+# ....................{ WARNERS                            }....................
+@type_check
+def warn_unless_filetype_yaml(filename: str) -> None:
+    '''
+    Log a non-fatal warning unless the passed filename has a YAML-compliant
+    filetype (i.e., is suffixed by either ``.yaml`` or ``.yml``).
+
+    Parameters
+    ----------
+    filename : str
+        Absolute or relative path of this file.
+    '''
+
+    # Filetype of this file.
+    filetype = pathnames.get_filetype_undotted_or_none(filename)
+
+    # If this filetype is *NOT* YAML-compliant...
+    if filetype not in FILETYPES:
+        # If this file has *NO* filetype, log an appropriate warning.
+        if filetype is None:
+            logs.log_warning('YAML file "%s" has no filetype.', filename)
+        # Else, this file has a filetype. Log an appropriate warning.
+        else:
+            logs.log_warning(
+                'YAML file "%s" filetype "%s" neither "yaml" nor "yml".',
+                filename, filetype)
 
 # ....................{ LOADERS                            }....................
 @type_check
@@ -54,6 +103,9 @@ def load(filename: str) -> MappingOrSequenceTypes:
 
     # Delay importation of the desired YAML implementation.
     import yaml
+
+    # If this filename has no YAML-compliant filetype, log a warning.
+    warn_unless_filetype_yaml(filename)
 
     # Load and return the contents of this YAML file.
     with iofiles.reading_chars(filename) as yaml_file:
@@ -77,6 +129,9 @@ def save(container: MappingOrSequenceTypes, filename: str) -> None:
     # Delay importation of the desired YAML implementation.
     import yaml
 
+    # If this filename has no YAML-compliant filetype, log a warning.
+    warn_unless_filetype_yaml(filename)
+
     # Save this container to this YAML file.
     with iofiles.writing_chars(filename) as yaml_file:
         yaml.dump(
@@ -94,8 +149,8 @@ def init() -> None:
     (e.g., :mod:`ruamel.yaml`, PyYAML).
 
     This function selects the first such implementation importable under the
-    active Python interpreter from the following list (_in descending order of
-    preference_): :mod:`ruamel.yaml`, PyYAML.
+    active Python interpreter from the following list (in descending order of
+    preference): :mod:`ruamel.yaml`, PyYAML.
     '''
 
     # Delay importation of the desired YAML implementation.

@@ -26,7 +26,7 @@ ARCHIVE_FILETYPES = (
     # The higher-level skip_unless_lib_runtime_optional() decorator is
     # intentionally *NOT* called here. Although the following modules could be
     # argued to be optional runtime dependencies of this application requiring
-    # addition to the "betse.metadata.DEPENDENCIES_RUNTIME_OPTIONAL" dictionary,
+    # addition to the "betse.metadata.RUNTIME_OPTIONAL" dictionary,
     # these modules are pre-packaged with Python itself rather than installed
     # via setuptools. Since these modules declare no "__version__" attribute,
     # there exists no means of validating the satisfiability of these modules as

@@ -61,7 +61,7 @@ def merge(*dicts: MappingType) -> MappingType:
         Dictionary merged from and of the same type as the passed dictionaries.
         For efficiency, this dictionary is only a shallow rather than deep copy
         of these dictionaries. Note lastly that the class of the passed
-        dictionary _must_ define an `__init__()` method accepting a dictionary
+        dictionary *must* define an ``__init__()`` method accepting a dictionary
         comprehension.
     '''
 

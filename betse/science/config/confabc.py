@@ -257,7 +257,7 @@ class SimConfYamlABC(SimConfABC):
             pathnames.get_basename(conf_filename))
 
         # Validate this file *BEFORE* writing this file.
-        confio.die_unless_writable(conf_filename)
+        files.die_if_file(conf_filename)
 
         # Associate this object with this file.
         self._set_conf_filename(conf_filename)
