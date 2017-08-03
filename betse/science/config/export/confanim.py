@@ -11,16 +11,17 @@ YAML-backed simulation animation subconfigurations.
 
 #FIXME: Define saving-ordiented methods.
 
+from betse.lib.yaml.yamlalias import yaml_alias
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confabc import SimConfABC, SimConfList
-from betse.science.config.confalias import conf_alias
+from betse.lib.yaml.yamlabc import YamlABC, YamlList
 from betse.science.config.export.confvis import (
     SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
 from betse.util.type import ints
 from betse.util.type.types import type_check, MappingType, SequenceTypes
 
+
 # ....................{ SUBCLASSES                         }....................
-class SimConfAnimAll(SimConfABC):
+class SimConfAnimAll(YamlABC):
     '''
     YAML-backed simulation animations subconfiguration, encapsulating the
     configuration of all animations (both in- and post-simulation) parsed from
@@ -52,7 +53,7 @@ class SimConfAnimAll(SimConfABC):
         ``True`` only if this configuration saves post-simulation animations.
     is_after_sim_show : bool
         ``True`` only if this configuration displays post-simulation animations.
-    after_sim_pipeline : SimConfList
+    after_sim_pipeline : YamlList
         List of all post-simulation animations to be animated. Ignored if
         :attr:``is_after_sim`` is ``False``.
 
@@ -134,7 +135,7 @@ class SimConfAnimAll(SimConfABC):
                 'results options']['while solving']['animations'])
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.after_sim_pipeline = SimConfList(
+        self.after_sim_pipeline = YamlList(
             confs=self._conf[
                 'results options']['after solving']['animations']['pipeline'],
             conf_type=SimConfVisualCellsListItem,
@@ -149,43 +150,43 @@ class SimConfAnimAll(SimConfABC):
         )
 
     # ..................{ ALIASES ~ while                    }..................
-    is_while_sim_save = conf_alias(
+    is_while_sim_save = yaml_alias(
         "['results options']['while solving']['animations']['save']", bool)
-    is_while_sim_show = conf_alias(
+    is_while_sim_show = yaml_alias(
         "['results options']['while solving']['animations']['show']", bool)
 
     # ..................{ ALIASES ~ after                    }..................
-    is_after_sim_save = conf_alias(
+    is_after_sim_save = yaml_alias(
         "['results options']['after solving']['animations']['save']", bool)
-    is_after_sim_show = conf_alias(
+    is_after_sim_show = yaml_alias(
         "['results options']['after solving']['animations']['show']", bool)
 
     # ..................{ ALIASES ~ save : images            }..................
-    is_images_save = conf_alias(
+    is_images_save = yaml_alias(
         "['results options']['save']['animations']['images']['enabled']", bool)
-    image_filetype = conf_alias(
+    image_filetype = yaml_alias(
         "['results options']['save']['animations']['images']['filetype']", str)
-    image_dpi = conf_alias(
+    image_dpi = yaml_alias(
         "['results options']['save']['animations']['images']['dpi']", int)
 
     # ..................{ ALIASES ~ save : video             }..................
-    is_video_save = conf_alias(
+    is_video_save = yaml_alias(
         "['results options']['save']['animations']['video']['enabled']", bool)
-    video_bitrate = conf_alias(
+    video_bitrate = yaml_alias(
         "['results options']['save']['animations']['video']['bitrate']", int)
-    video_dpi = conf_alias(
+    video_dpi = yaml_alias(
         "['results options']['save']['animations']['video']['dpi']", int)
-    video_filetype = conf_alias(
+    video_filetype = yaml_alias(
         "['results options']['save']['animations']['video']['filetype']", str)
-    video_framerate = conf_alias(
+    video_framerate = yaml_alias(
         "['results options']['save']['animations']['video']['framerate']", int)
-    video_metadata = conf_alias(
+    video_metadata = yaml_alias(
         "['results options']['save']['animations']['video']['metadata']",
         MappingType)
-    video_writer_names = conf_alias(
+    video_writer_names = yaml_alias(
         "['results options']['save']['animations']['video']['writers']",
         SequenceTypes)
-    video_codec_names = conf_alias(
+    video_codec_names = yaml_alias(
         "['results options']['save']['animations']['video']['codecs']",
         SequenceTypes)
 

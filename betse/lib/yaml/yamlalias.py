@@ -14,7 +14,7 @@ from betse.util.type.descriptor.expralias import expr_alias, expr_enum_alias
 from betse.util.type.types import type_check, EnumType
 
 # ....................{ SUPERCLASSES                       }....................
-class SimConfAliasABC(object, metaclass=ABCMeta):
+class YamlAliasABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all simulation configuration-specific **expression
     alias data descriptor** (i.e., object satisfying the data descriptor
@@ -25,26 +25,26 @@ class SimConfAliasABC(object, metaclass=ABCMeta):
     ----------
     The class principally exists for type validation -- namely, to differentiate
     the data descriptors returned by alias functions defined by this submodule
-    (e.g., :func:`conf_alias`) from those created by other means.
+    (e.g., :func:`yaml_alias`) from those created by other means.
     '''
 
     pass
 
 # ....................{ GLOBALS                            }....................
-_CONF_ALIAS_BASE_CLASSES = (SimConfAliasABC,)
+_YAML_ALIAS_BASE_CLASSES = (YamlAliasABC,)
 '''
 Tuple of all base classes of all simulation configuration-specific expression
 alias data descriptors.
 
 See Also
 ----------
-SimConfAliasABC
+:class:`YamlAliasABC`
     Further details.
 '''
 
 # ....................{ DESCRIPTORS                        }....................
 @type_check
-def conf_alias(keys: str, *args, **kwargs) -> SimConfAliasABC:
+def yaml_alias(keys: str, *args, **kwargs) -> YamlAliasABC:
     '''
     Expression alias **data descriptor** (i.e., object satisfying the data
     descriptor protocol) specific to simulation configurations, dynamically
@@ -67,7 +67,7 @@ def conf_alias(keys: str, *args, **kwargs) -> SimConfAliasABC:
 
     Returns
     ----------
-    SimConfAliasABC
+    YamlAliasABC
         Expression alias data descriptor as detailed above.
 
     See Also
@@ -78,11 +78,11 @@ def conf_alias(keys: str, *args, **kwargs) -> SimConfAliasABC:
 
     return expr_alias(
         'self._conf' + keys, *args,
-        base_classes=_CONF_ALIAS_BASE_CLASSES, **kwargs)
+        base_classes=_YAML_ALIAS_BASE_CLASSES, **kwargs)
 
 
 @type_check
-def conf_enum_alias(keys: str, enum_type: EnumType) -> SimConfAliasABC:
+def yaml_enum_alias(keys: str, enum_type: EnumType) -> YamlAliasABC:
     '''
     Enumeration-specific expression alias **data descriptor** (i.e., object
     satisfying the data descriptor protocol) specific to simulation
@@ -96,7 +96,7 @@ def conf_enum_alias(keys: str, enum_type: EnumType) -> SimConfAliasABC:
     ----------
     keys : str
         Oner or more ``[``- and ``]``-delimited key lookups. See the
-        :func:`conf_alias` function for further details.
+        :func:`yaml_alias` function for further details.
     enum_type: EnumType
         Enumeration that the value of this variable *must* be a member of.
         Setting this variable to a value *not* a member of this enumeration will
@@ -104,7 +104,7 @@ def conf_enum_alias(keys: str, enum_type: EnumType) -> SimConfAliasABC:
 
     Returns
     ----------
-    SimConfAliasABC
+    YamlAliasABC
         Enumeration-specific expression alias data descriptor as detailed above.
 
     See Also
@@ -116,11 +116,11 @@ def conf_enum_alias(keys: str, enum_type: EnumType) -> SimConfAliasABC:
     return expr_enum_alias(
         expr='self._conf' + keys,
         enum_type=enum_type,
-        base_classes=_CONF_ALIAS_BASE_CLASSES,
+        base_classes=_YAML_ALIAS_BASE_CLASSES,
     )
 
 # ....................{ DESCRIPTORS ~ predicate            }....................
-def conf_alias_int_positive(keys: str) -> SimConfAliasABC:
+def yaml_alias_int_positive(keys: str) -> YamlAliasABC:
     '''
     Simulation configuration expression alias data descriptor, dynamically
     aliasing a target integer variable with values constrained to be
@@ -128,9 +128,13 @@ def conf_alias_int_positive(keys: str) -> SimConfAliasABC:
 
     See Also
     ----------
-    :func:`conf_alias`
+    :func:`yaml_alias`
         Further details.
     '''
 
-    return conf_enum_alias(
-        keys=keys, cls=int, predicate_expr='value > 0', cate_label='positive',)
+    return yaml_alias(
+        keys=keys,
+        cls=int,
+        predicate_expr='value > 0',
+        predicate_label='positive',
+    )

@@ -15,6 +15,7 @@ Metadata constants synopsizing high-level application dependencies.
 # *NOT* third-party dependencies, which if currently uninstalled will only be
 # installed at some later time in the installation.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 from betse.util.type import modules
 
 # ....................{ LIBS ~ runtime : mandatory         }....................
@@ -298,6 +299,11 @@ def _init() -> None:
     # Enforce installation of the preferred YAML framework detected above.
     RUNTIME_MANDATORY[RUNTIME_MANDATORY_YAML_PROJECT_NAME] = (
         RUNTIME_MANDATORY_YAML[RUNTIME_MANDATORY_YAML_PROJECT_NAME])
+
+    # Merge the requirement strings for all YAML frameworks into those for all
+    # optional dependencies, permitting the former to be treated like the latter
+    # (e.g., by the betse.lib.libs.die_unless_runtime_optional() function).
+    RUNTIME_OPTIONAL.update(RUNTIME_MANDATORY_YAML)
 
 # ....................{ MAIN                               }....................
 # Initialize this submodule.

@@ -39,6 +39,8 @@ file format encapsulating most input and output data for this application.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import numpy
+from betse import metadeps
+from betse.lib import libs
 from betse.util.io import iofiles
 from betse.util.io.log import logs
 from betse.util.path import pathnames
@@ -87,8 +89,8 @@ def warn_unless_filetype_yaml(filename: str) -> None:
 @type_check
 def load(filename: str) -> MappingOrSequenceTypes:
     '''
-    Load (i.e., read, deserialize) and return the contents of the YAML-formatted
-    file with the passed path as either a dictionary or list.
+    Load (i.e., open and read, deserialize) and return the contents of the
+    YAML-formatted file with the passed path as either a dictionary or list.
 
     Parameters
     ----------
@@ -101,8 +103,29 @@ def load(filename: str) -> MappingOrSequenceTypes:
         Dictionary or list corresponding to the contents of this file.
     '''
 
-    # Delay importation of the desired YAML implementation.
-    import yaml
+    # If this filename has no YAML-compliant filetype, log a warning.
+    warn_unless_filetype_yaml(filename)
+
+    #FIXME: Conditionalize based on the current YAML implementation.
+    # Load and return the contents of this YAML file.
+    return _load_pyyaml(filename)
+
+
+@type_check
+def _load_pyyaml(filename: str) -> MappingOrSequenceTypes:
+    '''
+    Load (i.e., open and read, deserialize) and return the contents of the
+    YAML-formatted file with the passed path as either a dictionary or list with
+    the non-roundtripping PyYAML parser (i.e., the :mod:`yaml` package).
+
+    See Also
+    ----------
+    :func:`load`
+        Further details.
+    '''
+
+    # Delay importation of this YAML implementation.
+    yaml = libs.import_runtime_optional('PyYAML')
 
     # If this filename has no YAML-compliant filetype, log a warning.
     warn_unless_filetype_yaml(filename)
@@ -111,12 +134,16 @@ def load(filename: str) -> MappingOrSequenceTypes:
     with iofiles.reading_chars(filename) as yaml_file:
         return yaml.load(stream=yaml_file)
 
+
+#FIXME: Implement us up according to the template established above..
+# _load_ruamel(), implementing both "ruamel.yaml" and "ruamel_yaml"-specific
+
 # ....................{ SAVERS                             }....................
 @type_check
 def save(container: MappingOrSequenceTypes, filename: str) -> None:
     '''
-    Save (i.e., write, serialize) the passed dictionary or list to the YAML-
-    formatted file with the passed path.
+    Save (i.e., open and write, serialize) the passed dictionary or list to the
+    YAML-formatted file with the passed path.
 
     Parameters
     ----------
@@ -153,9 +180,15 @@ def init() -> None:
     preference): :mod:`ruamel.yaml`, PyYAML.
     '''
 
-    # Delay importation of the desired YAML implementation.
-    import yaml
-    from yaml.representer import SafeRepresenter
+    # Log the currently selected YAML implementation.
+    logs.log_debug(
+        'Initializing preferred YAML binding "%s"...',
+        metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME)
+
+    #FIXME: Conditionalize. What, exactly, is the equivalent in "ruamel.yaml"?
+
+    # Delay importation of this YAML implementation.
+    yaml = libs.import_runtime_optional('PyYAML')
 
     # When saving arbitrary objects to YAML, stringify all:
     #
@@ -199,7 +232,8 @@ def init() -> None:
     #ruamel.yaml already fixes all Numpy-specific warnings.
 
     # Monkeypatch this PyYAML method to eliminate Numpy-specific warnings.
-    SafeRepresenter.ignore_aliases = _ignore_aliases_monkeypatch
+    yaml.representer.SafeRepresenter.ignore_aliases = (
+        _ignore_aliases_monkeypatch)
 
 # ....................{ REPRESENTERS                       }....................
 def _represent_numpy_ndarray(dumper, ndarray: numpy.ndarray) -> str:

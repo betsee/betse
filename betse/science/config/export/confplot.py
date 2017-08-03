@@ -8,16 +8,17 @@ YAML-backed simulation plot subconfigurations.
 
 #FIXME: Define saving-ordiented methods.
 
+from betse.lib.yaml.yamlalias import yaml_alias
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confabc import SimConfABC, SimConfList
-from betse.science.config.confalias import conf_alias
+from betse.lib.yaml.yamlabc import YamlABC, YamlList
 from betse.science.config.export.confvis import (
     SimConfVisualCellsListItem, SimConfVisualCellListItem)
 from betse.util.type import ints
 from betse.util.type.types import type_check
 
+
 # ....................{ SUBCLASSES                         }....................
-class SimConfPlotAll(SimConfABC):
+class SimConfPlotAll(YamlABC):
     '''
     YAML-backed simulation plot subconfiguration, encapsulating the
     configuration of all plots (both in- and post-simulation) parsed from the
@@ -38,10 +39,10 @@ class SimConfPlotAll(SimConfABC):
 
     Attributes (After : Single-cell)
     ----------
-    after_sim_pipeline_cell : SimConfList
+    after_sim_pipeline_cell : YamlList
         List of all post-simulation single-cell plots to be animated. Ignored if
         :attr:``is_after_sim`` is ``False``.
-    after_sim_pipeline_cells : SimConfList
+    after_sim_pipeline_cells : YamlList
         List of all post-simulation cell cluster plots to be animated. Ignored
         if :attr:``is_after_sim`` is ``False``.
 
@@ -62,13 +63,13 @@ class SimConfPlotAll(SimConfABC):
         super().__init__(*args, **kwargs)
 
         # Encapsulate low-level lists of dictionaries with high-level wrappers.
-        self.after_sim_pipeline_cell = SimConfList(
+        self.after_sim_pipeline_cell = YamlList(
             confs=self._conf[
                 'results options']['after solving'][
                 'plots']['single cell pipeline'],
             conf_type=SimConfVisualCellListItem,
         )
-        self.after_sim_pipeline_cells = SimConfList(
+        self.after_sim_pipeline_cells = YamlList(
             confs=self._conf[
                 'results options']['after solving'][
                 'plots']['cell cluster pipeline'],
@@ -79,15 +80,15 @@ class SimConfPlotAll(SimConfABC):
         ints.die_unless_positive(self.image_dpi)
 
     # ..................{ ALIASES ~ after                    }..................
-    is_after_sim_save = conf_alias(
+    is_after_sim_save = yaml_alias(
         "['results options']['after solving']['plots']['save']", bool)
-    is_after_sim_show = conf_alias(
+    is_after_sim_show = yaml_alias(
         "['results options']['after solving']['plots']['show']", bool)
 
     # ..................{ ALIASES ~ save                     }..................
-    image_filetype = conf_alias(
+    image_filetype = yaml_alias(
         "['results options']['save']['plots']['filetype']", str)
-    image_dpi = conf_alias(
+    image_dpi = yaml_alias(
         "['results options']['save']['plots']['dpi']", int)
 
     # ..................{ PROPERTIES ~ after                 }..................

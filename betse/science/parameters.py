@@ -2,12 +2,14 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
+from collections import OrderedDict
+
 # ....................{ IMPORTS                            }....................
 import numpy as np
 from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
 from betse.lib.matplotlib import mplutil
-from betse.science.config.confabc import SimConfYamlABC
-from betse.science.config.confalias import conf_alias
+from betse.lib.yaml.yamlalias import yaml_alias
+from betse.lib.yaml.yamlabc import YamlFileABC
 from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
 from betse.science.config.export.confanim import SimConfAnimAll
@@ -18,11 +20,10 @@ from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
 from betse.util.path import pathnames
 from betse.util.type.types import type_check, NumericTypes, SequenceTypes
-from collections import OrderedDict
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
-class Parameters(SimConfYamlABC):
+class Parameters(YamlFileABC):
     '''
     High-level simulation configuration encapsulating the low-level dictionary
     deserialized (i.e., parsed) from the user-defined YAML-formatted file
@@ -129,26 +130,26 @@ class Parameters(SimConfYamlABC):
     '''
 
     # ..................{ ALIASES ~ export : dir             }..................
-    export_init_dirname = conf_alias(
+    export_init_dirname = yaml_alias(
         "['results file saving']['init directory']", str)
-    export_sim_dirname  = conf_alias(
+    export_sim_dirname  = yaml_alias(
         "['results file saving']['sim directory']", str)
 
     # ..................{ ALIASES ~ pickle : dir             }..................
-    pickle_init_dirname = conf_alias("['init file saving']['directory']", str)
-    pickle_sim_dirname  = conf_alias("['sim file saving']['directory']", str)
+    pickle_init_dirname = yaml_alias("['init file saving']['directory']", str)
+    pickle_sim_dirname  = yaml_alias("['sim file saving']['directory']", str)
 
     # ..................{ ALIASES ~ pickle : base            }..................
-    pickle_seed_basename = conf_alias("['init file saving']['worldfile']", str)
-    pickle_init_basename = conf_alias("['init file saving']['file']", str)
-    pickle_sim_basename  = conf_alias("['sim file saving']['file']", str)
+    pickle_seed_basename = yaml_alias("['init file saving']['worldfile']", str)
+    pickle_init_basename = yaml_alias("['init file saving']['file']", str)
+    pickle_sim_basename  = yaml_alias("['sim file saving']['file']", str)
 
     # ..................{ ALIASES ~ bool                     }..................
-    sim_ECM = conf_alias(
+    sim_ECM = yaml_alias(
         "['general options']['simulate extracellular spaces']", bool)
 
     # ..................{ ALIASES ~ scalar                   }..................
-    cell_polarizability = conf_alias(
+    cell_polarizability = yaml_alias(
         "['internal parameters']['cell polarizability']", NumericTypes)
 
     # ..................{ READERS                            }..................
@@ -169,7 +170,7 @@ class Parameters(SimConfYamlABC):
 
         #FIXME: Convert the following variables into typical @property-style
         #properties, as they require dynamic logic and hence *CANNOT* be
-        #encapsulated via conf_alias() above. When doing so, note that it would
+        #encapsulated via yaml_alias() above. When doing so, note that it would
         #be quite nice if:
         #
         #* We cached rather than recomputed each such path using
@@ -1197,7 +1198,7 @@ class Parameters(SimConfYamlABC):
 
         #FIXME: Excise this hack *AFTER* refactoring the codebase to use the
         #preferable "self._config" attribute defined above. Since the
-        #conf_alias() data descriptor expects that private attribute rather
+        #yaml_alias() data descriptor expects that private attribute rather
         #than this public attribute, this public attribute is unhelpful now.
         self.config = self._conf
 

@@ -249,7 +249,7 @@ class SimPipeRunnerConfMixin(object, metaclass=ABCMeta):
 
     See Also
     ----------
-    :class:`betse.science.config.confabc.SimConfListableABC`
+    :class:`betse.lib.yaml.yamlabc.YamlListItemABC`
         Class subclassing this base class via multiple inheritance.
     '''
 

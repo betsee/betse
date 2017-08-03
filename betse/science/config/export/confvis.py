@@ -8,11 +8,13 @@ YAML-backed simulation visual subconfigurations.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
-from betse.science.config.confabc import (
-    SimConfABC, SimConfListableABC, SimConfListItemTypedABC)
-from betse.science.config.confalias import conf_alias
+
+from betse.lib.yaml.yamlalias import yaml_alias
+from betse.lib.yaml.yamlabc import (
+    YamlABC, YamlListItemABC, YamlListItemTypedABC)
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
+
 
 # ....................{ SUPERCLASSES                       }....................
 #FIXME: Non-ideal. Ideally, all networks subconfigurations should be refactored
@@ -64,9 +66,9 @@ class SimConfVisualCellsYAMLMixin(SimConfVisualCellsABC):
     '''
 
     # ..................{ ALIASES ~ colorbar                 }..................
-    is_color_autoscaled = conf_alias("['colorbar']['autoscale']", bool)
-    color_min = conf_alias("['colorbar']['minimum']", NumericTypes)
-    color_max = conf_alias("['colorbar']['maximum']", NumericTypes)
+    is_color_autoscaled = yaml_alias("['colorbar']['autoscale']", bool)
+    color_min = yaml_alias("['colorbar']['minimum']", NumericTypes)
+    color_max = yaml_alias("['colorbar']['maximum']", NumericTypes)
 
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Eliminate this subclass. For serializability, all configuration classes
@@ -78,7 +80,7 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
 
     Unlike all cell cluster visual subconfigurations, this class preserves
     backward compatibility by implementing superclass properties *without*
-    calling the :func:`conf_alias` function returning YAML-backed data
+    calling the :func:`yaml_alias` function returning YAML-backed data
     descriptors. Subconfiguration changes are *not* propagated back to disk.
     '''
 
@@ -109,7 +111,7 @@ class SimConfVisualCellsNonYAML(SimConfVisualCellsABC):
         return self._color_max
 
 # ....................{ SUBCLASSES                         }....................
-class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, SimConfABC):
+class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, YamlABC):
     '''
     YAML-backed cell cluster visual subconfiguration, encapsulating the
     configuration of a single visual applicable to all cells parsed from a
@@ -125,7 +127,7 @@ class SimConfVisualCellsEmbedded(SimConfVisualCellsYAMLMixin, SimConfABC):
 
 # ....................{ SUBCLASSES : list item             }....................
 class SimConfVisualCellsListItem(
-    SimConfVisualCellsYAMLMixin, SimConfListItemTypedABC):
+    SimConfVisualCellsYAMLMixin, YamlListItemTypedABC):
     '''
     YAML-backed cell cluster visual subconfiguration, encapsulating the
     configuration of a single visual applicable to all cells parsed from a list
@@ -134,7 +136,7 @@ class SimConfVisualCellsListItem(
 
     # ..................{ CLASS                              }..................
     @classmethod
-    def make_default(self) -> SimConfListableABC:
+    def make_default(self) -> YamlListItemABC:
 
         # Duplicate the default animation listed first in our default YAML file.
         return SimConfVisualCellsListItem(conf={
@@ -171,7 +173,7 @@ class SimConfVisualCellsListItem(
             self.name = 'voltage_polarity'
 
 
-class SimConfVisualCellListItem(SimConfListItemTypedABC):
+class SimConfVisualCellListItem(YamlListItemTypedABC):
     '''
     YAML-backed single-cell visual subconfiguration, encapsulating the
     configuration of a single visual (either in- or post-simulation
@@ -181,7 +183,7 @@ class SimConfVisualCellListItem(SimConfListItemTypedABC):
 
     # ..................{ CLASS                              }..................
     @classmethod
-    def make_default(self) -> SimConfListableABC:
+    def make_default(self) -> YamlListItemABC:
 
         # Duplicate the default animation listed first in our default YAML file.
         return SimConfVisualCellListItem(conf={

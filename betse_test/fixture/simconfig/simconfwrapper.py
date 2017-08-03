@@ -10,7 +10,7 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 
 #FIXME: This submodule requires heavy refactoring away from the current
 #low-level approach in favour of the new high-level "confabc"-based approach --
-#namely, the "SimConfABC" base class coupled with the conf_alias() data
+#namely, the "YamlABC" base class coupled with the conf_alias() data
 #descriptor. Together, this new functionality provides a substantially better
 #YAML-to-Python-object-mapping (YPOM) than the ad-hoc and overly verbose
 #boilerplate implemented below. Specifically:
@@ -50,8 +50,8 @@ class SimConfigTestWrapper(object):
     high-level :class:`Parameters` simulation configuration, which transforms
     this dictionary into numerous high-level objects rather than merely wrapping
     this dictionary. While the :class:`Parameters` configuration is principally
-    used by backend simulation modelling in the `betse.science` package, this
-    wrapper is principally used by frontend logic modifying simulation
+    used by backend simulation modelling in the :mod:`betse.science` package,
+    this wrapper is principally used by frontend logic modifying simulation
     configurations on behalf of either interactive users (e.g., BETSE's GUI) or
     automated tests.
 
@@ -637,7 +637,7 @@ class SimConfigTestWrapper(object):
         pipeline to be exercised, where:
 
         * ``pipe_type`` is an instance of :class:`SimPipeABC`.
-        * ``pipe_list`` is an instance of :class:`SimConfList` listing all
+        * ``pipe_list`` is an instance of :class:`YamlList` listing all
           currently enabled exporters in this pipeline.
         '''
 

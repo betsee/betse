@@ -124,31 +124,31 @@ def betse_sim_config(betse_temp_dir: LocalPath) -> SimTestState:
     complete with all external assets (e.g., geometry masks) referenced and
     required by this file, into a temporary directory whose basename is the name
     of the test requesting this fixture excluding the prefixing substring
-    `test_`. When requested by the `test_cli_sim_default` test, for example,
+    ``test_``. When requested by the ``test_cli_sim_default`` test, for example,
     this fixture creates a temporary simulation configuration file
-    `{tmpdir}/cli_sim_default/sim_config.yaml` for the absolute path `{tmpdir}`
-    of this test session's root temporary directory (e.g.,
-    `/tmp/pytest-0/cli_sim_default/sim_config.yaml`).
+    ``{tmpdir}/cli_sim_default/sim_config.yaml`` for the absolute path
+    ``{tmpdir}`` of this test session's root temporary directory (e.g.,
+    ``/tmp/pytest-0/cli_sim_default/sim_config.yaml``).
 
     This directory and hence simulation configuration is safely accessible
-    _only_ for the duration of the current test. Subsequently run tests and
-    fixtures _cannot_ safely reuse this configuration.
+    *only* for the duration of the current test. Subsequently run tests and
+    fixtures *cannot* safely reuse this configuration.
 
     Configuration Modifications (In-memory)
     ----------
     This fixture also transforms the in-memory instance of the
-    :class:`betse.science.config.wrapper.SimConfigWrapper` class encapsulating
-    this configuration as follows:
+    :class:`betse.science.parameters.Parameters` class encapsulating this
+    configuration as follows:
 
-    * All configuration options either requiring interactive input _or_
+    * All configuration options either requiring interactive input *or*
       displaying interactive output are disabled (e.g., plots, animations).
     * The space and time costs associated with simulating this configuration
       are safely minimized in a manner preserving all features.
 
     Since this fixture does _not_ write these changes back to this file, the
     parent fixture or test is expected to do so manually (e.g., by calling the
-    :meth:`betse.science.config.wrapper.SimConfigWrapper.overwrite` method on
-    the `config` attribute of the object returned by this fixture).
+    :meth:`SimTestState.config.overwrite` method on the object returned by this
+    fixture).
 
     Parameters
     ----------

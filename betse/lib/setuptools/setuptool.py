@@ -799,9 +799,82 @@ def convert_requirements_dict_key_to_str(
 
 # ....................{ IMPORTERS                          }....................
 @type_check
+def import_requirements_dict_keys(
+    requirements_dict: MappingType, *requirement_names: str) -> object:
+    '''
+    Import and return the top-level module object satisfying each
+    :mod:`setuptools`-formatted requirements string produced by concatenating
+    each passed key and corresponding value of the passed dictionary (e.g.,
+    converting key ``six`` and value ``>= 7.9`` into the requirements string
+    ``six >= 7.9``).
+
+    Parameters
+    ----------
+    requirements_dict : MappingType
+        Dictionary of requirements strings to import and yield a subset of.
+    requirement_names : tuple[str]
+        Tuple of keys identifying the key-value pairs of this dictionary to be
+        imported and yielded.
+
+    See Also
+    ----------
+    :func:`import_requirement_str`
+        Further details.
+    '''
+
+    # Tuple of requirements strings converted by concatenating each such key and
+    # value of this dictionary.
+    requirement_strs = convert_requirements_dict_keys_to_tuple(
+        requirements_dict, *requirement_names)
+
+    # Validate these requirements strings.
+    return import_requirement_str(*requirement_strs)
+
+
+@type_check
+def import_requirement_str(*requirement_strs: str) -> object:
+    '''
+    Import and return the top-level module object satisfying each passed
+    :mod:`setuptools`-formatted requirements string (e.g., ``six >= 7.9``).
+
+    Parameters
+    ----------
+    requirement_strs : tuple[str]
+        Tuple of all such requirements strings to import and return modules of.
+
+    Returns
+    ----------
+    object
+        Either:
+        * If more than one such module was imported, the tuple of these modules.
+        * Else, the single imported module.
+
+    See Also
+    ----------
+    :func:`import_requirement`
+        Further details.
+    '''
+
+    # List of all requirement objects parsed from these requirement strings.
+    requirements = get_requirements(*requirement_strs)
+
+    # Tuple of all modules imported from these requirement objects.
+    requirements_module = tuple(
+        import_requirement(requirement) for requirement in requirements)
+
+    # Return:
+    #
+    # * If more than one such module was imported, this tuple of these modules.
+    # * Else, the single module imported above.
+    return (
+        requirements_module if len(requirements_module) > 1 else
+        requirements_module[0])
+
+
+@type_check
 def import_requirement(requirement: Requirement) -> ModuleType:
     '''
-    Import and return the top-level package object satisfying the passed
+    Import and return the top-level module object satisfying the passed
     :mod:`setuptools`-specific requirement.
 
     Parameters

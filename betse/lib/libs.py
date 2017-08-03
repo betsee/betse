@@ -73,9 +73,9 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
     requirement_names : Tuple[str]
         Tuple of the names of all :mod:`setuptools`-specific projects
         corresponding to these dependencies (e.g., ``NetworkX``). If any such
-        name is *not* a key of the
-        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary and is
-        thus unrecognized, an exception is raised.
+        name is unrecognized (i.e., is *not* a key of the
+        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary), an exception is
+        raised.
 
     Raises
     ----------
@@ -124,7 +124,6 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
 
     # Validate all external commands required by these dependencies.
     die_unless_commands(*requirements_dict.keys())
-
 
 
 @type_check
@@ -270,69 +269,6 @@ def is_runtime_optional(*requirement_names: str) -> bool:
         is_commands(*requirement_names)
     )
 
-# ....................{ INITIALIZERS                       }....................
-def reinit(*args, **kwargs) -> None:
-    '''
-    (Re-)initialize all mandatory runtime dependencies of this application with
-    the passed parameters.
-
-    Specifically:
-
-    * If these dependencies have _not_ already been initialized under the active
-      Python process, these dependencies will be initilialized.
-    * Else, these dependencies have already been initialized under the active
-      Python process. In this case, these dependencies will be re-initilialized.
-
-    Parameters
-    ----------
-    All passed parameters are passed to the :func:`init` function as is.
-    '''
-
-    # Force the init() function to reinitialize this application.
-    global _IS_INITTED
-    _IS_INITTED = False
-
-    # Reinitialize these dependencies with these parameters.
-    init(*args, **kwargs)
-
-
-@type_check
-def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
-    '''
-    Initialize all mandatory runtime dependencies of this application.
-
-    Specifically, this function:
-
-    * Reconfigures matplotlib with sane defaults specific to the current
-      platform.
-
-    Parameters
-    ----------
-    matplotlib_backend_name: optional[str]
-        Name of the matplotlib backend to explicitly enable. Defaults to
-        ``None``, in which case this method implicitly enables the first
-        importable backend known to be both usable and supported by application
-        requirements (in descending order of preference).
-    '''
-
-    # If this function has already been called, noop.
-    global _IS_INITTED
-    if     _IS_INITTED:
-        return
-
-    # Defer heavyweight imports.
-    from betse.lib.matplotlib.matplotlibs import mpl_config
-    from betse.lib.numpy import numpys
-    from betse.lib.yaml import yamls
-
-    # Initialize these dependencies.
-    mpl_config.init(backend_name=matplotlib_backend_name)
-    numpys.init()
-    yamls.init()
-
-    # Record this function as having been called *AFTER* successfully doing so.
-    _IS_INITTED = True
-
 # ....................{ GETTERS                            }....................
 def get_runtime_mandatory_tuple() -> tuple:
     '''
@@ -405,3 +341,115 @@ def get_metadatas() -> tuple:
         LIB_METADATA +
         numpys.get_metadatas()
     )
+
+# ....................{ IMPORTERS                          }....................
+@type_check
+def import_runtime_optional(*requirement_names: str) -> object:
+    '''
+    Import and return the top-level module object satisfying each optional
+    runtime dependency of this application with the passed name.
+
+    Parameters
+    ----------
+    requirement_names : tuple[str]
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        corresponding to these dependencies (e.g., ``NetworkX``). If any such
+        name is unrecognized (i.e., is *not* a key of the
+        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary), an exception is
+        raised.
+
+    See Also
+    ----------
+    :func:`import_requirements_dict_keys`
+        Further details.
+    '''
+
+    return import_requirements_dict_keys(
+        metadeps.RUNTIME_OPTIONAL, *requirement_names)
+
+
+@type_check
+def import_requirements_dict_keys(
+    requirements_dict: MappingType, *requirement_names: str) -> object:
+    '''
+    Import and return the top-level module object satisfying each dependency
+    with the passed name described by the passed dictionary.
+
+    See Also
+    ----------
+    :func:`setuptool.import_requirements_dict_keys`
+        Further details.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.lib.setuptools import setuptool
+
+    # Validate these dependencies.
+    die_unless_requirements_dict_keys(requirements_dict, *requirement_names)
+
+    # Validate all external commands required by these dependencies.
+    return setuptool.import_requirements_dict_keys(
+        requirements_dict, *requirement_names)
+
+# ....................{ INITIALIZERS                       }....................
+def reinit(*args, **kwargs) -> None:
+    '''
+    (Re-)initialize all mandatory runtime dependencies of this application with
+    the passed parameters.
+
+    Specifically:
+
+    * If these dependencies have _not_ already been initialized under the active
+      Python process, these dependencies will be initilialized.
+    * Else, these dependencies have already been initialized under the active
+      Python process. In this case, these dependencies will be re-initilialized.
+
+    Parameters
+    ----------
+    All passed parameters are passed to the :func:`init` function as is.
+    '''
+
+    # Force the init() function to reinitialize this application.
+    global _IS_INITTED
+    _IS_INITTED = False
+
+    # Reinitialize these dependencies with these parameters.
+    init(*args, **kwargs)
+
+
+@type_check
+def init(matplotlib_backend_name: StrOrNoneTypes = None) -> None:
+    '''
+    Initialize all mandatory runtime dependencies of this application.
+
+    Specifically, this function:
+
+    * Reconfigures matplotlib with sane defaults specific to the current
+      platform.
+
+    Parameters
+    ----------
+    matplotlib_backend_name: optional[str]
+        Name of the matplotlib backend to explicitly enable. Defaults to
+        ``None``, in which case this method implicitly enables the first
+        importable backend known to be both usable and supported by application
+        requirements (in descending order of preference).
+    '''
+
+    # If this function has already been called, noop.
+    global _IS_INITTED
+    if     _IS_INITTED:
+        return
+
+    # Defer heavyweight imports.
+    from betse.lib.matplotlib.matplotlibs import mpl_config
+    from betse.lib.numpy import numpys
+    from betse.lib.yaml import yamls
+
+    # Initialize these dependencies.
+    mpl_config.init(backend_name=matplotlib_backend_name)
+    numpys.init()
+    yamls.init()
+
+    # Record this function as having been called *AFTER* successfully doing so.
+    _IS_INITTED = True

@@ -325,7 +325,7 @@ class SimPipeABC(object, metaclass=ABCMeta):
         method implementing a runner currently contained in this pipeline.
 
         Pipeline subclasses typically implement this property to return an
-        instance of the :class:``SimConfList`` class listing all runners listed
+        instance of the :class:``YamlList`` class listing all runners listed
         by the simulation configuration file associated with the current phase.
         '''
 

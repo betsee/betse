@@ -6,9 +6,9 @@
 YAML-backed simulation phase subconfigurations.
 '''
 
+from betse.lib.yaml.yamlalias import yaml_alias
 # ....................{ IMPORTS                            }....................
-from betse.science.config.confabc import SimConfABC
-from betse.science.config.confalias import conf_alias
+from betse.lib.yaml.yamlabc import YamlABC
 
 
 # from betse.util.type.types import type_check, NumericTypes
@@ -16,7 +16,7 @@ from betse.science.config.confalias import conf_alias
 # ....................{ SUBCLASSES                         }....................
 #FIXME: Implement us up.
 #FIXME: Refactor the Parameters.set_time_profile() method to leverage this.
-class SimConfPhase(SimConfABC):
+class SimConfPhase(YamlABC):
     '''
     YAML-backed simulation phase subconfiguration, encapsulating the
     configuration of a single phase (e.g., seed, initialization, simulation)
@@ -34,4 +34,4 @@ class SimConfPhase(SimConfABC):
     '''
 
     # ..................{ ALIASES ~ wut                      }..................
-    wut = conf_alias("['wut']['wut']", int)
+    wut = yaml_alias("['wut']['wut']", int)

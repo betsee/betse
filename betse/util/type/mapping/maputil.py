@@ -63,6 +63,12 @@ def merge(*dicts: MappingType) -> MappingType:
         of these dictionaries. Note lastly that the class of the passed
         dictionary *must* define an ``__init__()`` method accepting a dictionary
         comprehension.
+
+    See Also
+    ----------
+    :meth:`dict.update`
+        Standard method merging two dictionaries, which should typically be
+        called instead of this slower function in this specific use case.
     '''
 
     # Type of dictionary to be returned.
@@ -74,7 +80,7 @@ def merge(*dicts: MappingType) -> MappingType:
     # the most efficient for general-purpose merging of arbitrarily many
     # dictionaries under Python >= 3.4. See also Trey Hunter's exhaustive
     # commentary replete with timings at:
-    #     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python/
+    #     http://treyhunner.com/2016/02/how-to-merge-dictionaries-in-python
     dict_merged = {
         key: value
         for dict_cur in dicts

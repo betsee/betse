@@ -10,8 +10,12 @@ well as functionality pertaining to such classes.
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
 from betse.lib.yaml import yamls
-from betse.science.config import confio
-from betse.science.config.confalias import conf_alias
+from betse.lib.yaml.yamlalias import yaml_alias
+# FIXME: Ideally, submodules in the "betse.lib" subpackage should *NOT* import
+# from submodules in the "betse.science" subpackage. To enforce this, the
+# "SimPipeRunnerConfMixin" base class may need to be generalized into a generic
+# mixin independent of simulations and then shifted into a new utility submodule
+# (e.g., "betse.util.multi.piperun").
 from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
@@ -27,7 +31,7 @@ from betse.util.type.types import (
 from collections.abc import MutableSequence
 
 # ....................{ SUPERCLASSES                       }....................
-class SimConfABC(object, metaclass=ABCMeta):
+class YamlABC(object, metaclass=ABCMeta):
     '''
     Abstract base class of all simulation configuration subclasses, each
     encapsulating a dictionary of related configuration settings (e.g.,
@@ -73,11 +77,8 @@ class SimConfABC(object, metaclass=ABCMeta):
 
         return self._conf
 
-# ....................{ SUPERCLASSES ~ yaml                }....................
-#FIXME: Refactor the "Parameters" class to subclass this superclass. After doing
-#so, remove the read(), write(), and make_default() functions from the "confio"
-#submodule, which should then be obsolete.
-class SimConfYamlABC(SimConfABC):
+# ....................{ SUPERCLASSES ~ file                }....................
+class YamlFileABC(YamlABC):
     '''
     Abstract base class of all top-level simulation configuration subclasses,
     each directly backed by an low-level simulation configuration file in YAML
@@ -94,7 +95,7 @@ class SimConfYamlABC(SimConfABC):
     External callers should ideally *never* access the public :meth:`conf`
     property returning a low-level dictionary containing this entire simulation
     configuration. The settings encapsulated by this dictionary are safely
-    retrievable and modifiable by callers *only* via public :func:`conf_alias`
+    retrievable and modifiable by callers *only* via public :func:`yaml_alias`
     data descriptors leveraged by subclasses.
 
     Attributes
@@ -115,7 +116,7 @@ class SimConfYamlABC(SimConfABC):
     @classmethod
     @type_check
     def make(cls, conf_filename: str) -> (
-        'betse.science.config.confabc.SimConfYamlABC'):
+        'betse.lib.yaml.yamlabc.YamlFileABC'):
         '''
         Create return an instance of this subclass deserialized (i.e., read)
         from the passed YAML-formatted simulation configuration file.
@@ -126,9 +127,9 @@ class SimConfYamlABC(SimConfABC):
             Absolute or relative path of the source file to be deserialized.
         '''
 
-        params = cls()
-        params.read(conf_filename)
-        return params
+        self = cls()
+        self.read(conf_filename)
+        return self
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
@@ -312,12 +313,11 @@ class SimConfYamlABC(SimConfABC):
         self._conf_dirname = pathnames.get_dirname(self._conf_filename)
 
 # ....................{ SUPERCLASSES ~ list item           }....................
-#FIXME: Rename to "SimConfListItemABC".
-class SimConfListableABC(SimPipeRunnerConfMixin, SimConfABC):
+class YamlListItemABC(SimPipeRunnerConfMixin, YamlABC):
     '''
     Abstract base class of all simulation list item subconfigurations, each
     backed by a YAML list item and intended to be added to a
-    :class:`SimConfList` container.
+    :class:`YamlList` container.
 
     Design
     ----------
@@ -325,9 +325,9 @@ class SimConfListableABC(SimPipeRunnerConfMixin, SimConfABC):
     all instances of:
 
     * This class to be used as **simulation pipeline runner arguments** (i.e.,
-      simple objects encapsulating all input parameters to be passed to a method
-      implementing a runner in a :class:`SimPipeABC` pipeline).
-    * The :class:`SimConfList` class to be used as sequences of these arguments
+      simplistic objects encapsulating all input parameters passed to runner
+      methods in :class:`SimPipeABC` pipelines).
+    * The :class:`YamlList` class to be used as sequences of these arguments
       and hence returned from the abstract
       :class:`SimPipeABC._runners_conf_enabled` property.
     '''
@@ -335,24 +335,24 @@ class SimConfListableABC(SimPipeRunnerConfMixin, SimConfABC):
     # ..................{ MAKERS                             }..................
     @classmethod
     @abstractmethod
-    def make_default(cls) -> 'betse.science.config.confabc.SimConfListableABC':
+    def make_default(cls) -> 'betse.science.config.confabc.YamlListItemABC':
         '''
         Create and return an instance of this subclass encapsulating a new
         dictionary containing default configuration settings.
 
         This method is principally intended to be called by the
-        :meth:`SimConfList.append_default` method, appending this instance to an
+        :meth:`YamlList.append_default` method, appending this instance to an
         existing list of such instances.
         '''
 
         pass
 
 
-class SimConfListItemTypedABC(SimConfListableABC):
+class YamlListItemTypedABC(YamlListItemABC):
     '''
     Abstract base class of all simulation typed list item subconfigurations,
     each backed by a YAML list item whose dictionary keys define the type of
-    this item and intended to be added to a :class:`SimConfList` container.
+    this item and intended to be added to a :class:`YamlList` container.
 
     Attributes
     ----------
@@ -366,11 +366,11 @@ class SimConfListItemTypedABC(SimConfListableABC):
     '''
 
     # ..................{ ALIASES                            }..................
-    is_enabled = conf_alias("['enabled']", bool)
-    name = conf_alias("['type']", str)
+    is_enabled = yaml_alias("['enabled']", bool)
+    name       = yaml_alias("['type']", str)
 
 # ....................{ SUPERCLASSES ~ list                }....................
-class SimConfList(MutableSequence):
+class YamlList(MutableSequence):
     '''
     Simulation configuration list encapsulating a list of all dictionaries of
     related configuration settings (e.g., representing all tissue profiles) both
@@ -387,7 +387,7 @@ class SimConfList(MutableSequence):
         both loaded from and savable back to the current YAML-formatted
         simulation configuration file.
     _conf_type : ClassType
-        Subclass of the :class:`SimConfListableABC` abstract base class with
+        Subclass of the :class:`YamlListItemABC` abstract base class with
         which to instantiate each simulation configuration object encapsulating
         each dictionary in the :attr:`_confs_yaml` list.
     '''
@@ -408,7 +408,7 @@ class SimConfList(MutableSequence):
             list in this file has no corresponding value, in which case this
             list defaults to the empty list.
         conf_type : ClassType
-            Subclass of the :class:`SimConfListableABC` abstract base class
+            Subclass of the :class:`YamlListItemABC` abstract base class
             with which to instantiate each simulation configuration object
             encapsulating each dictionary in the passed ``confs`` list.
             Specifically, for each such dictionary, a new object of this type
@@ -418,7 +418,7 @@ class SimConfList(MutableSequence):
 
         # Raise an exception unless the passed type implements the listable API.
         classes.die_unless_subclass(
-            subclass=conf_type, superclass=SimConfListableABC)
+            subclass=conf_type, superclass=YamlListItemABC)
 
         # If this list is unspecified, default this list to the empty list.
         if confs is None:
@@ -447,12 +447,12 @@ class SimConfList(MutableSequence):
 
 
     @type_check
-    def __getitem__(self, index: int) -> SimConfListableABC:
+    def __getitem__(self, index: int) -> YamlListItemABC:
         return self._confs_wrap[index]
 
 
     @type_check
-    def __setitem__(self, index: int, value: SimConfListableABC) -> None:
+    def __setitem__(self, index: int, value: YamlListItemABC) -> None:
         '''
         Set the simulation configuration instance with the passed 0-based index
         to the passed such instance.
@@ -472,7 +472,7 @@ class SimConfList(MutableSequence):
 
 
     @type_check
-    def insert(self, index: int, value: SimConfListableABC) -> None:
+    def insert(self, index: int, value: YamlListItemABC) -> None:
         '''
         Insert the passed simulation configuration instance immediately *before*
         the simulation configuration instance with the passed 0-based index.
@@ -491,14 +491,14 @@ class SimConfList(MutableSequence):
         self._confs_yaml.insert(index, value.conf)
 
     # ..................{ APPENDERS                          }..................
-    def append_default(self) -> SimConfListableABC:
+    def append_default(self) -> YamlListItemABC:
         '''
         Append a new simulation configuration list item initialized to default
         values to this list and return this list item.
 
         Returns
         ----------
-        SimConfListableABC
+        YamlListItemABC
             Instance of the :attr:`_conf_type` subclass appended to the
             high-level :attr:`_confs_wrap` list, encapsulating the new
             dictionary appended to the low-level :attr:`_confs_yaml` list.
