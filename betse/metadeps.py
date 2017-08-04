@@ -251,10 +251,11 @@ def _init() -> None:
     Dynamically finalize the contents of the :data:`RUNTIME_MANDATORY` global
     declared by this submodule.
 
-    Specifically, this function detects which of several alternative YAML
-    implementations is currently importable and merges the metadata describing
-    the preferred such implementation from the :data:`RUNTIME_MANDATORY_YAML`
-    global into the :data:`RUNTIME_MANDATORY` global.
+    Specifically, this function selects the first importable third-party YAML
+    implementation (in descending order of preference) and merges the
+    :mod:`setuptools`-specific metadata constraining this implementation from
+    the :data:`RUNTIME_MANDATORY_YAML` global into the :data:`RUNTIME_MANDATORY`
+    and :data:`RUNTIME_OPTIONAL` globals.
 
     Caveats
     ----------
@@ -295,6 +296,16 @@ def _init() -> None:
     # framework.
     elif modules.is_module('yaml'):
         RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
+
+    #FIXME: *DELETE THE FOLLOWING LINE AFTER* upstream "ruamel.yaml" roundtrip
+    #issues are resolved. Currently, "ruamel.yaml" fails to properly roundtrip
+    #our default simulation configuration and hence must *NOT* be used. *sigh*
+    #
+    #After upstream both resolves these issues *AND* releases a new stable
+    #release, modify the "ruamel.yaml" version constraints above to reflect the
+    #new minimum required version. Naturally, this implies we won't be enabling
+    #"ruamel.yaml" support anytime soon.
+    RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
 
     # Enforce installation of the preferred YAML framework detected above.
     RUNTIME_MANDATORY[RUNTIME_MANDATORY_YAML_PROJECT_NAME] = (

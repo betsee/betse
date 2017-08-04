@@ -74,7 +74,7 @@ permitting callers to avoid importing that class.
 
 FileType = IOBase
 '''
-Abstract base class implemented by all **file-like objects** (i.e., objects
+Abstract base class implemented by *all* **file-like objects** (i.e., objects
 implementing the standard ``read()`` and ``write()`` methods).
 
 This class is a synonym of the `io.IOBase` class, provided merely as a

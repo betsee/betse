@@ -61,22 +61,8 @@ class SimConfigTestWrapper(object):
         High-level simulation configuration encapsulated by this test wrapper.
     '''
 
-    # ..................{ INITIALIZERS                       }..................
-    def __init__(self, filename: str) -> None:
-        '''
-        Wrap the low-level dictionary deserialized from the passed
-        YAML-formatted simulation configuration file.
-
-        Parameters
-        ----------
-        filename : str
-            Absolute or relative path of this file.
-        '''
-
-        # Deserialize this file into a high-level in-memory object.
-        self._p = Parameters.make(filename)
-
-
+    # ..................{ MAKERS                             }..................
+    #FIXME: Rename to simply make_default().
     @classmethod
     def wrap_new_default(cls, filename: str) -> None:
         '''
@@ -115,9 +101,33 @@ class SimConfigTestWrapper(object):
         # Create and return an instance of this class wrapping this file.
         return cls(filename)
 
+    # ..................{ INITIALIZERS                       }..................
+    def __init__(self, filename: str) -> None:
+        '''
+        Wrap the low-level dictionary deserialized from the passed
+        YAML-formatted simulation configuration file.
+
+        Parameters
+        ----------
+        filename : str
+            Absolute or relative path of this file.
+        '''
+
+        # Deserialize this file into a high-level in-memory object.
+        self._p = Parameters.make(filename)
+
     # ..................{ PROPERTIES                         }..................
     # For safety, these properties lack setters and hence are read-only.
 
+    @property
+    def p(self) -> Parameters:
+        '''
+        High-level simulation configuration encapsulated by this test wrapper.
+        '''
+
+        return self._p
+
+    # ..................{ PROPERTIES ~ path                  }..................
     @property
     def dirname(self) -> str:
         '''

@@ -10,12 +10,15 @@ configurations so as to exercise specific feature sets and edge cases.
 '''
 
 # ....................{ IMPORTS                            }....................
-import betse.util.os.shell.shelldir
 from betse.util.type.types import type_check
 from pytest import fixture
 from py._path.local import LocalPath
 
 # ....................{ CLASSES                            }....................
+#FIXME: All use of the increasingly obsolete "SimTestState.config" wrapper
+#attribute (both here and everywhere else) should be replaced by use of the new
+#"SimTestState.p" property, which increasingly provides all test functionality.
+
 class SimTestState(object):
     '''
     Simulation configuration context encapsulating simulation configuration,
@@ -29,10 +32,10 @@ class SimTestState(object):
     config : SimConfigWrapper
         Simulation configuration wrapper wrapping the low-level dictionary
         deserialized from the YAML-formatted simulation configuration file with
-        path `config_filepath`. Note the contents of this in-memory dictionary
-        may be desynchronized from those of this file. For efficiency, callers
-        may modify this dictionary to suite test requirements _before_
-        reserializing this dictionary back to this file.
+        path :attr:`config_filepath`. Note the contents of this dictionary may
+        be desynchronized from those of this file. For efficiency, callers may
+        modify this dictionary to suite test requirements *before* reserializing
+        this dictionary back to this file.
     config_filepath : LocalPath
         Absolute path of a temporary simulation configuration file specific to
         the parent fixture as a `py.path.local` instance, defining an
@@ -44,7 +47,7 @@ class SimTestState(object):
         Official `py.path` class documentation.
     '''
 
-
+    # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, config_filepath: LocalPath) -> None:
         '''
@@ -87,7 +90,7 @@ class SimTestState(object):
         self.config.disable_interaction()
         self.config.minify()
 
-
+    # ..................{ CONTEXTS                           }..................
     def context(self) -> 'contextlib.contextmanager':
         '''
         Context manager changing the current working directory (CWD) of the
@@ -105,10 +108,21 @@ class SimTestState(object):
         '''
 
         # Defer heavyweight imports.
-        from betse.util.path import dirs
+        from betse.util.os.shell import shelldir
 
         # Defer to the generator returned by the following utility function.
-        return betse.util.os.shell.shelldir.setting_cwd(self.config.dirname)
+        return shelldir.setting_cwd(self.config.dirname)
+
+    # ..................{ PROPERTIES                         }..................
+    # For safety, these properties lack setters and hence are read-only.
+
+    @property
+    def p(self) -> 'Parameters':
+        '''
+        High-level simulation configuration encapsulated by this test wrapper.
+        '''
+
+        return self.config.p
 
 # ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each discrete test.

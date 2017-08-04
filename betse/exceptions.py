@@ -334,6 +334,14 @@ class BetseRegexException(BetseTypeException):
     '''
     pass
 
+# ....................{ EXCEPTIONS ~ yaml                  }....................
+class BetseYamlException(BetseException):
+    '''
+    Yet Another Markup Language (YAML)-specific exception.
+    '''
+
+    pass
+
 # ....................{ EXCEPTIONS ~ science               }....................
 class BetseSimException(BetseException):
     '''

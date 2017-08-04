@@ -289,23 +289,21 @@ def get_filename(module: ModuleOrStrTypes) -> str:
     Raises
     ----------
     BetseModuleException
-        If this module has no ``__file__`` attribute (e.g., is a builtin
-        module).
+        If this module has no such attribute (e.g., is a builtin module).
     '''
 
     # Resolve this module's object.
     module = _resolve_module(module)
 
-    # If this module provides the special "__file__" attribute, test this
-    # attribute. Technically, all modules *EXCEPT* builtin modules should
-    # provide this attribute.
-    if hasattr(module, '__file__'):
-        return module.__file__
+    # If this module does *NOT* provide the special "__file__" attribute, raise
+    # an exception. (All modules *EXCEPT* builtin modules should provide this.)
+    if not hasattr(module, '__file__'):
+        raise BetseModuleException(
+            'Module "{0}.__file__" attribute not found '
+            '(e.g., as "{0}" is a builtin module).'.format(module.__name__))
 
-    # Else, raise an exception.
-    raise BetseModuleException(
-        'Module "{}.__file__" attribute not found '
-        '(e.g., as "{}" is a builtin module).'.format(module.__name__))
+    # Else, return this attribute's value.
+    return module.__file__
 
 # ....................{ GETTERS ~ global                   }....................
 @type_check
