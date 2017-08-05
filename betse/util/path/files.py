@@ -239,7 +239,14 @@ def get_size(filename: str) -> int:
 
 # ....................{ COPIERS                            }....................
 @type_check
-def copy(src_filename: str, trg_filename: str) -> None:
+def copy(
+    # Mandatory parameters.
+    src_filename: str,
+    trg_filename: str,
+
+    # Optional parameters.
+    is_overwritable: bool = False,
+) -> None:
     '''
     Copy the passed source file to the passed target file or directory.
 
@@ -251,8 +258,22 @@ def copy(src_filename: str, trg_filename: str) -> None:
     If the target file is a directory, the basename of the source file will be
     appended to this directory -- much like the standard ``cp`` POSIX command.
 
-    If either the source file does not exist *or* the target file already
-    exists, an exception will be raised.
+    Parameters
+    ----------
+    src_filename : str
+        Absolute or relative path of the source file to be copied from.
+    trg_filename : str
+        Absolute or relative path of the target file to be copied to.
+    is_overwritable : optional[bool]
+        If this target file already exists and this boolean is ``True``, this
+        file is silently overwritten; else, an exception is raised. Defaults to
+        ``False``.
+
+    Raises
+    ----------
+    BetseFileException
+        If either the source file does not exist *or* the target file already
+        exists.
     '''
 
     # Avoid circular import dependencies.
@@ -270,8 +291,10 @@ def copy(src_filename: str, trg_filename: str) -> None:
         trg_filename = pathnames.join(
             trg_filename, pathnames.get_basename(src_filename))
 
-    # If this target file already exists, raise an exception.
-    paths.die_if_path(trg_filename)
+    # If this target file already exists but is *NOT* overwritable, raise an
+    # exception.
+    if not is_overwritable:
+        paths.die_if_path(trg_filename)
 
     # Create the directory containing this target file *BEFORE* calling the
     # shutil.copy2() function, which assumes this directory to exist.

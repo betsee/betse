@@ -61,7 +61,7 @@ def read_metabo(conf_filename: str) -> dict:
 
 # ....................{ WRITERS                            }....................
 @type_check
-def write_default(conf_filename: str) -> None:
+def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
     '''
     Write a default YAML simulation configuration to the file with the passed
     path *and* recursively copy all external resources (e.g., images) required
@@ -74,21 +74,28 @@ def write_default(conf_filename: str) -> None:
     ----------
     conf_filename : str
         Absolute or relative path of the target YAML file to be written.
+    is_overwritable : optional[bool]
+        For any path to be written by this function that already exists when
+        this boolean is:
+        * ``True``, that path is silently overwritten.
+        * ``False``, an exception is raised.
+        Defaults to ``False``.
 
     Raises
     ----------
     BetseFileException
-        If this file already exists.
+        If this file already exists *and* ``is_overwritable`` is ``False``.
     '''
 
     # Announce the ugly shape of things to come.
     logs.log_info('Writing default simulation configuration...')
 
-    # Validate this file *BEFORE* writing this file.
-    files.die_if_file(conf_filename)
-
     # Copy the default source simulation configuration file to this target file.
-    files.copy(pathtree.get_sim_config_default_filename(), conf_filename)
+    files.copy(
+        src_filename=pathtree.get_sim_config_default_filename(),
+        trg_filename=conf_filename,
+        is_overwritable=is_overwritable,
+    )
 
     # Source directory containing the default simulation configuration.
     src_dirname = pathtree.get_data_yaml_dirname()
@@ -110,6 +117,7 @@ def write_default(conf_filename: str) -> None:
         dirs.copy_into_dir(
             src_dirname=src_subdirname,
             trg_dirname=pathnames.get_dirname(conf_filename),
+            is_overwritable=is_overwritable,
 
             # Ignore all empty ".gitignore" files in all subdirectories of this
             # source directory. These files serve as placeholders instructing

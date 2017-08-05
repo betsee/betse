@@ -8,10 +8,7 @@ Low-level directory facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import os
-import shutil
-from os import path
-
+import os, shutil
 from betse.exceptions import BetseDirException
 from betse.util.io.log import logs
 from betse.util.type.types import (
@@ -21,6 +18,8 @@ from betse.util.type.types import (
     NumericTypes,
     SequenceTypes,
 )
+from distutils import dir_util
+from os import path
 
 # ....................{ GLOBALS                            }....................
 # There exist only two possible directory separators for all modern platforms.
@@ -280,17 +279,9 @@ def copy_into_dir(src_dirname: str, trg_dirname: str, *args, **kwargs) -> None:
     trg_subdirname = pathnames.join(trg_dirname, src_basename)
 
     # Recursively copy this source to target directory.
-    copy(src_dirname, trg_subdirname, *args, **kwargs)
+    copy(*args, src_dirname=src_dirname, trg_dirname=trg_subdirname, **kwargs)
 
 
-#FIXME: Note that, if we ever need to recursively copy a source directory into a
-#target directory that already exists, the existing
-#distutils.dir_util.copy_tree() function should be called instead. Ideally, this
-#function would internally choose whether to call shutil.copytree() or
-#distutils.dir_util.copy_tree() based on whether or not "trg_dirname" exists.
-#Maybe? Or perhaps the fact that we currently raise an exception on this
-#condition is useful and we should instead define a new copy_overwrite()
-#function to preserve the existing semantics.
 @type_check
 def copy(
     # Mandatory parameters.
@@ -298,6 +289,7 @@ def copy(
     trg_dirname: str,
 
     # Optional parameters.
+    is_overwritable: bool = False,
     ignore_basename_globs: IterableOrNoneTypes = None,
 ) -> None:
     '''
@@ -315,12 +307,20 @@ def copy(
         copied from.
     trg_dirname : str
         Absolute or relative path of the target directory to recursively copy to.
+    is_overwritable : optional[bool]
+        If this target directory already exists and this boolean is ``True``,
+        this directory is silently updated with the contents of this source
+        directory; else, an exception is raised. For safety, all child paths of
+        this target directory *not* also child paths of this source directory
+        are preserved as is rather than removed. Defaults to ``False``.
     ignore_basename_globs : optional[IterableTypes]
         Iterable of shell-style globs (e.g., ``('*.tmp', '.keep')``) matching
         the basenames of all paths transitively owned by this source directory
         to be ignored during recursion and hence neither copied nor visited.
-        Defaults to ``None``, in which case *all* paths transitively owned by
-        this source directory are unconditionally copied and visited.
+        If non-``None`` and the ``is_overwritable`` parameter is ``True``, this
+        iterable is ignored and a non-fatal warning logged. Defaults to
+        ``None``, in which case *all* paths transitively owned by this source
+        directory are unconditionally copied and visited.
 
     Raises
     -----------
@@ -339,52 +339,49 @@ def copy(
     # Raise an exception unless the source directory exists.
     die_unless_dir(src_dirname)
 
-    # Dictionary of all keyword arguments to pass to shutil.copytree() below.
-    kwargs = {
-        'symlinks': True,
-    }
+    # If overwriting the contents of this target directory with those of this
+    # source directory...
+    if is_overwritable:
+        # If an iterable of shell-style globs matching ignorable basenames was
+        # passed, log a non-fatal warning. Since the dir_util.copy_tree()
+        # function fails to support such functionality and we are currently too
+        # lazy to do so, a warning is as much as we're willing to give.
+        if ignore_basename_globs is not None:
+            logs.log_warning(
+                'dirs.copy() parameter "ignore_basename_globs" '
+                'ignored when parameter "is_overwritable" enabled.')
 
-    # If an iterable of shell-style globs matching basenames to be ignored was
-    # passed, convert this iterable into a predicate function of the form
-    # required by the shutil.copytree() function.
-    if ignore_basename_globs is not None:
-        kwargs['ignore'] = shutil.ignore_patterns(*ignore_basename_globs)
+        # Recursively copy this source to target directory, preserving symbolic
+        # links as is. To silently overwrite all conflicting target paths, the
+        # dir_util.copy_tree() rather than shutil.copytree() function is called.
+        dir_util.copy_tree(
+            src=src_dirname, trg=trg_dirname, preserve_symlinks=1)
+    else:
+        # Dictionary of all keyword arguments to pass to shutil.copytree(),
+        # preserving symbolic links as is.
+        copytree_kwargs = {
+            'symlinks': True,
+        }
 
-    # If the target directory already exists, avoid passing this directory to
-    # the shutil.copytree() function, which refuses to copy to existing target
-    # directories by raising non-human-readable exceptions resembling:
-    #
-    #     [Errno 17] File exists: 'sample_sim'
-    #
-    # Technically, this is trivially circumventable by calling the
-    # distutils.dir_util.copy_tree() function, which happily copies to existing
-    # target directories by silently overwriting all conflicting target paths.
-    # Since such behaviour is arguably unsafe in the general case, this function
-    # instead iteratively copies all direct paths of the source directory into
-    # this target directory with the safer shutil.copytree() function.
-    if is_dir(trg_dirname):
-        #FIXME: Implement a iter_subpathnames() function and, after doing so,
-        #implement the following iteration properly:
-        #
-        # _, src_subdirnames, src_subfilenames = next(os.walk(src_dirname))
-        # for src_subdirname in src_subdirnames:
-        #     shutil.copytree(
-        #         src=src_subdirname, dst=pathnames.join(
-        #             trg_dirname, pathnames.get_basename(src_subdirname), **kwargs)
-        #
-        #For now, the following exception suffices.
+        # If an iterable of shell-style globs matching ignorable basenames was
+        # passed, convert this iterable into a predicate function of the form
+        # required by the shutil.copytree() function.
+        if ignore_basename_globs is not None:
+            copytree_kwargs['ignore'] = shutil.ignore_patterns(
+                *ignore_basename_globs)
 
-        # Raise an exception if the target directory already exists. While we
+        # Raise an exception if this target directory already exists. While we
         # could defer to the exception raised by the shutil.copytree() function
         # for this case, this exception's message erroneously refers to this
         # directory as a file and is hence best avoided as non-human-readable:
         #
         #     [Errno 17] File exists: 'sample_sim'
         die_if_dir(trg_dirname)
-    # Else, the target directory does *NOT* already exist, in which case calling
-    # the shutil.copytree() function is the optimum choice.
-    else:
-        shutil.copytree(src=src_dirname, dst=trg_dirname, **kwargs)
+
+        # Recursively copy this source to target directory. To avoid silently
+        # overwriting all conflicting target paths, the shutil.copytree() rather
+        # than dir_util.copy_tree() function is called.
+        shutil.copytree(src=src_dirname, dst=trg_dirname, **copytree_kwargs)
 
 # ....................{ MAKERS                             }....................
 @type_check

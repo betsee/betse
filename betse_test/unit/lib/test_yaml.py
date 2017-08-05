@@ -46,7 +46,7 @@ def test_yaml_roundtrip(betse_sim_config: 'SimTestState') -> None:
     p.overwrite()
 
     # Close this file.
-    p.close()
+    p.unread()
 
     # Read these changes back into the same in-memory object.
     p.read(p_conf_filename)

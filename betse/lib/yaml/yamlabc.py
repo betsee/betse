@@ -135,7 +135,7 @@ class YamlFileABC(YamlABC):
     @type_check
     def __init__(self) -> None:
         '''
-        Initialize this simulation configuration in the **closed state** (i.e.,
+        Initialize this simulation configuration in the **unread state** (i.e.,
         associated with *no* low-level YAML-formatted simulation configuration
         file).
         '''
@@ -146,43 +146,25 @@ class YamlFileABC(YamlABC):
         # chicken-and-egg API issues.
         super().__init__(conf={})
 
-        # Initialize this simulation configuration in the closed state. To avoid
-        # extraneous logging, the body of the close() method is duplicated here.
+        # Initialize this simulation configuration in the unread state. To avoid
+        # extraneous logging, the unread() method body is duplicated here.
         self._conf_dirname = None
         self._conf_filename = None
 
     # ..................{ PROPERTIES                         }..................
     @property
-    def is_open(self) -> bool:
+    def is_read(self) -> bool:
         '''
-        ``True`` only if this simulation configuration is in the **open state**
+        ``True`` only if this simulation configuration is in the **read state**
         (i.e., associated with a low-level YAML-formatted simulation
         configuration file).
 
-        If ``True``, *all* methods of this base class (e.g., :meth:`read`,
-        :meth:`close`) are safely callable by callers; else, none are.
+        If ``True``, *all* methods of this base class (e.g., :meth:`save`,
+        :meth:`unread`,) are safely callable by callers; else, only the
+        properties and the :meth:`read` method are.
         '''
 
-        return self._conf_filename is None
-
-    # ..................{ CLOSERS                            }..................
-    def close(self) -> None:
-        '''
-        Deassociate this high-level simulation configuration from its low-level
-        YAML-formatted simulation configuration file if such a file has been
-        read (e.g., by a prior call to the :meth:`read` method) *or* silently
-        noop otherwise.
-        '''
-
-        # Log this operation.
-        logs.log_info('Closing simulation configuration...')
-
-        # Preserve the superclass contract that this variable be non-None.
-        self._conf = {}
-
-        # Nullify all instance variables for safety.
-        self._conf_dirname = None
-        self._conf_filename = None
+        return self._conf_filename is not None
 
     # ..................{ READERS                            }..................
     #FIXME: Validate the contents of this file (e.g., via "yamale").
@@ -209,6 +191,25 @@ class YamlFileABC(YamlABC):
 
         # Deserialize this file into this dictionary.
         self._conf = yamls.load(conf_filename)
+
+    # ..................{ UNREADERS                          }..................
+    def unread(self) -> None:
+        '''
+        Deassociate this high-level simulation configuration from its low-level
+        YAML-formatted simulation configuration file if such a file has been
+        read (e.g., by a prior call to the :meth:`read` method) *or* silently
+        noop otherwise.
+        '''
+
+        # Log this operation.
+        logs.log_info('Closing simulation configuration...')
+
+        # Preserve the superclass contract that this variable be non-None.
+        self._conf = {}
+
+        # Nullify all instance variables for safety.
+        self._conf_dirname = None
+        self._conf_filename = None
 
     # ..................{ WRITERS                            }..................
     @type_check
