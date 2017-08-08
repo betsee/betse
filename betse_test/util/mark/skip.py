@@ -82,17 +82,17 @@ def skip_unless_command(pathname: str):
     Returns
     ----------
     pytest.skipif
-        Decorator describing these requirements if unmet _or_ the identity
+        Decorator describing these requirements if unmet *or* the identity
         decorator successfully reducing to a noop otherwise.
     '''
 
     # Defer heavyweight imports.
     from betse.util.path.command import cmds
-    from betse.util.type.decorators import noop
+    from betse.util.type.decorators import identity_decorator
 
     # If this command exists, reduce this decoration to a noop.
     if cmds.is_command(pathname):
-        return noop
+        return identity_decorator
     # Else, skip this test with a human-readable justification.
     else:
         return skip('Command "{}" not found.'.format(pathname))
@@ -113,17 +113,17 @@ def skip_unless_matplotlib_anim_writer(writer_name: str):
     Returns
     ----------
     pytest.skipif
-        Decorator describing these requirements if unmet _or_ the identity
+        Decorator describing these requirements if unmet *or* the identity
         decorator successfully reducing to a noop otherwise.
     '''
 
     # Defer heavyweight imports.
     from betse.lib.matplotlib.writer import mplvideo
-    from betse.util.type.decorators import noop
+    from betse.util.type.decorators import identity_decorator
 
     # If this command exists, reduce this decoration to a noop.
     if mplvideo.is_writer(writer_name):
-        return noop
+        return identity_decorator
     # Else, skip this test with a human-readable justification.
     else:
         return skip(
@@ -147,7 +147,7 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
     Returns
     ----------
     pytest.skipif
-        Decorator describing these requirements if unmet _or_ the identity
+        Decorator describing these requirements if unmet *or* the identity
         decorator reducing to a noop otherwise.
     '''
 
@@ -155,7 +155,7 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
     from betse.exceptions import BetseLibException
     from betse.lib import libs
     from betse.util.io import stderrs
-    from betse.util.type.decorators import noop
+    from betse.util.type.decorators import identity_decorator
 
     # Validate these dependencies.
     try:
@@ -177,7 +177,8 @@ def skip_unless_lib_runtime_optional(*lib_names: str):
     # Else, these dependencies are all satisfiable. Reduce this decoration to a
     # noop.
     else:
-        return noop
+        return identity_decorator
+
 
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # WARNING: The higher-level skip_unless_lib_runtime_optional() decorator should
@@ -207,13 +208,13 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
     Returns
     ----------
     pytest.skipif
-        Decorator describing these requirements if unmet _or_ the identity
+        Decorator describing these requirements if unmet *or* the identity
         decorator reducing to a noop otherwise.
     '''
 
     # Defer heavyweight imports.
     from betse.util.io import stderrs
-    from betse.util.type.decorators import noop
+    from betse.util.type.decorators import identity_decorator
 
     # Attempt to import this module and module version.
     try:
@@ -233,7 +234,7 @@ def skip_unless_module(module_name: str, minimum_version: str = None):
         return skip(str(exc))
     # Else, this module is importable. Reduce this decoration to a noop.
     else:
-        return noop
+        return identity_decorator
 
 # ....................{ SKIP ~ plugin                      }....................
 skip_unless_plugin_xdist = skip_unless_module('xdist')

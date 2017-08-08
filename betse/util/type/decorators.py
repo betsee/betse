@@ -9,11 +9,16 @@ callables) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
+from betse.util.type.types import CallableTypes  # type_check
 
 # ....................{ DECORATORS                         }....................
-def noop(obj: object) -> object:
+# While type-checking these types would probably be advisable, this decorator is
+# currently passed non-callables by "py.test". While resolving that issue would
+# itself probably be advisable, we simply cannot be bothered. Hence, these types
+# remain blithely unchecked.
+def identity_decorator(callable: CallableTypes) -> CallableTypes:
     '''
     Identity decorator returning the decorated callable unmodified.
     '''
 
-    return obj
+    return callable

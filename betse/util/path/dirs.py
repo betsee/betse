@@ -355,7 +355,7 @@ def copy(
         # links as is. To silently overwrite all conflicting target paths, the
         # dir_util.copy_tree() rather than shutil.copytree() function is called.
         dir_util.copy_tree(
-            src=src_dirname, trg=trg_dirname, preserve_symlinks=1)
+            src_dirname, trg_dirname, preserve_symlinks=1)
     else:
         # Dictionary of all keyword arguments to pass to shutil.copytree(),
         # preserving symbolic links as is.
@@ -483,6 +483,7 @@ def join_and_make_unless_dir(*partnames: str) -> str:
 
 # ....................{ ITERATORS                          }....................
 #FIXME: For orthogonality, rename to iter_basenames().
+@type_check
 def list_basenames(dirname: str) -> SequenceTypes:
     '''
     Sequence of the basenames of all paths (e.g., non-directory files,
@@ -495,7 +496,8 @@ def list_basenames(dirname: str) -> SequenceTypes:
     # Sequence of all such basenames.
     return os.listdir(dirname)
 
-
+# ....................{ ITERATORS ~ subdir                 }....................
+@type_check
 def iter_subdirnames(dirname: str) -> GeneratorType:
     '''
     Generator yielding the pathname of each direct subdirectory of the passed
@@ -544,3 +546,31 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
         path.join(dirname, subdir_basename)
         for subdir_basename in subdir_basenames
     )
+
+
+@type_check
+def iter_subdir_basenames(dirname: str) -> SequenceTypes:
+    '''
+    Sequence of the basenames of all direct subdirectories of the passed parent
+    directory.
+
+    Parameters
+    -----------
+    dirname : str
+        Absolute or relative path of the parent directory to inspect.
+
+    Returns
+    -----------
+    SequenceTypes
+        Sequence of direct subdirectory basenames of this parent directory.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.io.exceptions import raise_exception
+
+    # Sequence of the basenames of all subdirectories of this directory. See the
+    # iter_subdirnames() function for further details.
+    _, subdir_basenames, _ = next(os.walk(dirname, onerror=raise_exception))
+
+    # Return this sequence of basenames as is.
+    return subdir_basenames

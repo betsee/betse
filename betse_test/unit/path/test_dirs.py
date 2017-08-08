@@ -50,17 +50,24 @@ def test_dirs_get_mtime_newest(betse_temp_dir: 'LocalPath') -> None:
     subsubfilename2 = str(subsubfilepath2)
 
     # Ensure the last path created above to be the most recent.
-    assert dirs.get_mtime_recursive_newest(dirname) == paths.get_mtime_nonrecursive(subsubfilename2)
+    assert (
+        dirs.get_mtime_recursive_newest(dirname) ==
+        paths.get_mtime_nonrecursive(subsubfilename2)
+    )
 
     # Update the mtime of an arbitrary subdirectory.
     subsubdirpath.setmtime()
 
     # Ensure this subdirectory to now be the most recent.
-    assert dirs.get_mtime_recursive_newest(dirname) == paths.get_mtime_nonrecursive(subsubdirname)
+    assert (
+        dirs.get_mtime_recursive_newest(dirname) ==
+        paths.get_mtime_nonrecursive(subsubdirname)
+    )
 
     # Ensure this subdirectory to now be the most recent when queried through
     # the related paths.get_mtime_recursive_newest() function.
     assert (
-        paths.get_mtime_recursive_newest((dirname, subsubdirname, subsubfilename2)) ==
+        paths.get_mtime_recursive_newest(
+            (dirname, subsubdirname, subsubfilename2)) ==
         paths.get_mtime_nonrecursive(subsubdirname)
     )

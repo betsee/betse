@@ -305,6 +305,14 @@ def _init() -> None:
     #release, modify the "ruamel.yaml" version constraints above to reflect the
     #new minimum required version. Naturally, this implies we won't be enabling
     #"ruamel.yaml" support anytime soon.
+    #FIXME: *UGH.* "ruamel.yaml" appears to have a core deficiency with respect
+    #to map key comments: specifically, the roundtripper silently produces
+    #malformed YAML when encountering map key comments. This is quite obviously
+    #unacceptable for our heavily commented YAML files. Sadly, upstream has
+    #known about this open issue for several years -- implying a fix is distant
+    #at beast. Until resolved, "ruamel.yaml" *MUST* be ignored. For discussion,
+    #see the following upstream issue:
+    #    https://bitbucket.org/ruamel/yaml/issues/146/torture-test-breaks-the-fragile-back-of
     RUNTIME_MANDATORY_YAML_PROJECT_NAME = 'PyYAML'
 
     # Enforce installation of the preferred YAML framework detected above.

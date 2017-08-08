@@ -2,10 +2,9 @@
 # Copyright 2014-2017 by Alexis Pietak & Cecil Curry
 # See "LICENSE" for further details.
 
-from collections import OrderedDict
-
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from betse import pathtree
 from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
 from betse.lib.matplotlib import mplutil
 from betse.lib.yaml.yamlalias import yaml_alias
@@ -18,8 +17,10 @@ from betse.science.simulate.simphase import SimPhaseKind
 from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
-from betse.util.path import pathnames
-from betse.util.type.types import type_check, NumericTypes, SequenceTypes
+from betse.util.path import dirs, pathnames
+from betse.util.type.types import (
+    type_check, IterableTypes, NumericTypes, SequenceTypes)
+from collections import OrderedDict
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
@@ -1463,6 +1464,25 @@ class Parameters(YamlFileABC):
         # Duration in seconds of the current simulation phase accelerated by
         # the current gap junction acceleration factor.
         self.total_time_accelerated = self.total_time * self.gj_acceleration
+
+    # ..................{ SUPERCLASS ~ optional              }..................
+    # Methods intended to be optionally overriden by subclasses.
+
+    #FIXME: Actually implement this properly. Ideally, this method should return
+    #the set of all subdirectories internally referenced by the current
+    #top-level YAML file. Instead, it simply returns all subdirectories
+    #internally referenced by the *DEFAULT* top-level YAML file. Why? Because
+    #the latter was much easier than the former, despite being wrong. Laziness
+    #prevails!
+    def _iter_conf_subdirnames(self) -> IterableTypes:
+
+        # If no file has been read, raise an exception.
+        self._die_unless_read()
+
+        # Default to the basenames of all direct subdirectories of the parent
+        # directory containing the default simulation configuration file, which
+        # are guaranteed to be required by this file.
+        return dirs.iter_subdir_basenames(pathtree.get_data_yaml_dirname())
 
 # ....................{ HELPERS                            }....................
 #FIXME: Shift this into a more appropriate math-oriented module. Funny sunning!

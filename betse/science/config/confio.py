@@ -16,22 +16,15 @@ from betse import pathtree
 from betse.lib.yaml import yamls
 from betse.util.io.log import logs
 from betse.util.path import dirs, files, pathnames
-from betse.util.type.types import type_check  #, MappingType
+from betse.util.type.types import type_check  #, GeneratorType
 
-# ....................{ LOADERS                            }....................
-#FIXME: All functions defined in the "LOADERS" and "WRITERS" sections below are
-#patently silly and, ideally, should be replaced by the following non-silly
-#alternative:
+# ....................{ READERS                            }....................
+#FIXME: This utility function is patently silly and should be replaced by the
+#following non-silly alternative:
 #
-#* Define a new "SimConfSerializableABC" superclass subclassing "SimConfABC" in
-#  the "confabc" submodule.
-#* In this class:
-#  * Define a private _read() method identical to read() below.
-#  * Define a private _write() method identical to write() below.
-#* Subclass the "betse.science.parameters.Parameters" class from this new
-#  "SimConfSerializableABC" superclass.
-#* Likewise for all similar top-level classes currently calling these methods
-#  such as "MasterOfMolecules", perhaps?
+#* Subclass all top-level classes currently calling this function (e.g.,
+#  "MasterOfMolecules") from the the "betse.lib.yaml.yamlabc.YamlFileABC" class.
+#* Replace all calls to this function with calls to "self.read(conf_filename)".
 
 @type_check
 def read_metabo(conf_filename: str) -> dict:
@@ -100,6 +93,9 @@ def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
     # Source directory containing the default simulation configuration.
     src_dirname = pathtree.get_data_yaml_dirname()
 
+    # Target directory to be copied into.
+    trg_dirname = pathnames.get_dirname(conf_filename)
+
     # Note that the simple solution of recursively copying this source directory
     # into the parent directory of the passed target file (e.g., by calling
     # "dirs.copy(src_dirname, pathnames.get_dirname(conf_filename))") fails
@@ -116,7 +112,7 @@ def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
         # Recursively copy from this subdirectory into the target directory.
         dirs.copy_into_dir(
             src_dirname=src_subdirname,
-            trg_dirname=pathnames.get_dirname(conf_filename),
+            trg_dirname=trg_dirname,
             is_overwritable=is_overwritable,
 
             # Ignore all empty ".gitignore" files in all subdirectories of this

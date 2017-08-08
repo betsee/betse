@@ -8,26 +8,6 @@ High-level support facilities for Yet Another Markup Language (YAML), the
 file format encapsulating most input and output data for this application.
 '''
 
-#FIXME: Add support for "ruamel.yaml" and "ruamel_yaml". First, note that the
-#currently selected YAML implementation is given by
-#"betse.metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME". Next, note that
-#supporting the new object-oriented "ruamel.yaml" API will require considerably
-#different logic from that of PyYAML. To support both, consider:
-#
-#* Defining the following new functions:
-#  * _load_pyyaml(), implementing PyYAML-specific load functionality.
-#  * _load_ruamel(), implementing both "ruamel.yaml" and "ruamel_yaml"-specific
-#    load functionality. For space efficiency, don't both preserving the object
-#    required by this API; just discard it when the function returns.
-#* Ditto for save functionality.
-#* The top-level load() and save() functions should then internally call the
-#  appropriate private implementations manually switched on the value of the
-#  "betse.metadeps.RUNTIME_MANDATORY_YAML_PROJECT_NAME" global. *DO NOT BOTHER
-#  WITH A DICTIONARY MAPPING.* We are serious. There are only two available
-#  choices. Do *NOT* go overkill here, please.
-#FIXME: Actually, note that there is currently no point in supporting
-#"ruamel_yaml" -- which is painfully obsolete and unlikely to ever catch up.
-
 #FIXME: Consider contributing various portions of this submodule back to
 #"ruamel.yaml" -- particularly the Numpy-type-to-YAML-native-type conversions.
 
@@ -143,7 +123,6 @@ def _load_pyyaml(yaml_file: FileType) -> MappingOrSequenceTypes:
     return pyyaml.load(yaml_file)
 
 
-
 @type_check
 def _load_ruamel(yaml_file: FileType) -> MappingOrSequenceTypes:
     '''
@@ -159,7 +138,14 @@ def _load_ruamel(yaml_file: FileType) -> MappingOrSequenceTypes:
 
 # ....................{ SAVERS                             }....................
 @type_check
-def save(container: MappingOrSequenceTypes, filename: str) -> None:
+def save(
+    # Mandatory parameters.
+    container: MappingOrSequenceTypes,
+    filename: str,
+
+    # Optional parameters.
+    is_overwritable: bool = False,
+) -> None:
     '''
     Save (i.e., open and write, serialize) the passed dictionary or list to the
     YAML-formatted file with the passed path via the active YAML implementation.
@@ -170,13 +156,18 @@ def save(container: MappingOrSequenceTypes, filename: str) -> None:
         Dictionary or list to be written as the contents of this file.
     filename : str
         Absolute or relative path of this file.
+    is_overwritable : optional[bool]
+        ``True`` if overwriting this file when this file already exists *or*
+        ``False`` if raising an exception when this file already exists.
+        Defaults to ``False`` for safety.
     '''
 
     # If this filename has no YAML-compliant filetype, log a warning.
     warn_unless_filetype_yaml(filename)
 
     # With this YAML file opened for character-oriented writing...
-    with iofiles.writing_chars(filename) as yaml_file:
+    with iofiles.writing_chars(
+        filename=filename, is_overwritable=is_overwritable) as yaml_file:
         # Save this YAML file via the active YAML implementation.
         if YAML_TYPE_ACTIVE is YamlType.PyYAML:
             return _save_pyyaml(container, yaml_file)

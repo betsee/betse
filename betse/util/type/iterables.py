@@ -599,8 +599,8 @@ def consume(iterable: IterableTypes, iterations: int) -> object:
     Consume the passed number of iterations from the passed iterable by
     advancing this iterable forward by this number of iterations.
 
-    For efficiency, this iterable is consumed at C speeds via standard objects
-    implemented in low-level C rather than high-level Python.
+    For efficiency, this iterable is consumed at C speeds through standard
+    objects implemented in low-level C rather than high-level Python.
 
     Parameters
     ----------
@@ -637,17 +637,17 @@ def exhaust(iterable: IterableTypes) -> object:
     Exhaust the passed iterable by advancing this iterable directly past its
     last iteration.
 
-    For efficiency, this iterable is exhausted at C speeds via standard objects
-    implemented in low-level C rather than high-level Python.
+    For efficiency, this iterable is consumed at C speeds through standard
+    objects implemented in low-level C rather than high-level Python.
 
     Caveats
     ----------
-    **This function should _only_ be called for finite iterables.** If the
-    passed iterable:
+    **This function should only be called for finite iterables.** If the passed
+    iterable:
 
-    * Explicitly halts with a `StopIteration` exception and hence is finite,
-      this function exhausts this iterable as expected.
-    * Does _not_ explicitly halt with a `StopIteration` exception and hence is
+    * Explicitly halts with a :class:`StopIteration` exception and hence is
+      finite, this function exhausts this iterable as expected.
+    * Does *not* explicitly halt with a `StopIteration` exception and hence is
       infinite, this function reduces to an **infinite loop.**
 
     Parameters

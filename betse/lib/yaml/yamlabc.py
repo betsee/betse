@@ -9,6 +9,7 @@ well as functionality pertaining to such classes.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractmethod
+from betse.exceptions import BetseYamlException
 from betse.lib.yaml import yamls
 from betse.lib.yaml.yamlalias import yaml_alias
 # FIXME: Ideally, submodules in the "betse.lib" subpackage should *NOT* import
@@ -18,12 +19,14 @@ from betse.lib.yaml.yamlalias import yaml_alias
 # (e.g., "betse.util.multi.piperun").
 from betse.science.simulate.pipe.piperun import SimPipeRunnerConfMixin
 from betse.util.io.log import logs
-from betse.util.path import files, pathnames
+from betse.util.path import dirs, pathnames
 from betse.util.type.cls import classes
+from betse.util.type.iterators import empty_iterator
 from betse.util.type.obj import objects
 from betse.util.type.types import (
     type_check,
     ClassType,
+    IterableTypes,
     MappingType,
     SequenceOrNoneTypes,
     StrOrNoneTypes,
@@ -33,32 +36,31 @@ from collections.abc import MutableSequence
 # ....................{ SUPERCLASSES                       }....................
 class YamlABC(object, metaclass=ABCMeta):
     '''
-    Abstract base class of all simulation configuration subclasses, each
-    encapsulating a dictionary of related configuration settings (e.g.,
-    representing one tissue profile) both loaded from and savable back to the
-    current YAML-formatted simulation configuration file.
+    Abstract base class of all configuration subclasses, each encapsulating a
+    dictionary of related configuration settings (e.g., representing one tissue
+    profile) both loaded from and savable back to a parent YAML-formatted
+    configuration file.
 
     Attributes
     ----------
     _conf : MappingType
         Low-level dictionary of related configuration settings both loaded from
-        and savable back to the current YAML-formatted simulation configuration
-        file.
+        and savable back to the parent YAML-formatted configuration file.
     '''
 
     # ..................{ INITIALIZERS                       }..................
     @type_check
     def __init__(self, conf: MappingType) -> None:
         '''
-        Associate this high-level simulation configuration with the passed
-        low-level dictionary.
+        Associate this high-level configuration with the passed low-level
+        dictionary.
 
         Parameters
         ----------
         conf : MappingType
             Low-level dictionary of related configuration settings both loaded
-            from and savable back to the current YAML-formatted simulation
-            configuration file.
+            from and savable back to the parent YAML-formatted configuration
+            file.
         '''
 
         # Classify all passed parameters.
@@ -71,8 +73,7 @@ class YamlABC(object, metaclass=ABCMeta):
     def conf(self) -> MappingType:
         '''
         Dictionary of related configuration settings both loaded from and
-        savable back to the current YAML-formatted simulation configuration
-        file.
+        savable back to the parent YAML-formatted configuration file.
         '''
 
         return self._conf
@@ -80,10 +81,10 @@ class YamlABC(object, metaclass=ABCMeta):
 # ....................{ SUPERCLASSES ~ file                }....................
 class YamlFileABC(YamlABC):
     '''
-    Abstract base class of all top-level simulation configuration subclasses,
-    each directly backed by an low-level simulation configuration file in YAML
-    format and hence both **serializable** (i.e., writable) to and
-    **deserializable** (i.e., readable) from that file.
+    Abstract base class of all top-level configuration subclasses, each directly
+    backed by a low-level YAML-formatted configuration file in format and hence
+    both **serializable** (i.e., writable) to and **deserializable** (i.e.,
+    readable) from that file.
 
     Caveats
     ----------
@@ -106,10 +107,9 @@ class YamlFileABC(YamlABC):
         configuration file if such a file has been read (e.g., by a prior call
         to the :meth:`read` method) *or* ``None`` otherwise.
     _conf_filename : StrOrNoneTypes
-        Absolute path of the low-level YAML-formatted simulation configuration
-        file from which this object was most recently deserialized if such a
-        file has been read (e.g., by a prior call to the :meth:`read` method)
-        *or* ``None`` otherwise.
+        Absolute path of the low-level YAML-formatted configuration file from
+        which this object was most recently deserialized if any *or* ``None``
+        otherwise.
     '''
 
     # ..................{ MAKERS                             }..................
@@ -119,7 +119,7 @@ class YamlFileABC(YamlABC):
         'betse.lib.yaml.yamlabc.YamlFileABC'):
         '''
         Create return an instance of this subclass deserialized (i.e., read)
-        from the passed YAML-formatted simulation configuration file.
+        from the passed YAML-formatted configuration file.
 
         Parameters
         ----------
@@ -135,9 +135,8 @@ class YamlFileABC(YamlABC):
     @type_check
     def __init__(self) -> None:
         '''
-        Initialize this simulation configuration in the **unread state** (i.e.,
-        associated with *no* low-level YAML-formatted simulation configuration
-        file).
+        Initialize this file-backed configuration in the **unread state** (i.e.,
+        associated with *no* low-level YAML-formatted configuration file).
         '''
 
         # Initialize our superclass with the empty dictionary, which the
@@ -183,8 +182,7 @@ class YamlFileABC(YamlABC):
 
         # Log this operation.
         logs.log_info(
-            'Reading simulation configuration "%s"...',
-            pathnames.get_basename(conf_filename))
+            'Reading YAML file "%s"...', pathnames.get_basename(conf_filename))
 
         # Associate this object with this file.
         self._set_conf_filename(conf_filename)
@@ -202,7 +200,7 @@ class YamlFileABC(YamlABC):
         '''
 
         # Log this operation.
-        logs.log_info('Closing simulation configuration...')
+        logs.log_info('Closing YAML file...')
 
         # Preserve the superclass contract that this variable be non-None.
         self._conf = {}
@@ -223,14 +221,17 @@ class YamlFileABC(YamlABC):
         '''
 
         # Log this operation.
-        logs.log_info('Overwriting simulation configuration...')
+        logs.log_info('Overwriting YAML file...')
 
-        # Delete this file (if found), preventing the subsequent write from
-        # raising an otherwise ignorable exception.
-        files.remove_if_found(self._conf_filename)
+        # If no file to be saved has been read, raise an exception.
+        self._die_unless_read()
 
         # Resave this dictionary to this file.
-        yamls.save(container=self._conf, filename=self._conf_filename)
+        yamls.save(
+            container=self._conf,
+            filename=self._conf_filename,
+            is_overwritable=True,
+        )
 
 
     @type_check
@@ -246,26 +247,51 @@ class YamlFileABC(YamlABC):
         ----------
         conf_filename : str
             Absolute or relative path of the target file to be serialized.
-
-        Raises
-        ----------
-        BetseFileException
-            If this file already exists.
         '''
 
         # Log this operation.
         logs.log_info(
-            'Writing simulation configuration "%s"...',
-            pathnames.get_basename(conf_filename))
+            'Writing YAML file "%s"...', pathnames.get_basename(conf_filename))
 
-        # Validate this file *BEFORE* writing this file.
-        files.die_if_file(conf_filename)
-
-        # Associate this object with this file.
-        self._set_conf_filename(conf_filename)
+        # If no file to be saved has been read, raise an exception.
+        self._die_unless_read()
 
         # Save this dictionary to this file.
-        yamls.save(container=self._conf, filename=self._conf_filename)
+        yamls.save(
+            container=self._conf,
+            filename=conf_filename,
+            is_overwritable=True,
+        )
+
+        # Absolute paths of the parent directories containing the current file
+        # and the passed file.
+        src_dirname = self.conf_dirname
+        trg_dirname = pathnames.get_dirname(conf_filename)
+
+        # If these paths differ, all relative subdirectories internally
+        # referenced and required by this file *MUST* be recursively copied from
+        # the former to the latter.
+        if src_dirname != trg_dirname:
+            # For the absolute or relative path of each such subdirectory...
+            for conf_subdirname in self._iter_conf_subdirnames():
+                # If this path is absolute, silently ignore this subdirectory.
+                if pathnames.is_absolute(conf_subdirname):
+                    continue
+                # Else, this path is relative and hence requires copying.
+
+                # Absolute path of the old subdirectory.
+                src_subdirname = pathnames.join(src_dirname, conf_subdirname)
+
+                # Recursively copy from the old into the new subdirectory.
+                dirs.copy_into_dir(
+                    src_dirname=src_subdirname,
+                    trg_dirname=trg_dirname,
+                    is_overwritable=True,
+                )
+
+        # Associate this object with this file *AFTER* successfully copying to
+        # this file and all external paths required by this file.
+        self._set_conf_filename(conf_filename)
 
     # ..................{ PROPERTIES ~ read-only             }..................
     # Read-only properties, preventing callers from resetting these attributes.
@@ -292,12 +318,23 @@ class YamlFileABC(YamlABC):
 
         return self._conf_filename
 
+    # ..................{ EXCEPTIONS                         }..................
+    def _die_unless_read(self) -> None:
+        '''
+        Raise an exception unless this file-backed configuration is currently in
+        the **read state** (i.e., associated with a low-level YAML-formatted
+        configuration file).
+        '''
+
+        if not self.is_read:
+            raise BetseYamlException('YAML file not open.')
+
     # ..................{ SETTERS                            }..................
     @type_check
     def _set_conf_filename(self, conf_filename: str) -> None:
         '''
         Set the absolute path of the YAML-formatted file associated with this
-        simulation configuration.
+        configuration.
 
         Design
         ----------
@@ -312,6 +349,34 @@ class YamlFileABC(YamlABC):
 
         # Unique absolute path of the parent directory of this file.
         self._conf_dirname = pathnames.get_dirname(self._conf_filename)
+
+    # ..................{ SUBCLASS ~ optional                }..................
+    # Methods intended to be optionally overriden by subclasses.
+
+    #FIXME: Reimplement in "Parameters". *sigh*
+    def _iter_conf_subdirnames(self) -> IterableTypes:
+        '''
+        Generator yielding the pathname of each requisite direct subdirectory of
+        the parent directory of the YAML-formatted file currently associated
+        with this configuration, where "requisite" means internally referenced
+        and hence required by this file.
+
+        For safety, this generator excludes all direct subdirectories of this
+        parent directory that are *not* internally referenced by this file.
+
+        By default, this superclass method returns the empty generator.
+
+        Yields
+        ----------
+        str
+            Absolute or relative pathname of each such subdirectory.
+        '''
+
+        # If no file has been read, raise an exception.
+        self._die_unless_read()
+
+        # Default to the empty iterator.
+        return empty_iterator()
 
 # ....................{ SUPERCLASSES ~ list item           }....................
 class YamlListItemABC(SimPipeRunnerConfMixin, YamlABC):

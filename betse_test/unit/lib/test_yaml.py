@@ -10,6 +10,48 @@ Unit tests for the :mod:`betse.lib.yaml` subpackage.
 # ....................{ IMPORTS                            }....................
 
 # ....................{ TESTS                              }....................
+def test_yaml_copy(
+    betse_sim_config: 'SimTestState',
+    betse_temp_dir: 'LocalPath',
+) -> None:
+    '''
+    Test the capacity of the :mod:`betse.lib.yaml.yamls` submodule to reliably
+    copy a deserialized simulation configuration (including both the top-level
+    YAML file for this configuration *and* all external paths internally
+    referenced and hence required by this file).
+
+    Parameters
+    ----------
+    betse_sim_config : SimTestState
+        Object encapsulating a temporary simulation configuration file.
+    betse_temp_dir : LocalPath
+        Object encapsulating a temporary directory isolated to the current test.
+    '''
+
+    # Absolute path of a subdirectory with arbitrary basename residing in this
+    # temporary directory.
+    new_subdirpath = betse_temp_dir.join('Ten_Forward')
+
+    # Create this subdirectory
+    new_subdirpath.ensure(dir=True)
+
+    # Absolute path of a new simulation configuration file with arbitrary
+    # basename to be created in this subdirectory.
+    new_sim_conf_filepath = new_subdirpath.join('El-Aurian_Guinan.yaml')
+
+    # Absolute path of this file as a string rather than "LocalPath" object.
+    new_sim_conf_filename = str(new_sim_conf_filepath)
+
+    # Simulation configuration loaded from this file.
+    p = betse_sim_config.p
+
+    # Copy this configuration to this subdirectory.
+    p.write(new_sim_conf_filename)
+
+    # Assert this file to have been created.
+    assert new_sim_conf_filepath.check(file=1)
+
+
 def test_yaml_roundtrip(betse_sim_config: 'SimTestState') -> None:
     '''
     Test the capacity of the :mod:`betse.lib.yaml.yamls` submodule to reliably
