@@ -17,8 +17,14 @@ Abstract base classes for defining command line interface (CLI) applications.
 
 import sys
 from abc import ABCMeta, abstractmethod
-from betse import ignition
-from betse.cli import clioption
+from betse import ignition, pathtree
+from betse.cli import cliutil
+from betse.cli.cliopt import (
+    CLIOptionArgEnum,
+    CLIOptionArgStr,
+    CLIOptionBoolTrue,
+    CLIOptionVersion,
+)
 from betse.lib import libs
 from betse.util.io.log import logs, logconfig
 from betse.util.io.log.logenum import LogLevel
@@ -243,13 +249,128 @@ class CLIABC(object, metaclass=ABCMeta):
         # Core argument parser.
         self._arg_parser = ArgParserType(**arg_parser_top_kwargs)
 
-        # Configure top-level options parsed by this parser.
-        clioption.add_top(arg_parser=self._arg_parser)
+        # For each top-level option, add an argument parsing this option to this
+        # argument subparser.
+        for option in self._make_options_top():
+            option.add(self._arg_parser)
 
     # ..................{ ARGS ~ options                     }..................
+    def _make_options_top(self) -> tuple:
+        '''
+        Tuple of all :class:`CLIOptionABC` instances defining the top-level
+        CLI options accepted by this application.
+
+        For each such option, the :meth:`_init_arg_parser_top` method adds a
+        corresponding argument to the top-level argument parser (i.e.,
+        :attr:`_arg_parser`).
+
+        Design
+        ----------
+        Subclasses requiring subclass-specific options are encouraged to:
+
+        * Override this method by:
+          * Calling the superclass implementation.
+          * Extending the returned tuple with all subclass-specific options.
+        * Override the :meth:`_parse_options_top` method by:
+          * Calling the superclass implementation.
+          * Handling all subclass-specific instance variables parsed into the
+            :attr:`self._args` container from these options.
+
+        Caveats
+        ----------
+        Order is significant, defining the order that the ``betse --help``
+        command synopsizes these options in. Options *not* listed here are
+        *not* parsed by argument subparsers and hence effectively ignored.
+
+        Returns
+        ----------
+        tuple
+            Tuple of all such :class:`CLIOptionABC` instances.
+        '''
+
+        # Singleton logging configuration for the current Python process.
+        log_config = logconfig.get()
+
+        # Return a tuple of all default top-level options.
+        return (
+            CLIOptionBoolTrue(
+                short_name='-v',
+                long_name='--verbose',
+                synopsis='print and log all messages verbosely',
+            ),
+
+            CLIOptionVersion(
+                short_name='-V',
+                long_name='--version',
+                synopsis='print program version and exit',
+                version=cliutil.get_version(),
+            ),
+
+            CLIOptionArgStr(
+                long_name='--matplotlib-backend',
+                synopsis=(
+                    'name of matplotlib backend to use '
+                    '(see: "betse info")'
+                ),
+                var_name='matplotlib_backend_name',
+                default_value=None,
+            ),
+
+            CLIOptionArgStr(
+                long_name='--log-file',
+                synopsis=(
+                    'file to log to '
+                    '(defaults to "{default}") '
+                ),
+                var_name='log_filename',
+                default_value=log_config.filename,
+            ),
+
+            CLIOptionArgEnum(
+                long_name='--log-level',
+                synopsis=(
+                    'minimum level of messages to log to "--log-file" '
+                    '(defaults to "{default}") '
+                    '[overridden by "--verbose"]'
+                ),
+                enum_type=LogLevel,
+                enum_default=log_config.file_level,
+            ),
+
+            CLIOptionArgEnum(
+                long_name='--profile-type',
+                synopsis='''
+    type of profiling to perform (defaults to "{default}"):
+    ;* "none", disabling profiling
+    ;* "call", profiling callables (functions, methods)
+    ;* "line", profiling code lines (requires "pprofile")
+    ;* "size", profiling object sizes (requires "pympler")
+    ''',
+                enum_type=ProfileType,
+                enum_default=ProfileType.NONE,
+            ),
+
+            CLIOptionArgStr(
+                long_name='--profile-file',
+                synopsis=(
+                    'file to profile to unless "--profile-type=none" '
+                    '(defaults to "{default}")'
+                ),
+                var_name='profile_filename',
+                default_value=pathtree.get_profile_default_filename(),
+            ),
+        )
+
+
     def _parse_options_top(self) -> None:
         '''
         Parse top-level options globally applicable to all subcommands.
+
+        Design
+        ----------
+        Subclasses requiring subclass-specific options are encouraged to
+        override this method. See the :meth:`_make_options_top` method for
+        further details.
         '''
 
         # Configure logging options *BEFORE* all remaining options, ensuring
@@ -277,7 +398,7 @@ class CLIABC(object, metaclass=ABCMeta):
         self._show_header()
 
         # Log all string arguments passed to this command.
-        logs.log_debug('Passed argument list {}.'.format(self._arg_list))
+        logs.log_debug('Passed argument list: {}'.format(self._arg_list))
 
 
     def _parse_options_top_profile(self) -> None:

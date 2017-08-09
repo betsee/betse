@@ -16,9 +16,9 @@ Concrete subclasses defining this application's command line interface (CLI).
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 from betse import metadata
-from betse.cli import clicommand, cliinfo, cliutil
+from betse.cli import clicmd, cliinfo, cliutil
 from betse.cli.cliabc import CLIABC
-from betse.cli.clicommand import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
+from betse.cli.clicmd import SUBCOMMANDS_PREFIX, SUBCOMMANDS_SUFFIX
 from betse.util.io.log import logs
 from betse.util.path import files, pathnames
 from betse.util.py import pyident, pys
@@ -93,7 +93,7 @@ class BetseCLI(CLIABC):
 
         # Dictionary mapping from the name of each top-level subcommand to the
         # argument subparser parsing that subcommand.
-        subcommand_name_to_subparser = clicommand.add_top(
+        subcommand_name_to_subparser = clicmd.add_top(
             arg_subparsers=self._arg_subparsers_top,
             arg_subparser_kwargs=self._arg_parser_kwargs)
 
@@ -121,7 +121,7 @@ class BetseCLI(CLIABC):
 
         # Dictionary mapping from the name of each "plot" subcommand to the
         # argument subparser parsing that subcommand.
-        clicommand.add_plot(
+        clicmd.add_plot(
             arg_subparsers=self._arg_subparsers_plot,
             arg_subparser_kwargs=self._arg_parser_kwargs)
 

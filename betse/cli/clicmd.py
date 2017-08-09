@@ -124,7 +124,7 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
             Collection of sibling subcommand argument parsers to which the
             subcommand argument parser created by this method is added. This
             collection is owned either by:
-            * A top-level subcommand (e.g., `plot`), in which case the
+            * A top-level subcommand (e.g., ``plot``), in which case the
               subcommand created by this method is a child of that subcommand.
             * No subcommand, in which case the subcommand created by this method
               is a top-level subcommand.
@@ -152,7 +152,7 @@ class CLISubcommandABC(object, metaclass=ABCMeta):
 # ....................{ SUBCLASSES                         }....................
 class CLISubcommandNoArg(CLISubcommandABC):
     '''
-    CLI subcommand accepting _no_ passed arguments.
+    CLI subcommand accepting *no* passed arguments.
     '''
 
     pass
@@ -161,7 +161,7 @@ class CLISubcommandNoArg(CLISubcommandABC):
 class CLISubcommandParent(CLISubcommandABC):
     '''
     CLI subcommand that is itself the parent of one or more CLI subcommands,
-    accepting _only_ the name of a child subcommand as a passed argument.
+    accepting *only* the name of a child subcommand as a passed argument.
     '''
 
     # We almost don't believe it either.
@@ -170,7 +170,7 @@ class CLISubcommandParent(CLISubcommandABC):
 
 class CLISubcommandYAMLOnly(CLISubcommandABC):
     '''
-    CLI subcommand accepting _only_ a configuration filename as a passed
+    CLI subcommand accepting *only* a configuration filename as a passed
     argument.
     '''
 
