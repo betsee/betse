@@ -715,8 +715,6 @@ class TissueHandler(object):
                 sim.D_env_weight = sim.D_env_weight.reshape(cells.X.shape)
                 sim.D_env_weight_base = sim.D_env_weight_base.reshape(cells.X.shape)
 
-
-
         soc = p.scheduled_options['cuts']
         if soc is not None and not soc._is_fired and t >= soc.time:
             for cut_profile_name in soc.profile_names:

@@ -557,8 +557,8 @@ class PlotCellsPipe(PlotPipeABC):
 
         vv = self._phase.sim.v_env.reshape(self._phase.cells.X.shape)
 
-        if self._phase.p.smooth_level == 0.0:
-            vv = gaussian_filter(vv, 1, mode='constant')
+        # if self._phase.p.smooth_level == 0.0:
+        #     vv = gaussian_filter(vv, 1, mode='constant')
 
         pyplot.figure()
         pyplot.imshow(

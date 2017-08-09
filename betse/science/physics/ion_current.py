@@ -34,7 +34,7 @@ def get_current(sim, cells, p):
     # normal component of J_cell at the membranes:
     sim.Jc = sim.J_cell_x[cells.mem_to_cells]*cells.mem_vects_flat[:,2] + sim.J_cell_y[cells.mem_to_cells]*cells.mem_vects_flat[:,3]
 
-    # divergence of cell current:
+    # divergence of cell current (for use in calculations, not actually true divergence):
     sim.divJ_cell = np.dot(cells.M_sum_mems, -sim.Jn * cells.mem_sa) / cells.cell_sa
 
 
@@ -84,15 +84,19 @@ def get_current(sim, cells, p):
         sim.J_env_x += sim.E_env_x*sim.sigma
         sim.J_env_y += sim.E_env_y*sim.sigma
 
+        # smooth currents
+        sim.J_env_x = gaussian_filter(sim.J_env_x, 2)
+        sim.J_env_y = gaussian_filter(sim.J_env_y, 2)
+
 
         # Method #1 -----------------------------------------
 
-        Jtx = sim.J_env_x + Jbx
-        Jty = sim.J_env_y + Jby
+        sim.Jtx = sim.J_env_x + Jbx
+        sim.Jty = sim.J_env_y + Jby
 
         # map current from extracellular space to membrane normal
-        sim.Jme = (Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-               Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+        sim.Jme = (sim.Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+               sim.Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
         # # Method #2 ------------------------------------------
         #
@@ -117,40 +121,43 @@ def get_current(sim, cells, p):
         Jox = np.zeros(len(cells.xypts))
         Joy = np.zeros(len(cells.xypts))
 
-        Jox[cells.map_cell2ecm] = -sim.J_cell_x  # this is an approximation for environmental currents
-        Joy[cells.map_cell2ecm] = -sim.J_cell_y
+        Jox[cells.map_cell2ecm] = sim.J_cell_x  # this is an approximation for environmental currents
+        Joy[cells.map_cell2ecm] = sim.J_cell_y
 
         Jox = Jox.reshape(cells.X.shape)
         Joy = Joy.reshape(cells.Y.shape)
 
-        # recalculate a voltage and field based on a media conductivity that may vary in space:
-        divJo = fd.divergence(Jox/(sim.Chi*p.eo), Joy/(sim.Chi*p.eo), cells.delta, cells.delta)
+        # # recalculate a voltage and field based on a media conductivity that may vary in space:
+        divJo = fd.divergence(Jox, Joy, cells.delta, cells.delta)
         dPhi = np.dot(cells.lapENV_P_inv, (divJo).ravel())
 
         gdpx, gdpy = fd.gradient(dPhi.reshape(cells.X.shape), cells.delta)
 
-        Jox = Jox -gdpx*sigma
-        Joy = Joy -gdpy*sigma
+        Jox = -gdpx
+        Joy = -gdpy
 
         _, sim.J_env_x, sim.J_env_y, BB, _, _ = stb.HH_Decomp(Jox.reshape(cells.X.shape),
                                                               Joy.reshape(cells.X.shape), cells)
 
         sim.v_env = -BB
 
+        sim.J_cell_x = Jox.ravel()[cells.map_cell2ecm]
+        sim.J_cell_y = Joy.ravel()[cells.map_cell2ecm]
 
-        dPx = -sim.Chi.ravel()*p.eo*gdpx.ravel()
-        dPy = -sim.Chi.ravel()*p.eo*gdpy.ravel()
 
-        # map current from extracellular space to membrane normal
-        sim.Jme = (dPx[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-               dPy[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+        # dPx = -sim.Chi.ravel()*p.eo*gdpx.ravel()
+        # dPy = -sim.Chi.ravel()*p.eo*gdpy.ravel()
+        #
+        # # map current from extracellular space to membrane normal
+        # sim.Jme = (dPx[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+        #        dPy[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
         # Jtx = Jax + Jbx
         # Jty = Jay + Jby
 
-        # # map current from extracellular space to membrane normal
-        # sim.Jme = (Jtx.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
-        #        Jty.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
+        # map current from extracellular space to membrane normal
+        sim.Jme = (Jox.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 2] +
+               Joy.ravel()[cells.map_mem2ecm] * cells.mem_vects_flat[:, 3])
 
 
 

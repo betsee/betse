@@ -12,6 +12,7 @@ from betse.exceptions import BetseSimInstabilityException
 from betse.util.io.log import logs
 from betse.science.math import modulate as mods
 # from betse.science.math import finitediff as fd
+from scipy.ndimage.filters import gaussian_filter
 
 
 class Mtubes(object):
@@ -192,16 +193,33 @@ class Mtubes(object):
         ui_hat = self.mtubes_x
         vi_hat = self.mtubes_y
 
-        Ex = sim.E_cell_x[cells.mem_to_cells]
-        Ey = sim.E_cell_y[cells.mem_to_cells]
+        # Jx = gaussian_filter(sim.J_env_x, 2)
+        # Jy = gaussian_filter(sim.J_env_y, 2)
 
+        # Jx = gaussian_filter(sim.Jtx, 2)
+        # Jy = gaussian_filter(sim.Jty, 2)
 
-        gEx = (Ex[cells.cell_nn_i[:, 1]] - Ex[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+        Jx = sim.J_env_x*1
+        Jy = sim.J_env_y*1
+
+        # Jx = sim.Jtx*1
+        # Jy = sim.Jty*1
+        #
+        Exo = Jx.ravel()[cells.map_mem2ecm]*(1/(sim.sigma*0.1 + 1.0e-6))
+        Eyo = Jy.ravel()[cells.map_mem2ecm]*(1/(sim.sigma*0.1 + 1.0e-6))
+
+        Ex = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
+        Ey = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
+
+        # Ex = sim.E_cell_x[cells.mem_to_cells]
+        # Ey = sim.E_cell_y[cells.mem_to_cells]
+
+        gEx = (Ex[cells.nn_i] - Ex[cells.mem_i]) / (cells.nn_len)
 
         gExx = gEx*cells.nn_tx
         gExy = gEx*cells.nn_ty
 
-        gEy = (Ey[cells.cell_nn_i[:, 1]] - Ey[cells.cell_nn_i[:, 0]]) / (cells.nn_len)
+        gEy = (Ey[cells.nn_i] - Ey[cells.mem_i]) / (cells.nn_len)
 
         gEyx = gEy*cells.nn_tx
         gEyy = gEy*cells.nn_ty
