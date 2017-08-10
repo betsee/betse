@@ -124,6 +124,7 @@ def _preserve_backward_importability() -> None:
     '''
 
     # Import all modules whose fully-qualified names have been modified.
+    from betse.lib.yaml import yamlabc
     from betse.science import channels
     from betse.science.math import finitediff
     from betse.science.simulate import simphase
@@ -133,6 +134,7 @@ def _preserve_backward_importability() -> None:
     from betse.util.type.mapping import mapcls
 
     # Alias obsolete module names to current module objects.
+    sys.modules['betse.science.config.confabc'] = yamlabc
     sys.modules['betse.science.config.export.confvisabc'] = confvis
     sys.modules['betse.science.config.visual'] = export
     sys.modules['betse.science.config.visual.confanim'] = confanim
@@ -148,6 +150,7 @@ def _preserve_backward_importability() -> None:
     sys.modules['betse.util.type.mappings'] = mapcls
 
     # Alias obsolete to current class names.
+    yamlabc.SimConfList = yamlabc.YamlList
     confanim.SimConfAnimOne = confvis.SimConfVisualCellsListItem
     confvis.SimConfVisualABC      = confvis.SimConfVisualCellsABC
     confvis.SimConfVisualMixin    = confvis.SimConfVisualCellsYAMLMixin
