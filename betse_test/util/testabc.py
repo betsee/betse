@@ -19,10 +19,10 @@ class SerialTestABC(metaclass=ABCMeta):
     all previously declared tests).
 
     On the first failure of such a test, all subsequent such tests will be
-    automaticaly marked as xfailing (i.e., failing _without_ being run).
+    automaticaly marked as xfailing (i.e., failing *without* being run).
 
     The majority of the black magic required by this class is implemented as
-    low-level py.test hooks in the top-level `betse_func.conftest` plugin.
+    low-level py.test hooks in the top-level :mod:`betse_func.conftest` plugin.
 
     FIXME: The following attribute is dynamically set on the py.test object
     encapsulating this class instance rather than this actual class instance.
@@ -40,8 +40,8 @@ class SerialTestABC(metaclass=ABCMeta):
     @staticmethod
     def is_test_serial(item: 'pytest.main.Item') -> bool:
         '''
-        `True` only if the passed test callable is **serial** (i.e., a method of
-        a subclass of this class).
+        ``True`` only if the passed test callable is **serial** (i.e., a method
+        of a subclass of this class).
 
         Serial methods are intended to be run in test method declaration order,
         such that subsequently declared test methods depend on the success of
@@ -55,7 +55,7 @@ class SerialTestABC(metaclass=ABCMeta):
         Returns
         ----------
         bool
-            `True` only if this test is serial.
+            ``True`` only if this test is serial.
         '''
 
         # Class of this test callable if this callable is a method or "None".

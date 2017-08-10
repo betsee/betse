@@ -41,7 +41,7 @@ import os
 from betse import metadata
 from betse.exceptions import BetseModuleException
 from betse.util.type.call.memoizers import callable_cached
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ GETTERS ~ dir                      }....................
 @callable_cached
@@ -88,7 +88,7 @@ def get_home_dirname() -> str:
     # Return this directory's path.
     return home_dirname
 
-
+# ....................{ GETTERS ~ dir : app                }....................
 @callable_cached
 def get_dot_dirname() -> str:
     '''
@@ -192,6 +192,71 @@ def get_data_yaml_dirname() -> str:
 
     # Return this dirname if this directory exists or raise an exception.
     return dirs.join_and_die_unless_dir(get_data_dirname(), 'yaml')
+
+# ....................{ GETTERS ~ dir : package            }....................
+@callable_cached
+def get_package_dirname() -> str:
+    '''
+    Absolute path of this application's top-level package directory, typically
+    residing in the ``site-packages`` subdirectory of the system-wide stdlib for
+    the active Python interpreter (e.g.,
+    ``/usr/lib64/python3.6/site-packages/betse``).
+    '''
+
+    # Avoid circular import dependencies.
+    import betse
+    from betse.util.path import dirs
+    from betse.util.type import modules
+
+    # Absolute path of the directory providing the top-level "betse" package.
+    package_dirname = modules.get_dirname(betse)
+
+    # If this directory is not found, fail.
+    dirs.die_unless_dir(package_dirname)
+
+    # Return this directory's path.
+    return package_dirname
+
+
+@callable_cached
+def get_worktree_dirname_or_none() -> StrOrNoneTypes:
+    '''
+    Absolute path of this application's Git-based **working tree** (i.e.,
+    top-level directory containing this application's ``.git`` dot subdirectory
+    and ``setup.py`` install script) if this application was installed in a
+    developer manner *or* ``None`` otherwise.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Specifically, this function returns either:
+        * A path if this application was installed in a developer manner,
+          typically either via:
+          * ``python3 setup.py develop``.
+          * ``python3 setup.py symlink``.
+        * ``None`` if this application was installed in a standard manner,
+          typically either via:
+          * ``pip3 install``.
+          * ``python3 setup.py develop``.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import dirs, pathnames
+
+    # Absolute path of the directory providing the top-level "betse" package,
+    # canonicalized into a directory rather than symbolic link to increase the
+    # likelihood of obtaining the actual parent directory of this package.
+    package_dirname = pathnames.canonicalize(get_package_dirname())
+
+    # Absolute path of the parent directory of this directory.
+    worktree_dirname = pathnames.get_dirname(package_dirname)
+
+    # Absolute path of the ".git" subdirectory of this parent directory.
+    git_subdirname = pathnames.join(worktree_dirname, '.git')
+
+    # If this subdirectory exists, return this parent directory's absolute path;
+    # else, return "None".
+    return worktree_dirname if dirs.is_dir(git_subdirname) else None
 
 # ....................{ GETTERS ~ file                     }....................
 @callable_cached

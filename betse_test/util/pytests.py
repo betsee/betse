@@ -4,8 +4,8 @@
 # See "LICENSE" for further details.
 
 '''
-Utility functions simplifying access to various py.test subpackages, submodules,
-and attributes unclassifiable with a more specific designation.
+Utility functions simplifying access to various :mod:`pytest` subpackages,
+submodules, and attributes unclassifiable with a more specific designation.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -14,19 +14,19 @@ from betse.util.type.types import ClassType, ModuleType
 # ....................{ GETTERS                            }....................
 def get_pytest_fixtures_submodule() -> ModuleType:
     '''
-    Version-specific private `pytest` submodule providing fixture classes.
+    Version-specific private :mod:`pytest` submodule providing fixture classes.
 
     Although private, this submodule publishes classes of public interest.
-    Unfortunately, as this submodule _is_ private, its fully-qualified name has
-    changed across `pytest` versions. This function guaranteeably retrieves this
-    submodule regardless of version.
+    Unfortunately, as this submodule *is* private, its fully-qualified name has
+    changed across :mod:`pytest` versions. This function guaranteeably retrieves
+    this submodule regardless of version.
 
     Specifically, under:
 
-    * `pytest` >= 3.0.0, the private `_pytest.fixtures` submodule is imported
-      and returned.
-    * `pytest` < 3.0.0, the private `_pytest.python` submodule is imported and
-      returned.
+    * :mod:`pytest` >= 3.0.0, the private :mod:`_pytest.fixtures` submodule is
+      imported and returned.
+    * :mod:`pytest` < 3.0.0, the private :mod:`_pytest.python` submodule is
+      imported and returned.
     '''
 
     # Attempt to import and return the newer "pytest" fixture module.
@@ -42,14 +42,15 @@ def get_pytest_fixtures_submodule() -> ModuleType:
 # ....................{ GETTERS ~ type                     }....................
 def get_fixture_lookup_error_type() -> ClassType:
     '''
-    Class of all `FixtureLookupError` exceptions raised by `pytest`.
+    Class of all :class:`FixtureLookupError` exceptions raised by :mod:`pytest`.
 
     Specifically, under:
 
-    * `pytest` >= 3.0.0, the private `_pytest.fixtures.FixtureLookupError` class
-      is imported and returned.
-    * `pytest` < 3.0.0, the private `_pytest.python.FixtureLookupError` class is
-      imported and returned.
+    * :mod:`pytest` >= 3.0.0, the private
+      :class:`_pytest.fixtures.FixtureLookupError` class is imported and
+      returned.
+    * :mod:`pytest` < 3.0.0, the private
+      :class:`_pytest.python.FixtureLookupError` class is imported and returned.
     '''
 
     # Version-specific private `pytest` submodule providing fixture classes.
