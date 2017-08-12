@@ -80,7 +80,6 @@ def test_cli_config(
         ('call',),
 
         # Profile types leveraging third-party packages necessitating checking.
-        skip_unless_lib_runtime_optional('pprofile')(('line',)),
         skip_unless_lib_runtime_optional('pympler')(('size',)),
     ),
 )
@@ -103,9 +102,9 @@ def test_cli_profile(
         Type of profiling to perform -- either:
         * `none`, performing no profiling.
         * `call`, performing call-granularity profiling.
-        * `line`, performing line-granularity profiling.
         * `size`, performing memory profiling.
     '''
+        # * `line`, performing line-granularity profiling.
 
     # CLI option enabling this type of profiling.
     profile_type_option = '--profile-type={}'.format(profile_type)

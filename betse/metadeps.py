@@ -155,7 +155,6 @@ RUNTIME_OPTIONAL = {
 
     # Dependencies directly required by this application.
     'pympler': '>= 0.4.1',
-    'pprofile': '>= 1.8',
     'ptpython': '>= 0.29',
 
     # A relatively modern version of NetworkX *EXCLUDING* 1.11, which

@@ -17,7 +17,7 @@ import os, shutil
 from betse.exceptions import BetseFileException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check
-from os import path
+from os import path as os_path
 
 # ....................{ EXCEPTIONS                         }....................
 def die_if_file(pathname: str) -> None:
@@ -193,7 +193,7 @@ def is_special(pathname: str) -> bool:
         # link to such a file. In the latter case, predicate logic guarantees
         # this file to *NOT* be a symbolic link, thus reducing this test to:
         # "...is either a symbolic link *OR* not a regular file."
-        is_symlink(pathname) or not path.isfile(pathname))
+        is_symlink(pathname) or not os_path.isfile(pathname))
 
 # ....................{ TESTERS ~ symlink                  }....................
 @type_check
@@ -205,7 +205,7 @@ def is_symlink(pathname: str) -> bool:
     This function does *not* raise an exception if this path does not exist.
     '''
 
-    return path.islink(pathname)
+    return os_path.islink(pathname)
 
 
 @type_check
@@ -222,7 +222,7 @@ def is_symlink_valid(pathname: str) -> bool:
     # for dangling symbolic links.
     #
     # This is why human-readable function names is a good thing, people.
-    return is_symlink(pathname) and path.exists(pathname)
+    return is_symlink(pathname) and os_path.exists(pathname)
 
 # ....................{ GETTERS                            }....................
 @type_check
@@ -235,7 +235,7 @@ def get_size(filename: str) -> int:
     die_unless_file(filename)
 
     # Return this filesize.
-    return path.getsize(filename)
+    return os_path.getsize(filename)
 
 # ....................{ COPIERS                            }....................
 @type_check

@@ -19,12 +19,12 @@ from betse.util.type.types import (
     SequenceTypes,
 )
 from distutils import dir_util
-from os import path
+from os import path as os_path
 
 # ....................{ GLOBALS                            }....................
 # There exist only two possible directory separators for all modern platforms.
 # Hence, this reliably suffices with no error handling required.
-SEPARATOR_REGEX = r'/' if path.sep == '/' else r'\\'
+SEPARATOR_REGEX = r'/' if os_path.sep == '/' else r'\\'
 '''
 Regular expression matching the directory separator specific to the current
 platform.
@@ -100,10 +100,59 @@ def die_unless_parent_dir(pathname: str) -> None:
 @type_check
 def is_dir(dirname: str) -> bool:
     '''
-    ``True`` only if the passed directory exists.
+    ``True`` only if the directory with the passed path exists.
     '''
 
-    return path.isdir(dirname)
+    return os_path.isdir(dirname)
+
+# ....................{ GETTERS                            }....................
+@type_check
+def get_dir_component_last(dirname: str) -> str:
+    '''
+    Last directory component of the passed absolute pathname that is an existing
+    directory.
+
+    Since the passed pathname is required to be absolute *and* since the root
+    directory (e.g., ``/`` on POSIX-compatible platforms) always exists, this
+    function is guaranteed to return the pathname of an existing directory.
+
+    Parameters
+    -----------
+    dirname : str
+        Absolute pathname of the directory to inspect.
+
+    Returns
+    -----------
+    str
+        Absolute pathname of the last directory component of this pathname that
+        is an existing directory.
+
+    Examples
+    -----------
+    Assuming the directory ``/the/garden/of/earthly/`` exists but its
+    subdirectory ``/the/garden/of/earthly/delights/`` does *not*:
+
+        >>> from betse.util.path import dirs
+        >>> dirs.get_parent_dir_last('/the/garden/of/earthly/delights/')
+        '/the/garden/of/earthly'
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.path import pathnames
+
+    # If this pathname is relative rather than absolute, raise an exception.
+    pathnames.die_if_relative(dirname)
+
+    # Current directory component of this path to inspect the existence of.
+    dirname_component = dirname
+
+    # While this directory component is *NOT* an existing directory...
+    while not is_dir(dirname_component):
+        # Reduce this directory component to its parent directory.
+        dirname_component = pathnames.get_dirname(dirname_component)
+
+    # Return this existing directory component.
+    return dirname_component
 
 # ....................{ GETTERS ~ mtime : recursive        }....................
 #FIXME: Consider contributing the get_mtime_recursive_newest() function as an
@@ -185,8 +234,8 @@ else:
                 # subdirectories of this subdirectory are implicitly computed
                 # and hence need *NOT* be explicitly included here.
                 max(
-                    (path.getmtime(parent_dirname),) + tuple(
-                        path.getmtime(path.join(
+                    (os_path.getmtime(parent_dirname),) + tuple(
+                        os_path.getmtime(os_path.join(
                             parent_dirname, child_file_basename))
                         for child_file_basename in child_file_basenames
                     ),
@@ -543,7 +592,7 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
     # Return a generator comprehension prefixing each such basename by the
     # absolute or relative path of the parent directory.
     return (
-        path.join(dirname, subdir_basename)
+        os_path.join(dirname, subdir_basename)
         for subdir_basename in subdir_basenames
     )
 

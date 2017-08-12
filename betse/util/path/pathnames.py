@@ -12,6 +12,7 @@ import errno, os
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, ModuleType, ContainerType
+from os import path as os_path
 
 # ....................{ CONSTANTS                          }....................
 INVALID_PATHNAME = '\0'
@@ -27,10 +28,10 @@ these errors into raised exceptions. Under Linux, for example, a
 '''
 
 # ....................{ EXCEPTIONS ~ absolute              }....................
-def die_if_relative(pathname: str) -> None:
+def die_if_relative(*pathnames: str) -> None:
     '''
-    Raise an exception if the passed path is relative (i.e., unless the passed
-    path is absolute).
+    Raise an exception if any passed path is relative (i.e., unless all passed
+    paths are absolute).
 
     See Also
     ----------
@@ -38,9 +39,10 @@ def die_if_relative(pathname: str) -> None:
         Further details.
     '''
 
-    if is_relative(pathname):
-        raise BetsePathnameException(
-            'Pathname "{}" relative rather than absolute.'.format(pathname))
+    for pathname in pathnames:
+        if is_relative(pathname):
+            raise BetsePathnameException(
+                'Pathname "{}" relative rather than absolute.'.format(pathname))
 
 # ....................{ EXCEPTIONS ~ basename              }....................
 def die_if_basename(pathname: str) -> None:
@@ -56,7 +58,7 @@ def die_if_basename(pathname: str) -> None:
     if is_basename(pathname):
         raise BetsePathnameException(
             'Pathname "{}" contains no directory separators '
-            "(i.e., '{}' characters).".format(pathname, os.path.sep))
+            "(i.e., '{}' characters).".format(pathname, os_path.sep))
 
 
 def die_unless_basename(pathname: str) -> None:
@@ -73,7 +75,7 @@ def die_unless_basename(pathname: str) -> None:
     if not is_basename(pathname):
         raise BetsePathnameException(
             'Pathname "{}" contains one or more directory separators'
-            "(i.e., '{}' characters).".format(pathname, os.path.sep))
+            "(i.e., '{}' characters).".format(pathname, os_path.sep))
 
 # ....................{ EXCEPTIONS ~ parent                }....................
 def die_unless_parent(parent_dirname: str, child_pathname: str) -> bool:
@@ -156,7 +158,7 @@ def is_pathname(pathname: str) -> bool:
         # Since Windows prohibits path components from containing ":"
         # characters, failing to strip this ":"-suffixed prefix would
         # erroneously invalidate all valid absolute Windows pathnames.
-        _, pathname = os.path.splitdrive(pathname)
+        _, pathname = os_path.splitdrive(pathname)
 
         # Absolute path of a directory guaranteed to exist.
         #
@@ -191,11 +193,11 @@ def is_pathname(pathname: str) -> bool:
         #
         # Did we mention this should be shipped with Python already?
         root_dirname = pathtree.get_root_dirname()
-        assert os.path.isdir(root_dirname)   # ...Murphy and her dumb Law
+        assert os_path.isdir(root_dirname)   # ...Murphy and her dumb Law
 
         # Test whether each path component split from this pathname is valid
         # or not. Most path components will *NOT* actually physically exist.
-        for pathname_part in pathname.split(os.path.sep):
+        for pathname_part in pathname.split(os_path.sep):
             try:
                 os.lstat(root_dirname + pathname_part)
             # If an OS-specific exception is raised, its error code indicates
@@ -255,7 +257,7 @@ def is_absolute(pathname: str) -> bool:
       indicator (e.g., ``C:``) followed by ``\``.
     '''
 
-    return os.path.isabs(pathname)
+    return os_path.isabs(pathname)
 
 
 def is_relative(pathname: str) -> bool:
@@ -279,7 +281,7 @@ def is_basename(pathname: str) -> bool:
     no directory separators and hence no directory components).
     '''
 
-    return os.path.sep not in pathname
+    return os_path.sep not in pathname
 
 # ....................{ TESTERS ~ parent                   }....................
 @type_check
@@ -308,7 +310,7 @@ def is_parent(parent_dirname: str, child_pathname: str) -> bool:
     # by this platform's directory separator to ensure this child is actually a
     # contained child of this parent directory.
     parent_dirname_suffixed = strs.add_suffix_unless_found(
-        text=parent_dirname, suffix=os.path.sep)
+        text=parent_dirname, suffix=os_path.sep)
 
     # True only if this child pathname is suffixed by this dirname.
     return strs.is_prefix(text=child_pathname, prefix=parent_dirname_suffixed)
@@ -389,7 +391,7 @@ def get_basename(pathname: str) -> str:
     **Basename** (i.e., last component) of the passed path.
     '''
 
-    return os.path.basename(pathname)
+    return os_path.basename(pathname)
 
 # ....................{ GETTERS ~ app                      }....................
 @type_check
@@ -497,7 +499,7 @@ def get_dirname_or_empty(pathname: str) -> str:
     dirname *or* the empty string otherwise.
     '''
 
-    return os.path.dirname(pathname)
+    return os_path.dirname(pathname)
 
 # ....................{ GETTERS ~ filetype                 }....................
 def get_pathname_sans_filetypes(pathname: str) -> str:
@@ -534,7 +536,7 @@ def get_pathname_sans_filetype(pathname: str) -> str:
     if this path has a filetype *or* this path as is otherwise.
     '''
 
-    return os.path.splitext(pathname)[0]
+    return os_path.splitext(pathname)[0]
 
 # ....................{ GETTERS ~ filetype : undotted      }....................
 @type_check
@@ -549,7 +551,7 @@ def get_filetype_dotted_or_none(pathname: str) -> str:
     '''
 
     # "."-prefixed filetype of this pathname.
-    filetype = os.path.splitext(pathname)[1]
+    filetype = os_path.splitext(pathname)[1]
 
     # Return this string as is if non-empty or "None" otherwise.
     return filetype or None
@@ -626,10 +628,10 @@ def canonicalize(pathname: str) -> str:
         current working directory is ``/tmp``).
     '''
 
-    return os.path.realpath(os.path.expanduser(pathname))
+    return os_path.realpath(os_path.expanduser(pathname))
 
 # ....................{ JOINERS                            }....................
-#FIXME: According to the Python documentation, os.path.join() implicitly
+#FIXME: According to the Python documentation, os_path.join() implicitly
 #performs the following hideous operation:
 #
 #    If a component is an absolute path, all previous components are thrown away
@@ -656,19 +658,19 @@ def join(*partnames: str) -> str:
     Join (i.e., concatenate) the passed pathnames with the directory separator
     specific to the current platform.
 
-    This is a convenience function wrapping the standard :func:`os.path.join`
+    This is a convenience function wrapping the standard :func:`os_path.join`
     function *without* adding functionality to that function -- principally to
     unify and hence simplify ``import`` statements in other modules.
     '''
 
-    return os.path.join(*partnames)
+    return os_path.join(*partnames)
 
 # ....................{ RELATIVIZERS                       }....................
 @type_check
-def relativize(trg_pathname: str, src_dirname: str) -> str:
+def relativize(src_dirname: str, trg_pathname: str) -> str:
     '''
-    Relative pathname of the second passed absolute or relative pathname
-    relative to the first passed absolute or relative dirname.
+    Relative pathname of the second passed pathname relative to the first passed
+    dirname.
 
     Parameters
     ----------
@@ -684,4 +686,4 @@ def relativize(trg_pathname: str, src_dirname: str) -> str:
         relative path relative to the source directory.
     '''
 
-    return os.path.relpath(trg_pathname, start=src_dirname)
+    return os_path.relpath(trg_pathname, start=src_dirname)

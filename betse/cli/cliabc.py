@@ -343,9 +343,9 @@ class CLIABC(object, metaclass=ABCMeta):
     type of profiling to perform (defaults to "{default}"):
     ;* "none", disabling profiling
     ;* "call", profiling callables (functions, methods)
-    ;* "line", profiling code lines (requires "pprofile")
     ;* "size", profiling object sizes (requires "pympler")
     ''',
+    # ;* "line", profiling code lines (requires "pprofile")
                 enum_type=ProfileType,
                 enum_default=ProfileType.NONE,
             ),

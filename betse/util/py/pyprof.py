@@ -8,25 +8,8 @@ High-level **Python profiling** (i.e., measuring various metrics pertaining to
 Python code, including time and space performance) facilities.
 '''
 
-#FIXME: Support the following additional "--profile-type=" options:
-#
-#* "line", profiling in a line- rather than call-based manner. Sadly, Python
-#  does *NOT* provide an out-of-the-box solution for line-based profiling. To
-#  do so, either (...both?) of the following third-party packages will need to
-#  be dynamically detected, imported, and leveraged:
-#  * "pprofile", a third-party pure-Python module profiling each line (rather
-#    than function as "profile" does). Basically, "profile" on metric steroids.
-#  * "lineprof", a third-party C extension profiling each line (rather than
-#    function as cProfile does). Obsoleted by "pprofile", however.
-#  * "statprof", a third-party C extension operating rather differently than
-#    either "lineprof" or cProfile. Rather than deterministically instrumenting
-#    each line or function call (respectively), "statprof" non-deterministically
-#    wakes up at predefined intervals, records a stack trace, and then goes back
-#    to sleep. On application completion, "statprof" then tallies up each stack
-#    trace and outputs a command-line table of the most expensive lines. Pretty
-#    sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
-
 # ....................{ IMPORTS                            }....................
+from betse.exceptions import BetseMethodUnimplementedException
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, CallableTypes, MappingType, SequenceTypes,)
@@ -38,7 +21,8 @@ from pstats import Stats
 from timeit import Timer
 
 # ....................{ ENUMS                              }....................
-ProfileType = Enum('ProfileType', ('NONE', 'CALL', 'LINE', 'SIZE',))
+ProfileType = Enum('ProfileType', ('NONE', 'CALL', 'SIZE',))
+# ProfileType = Enum('ProfileType', ('NONE', 'CALL', 'LINE', 'SIZE',))
 '''
 Enumeration of all possible types of profiling supported by the
 :func:`profile_callable` function.
@@ -47,16 +31,11 @@ Attributes
 ----------
 NONE : enum
     Null profiling. Callables profiled under this type of profiling will still
-    be called as expected but will _not_ be profiled.
+    be called as expected but will *not* be profiled.
 CALL : enum
     Call-granularity profiling of callables (e.g., functions, lambdas, methods,
     and `eval` statements). This level of granularity is more coarse-grained
-    than that of the `LINE` type.
-LINE : enum
-    Line-granularity profiling of callables (e.g., functions, lambdas, methods,
-    and `eval` statements). This level of granularity is more fine-grained than
-    that of the `CALL` type, but requires installation of the optional
-    third-party dependency :mod:`pprofile`.
+    than that of the ``LINE`` type.
 SIZE : enum
     Memory profiling of top-level objects returned by top-level callables,
     typically instances of the
@@ -65,6 +44,11 @@ SIZE : enum
     profiling type requires installation of the optional third-party dependency
     :mod:`pympler`.
 '''
+# LINE : enum
+#     Line-granularity profiling of callables (e.g., functions, lambdas, methods,
+#     and `eval` statements). This level of granularity is more fine-grained than
+#     that of the ``CALL`` type, but requires installation of the optional
+#     third-party dependency :mod:`line_profiler`.
 
 # ....................{ PROFILERS                          }....................
 @type_check
@@ -221,8 +205,36 @@ def _profile_callable_call(
     return return_value
 
 # ....................{ PROFILERS ~ line                   }....................
-#FIXME: Consider implementing a non-deterministic alternative as well, which
-#"pprofile" also supports via the "pprofile.StatisticalProfile" class.
+#FIXME: Implement this function properly. Sadly, Python does *NOT* provide an
+#out-of-the-box solution for line-based profiling. To do so, either (...both?)
+#of the following third-party packages will need to be dynamically detected,
+#imported, and leveraged:
+#
+#* "line", profiling in a line- rather than call-based manner.
+#  * "line_profiler", a third-party C extension profiling each line (rather than
+#    function as cProfile does). Infrequently updated, but slightly more
+#    frequently than "statprof", which is effectively dead. Sadly, the
+#    "line_profiler" API is less than ideal, requiring that each individual
+#    functions to be non-transitively line-profiled be explicitly decorated with
+#    a "line_profiler"-specific decorator -- which, frankly, is crazy and
+#    probably not reasonably supportable. See the live repository at:
+#    https://github.com/rkern/line_profiler
+#  * "statprof", a third-party C extension operating rather differently than
+#    either "lineprof" or cProfile. Rather than deterministically instrumenting
+#    each line or function call (respectively), "statprof" non-deterministically
+#    wakes up at predefined intervals, records a stack trace, and then goes back
+#    to sleep. On application completion, "statprof" then tallies up each stack
+#    trace and outputs a command-line table of the most expensive lines. Pretty
+#    sweet idea. Unsurprisingly, it also appears to be the fastest profiler.
+#    Sadly, "statprof" was last updated in 2015; see the dead repository at:
+#    https://github.com/bos/statprof.py
+#
+#Note that the "pprofile" package *CANNOT* be supported, due to its encumberment
+#under a GPL-2 license.
+#
+#In short, there currently appears to be no BSD-compatible, well-maintained line
+#profiling solution for Python. Hence, this function is disabled.
+
 def _profile_callable_line(
     call, args, kwargs, is_profile_logged, profile_filename) -> object:
     '''
@@ -237,89 +249,14 @@ def _profile_callable_line(
         Further details on function signature.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.lib import libs
-    from betse.util.io import iofiles
-
     # Log this fact.
     logs.log_debug('Line-granularity profiling enabled.')
 
-    # Raise an exception unless the optional "pprofile" dependency is available.
-    libs.die_unless_runtime_optional('pprofile')
+    # Raise an exception unless this optional dependency is available.
+    # libs.die_unless_runtime_optional('????')
 
-    # Defer dependency-specific heavyweight imports.
-    from pprofile import Profile
-
-    # Line-granularity profile of the subsequent call to this callable.
-    profile = Profile()
-
-    # Value returned by calling this callable with these arguments, storing a
-    # profile of this call into this "profile" object.
-    return_value = profile.runcall(call, *args, **kwargs)
-
-    #FIXME: Reenable support for logging this profile output *AFTER* we
-    #implement support for reducing such output to only the slowest lines.
-    #Currently, profiled timings for *ALL* lines in the codebase are output.
-    #Which is ludicrous, as the codebase is approximately ~80,000 lines of code.
-    #Reducing such output will require regular expression-based matching of
-    #output resembling:
-    #
-    #     Command line: ['demo/threads.py']
-    #     Total duration: 1.00573s
-    #     File: demo/threads.py
-    #     File duration: 1.00168s (99.60%)
-    #     Line #|      Hits|         Time| Time per hit|      %|Source code
-    #     ------+----------+-------------+-------------+-------+-----------
-    #          1|         2|  3.21865e-05|  1.60933e-05|  0.00%|import threading
-    #          2|         1|  5.96046e-06|  5.96046e-06|  0.00%|import time
-    #          3|         0|            0|            0|  0.00%|
-    #          4|         2|   1.5974e-05|  7.98702e-06|  0.00%|def func():
-    #          5|         1|      1.00111|      1.00111| 99.54%|  time.sleep(1)
-    #          6|         0|            0|            0|  0.00%|
-    #          7|         2|  2.00272e-05|  1.00136e-05|  0.00%|def func2():
-    #          8|         1|  1.69277e-05|  1.69277e-05|  0.00%|  pass
-    #
-    #To reduce this output (in order):
-    #
-    #1. Extract all lines prefixing the actual table rows into a separate local
-    #   string variable -- say, "lines_preamble".
-    #2. Sort all remaining lines via numeric contents of the fifth column, "%".
-    #3. Drop all sorted lines except the first 48 or so, again.
-    #4. Logging the concatenation of "lines_preamble" with the remaining lines.
-    #FIXME: Consider contributing the result back to "pprofile".
-
-    # If the caller requested this profile be logged...
-    # if is_profile_logged:
-    if False:
-        # String buffer of all profiled lines.
-        lines_annotated = StringIO()
-
-        # Annotate all profiled lines into this string buffer. Unlike the
-        # canonical "cProfile" and "profile" modules, this third-party module
-        # simplistically provides no support for sorting or truncating the
-        # resulting output.
-        profile.annotate(out=lines_annotated)
-
-    # If the caller requested this profile be serialized to a file...
-    if profile_filename is not None:
-        # Log this serialization.
-        logs.log_info(
-            'Writing Callgrind-formatted profile to "%s".', profile_filename)
-
-        # Serialize this profile to this file.
-        with iofiles.writing_chars(profile_filename) as profile_file:
-            profile.callgrind(out=profile_file)
-    #FIXME: Eliminate this branch after logging profiling metadata above.
-
-    # Else, the caller requested this profile *NOT* be serialized to a file. In
-    # this case, since no profile metadata was logged, log a non-fatal warning.
-    else:
-        logs.log_warning(
-            'Line-granularity profiling ignored: '
-            'no profiling filename provided.')
-
-    # Return the value returned by this call.
-    return return_value
+    #FIXME: Excise this after properly implementing this function.
+    raise BetseMethodUnimplementedException()
 
 # ....................{ PROFILERS ~ size                   }....................
 def _profile_callable_size(
@@ -398,7 +335,7 @@ def _profile_callable_size(
 # Nonetheless, the explicit approach remains preferable in this edge-case.
 _PROFILE_TYPE_TO_PROFILER = {
     ProfileType.CALL: _profile_callable_call,
-    ProfileType.LINE: _profile_callable_line,
+    # ProfileType.LINE: _profile_callable_line,
     ProfileType.NONE: _profile_callable_none,
     ProfileType.SIZE: _profile_callable_size,
 }
