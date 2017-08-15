@@ -165,8 +165,17 @@ def expr_alias(
         containing only the root base class of all classes.
     cls : optional[TestableTypes]
         Either:
-        * A class, in which case an exception is raised if the value of this
-          expression is *not* an instance of this class.
+        * A class. If the value of this expression is not an instance of this
+          class *and*:
+          * If this value is **safely castable** (i.e., losslessly convertible
+            with no reduction in precision) into an instance of this class, this
+            value is silently casted into an instance of this class. Only the
+            following casts are currently supported:
+            * Casting an :class:`int` to a :class:`float`. Hence, setting this
+              parameter to :class:`float` instructs this descriptor to silently
+              accept both :class:`int` and :class:`float` values in a manner
+              safely converting the former into the latter.
+          * Else, an exception is raised.
         * A tuple of classes, in which case an exception is raised if the value
           of this expression is *not* an instance of at least one class in this
           tuple.
@@ -272,12 +281,29 @@ def expr_alias(
         class_init_body += '''
     self_descriptor.__expr_alias_cls = __expr_alias_cls'''
 
-        # Raise an exception unless the value to which this expression evaluates
-        # is of the expected type(s). While this type validation could also be
-        # performed by decorating the __get__() and __set__() methods defined
-        # below by the @type_check decorator, doing so would impose additional
-        # overhead for little gain.
-        value_test_block += '''
+        # If the expected type is a "float" but the value to which this
+        # expression evaluates is *NOT* a "float", this value is either:
+        #
+        # * An "int", in which case this value is safely casted into a "float".
+        # * A non-"int", in which case this value *CANNOT* be safely casted into
+        #   a "float". An exception is raised instead.
+        #
+        # While this type validation could also be performed by decorating the
+        # __get__() and __set__() methods defined below by the @type_check
+        # decorator, doing so would impose additional overhead for little gain.
+        if cls is float:
+            value_test_block += '''
+    if not isinstance(value, float):
+        if isinstance(value, int):
+            value = float(value)
+        else:
+            raise BetseTypeException(
+                'Expression alias value {{!r}} not '
+                'a {{!r}} or {{!r}}.'.format(value, float, int))
+    '''
+        # Else, raise an exception unless this value is of the expected type(s).
+        else:
+            value_test_block += '''
     if not isinstance(value, self_descriptor.__expr_alias_cls):
         raise BetseTypeException(
             'Expression alias value {{!r}} not a {{!r}}.'.format(

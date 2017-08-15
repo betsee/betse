@@ -57,7 +57,7 @@ def betse_expralias() -> object:
     class SongOfAragorn(object):
         # Descriptor aliasing an existing dictionary entry with class typing
         # and subclassing an ad-hoc base class.
-        line_four = expr_alias(
+        soa_line_four = expr_alias(
             expr='self._deep_roots["are not"]["reached by"]',
             cls=str,
             base_classes=(ExprAliasBaseClass,),
@@ -65,7 +65,7 @@ def betse_expralias() -> object:
 
         # Descriptor aliasing an existing dictionary entry with predicate
         # typing.
-        line_one = expr_alias(
+        soa_line_one = expr_alias(
             expr='self._deep_roots["All that is"]["gold does not"]',
             predicate=lambda value:
                 value in ('glamour,', 'glimmer,','glitter,', 'glisten,',),
@@ -74,7 +74,7 @@ def betse_expralias() -> object:
 
         # Descriptor aliasing an existing dictionary entry with both class and
         # predicate expression typing.
-        line_six = expr_alias(
+        soa_line_six = expr_alias(
             expr='self._deep_roots["A light from"]["the shadows shall"]',
             cls=str,
             predicate_expr=(
@@ -83,31 +83,39 @@ def betse_expralias() -> object:
         )
 
         # Descriptor aliasing an existing dictionary entry without typing.
-        line_five = expr_alias(
+        soa_line_five = expr_alias(
             expr='self._deep_roots["From the ashes"]["a fire shall"]')
 
         # Descriptor aliasing an existing dictionary entry with enumerability,
         # whose corresponding value is defined below to be a lowercase string
         # whose uppercased equivalent is the name of an arbitrary member of the
         # enumeration defined above.
-        line_three = expr_enum_alias(
+        soa_line_three = expr_enum_alias(
             expr='self._deep_roots["The old that is strong"]["does not wither"]',
             enum_type=_ElendilsOath)
 
         # Descriptor aliasing an existing dictionary entry with typing, whose
-        # corresponding value is defined below to be of a different type.
-        line_two = expr_alias(
+        # corresponding value is defined below to be of a different type safely
+        # castable to the type declared here.
+        or_line_three = expr_alias(
+            expr='self._one_ring["Nine for Mortal Men"]["doomed to die,"]',
+            cls=float)
+
+        # Descriptor aliasing an existing dictionary entry with typing, whose
+        # corresponding value is defined below to be of a different type *NOT*
+        # safely castable to the type declared here.
+        soa_line_two = expr_alias(
             expr='self._deep_roots["Not all those"]["who wander"]', cls=str)
 
         # Descriptor aliasing an existing dictionary entry with enumerability,
         # whose corresponding value is defined below to be of a non-enumeration
         # member.
-        line_seven = expr_enum_alias(
+        soa_line_seven = expr_enum_alias(
             expr='self._deep_roots["Renewed shall be"]["blade that was"]',
             enum_type=_ElendilsOath)
 
         # Descriptor aliasing a non-existing dictionary entry with typing.
-        line_none = expr_alias(
+        soa_line_none = expr_alias(
             expr='self._deep_roots["Many a man"]["his life hath"]', cls=str)
 
 
@@ -141,12 +149,18 @@ def betse_expralias() -> object:
                 },
             }
 
+            self._one_ring = {
+                "Nine for Mortal Men": {
+                    "doomed to die,": 1,
+                },
+            }
+
             # Alias an arbitrary entry of this dictionary for use below.
             the_crownless_again = self._deep_roots['The crownless again']
 
             # Object aliasing an existing dictionary entry with class typing.
             # For coverage, the optional "obj_name" parameter is also exercised.
-            self.line_eight = DataDescriptorBound(
+            self.soa_line_eight = DataDescriptorBound(
                 obj=the_crownless_again,
                 data_desc=expr_alias(
                     expr='THE_CROWNLESS_AGAIN["shall be"]',
@@ -170,71 +184,84 @@ def test_expralias_pass(betse_expralias) -> None:
     '''
 
     # Test the class-typed data descriptor's __get__() method.
-    assert betse_expralias.line_four == "the frost."
+    assert betse_expralias.soa_line_four == "the frost."
+
+    # Test the numeric class-typed data descriptor's __get__() method,
+    # implicitly casting a value of a different type to the desired type.
+    assert type(betse_expralias.or_line_three) is float
+    assert betse_expralias.or_line_three == 1.0
 
     # Test the predicate-typed data descriptor's __get__() method.
-    assert betse_expralias.line_one == "glitter,"
+    assert betse_expralias.soa_line_one == "glitter,"
 
     # Test the class- and predicate-typed data descriptor's __get__()
     # method.
-    assert betse_expralias.line_six == "spring;"
+    assert betse_expralias.soa_line_six == "spring;"
 
     # Test the enumeration-typed data descriptor's __get__() method.
-    assert betse_expralias.line_three is _ElendilsOath.HILDINYAR
+    assert betse_expralias.soa_line_three is _ElendilsOath.HILDINYAR
 
     # Test the untyped data descriptor's __get__() method.
-    assert betse_expralias.line_five == "be woken,"
+    assert betse_expralias.soa_line_five == "be woken,"
 
     # Test the class-typed object's get() method.
-    assert betse_expralias.line_eight.get() == "king."
+    assert betse_expralias.soa_line_eight.get() == "king."
 
     # Test passing the class-typed data descriptor's __set__() method another
-    # string value.
+    # value of the same type.
     merchant_of_venice = "Gilded tombs do worms enfold."
-    betse_expralias.line_four = merchant_of_venice
-    assert betse_expralias.line_four == merchant_of_venice
+    betse_expralias.soa_line_four = merchant_of_venice
+    assert betse_expralias.soa_line_four == merchant_of_venice
     assert betse_expralias._deep_roots["are not"]["reached by"] == (
         merchant_of_venice)
 
+    # Test passing the numeric class-typed data descriptor's __set__() method a
+    # value of a different type safely castable to the desired type.
+    betse_expralias.or_line_three = 9
+    assert type(betse_expralias.or_line_three) is float
+    assert betse_expralias.or_line_three == 9.0
+    assert betse_expralias._one_ring[
+        "Nine for Mortal Men"]["doomed to die,"] == 9.0
+
     # Test passing the predicate-typed data descriptor's __set__() method
-    # another string value.
-    betse_expralias.line_one              = 'glisten,'
-    assert betse_expralias.line_one      == 'glisten,'
+    # another value of the same type.
+    betse_expralias.soa_line_one              = 'glisten,'
+    assert betse_expralias.soa_line_one      == 'glisten,'
     assert betse_expralias._deep_roots[
         "All that is"]["gold does not"] == ('glisten,')
 
     # Test passing the class- and predicate-typed data descriptor's __set__()
-    # method another string value.
-    betse_expralias.line_six                   = 'winter;'
-    assert betse_expralias.line_six           == 'winter;'
+    # method another value of the same type.
+    betse_expralias.soa_line_six                   = 'winter;'
+    assert betse_expralias.soa_line_six           == 'winter;'
     assert betse_expralias._deep_roots[
         "A light from"]["the shadows shall"] == ('winter;')
 
     # Test passing the enumeration-typed data descriptor's __set__() method a
     # valid enumeration member.
-    betse_expralias.line_three = _ElendilsOath.MARUVAN
-    assert betse_expralias.line_three == _ElendilsOath.MARUVAN
+    betse_expralias.soa_line_three = _ElendilsOath.MARUVAN
+    assert betse_expralias.soa_line_three == _ElendilsOath.MARUVAN
     assert betse_expralias._deep_roots[
         "The old that is strong"]["does not wither"] == (
         _ElendilsOath.MARUVAN.name.lower())
 
     # Test passing the untyped data descriptor's __set__() method an arbitrary
     # non-string type.
-    betse_expralias.line_five = 0xCAFEBABE
-    assert betse_expralias.line_five == 0xCAFEBABE
+    betse_expralias.soa_line_five = 0xCAFEBABE
+    assert betse_expralias.soa_line_five == 0xCAFEBABE
     assert betse_expralias._deep_roots["From the ashes"]["a fire shall"] == (
         0xCAFEBABE)
 
     # Test passing the class-typed object's set() method another string value.
     prince_of_morocco = "Many a man his life hath sold"
-    betse_expralias.line_eight.set(prince_of_morocco)
-    assert betse_expralias.line_eight.get() == prince_of_morocco
+    betse_expralias.soa_line_eight.set(prince_of_morocco)
+    assert betse_expralias.soa_line_eight.get() == prince_of_morocco
     assert betse_expralias._deep_roots["The crownless again"]["shall be"] == (
         prince_of_morocco)
 
     # Test calling the class-typed data descriptor's __get__() implementation as
     # a class rather than instance variable.
-    assert isinstance(betse_expralias.__class__.line_four, ExprAliasBaseClass)
+    assert isinstance(betse_expralias.__class__.soa_line_four, ExprAliasBaseClass)
 
 
 def test_expralias_fail(betse_expralias) -> None:
@@ -262,49 +289,49 @@ def test_expralias_fail(betse_expralias) -> None:
     # Test passing the class-typed data descriptor's __set__() implementation a
     # non-string value.
     with pytest.raises(BetseTypeException):
-        betse_expralias.line_four = 0xFEEDBABE
+        betse_expralias.soa_line_four = 0xFEEDBABE
 
     # Test passing the predicate-typed data descriptor's __set__()
     # implementation an unrecognized string value.
     with pytest.raises(BetseTypeException):
-        betse_expralias.line_one = 'expurgate,'
+        betse_expralias.soa_line_one = 'expurgate,'
 
     # Test passing the class- and -predicate-typed data descriptor's __set__()
     # implementation both a non-string value and an unrecognized string value.
     with pytest.raises(BetseTypeException):
-        betse_expralias.line_six = 0xFEEDFACE
+        betse_expralias.soa_line_six = 0xFEEDFACE
     with pytest.raises(BetseTypeException):
-        betse_expralias.line_six = 'extenuate;'
+        betse_expralias.soa_line_six = 'extenuate;'
 
     # Test passing the enumeration-typed data descriptor's __set__()
     # implementation a non-enumeration member.
     with pytest.raises(BetseEnumException):
-        betse_expralias.line_three = _Namarie.TINTILAR
+        betse_expralias.soa_line_three = _Namarie.TINTILAR
 
     # Test an invalid class-typed data descriptor's __get__() implementation,
     # aliased to access an existing key of an existing dictionary whose value
     # has an unexpected type.
     with pytest.raises(BetseTypeException):
-        betse_expralias.line_two
+        betse_expralias.soa_line_two
 
     # Test an invalid enumeration-typed data descriptor's __get__()
     # implementation, aliased to access an existing key of an existing
     # dictionary whose value is *NOT* the lowercase name of an enumeration
     # member.
     with pytest.raises(BetseEnumException):
-        betse_expralias.line_seven
+        betse_expralias.soa_line_seven
 
     # Test an invalid untyped data descriptor's __get__() implementation,
     # aliased to access a non-existing key of an existing dictionary.
     with pytest.raises(KeyError):
-        betse_expralias.line_none
+        betse_expralias.soa_line_none
 
     # Test the invalid data descriptor's __set__() implementation, aliased to
     # assign a non-existing key of an existing dictionary.
     with pytest.raises(KeyError):
-        betse_expralias.line_none = "Many a man his life hath sold"
+        betse_expralias.soa_line_none = "Many a man his life hath sold"
 
     # Test calling an arbitrary data descriptor's __delete__() implementation,
     # which currently remains unimplemented to preserve backward compatibility.
     with pytest.raises(AttributeError):
-        del betse_expralias.line_four
+        del betse_expralias.soa_line_four

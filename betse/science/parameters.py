@@ -32,34 +32,76 @@ class Parameters(YamlFileABC):
 
     Attributes (Path: Export)
     ----------
-    export_init_dirname : str
+    init_export_dirname : str
         Relative path of the directory containing all results exported by this
         simulation's most recent initialization, relative to the absolute path
         of the directory containing this simulation configuration's YAML file.
-    export_sim_dirname : str
+    sim_export_dirname : str
         Relative path of the directory containing all results exported by this
         simulation's most recent simulation, relative to the absolute path of
         the directory containing this simulation configuration's YAML file.
 
     Attributes (Path: Pickle)
     ----------
-    pickle_seed_basename : str
+    seed_pickle_basename : str
         Basename of the pickled file providing this simulation's most recently
         seeded cell cluster within the current :attr:`init_dirname`.
-    pickle_init_basename : str
+    init_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         initialization within the current :attr:`init_dirname`.
-    pickle_init_dirname : str
+    init_pickle_dirname : str
         Relative path of the directory containing both the :attr:`init_basename`
         and :attr:`init_basename` files, relative to the absolute path of the
         directory containing this simulation configuration's YAML file.
-    pickle_sim_basename : str
+    sim_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         simulation within the current :attr:`sim_dirname`.
-    pickle_init_dirname : str
+    init_pickle_dirname : str
         Relative path of the directory containing the :attr:`sim_basename` file,
         relative to the absolute path of the directory containing this
         simulation configuration's YAML file.
+
+    Attributes (Time: Total)
+    ----------
+    init_time_total : float
+        Duration in seconds of the initialization phase *not* modified by
+        extraneous settings (e.g., gap junction acceleration factor).
+    sim_time_total : float
+        Duration in seconds of the simulation phase *not* modified by extraneous
+        settings (e.g., gap junction acceleration factor).
+    total_time : float
+        Duration in seconds of the current simulation phase *not* modified by
+        extraneous settings (e.g., gap junction acceleration factor).
+    total_time_accelerated : float
+        Duration in seconds of the current simulation phase accelerated by the
+        gap junction acceleration factor.
+
+    Attributes (Time: Step)
+    ----------
+    init_time_step : float
+        Duration in seconds of each time step (including sampled and unsampled)
+        for the initialization phase.
+    sim_time_step : float
+        Duration in seconds of each time step (including sampled and unsampled)
+        for the initialization phase.
+    dt : float
+        Duration in seconds of each time step (including sampled and unsampled)
+        for the current simulation phase.
+
+    Attributes (Time: Sampling)
+    ----------
+    init_time_sampling : float
+        Duration in seconds between each sampled time step (including that
+        sampled time step itself) for the initialization phase.
+    sim_time_sampling : float
+        Duration in seconds between each sampled time step (including that
+        sampled time step itself) for the simulation phase.
+    t_resample : float
+        Number of time steps between each sampled time step, including that
+        sampled time step itself. Notably, if the current time step ``t`` is a
+        sampled time step:
+        * ``t + t_resample`` is the next sampled time step (if any).
+        * ``t - t_resample`` is the prior sampled time step (if any).
 
     Attributes (General: Boolean)
     ----------
@@ -72,17 +114,6 @@ class Parameters(YamlFileABC):
     cell_polarizability : NumericTypes
         Constant defining the rate of cell polarizability change in electric
         fields, typically ranging ``[0.0, 1.0e-3]``.
-
-    Attributes (Phase: Time)
-    ----------
-    dt : float
-        Duration in seconds of each time step for the current simulation phase.
-    total_time : float
-        Duration in seconds of the current simulation phase, *not* accelerated
-        by the current gap junction acceleration factor.
-    total_time_accelerated : float
-        Duration in seconds of the current simulation phase, accelerated by the
-        current gap junction acceleration factor.
 
     Attributes (Ions)
     ----------
@@ -131,19 +162,39 @@ class Parameters(YamlFileABC):
     '''
 
     # ..................{ ALIASES ~ export : dir             }..................
-    export_init_dirname = yaml_alias(
+    init_export_dirname = yaml_alias(
         "['results file saving']['init directory']", str)
-    export_sim_dirname  = yaml_alias(
+    sim_export_dirname  = yaml_alias(
         "['results file saving']['sim directory']", str)
 
     # ..................{ ALIASES ~ pickle : dir             }..................
-    pickle_init_dirname = yaml_alias("['init file saving']['directory']", str)
-    pickle_sim_dirname  = yaml_alias("['sim file saving']['directory']", str)
+    init_pickle_dirname = yaml_alias("['init file saving']['directory']", str)
+    sim_pickle_dirname  = yaml_alias("['sim file saving']['directory']", str)
 
     # ..................{ ALIASES ~ pickle : base            }..................
-    pickle_seed_basename = yaml_alias("['init file saving']['worldfile']", str)
-    pickle_init_basename = yaml_alias("['init file saving']['file']", str)
-    pickle_sim_basename  = yaml_alias("['sim file saving']['file']", str)
+    seed_pickle_basename = yaml_alias("['init file saving']['worldfile']", str)
+    init_pickle_basename = yaml_alias("['init file saving']['file']", str)
+    sim_pickle_basename  = yaml_alias("['sim file saving']['file']", str)
+
+    # ..................{ ALIASES ~ time : total             }..................
+    # To simplify computation throughout the codebase, time quantities are
+    # required to be floating point rather the more general "NumericTypes" type
+    # (i.e., either floating point or integer). Due to magic internal to the
+    # yaml_alias() data descriptor, integer values are both silently and safely
+    # cast to floating point values.
+
+    init_time_total = yaml_alias("['init time settings']['total time']", float)
+    sim_time_total  = yaml_alias("['sim time settings']['total time']", float)
+
+    # ..................{ ALIASES ~ time : step              }..................
+    init_time_step = yaml_alias("['init time settings']['time step']", float)
+    sim_time_step  = yaml_alias("['sim time settings']['time step']", float)
+
+    # ..................{ ALIASES ~ time : sampling          }..................
+    init_time_sampling = yaml_alias(
+        "['init time settings']['sampling rate']", float)
+    sim_time_sampling = yaml_alias(
+        "['sim time settings']['sampling rate']", float)
 
     # ..................{ ALIASES ~ bool                     }..................
     sim_ECM = yaml_alias(
@@ -195,26 +246,16 @@ class Parameters(YamlFileABC):
         # Absolute or relative paths of the directories containing saved
         # initialization and simulation runs.
         self.init_path = pathnames.join(
-            self.conf_dirname, self.pickle_init_dirname)
+            self.conf_dirname, self.init_pickle_dirname)
         self.sim_path = pathnames.join(
-            self.conf_dirname, self.pickle_sim_dirname)
+            self.conf_dirname, self.sim_pickle_dirname)
 
         # Absolute or relative paths of the directories containing saved
         # initialization and simulation results.
         self.init_results = pathnames.join(
-            self.conf_dirname, self.export_init_dirname)
+            self.conf_dirname, self.init_export_dirname)
         self.sim_results = pathnames.join(
-            self.conf_dirname, self.export_sim_dirname)
-
-        #---------------------------------------------------------------------------------------------------------------
-        # INIT & SIM SETTINGS
-        #---------------------------------------------------------------------------------------------------------------
-
-        #FIXME: Redundant. The set_time_profile() method already sets the more
-        #appropriately named "self.init_end", "self.sim_end", and
-        #"self.total_time" attributes to these values. Remove these, please.
-        self.time4init = self._conf['init time settings']['total time']      # set the time for the initialization sim [s]
-        self.time4sim = self._conf['sim time settings']['total time']        # set total time for simulation [s]
+            self.conf_dirname, self.sim_export_dirname)
 
         #---------------------------------------------------------------------------------------------------------------
         # GENERAL OPTIONS
@@ -1412,10 +1453,6 @@ class Parameters(YamlFileABC):
                 'this simulation configuration.')
 
     # ..................{ SETTERS                            }..................
-    #FIXME: Refactor to accept an enumeration value rather than raw string --
-    #or, better yet, to accept no parameter and leverage an enumeration value
-    #identifying the current phase already set as an attribute of this object.
-    #Ideally, use the new "betse.science.sim.SimPhaseKind" enumeration value.
     #FIXME: Actually, this method makes little sense here; clearly, this method
     #sets phase-specific attributes. All phase-specific attributes should reside
     #directly in the "SimPhase" API rather than in this class, which is
@@ -1439,27 +1476,23 @@ class Parameters(YamlFileABC):
 
         # If this simulation phase is an initialization...
         if phase_kind is SimPhaseKind.INIT:
-            self.dt = float(self._conf['init time settings']['time step'])
-            self.init_end = float(self._conf['init time settings']['total time'])
-            self.init_tsteps = self.init_end/self.dt
-            self.resample = float(self._conf['init time settings']['sampling rate'])
-            self.t_resample = self.resample/self.dt
-
-            # Duration in seconds of the current simulation phase.
-            self.total_time = self.init_end
+            self.dt = self.init_time_step
+            self.init_tsteps = self.init_time_total / self.dt
+            self.resample = self.init_time_sampling
+            self.total_time = self.init_time_total
         # Else if this simulation phase is a simulation.
         elif phase_kind is SimPhaseKind.SIM:
-            self.dt = float(self._conf['sim time settings']['time step'])
-            self.sim_end = float(self._conf['sim time settings']['total time'])
-            self.sim_tsteps = self.sim_end/self.dt
-            self.resample = float(self._conf['sim time settings']['sampling rate'])
-            self.t_resample = self.resample/self.dt
-
-            # Duration in seconds of the current simulation phase.
-            self.total_time = self.sim_end
+            self.dt = self.sim_time_step
+            self.sim_tsteps = self.sim_time_total / self.dt
+            self.resample = self.sim_time_sampling
+            self.total_time = self.sim_time_total
         else:
             raise BetseSimPhaseException(
                 'Simulation phase "{}" unsupported.'.format(phase_kind.name))
+
+        # Number of time steps (including sampled and unsampled) between each
+        # unsampled time step, including that unsampled time step itself.
+        self.t_resample = self.resample/self.dt
 
         # Duration in seconds of the current simulation phase accelerated by
         # the current gap junction acceleration factor.

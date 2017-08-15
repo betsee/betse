@@ -57,7 +57,7 @@ def f_sweep(pc,cells,p):
     if p.f_scan_properties['f slope'] is None and p.run_sim is True:
         p.f_scan_properties['f slope'] = (
             p.f_scan_properties['f stop'] -
-            p.f_scan_properties['f start']) / p.sim_end
+            p.f_scan_properties['f start']) / p.sim_time_total
 
     f_slope = p.f_scan_properties['f slope']
 

@@ -81,8 +81,8 @@ def test_yaml_roundtrip(betse_sim_config: 'SimTestState') -> None:
     p_cell_polarizability_expected = p.cell_polarizability
 
     # Modify an arbitrary string setting of this configuration.
-    p.pickle_seed_basename += '~'
-    p_pickle_seed_basename_expected = p.pickle_seed_basename
+    p.seed_pickle_basename += '~'
+    p_seed_pickle_basename_expected = p.seed_pickle_basename
 
     # Save these changes back to the same file.
     p.overwrite()
@@ -96,4 +96,4 @@ def test_yaml_roundtrip(betse_sim_config: 'SimTestState') -> None:
     # Ensure these changes were roundtripped across this I/O.
     assert p.sim_ECM == p_sim_ECM_expected
     assert p.cell_polarizability == p_cell_polarizability_expected
-    assert p.pickle_seed_basename == p_pickle_seed_basename_expected
+    assert p.seed_pickle_basename == p_seed_pickle_basename_expected
