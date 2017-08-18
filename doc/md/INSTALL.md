@@ -107,8 +107,8 @@ Mint](https://www.linuxmint.com), [Ubuntu](https://www.ubuntu.com)), all
 mandatory dependencies are installable in a system-wide manner as follows:
 
     $ sudo apt-get install python3-dev python3-dill python3-matplotlib \
-      python3-numpy python3-pil python3-pip python3-pyqt5 python3-scipy \
-      python3-setuptools python3-six python3-yaml tcl tk
+      python3-numpy python3-pil python3-pip python3-scipy python3-setuptools \
+      python3-six python3-yaml tcl tk
 
 Under some (especially older) [Debian](https://www.debian.org)-based Linux
 distributions, the above instructions may not entirely suffice to satisfy all
