@@ -249,13 +249,21 @@ Tuple of both the module *and* string type.
 '''
 
 
-NumericTypes = (int, float)
+NumericTypes = (float, int)
 '''
 Tuple of all **numeric classes** (i.e., classes whose instances are single
 scalar numbers excluding complex numbers, which typically require
 special-purpose handling).
 
 This tuple contains classes matching both integer and real number types.
+
+Caveats
+----------
+For obscure reasons, this tuple intentionally lists the :class:`float` class
+*BEFORE* the :class:`int` class. (Downstream BETSEE requirements coerce
+GUI-based numeric string values into numbers by casting these strings into
+instances of the first item of this tuple. Reversing the order of these items in
+this tuple would adversely strip the decimal portion from real number strings.)
 '''
 
 

@@ -115,6 +115,19 @@ def expr_alias(
       protocol (e.g., ``__get__``, ``__set__``) and hence contains no data, this
       local is unlikely to be of interest to most callers.
 
+    Class
+    ----------
+    The returned class is a dynamically synthesized subclass of all passed
+    subclasses if any *or* of :class:`object` otherwise. This subclass provides
+    the following public instance variables:
+
+    expr_alias_cls : ClassOrNoneTypes
+        Either:
+        * If the ``cls`` parameter passed to this method is non-``None``, the
+          value of this parameter (i.e., the class or tuple of classes that the
+          value of this expression is required to be an instance of).
+        * Else, ``None``.
+
     Caveats
     ----------
     As with all descriptors, this function is intended to be called *only* at
@@ -272,14 +285,19 @@ def expr_alias(
     # Python code snippet validating the value this expression evaluates to.
     value_test_block = ''
 
-    # If a validational class was passed...
-    if cls is not None:
+    # If no validational class was passed...
+    if cls is None:
+        # Nullify the instance variable storing this class for safety.
+        class_init_body += '''
+    self_descriptor.expr_alias_cls = None'''
+    # Else, a validational class was passed. In this case...
+    else:
         # Pass this class to this method.
         class_init_args += ', __expr_alias_cls=__expr_alias_cls'
 
         # Classify this passed class in this method.
         class_init_body += '''
-    self_descriptor.__expr_alias_cls = __expr_alias_cls'''
+    self_descriptor.expr_alias_cls = __expr_alias_cls'''
 
         # If the expected type is a "float" but the value to which this
         # expression evaluates is *NOT* a "float", this value is either:
@@ -298,17 +316,20 @@ def expr_alias(
             value = float(value)
         else:
             raise BetseTypeException(
-                'Expression alias value {{!r}} not '
-                'a {{!r}} or {{!r}}.'.format(value, float, int))
+                'Expression alias value {!r} not '
+                'a {!r} or {!r}.'.format(value, float, int))
     '''
+                # 'Expression alias value {{!r}} not '
+                # 'a {{!r}} or {{!r}}.'.format(value, float, int))
         # Else, raise an exception unless this value is of the expected type(s).
         else:
             value_test_block += '''
-    if not isinstance(value, self_descriptor.__expr_alias_cls):
+    if not isinstance(value, self_descriptor.expr_alias_cls):
         raise BetseTypeException(
-            'Expression alias value {{!r}} not a {{!r}}.'.format(
-                value, self_descriptor.__expr_alias_cls))
+            'Expression alias value {!r} not a {!r}.'.format(
+                value, self_descriptor.expr_alias_cls))
     '''
+
 
     # If a predicate was passed...
     if predicate is not None:

@@ -51,7 +51,7 @@ class DataDescriptorBound(object):
 
     Attributes
     ----------
-    _data_desc : object
+    data_desc : object
         Low-level data descriptor encapsulated by this higher-level object.
     _obj : object
         Object to be temporarily "bound" to this data descriptor for the
@@ -88,7 +88,7 @@ class DataDescriptorBound(object):
 
         # Classify all passed parameters.
         self._obj = obj
-        self._data_desc = data_desc
+        self.data_desc = data_desc
 
     # ..................{ GETTERS                            }..................
     def get(self) -> object:
@@ -108,7 +108,7 @@ class DataDescriptorBound(object):
         # method call is "None".
         #
         # See: https://docs.python.org/3/howto/descriptor.html
-        return self._data_desc.__get__(self._obj, None)
+        return self.data_desc.__get__(self._obj, None)
 
     # ..................{ SETTERS                            }..................
     def set(self, value: object) -> None:
@@ -116,7 +116,7 @@ class DataDescriptorBound(object):
         Set this data descriptor's current value to the passed value.
         '''
 
-        self._data_desc.__set__(self._obj, value)
+        self.data_desc.__set__(self._obj, value)
 
 
 class DataDescriptorUnbound(object):
@@ -128,7 +128,7 @@ class DataDescriptorUnbound(object):
 
     Attributes
     ----------
-    _data_desc : object
+    data_desc : object
         Low-level data descriptor encapsulated by this higher-level object.
 
     See Also
@@ -153,7 +153,7 @@ class DataDescriptorUnbound(object):
         die_unless_data_desc(data_desc)
 
         # Classify all passed parameters.
-        self._data_desc = data_desc
+        self.data_desc = data_desc
 
     # ..................{ GETTERS                            }..................
     def get(self, obj: object) -> object:
@@ -172,7 +172,7 @@ class DataDescriptorUnbound(object):
             This data descriptor's current value.
         '''
 
-        return self._data_desc.__get__(obj, None)
+        return self.data_desc.__get__(obj, None)
 
     # ..................{ SETTERS                            }..................
     def set(self, obj: object, value: object) -> None:
@@ -188,7 +188,7 @@ class DataDescriptorUnbound(object):
             Value to set this data descriptor to.
         '''
 
-        self._data_desc.__set__(obj, value)
+        self.data_desc.__set__(obj, value)
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_data_desc(data_desc: object) -> None:

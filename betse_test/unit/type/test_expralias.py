@@ -191,6 +191,10 @@ def test_expralias_pass(betse_expralias) -> None:
     assert type(betse_expralias.or_line_three) is float
     assert betse_expralias.or_line_three == 1.0
 
+    # Test the numeric class-typed data descriptor's "expr_alias_cls" class
+    # variable, accessed from this class rather than this instance.
+    assert betse_expralias.__class__.or_line_three.expr_alias_cls is float
+
     # Test the predicate-typed data descriptor's __get__() method.
     assert betse_expralias.soa_line_one == "glitter,"
 
