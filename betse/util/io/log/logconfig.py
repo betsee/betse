@@ -16,7 +16,12 @@ Low-level logging configuration.
 # circularities are best avoided here rather than elsewhere.
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-import logging, os, sys
+import logging
+import os
+import sys
+from logging import Handler, RootLogger, StreamHandler
+from os import path
+
 from betse import metadata, pathtree
 from betse.util.io.log.logenum import LogLevel
 from betse.util.io.log.logfilter import (
@@ -24,8 +29,6 @@ from betse.util.io.log.logfilter import (
 from betse.util.io.log.logformat import LogFormatterWrap
 from betse.util.io.log.loghandle import LogHandlerFileRotateSafe
 from betse.util.type.types import type_check
-from logging import Handler, RootLogger, StreamHandler
-from os import path
 
 # ....................{ GLOBALS                            }....................
 # See below for utility functions accessing this singleton.
@@ -230,7 +233,7 @@ class LogConfig(object):
 
         # Avoid circular import dependencies.
         from betse.util.path.command import cmds
-        from betse.util.type import ints
+        from betse.util.type.numeric import ints
 
         # Absolute or relative path of the directory containing this file.
         file_dirname = path.dirname(self._filename)

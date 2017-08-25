@@ -156,7 +156,8 @@ def get_sizes_vars(obj: object, *args, **kwargs) -> tuple:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import iterables, numerics
+    from betse.util.type import iterables
+    from betse.util.type.numeric import numerics
     from betse.util.type.obj import objects
 
     # List of all 2-tuples to be returned.
@@ -335,7 +336,7 @@ def get_size_profile(
 
     # Avoid circular import dependencies.
     from betse.util.type import iterables, strs
-    from betse.util.type.ints import MiB
+    from betse.util.type.numeric.ints import MiB
     from betse.util.type.obj import objects
 
     #FIXME: Convert the current "kwargs['size_divisor']" into a human-readable

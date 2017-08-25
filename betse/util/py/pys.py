@@ -16,12 +16,15 @@ considered poor form. Call these functions *only* where necessary.
 '''
 
 # ....................{ IMPORTS                            }....................
-import platform, sys
+import platform
+import sys
+
 from betse import metadata
 from betse.exceptions import BetsePyException
 from betse.util.io.log import logs
 from betse.util.type.types import (
     type_check, MappingOrNoneTypes, SequenceTypes)
+
 
 # ....................{ INITIALIZERS                       }....................
 def init() -> None:
@@ -74,7 +77,7 @@ def is_wordsize_64() -> bool:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import ints
+    from betse.util.type.numeric import ints
 
     # Return whether or not the maximum integer size supported by this Python
     # interpreter is larger than the maximum value for variables of internal

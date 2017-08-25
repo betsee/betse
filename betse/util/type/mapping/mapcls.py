@@ -8,6 +8,8 @@ Low-level **mapping classes** (i.e., classes implementing dictionary-like
 functionality, typically by subclassing :class:`dict` or an analogue thereof).
 '''
 
+from collections import OrderedDict
+
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import (
     BetseMappingException, BetseMethodUnimplementedException)
@@ -20,7 +22,6 @@ from betse.util.type.types import (
     MappingType,
     MutableMappingType,
 )
-from collections import OrderedDict
 
 # ....................{ GLOBALS                            }....................
 _DEFAULT_DICT_ID = 0
@@ -353,7 +354,7 @@ class OrderedArgsDict(OrderedDict):
         '''
 
         # Avoid circular import dependencies.
-        from betse.util.type import ints
+        from betse.util.type.numeric import ints
 
         # If the passed tuple of key-value pairs is odd and hence omitted the
         # value for the final key, raise an exception.

@@ -12,7 +12,8 @@ Utility functions of general-purpose relevance to all plots and animations.
 
 # ....................{ IMPORTS                            }....................
 from betse.lib.numpy import arrays
-from betse.util.type import ints, types
+from betse.util.type import types
+from betse.util.type.numeric import ints
 from betse.util.type.types import (
     type_check, NumericTypes, NumericOrIterableTypes,)
 
