@@ -11,7 +11,8 @@ from abc import ABCMeta, abstractproperty
 
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.lib.yaml.yamlabc import (
-    YamlABC, YamlListItemABC, YamlListItemTypedABC)
+    YamlABC)
+from betse.lib.yaml.abc.yamllistabc import YamlListItemABC, YamlListItemTypedABC
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, NumericTypes
 

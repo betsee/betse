@@ -208,10 +208,10 @@ class Parameters(YamlFileABC):
     #FIXME: Convert all or most of the variables parsed in the read() method
     #below into aliases of the above form. Brainy rainbows!
     @type_check
-    def read(self, *args, **kwargs) -> None:
+    def load(self, *args, **kwargs) -> None:
 
         # Defer to the superclass implementation.
-        super().read(*args, **kwargs)
+        super().load(*args, **kwargs)
 
         # Preserve backward compatibility with prior configuration formats.
         self._init_backward_compatibility()
@@ -1510,7 +1510,7 @@ class Parameters(YamlFileABC):
     def _iter_conf_subdirnames(self) -> IterableTypes:
 
         # If no file has been read, raise an exception.
-        self._die_unless_read()
+        self._die_unless_loaded()
 
         # Default to the basenames of all direct subdirectories of the parent
         # directory containing the default simulation configuration file, which

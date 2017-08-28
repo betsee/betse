@@ -11,6 +11,8 @@ simulation objects.
 
 # ....................{ IMPORTS                            }....................
 import sys
+
+import betse.lib.yaml.abc.yamllistabc
 from betse.lib.pickle import pickles
 from betse.util.type.types import type_check
 from collections.abc import Sequence
@@ -150,7 +152,7 @@ def _preserve_backward_importability() -> None:
     sys.modules['betse.util.type.mappings'] = mapcls
 
     # Alias obsolete to current class names.
-    yamlabc.SimConfList = yamlabc.YamlList
+    yamlabc.SimConfList = betse.lib.yaml.abc.yamllistabc.YamlList
     confanim.SimConfAnimOne = confvis.SimConfVisualCellsListItem
     confvis.SimConfVisualABC      = confvis.SimConfVisualCellsABC
     confvis.SimConfVisualMixin    = confvis.SimConfVisualCellsYAMLMixin

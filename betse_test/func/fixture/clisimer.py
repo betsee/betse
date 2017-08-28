@@ -197,7 +197,7 @@ class CLISimTester(object):
         wrapper back to disk.
         '''
 
-        self.sim_state.config.overwrite()
+        self.sim_state.p.save_inplace()
 
 
     #FIXME: Consider integrating this method the main codebase, ideally by

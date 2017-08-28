@@ -20,7 +20,9 @@ both serialized to and deserialized from on-disk YAML-formatted files.
 #  data descriptors defined by "self._p".
 #FIXME: Ideally, after implementing the above, use of the "SimConfigTestWrapper"
 #wrapper will be able to be replaced everywhere in tests by direct use of the
-#"Parameters" object. We're not quite there yet -- but we will be, eventually.
+#"SimTestState.p" property providing direct access to this "Parameters" object,
+#which increasingly provides all test functionality. We're not quite there yet
+#-- but we will be, eventually.
 
 # ....................{ IMPORTS                            }....................
 # This subclass necessarily imports from submodules defined by the main codebase
@@ -155,7 +157,7 @@ class SimConfigTestWrapper(object):
         file with the possibly modified contents of this dictionary.
         '''
 
-        self._p.overwrite()
+        self._p.save_inplace()
 
     # ..................{ PROPERTIES ~ float                 }..................
     @property

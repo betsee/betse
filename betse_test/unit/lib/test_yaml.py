@@ -46,7 +46,7 @@ def test_yaml_copy(
     p = betse_sim_config.p
 
     # Copy this configuration to this subdirectory.
-    p.write(new_sim_conf_filename)
+    p.save(new_sim_conf_filename)
 
     # Assert this file to have been created.
     assert new_sim_conf_filepath.check(file=1)
@@ -85,13 +85,13 @@ def test_yaml_roundtrip(betse_sim_config: 'SimTestState') -> None:
     p_seed_pickle_basename_expected = p.seed_pickle_basename
 
     # Save these changes back to the same file.
-    p.overwrite()
+    p.save_inplace()
 
     # Close this file.
-    p.unread()
+    p.unload()
 
     # Read these changes back into the same in-memory object.
-    p.read(p_conf_filename)
+    p.load(p_conf_filename)
 
     # Ensure these changes were roundtripped across this I/O.
     assert p.sim_ECM == p_sim_ECM_expected

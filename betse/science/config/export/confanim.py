@@ -12,7 +12,8 @@ YAML-backed simulation animation subconfigurations.
 #FIXME: Define saving-ordiented methods.
 
 # ....................{ IMPORTS                            }....................
-from betse.lib.yaml.yamlabc import YamlABC, YamlList
+from betse.lib.yaml.yamlabc import YamlABC
+from betse.lib.yaml.abc.yamllistabc import YamlList
 from betse.lib.yaml.yamlalias import yaml_alias
 from betse.science.config.export.confvis import (
     SimConfVisualCellsListItem, SimConfVisualCellsEmbedded)
