@@ -774,9 +774,11 @@ class Parameters(YamlFileABC):
 
         if chk is not None:
             self.grad_bm_fn = self._conf['modulator function properties']['gradient_bitmap']['file']
+            self.grad_bm_offset = self._conf['modulator function properties']['gradient_bitmap'].get('offset', 0.0)
 
         else:
             self.grad_bm_fn = None
+            self.grad_bm_offset = None
 
         # ................{ EXPORTS                            }................
         ro = self._conf['results options']

@@ -406,6 +406,7 @@ modulator function properties:   # set properties of modulating functions which 
 
   gradient_bitmap:           # generate a spatial gradient of a property from an imported bitmap image (png)
       file: geo/ellipse/gradient.png
+      offset: 0.0
 
 # ----------------------------------------------------------------------------------------------------------------------
 # DYNAMIC ION CHANNELS

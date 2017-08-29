@@ -520,7 +520,11 @@ def gradient_bitmap(pc, cells, p):
 
     f = fe.ravel()[xmap]
 
-    f = f/f.max()
+    p.grad_bm_offset = np.max((p.grad_bm_offset, 0.0))
+
+    print(p.grad_bm_offset)
+
+    f = (f/f.max()) + p.grad_bm_offset
 
 
 
