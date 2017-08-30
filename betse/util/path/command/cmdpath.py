@@ -12,7 +12,7 @@ or absolute path) facilities.
 # ....................{ IMPORTS                            }....................
 import shutil
 from betse.exceptions import BetseCommandException
-from betse.util.type.types import type_check, SequenceTypes
+from betse.util.type.types import type_check, SequenceTypes, StrOrNoneTypes
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -51,14 +51,14 @@ def is_pathable(command_basename: str) -> bool:
 
 # ....................{ GETTERS                            }....................
 @type_check
-def get_filename(command_basename) -> str:
+def get_filename(command_basename: str) -> str:
     '''
     Absolute path of the command in the current ``${PATH}`` with the passed
     basename if found *or* raise an exception otherwise.
 
     Parameters
     ----------
-    command_basename : SequenceTypes
+    command_basename : str
         Basename of the command to return the absolute path of.
 
     Returns
@@ -72,13 +72,44 @@ def get_filename(command_basename) -> str:
         If no such command is found.
     '''
 
+    # Absolute path of this command if found or "None" otherwise.
+    command_filename = get_filename_or_none(command_basename)
+
+    # If this command is *NOT* found, raise an exception.
+    if command_filename is None:
+        raise BetseCommandException(
+            'Command "{}" not found.'.format(command_basename))
+
+    # Return this path.
+    return command_filename
+
+
+@type_check
+def get_filename_or_none(command_basename: str) -> StrOrNoneTypes:
+    '''
+    Absolute path of the command in the current ``${PATH}`` with the passed
+    basename if found *or* ``None`` otherwise.
+
+    Parameters
+    ----------
+    command_basename : str
+        Basename of the command to return the absolute path of.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Either;
+        * Absolute path of this command if found.
+        * ``None`` otherwise.
+    '''
+
     # Avoid circular import dependencies.
     from betse.util.path import pathnames
 
     # If this string is *NOT* a pure basename, fail.
     pathnames.die_unless_basename(command_basename)
 
-    # Return the absolute path of this command.
+    # Return the absolute path of this command if found or "None" otherwise.
     return shutil.which(command_basename)
 
 # ....................{ GETTERS ~ first                    }....................

@@ -205,11 +205,15 @@ class MasterOfGenes(object):
         # Time-steps vector appropriate for the current run.
         tt = np.linspace(0, loop_seconds_max, loop_time_step_max)
 
+        #FIXME: Reduce copy-and-pasting, please. This logic has been duplicated
+        #throughout the codebase, but contained a severe issue: "i" was a float
+        #rather than an int, which made everything crash and burn. *sigh*
         # create a time-samples vector
         tsamples = set()
         i = 0
         while i < len(tt) - p.t_resample:
-            i += p.t_resample
+            i = int(i + p.t_resample)
+            # logs.log_debug('Time sample i: {!r}'.format(i))
             tsamples.add(tt[i])
 
         self.core.clear_cache()

@@ -1494,7 +1494,7 @@ class Parameters(YamlFileABC):
 
         # Number of time steps (including sampled and unsampled) between each
         # unsampled time step, including that unsampled time step itself.
-        self.t_resample = self.resample/self.dt
+        self.t_resample = self.resample / self.dt
 
         # Duration in seconds of the current simulation phase accelerated by
         # the current gap junction acceleration factor.
