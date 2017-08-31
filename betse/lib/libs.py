@@ -72,10 +72,9 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
     ----------
     requirement_names : Tuple[str]
         Tuple of the names of all :mod:`setuptools`-specific projects
-        corresponding to these dependencies (e.g., ``NetworkX``). If any such
-        name is unrecognized (i.e., is *not* a key of the
-        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary), an exception is
-        raised.
+        implementing these dependencies (e.g., ``NetworkX``). If any such name
+        is unrecognized (i.e., is *not* a key of the
+        :data:`metadeps.RUNTIME_OPTIONAL` dictionary), an exception is raised.
 
     Raises
     ----------
@@ -91,7 +90,7 @@ def die_unless_runtime_optional(*requirement_names: str) -> None:
     die_unless_requirements_dict_keys(
         metadeps.RUNTIME_OPTIONAL, *requirement_names)
 
-# ....................{ EXCEPTIONS ~ typed                 }....................
+# ....................{ EXCEPTIONS ~ dict                  }....................
 @type_check
 def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
     '''
@@ -130,11 +129,22 @@ def die_unless_requirements_dict(requirements_dict: MappingType) -> None:
 def die_unless_requirements_dict_keys(
     requirements_dict: MappingType, *requirement_names: str) -> None:
     '''
-    Raise an exception unless all dependencies with the passed names described
-    by the passed dictionary are **satisfiable** (i.e., both importable and of a
-    satisfactory version) *and* all external commands required by these
-    dependencies (e.g., GraphViz's ``dot`` command) reside in the current
-    ``${PATH}``.
+    Raise an exception unless all dependencies with the passed
+    :mod:`setuptools`-specific project names described by the passed dictionary
+    are **satisfiable** (i.e., both importable and of a satisfactory version)
+    *and* all external commands required by these dependencies (e.g., GraphViz's
+    ``dot`` command) reside in the current ``${PATH}``.
+
+    Parameters
+    ----------
+    requirements_dict : MappingType
+        Dictionary mapping from the names of all :mod:`setuptools`-specific
+        projects implementing these dependencies to the requirements strings
+        constraining these dependencies.
+    requirement_names : tuple[str]
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        implementing these dependencies (e.g., ``NetworkX``). If any such
+        name is *not* a key of this dictionary, an exception is raised.
 
     Raises
     ----------
@@ -237,16 +247,58 @@ def is_runtime_optional(*requirement_names: str) -> bool:
     '''
     ``True`` only if all optional runtime dependencies of this application with
     the passed :mod:`setuptools`-specific project names are **satisfiable**
-    (i.e., both importable and of a satisfactory version).
+    (i.e., both importable and of a satisfactory version) *and* all external
+    commands required by these dependencies (e.g., GraphViz's ``dot`` command)
+    reside in the current ``${PATH}``.
 
     Parameters
     ----------
-    requirement_names : Tuple[str]
+    requirement_names : tuple[str]
         Tuple of the names of all :mod:`setuptools`-specific projects
-        corresponding to these dependencies (e.g., ``NetworkX``). If any such
-        name is *not* a key of the
-        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary and is
-        thus unrecognized, an exception is raised.
+        implementing these dependencies (e.g., ``NetworkX``). If any such
+        name is *not* a key of the :data:`metadeps.RUNTIME_OPTIONAL` dictionary
+        and is thus unrecognized, an exception is raised.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these optional runtime dependencies are satisfiable.
+
+    See Also
+    ----------
+    :func:`die_unless_runtime_mandatory_all`
+        Further details.
+    '''
+
+    return is_requirements_dict_keys(
+        metadeps.RUNTIME_OPTIONAL, *requirement_names)
+
+
+@type_check
+def is_requirements_dict_keys(
+    requirements_dict: MappingType, *requirement_names: str) -> bool:
+    '''
+    ``True`` only if all dependencies with the passed :mod:`setuptools`-specific
+    project names are **satisfiable** (i.e., both importable and of a
+    satisfactory version) *and* all external commands required by these
+    dependencies (e.g., GraphViz's ``dot`` command) reside in the current
+    ``${PATH}``.
+
+    Parameters
+    ----------
+    requirements_dict : MappingType
+        Dictionary mapping from the names of all :mod:`setuptools`-specific
+        projects implementing these dependencies to the requirements strings
+        constraining these dependencies.
+    requirement_names : tuple[str]
+        Tuple of the names of all :mod:`setuptools`-specific projects
+        implementing these dependencies (e.g., ``NetworkX``). If any such
+        name is *not* a key of this dictionary, an exception is raised.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if these dependencies are all satisfiable.
 
     See Also
     ----------
@@ -263,7 +315,7 @@ def is_runtime_optional(*requirement_names: str) -> bool:
         # of these requirements into a tuple of requirements strings.
         setuptool.is_requirement_str(
             *setuptool.convert_requirements_dict_keys_to_tuple(
-                metadeps.RUNTIME_OPTIONAL, *requirement_names)) and
+                requirements_dict, *requirement_names)) and
 
         # All external commands required by these dependencies are installed.
         is_commands(*requirement_names)
@@ -353,10 +405,9 @@ def import_runtime_optional(*requirement_names: str) -> object:
     ----------
     requirement_names : tuple[str]
         Tuple of the names of all :mod:`setuptools`-specific projects
-        corresponding to these dependencies (e.g., ``NetworkX``). If any such
-        name is unrecognized (i.e., is *not* a key of the
-        :data:`betse.metadata.RUNTIME_OPTIONAL` dictionary), an exception is
-        raised.
+        implementing these dependencies (e.g., ``NetworkX``). If any such name
+        is unrecognized (i.e., is *not* a key of the
+        :data:`metadeps.RUNTIME_OPTIONAL` dictionary), an exception is raised.
 
     See Also
     ----------

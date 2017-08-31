@@ -595,7 +595,7 @@ general network:
 # be actively pumped in or out of cells, changed at the boundary, or plotted/animated at the end of the simulation.
 #  See "extra_config_template.yaml" in the "extra_configs" directory for examples.
 
-  biomolecules:  # specify the properties of any number of auxillary chemicals
+  biomolecules:  # specify the properties of any number of auxiliary chemicals
 
 #-----------------------------------------------------------------------------------------------------------------------
 #  CUSTOM CHEMICAL REACTIONS

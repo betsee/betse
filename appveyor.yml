@@ -114,8 +114,8 @@ environment:
   #   minimum version of Python 3.x supported by this project. All stable
   #   versions of Python 3.x greater than or equal to this minimum version
   #   *MUST* be explicitly listed below.
-  # * The "betse.metadata.DEPENDENCIES_RUNTIME_MANDATORY" tuple global, defining
-  #   the minimum version of Numpy supported by this project.
+  # * The "betse.metadeps.RUNTIME_MANDATORY" tuple global, defining the minimum
+  #   version of Numpy supported by this project.
   matrix:
     # Dot-delimited Python version required by this profile.
     - PYTHON_VERSION: 3.5

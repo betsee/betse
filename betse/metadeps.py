@@ -116,12 +116,25 @@ most preferred implementation currently importable from the
 RUNTIME_MANDATORY_YAML = {
     'PyYAML': '>= 3.10',
 
-    # A relatively modern version of "ruamel.yaml" variants is required. While
-    # older versions strictly adhere to the functional PyYAML API, newer
-    # versions break backward compatibility by entirely supplanting that API by
-    # a modern object-oriented API. Supporting both isn't particularly worth the
-    # increase in maintenance debt.
-    'ruamel.yaml': '>= 0.15.0',
+    #FIXME: As "ruamel.yaml" now purports to safely roundtrip our documents,
+    #let's give it a whirl and see how far we get plunge into the icy waters of
+    #markup purgatory this time.
+
+    # A relatively modern version of "ruamel.yaml" variants is required.
+    # Specifically, this application requires:
+    #
+    # * At least version 0.15.24 or newer of "ruamel.yaml", which resolves a
+    #   long-standing parser issue preventing overly complex YAML markup (such
+    #   as ours) from being safely roundtripped:
+    #   0.15.24 (2017-08-09):
+    #   * (finally) fixed longstanding issue 23 (reported by Antony Sottile),
+    #     now handling comment between block mapping key and value correctly
+    # * The new "ruamel.yaml" API first introduced in 0.15.0. While older
+    #   versions strictly adhere to the functional PyYAML-compatible API, newer
+    #   versions break backward compatibility by entirely supplanting that API
+    #   with a modern object-oriented approach. Supporting both isn't worth the
+    #   substantial increase in maintenance debt.
+    'ruamel.yaml': '>= 0.15.24',
 
     #FIXME: Uncomment once "ruamel_yaml" is sufficiently up-to-date.
     # 'ruamel_yaml': '>= 0.15.0',
