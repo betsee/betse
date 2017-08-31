@@ -480,7 +480,7 @@ def get_dirname(pathname: str) -> str:
     return dirname
 
 
-def get_dirname_or_current_dirname(pathname: str) -> str:
+def get_dirname_or_cwd(pathname: str) -> str:
     '''
     **Dirname** (i.e., parent directory) of the passed path if this path has a
     dirname *or* the current working directory otherwise.

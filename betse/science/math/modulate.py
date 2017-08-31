@@ -501,7 +501,7 @@ def gradient_bitmap(pc, cells, p):
 
     a1 = imread(fn1, mode='RGB')
 
-    a1_F = ((a1[:, :, 0] - 255) / 255) - ((a1[:, :, 2] - 255) / 255)
+    a1_F = (a1[:, :, 0] -  a1[:, :, 2]) / 255
 
     a1_F = np.flipud(a1_F)
 
@@ -513,8 +513,8 @@ def gradient_bitmap(pc, cells, p):
     spline_F = interpolate.interp2d(xa, ya, a1_F, kind='linear', fill_value=0.0)
     fe = spline_F(xx, yy)
 
-    # indz = (fe < 0.0).nonzero()
-    # fe[indz] = 0.0
+    indz = (fe < 0.0).nonzero()
+    fe[indz] = 0.0
 
     # fe = gaussian_filter(fe, 2)
 
@@ -522,7 +522,7 @@ def gradient_bitmap(pc, cells, p):
 
     p.grad_bm_offset = np.max((p.grad_bm_offset, 0.0))
 
-    print(p.grad_bm_offset)
+    # print(p.grad_bm_offset)
 
     f = (f/f.max()) + p.grad_bm_offset
 

@@ -93,8 +93,10 @@ def write_default(conf_filename: str, is_overwritable: bool = False) -> None:
     # Source directory containing the default simulation configuration.
     src_dirname = pathtree.get_data_yaml_dirname()
 
-    # Target directory to be copied into.
-    trg_dirname = pathnames.get_dirname(conf_filename)
+    # Target directory to be copied into, defined to be either the parent
+    # directory of the passed path if this path has a dirname or the current
+    # working directory otherwise.
+    trg_dirname = pathnames.get_dirname_or_cwd(conf_filename)
 
     # Note that the simple solution of recursively copying this source directory
     # into the parent directory of the passed target file (e.g., by calling
