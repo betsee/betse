@@ -7,6 +7,12 @@
 High-level application initialization common to both the CLI and GUI.
 '''
 
+#FIXME: Raise an exception if running with superuser privelages. To avoid
+#inevitable security issues, Under *NO* circumstances should either BETSE or
+#BETSEE ever be run with elevated permissions. To do so, see the following
+#canonical answer:
+#    https://stackoverflow.com/a/1026626/2809027
+
 #FIXME: Print memory-related metadata when running "betse info" *AND* log
 #non-fatal warnings when BETSE is run under a low-memory environment (e.g.,
 #< 4GB available free memory). To do so, note the following canonical API:

@@ -12,11 +12,12 @@ import sys
 from betse.exceptions import BetseCommandException
 from betse.metadata import SCRIPT_BASENAME
 from betse.util.type.call.memoizers import callable_cached
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, StrOrNoneTypes
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
-def die_unless_command(pathname: str) -> None:
+def die_unless_command(
+    pathname: str, exception_reason: StrOrNoneTypes = None) -> None:
     '''
     Raise an exception unless a command with the passed path exists.
 
@@ -24,6 +25,15 @@ def die_unless_command(pathname: str) -> None:
     ----------
     pathname : str
         Basename or absolute or relative path of the executable file to inspect.
+    exception_reason : optional[str]
+        Human-readable sentence fragment to be embedded in this exception's
+        message (e.g., ``due to "pyside2-tools" not being installed``). Defaults
+        to ``None``, in which case this message contains no such reason.
+
+    Raises
+    ----------
+    BetseCommandException
+        If this command does *NOT* exist.
 
     See Also
     ----------
@@ -31,15 +41,26 @@ def die_unless_command(pathname: str) -> None:
         Further details.
     '''
 
+    # If this command does *NOT* exist...
     if not is_command(pathname):
-        raise BetseCommandException(
-            '"{}" not an executable command.'.format(pathname))
+        # Exception message to be raised.
+        exception_message = 'Command "{}" not found'.format(pathname)
+
+        # If an exception reason was passed, embed this reason in this message.
+        if exception_reason is not None:
+            exception_message += ' ({})'.format(exception_reason)
+
+        # Finalize this message.
+        exception_message += '.'
+
+        # Raise this exception.
+        raise BetseCommandException(exception_message)
 
 # ....................{ TESTERS                            }....................
 @type_check
-def is_command(pathname: str) -> None:
+def is_command(pathname: str) -> bool:
     '''
-    `True` only if a command with the passed path exists.
+    ``True`` only if the command with the passed path exists.
 
     This is the case if this path is either:
 
@@ -50,6 +71,11 @@ def is_command(pathname: str) -> None:
     ----------
     pathname : str
         Basename or absolute or relative path of the executable file to inspect.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if this command exists.
     '''
 
     # Avoid circular import dependencies.
@@ -59,7 +85,7 @@ def is_command(pathname: str) -> None:
     # This path is that of an existing command if and only if either...
     return (
         # This path is that of an executable file *OR*
-        files.is_file_executable(pathname) or (
+        files.is_executable(pathname) or (
         # This path is that of a basename in the current ${PATH}.
         pathnames.is_basename(pathname) and cmdpath.is_pathable(pathname))
     )

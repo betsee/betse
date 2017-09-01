@@ -25,6 +25,11 @@ def die_if_file(pathname: str) -> None:
     Raise an exception if the passed path is an existing non-directory file
     *after* following symbolic links.
 
+    Raises
+    ----------
+    BetseFileException
+        If any passed path is such a file.
+
     See Also
     ----------
     :func:`is_file`
@@ -46,6 +51,11 @@ def die_unless_file(*pathnames: str) -> None:
     '''
     Raise an exception unless all passed paths are existing non-directory files
     *after* following symbolic links.
+
+    Raises
+    ----------
+    BetseFileException
+        If any passed path is *NOT* such a file.
 
     See Also
     ----------
@@ -89,26 +99,27 @@ def join_and_die_unless_file(*pathnames: str) -> str:
     # Return this dirname.
     return filename
 
-# ....................{ EXCEPTIONS ~ special               }....................
-def die_if_special(pathname: str) -> None:
+# ....................{ EXCEPTIONS ~ writable              }....................
+def die_unless_exists_writable(pathname: str) -> None:
     '''
-    Raise an exception if the passed path is an existing special file.
+    Raise an exception unless the passed path is an existing writable
+    non-directory file *after* following symbolic links.
+
+    Raises
+    ----------
+    BetseFileException
+        If this path is *NOT* such a file.
 
     See Also
     ----------
-    :func:`is_special`
+    :func:`is_writable`
         Further details.
     '''
 
-    # If this special file exists...
-    if is_special(pathname):
-        # Avoid circular import dependencies.
-        from betse.util.path import paths
-
-        # Raise a human-readable exception.
+    # If this file does not exist or does but is unwritable, raise an exception.
+    if not is_exists_writable(pathname):
         raise BetseFileException(
-            'Path "{}" already an existing {}.'.format(
-                pathname, paths.get_type_label(pathname)))
+            'File "{}" not found or unwritable.'.format(pathname))
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -159,41 +170,36 @@ def is_file(*pathnames: str) -> bool:
     )
 
 
-def is_file_executable(pathname: str) -> bool:
+def is_executable(pathname: str) -> bool:
     '''
     ``True`` only if the passed path is an **executable non-directory file**
-    (i.e., file with the execute bit enabled) _after_ following symbolic links.
+    (i.e., file with the execute bit enabled) *after* following symbolic links.
 
-    This function does *not* raise an exception if this path does not exist.
+    For generality, this function does *not* raise an exception if this path
+    does not exist or does but is an existing directory.
     '''
 
-    # This path is an executable file if this path is an existing file with the
-    # executable bit enabled.
     return is_file(pathname) and os.access(pathname, os.X_OK)
 
 
-#FIXME: Given that this function resides in the "files" submodule, shouldn't
-#this function return False rather than True when passed a directory pathname?
-#On the other hand, if this function is currently working as intended, this
-#function should be shifted into the "betse.util.path.paths" submodule.
-def is_special(pathname: str) -> bool:
+def is_exists_writable(pathname: str) -> bool:
     '''
-    ``True`` only if the passed path is an existing **special file** (e.g.,
-    directory, device node, socket, symbolic link).
+    ``True`` only if the passed path is an **existing writable non-directory
+    file** (i.e., file with the write bit enabled for the current user or user
+    group) *after* following symbolic links.
 
-    This function does *not* raise an exception if this path does not exist.
+    For generality, this function does *not* raise an exception if this path
+    does not exist or does but is an existing directory.
+
+    Caveats
+    ----------
+    For disambiguity, this function is intentionally *not* named
+    ``is_writable()``. Why? Because this function returns ``False`` when this
+    path does *not* currently exist but the current user has sufficient
+    permissions to create and hence write this file.
     '''
 
-    # Avoid circular import dependencies.
-    from betse.util.path import paths
-
-    # True if this path exists and...
-    return paths.is_path(pathname) and (
-        # ...is either a symbolic link *OR* neither a regular file nor symbolic
-        # link to such a file. In the latter case, predicate logic guarantees
-        # this file to *NOT* be a symbolic link, thus reducing this test to:
-        # "...is either a symbolic link *OR* not a regular file."
-        is_symlink(pathname) or not os_path.isfile(pathname))
+    return is_file(pathname) and os.access(pathname, os.W_OK)
 
 # ....................{ TESTERS ~ symlink                  }....................
 @type_check

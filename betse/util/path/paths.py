@@ -9,13 +9,13 @@ and non-directory files.
 '''
 
 # ....................{ IMPORTS                            }....................
-import os, shutil
+import shutil
 from betse.exceptions import BetsePathException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, IterableTypes, NumericTypes
-from os import path
+from os import path as os_path
 
-# ....................{ EXCEPTIONS ~ path                  }....................
+# ....................{ EXCEPTIONS                         }....................
 def die_if_path(*pathnames: str) -> None:
     '''
     Raise an exception if any of the paths with the passed pathnames exist.
@@ -57,6 +57,32 @@ def die_unless_path(*pathnames: str) -> None:
             raise BetsePathException(
                 'Path "{}" not found or unreadable.'.format(pathname))
 
+# ....................{ EXCEPTIONS ~ special               }....................
+def die_if_special(pathname: str) -> None:
+    '''
+    Raise an exception if the passed path is an existing special file.
+
+    Raises
+    ----------
+    BetsePathException
+        If this path is *not* an existing special file.
+
+    See Also
+    ----------
+    :func:`is_special`
+        Further details.
+    '''
+
+    # If this special file exists...
+    if is_special(pathname):
+        # Avoid circular import dependencies.
+        from betse.util.path import paths
+
+        # Raise a human-readable exception.
+        raise BetsePathException(
+            'Path "{}" already an existing {}.'.format(
+                pathname, paths.get_type_label(pathname)))
+
 # ....................{ TESTERS                            }....................
 @type_check
 def is_path(pathname: str) -> bool:
@@ -73,7 +99,27 @@ def is_path(pathname: str) -> bool:
     # for dangling symbolic links -- which is entirely irrelevant for most
     # contexts. Under POSIX semantics, dangling symbolic links are essential to
     # common usage patterns and should *NOT* be discriminated against here.
-    return os.path.lexists(pathname)
+    return os_path.lexists(pathname)
+
+
+def is_special(pathname: str) -> bool:
+    '''
+    ``True`` only if the passed path is an existing **special file** (e.g.,
+    directory, device node, socket, symbolic link).
+
+    This function does *not* raise an exception if this path does not exist.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.file import files
+
+    # True if this path exists and...
+    return is_path(pathname) and (
+        # ...is either a symbolic link *OR* neither a regular file nor symbolic
+        # link to such a file. In the latter case, predicate logic guarantees
+        # this file to *NOT* be a symbolic link, thus reducing this test to:
+        # "...is either a symbolic link *OR* not a regular file."
+        files.is_symlink(pathname) or not os_path.isfile(pathname))
 
 # ....................{ TESTERS ~ mtime : recursive        }....................
 @type_check
@@ -156,7 +202,7 @@ def get_type_label(pathname: str) -> str:
     if files.is_file(pathname):
         if files.is_symlink(pathname):
             return 'symbolic link'
-        elif files.is_special(pathname):
+        elif is_special(pathname):
             return 'special file'
         else:
             return 'file'
@@ -204,7 +250,7 @@ def get_mtime_nonrecursive(pathname: str) -> NumericTypes:
         :func:`os.stat_float_times` function.
     '''
 
-    return path.getmtime(pathname)
+    return os_path.getmtime(pathname)
 
 # ....................{ GETTERS ~ mtime : recursive        }....................
 @type_check
