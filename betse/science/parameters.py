@@ -61,6 +61,21 @@ class Parameters(YamlFileABC):
         relative to the absolute path of the directory containing this
         simulation configuration's YAML file.
 
+    Attributes (Grid)
+    ----------
+    grid_size : int
+        Number of computational square grid spaces (in both the horizontal and
+        vertical directions) to divide this simulation's square environment
+        into. Increasing this number increases the granularity and hence
+        stability of this simulation at a quadratic cost in space and time
+        consumption (i.e., ``O(grid_size ** 2)``). This number is strongly
+        recommended to reside in the range ``[10, 60]`` for most simulations.
+    sim_ECM : bool
+        ``True`` only if the extracellular matrix (ECM), also referred to as
+        extracellular spaces, is enabled for this simulation. Disabling this
+        matrix reduces the accuracy of simulation results at a substantial
+        reduction in space and time consumption.
+
     Attributes (Time: Total)
     ----------
     init_time_total : float
@@ -102,12 +117,6 @@ class Parameters(YamlFileABC):
         sampled time step:
         * ``t + t_resample`` is the next sampled time step (if any).
         * ``t - t_resample`` is the prior sampled time step (if any).
-
-    Attributes (General: Boolean)
-    ----------
-    sim_ECM : bool
-        ``True`` only if this simulation enables the extracellular matrix (ECM),
-        commonly referred to as extracellular spaces.
 
     Attributes (General: Scalars)
     ----------
@@ -196,7 +205,10 @@ class Parameters(YamlFileABC):
     sim_time_sampling = yaml_alias(
         "['sim time settings']['sampling rate']", float)
 
-    # ..................{ ALIASES ~ bool                     }..................
+    # ..................{ ALIASES ~ grid                     }..................
+    grid_size = yaml_alias("['general options']['comp grid size']", int)
+
+    #FIXME: Rename to "is_grid_ecm" for orthogonality.
     sim_ECM = yaml_alias(
         "['general options']['simulate extracellular spaces']", bool)
 
@@ -263,7 +275,12 @@ class Parameters(YamlFileABC):
 
         self.autoInit = self._conf['automatically run initialization']
 
-        self.grid_size = int(self._conf['general options']['comp grid size'])
+        #FIXME: This attribute is largely vestigial and currently only
+        #referenced in two other locations in the codebase. While still vital,
+        #there exists no demonstrable reason to ever externally configure this.
+        #Contemplate excising this configuration option from our YAML file and
+        #instead hard-coding this option's default value (i.e., 50) within the
+        #codebase itself as a global magic number.
         self.plot_grid_size = int(self._conf['general options']['plot grid size'])
 
        # set ion profile to be used: 'basic', 'basic_Ca', 'animal', 'xenopus', 'scratch'

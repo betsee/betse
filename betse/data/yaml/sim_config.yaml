@@ -87,12 +87,12 @@ sim time settings:
 # ---------------------------------------------------------------------------------------------------------------------
 # Specify general options to be used in the init and sim runs.
 
-# File synch warning: you can't change any of these general options after running 'betse seed'.
+# File sync warning: you can't change any of these general options after running 'betse seed'.
 
 general options:
 
-  comp grid size: 40         # grid used in computation of environmental parameters (min 10; keep smaller than 50)
-  plot grid size: 50        # grid used for interpolated data plotting (recommend 50 to 250)
+  comp grid size: 40   # grid used in computation of environmental parameters (min 10; keep smaller than 50)
+  plot grid size: 50   # grid used for interpolated data plotting (recommend 50 to 250)
 
   simulate extracellular spaces: True    # include extracellular spaces and true environment simulation?
 
@@ -584,8 +584,6 @@ general network:
     optimization T: 1.0             # "temperature" for the basinhopping routine
     optimization step: 0.5          # step-size of the basin hopping routine
     target Vmem: -50e-3               # Vmem to use in optimization
-
-
 
 #-----------------------------------------------------------------------------------------------------------------------
 # CUSTOM BIOMOLECULES

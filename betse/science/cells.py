@@ -2226,7 +2226,6 @@ class Cells(object):
         """
         Create structures for plotting interpolated data on cell centres
         and differentiating between the cell cluster and environment.
-
         """
 
         voronoiTree = sps.KDTree(self.voronoi_grid)
@@ -2243,14 +2242,18 @@ class Cells(object):
         self.Xgrid = X
         self.Ygrid = Y
 
-        self.maskM = interp.griddata((self.voronoi_grid[:,0],self.voronoi_grid[:,1]),
+        self.maskM = interp.griddata(
+            (self.voronoi_grid[:,0],self.voronoi_grid[:,1]),
             self.voronoi_mask,(self.Xgrid,self.Ygrid),
-                             method='linear',fill_value=0)
+            method='linear',fill_value=0)
 
         self.maskM = ndimage.filters.gaussian_filter(self.maskM, 1, mode='nearest')
         self.maskM = np.round(self.maskM,0)
 
-        self.maskECM = interp.griddata((X.ravel(),Y.ravel()),self.maskM.ravel(), (self.X, self.Y), method='linear',fill_value=0)
+        self.maskECM = interp.griddata(
+            (X.ravel(),Y.ravel()),self.maskM.ravel(),
+            (self.X, self.Y),
+            method='linear',fill_value=0)
         self.maskECM = ndimage.filters.gaussian_filter(self.maskECM, 1, mode='nearest')
         self.maskECM = np.round(self.maskECM,0)
 
