@@ -64,10 +64,10 @@ class Parameters(YamlFileABC):
     Attributes (Grid)
     ----------
     grid_size : int
-        Number of computational square grid spaces (in both the horizontal and
-        vertical directions) to divide this simulation's square environment
-        into. Increasing this number increases the granularity and hence
-        stability of this simulation at a quadratic cost in space and time
+        Number of square grid spaces (in both the horizontal and vertical
+        directions) to computationally divide this simulation's square
+        environment into. Increasing this number increases simulation
+        granularity and hence stability at a quadratic cost in space and time
         consumption (i.e., ``O(grid_size ** 2)``). This number is strongly
         recommended to reside in the range ``[10, 60]`` for most simulations.
     sim_ECM : bool
@@ -107,10 +107,14 @@ class Parameters(YamlFileABC):
     ----------
     init_time_sampling : float
         Duration in seconds between each sampled time step (including that
-        sampled time step itself) for the initialization phase.
+        sampled time step itself) for the initialization phase. Decreasing this
+        duration increases the number of time steps for which data is exported
+        from this phase at a linear cost in space consumption.
     sim_time_sampling : float
         Duration in seconds between each sampled time step (including that
-        sampled time step itself) for the simulation phase.
+        sampled time step itself) for the simulation phase. Decreasing this
+        duration increases the number of time steps for which data is exported
+        from this phase at a linear cost in space consumption.
     t_resample : float
         Number of time steps between each sampled time step, including that
         sampled time step itself. Notably, if the current time step ``t`` is a

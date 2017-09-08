@@ -400,6 +400,12 @@ Tuple of all callable classes *and* the type of the singleton ``None`` object.
 '''
 
 
+ClassOrNoneTypes = (ClassType, NoneType)
+'''
+Tuple of the type of all types *and* of the singleton ``None`` object.
+'''
+
+
 IntOrNoneTypes = (int, NoneType)
 '''
 Tuple of both the integer type *and* the type of the singleton ``None`` object.
