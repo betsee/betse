@@ -25,7 +25,7 @@ the the active Python interpreter) facilities.
 # ....................{ IMPORTS                            }....................
 from os import environ
 from betse.exceptions import BetseOSShellEnvException
-from betse.util.type.types import type_check, MappingType
+from betse.util.type.types import type_check, MappingType, StrOrNoneTypes
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -102,8 +102,8 @@ def get_env() -> MappingType:
 @type_check
 def get_var(name: str) -> str:
     '''
-    Value of the environment variable with the passed name if defined *or* raise
-    an exception otherwise (i.e., if this variable is undefined).
+    String value of the environment variable with the passed name if defined
+    *or* raise an exception otherwise (i.e., if this variable is undefined).
 
     Parameters
     ----------
@@ -131,23 +131,43 @@ def get_var(name: str) -> str:
 @type_check
 def get_var_or_default(name: str, default: str) -> str:
     '''
-    Value of the environment variable with the passed name, defaulting to the
-    passed value if this variable is undefined.
+    String value of the environment variable with the passed name if defined
+    *or* the passed default string value otherwise.
 
     Parameters
     ----------
     name : str
         Name of this variable.
     default : str
-        Default value of this variable.
+        Default string value of this variable.
 
     Returns
     ----------
     str
-        Value of this variable if defined _or_ the passed default otherwise.
+        Value of this variable if defined *or* the passed default otherwise.
     '''
 
     return environ.get(name, default)
+
+
+@type_check
+def get_var_or_none(name: str) -> StrOrNoneTypes:
+    '''
+    String value of the environment variable with the passed name if defined
+    *or* ``None`` otherwise.
+
+    Parameters
+    ----------
+    name : str
+        Name of this variable.
+
+    Returns
+    ----------
+    StrOrNoneTypes
+        Value of this variable if defined *or* ``None`` otherwise.
+    '''
+
+    return environ.get(name, None)
 
 # ....................{ SETTERS                            }....................
 @type_check

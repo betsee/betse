@@ -15,9 +15,10 @@ from betse.util.type.types import (
     CallableOrStrTypes,
     IterableTypes,
     MappingType,
-    RegexTypes,
+    RegexCompiledType,
     RegexMatchType,
     RegexMatchOrNoneTypes,
+    RegexTypes,
     SequenceTypes,
 )
 
@@ -303,7 +304,7 @@ def get_match_if_any(
     '''
 
     # Sanitize the passed match flags.
-    _init_kwargs_flags(kwargs)
+    _init_kwargs_flags(regex, kwargs)
 
     # Match group of this string against this expression.
     return re.match(regex, text, **kwargs)
@@ -355,7 +356,7 @@ def get_match_line_if_any(
     '''
 
     # Sanitize the passed match flags for line-oriented matching.
-    _init_kwargs_flags_line(kwargs)
+    _init_kwargs_flags_line(regex, kwargs)
 
     # Match group of this string against this expression.
     return re.search(regex, text, **kwargs)
@@ -402,7 +403,7 @@ def iter_matches(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
 
     # Sanitize the passed match flags.
-    _init_kwargs_flags(kwargs)
+    _init_kwargs_flags(regex, kwargs)
 
     # Return this generator.
     return re.finditer(regex, text, **kwargs)
@@ -451,7 +452,7 @@ def iter_matches_line(text: str, regex: RegexTypes, **kwargs) -> IterableTypes:
     '''
 
     # Sanitize the passed match flags for line-oriented matching.
-    _init_kwargs_flags_line(kwargs)
+    _init_kwargs_flags_line(regex, kwargs)
 
     # Return this generator.
     return re.finditer(regex, text, **kwargs)
@@ -536,7 +537,7 @@ def replace_substrs(
     '''
 
     # Sanitize the passed match flags.
-    _init_kwargs_flags(kwargs)
+    _init_kwargs_flags(regex, kwargs)
 
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
@@ -591,15 +592,38 @@ def replace_substrs_line(
     '''
 
     # Sanitize the passed match flags in a line-oriented manner.
-    _init_kwargs_flags_line(kwargs)
+    _init_kwargs_flags_line(regex, kwargs)
 
     # Substitute, if you please.
     return re.sub(regex, replacement, text, **kwargs)
 
+# ....................{ COMPILERS                          }....................
+@type_check
+def compile(regex: str, **kwargs) -> RegexCompiledType:
+    '''
+    Compile the passed uncompiled regular expression.
+
+    Parameters
+    ----------
+    text : str
+        String to match.
+
+    All remaining keyword parameters are passed as is to the :func:`re.compile`
+    function.
+
+    Returns
+    ----------
+    RegexCompiledType
+        Compiled regular expression.
+    '''
+
+    # Return this regular expression compiled.
+    return re.compile(regex, **kwargs)
+
 # ....................{ SUBSTITUTERS                       }....................
 #FIXME: For disambiguity, rename to _init_kwargs_flags_nonline().
 @type_check
-def _init_kwargs_flags(kwargs: MappingType) -> None:
+def _init_kwargs_flags(regex: RegexTypes, kwargs: MappingType) -> None:
     '''
     Sanitize the list of match flags in the passed dictionary for
     non-line-oriented matching.
@@ -609,11 +633,18 @@ def _init_kwargs_flags(kwargs: MappingType) -> None:
     currently unset).
     '''
 
+    # If this regular expression is already compiled, reduce to a noop. Why?
+    # Because flags *CANNOT* be respecified after the compilation phase.
+    if isinstance(regex, RegexCompiledType):
+        return
+
+    # Else, this regular expression is uncompiled. In this case, these flags are
+    # safely modifiable as required.
     kwargs['flags'] = kwargs.get('flags', 0) | re.DOTALL
 
 
 @type_check
-def _init_kwargs_flags_line(kwargs: MappingType) -> None:
+def _init_kwargs_flags_line(regex: RegexTypes, kwargs: MappingType) -> None:
     '''
     Sanitize the list of match flags in the passed dictionary for line-oriented
     matching.
@@ -623,4 +654,11 @@ def _init_kwargs_flags_line(kwargs: MappingType) -> None:
     currently unset).
     '''
 
+    # If this regular expression is already compiled, reduce to a noop. Why?
+    # Because flags *CANNOT* be respecified after the compilation phase.
+    if isinstance(regex, RegexCompiledType):
+        return
+
+    # Else, this regular expression is uncompiled. In this case, these flags are
+    # safely modifiable as required.
     kwargs['flags'] = kwargs.get('flags', 0) | re.MULTILINE

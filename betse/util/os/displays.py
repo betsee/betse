@@ -14,8 +14,7 @@ High-level operating system (OS)-specific display facilities.
 from betse.util.type.call.memoizers import callable_cached
 from betse.util.type.mapping.mapcls import OrderedArgsDict
 
-# ....................{ TESTERS                            }....................
-# For efficiency, cache the returned boolean for the duration of this process.
+# ....................{ TESTERS ~ head                     }....................
 @callable_cached
 def is_headfull() -> bool:
     '''
@@ -75,6 +74,38 @@ def is_headless() -> bool:
 
     return not is_headfull()    # Makes sense.
 
+# ....................{ TESTERS                            }....................
+@callable_cached
+def is_linux_wayland() -> bool:
+    '''
+    `True` only if the active Python interpreter is running under a Wayland
+    compositor-enabled Linux distribution.
+
+    Caveats
+    ----------
+    For sanity, this function incorrectly assumes *all* Wayland compositors to
+    comply with the X Desktop Group (XDG) standard by exporting the
+    ``${XDG_SESSION_TYPE}`` environment variable with a value of ``wayland``. As
+    this is *not* necessarily the case, this function may return false negatives
+    for edge-case Wayland compositors.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.os import oses
+    from betse.util.os.shell import shellenv
+
+    # If the current platform is *NOT* Linux, return False.
+    if not oses.is_linux():
+        return False
+    # Else, the current platform is Linux.
+
+    # String value of the ${XDG_SESSION_TYPE} environment variable if defined or
+    # "None" otherwise.
+    xdg_session_type = shellenv.get_var_or_none('XDG_SESSION_TYPE')
+
+    # Return True only if this value is that of a Wayland compositor.
+    return xdg_session_type == 'wayland'
+
 # ....................{ GETTERS ~ metadata                 }....................
 def get_metadata() -> OrderedArgsDict:
     '''
@@ -84,4 +115,5 @@ def get_metadata() -> OrderedArgsDict:
     # Return this dictionary.
     return OrderedArgsDict(
         'headless', is_headless(),
+        'wayland',  is_linux_wayland(),
     )

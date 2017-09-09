@@ -27,7 +27,6 @@ from enum import Enum, EnumMeta
 from functools import wraps
 from io import IOBase
 from inspect import Parameter, Signature
-from sre_parse import Pattern
 from weakref import CallableProxyType, ProxyType
 
 # Import the following types as is into the namespace of this submodule,
@@ -468,23 +467,34 @@ Tuple of all testable types *and* the type of the singleton ``None`` object.
 '''
 
 # ....................{ TUPLES ~ regex                     }....................
-RegexTypes = (str, Pattern)
+# Yes, this is the only reliable means of obtaining the type of compiled regular
+# expressions. For unknown reasons presumably concerning the archaic nature of
+# Python's regular expression support, this type is *NOT* publicly exposed.
+# While the private "re._pattern_type" attribute does technically provide this
+# type, it does so in a private and hence inherently non-portable manner.
+RegexCompiledType = type(re.compile(''))
 '''
-Tuple of all **regular expression-like types** (i.e., types either defining
-regular expressions or losslessly convertible to such types, typically accepted
-by functions in the :mod:`betse.util.type.regexes` submodule).
+Type of all compiled regular expressions.
 '''
 
 
-# Yes, this type is required for type validation et the module scope lsewhere.
+# Yes, this type is required for type validation et the module scope elsewhere.
 # Yes, this is the most time-efficient means of obtaining this type. No, this
 # type is *NOT* directly importable. Although this type's classname is
 # published to be "_sre.SRE_Match", the "_sre" C extension provides no such
 # type for pure-Python importation.
-RegexMatchType = re.match(r'', '').__class__
+RegexMatchType = type(re.match(r'', ''))
 '''
 Type of all **regular expression match objects** (i.e., objects returned by the
 :func:`re.match` function).
+'''
+
+
+RegexTypes = (str, RegexCompiledType)
+'''
+Tuple of all **regular expression-like types** (i.e., types either defining
+regular expressions or losslessly convertible to such types, typically accepted
+by functions in the :mod:`betse.util.type.regexes` submodule).
 '''
 
 
