@@ -8,14 +8,14 @@ High-level support facilities for Numpy, a mandatory runtime dependency.
 '''
 
 # ....................{ IMPORTS                            }....................
-from numpy import __config__ as numpy_config
-
 from betse.util.io.log import logs
 from betse.util.os import dlls, oses
 from betse.util.path import dirs, files, pathnames
-from betse.util.type import iterables, regexes, strs, modules
+from betse.util.type import iterables, modules
 from betse.util.type.mapping.mapcls import OrderedArgsDict
+from betse.util.type.text import regexes, strs
 from betse.util.type.types import BoolOrNoneTypes
+from numpy import __config__ as numpy_config
 
 # ....................{ GLOBALS ~ opt_info                 }....................
 # Fully initialized by the _init_globals() function below.

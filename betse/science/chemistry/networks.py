@@ -238,7 +238,7 @@ class MasterOfNetworks(object):
                     lambda value, name = name: setattr(self.molecules[name], 'c_mit', value))
 
             # initialize concentration in the environment:
-            if p.sim_ECM is False:
+            if p.is_ecm is False:
                 mol.c_env = np.ones(sim.mdl) * mol.c_envo
             else:
                 mol.c_env = np.ones(sim.edl) * mol.c_envo
@@ -505,7 +505,7 @@ class MasterOfNetworks(object):
 
             if self.zmol[k] != 0.0 and self.Dmem[k] != 0.0:
 
-                if p.sim_ECM is True:
+                if p.is_ecm is True:
 
                     self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*((p.F*sim.vm)/(p.R*sim.T))*self.zmol[{}]*" \
                                       "((self.mem_concs[{}] - " \
@@ -527,7 +527,7 @@ class MasterOfNetworks(object):
 
             elif self.zmol[k] == 0.0 and self.Dmem[k] != 0.0:
 
-                if p.sim_ECM is True:
+                if p.is_ecm is True:
 
                     self.ED_eval_strings[k] = "(self.Dmem[{}]/p.tm)*(self.mem_concs[{}] - " \
                                           "self.env_concs[{}][cells.map_mem2ecm])".format(name, name, name)
@@ -1976,7 +1976,7 @@ class MasterOfNetworks(object):
                 in_delta_term_react = "(np.dot(cells.M_sum_mems, -self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
                 in_delta_term_prod = "(np.dot(cells.M_sum_mems, self.transporters['{}'].flux*cells.mem_sa)/cells.cell_vol)".format(transp_name)
 
-                if p.sim_ECM is True:
+                if p.is_ecm is True:
 
                     # if self.transporters[transp_name].ignore_ECM_transporter is True:
 
@@ -2198,7 +2198,7 @@ class MasterOfNetworks(object):
                 # get the concentration from the environment, mapped to respective membranes:
                 elif tag == 'env_concs':
 
-                    if p.sim_ECM is True:
+                    if p.is_ecm is True:
 
                         # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
                         denomo_string_Q += "(1.0e-3*self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
@@ -2250,7 +2250,7 @@ class MasterOfNetworks(object):
 
                     # Concs in 'Q" must be in mol/L not mmol/L, therefore multiply by 1.0e-3
 
-                    if p.sim_ECM is True:
+                    if p.is_ecm is True:
                         numo_string_Q += "(1.0e-3*self.{}['{}'][cells.map_mem2ecm]".format(tag, name)
 
                     else:
@@ -2311,7 +2311,7 @@ class MasterOfNetworks(object):
 
                 elif tag == 'env_concs':
 
-                    if p.sim_ECM is True:
+                    if p.is_ecm is True:
 
                         numo_string_r = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
                         denomo_string_r = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
@@ -2382,7 +2382,7 @@ class MasterOfNetworks(object):
 
                 elif tag == 'env_concs':
 
-                    if p.sim_ECM is True:
+                    if p.is_ecm is True:
 
                         numo_string_p = "((self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
                         denomo_string_p = "(1 + (self.{}['{}'][cells.map_mem2ecm]/{})**{})".format(tag, name, Km, n)
@@ -2838,7 +2838,7 @@ class MasterOfNetworks(object):
 
                 elif self.transporters[name].react_transport_tag[i] == 'env_concs':
 
-                    if p.sim_ECM is True:
+                    if p.is_ecm is True:
 
                         delta_react_expanded = np.zeros(sim.edl)
                         delta_react_expanded[cells.map_mem2ecm] = delta_react[:]
@@ -2890,7 +2890,7 @@ class MasterOfNetworks(object):
 
                 elif self.transporters[name].prod_transport_tag[i] == 'env_concs':
 
-                    if p.sim_ECM is True:
+                    if p.is_ecm is True:
 
                         delta_prod_expanded = np.zeros(sim.edl)
                         delta_prod_expanded[cells.map_mem2ecm] = delta_prod[:]
@@ -2953,7 +2953,7 @@ class MasterOfNetworks(object):
             modulator = obj.max_val*eval(obj.alpha_eval_string, globalo, localo)
 
             # # make size alteration for case of true environment:
-            # if p.sim_ECM is True and obj.zone == 'env':
+            # if p.is_ecm is True and obj.zone == 'env':
             #     modulator = modulator[cells.map_mem2ecm]
 
             # print(modulator.min())
@@ -3732,7 +3732,7 @@ class MasterOfNetworks(object):
             obj.c_cells_time.append(obj.c_cells)
 
             # smooth env data if necessary:
-            if p.smooth_concs is False and p.sim_ECM is True:
+            if p.smooth_concs is False and p.is_ecm is True:
                 cc_env = gaussian_filter(obj.c_env.reshape(cells.X.shape), 1.0).ravel()
 
             else:
@@ -3870,7 +3870,7 @@ class MasterOfNetworks(object):
             obj.plot_cells(sim, cells, p, self.imagePath)
 
             # if there's a real environment, plot 2D concentration in the environment
-            if p.sim_ECM:
+            if p.is_ecm:
                 obj.plot_env(sim, cells, p, self.imagePath)
 
         # ---------------cell everything plot---------------------------------------------
@@ -3916,7 +3916,7 @@ class MasterOfNetworks(object):
 
             obj = self.molecules[name]
 
-            if p.sim_ECM is True:
+            if p.is_ecm is True:
                 c_env = [arr[cells.map_cell2ecm][p.plot_cell] for arr in obj.c_env_time]
 
             else:
@@ -4196,7 +4196,7 @@ class MasterOfNetworks(object):
                 obj.anim_cells(phase)
 
                 # create 2D animations for the substance in the environment
-                if phase.p.sim_ECM:
+                if phase.p.is_ecm:
                     obj.anim_env(phase)
 
     def default_zones(self, zone_tags_a, zone_tags_i, a_list, i_list):
@@ -5109,7 +5109,7 @@ class Molecule(object):
     def transport(self, sim, cells, p):
         """
         Transports the molecule across the membrane,
-        through gap junctions, and if p.sim_ECM is true,
+        through gap junctions, and if p.is_ecm is true,
         through extracellular spaces and the environment.
 
         """
@@ -5250,7 +5250,7 @@ class Molecule(object):
 
                 else:
 
-                    if p.sim_ECM is False:
+                    if p.is_ecm is False:
 
                         Dm_mod_mol = self.gating_max_val * tb.hill(self.c_env, self.gating_Hill_K, self.gating_Hill_n)
 
@@ -5264,7 +5264,7 @@ class Molecule(object):
                 # obtain concentration of ion inside and out of the cell, as well as its charge z:
                 c_mem = sim.cc_cells[ion_tag][cells.mem_to_cells]
 
-                if p.sim_ECM is True:
+                if p.is_ecm is True:
                     c_env = sim.cc_env[ion_tag][cells.map_mem2ecm]
 
                 else:
@@ -5351,7 +5351,7 @@ class Molecule(object):
         self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
         self.init_growth(cells, p)
 
-        if p.sim_ECM is False:
+        if p.is_ecm is False:
 
             cenv2 = np.delete(self.c_env, target_inds_mem)
             self.c_env = cenv2[:]
@@ -5376,10 +5376,10 @@ class Molecule(object):
 
             effector_MorphEnv = tb.pulse(t,self.change_bounds_start,self.change_bounds_end,self.change_bounds_rate)
 
-            if p.sim_ECM is False:
+            if p.is_ecm is False:
                 self.c_env[:] = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 
-            elif p.sim_ECM is True:
+            elif p.is_ecm is True:
 
                 self.c_bound = self.change_bounds_target*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
                 # self.c_bound = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
@@ -5399,7 +5399,7 @@ class Molecule(object):
 
         headr = headr + 'Cell_Conc_' + self.name + '_mmol/L' + ','
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
 
             cenv = [obj_cenv[cells.map_cell2ecm][ci] for obj_cenv in self.c_env_time]
 

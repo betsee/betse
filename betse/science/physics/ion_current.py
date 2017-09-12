@@ -39,7 +39,7 @@ def get_current(sim, cells, p):
 
 
     # Current in the environment --------------------------------------------------------------------------------------
-    if p.sim_ECM is True:
+    if p.is_ecm is True:
 
         # calculate the net charge in the environment:
         sim.rho_env = np.dot(sim.zs * p.F, sim.cc_env) + sim.extra_rho_env

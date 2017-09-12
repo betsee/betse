@@ -16,7 +16,7 @@ def periodic(pc,cells,p):
 
     Parameters
     ----------
-    pc                 Indices of cells (p.sim_ECM == False) or membranes (p.sim_ECM == True)
+    pc                 Indices of cells (p.is_ecm == False) or membranes (p.is_ecm == True)
     cells              Instance of Cells module
     p                  Instance of parameters
 
@@ -42,7 +42,7 @@ def f_sweep(pc,cells,p):
 
     Parameters
     ----------
-    pc                 Indices of cells (p.sim_ECM == False) or membranes (p.sim_ECM == True)
+    pc                 Indices of cells (p.is_ecm == False) or membranes (p.is_ecm == True)
     cells              Instance of Cells module
     p                  Instance of parameters
 
@@ -82,7 +82,7 @@ def gradient_x(pc, cells,p):
     ---------
     fx
         Data values from 0 to 1 defining a gradient in the x-direciton. If
-        p.sim_ECM == True, length of fx is number of membranes, otherwise length
+        p.is_ecm == True, length of fx is number of membranes, otherwise length
         of fx is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.
@@ -128,7 +128,7 @@ def gradient_xr(pc, cells,p):
     ---------
     fx
         Data values from 0 to 1 defining a gradient in the x-direciton. If
-        p.sim_ECM == True, length of fx is number of membranes, otherwise length
+        p.is_ecm == True, length of fx is number of membranes, otherwise length
         of fx is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.
@@ -163,7 +163,7 @@ def gradient_y(pc, cells,p):
     Creates a spatial gradient along the y-axis from 0 to 1 over a patch
     of cells defined by indices.
 
-    If p.sim_ECM is True, the data is defined and returned on membrane
+    If p.is_ecm is True, the data is defined and returned on membrane
     midpoints, otherwise cell centres are the defining structure.
 
     Parameters
@@ -176,7 +176,7 @@ def gradient_y(pc, cells,p):
     ---------
     fy
         Data values from 0 to 1 defining a gradient in the y-direciton. If
-        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        p.is_ecm == True, length of fy is number of membranes, otherwise length
         of fy is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.
@@ -211,7 +211,7 @@ def gradient_yr(pc, cells,p):
     Creates a spatial gradient along the reverse y-axis from 0 to 1 over a patch
     of cells defined by indices.
 
-    If p.sim_ECM is True, the data is defined and returned on membrane
+    If p.is_ecm is True, the data is defined and returned on membrane
     midpoints, otherwise cell centres are the defining structure.
 
     Parameters
@@ -224,7 +224,7 @@ def gradient_yr(pc, cells,p):
     ---------
     fy
         Data values from 0 to 1 defining a gradient in the y-direciton. If
-        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        p.is_ecm == True, length of fy is number of membranes, otherwise length
         of fy is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.
@@ -259,7 +259,7 @@ def gradient_r(pc, cells,p):
     Creates a spatial gradient in a radial direction from 0 to 1 over a patch
     of cells defined by indices.
 
-    If p.sim_ECM is True, the data is defined and returned on membrane
+    If p.is_ecm is True, the data is defined and returned on membrane
     midpoints, otherwise cell centres are the defining structure.
 
     Parameters
@@ -272,7 +272,7 @@ def gradient_r(pc, cells,p):
     ---------
     r
         Data values from 0 to 1 defining a gradient in the radial direction.  If
-        p.sim_ECM == True, length of r is number of membranes, otherwise length
+        p.is_ecm == True, length of r is number of membranes, otherwise length
         of r is equal to cell number.
     """
 
@@ -303,7 +303,7 @@ def double_y(pc, cells,p):
     Creates a parabolic spatial gradient along the y-axis from 0 to 1 over a patch
     of cells defined by indices.
 
-    If p.sim_ECM is True, the data is defined and returned on membrane
+    If p.is_ecm is True, the data is defined and returned on membrane
     midpoints, otherwise cell centres are the defining structure.
 
     Parameters
@@ -316,7 +316,7 @@ def double_y(pc, cells,p):
     ---------
     fy
         Data values from 0 to 1 defining a gradient in the y-direciton. If
-        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        p.is_ecm == True, length of fy is number of membranes, otherwise length
         of fy is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.
@@ -344,7 +344,7 @@ def double_yr(pc, cells,p):
     Creates a reverse parabolic spatial gradient along the y-axis from 0 to 1 over a patch
     of cells defined by indices (highest in the middle).
 
-    If p.sim_ECM is True, the data is defined and returned on membrane
+    If p.is_ecm is True, the data is defined and returned on membrane
     midpoints, otherwise cell centres are the defining structure.
 
     Parameters
@@ -357,7 +357,7 @@ def double_yr(pc, cells,p):
     ---------
     fy
         Data values from 0 to 1 defining a gradient in the y-direciton. If
-        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        p.is_ecm == True, length of fy is number of membranes, otherwise length
         of fy is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.
@@ -385,7 +385,7 @@ def double_x(pc, cells,p):
     Creates a parabolic spatial gradient along the x-axis from 0 to 1 over a patch
     of cells defined by indices.
 
-    If p.sim_ECM is True, the data is defined and returned on membrane
+    If p.is_ecm is True, the data is defined and returned on membrane
     midpoints, otherwise cell centres are the defining structure.
 
     Parameters
@@ -398,7 +398,7 @@ def double_x(pc, cells,p):
     ---------
     fy
         Data values from 0 to 1 defining a gradient in the y-direciton. If
-        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        p.is_ecm == True, length of fy is number of membranes, otherwise length
         of fy is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.
@@ -426,7 +426,7 @@ def double_xr(pc, cells,p):
     Creates a reverse parabolic spatial gradient along the x-axis from 0 to 1 over a patch
     of cells defined by indices (highest in the middle).
 
-    If p.sim_ECM is True, the data is defined and returned on membrane
+    If p.is_ecm is True, the data is defined and returned on membrane
     midpoints, otherwise cell centres are the defining structure.
 
     Parameters
@@ -439,7 +439,7 @@ def double_xr(pc, cells,p):
     ---------
     fy
         Data values from 0 to 1 defining a gradient in the y-direciton. If
-        p.sim_ECM == True, length of fy is number of membranes, otherwise length
+        p.is_ecm == True, length of fy is number of membranes, otherwise length
         of fy is equal to cell number.
     dynamics
         Null quantity corresponding to time dynamics.

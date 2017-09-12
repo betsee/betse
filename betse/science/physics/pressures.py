@@ -13,7 +13,7 @@ def osmotic_P(sim, cells, p):
     sim.osmo_P_cell = np.sum(p.R * sim.T * sim.cc_cells, axis=0)
     sim.osmo_P_env = np.sum(p.R * sim.T * sim.cc_env, axis=0)
 
-    if p.sim_ECM is False:
+    if p.is_ecm is False:
 
         op_env = np.dot(cells.M_sum_mems, sim.osmo_P_env)/cells.num_mems
 
@@ -50,7 +50,7 @@ def osmotic_P(sim, cells, p):
     # reassign mem volume:
     cells.mem_vol = cells.mem_vol/vol_ratio[cells.mem_to_cells]
 
-    # if p.sim_ECM is True:
+    # if p.is_ecm is True:
     #     vo_ecm = cells.ecm_vol[cells.map_cell2ecm]
     #     v1_ecm = (1 - sim.delta_vol) * vo_ecm
     #

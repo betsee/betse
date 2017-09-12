@@ -101,7 +101,7 @@ class WoundABC(ChannelsABC, metaclass=ABCMeta):
         c_mem_Na = sim.cc_cells[sim.iNa][cells.mem_to_cells]
         c_mem_K = sim.cc_cells[sim.iK][cells.mem_to_cells]
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
             c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
             c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
 

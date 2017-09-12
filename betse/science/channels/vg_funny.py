@@ -88,7 +88,7 @@ class VgFunABC(ChannelsABC, metaclass=ABCMeta):
         if p.ions_dict['Ca'] == 1:
             c_mem_Ca = sim.cc_cells[sim.iCa][cells.mem_to_cells]
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
             c_env_Na = sim.cc_env[sim.iNa][cells.map_mem2ecm]
             c_env_K = sim.cc_env[sim.iK][cells.map_mem2ecm]
 

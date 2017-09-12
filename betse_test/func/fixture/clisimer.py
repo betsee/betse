@@ -8,11 +8,13 @@ Fixtures and fixture classes efficiently exercising multiple subcommands of the
 BETSE CLI in the active Python interpreter.
 '''
 
+from pytest import fixture
+
 # ....................{ IMPORTS                            }....................
 from betse.util.type.types import type_check, SequenceTypes
 from betse_test.fixture.simconfig.simconfer import SimTestState
 from betse_test.func.fixture.clier import CLITester
-from pytest import fixture
+
 
 # ....................{ CLASSES ~ sim                      }....................
 class CLISimTester(object):
@@ -211,7 +213,7 @@ class CLISimTester(object):
         '''
 
         # Defer heavyweight imports.
-        from betse.util.type import strs
+        from betse.util.type.text import strs
 
         # Maximum length of the single-line banner to be printed.
         BANNER_LEN_MAX = 80

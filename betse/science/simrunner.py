@@ -257,7 +257,7 @@ class SimRunner(object):
 
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
-            p.sim_ECM = cells.sim_ECM
+            p.is_ecm = cells.is_ecm
 
             # check to ensure compatibility between original and present sim files:
             self._die_unless_seed_same(p_old, p)
@@ -525,7 +525,7 @@ class SimRunner(object):
 
         if files.is_file(cells.savedWorld):
             cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            p.sim_ECM = cells.sim_ECM
+            p.is_ecm = cells.is_ecm
             logs.log_info('Cell cluster loaded.')
         else:
             raise BetseSimException(
@@ -558,7 +558,7 @@ class SimRunner(object):
             if p.turn_all_plots_off is False:
                 plt.show(block = False)
 
-        if p.sim_ECM is True and p.plot_cluster_mask is True:
+        if p.is_ecm is True and p.plot_cluster_mask is True:
             plt.figure()
             ax99 = plt.subplot(111)
             plt.imshow(

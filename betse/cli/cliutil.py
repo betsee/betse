@@ -17,7 +17,7 @@ Low-level command line interface (CLI) utilities.
 
 from betse import metadata
 from betse.util.path.command import cmds
-from betse.util.type import strs
+from betse.util.type.text import strs
 from betse.util.type.types import type_check
 
 # ....................{ EXPANDERS                          }....................

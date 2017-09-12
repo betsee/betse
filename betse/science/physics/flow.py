@@ -15,7 +15,7 @@ def getFlow(sim, cells, p):
 
     # First do extracellular space electroosmotic flow--------------------------------------------------------------
 
-    if p.sim_ECM is True:
+    if p.is_ecm is True:
 
         # electrostatic body forces in environment:
         FFx = sim.rho_env.reshape(cells.X.shape)*sim.J_env_x*(1/sim.sigma)

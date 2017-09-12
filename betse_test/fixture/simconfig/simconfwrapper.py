@@ -444,7 +444,7 @@ class SimConfigTestWrapper(object):
         self.disable_visuals()
 
         # Enable all features required by these channels.
-        self._p.sim_ECM = True
+        self._p.is_ecm = True
         self.ion_profile = 'animal'
 
         # For stability, decrease both the time step and sampling rates.
@@ -540,7 +540,7 @@ class SimConfigTestWrapper(object):
         self._enable_visuals_common()
 
         # Disable extracellular spaces.
-        self._p.sim_ECM = False
+        self._p.is_ecm = False
 
         # For each type of export pipeline to be exercised and list of all
         # currently enabled exporters in this pipeline...
@@ -578,7 +578,7 @@ class SimConfigTestWrapper(object):
         self._enable_visuals_common()
 
         # Enable extracellular spaces.
-        self._p.sim_ECM = True
+        self._p.is_ecm = True
 
         # For each type of export pipeline to be exercised and list of all
         # currently enabled exporters in this pipeline...

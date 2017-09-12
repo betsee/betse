@@ -10,15 +10,17 @@ activities to be iteratively run) functionality.
 
 # ....................{ IMPORTS                            }....................
 from abc import ABCMeta, abstractproperty
+
 from betse.exceptions import (
     BetseSimPipeException, BetseSimPipeRunnerUnsatisfiedException)
 from betse.science.simulate.pipe.piperun import (
     SimPipeRunner, SimPipeRunnerConfMixin)
 from betse.science.simulate.simphase import SimPhase
 from betse.util.io.log import logs
-from betse.util.type import strs
 from betse.util.type.obj import objects
+from betse.util.type.text import strs
 from betse.util.type.types import type_check, GeneratorType, IterableTypes
+
 
 # ....................{ SUPERCLASSES                       }....................
 class SimPipeABC(object, metaclass=ABCMeta):

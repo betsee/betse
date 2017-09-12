@@ -18,8 +18,7 @@ from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
-from betse.util.type.types import (
-    type_check, IterableTypes, NumericTypes, SequenceTypes)
+from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 from collections import OrderedDict
 
 # ....................{ CLASSES                            }....................
@@ -61,20 +60,24 @@ class Parameters(YamlFileABC):
         relative to the absolute path of the directory containing this
         simulation configuration's YAML file.
 
-    Attributes (Grid)
+    Attributes (Space: Environment)
     ----------
     grid_size : int
-        Number of square grid spaces (in both the horizontal and vertical
-        directions) to computationally divide this simulation's square
-        environment into. Increasing this number increases simulation
-        granularity and hence stability at a quadratic cost in space and time
-        consumption (i.e., ``O(grid_size ** 2)``). This number is strongly
-        recommended to reside in the range ``[10, 60]`` for most simulations.
-    sim_ECM : bool
-        ``True`` only if the extracellular matrix (ECM), also referred to as
-        extracellular spaces, is enabled for this simulation. Disabling this
-        matrix reduces the accuracy of simulation results at a substantial
-        reduction in space and time consumption.
+        Number of square grid spaces (in both the X and Y dimensions) to
+        computationally divide this simulation's square environment into.
+        Increasing this increases simulation granularity and hence stability at
+        a quadratic increase in space and time costs (i.e., ``O(grid_size **
+        2)``). This should typically be in the range ``[10,
+        60]``.
+    is_ecm : bool
+        ``True`` only if the extracellular matrix (ECM) simulating
+        **extracellular spaces** (i.e., the environment surrounding each cell in
+        the cluster) is enabled. Disabling this reduces simulation accuracy at a
+        substantial reduction in space and time costs.
+    world_len : float
+        Length in meters of both the X and Y dimensions of this simulation's
+        square environment. This should typically be in the range ``[80e-6,
+        1000e-6]``.
 
     Attributes (Time: Total)
     ----------
@@ -174,6 +177,13 @@ class Parameters(YamlFileABC):
         to be associated with particular simulation constants and parameters).
     '''
 
+    # ..................{ ALIASES                            }..................
+    # To simplify computation throughout the codebase, time quantities are
+    # required to be floating point rather the more general "NumericTypes" type
+    # (i.e., either floating point or integer). Due to magic internal to the
+    # yaml_alias() data descriptor, integer values are both silently and safely
+    # cast to floating point values.
+
     # ..................{ ALIASES ~ export : dir             }..................
     init_export_dirname = yaml_alias(
         "['results file saving']['init directory']", str)
@@ -189,13 +199,13 @@ class Parameters(YamlFileABC):
     init_pickle_basename = yaml_alias("['init file saving']['file']", str)
     sim_pickle_basename  = yaml_alias("['sim file saving']['file']", str)
 
-    # ..................{ ALIASES ~ time : total             }..................
-    # To simplify computation throughout the codebase, time quantities are
-    # required to be floating point rather the more general "NumericTypes" type
-    # (i.e., either floating point or integer). Due to magic internal to the
-    # yaml_alias() data descriptor, integer values are both silently and safely
-    # cast to floating point values.
+    # ..................{ ALIASES ~ space : env              }..................
+    grid_size = yaml_alias("['general options']['comp grid size']", int)
+    is_ecm = yaml_alias(
+        "['general options']['simulate extracellular spaces']", bool)
+    world_len = yaml_alias("['world options']['world size']", float)
 
+    # ..................{ ALIASES ~ time : total             }..................
     init_time_total = yaml_alias("['init time settings']['total time']", float)
     sim_time_total  = yaml_alias("['sim time settings']['total time']", float)
 
@@ -209,16 +219,9 @@ class Parameters(YamlFileABC):
     sim_time_sampling = yaml_alias(
         "['sim time settings']['sampling rate']", float)
 
-    # ..................{ ALIASES ~ grid                     }..................
-    grid_size = yaml_alias("['general options']['comp grid size']", int)
-
-    #FIXME: Rename to "is_grid_ecm" for orthogonality.
-    sim_ECM = yaml_alias(
-        "['general options']['simulate extracellular spaces']", bool)
-
     # ..................{ ALIASES ~ scalar                   }..................
     cell_polarizability = yaml_alias(
-        "['internal parameters']['cell polarizability']", NumericTypes)
+        "['internal parameters']['cell polarizability']", float)
 
     # ..................{ READERS                            }..................
     #FIXME: Convert all or most of the variables parsed in the read() method
@@ -294,10 +297,9 @@ class Parameters(YamlFileABC):
         # WORLD OPTIONS
         #---------------------------------------------------------------------------------------------------------------
 
-
         # Geometric constants and factors
-        self.wsx = float(self._conf['world options']['world size'])  # the x-dimension of the world space
-        self.wsy = self.wsx  # the y-dimension of the world space [m]
+        self.wsx = self.world_len  # the x-dimension of the world space [m]
+        self.wsy = self.world_len  # the y-dimension of the world space [m]
         self.rc = float(self._conf['world options']['cell radius'])  # radius of single cell
         self.cell_height = float(self._conf['world options']['cell height'])  # the height of a cell in the z-direction
         self.lattice_type = self._conf['world options']['lattice type']  # hex or rect lattice base
@@ -1470,7 +1472,7 @@ class Parameters(YamlFileABC):
         the extracellular matrix and hence environmental grid spaces.
         '''
 
-        if not self.sim_ECM:
+        if not self.is_ecm:
             raise BetseSimConfigException(
                 'Extracellular spaces disabled by '
                 'this simulation configuration.')

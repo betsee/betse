@@ -474,7 +474,7 @@ def escape_ml(text: str) -> str:
     directly displayed as HTML to end users. For example, the following call to
     this function preserves a JavaScript fragment unescaped:
 
-        >>> from betse.util.type import strs
+        >>> from betse.util.type.text import strs
         >>> strs.escape_ml('<a href="javascript:alert()">')
         '&lt;a href=&quot;javascript:alert()&quot;&gt;'
 

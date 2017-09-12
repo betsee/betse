@@ -464,7 +464,7 @@ class Simulator(object):
         self.mdl = len(cells.mem_i)  # mems-data-length
         self.cdl = len(cells.cell_i)  # cells-data-length
 
-        if p.sim_ECM is True:  # set environnment data length
+        if p.is_ecm is True:  # set environnment data length
             self.edl = len(cells.xypts)
         else:
             self.edl = self.mdl
@@ -533,7 +533,7 @@ class Simulator(object):
         self.E_cell_x = np.zeros(self.mdl)   # intracellular electric field components (macro-field)
         self.E_cell_y = np.zeros(self.mdl)
 
-        if p.sim_ECM:  # special items specific to simulation of extracellular spaces only:
+        if p.is_ecm:  # special items specific to simulation of extracellular spaces only:
 
             # vectors storing separate cell and env voltages
             # self.phi_env = np.zeros(self.mdl) # voltage at the external membrane (at the outer edl)
@@ -603,7 +603,7 @@ class Simulator(object):
                     vars(self)[str_Dgj][:] = p.free_diff[name]
 
                     # environmental diffusion for each ion:
-                    if p.sim_ECM:
+                    if p.is_ecm:
                         str_Denv = 'D' + name
 
                         setattr(self, str_Denv, np.zeros(len(cells.xypts)))
@@ -615,7 +615,7 @@ class Simulator(object):
                     setattr(self, str_z, np.zeros(self.cdl))
                     vars(self)[str_z][:] = p.ion_charge[name]
 
-                    if p.sim_ECM:  # ion charge characteristic for extracellular:
+                    if p.is_ecm:  # ion charge characteristic for extracellular:
                         str_z2 = 'z2' + name
 
                         setattr(self, str_z2, np.zeros(len(cells.xypts)))
@@ -633,7 +633,7 @@ class Simulator(object):
 
                     self.fluxes_mem.append(self.flx_mem_i)
 
-                    if p.sim_ECM:
+                    if p.is_ecm:
                         self.c_env_bound.append(p.env_concs[name])
                         self.z_array_env.append(vars(self)[str_z2])
                         self.D_env.append(vars(self)[str_Denv])
@@ -693,7 +693,7 @@ class Simulator(object):
             DgjH = np.zeros(len(cells.nn_i))
             DgjH[:] = p.free_diff['H']
 
-            if p.sim_ECM is True:
+            if p.is_ecm is True:
                 self.zH2 = np.zeros(len(cells.xypts))
                 self.zH2[:] = p.z_H
 
@@ -719,7 +719,7 @@ class Simulator(object):
 
             self.fluxes_mem.append(self.flx_mem_i)
 
-            if p.sim_ECM is True:
+            if p.is_ecm is True:
                 self.z_array_env.append(self.zH2)
                 self.D_env.append(DenvH)
                 self.Dtj_rel.append(p.Dtj_rel['H'])
@@ -737,7 +737,7 @@ class Simulator(object):
         self.molar_mass = np.asarray(self.molar_mass)
         self.fluxes_mem = np.asarray(self.fluxes_mem)
 
-        if p.sim_ECM:  # items specific for extracellular spaces simulation:
+        if p.is_ecm:  # items specific for extracellular spaces simulation:
             self.z_array_env = np.asarray(self.z_array_env)
             self.D_env = np.asarray(self.D_env)
 
@@ -795,7 +795,7 @@ class Simulator(object):
         # Initialize diffusion constants for the extracellular transport:
         self.initDenv(cells, p)
 
-        if p.sim_ECM:
+        if p.is_ecm:
             # re-init global boundary fixed concentrations:
             for key, val in p.ions_dict.items():
 
@@ -812,7 +812,7 @@ class Simulator(object):
         self.dyna = TissueHandler(self, cells, p)   # create the tissue dynamics object
         self.dyna.tissueProfiles(self, cells, p)  # initialize all tissue profiles
 
-        if p.sim_ECM:
+        if p.is_ecm:
             # create a copy-base of the environmental junctions diffusion constants:
             self.D_env_base = copy.copy(self.D_env)
 
@@ -978,7 +978,7 @@ class Simulator(object):
             self.u_gj_x = np.zeros(self.mdl)
             self.u_gj_y = np.zeros(self.mdl)
 
-            if p.sim_ECM is True:
+            if p.is_ecm is True:
 
                 # initialize flow vectors:
                 self.u_env_x = np.zeros(cells.X.shape)
@@ -1178,7 +1178,7 @@ class Simulator(object):
             self.fluxes_mem.fill(0)
             self.fluxes_gj.fill(0)
 
-            if p.sim_ECM:
+            if p.is_ecm:
                 self.fluxes_env_x = np.zeros((len(self.zs), self.edl))
                 self.fluxes_env_y = np.zeros((len(self.zs), self.edl))
                 # self.Phi_vect = np.zeros((len(self.zs), self.edl))
@@ -1192,7 +1192,7 @@ class Simulator(object):
 
             # -----------------PUMPS-------------------------------------------------------------------------------------
 
-            if p.sim_ECM is True:
+            if p.is_ecm is True:
                 # run the Na-K-ATPase pump:
                 fNa_NaK, fK_NaK, self.rate_NaKATP = stb.pumpNaKATP(
                     self.cc_at_mem[self.iNa],
@@ -1260,7 +1260,7 @@ class Simulator(object):
 
                 IdM = np.ones(self.mdl)
 
-                if p.sim_ECM:
+                if p.is_ecm:
 
                     f_ED = stb.electroflux(self.cc_env[i][cells.map_mem2ecm], self.cc_at_mem[i],
                         self.Dm_cells[i], IdM*p.tm, self.zs[i]*IdM, self.vm, self.T, p,
@@ -1288,7 +1288,7 @@ class Simulator(object):
                 # update flux between cells due to gap junctions
                 self.update_gj(cells, p, t, i)
 
-                if p.sim_ECM:
+                if p.is_ecm:
                     #update concentrations in the extracellular spaces:
                     self.update_ecm(cells, p, t, i)
 
@@ -1552,7 +1552,7 @@ class Simulator(object):
         if p.Ca_dyn is True:
             self.endo_retic.clear_cache()
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
 
             self.venv_time = []
 
@@ -1650,7 +1650,7 @@ class Simulator(object):
         self.I_tot_x_time.append(self.J_env_x[:])
         self.I_tot_y_time.append(self.J_env_y[:])
 
-        if p.sim_ECM:
+        if p.is_ecm:
             self.efield_ecm_x_time.append(self.E_env_x[:])
             self.efield_ecm_y_time.append(self.E_env_y[:])
 
@@ -1750,9 +1750,9 @@ class Simulator(object):
             'If you have selected features using other ions, '
             'they will be ignored.')
 
-        logs.log_info('Considering extracellular spaces: ' + str(p.sim_ECM))
+        logs.log_info('Considering extracellular spaces: ' + str(p.is_ecm))
 
-        if p.sim_ECM:
+        if p.is_ecm:
             logs.log_info('Cells per env grid square ' + str(round(cells.ratio_cell2ecm, 2)))
 
         logs.log_info('Electroosmotic fluid flow: ' + str(p.fluid_flow))
@@ -1788,7 +1788,7 @@ class Simulator(object):
 
         self.get_rho_mem(cells, p)
 
-        if p.sim_ECM is False:
+        if p.is_ecm is False:
 
             if p.cell_polarizability == 0.0:  # allow users to have "simple" case behaviour
 
@@ -1865,7 +1865,7 @@ class Simulator(object):
 
     def ca_handler(self,cells,p):
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
 
             # run Ca-ATPase
 
@@ -2117,7 +2117,7 @@ class Simulator(object):
         matrices, including tight and adherin junctions.
         '''
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
 
             for i, dmat in enumerate(self.D_env):
 

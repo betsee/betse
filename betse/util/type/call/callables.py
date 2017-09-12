@@ -7,6 +7,8 @@
 Low-level **callable** (e.g., function, lambda, method, property) facilities.
 '''
 
+from functools import wraps
+
 # ....................{ IMPORTS                            }....................
 from betse.util.io.log import logs
 from betse.util.type.types import (
@@ -20,7 +22,6 @@ from betse.util.type.types import (
     MethodType,
     MethodTypes
 )
-from functools import wraps
 
 if False: wraps  # silence contemptible IDE warnings
 
@@ -47,7 +48,7 @@ def deprecated(func: CallableTypes) -> CallableTypes:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import strs
+    from betse.util.type.text import strs
 
     # True only if this callable has had a deprecation warning logged.
     func.__is_deprecation_logged = False

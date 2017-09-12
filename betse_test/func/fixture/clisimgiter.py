@@ -135,7 +135,7 @@ def betse_git_clone(
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type import strs
+    from betse.util.type.text import strs
 
     # Name of the current test.
     test_name = requests.get_tested_name(request)

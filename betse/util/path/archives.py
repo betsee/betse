@@ -89,6 +89,7 @@ directories _and_ non-directory files) facilities.
 
 # ....................{ IMPORTS                            }....................
 from io import BufferedIOBase
+
 from betse.exceptions import BetseArchiveException
 from betse.util.type.types import type_check
 
@@ -159,7 +160,7 @@ def die_unless_filetype(pathname: str) -> None:
         # Avoid circular import dependencies.
         from betse.util.path import pathnames
         from betse.util.type import modules
-        from betse.util.type import strs
+        from betse.util.type.text import strs
 
         # Filetype of this pathname if any or raise an exception otherwise.
         filetype = pathnames.get_filetype_undotted(pathname)

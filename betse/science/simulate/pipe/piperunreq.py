@@ -155,7 +155,7 @@ class SimPipeRunnerRequirementBoolExpr(SimPipeRunnerRequirementBodies):
             Arbitrarily complex Python expression relative to the current
             simulation phase evaluating to a gettable and settable attribute
             whose value is this requirement's boolean state (e.g.,
-            ``phase.p.sim_ECM``). This expression may (and typically should)
+            ``phase.p.is_ecm``). This expression may (and typically should)
             refer to the ``phase`` variable, bound to the current simulation
             phase.
 
@@ -215,7 +215,7 @@ Requirement that a simulation phase enable cellular deformations.
 
 
 ECM = SimPipeRunnerRequirementBoolExpr(
-    name='extracellular spaces', bool_expr='phase.p.sim_ECM')
+    name='extracellular spaces', bool_expr='phase.p.is_ecm')
 '''
 Requirement that a simulation phase enable the extracellular matrix (ECM), also
 referred to as "extracellular spaces."

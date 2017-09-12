@@ -251,7 +251,7 @@ class AnimCellsABC(VisualCellsABC):
 
         # If this subclass requires extracellular spaces but extracellular
         # spaces are currently disabled, raise an exception.
-        if is_ecm_required and not self._phase.p.sim_ECM:
+        if is_ecm_required and not self._phase.p.is_ecm:
             raise BetseSimConfigException(
                 'Animation "{}" requires extracellular spaces, which are '
                 'disabled by the current simulation configuration.'.format(
@@ -262,7 +262,7 @@ class AnimCellsABC(VisualCellsABC):
             is_current_overlayable = self._phase.p.I_overlay
         if is_current_overlay_only_gj is None:
             is_current_overlay_only_gj = not (
-                self._phase.p.sim_ECM and self._phase.p.IecmPlot)
+                self._phase.p.is_ecm and self._phase.p.IecmPlot)
         if time_step_count is None:
             time_step_count = len(self._phase.sim.time)
 

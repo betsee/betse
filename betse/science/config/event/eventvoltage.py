@@ -104,7 +104,7 @@ def make(p: 'betse.science.parameters.Parameters') -> (SimEventPulseVoltage, Non
 
     if bool(aev['event happens']):
         # If extracellular spaces are enabled, parse this event.
-        if p.sim_ECM:
+        if p.is_ecm:
             event = SimEventPulseVoltage(
                 start_time=float(aev['change start']),
                 stop_time=float(aev['change finish']),

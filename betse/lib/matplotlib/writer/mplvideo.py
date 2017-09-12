@@ -11,14 +11,13 @@ Matplotlib-specific classes writing animations as video.
 
 # ....................{ IMPORTS                            }....................
 from matplotlib.animation import FFMpegBase, MovieWriter, writers
-
-import betse.util.os.shell.shellstr
 from betse.exceptions import BetseMatplotlibException
 from betse.util.io.log import logs
+from betse.util.os.shell import shellstr
 from betse.util.path.command import cmdrun
-from betse.util.type import regexes, strs
 from betse.util.type.cls import classes
 from betse.util.type.mapping.mapcls import ReversibleDict
+from betse.util.type.text import regexes, strs
 from betse.util.type.types import (
     type_check, ClassType, NoneType, SequenceTypes, StrOrNoneTypes)
 
@@ -475,7 +474,7 @@ def is_writer_command_codec(
         ffmpeg_command_words = (
             writer_filename,
             '-help',
-            'encoder=' + betse.util.os.shell.shellstr.shell_quote(codec_name),
+            'encoder=' + shellstr.shell_quote(codec_name),
         )
 
         # Help documentation for this codec captured from "ffmpeg".
@@ -493,7 +492,7 @@ def is_writer_command_codec(
         avconv_command_words = (
             writer_filename,
             '-help',
-            'encoder=' + betse.util.os.shell.shellstr.shell_quote(codec_name),
+            'encoder=' + shellstr.shell_quote(codec_name),
         )
 
         # Help documentation for this codec captured from "avconv".

@@ -45,7 +45,7 @@ Examples
 This expression is intended to be used in substitutions converting CamelCase to
 some other format. For example, to convert CamelCase to snake_case:
 
-    >>> from betse.util.type import regexes
+    >>> from betse.util.type.text import regexes
     >>> regexes.replace_substrs(
     ...     'MesseIoXaVIaX',
     ...     rexeges.IDENTIFIER_CHAR_CAMELCASE_REGEX,
@@ -90,7 +90,7 @@ def convert_camelcase_to_snakecase(identifier: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import regexes
+    from betse.util.type.text import regexes
 
     # Munge this identifier.
     return regexes.replace_substrs(
@@ -107,7 +107,7 @@ def convert_camelcase_to_whitespaced_lowercase(identifier: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import regexes
+    from betse.util.type.text import regexes
 
     # Munge this identifier.
     return regexes.replace_substrs(
@@ -149,7 +149,7 @@ def sanitize_camelcase(identifier: str) -> str:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import regexes
+    from betse.util.type.text import regexes
 
     # Identifier sanitized from this unsanitized identifier as detailed above.
     identifier_sanitized = regexes.replace_substrs(

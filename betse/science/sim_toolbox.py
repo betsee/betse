@@ -941,7 +941,7 @@ def ghk_calculator(sim, cells, p):
         Dm = np.dot(cells.M_sum_mems, sim.Dm_cells[i]) / cells.num_mems
         conc_cells = sim.cc_cells[i]
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
             # average entities from membranes to the cell centres:
             conc_env = np.dot(cells.M_sum_mems, sim.cc_env[i][cells.map_mem2ecm]) / cells.num_mems
 
@@ -1023,7 +1023,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
         cADP = met['cADP']  # concentration of ADP in mmol/L
         cPi = met['cPi']  # concentration of Pi in mmol/L
 
-    if p.sim_ECM is True:
+    if p.is_ecm is True:
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
@@ -1092,7 +1092,7 @@ def molecule_pump(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_into_ce
     cX_cell_1, _, cX_env_1 = update_Co(sim, cX_cell_o, cmems, cX_env_o, f_X, cells, p, ignoreECM = ignoreECM)
 
 
-    if p.sim_ECM is False:
+    if p.is_ecm is False:
         cX_env_1_temp = cX_env_1.mean()
         cX_env_1[:] = cX_env_1_temp
 
@@ -1137,7 +1137,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
 
     """
 
-    if p.sim_ECM is True:
+    if p.is_ecm is True:
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
@@ -1214,7 +1214,7 @@ def molecule_transporter(sim, cX_cell_o, cX_env_o, cells, p, Df=1e-9, z=0, pump_
     # cX_env_1 = no_negs(cX_env_1)
 
 
-    if p.sim_ECM is False:
+    if p.is_ecm is False:
         cX_env_1_temp = cX_env_1.mean()
         cX_env_1[:] = cX_env_1_temp
 
@@ -1225,7 +1225,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     """
     Transports a generic molecule across the membrane,
-    through gap junctions, and if p.sim_ECM is true,
+    through gap junctions, and if p.is_ecm is true,
     through extracellular spaces and the environment.
 
     Parameters
@@ -1237,7 +1237,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     z                   Charge state of molecule
     Dm                  Membrane diffusion constant [m2/s]
     Do                  Free diffusion constant [m2/s]
-    c_bound             Concentration of molecule at global bounds (required for sim_ECM True only)
+    c_bound             Concentration of molecule at global bounds (required for is_ecm True only)
 
     Returns
     -----------
@@ -1247,7 +1247,7 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
     """
 
 
-    if p.sim_ECM is True:
+    if p.is_ecm is True:
 
         cX_env = cX_env_o[cells.map_mem2ecm]
 
@@ -1323,9 +1323,9 @@ def molecule_mover(sim, cX_env_o, cX_cells, cells, p, z=0, Dm=1.0e-18, Do=1.0e-9
 
     #------------------------------------------------------------------------------------------------------------
 
-    # Transport through environment, if p.sim_ECM is True-----------------------------------------------------
+    # Transport through environment, if p.is_ecm is True-----------------------------------------------------
 
-    if p.sim_ECM is True: #-----------------------------------------------------------------------------------------
+    if p.is_ecm is True: #-----------------------------------------------------------------------------------------
 
         cenv = cX_env_o
         cenv = cenv.reshape(cells.X.shape)
@@ -1404,7 +1404,7 @@ def update_Co(sim, cX_cell, cX_mem, cX_env, flux, cells, p, ignoreECM = True):
 
     cX_mem = cX_mem + flux*(cells.mem_sa/cells.mem_vol)*p.dt
 
-    if p.sim_ECM is True:
+    if p.is_ecm is True:
 
         flux_env = np.zeros(sim.edl)
         flux_env[cells.map_mem2ecm] = -flux

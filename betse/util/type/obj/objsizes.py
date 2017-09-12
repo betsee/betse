@@ -335,7 +335,8 @@ def get_size_profile(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import iterables, strs
+    from betse.util.type import iterables
+    from betse.util.type.text import strs
     from betse.util.type.numeric.ints import MiB
     from betse.util.type.obj import objects
 

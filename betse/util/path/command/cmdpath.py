@@ -11,8 +11,10 @@ or absolute path) facilities.
 
 # ....................{ IMPORTS                            }....................
 import shutil
+
 from betse.exceptions import BetseCommandException
 from betse.util.type.types import type_check, SequenceTypes, StrOrNoneTypes
+
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -143,7 +145,7 @@ def get_first_basename(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import strs
+    from betse.util.type.text import strs
 
     # Return the first pathable string in this list.
     for command_basename in command_basenames:

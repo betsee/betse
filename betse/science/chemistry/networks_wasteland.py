@@ -128,7 +128,7 @@ and plot.
 #                 obj.c_er = np.ones(sim.cdl)*obj.c_ero
 #
 #             # initialize concentration in the environment:
-#             if p.sim_ECM is False:
+#             if p.is_ecm is False:
 #                 obj.c_env = np.ones(sim.mdl) * obj.c_envo
 #             else:
 #                 obj.c_env = np.ones(sim.edl) * obj.c_envo
@@ -195,7 +195,7 @@ and plot.
 #                     obj.c_er = np.ones(sim.cdl) * obj.c_ero
 #
 #                 # initialize concentration in the environment:
-#                 if p.sim_ECM is False:
+#                 if p.is_ecm is False:
 #                     obj.c_env = np.ones(sim.mdl) * obj.c_envo
 #                 else:
 #                     obj.c_env = np.ones(sim.edl) * obj.c_envo
@@ -1038,7 +1038,7 @@ and plot.
 #             obj.plot_cells(sim, cells, p, self.imagePath)
 #
 #             # if there's a real environment, plot 2D concentration in the environment
-#             if p.sim_ECM:
+#             if p.is_ecm:
 #
 #                 obj.plot_env(sim, cells, p, self.imagePath)
 #
@@ -1087,7 +1087,7 @@ and plot.
 #         for i, name in enumerate(self.molecule_names):
 #             obj = getattr(self, name)
 #
-#             if p.sim_ECM is True:
+#             if p.is_ecm is True:
 #                 c_env = [arr[cells.map_cell2ecm][p.plot_cell] for arr in obj.c_env_time]
 #
 #             else:
@@ -1184,7 +1184,7 @@ and plot.
 #         # 1 D plot of pH in cell, env and mit ------------------------------------------------------
 #         pHcell = [arr[p.plot_cell] for arr in self.pH_cells_time]
 #
-#         if p.sim_ECM:
+#         if p.is_ecm:
 #             pHenv = [arr[cells.map_cell2ecm][p.plot_cell] for arr in self.pH_env_time]
 #
 #         else:
@@ -1402,7 +1402,7 @@ and plot.
 #                 obj.anim_cells(sim, cells, p)
 #
 #                 # create 2D animations for the substance in the environment
-#                 if p.sim_ECM:
+#                 if p.is_ecm:
 #
 #                     obj.anim_env(sim, cells, p)
 #
@@ -1464,7 +1464,7 @@ and plot.
 #     def transport(self, sim, cells, p):
 #         """
 #         Transports the molecule across the membrane,
-#         through gap junctions, and if p.sim_ECM is true,
+#         through gap junctions, and if p.is_ecm is true,
 #         through extracellular spaces and the environment.
 #
 #         """
@@ -1575,7 +1575,7 @@ and plot.
 #
 #                     sim.Dm_morpho[ion_tag] = sim.rho_channel*Dm_mod_mol*activator_alpha*inhibitor_alpha
 #
-#             elif self.gating_extracell is True and p.sim_ECM is True:
+#             elif self.gating_extracell is True and p.is_ecm is True:
 #
 #                 for ion_tag in self.gating_ion:
 #
@@ -1658,7 +1658,7 @@ and plot.
 #         self.dummy_dyna.tissueProfiles(sim, cells, p)  # re-initialize all tissue profiles
 #         self.init_growth(cells, p)
 #
-#         if p.sim_ECM is False:
+#         if p.is_ecm is False:
 #
 #             cenv2 = np.delete(self.c_env, target_inds_mem)
 #             self.c_env = cenv2[:]
@@ -1683,10 +1683,10 @@ and plot.
 #
 #             effector_MorphEnv = tb.pulse(t,self.change_bounds_start,self.change_bounds_end,self.change_bounds_rate)
 #
-#             if p.sim_ECM is False:
+#             if p.is_ecm is False:
 #                 self.c_env[:] = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 #
-#             elif p.sim_ECM is True: # simulate addition of counter salt to maintain charge neutrality:
+#             elif p.is_ecm is True: # simulate addition of counter salt to maintain charge neutrality:
 #                 self.c_bound = self.conc_MorphEnv*effector_MorphEnv + self.c_envo*(1-effector_MorphEnv)
 #
 #     def export_data(self, sim, cells, p, savePath):
@@ -1704,7 +1704,7 @@ and plot.
 #
 #         headr = headr + 'Cell_Conc_' + self.name + '_mmol/L' + ','
 #
-#         if p.sim_ECM is True:
+#         if p.is_ecm is True:
 #
 #             cenv = [obj_cenv[cells.map_cell2ecm][ci] for obj_cenv in self.c_env_time]
 #
@@ -2429,7 +2429,7 @@ and plot.
 #
 #             elif type_tag == 'c_env':
 #
-#                 if p.sim_ECM is False:
+#                 if p.is_ecm is False:
 #
 #                     deltaC = deltaMoles/cells.mem_sa
 #
@@ -2455,7 +2455,7 @@ and plot.
 #                         sim_conc[ion_check] = conc
 #
 #
-#                 elif p.sim_ECM is True:
+#                 elif p.is_ecm is True:
 #
 #                     flux = deltaMoles/cells.mem_sa
 #
@@ -2582,7 +2582,7 @@ and plot.
 #
 #             elif type_tag == 'c_env':
 #
-#                 if p.sim_ECM is False:
+#                 if p.is_ecm is False:
 #
 #                     deltaC = deltaMoles / cells.mem_sa
 #
@@ -2610,7 +2610,7 @@ and plot.
 #
 #
 #
-#                 elif p.sim_ECM is True:
+#                 elif p.is_ecm is True:
 #
 #                     flux = deltaMoles / cells.mem_sa
 #
@@ -3127,7 +3127,7 @@ and plot.
 #         modulator = self.max_val*activator_alpha * inhibitor_alpha
 #
 #         # make size alteration for case of true environment:
-#         if p.sim_ECM is True and self.zone == 'env':
+#         if p.is_ecm is True and self.zone == 'env':
 #             modulator = modulator[cells.map_mem2ecm]
 #
 #         if self.target_label == 'gj':
@@ -3477,7 +3477,7 @@ and plot.
 #
 #         if type_self == 'c_env' or type_sim == 'cc_env':
 #
-#             if p.sim_ECM:
+#             if p.is_ecm:
 #                 c = c[cells.map_mem2ecm]
 #
 #         return z, c

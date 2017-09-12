@@ -136,11 +136,11 @@ general options:
 
 world options:
 
-  world size: 250e-6      # dimension of the square world space [m]
+  world size: 250e-6    # dimension of the square world space [m]
                           # the world is square with x = y.
                           # recommended range 80e-6 to 1000e-6 m
 
-  cell radius: 5e-6       # radius of single cell [m]
+  cell radius: 5.0e-6     # radius of single cell [m]
                           # recommended ~ 5.0e-6
 
   cell height: 10.0e-6     # the height of a cell in the z-direction [m]

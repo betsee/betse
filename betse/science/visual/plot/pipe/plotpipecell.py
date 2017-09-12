@@ -64,7 +64,7 @@ class PlotCellPipe(PlotPipeABC):
         pyplot.figure()
         axI = pyplot.subplot(111)
 
-        if self._phase.p.sim_ECM:
+        if self._phase.p.is_ecm:
             # Total cell current storage vector.
             Imem = []
 
@@ -346,7 +346,7 @@ class PlotCellPipe(PlotPipeABC):
         pyplot.figure()
         axNaK = pyplot.subplot()
 
-        if self._phase.p.sim_ECM:
+        if self._phase.p.is_ecm:
             #FIXME: Generalize to average across all membranes of this cell.
             pump_array_index = self._phase.cells.cell_to_mems[
                 self._phase.p.plot_cell][0]

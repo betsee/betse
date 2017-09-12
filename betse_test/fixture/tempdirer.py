@@ -7,9 +7,11 @@
 Fixtures creating temporary directories isolated for safety to specific tests.
 '''
 
+from pytest import fixture
+
 # ....................{ IMPORTS                            }....................
 from betse_test.util import requests
-from pytest import fixture
+
 
 # ....................{ FIXTURES                           }....................
 # Test-scope fixture creating and returning a new object for each discrete test.
@@ -49,7 +51,7 @@ def betse_temp_dir(
     '''
 
     # Defer heavyweight imports.
-    from betse.util.type import strs
+    from betse.util.type.text import strs
 
     # Name of the current test.
     test_name = requests.get_tested_name(request)

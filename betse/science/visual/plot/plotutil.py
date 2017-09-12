@@ -143,7 +143,7 @@ def plotHetMem(sim,cells, p, fig=None, ax=None, zdata=None,clrAutoscale = True, 
         membrane domains for each cell. Data is interpolated to generate a smooth surface plot.
         The method returns a plot instance (fig, axes)
 
-        When using p.sim_ECM, this plotting method overrides both plotPolyData and plotCellData.
+        When using p.is_ecm, this plotting method overrides both plotPolyData and plotCellData.
 
         Parameters
         ----------
@@ -856,7 +856,7 @@ def streamingCurrent(
 
     #FIXME: There's a fair amount of overlap between the following branches.
     #Treetops swaying in the contumely breeze!
-    if p.sim_ECM is False or plot_Iecm is False:
+    if p.is_ecm is False or plot_Iecm is False:
 
         # multiply by 100 to get units of uA/m2
         Jmag_M = 100*np.sqrt(
@@ -1058,7 +1058,7 @@ def I_overlay(sim,cells,p,ax,plotIecm = False):
     ax                  Modified axis
     """
 
-    if p.sim_ECM is False or plotIecm is False:
+    if p.is_ecm is False or plotIecm is False:
 
         Ix = sim.I_cell_x_time[-1]
         Iy = sim.I_cell_y_time[-1]

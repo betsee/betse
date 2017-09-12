@@ -91,7 +91,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         csv_column_name_values.extend(('Goldman_Vmem_mV', vm_goldman))
 
         # ................{ Na K PUMP RATE                   }..................
-        if self._phase.p.sim_ECM:
+        if self._phase.p.is_ecm:
             pump_rate = [
                 pump_array[self._phase.cells.cell_to_mems[cell_index][0]]
                 for pump_array in self._phase.sim.rate_NaKATP_time]
@@ -114,7 +114,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         # ................{ MEMBRANE PERMEABILITIES          }..................
         # create the header starting with membrane permeabilities
         for i in range(len(self._phase.sim.ionlabel)):
-            if self._phase.p.sim_ECM:
+            if self._phase.p.is_ecm:
                 dd_m = [
                     arr[i][self._phase.cells.cell_to_mems[cell_index][0]]
                     for arr in self._phase.sim.dd_time
@@ -126,7 +126,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
             csv_column_name_values.extend((csv_column_name, dd_m))
 
         # ................{ TRANSMEMBRANE CURRENTS           }..................
-        if self._phase.p.sim_ECM:
+        if self._phase.p.is_ecm:
             Imem = [
                 memArray[self._phase.cells.cell_to_mems[cell_index][0]]
                 for memArray in self._phase.sim.I_mem_time]
@@ -333,7 +333,7 @@ class SimPipelinerExportCSV(SimPipeExportABC):
         # 0-based index of the cell to serialize time data for.
         cell_index = self._phase.p.plot_cell
 
-        if self._phase.p.sim_ECM:
+        if self._phase.p.is_ecm:
             cell_times_vmems = []
             for vm_at_mem in self._phase.sim.vm_time:
                 vm_t = expmath.upscale_units_milli(

@@ -10,14 +10,18 @@ Low-level Numpy array and matrix facilities.
 #FIXME: Donate the write_csv() function back to Numpy as a new np.savecsv()
 #function paralleling the existing np.savetxt() function.
 
+from collections import OrderedDict
+
 # ....................{ IMPORTS                            }....................
 import numpy as np
+from numpy import ndarray
+
 from betse.exceptions import BetseSequenceException, BetseStrException
 from betse.util.path import dirs
-from betse.util.type import sequences, strs, types
+from betse.util.type import sequences, types
+from betse.util.type.text import strs
 from betse.util.type.types import type_check, ClassType, IterableTypes
-from collections import OrderedDict
-from numpy import ndarray
+
 
 # ....................{ CONVERTERS                         }....................
 @type_check

@@ -403,9 +403,9 @@ class Cells(object):
         self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
         self.lapENV_P = None
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
 
-            self.sim_ECM = True
+            self.is_ecm = True
 
             # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
@@ -429,7 +429,7 @@ class Cells(object):
 
         else:
 
-            self.sim_ECM = False
+            self.is_ecm = False
 
         # set all Laplacian matrices to None fields to allow for flexible creation
         # Laplacians and inverses on the cell grid (two boundary conditions sets)

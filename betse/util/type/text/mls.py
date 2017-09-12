@@ -9,13 +9,12 @@ Low-level \*ML (e.g., HTML, SGML, XML) facilities.
 
 # ....................{ IMPORTS                            }....................
 import html
-from betse.util.type import regexes
 from betse.util.type.call.memoizers import callable_cached
-from betse.util.type.types import type_check
+from betse.util.type.types import type_check, RegexCompiledType
 
 # ....................{ GETTERS                            }....................
 @callable_cached
-def get_ml_tag_regex() -> str:
+def get_tag_regex() -> RegexCompiledType:
     '''
     Compiled regular expression matching a syntactically but *not* necessarily
     semantically valid \*ML (e.g., HTML, SGML, XML) tag.
@@ -31,6 +30,10 @@ def get_ml_tag_regex() -> str:
         Blog article strongly inspiring this regular expression.
     '''
 
+    # Avoid circular import dependencies.
+    from betse.util.type.text import regexes
+
+    # Create, return, and cache this expression.
     return regexes.compile(
         # Tag prefix.
         r'<'
@@ -84,7 +87,11 @@ def is_ml(text: str) -> bool:
         ``True`` only if this string contains one or more \*ML tags.
     '''
 
-    return regexes.is_match(text=text, regex=get_ml_tag_regex())
+    # Avoid circular import dependencies.
+    from betse.util.type.text import regexes
+
+    # Test this string against this expression.
+    return regexes.is_match(text=text, regex=get_tag_regex())
 
 # ....................{ ESCAPERS                           }....................
 @type_check
@@ -110,7 +117,7 @@ def escape_ml(text: str) -> str:
     directly displayed as HTML to end users. For example, the following call to
     this function preserves a JavaScript fragment unescaped:
 
-        >>> from betse.util.type import strs
+        >>> from betse.util.type.text import strs
         >>> strs.escape_ml('<a href="javascript:alert()">')
         '&lt;a href=&quot;javascript:alert()&quot;&gt;'
 

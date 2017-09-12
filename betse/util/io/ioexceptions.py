@@ -36,7 +36,7 @@ def get_metadata(exception: Exception) -> tuple:
     # Avoid circular import dependencies.
     from betse.util.io import stderrs
     from betse.util.py import pyident
-    from betse.util.type import regexes, strs
+    from betse.util.type.text import regexes, strs
 
     # Generator yielding 2-tuples "(exception, traceback)" for all parent
     # exceptions of this exception *AND* this exception (in that order), where

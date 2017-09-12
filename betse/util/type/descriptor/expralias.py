@@ -16,6 +16,7 @@ from betse.exceptions import (
     BetseDescriptorException, BetseEnumException, BetseTypeException)
 from betse.util.type.types import (
     type_check,
+    BoolOrNoneTypes,
     CallableOrNoneTypes,
     EnumType,
     SequenceTypes,
@@ -44,6 +45,7 @@ def expr_alias(
     cls: TestableOrNoneTypes = None,
     base_classes: SequenceTypes = (),
     expr_settable: StrOrNoneTypes = None,
+    is_castable: BoolOrNoneTypes = None,
     predicate: CallableOrNoneTypes = None,
     predicate_expr: StrOrNoneTypes = None,
     predicate_label: StrOrNoneTypes = None,
@@ -180,19 +182,28 @@ def expr_alias(
         Either:
         * A class. If the value of this expression is not an instance of this
           class *and*:
-          * If this value is **safely castable** (i.e., losslessly convertible
-            with no reduction in precision) into an instance of this class, this
-            value is silently casted into an instance of this class. Only the
-            following casts are currently supported:
-            * Casting an :class:`int` to a :class:`float`. Hence, setting this
-              parameter to :class:`float` instructs this descriptor to silently
-              accept both :class:`int` and :class:`float` values in a manner
-              safely converting the former into the latter.
+          * If this value is **safely castable** (i.e., convertible *without*
+            raising an exception) into an instance of this class, this value is
+            silently casted into an instance of this class by instantiating this
+            class with a single positional argument whose value is this value
+            (e.g., ``float('3.1415')`` to cast the string value ``3.1415`` into
+            a floating point number).
           * Else, an exception is raised.
         * A tuple of classes, in which case an exception is raised if the value
           of this expression is *not* an instance of at least one class in this
           tuple.
         Defaults to ``None``, in which case no such validation is performed.
+    is_castable : optional[bool]
+        ``True`` only if the value of this expression is safely castable into an
+        instance of the class passed as the ``cls`` parameter. If:
+        * ``True``, an exception is raised at evaluation time only if this value
+          is *not* safely castable into an instance of this class.
+        * ``False``, an exception is raised at evaluation time if this value is
+          *not* already an instance of this class.
+        Defaults to ``None``, in which case this boolean conditionally defaults
+        to ``True`` only if the ``cls`` parameter is :cls:`float`, whose
+        constructor is well-known to safely cast various other types (e.g.,
+        :cls:`int`, :cls:`str`).
     predicate : optional[CallableTypes]
         Callable passed the value of this expression as its first and only
         parameter and returning a boolean ``True`` only if this value satisfies
@@ -272,6 +283,10 @@ def expr_alias(
     if expr_settable is None:
         expr_settable = expr_gettable
 
+    # True only if the value to which this expression evaluates is castable.
+    if is_castable is None:
+        is_castable = cls is float
+
     # Python code snippet listing all optional arguments to be accepted by this
     # data descriptor's __init__() method.
     class_init_args = ''
@@ -299,32 +314,30 @@ def expr_alias(
         class_init_body += '''
     self_descriptor.expr_alias_cls = __expr_alias_cls'''
 
-        # If the expected type is a "float" but the value to which this
-        # expression evaluates is *NOT* a "float", this value is either:
-        #
-        # * An "int", in which case this value is safely casted into a "float".
-        # * A non-"int", in which case this value *CANNOT* be safely casted into
-        #   a "float". An exception is raised instead.
+        # If the value to which this expression evaluates is castable, attempt
+        # to do so and, in the event of failure, wrap the typically
+        # non-human-readable low-level exception raised by Python with a
+        # human-readable high-level exception.
         #
         # While this type validation could also be performed by decorating the
         # __get__() and __set__() methods defined below by the @type_check
         # decorator, doing so would impose additional overhead for little gain.
-        if cls is float:
+        value_test_block += '''
+    if not isinstance(value, self_descriptor.expr_alias_cls):'''
+        if is_castable:
             value_test_block += '''
-    if not isinstance(value, float):
-        if isinstance(value, int):
-            value = float(value)
-        else:
+        try:
+            value = self_descriptor.expr_alias_cls(value)
+        except Exception as exception:
             raise BetseTypeException(
-                'Expression alias value {!r} not '
-                'a {!r} or {!r}.'.format(value, float, int))
+                'Expression alias value {!r} not a {!r}.'.format(
+                value, self_descriptor.expr_alias_cls)) from exception
     '''
                 # 'Expression alias value {{!r}} not '
                 # 'a {{!r}} or {{!r}}.'.format(value, float, int))
         # Else, raise an exception unless this value is of the expected type(s).
         else:
             value_test_block += '''
-    if not isinstance(value, self_descriptor.expr_alias_cls):
         raise BetseTypeException(
             'Expression alias value {!r} not a {!r}.'.format(
                 value, self_descriptor.expr_alias_cls))
@@ -565,7 +578,7 @@ def expr_enum_alias(
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.type import strs
+    from betse.util.type.text import strs
     from betse.util.type.cls import classes
 
     # Validate the names of all members of this enumeration to be uppercase.

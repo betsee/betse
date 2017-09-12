@@ -50,7 +50,7 @@ class TissueHandler(object):
         p:     'betse.science.parameters.Parameters',
     ) -> None:
 
-        if p.sim_ECM:
+        if p.is_ecm:
             self.data_length = len(cells.mem_i)
         else:
             self.data_length = len(cells.mem_i)
@@ -291,7 +291,7 @@ class TissueHandler(object):
 
         #--------------------------------------------------------
 
-        if p.scheduled_options['ecmJ'] != 0 and p.sim_ECM is True:
+        if p.scheduled_options['ecmJ'] != 0 and p.is_ecm is True:
             self.t_on_ecmJ  = p.scheduled_options['ecmJ'][0]
             self.t_off_ecmJ = p.scheduled_options['ecmJ'][1]
             self.t_change_ecmJ = p.scheduled_options['ecmJ'][2]
@@ -596,7 +596,7 @@ class TissueHandler(object):
             effector_Kenv = tb.pulse(
                 t, self.t_on_Kenv, self.t_off_Kenv, self.t_change_Kenv)
 
-            if p.sim_ECM: # simulate addition of potassium salt to remain charge neutral
+            if p.is_ecm: # simulate addition of potassium salt to remain charge neutral
                 sim.c_env_bound[sim.iK] = (
                     self.mem_mult_Kenv*effector_Kenv*p.env_concs['K'] +
                     p.env_concs['K']
@@ -612,20 +612,20 @@ class TissueHandler(object):
         if p.global_options['Cl_env'] != 0 and p.ions_dict['Cl'] == 1:
             effector_Clenv = tb.pulse(t,self.t_on_Clenv,self.t_off_Clenv,self.t_change_Clenv)
 
-            if p.sim_ECM is False:
+            if p.is_ecm is False:
                 sim.cc_env[sim.iCl][:] = self.mem_mult_Clenv*effector_Clenv*p.cCl_env + p.cCl_env
 
-            elif p.sim_ECM is True:  # simulate addition of sodium chloride to remain charge neutral
+            elif p.is_ecm is True:  # simulate addition of sodium chloride to remain charge neutral
                 sim.c_env_bound[sim.iCl] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Cl']
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Clenv*effector_Clenv*p.env_concs['Cl'] + p.env_concs['Na']
 
         if p.global_options['Na_env'] != 0:
             effector_Naenv = tb.pulse(t,self.t_on_Naenv,self.t_off_Naenv,self.t_change_Naenv)
 
-            if p.sim_ECM is False:
+            if p.is_ecm is False:
                 sim.cc_env[sim.iNa][:] = self.mem_mult_Naenv*effector_Naenv*p.cNa_env + p.cNa_env
 
-            elif p.sim_ECM is True: # simulate addition of sodium salt to remain charge neutral
+            elif p.is_ecm is True: # simulate addition of sodium salt to remain charge neutral
                 sim.c_env_bound[sim.iNa] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['Na']
                 sim.c_env_bound[sim.iM] = self.mem_mult_Naenv*effector_Naenv*p.env_concs['Na'] + p.env_concs['M']
 
@@ -680,7 +680,7 @@ class TissueHandler(object):
 
         if p.scheduled_options['ecmJ'] != 0:
 
-            if p.sim_ECM is True:
+            if p.is_ecm is True:
                 for i, dmat in enumerate(sim.D_env):
 
                     effector_ecmJ = self.mult_ecmJ*tb.pulse(
@@ -728,7 +728,7 @@ class TissueHandler(object):
             #FIXME: Duplicate logic. See above. The snow bear dances at noon.
 
             # redo main data length variable for this dynamics module with updated world:
-            if p.sim_ECM is True:
+            if p.is_ecm is True:
                 self.data_length = len(cells.mem_i)
             else:
                 self.data_length = len(cells.mem_i)
@@ -910,7 +910,7 @@ class TissueHandler(object):
 
                 if len(self.cell_target_inds[profile_name]):
                     # Get ECM targets.
-                    if p.sim_ECM is True:
+                    if p.is_ecm is True:
                         ecm_targs_mem = list(
                             cells.map_mem2ecm[self.tissue_target_inds[profile_name]])
 
@@ -1011,7 +1011,7 @@ class TissueHandler(object):
         target_inds_mem,_,_ = tb.flatten(target_inds_mem)
         target_inds_gj,_,_ = tb.flatten(cells.cell_to_nn_full[target_inds_cell])
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
             # get environmental targets around each removed cell:
             ecm_targs_cell = list(cells.map_cell2ecm[target_inds_cell])
             ecm_targs_mem = list(cells.map_mem2ecm[target_inds_mem])
@@ -1100,7 +1100,7 @@ class TissueHandler(object):
             'cc_at_mem',
         ]
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
             specials_list.remove('cc_env')
             extra = ['z_array_cells']
             for ent in extra:
@@ -1230,7 +1230,7 @@ class TissueHandler(object):
         sim.mdl = len(cells.mem_mids_flat)  # mems-data-length
         sim.cdl = len(cells.cell_centres)  # cells-data-length
 
-        if p.sim_ECM is True:  # set environnment data length
+        if p.is_ecm is True:  # set environnment data length
             sim.edl = len(cells.xypts)
 
         else:
@@ -1260,7 +1260,7 @@ class TissueHandler(object):
 
             sim.grn.core.mod_after_cut_event(target_inds_cell, target_inds_mem, sim, cells, p)
 
-        # if p.sim_ECM is True:
+        # if p.is_ecm is True:
 
         # if desire for cut away space to lack tight junctions, remove new bflags from set:
         new_bcells = np.copy(cells.bflags_cells)

@@ -168,7 +168,7 @@ if hasattr(os, 'fwalk') and os.stat in os.supports_dir_fd:
     def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
 
         # Avoid circular import dependencies.
-        from betse.util.io.exceptions import raise_exception
+        from betse.util.io.ioexceptions import raise_exception
 
         # Log this recursion.
         logs.log_debug(
@@ -215,7 +215,7 @@ else:
     def get_mtime_recursive_newest(dirname: str) -> NumericTypes:
 
         # Avoid circular import dependencies.
-        from betse.util.io.exceptions import raise_exception
+        from betse.util.io.ioexceptions import raise_exception
 
         # Log this recursion.
         logs.log_debug(
@@ -574,7 +574,7 @@ def iter_subdirnames(dirname: str) -> GeneratorType:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.io.exceptions import raise_exception
+    from betse.util.io.ioexceptions import raise_exception
 
     # Sequence of the basenames of all subdirectories of this directory
     # implemented as follows:
@@ -615,7 +615,7 @@ def iter_subdir_basenames(dirname: str) -> SequenceTypes:
     '''
 
     # Avoid circular import dependencies.
-    from betse.util.io.exceptions import raise_exception
+    from betse.util.io.ioexceptions import raise_exception
 
     # Sequence of the basenames of all subdirectories of this directory. See the
     # iter_subdirnames() function for further details.

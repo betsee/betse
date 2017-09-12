@@ -73,8 +73,8 @@ def test_yaml_roundtrip(betse_sim_config: 'SimTestState') -> None:
     #FIXME: Test addition, deletion, and modification of non-scalar list items.
 
     # Modify an arbitrary boolean setting of this configuration.
-    p.sim_ECM = not p.sim_ECM
-    p_sim_ECM_expected = p.sim_ECM
+    p.is_ecm = not p.is_ecm
+    p_sim_ECM_expected = p.is_ecm
 
     # Modify an arbitrary numeric setting of this configuration.
     p.cell_polarizability *= 3.1415
@@ -94,6 +94,6 @@ def test_yaml_roundtrip(betse_sim_config: 'SimTestState') -> None:
     p.load(p_conf_filename)
 
     # Ensure these changes were roundtripped across this I/O.
-    assert p.sim_ECM == p_sim_ECM_expected
+    assert p.is_ecm == p_sim_ECM_expected
     assert p.cell_polarizability == p_cell_polarizability_expected
     assert p.seed_pickle_basename == p_seed_pickle_basename_expected

@@ -85,7 +85,7 @@ class VgNaABC(ChannelsABC, metaclass=ABCMeta):
         # obtain concentration of ion inside and out of the cell, as well as its charge z:
         c_mem = sim.cc_cells[sim.iNa][cells.mem_to_cells]
 
-        if p.sim_ECM is True:
+        if p.is_ecm is True:
             c_env = sim.cc_env[sim.iNa][cells.map_mem2ecm]
 
         else:

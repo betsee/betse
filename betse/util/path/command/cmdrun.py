@@ -45,15 +45,16 @@ Most runners accept the same optional keyword arguments accepted by the
 
 # ....................{ IMPORTS                            }....................
 import subprocess
+from io import TextIOWrapper
+from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
+from threading import Thread
+
 from betse.exceptions import BetseCommandException
 from betse.util.io.log import logs
 from betse.util.io.log.logenum import LogLevel
 from betse.util.type.mapping import maputil
 from betse.util.type.types import (
     type_check, MappingType, MappingOrNoneTypes, SequenceTypes)
-from io import TextIOWrapper
-from subprocess import CalledProcessError, Popen, PIPE, TimeoutExpired
-from threading import Thread
 
 # ....................{ GLOBALS                            }....................
 BUFFER_SIZE_DEFAULT = -1
@@ -328,7 +329,7 @@ def _log_pipe_lines(pipe: TextIOWrapper, log_level: LogLevel) -> None:
 
     # Avoid circular import dependencies.
     from betse.util.io.iofiles import READLINE_EOF
-    from betse.util.type import strs
+    from betse.util.type.text import strs
 
     # With this pipe contextually opened for reading...
     with pipe:

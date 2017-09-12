@@ -79,7 +79,7 @@ class ChannelsABC(object, metaclass=ABCMeta):
         sim.cc_at_mem[ion_index][targets] = (sim.cc_at_mem[ion_index][targets] +
                                              delta_Q[targets]*(cells.mem_sa[targets]/cells.mem_vol[targets])*p.dt)
 
-        if p.sim_ECM is False:
+        if p.is_ecm is False:
 
             # transfer charge directly to the environment:
             sim.cc_env[ion_index][targets] = (
