@@ -18,6 +18,7 @@ from betse.science.tissue import tissuecls
 from betse.science.tissue.tissuepick import TissuePickerBitmap
 from betse.util.io.log import logs
 from betse.util.path import dirs, pathnames
+# from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 from collections import OrderedDict
 
@@ -40,25 +41,35 @@ class Parameters(YamlFileABC):
         simulation's most recent simulation, relative to the absolute path of
         the directory containing this simulation configuration's YAML file.
 
-    Attributes (Path: Pickle)
+    Attributes (Path: Pickle: Seed)
     ----------
     seed_pickle_basename : str
         Basename of the pickled file providing this simulation's most recently
         seeded cell cluster within the current :attr:`init_dirname`.
     init_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
-        initialization within the current :attr:`init_dirname`.
+        initialization run within the current :attr:`init_dirname`.
     init_pickle_dirname : str
-        Relative path of the directory containing both the :attr:`init_basename`
-        and :attr:`init_basename` files, relative to the absolute path of the
-        directory containing this simulation configuration's YAML file.
+        Relative pathname of the directory containing the this simulation's most
+        recently seeded cell cluster *and* initialization run, relative to the
+        absolute path of the directory containing this simulation
+        configuration's YAML file.
+    init_path : str
+        Relative pathname of the directory containing the this simulation's most
+        recently seeded cell cluster *and* initialization run.
     sim_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
-        simulation within the current :attr:`sim_dirname`.
-    init_pickle_dirname : str
-        Relative path of the directory containing the :attr:`sim_basename` file,
-        relative to the absolute path of the directory containing this
-        simulation configuration's YAML file.
+        simulation run within the current :attr:`sim_dirname`.
+    sim_pickle_dirname : str
+        Relative pathname of the directory containing the
+        :attr:`sim_pickle_basename` file, relative to the absolute path of the
+        directory containing this simulation configuration's YAML file.
+
+    Attributes (Space: Cluster)
+    ----------
+    cell_radius : float
+        Radius in meters of each cell in this cluster. This should typically be
+        within an order of magnitude of the recommended default of ``5.0e-6``.
 
     Attributes (Space: Environment)
     ----------
@@ -67,8 +78,7 @@ class Parameters(YamlFileABC):
         computationally divide this simulation's square environment into.
         Increasing this increases simulation granularity and hence stability at
         a quadratic increase in space and time costs (i.e., ``O(grid_size **
-        2)``). This should typically be in the range ``[10,
-        60]``.
+        2)``). This should typically reside in the range ``[10, 60]``.
     is_ecm : bool
         ``True`` only if the extracellular matrix (ECM) simulating
         **extracellular spaces** (i.e., the environment surrounding each cell in
@@ -76,7 +86,7 @@ class Parameters(YamlFileABC):
         substantial reduction in space and time costs.
     world_len : float
         Length in meters of both the X and Y dimensions of this simulation's
-        square environment. This should typically be in the range ``[80e-6,
+        square environment. This should typically reside in the range ``[80e-6,
         1000e-6]``.
 
     Attributes (Time: Total)
@@ -199,6 +209,9 @@ class Parameters(YamlFileABC):
     init_pickle_basename = yaml_alias("['init file saving']['file']", str)
     sim_pickle_basename  = yaml_alias("['sim file saving']['file']", str)
 
+    # ..................{ ALIASES ~ space : cell             }..................
+    cell_radius = yaml_alias("['world options']['cell radius']", float)
+
     # ..................{ ALIASES ~ space : env              }..................
     grid_size = yaml_alias("['general options']['comp grid size']", int)
     is_ecm = yaml_alias(
@@ -232,49 +245,12 @@ class Parameters(YamlFileABC):
         # Defer to the superclass implementation.
         super().load(*args, **kwargs)
 
-        # Preserve backward compatibility with prior configuration formats.
+        # Preserve backward compatibility with prior configuration formats
+        # *BEFORE* any handling assuming the current configuration format.
         self._init_backward_compatibility()
 
-        #---------------------------------------------------------------------------------------------------------------
-        # FILE HANDLING
-        #---------------------------------------------------------------------------------------------------------------
-
-        #FIXME: Convert the following variables into typical @property-style
-        #properties, as they require dynamic logic and hence *CANNOT* be
-        #encapsulated via yaml_alias() above. When doing so, note that it would
-        #be quite nice if:
-        #
-        #* We cached rather than recomputed each such path using
-        #  @property_cached. To do so, we'll need to redefine that decorator to
-        #  return a new descriptor rather than merely a @property, which will
-        #  then permit us to redefine the setter() method of that descriptor to
-        #  invalidate the currently cached value on being set. Pretty sweet
-        #  functionality, which we *REALLY* want elsewhere as well.
-        #* We set each such path using:
-        #
-        #     # ...this:
-        #     os.path.expanduser(paths.join(self.conf_dirname, ...))
-        #
-        #     # ...rather than merely this:
-        #     paths.join(self.conf_dirname, ...)
-        #
-        #  Since all logic that accesses these variables in the codebase
-        #  *ALWAYS* wraps these variables with os.path.expanduser(), let's just
-        #  do so once for each variable.
-
-        # Absolute or relative paths of the directories containing saved
-        # initialization and simulation runs.
-        self.init_path = pathnames.join(
-            self.conf_dirname, self.init_pickle_dirname)
-        self.sim_path = pathnames.join(
-            self.conf_dirname, self.sim_pickle_dirname)
-
-        # Absolute or relative paths of the directories containing saved
-        # initialization and simulation results.
-        self.init_results = pathnames.join(
-            self.conf_dirname, self.init_export_dirname)
-        self.sim_results = pathnames.join(
-            self.conf_dirname, self.sim_export_dirname)
+        # Initialize paths specified by this configuration.
+        self._init_paths()
 
         #---------------------------------------------------------------------------------------------------------------
         # GENERAL OPTIONS
@@ -300,7 +276,6 @@ class Parameters(YamlFileABC):
         # Geometric constants and factors
         self.wsx = self.world_len  # the x-dimension of the world space [m]
         self.wsy = self.world_len  # the y-dimension of the world space [m]
-        self.rc = float(self._conf['world options']['cell radius'])  # radius of single cell
         self.cell_height = float(self._conf['world options']['cell height'])  # the height of a cell in the z-direction
         self.lattice_type = self._conf['world options']['lattice type']  # hex or rect lattice base
         self.cell_space = float(self._conf['world options']['cell spacing'])  # the true cell-cell spacing
@@ -953,7 +928,7 @@ class Parameters(YamlFileABC):
         self.scale_alpha = 1.4   # the amount to scale (1/d_cell) when calculating the concave hull (boundary search)
         self.merge_cut_off = (1/50)  # the fraction of nominal cell perimeter at which nearby ecm points are merged
 
-        self.d_cell = self.rc * 2  # diameter of single cell
+        self.d_cell = self.cell_radius * 2  # diameter of single cell
         self.nx = int(self.wsx / self.d_cell)  # number of lattice sites in world x index
         self.ny = int(self.wsy / self.d_cell)  # number of lattice sites in world y index
         self.wsx = self.wsx + 5 * self.nl * self.d_cell  # readjust the world size for noise
@@ -964,7 +939,7 @@ class Parameters(YamlFileABC):
 
         self.um = 1e6    # multiplication factor to convert m to um
 
-        # self.self_cap_cell = (8 + 4.1*((self.cell_height/self.rc)**0.76))*self.eo*80*self.rc
+        # self.self_cap_cell = (8 + 4.1*((self.cell_height/self.cell_radius)**0.76))*self.eo*80*self.cell_radius
 
         self.isamples = 40.0  # sampling of vector data for currents
 
@@ -1255,7 +1230,7 @@ class Parameters(YamlFileABC):
             raise BetseSimConfigException(
                 'Ion profile name "{}" unrecognized.'.format(self.ion_profile))
 
-    # ..................{ PRIVATE ~ initializers             }..................
+    # ..................{ INIT ~ backward                    }..................
     def _init_backward_compatibility(self) -> None:
         '''
         Attempt to preserve backward compatibility with prior configuration
@@ -1432,7 +1407,35 @@ class Parameters(YamlFileABC):
             results['plot networks single cell'] = results[
                 'plot single cell graphs']
 
+    # ..................{ INITIALIZERS ~ path                }..................
+    def _init_paths(self) -> None:
+        '''
+        Initialize paths specified by this configuration.
+        '''
 
+        #FIXME: Rename to "init_pickle_dirname" *AFTER* renaming
+        #the existing lower-level "init_pickle_dirname" data descriptor to
+        #something less blatantly wrong -- say, "init_pickle_relative_dirname".
+
+        # Absolute pathname of directories specified by this configuration.
+        self.init_path = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.init_pickle_dirname)
+        self.sim_path = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.sim_pickle_dirname)
+
+        # Absolute or relative paths of the directories containing saved
+        # initialization and simulation results.
+        self.init_results = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.init_export_dirname)
+        self.sim_results = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.sim_export_dirname)
+
+        # Create all non-existing directories.
+        dirs.make_unless_dir(
+            self.init_path,    self.sim_path,
+            self.init_results, self.sim_results)
+
+    # ..................{ INITIALIZERS ~ tissue              }..................
     def _init_tissue_and_cut_profiles(self) -> None:
         '''
         Parse tissue and cut profile-specific parameters from the current YAML

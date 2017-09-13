@@ -257,7 +257,6 @@ class SimRunner(object):
 
         if files.is_file(sim.savedInit):
             sim,cells, p_old = fh.loadSim(sim.savedInit)  # load the initialization from cache
-            p.is_ecm = cells.is_ecm
 
             # check to ensure compatibility between original and present sim files:
             self._die_unless_seed_same(p_old, p)
@@ -525,7 +524,6 @@ class SimRunner(object):
 
         if files.is_file(cells.savedWorld):
             cells, _ = fh.loadWorld(cells.savedWorld)  # load the simulation from cache
-            p.is_ecm = cells.is_ecm
             logs.log_info('Cell cluster loaded.')
         else:
             raise BetseSimException(
@@ -542,23 +540,20 @@ class SimRunner(object):
         #FIXME: Shift everything below into a new seed-specific pipeline -- say,
         #betse.science.export.exppipe.pipeline_seed().
         if p.autosave:
-            images_path = p.init_results
-            image_cache_dir = os.path.expanduser(images_path)
-            os.makedirs(image_cache_dir, exist_ok=True)
-            savedImg = os.path.join(image_cache_dir, 'fig_')
+            savedImg = pathnames.join(p.init_results, 'fig_')
 
-        if p.plot_cell_cluster is True:
+        if p.plot_cell_cluster:
             fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
                 p, dyna, cells, clrmap=p.background_cm)
 
-            if p.autosave is True:
+            if p.autosave:
                 savename10 = savedImg + 'cluster_mosaic' + '.png'
                 plt.savefig(savename10,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if p.plot.is_after_sim_show:
                 plt.show(block = False)
 
-        if p.is_ecm is True and p.plot_cluster_mask is True:
+        if p.is_ecm and p.plot_cluster_mask:
             plt.figure()
             ax99 = plt.subplot(111)
             plt.imshow(
@@ -576,11 +571,11 @@ class SimRunner(object):
 
             plt.title('Logarithm of Environmental Diffusion Weight Matrix')
 
-            if p.autosave is True:
+            if p.autosave:
                 savename10 = savedImg + 'env_diffusion_weights' + '.png'
                 plt.savefig(savename10,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if p.plot.is_after_sim_show:
                 plt.show(block = False)
 
             plt.figure()
@@ -593,19 +588,19 @@ class SimRunner(object):
             plt.colorbar()
             plt.title('Cluster Masking Matrix')
 
-            if p.autosave is True:
+            if p.autosave:
                 savename = savedImg + 'cluster_mask' + '.png'
                 plt.savefig(savename,format='png',transparent=True)
 
-            if p.turn_all_plots_off is False:
+            if p.plot.is_after_sim_show:
                 plt.show(block = False)
 
         # Plot gap junctions.
-        if p.plot_cell_connectivity is True:
+        if p.plot_cell_connectivity:
             plt.figure()
             ax_x = plt.subplot(111)
 
-            if p.showCells is True:
+            if p.showCells:
                 base_points = np.multiply(cells.cell_verts, p.um)
                 col_cells = PolyCollection(base_points, facecolors='k', edgecolors='none')
                 col_cells.set_alpha(0.3)

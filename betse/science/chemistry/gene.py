@@ -3,19 +3,18 @@
 # See "LICENSE" for further details.
 
 """
+Controls a gene regulatory network.
 
-Controls a gene regulatory network. Creates and electrodiffuses a suite of customizable general
-gene products in the BETSE ecosystem, where the gene products are assumed to activate
-and/or inhibit the expression of other genes (and therefore the production of other
-gene products) in the gene regulatory network (GRN).
-
+Creates and electrodiffuses a suite of customizable general gene products in the
+BETSE ecosystem, where the gene products are assumed to activate and/or inhibit
+the expression of other genes (and therefore the production of other gene
+products) in the gene regulatory network (GRN).
 """
 
-import os
-import os.path
 import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
+from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
 from betse.science.chemistry.netplot import set_net_opts
@@ -25,18 +24,18 @@ class MasterOfGenes(object):
 
     def __init__(self, p):
 
-        # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser(p.init_path)
-        os.makedirs(betse_cache_dir, exist_ok=True)
+        #FIXME: Extract the "GeneNetwork.betse" basename into a new
+        #configuration option, perhaps in the "init file saving" section.
+        #FIXME: Replace "GeneNetwork.betse" with "GeneNetwork.betse.gz" to
+        #compress this pickled file.
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedMoG = os.path.join(betse_cache_dir, 'GeneNetwork.betse')
+        self.savedMoG = pathnames.join(p.init_path, 'GeneNetwork.betse')
 
     def read_gene_config(self, sim, cells, p):
 
         # create the path to read the metabolism config file:
-
-        self.configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
+        self.configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)
@@ -123,11 +122,14 @@ class MasterOfGenes(object):
     #
     #     pass
 
+    #FIXME: Oh, boy. Most of this method appears to have been copy-and-pasted
+    #from the read_gene_config() method above. That's... not the best. Let's
+    #extract the code shared in common between these two methods into a new
+    #_init_genes() method internally called by these two methods.
     def reinitialize(self, sim, cells, p):
 
         # create the path to read the metabolism config file:
-
-        self.configPath = os.path.join(p.conf_dirname, p.grn_config_filename)
+        self.configPath = pathnames.join(p.conf_dirname, p.grn_config_filename)
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)

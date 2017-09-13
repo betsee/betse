@@ -3,19 +3,18 @@
 # See "LICENSE" for further details.
 
 """
+Controls a gene regulatory network.
 
-Controls a gene regulatory network. Creates and electrodiffuses a suite of customizable general
-gene products in the BETSE ecosystem, where the gene products are assumed to activate
-and/or inhibit the expression of other genes (and therefore the production of other
-gene products) in the gene regulatory network (GRN).
-
+Creates and electrodiffuses a suite of customizable general gene products in the
+BETSE ecosystem, where the gene products are assumed to activate and/or inhibit
+the expression of other genes (and therefore the production of other gene
+products) in the gene regulatory network (GRN).
 """
 
-import os
-import os.path
 import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
+from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.chemistry.netplot import set_net_opts
 from betse.science.math.systems import SimMaster
@@ -25,15 +24,15 @@ class MasterOfMolecules(object):
 
     def __init__(self, p):
 
-        # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser(p.init_path)
-        os.makedirs(betse_cache_dir, exist_ok=True)
+        #FIXME: Extract the "GeneralNetwork.betse" basename into a new
+        #configuration option, perhaps in the "init file saving" section.
+        #FIXME: Replace "GeneralNetwork.betse" with "GeneralNetwork.betse.gz" to
+        #compress this pickled file.
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedMoM = os.path.join(betse_cache_dir, 'GeneralNetwork.betse')
+        self.savedMoM = pathnames.join(p.init_path, 'GeneralNetwork.betse')
 
     def read_mol_config(self, sim, cells, p):
-
 
         # read the config file into a dictionary:
         self.config_dic = p.network_config
@@ -115,7 +114,10 @@ class MasterOfMolecules(object):
             self.core.optimizer(sim, cells, p)
             self.reinitialize(sim, cells, p)
 
-
+    #FIXME: Oh, boy. Most of this method appears to have been copy-and-pasted
+    #from the read_mol_config() method above. That's... not the best. Let's
+    #extract the code shared in common between these two methods into a new
+    #_init_mols() method internally called by these two methods.
     def reinitialize(self, sim, cells, p):
 
         # read the config file into a dictionary:

@@ -486,10 +486,10 @@ def gradient_bitmap(pc, cells, p):
     elif len(pc) == len(cells.cell_i):
         xmap = cells.map_cell2ecm
 
-    xmi = cells.xmin - 4*p.rc
-    ymi = cells.ymin - 4*p.rc
-    xma = cells.xmax + 4*p.rc
-    yma = cells.ymax + 4*p.rc
+    xmi = cells.xmin - 4*p.cell_radius
+    ymi = cells.ymin - 4*p.cell_radius
+    xma = cells.xmax + 4*p.cell_radius
+    yma = cells.ymax + 4*p.cell_radius
 
     # xx = np.linspace(xmi, xma, cells.X.shape[1])
     # yy = np.linspace(ymi, yma, cells.X.shape[0])

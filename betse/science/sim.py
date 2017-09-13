@@ -3,10 +3,7 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
-import copy
-import os
-import os.path
-import time
+import copy, time
 import numpy as np
 from betse.exceptions import BetseSimInstabilityException
 from betse.science import filehandling as fh
@@ -28,13 +25,12 @@ from betse.science.organelles.microtubules import Mtubes
 from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.animwhile import AnimCellsWhileSolving
 from betse.util.io.log import logs
+from betse.util.path import pathnames
 from betse.util.type.contexts import noop_context
 from betse.util.type.types import type_check, NoneType
 from numpy import ndarray
 from random import shuffle
-# from scipy import interpolate as interp
 from scipy.ndimage.filters import gaussian_filter
-# from betse.science.math import toolbox as tb
 
 # ....................{ CLASSES                            }....................
 class Simulator(object):
@@ -426,21 +422,17 @@ class Simulator(object):
         '''
         Initializes the pathnames of top-level files and directories comprising
         the BETSE cache for subsequent initialization and simulation runs.
-
-        This method currently implicitly assigns file names, but will
-        (hopefully) permit caller-specified pathnames at some point.
         '''
 
-        # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser(p.init_path)
-        os.makedirs(betse_cache_dir, exist_ok=True)
-
-        sim_cache_dir = os.path.expanduser(p.sim_path)
-        os.makedirs(sim_cache_dir, exist_ok=True)
+        #FIXME: These variables should ideally reside in the "Parameters" class,
+        #at which point this method may be safely removed. Specifically:
+        #
+        #* Rename "self.savedInit" to "p.init_pickle_filename".
+        #* Rename "self.savedSim" to "p.sim_pickle_filename".
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedInit = os.path.join(betse_cache_dir, p.init_pickle_basename)
-        self.savedSim = os.path.join(sim_cache_dir, p.sim_pickle_basename)
+        self.savedInit = pathnames.join(p.init_path, p.init_pickle_basename)
+        self.savedSim  = pathnames.join(p.sim_path, p.sim_pickle_basename)
 
     def baseInit_all(self, cells, p):
         """
@@ -2021,7 +2013,7 @@ class Simulator(object):
         # print(self.cc_cells[self.iNa].mean())
 
         cav = self.cc_cells[i][cells.mem_to_cells]  # concentration at cell centre
-        cmi = self.cc_at_mem[i]  # concentration at membrane
+        # cmi = self.cc_at_mem[i]  # concentration at membrane
         # z = self.zs[i]    # charge of ion
         # Do = 0.1*self.D_free[i]  # diffusion constant of ion, assuming diffusion in cytoplasm is 10x slower than free
         #

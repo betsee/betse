@@ -3,18 +3,9 @@
 # See "LICENSE" for further details.
 
 # ....................{ IMPORTS                            }....................
-import csv
-import math
-import os
-import os.path
-from collections import OrderedDict
-
+import csv, math
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
-from matplotlib import colors
-from scipy.ndimage.filters import gaussian_filter
-from scipy.optimize import basinhopping
 from betse.exceptions import BetseSimConfigException, BetseSimInstabilityException
 from betse.lib import libs
 from betse.science import sim_toolbox as stb
@@ -34,14 +25,17 @@ from betse.science.tissue.handler import TissueHandler
 from betse.science.visual.anim.anim import AnimFlatCellsTimeSeries, AnimEnvTimeSeries
 from betse.science.visual.plot import plotutil as viz
 from betse.util.io.log import logs
-from betse.util.path import pathnames
+from betse.util.path import dirs, pathnames
 from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
 from betse.util.type.types import type_check
-
-
-# FIXME: if moving to have unpacked membrane concs, update transporters...
+from collections import OrderedDict
+from matplotlib import cm
+from matplotlib import colors
+from scipy.ndimage.filters import gaussian_filter
+from scipy.optimize import basinhopping
 
 # ....................{ CLASSES                            }....................
+# FIXME: if moving to have unpacked membrane concs, update transporters...
 class MasterOfNetworks(object):
 
     def __init__(self, sim, cells, config_substances, p, mit_enabled = False):
@@ -674,20 +668,18 @@ class MasterOfNetworks(object):
             mol.plot_max = pd['max val']
             mol.plot_min = pd['min val']
 
-    def init_saving(self, cells, p, plot_type='init', nested_folder_name='Molecules'):
+    def init_saving(
+        self, cells, p, plot_type='init', nested_folder_name='Molecules'):
 
         if plot_type == 'sim':
-            results_path = os.path.join(p.sim_results, nested_folder_name)
+            self.resultsPath = pathnames.join(p.sim_results, nested_folder_name)
             p.plot_type = 'sim'
-
         elif plot_type == 'init':
-            results_path = os.path.join(p.init_results, nested_folder_name)
+            self.resultsPath = pathnames.join(p.init_results, nested_folder_name)
             p.plot_type = 'init'
 
-        self.resultsPath = os.path.expanduser(results_path)
-        os.makedirs(self.resultsPath, exist_ok=True)
-
-        self.imagePath = os.path.join(self.resultsPath, 'fig_')
+        dirs.make_unless_dir(self.resultsPath)
+        self.imagePath = pathnames.join(self.resultsPath, 'fig_')
 
         # check that the plot cell is in range of the available cell indices:
         if p.plot_cell not in cells.cell_i:
@@ -4064,8 +4056,7 @@ class MasterOfNetworks(object):
             react_dataM = np.asarray(react_dataM)
 
             saveName = 'AllReactionRatesData_' + str(p.plot_cell) + '.csv'
-
-            saveDataReact = os.path.join(self.resultsPath, saveName)
+            saveDataReact = pathnames.join(self.resultsPath, saveName)
 
             np.savetxt(saveDataReact, react_dataM.T, delimiter=',', header=react_header)
 
@@ -4128,8 +4119,7 @@ class MasterOfNetworks(object):
                 plt.show(block=False)
 
             saveName = 'AllTransporterRatesData_' + str(p.plot_cell) + '.csv'
-
-            saveDataTransp = os.path.join(self.resultsPath, saveName)
+            saveDataTransp = pathnames.join(self.resultsPath, saveName)
 
             transp_dataM = np.asarray(transp_dataM)
 
@@ -5387,8 +5377,7 @@ class Molecule(object):
     def export_data(self, sim, cells, p, savePath):
 
         saveName = 'ExportData_' + self.name + '_' + str(p.plot_cell) + '.csv'
-
-        saveData = os.path.join(savePath, saveName)
+        saveData = pathnames.join(savePath, saveName)
 
         ci = p.plot_cell  # index of cell to get time-dependent data for
 

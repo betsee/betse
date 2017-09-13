@@ -201,9 +201,9 @@ def expr_alias(
         * ``False``, an exception is raised at evaluation time if this value is
           *not* already an instance of this class.
         Defaults to ``None``, in which case this boolean conditionally defaults
-        to ``True`` only if the ``cls`` parameter is :cls:`float`, whose
+        to ``True`` only if the ``cls`` parameter is :class:`float`, whose
         constructor is well-known to safely cast various other types (e.g.,
-        :cls:`int`, :cls:`str`).
+        :class:`int`, :class:`str`).
     predicate : optional[CallableTypes]
         Callable passed the value of this expression as its first and only
         parameter and returning a boolean ``True`` only if this value satisfies

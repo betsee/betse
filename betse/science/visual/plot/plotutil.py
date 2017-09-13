@@ -6,20 +6,14 @@
 Low-level utility functions specific to single-frame plots.
 '''
 
-import os
-import os.path
-
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.ma as ma
 from matplotlib.collections import LineCollection, PolyCollection
 from scipy import interpolate
-
-from betse.exceptions import BetseSimConfigException
 from betse.util.io.log import logs
-from betse.util.path import dirs
-from betse.util.type import types
+# from betse.util.type import types
 
 
 def plotSingleCellVData(sim,celli,p,fig=None,ax=None, lncolor='k'):
@@ -1500,39 +1494,3 @@ def cell_mosaic(
     ax.add_collection(collection)
 
     return collection, ax
-
-# ....................{ PRIVATE                            }....................
-#FIXME: Obsolete. Let's excise! And exercise in the sweaty eventide!
-def _setup_file_saving(ani_obj: 'Anim', p: 'Parameters') -> None:
-    '''
-    Setup operating-system friendly file saving for animation classes.
-
-    Parameters
-    -----------
-    ani_obj : Anim
-        Instance of an animation class.
-    p : Parameters
-        Instance of the 'Parameters' class.
-    '''
-    assert types.is_parameters(p), types.assert_not_parameters(p)
-
-    if p.plot_type == 'sim':
-        images_dirname = os.path.join(p.sim_results, ani_obj.saveFolder)
-
-    elif p.plot_type == 'init':
-        images_dirname = os.path.join(p.init_results, ani_obj.saveFolder)
-
-    else:
-        raise BetseSimConfigException(
-            'Anim saving for phase "{}" unsupported.'.format(p.plot_type))
-
-    #FIXME: Refactor all calls to os.makedirs() everywhere similarly.
-
-    # Make this directory if not found -- FIXME can we get rid of the printout from this function...?
-    images_dirname = dirs.canonicalize_and_make_unless_dir(images_dirname)
-
-    # Absolute or relative path of the file to be saved.
-    ani_obj.savedAni = os.path.join(images_dirname, ani_obj.saveFile)
-
-    # Force animations to *NOT* repeat (don't FIXME-- we don't want to keep saving the animation over and over and over so please keep this!)
-    ani_obj.ani_repeat = False

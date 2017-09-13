@@ -20,6 +20,7 @@ from betse.util.type.types import (
     RegexMatchOrNoneTypes,
     RegexTypes,
     SequenceTypes,
+    SequenceOrNoneTypes,
 )
 
 # ....................{ FLAGS                              }....................
@@ -181,13 +182,14 @@ def get_match_groups_numbered(
 
 
 def get_match_groups_numbered_if_any(
-    text: str, regex: RegexTypes, **kwargs) -> SequenceTypes:
+    text: str, regex: RegexTypes, **kwargs) -> SequenceOrNoneTypes:
     '''
     List of all groups matched anchored to the beginning of the passed string
     against the passed regular expression (ordered by the left-to-right lexical
-    position at which each such group was matched) if any _or_ `None` otherwise.
+    position at which each such group was matched) if any *or* ``None``
+    otherwise.
 
-    Unmatched groups will have the value `None`.
+    Unmatched groups will have the value ``None``.
 
     Parameters
     ----------
@@ -203,8 +205,11 @@ def get_match_groups_numbered_if_any(
 
     Returns
     ----------
-    SequenceTypes
-        List of matched groups if any *or* ``None`` otherwise.
+    SequenceOrNoneTypes
+        Either:
+        * If this string matches this regular expression, the list of all groups
+          matched from this string.
+        * Else, ``None``.
 
     See Also
     ----------

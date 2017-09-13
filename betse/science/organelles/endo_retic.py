@@ -5,18 +5,17 @@
 """
 Creates an ER (endoplasmic reticulum) class, which includes ER-specific pumps,
 channels, and specific methods relating to calcium dynamics including calcium
-induced calcium release controlled by inositol-triphosphate.  This class also
+induced calcium release controlled by inositol-triphosphate. This class also
 contains the facilities to initialize, define the core computations for a
 simulation loop, remove ER during a cutting event, save and report on data, and
 plot.
 """
 
-import os
-import os.path
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
-import copy
 from betse.science import sim_toolbox as stb
+from betse.util.path import dirs, pathnames
 
 
 class EndoRetic(object):
@@ -152,20 +151,16 @@ class EndoRetic(object):
     def init_saving(self, cells, p, plot_type = 'init', nested_folder_name = 'ER'):
 
         # init files
-        if p.autosave is True:
-
+        if p.autosave:
             if plot_type == 'sim':
-                results_path = os.path.join(p.sim_results, nested_folder_name)
+                self.resultsPath = pathnames(p.sim_results, nested_folder_name)
                 p.plot_type = 'sim'
-
             elif plot_type == 'init':
-                results_path = os.path.join(p.init_results, nested_folder_name)
+                self.resultsPath = pathnames(p.init_results, nested_folder_name)
                 p.plot_type = 'init'
 
-            self.resultsPath = os.path.expanduser(results_path)
-            os.makedirs(self.resultsPath, exist_ok=True)
-
-            self.imagePath = os.path.join(self.resultsPath, 'fig_')
+            dirs.make_unless_dir(self.resultsPath)
+            self.imagePath = pathnames.join(self.resultsPath, 'fig_')
 
     def remove_ers(self, sim, target_inds_cell):
 

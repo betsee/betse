@@ -124,6 +124,7 @@ class SimPhase(object):
         # Classify the cache for this phase.
         self.cache = SimPhaseCaches(self)
 
+        #FIXME: Rename the "save_dirname" variable to "export_dirname".
         #FIXME: Isolate exports produced by the "seed" phase to their own
         #directory; for simplicity, such exports currently reuse that of the
         #"init" phase.

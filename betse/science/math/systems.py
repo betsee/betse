@@ -4,20 +4,15 @@
 
 # ....................{ IMPORTS                            }....................
 import csv
-import os
-import os.path
-from collections import OrderedDict
-
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import colors
-
 from betse.exceptions import BetseSimConfigException
 from betse.lib import libs
 from betse.util.io.log import logs
-from betse.util.path import pathnames
+from betse.util.path import dirs, pathnames
 from betse.util.type.mapping.mapcls import DynamicValue, DynamicValueDict
-
+from collections import OrderedDict
+from matplotlib import colors
 
 # ....................{ CLASSES                            }....................
 class SimMaster(object):
@@ -457,20 +452,26 @@ class SimMaster(object):
         for i, conc_name in enumerate(self.conc_handler):
             self.conc_handler_index[conc_name] = i
 
-    def init_saving(self, p, plot_type='init', nested_folder_name='DynamicSystem'):
+    #FIXME: This method has been copy-and-pasted into numerous other submodules,
+    #making life substantially harder. Duplicate copies include those in:
+    #
+    #* "chemistry/networks.py"
+    #* "organelles/endo_retic.py".
+    #
+    #Ideally, a common abstract base class (ABC) shared between these three
+    #submodules should handle common code like this. Diaphanous dolphins!
+    def init_saving(
+        self, p, plot_type='init', nested_folder_name='DynamicSystem'):
 
         if plot_type == 'sim':
-            results_path = os.path.join(p.sim_results, nested_folder_name)
+            self.resultsPath = pathnames.join(p.sim_results, nested_folder_name)
             p.plot_type = 'sim'
-
         elif plot_type == 'init':
-            results_path = os.path.join(p.init_results, nested_folder_name)
+            self.resultsPath = pathnames.join(p.init_results, nested_folder_name)
             p.plot_type = 'init'
 
-        self.resultsPath = os.path.expanduser(results_path)
-        os.makedirs(self.resultsPath, exist_ok=True)
-
-        self.imagePath = os.path.join(self.resultsPath, 'fig_')
+        dirs.make_unless_dir(self.resultsPath)
+        self.imagePath = pathnames.join(self.resultsPath, 'fig_')
 
     def read_reactions(self, config_reactions, p):
 
@@ -883,7 +884,7 @@ class SimMaster(object):
 
             for i, (name, n, Km) in enumerate(zip(product_names, product_coeff, product_Km)):
 
-                tex_name = name
+                # tex_name = name
 
                 numo_string_p = "((self.cell_concs['{}']/{})**{})".format(name, Km, n)
                 denomo_string_p = "(1 + (self.cell_concs['{}']/{})**{})".format(name, Km, n)
@@ -994,7 +995,7 @@ class SimMaster(object):
 
             for i, (name, coeff) in enumerate(zip(product_names, product_coeff)):
 
-                tex_name = name + "_{mit}"
+                # tex_name = name + "_{mit}"
                 numo_string_Q += "(self.mit_concs['{}']".format(name)
 
                 numo_string_Q += "**{})".format(coeff)
@@ -1034,7 +1035,7 @@ class SimMaster(object):
 
             for i, (name, n, Km) in enumerate(zip(product_names, product_coeff, product_Km)):
 
-                tex_name = name + '_{mit}'
+                # tex_name = name + '_{mit}'
 
                 numo_string_p = "((self.mit_concs['{}']/{})**{})".format(name, Km, n)
                 denomo_string_p = "(1 + (self.mit_concs['{}']/{})**{})".format(name, Km, n)
@@ -2687,8 +2688,7 @@ class SimMaster(object):
         ax.set_xlabel('Value of ' + name_A)
         ax.set_ylabel('Value of ' + name_B)
 
-
-        if p.autosave is True:
+        if p.autosave:
             savename = self.imagePath + 'DirectionField_' + name_A + '_' + name_B + '.png'
             plt.savefig(savename, format='png', transparent=True)
 
@@ -2710,8 +2710,6 @@ class SimMaster(object):
         if p.autosave is True:
             savename = self.imagePath + 'DirectionSurface3D_' + name_A + '_' + name_B + '.png'
             plt.savefig(savename, format='png', transparent=True)
-
-
 
         plt.close()
 

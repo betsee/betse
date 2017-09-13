@@ -8,13 +8,11 @@ Low-level pathname (e.g., basename, dirname, filetype) facilities.
 '''
 
 # ....................{ IMPORTS                            }....................
-import errno
-import os
-from os import path as os_path
-
+import errno, os
 from betse.exceptions import BetsePathnameException
 from betse.util.io.log import logs
 from betse.util.type.types import type_check, ModuleType, ContainerType
+from os import path as os_path
 
 # ....................{ CONSTANTS                          }....................
 INVALID_PATHNAME = '\0'
@@ -609,24 +607,43 @@ def get_filetype_undotted_or_none(pathname: str) -> str:
 
 # ....................{ CANONICALIZERS                     }....................
 @type_check
+def join_and_canonicalize(*partnames: str) -> str:
+    '''
+    Canonical form of the path produced by joining (i.e., concatenating) the
+    passed pathnames with the directory separator specific to the current
+    platform.
+
+    This higher-level function is a convenience wrapper encapsulating both the
+    lower-level :func:`join` and :func:`canonicalize` functions.
+    '''
+
+    return canonicalize(join(*partnames))
+
+
+@type_check
 def canonicalize(pathname: str) -> str:
     '''
     **Canonical form** (i.e., unique absolute pathname *after* transitively
     resolving all symbolic links) of the passed path.
 
-    Specifically (in order):
+    Specifically, this function (in order):
 
-    . Transitively resolve all symbolic links, producing a pathname that either
-      does not exist *or* does exist but is not a symbolic link.
-    . Perform **tilde expansion,** replacing a ``~`` character prefixing this
-      path by the absolute path of the current user's home directory.
-    . Perform **path normalization,** thus (in no particular order):
-      * Collapsing redundant separators (e.g., converting ``//`` to ``/``).
-      * Converting explicit relative to absolute path components (e.g.,
-        converting ``../`` to the name of the parent directory of that
-        component).
-      * Converting implicit relative basenames to absolute pathnames (e.g.,
-        converting ``sim_config.yaml`` to ``/tmp/sim_config.yaml`` when the
+    #. Transitively resolves all symbolic links, producing a pathname that
+       #either:
+
+       * Does not exist.
+       * Does exist but is *not* a symbolic link.
+
+    #. Performs **tilde expansion,** replacing a ``~`` character prefixing this
+       path by the absolute path of the current user's home directory.
+
+    #. Performs **path normalization,** which (in no particular order):
+
+      * Collapses redundant separators (e.g., converting ``//`` to ``/``).
+      * Converts explicit relative to absolute path components (e.g., converts
+        ``../`` to the name of the parent directory of that component).
+      * Converts implicit relative basenames to absolute pathnames (e.g.,
+        converts ``sim_config.yaml`` to ``/tmp/sim_config.yaml`` when the
         current working directory is ``/tmp``).
     '''
 

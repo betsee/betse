@@ -15,11 +15,10 @@ initialize, define the core computations for a simulation loop, save and report
 on data, and plot.
 '''
 
-import os
-import os.path
 import numpy as np
 from betse.science import filehandling as fh
 from betse.util.io.log import logs
+from betse.util.path import pathnames
 from betse.science.chemistry.networks import MasterOfNetworks
 from betse.science.config import confio
 from betse.exceptions import BetseSimConfigException
@@ -30,18 +29,19 @@ class MasterOfMetabolism(object):
 
     def __init__(self, p):
 
-        # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser(p.init_path)
-        os.makedirs(betse_cache_dir, exist_ok=True)
+        #FIXME: Extract the "MetabolicNetwork.betse" basename into a new
+        #configuration option, perhaps in the "init file saving" section.
+        #FIXME: Replace "MetabolicNetwork.betse" with
+        #"MetabolicNetwork.betse.gz" to compress this pickled file.
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedMoM = os.path.join(betse_cache_dir, 'MetabolicNetwork.betse')
+        self.savedMoM = pathnames.join(p.init_path, 'MetabolicNetwork.betse')
 
     def read_metabo_config(self, sim, cells, p):
 
         # create the path to read the metabolism config file:
-
-        self.configPath = os.path.join(p.conf_dirname, p.metabo_config_filename)
+        self.configPath = pathnames.join(
+            p.conf_dirname, p.metabo_config_filename)
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)
@@ -141,11 +141,15 @@ class MasterOfMetabolism(object):
     #
     #     pass
 
+    #FIXME: Oh, boy. Most of this method appears to have been copy-and-pasted
+    #from the read_metabo_config() method above. That's... not the best. Let's
+    #extract the code shared in common between these two methods into a new
+    #_init_metabo() method internally called by these two methods.
     def reinitialize(self, sim, cells, p):
 
         # create the path to read the metabolism config file:
-
-        self.configPath = os.path.join(p.conf_dirname, p.metabo_config_filename)
+        self.configPath = pathnames.join(
+            p.conf_dirname, p.metabo_config_filename)
 
         # read the config file into a dictionary:
         self.config_dic = confio.read_metabo(self.configPath)

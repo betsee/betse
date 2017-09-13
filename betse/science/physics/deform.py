@@ -103,10 +103,10 @@ def timeDeform(sim, cells, t, p):
     """
 
     # # Check for the adequacy of the time step:
-    # step_check = (p.dt / (2 * p.rc)) * np.sqrt(p.lame_mu / 1000)
+    # step_check = (p.dt / (2 * p.cell_radius)) * np.sqrt(p.lame_mu / 1000)
     #
     # if step_check > 1.0:
-    #     new_ts = (0.9 * 2 * p.rc) / (np.sqrt(p.lame_mu / 1000))
+    #     new_ts = (0.9 * 2 * p.cell_radius) / (np.sqrt(p.lame_mu / 1000))
     #
     #     raise BetseSimException(
     #         'Time dependent deformation is tricky business, requiring a small time step! '
@@ -182,7 +182,7 @@ def timeDeform(sim, cells, t, p):
         d_ux_dt = (sim.dx_time[-1] - sim.dx_time[-2]) / (p.dt)
         d_uy_dt = (sim.dy_time[-1] - sim.dy_time[-2]) / (p.dt)
 
-        gamma = ((p.dt ** 2) * (p.mu_tissue * p.lame_mu)) / (1000 * (2 * p.rc))
+        gamma = ((p.dt ** 2) * (p.mu_tissue * p.lame_mu)) / (1000 * (2 * p.cell_radius))
 
         if p.fixed_cluster_bound is True:
 

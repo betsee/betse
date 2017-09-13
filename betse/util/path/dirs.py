@@ -65,11 +65,9 @@ def join_and_die_unless_dir(*pathnames: str) -> str:
     platform if this directory exists *or* raise an exception otherwise (i.e.,
     if this directory does *not* exist).
 
-    See Also
-    -----------
-    :func:`betse.util.path.pathnames.join`
-    :func:`die_unless_dir`
-        Further details.
+    This higher-level function is a convenience wrapper encapsulating both the
+    lower-level :func:`betse.util.path.pathnames.join` and
+    :func:`die_unless_dir` functions.
     '''
 
     # Avoid circular import dependencies.
@@ -434,13 +432,19 @@ def copy(
 
 # ....................{ MAKERS                             }....................
 @type_check
-def make_unless_dir(dirname: str) -> None:
+def make_unless_dir(*dirnames: str) -> None:
     '''
-    Create the directory with the passed path if this directory does not already
-    exist *or* noop otherwise.
+    Create the directory with each passed pathname for each such directory that
+    does *not* already exist.
 
     All nonexistent parents of this directory are also recursively created,
     reproducing the action of the POSIX-compliant ``mkdir -p`` shell command.
+
+    Parameters
+    -----------
+    pathnames : tuple[str]
+        Tuple of the absolute or relative pathnames of all directories to
+        create.
 
     See Also
     -----------
@@ -453,18 +457,26 @@ def make_unless_dir(dirname: str) -> None:
     # conditions (e.g., in the event this directory is created between testing
     # and creating this directory), we preserve the makedirs() keyword argument
     # "exist_ok=True" below.
-    if not is_dir(dirname):
-        # Log this creation.
-        logs.log_debug('Creating directory: %s', dirname)
+    for dirname in dirnames:
+        if not is_dir(dirname):
+            # Log this creation.
+            logs.log_debug('Creating directory: %s', dirname)
 
-        # Create this directory if still needed.
-        os.makedirs(dirname, exist_ok=True)
+            # Create this directory if still needed.
+            os.makedirs(dirname, exist_ok=True)
 
 
+@type_check
 def make_parent_unless_dir(*pathnames: str) -> None:
     '''
-    Create the parent directory of each passed path for each such directory that
-    does not already exist.
+    Create the parent directory of each passed pathname for each such directory
+    that does *not* already exist.
+
+    Parameters
+    -----------
+    pathnames : tuple[str]
+        Tuple of the absolute or relative pathnames to create the parent
+        directories of.
 
     See Also
     -----------

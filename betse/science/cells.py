@@ -4,8 +4,6 @@
 
 # ....................{ IMPORTS                            }....................
 import math
-import os
-import os.path
 import numpy as np
 import scipy.spatial as sps
 from numpy import ndarray
@@ -18,11 +16,12 @@ from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
 from betse.util.io.log import logs
+from betse.util.path import pathnames
 from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import (
     type_check, NumericOrSequenceTypes, SequenceTypes,)
-from betse.science.math.geometry.polygon.geopolyconvex import clip_counterclockwise as clip
-from betse.science.math.geometry.polygon.geopolyconvex import clip as clip_raw
+from betse.science.math.geometry.polygon.geopolyconvex import (
+    clip_counterclockwise)
 
 # ....................{ CLASSES                            }....................
 # FIXME create a new option for seed points: Fibonacci radial-spiral array
@@ -42,7 +41,6 @@ class Cells(object):
 
     Methods
     -------
-    fileInit()                        Create directories for file saving and loading
     seed()                       Create a cell cluster for simulation purposes
     deformWorld(p, ecm_verts)         Modifies Cells object under a deformation
     makeSeeds()                       Create a 2D random scatter of points which will serve as cell centres
@@ -66,10 +64,10 @@ class Cells(object):
         all cells, whose:
         #. First dimension indexes cells, whose length is the number of cells.
         #. Second dimension indexes the coordinates of the center point of the
-          current cell, whose length is unconditionally guaranteed to be 2
-          *and* whose:
-          #. First element is the X coordinate of the current cell center.
-          #. Second element is the Y coordinate of the current cell center.
+           current cell, whose length is unconditionally guaranteed to be 2
+           *and* whose:
+           #. First element is the X coordinate of the current cell center.
+           #. Second element is the Y coordinate of the current cell center.
     cell_i : list
         One-dimensional list indexing each cell such that each element is that
         cell's index (i.e., ``[0, 1, ..., n-2, n-1]`` for the number of cells
@@ -78,16 +76,16 @@ class Cells(object):
         Three-dimensional Numpy array of the coordinates of the vertices of all
         cells, whose:
         #. First dimension indexes each cell such that each element is a
-          matplotlib-compatible **polygon patch** (i.e., a two-dimensional
-          Numpy array of all vertex coordinates defining the current cell's
-          polygon), suitable for passing as is to the
-          :meth:`matplotlib.patches.Polygon.__init__` method.
+           matplotlib-compatible **polygon patch** (i.e., a two-dimensional
+           Numpy array of all vertex coordinates defining the current cell's
+           polygon), suitable for passing as is to the
+           :meth:`matplotlib.patches.Polygon.__init__` method.
         #. Second dimension indexes each vertex of the current cell (in
-          counterclockwise order).
+           counterclockwise order).
         #. Third dimension indexes each coordinate of the current cell vertex,
-          whose length is guaranteed to be 2 *and* whose:
-          #. First element is the X coordinate of the current cell vertex.
-          #. Second element is the Y coordinate of the current cell vertex.
+           whose length is guaranteed to be 2 *and* whose:
+           #. First element is the X coordinate of the current cell vertex.
+           #. Second element is the Y coordinate of the current cell vertex.
     R : ndarray
         One-dimensional Numpy array indexing each cell such that each element is
         the radius of that cell.
@@ -97,10 +95,10 @@ class Cells(object):
     cell_to_mems : ndarray
         Two-dimensional Numpy array of the indices of all membranes for all
         cells, whose:
-        . First dimension indexes each cell.
-        . Second dimension indexes each membrane of the current cell such that
-          each element is the index of the corresponding membrane in
-          membrane-centric arrays (e.g., :attr:`mem_mids_flat`).
+        #. First dimension indexes each cell.
+        #. Second dimension indexes each membrane of the current cell such that
+           each element is the index of the corresponding membrane in
+           membrane-centric arrays (e.g., :attr:`mem_mids_flat`).
         For example:
         * ``cell_to_mems[0][0]`` is the index of the first cell's first membrane
           -- which is *always* 0.
@@ -337,32 +335,34 @@ class Cells(object):
         attribute (replacing "cell" with "Voronoi region").
     '''
 
-    def __init__(self, p):
+
+    # Avoid circular import dependencies.
+    @type_check
+    def __init__(self, p: 'betse.science.parameters.Parameters') -> None:
         '''
-        Initialize this cell cluster.
+        Initialize this cell cluster with the passed simulation configuration.
+
+        Parameters
+        ----------
+        p : betse.science.parameters.Parameters
+            Current simulation configuration.
         '''
 
-        # Extract the constants from the input object.
-        self.fileInit(p)
-
-    def fileInit(self, p):
-        """
-        Initializes file saving and loading directory as the BETSE cache, which
-        is automatically assigned from the user-specified path in the
-        configuration file.
-        """
-
-        # Make the BETSE-specific cache directory if not found.
-        betse_cache_dir = os.path.expanduser(p.init_path)
-        os.makedirs(betse_cache_dir, exist_ok=True)
+        #FIXME: This variable should ideally reside in the "Parameters" class,
+        #at which point this method may be safely removed. Specifically:
+        #
+        #* Rename "self.savedWorld" to "p.seed_pickle_filename".
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedWorld = os.path.join(betse_cache_dir, p.seed_pickle_basename)
+        self.savedWorld = pathnames.join(p.init_path, p.seed_pickle_basename)
 
-    def makeWorld(self, p):
-        """
-        Calls internal methods to set up the cell cluster.
-        """
+
+    # Avoid circular import dependencies.
+    @type_check
+    def makeWorld(self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Setup the cell cluster.
+        '''
 
         logs.log_info('Creating Voronoi geometry... ')
         self.makeSeeds(p, seed_type=p.lattice_type)  # Create the grid for the system (irregular)
@@ -403,10 +403,10 @@ class Cells(object):
         self.lapENV_P, self.lapENV_P_inv = self.grid_obj.makeLaplacian(bound=bdic)
         self.lapENV_P = None
 
-        if p.is_ecm is True:
+        #FIXME: Do we still want this? If not, let's consider removing this. Two
+        #pounds of flax!
 
-            self.is_ecm = True
-
+        # if p.is_ecm:
             # logs.log_info("Creating Maxwell Capacitance Matrix voltage solver for cell cluster...")
             # self.maxwellCapMatrix(p)  # create Maxwell Capacitance Matrix solver for voltages
 
@@ -426,10 +426,8 @@ class Cells(object):
 
             # logs.log_info('Creating finite volume grid integrator...')
             # self.gridInt = self.grid_obj.makeIntegrator()
-
-        else:
-
-            self.is_ecm = False
+        # else:
+        #     self.is_ecm = False
 
         # set all Laplacian matrices to None fields to allow for flexible creation
         # Laplacians and inverses on the cell grid (two boundary conditions sets)
@@ -617,11 +615,17 @@ class Cells(object):
         if ymax > self.ymax:
             self.ymax = ymax
 
-    def makeSeeds(self, p: 'Parameters', seed_type = 'rect') -> None:
 
+    # Avoid circular import dependencies.
+    @type_check
+    def makeSeeds(
+        self,
+        p: 'betse.science.parameters.Parameters',
+        seed_type: str = 'rect',
+    ) -> None:
         '''
-        Creates the irregular scatter lattice of seed points defined on a 2D
-        world space, with dimensions supplied by `p.wsx` in [m].
+        Create the irregular scatter lattice of seed points defined on a 2D
+        world space, with dimensions supplied by :attr:`p.wsx` in [m].
 
         Specifically, this method defines the following object attributes:
 
@@ -638,9 +642,10 @@ class Cells(object):
         -----------
         p : Parameters
             Current simulation configuration.
-        seed_type     'hex' produces a hexagonal lattice seed, while 'rect' produces a
-                       rectangular grid. Both are perturbed by the lattice noise option p.nl
-
+        seed_type : str
+            'hex' produces a hexagonal lattice seed, while 'rect' produces a
+            rectangular grid. Both are perturbed by the lattice noise option
+            :attr:`p.nl`.
         '''
 
         if seed_type == 'rect': # prepare a standard rectangular grid of points
@@ -726,10 +731,10 @@ class Cells(object):
             xypts = np.vstack((x_2d, y_2d)).T
 
         else:
-
-            raise BetseSimConfigException("You have chosen a world option lattice type that is "
-                                           "not available. Options are 'hex' and 'rect'."
-                                           " Please check your config file and try again.")
+            raise BetseSimConfigException(
+                "You have chosen a world option lattice type that is "
+                "not available. Options are 'hex' and 'rect'. "
+                "Please check your config file and try again.")
 
         # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
 
@@ -740,9 +745,11 @@ class Cells(object):
         self.ymin = np.min(xypts[:,1])
         self.ymax = np.max(xypts[:,1])
 
-        bbox = np.asarray([[self.xmin, self.ymin], [self.xmax, self.ymin], [self.xmax, self.ymax],
-                                [self.xmin, self.ymax]])
-
+        bbox = np.asarray(
+            [[self.xmin, self.ymin],
+             [self.xmax, self.ymin],
+             [self.xmax, self.ymax],
+             [self.xmin, self.ymax]])
 
         self.centre = xypts.mean(axis=0)
         # self.clust_xy = xypts
@@ -750,13 +757,16 @@ class Cells(object):
         self.clust_xy = np.vstack((xypts, bbox))
 
         # alter the actual bounding box to create a nice clipping and plotting polygon
-        self.bbox = np.asarray([[self.xmin - p.rc, self.ymin - p.rc], [self.xmax + p.rc, self.ymin - p.rc],
-                                [self.xmax + p.rc, self.ymax + p.rc],[self.xmin - p.rc, self.ymax + p.rc]])
+        self.bbox = np.asarray(
+            [[self.xmin - p.cell_radius, self.ymin - p.cell_radius],
+             [self.xmax + p.cell_radius, self.ymin - p.cell_radius],
+             [self.xmax + p.cell_radius, self.ymax + p.cell_radius],
+             [self.xmin - p.cell_radius, self.ymax + p.cell_radius]])
 
-        self.xmin = self.xmin - p.rc
-        self.ymin = self.ymin - p.rc
-        self.xmax = self.xmax + p.rc
-        self.ymax = self.ymax + p.rc
+        self.xmin = self.xmin - p.cell_radius
+        self.ymin = self.ymin - p.cell_radius
+        self.xmax = self.xmax + p.cell_radius
+        self.ymax = self.ymax + p.cell_radius
 
     def makeVoronoi(self, p):
         """
@@ -855,7 +865,7 @@ class Cells(object):
 
         self.voronoi_verts = []  # track all voronoi cells, even those not in cluster (used as grid for masking)
 
-        ave_area = np.pi*p.rc**2
+        ave_area = np.pi*p.cell_radius**2
 
         for poly_ind in vor.regions: # step through the regions of the voronoi diagram
 
@@ -874,7 +884,8 @@ class Cells(object):
 
                 if point_check.any() == 1.0: # if any of the region's points are in the clipping func range
 
-                    verts_clip = clip(cell_polya, self.bitmasker.clipcurve)
+                    verts_clip = clip_counterclockwise(
+                        cell_polya, self.bitmasker.clipcurve)
 
                     if len(verts_clip):
 
@@ -914,7 +925,7 @@ class Cells(object):
 
         #-----clipping out redundant points--------------------------------------------------------
 
-        # perm_cut = 2 * math.pi * p.rc * p.merge_cut_off  # the threshhold edge length
+        # perm_cut = 2 * math.pi * p.cell_radius * p.merge_cut_off  # the threshhold edge length
         #
         ecm_verts_2 = []
         #
@@ -958,7 +969,7 @@ class Cells(object):
     def refineMesh(self, p):
 
         ecm_verts2 = []
-        vol_mean = p.cell_height*np.pi*p.rc**2
+        vol_mean = p.cell_height*np.pi*p.cell_radius**2
 
         for i, poly in enumerate(self.ecm_verts):
 
@@ -1421,7 +1432,7 @@ class Cells(object):
 
         #-- find nearest neighbour cell-cell junctions via adjacent membranes-------------------------------------------
 
-        sc = (p.rc/2.4)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
+        sc = (p.cell_radius/2.4)*(p.scale_cell)  # threshhold for searching nearest-neighbour membranes
         memTree = sps.KDTree(self.mem_mids_flat)
 
         mem_nn_o = memTree.query_ball_point(self.mem_mids_flat,sc)
@@ -2180,7 +2191,7 @@ class Cells(object):
         voronoi_verts = []
 
         for verts in self.voronoi_verts:
-            verts_clip = clip(verts, self.bbox)
+            verts_clip = clip_counterclockwise(verts, self.bbox)
             voronoi_verts.append(verts_clip)
 
 
