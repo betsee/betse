@@ -153,10 +153,10 @@ class EndoRetic(object):
         # init files
         if p.autosave:
             if plot_type == 'sim':
-                self.resultsPath = pathnames(p.sim_results, nested_folder_name)
+                self.resultsPath = pathnames(p.sim_export_dirname, nested_folder_name)
                 p.plot_type = 'sim'
             elif plot_type == 'init':
-                self.resultsPath = pathnames(p.init_results, nested_folder_name)
+                self.resultsPath = pathnames(p.init_export_dirname, nested_folder_name)
                 p.plot_type = 'init'
 
             dirs.make_unless_dir(self.resultsPath)

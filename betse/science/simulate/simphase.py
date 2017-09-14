@@ -131,11 +131,11 @@ class SimPhase(object):
 
         # Absolute path of the top-level exports directory for this phase.
         if kind is SimPhaseKind.SEED:
-            self.save_dirname = p.init_results
+            self.save_dirname = p.init_export_dirname
         elif kind is SimPhaseKind.INIT:
-            self.save_dirname = p.init_results
+            self.save_dirname = p.init_export_dirname
         elif kind is SimPhaseKind.SIM:
-            self.save_dirname = p.sim_results
+            self.save_dirname = p.sim_export_dirname
         else:
             raise BetseSimPhaseException(
                 'Simulation phase {} unrecognized.'.format(kind.name))

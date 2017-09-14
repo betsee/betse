@@ -464,10 +464,10 @@ class SimMaster(object):
         self, p, plot_type='init', nested_folder_name='DynamicSystem'):
 
         if plot_type == 'sim':
-            self.resultsPath = pathnames.join(p.sim_results, nested_folder_name)
+            self.resultsPath = pathnames.join(p.sim_export_dirname, nested_folder_name)
             p.plot_type = 'sim'
         elif plot_type == 'init':
-            self.resultsPath = pathnames.join(p.init_results, nested_folder_name)
+            self.resultsPath = pathnames.join(p.init_export_dirname, nested_folder_name)
             p.plot_type = 'init'
 
         dirs.make_unless_dir(self.resultsPath)

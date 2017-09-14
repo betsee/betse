@@ -638,11 +638,11 @@ and plot.
 #             if p.autosave is True:
 #
 #                 if plot_type == 'sim':
-#                     results_path = os.path.join(p.sim_results, nested_folder_name)
+#                     results_path = os.path.join(p.sim_export_dirname, nested_folder_name)
 #                     p.plot_type = 'sim'
 #
 #                 elif plot_type == 'init':
-#                     results_path = os.path.join(p.init_results, nested_folder_name)
+#                     results_path = os.path.join(p.init_export_dirname, nested_folder_name)
 #                     p.plot_type = 'init'
 #
 #                 self.resultsPath = os.path.expanduser(results_path)

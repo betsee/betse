@@ -30,7 +30,7 @@ class MasterOfGenes(object):
         #compress this pickled file.
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedMoG = pathnames.join(p.init_path, 'GeneNetwork.betse')
+        self.savedMoG = pathnames.join(p.init_pickle_dirname, 'GeneNetwork.betse')
 
     def read_gene_config(self, sim, cells, p):
 

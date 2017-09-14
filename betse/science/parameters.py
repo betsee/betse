@@ -33,13 +33,20 @@ class Parameters(YamlFileABC):
     Attributes (Path: Export)
     ----------
     init_export_dirname : str
-        Relative path of the directory containing all results exported by this
-        simulation's most recent initialization, relative to the absolute path
-        of the directory containing this simulation configuration's YAML file.
+        Absolute pathname of the directory containing results exported from this
+        simulation's most recent initialization run, guaranteed to exist.
+    init_export_dirname_relative : str
+        Relative pathname of the directory containing results exported from this
+        simulation's most recent initialization run, relative to the absolute
+        path of the directory containing this simulation configuration's YAML
+        file.
     sim_export_dirname : str
-        Relative path of the directory containing all results exported by this
-        simulation's most recent simulation, relative to the absolute path of
-        the directory containing this simulation configuration's YAML file.
+        Absolute pathname of the directory containing results exported from this
+        simulation's most recent simulation run, guaranteed to exist.
+    sim_export_dirname_relative : str
+        Relative pathname of the directory containing results exported from this
+        simulation's most recent simulation run, relative to the absolute path
+        of the directory containing this simulation configuration's YAML file.
 
     Attributes (Path: Pickle: Seed)
     ----------
@@ -50,20 +57,24 @@ class Parameters(YamlFileABC):
         Basename of the pickled file providing this simulation's most recent
         initialization run within the current :attr:`init_dirname`.
     init_pickle_dirname : str
-        Relative pathname of the directory containing the this simulation's most
+        Absolute pathname of the directory containing this simulation's most
+        recently seeded cell cluster *and* initialization run, guaranteed to
+        exist.
+    init_pickle_dirname_relative : str
+        Relative pathname of the directory containing this simulation's most
         recently seeded cell cluster *and* initialization run, relative to the
         absolute path of the directory containing this simulation
         configuration's YAML file.
-    init_path : str
-        Relative pathname of the directory containing the this simulation's most
-        recently seeded cell cluster *and* initialization run.
     sim_pickle_basename : str
         Basename of the pickled file providing this simulation's most recent
         simulation run within the current :attr:`sim_dirname`.
     sim_pickle_dirname : str
-        Relative pathname of the directory containing the
-        :attr:`sim_pickle_basename` file, relative to the absolute path of the
-        directory containing this simulation configuration's YAML file.
+        Absolute pathname of the directory containing this simulation's most
+        recent simulation run, guaranteed to exist.
+    sim_pickle_dirname_relative : str
+        Relative pathname of the directory this simulation's most
+        recent simulation run, relative to the absolute path of the directory
+        containing this simulation configuration's YAML file.
 
     Attributes (Space: Cluster)
     ----------
@@ -188,21 +199,23 @@ class Parameters(YamlFileABC):
     '''
 
     # ..................{ ALIASES                            }..................
-    # To simplify computation throughout the codebase, time quantities are
+    # To sanitize computation throughout the codebase, *ALL* real numbers are
     # required to be floating point rather the more general "NumericTypes" type
     # (i.e., either floating point or integer). Due to magic internal to the
     # yaml_alias() data descriptor, integer values are both silently and safely
     # cast to floating point values.
 
     # ..................{ ALIASES ~ export : dir             }..................
-    init_export_dirname = yaml_alias(
+    init_export_dirname_relative = yaml_alias(
         "['results file saving']['init directory']", str)
-    sim_export_dirname  = yaml_alias(
+    sim_export_dirname_relative  = yaml_alias(
         "['results file saving']['sim directory']", str)
 
     # ..................{ ALIASES ~ pickle : dir             }..................
-    init_pickle_dirname = yaml_alias("['init file saving']['directory']", str)
-    sim_pickle_dirname  = yaml_alias("['sim file saving']['directory']", str)
+    init_pickle_dirname_relative = yaml_alias(
+        "['init file saving']['directory']", str)
+    sim_pickle_dirname_relative = yaml_alias(
+        "['sim file saving']['directory']", str)
 
     # ..................{ ALIASES ~ pickle : base            }..................
     seed_pickle_basename = yaml_alias("['init file saving']['worldfile']", str)
@@ -1413,27 +1426,23 @@ class Parameters(YamlFileABC):
         Initialize paths specified by this configuration.
         '''
 
-        #FIXME: Rename to "init_pickle_dirname" *AFTER* renaming
-        #the existing lower-level "init_pickle_dirname" data descriptor to
-        #something less blatantly wrong -- say, "init_pickle_relative_dirname".
-
         # Absolute pathname of directories specified by this configuration.
-        self.init_path = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.init_pickle_dirname)
-        self.sim_path = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.sim_pickle_dirname)
+        self.init_pickle_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.init_pickle_dirname_relative)
+        self.sim_pickle_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.sim_pickle_dirname_relative)
 
         # Absolute or relative paths of the directories containing saved
         # initialization and simulation results.
-        self.init_results = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.init_export_dirname)
-        self.sim_results = pathnames.join_and_canonicalize(
-            self.conf_dirname, self.sim_export_dirname)
+        self.init_export_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.init_export_dirname_relative)
+        self.sim_export_dirname = pathnames.join_and_canonicalize(
+            self.conf_dirname, self.sim_export_dirname_relative)
 
         # Create all non-existing directories.
         dirs.make_unless_dir(
-            self.init_path,    self.sim_path,
-            self.init_results, self.sim_results)
+            self.init_pickle_dirname, self.sim_pickle_dirname,
+            self.init_export_dirname, self.sim_export_dirname)
 
     # ..................{ INITIALIZERS ~ tissue              }..................
     def _init_tissue_and_cut_profiles(self) -> None:

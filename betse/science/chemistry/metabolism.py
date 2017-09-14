@@ -35,7 +35,7 @@ class MasterOfMetabolism(object):
         #"MetabolicNetwork.betse.gz" to compress this pickled file.
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedMoM = pathnames.join(p.init_path, 'MetabolicNetwork.betse')
+        self.savedMoM = pathnames.join(p.init_pickle_dirname, 'MetabolicNetwork.betse')
 
     def read_metabo_config(self, sim, cells, p):
 

@@ -30,7 +30,7 @@ class MasterOfMolecules(object):
         #compress this pickled file.
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedMoM = pathnames.join(p.init_path, 'GeneralNetwork.betse')
+        self.savedMoM = pathnames.join(p.init_pickle_dirname, 'GeneralNetwork.betse')
 
     def read_mol_config(self, sim, cells, p):
 

@@ -354,7 +354,7 @@ class Cells(object):
         #* Rename "self.savedWorld" to "p.seed_pickle_filename".
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedWorld = pathnames.join(p.init_path, p.seed_pickle_basename)
+        self.savedWorld = pathnames.join(p.init_pickle_dirname, p.seed_pickle_basename)
 
 
     # Avoid circular import dependencies.

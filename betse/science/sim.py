@@ -431,8 +431,8 @@ class Simulator(object):
         #* Rename "self.savedSim" to "p.sim_pickle_filename".
 
         # Define data paths for saving an initialization and simulation run:
-        self.savedInit = pathnames.join(p.init_path, p.init_pickle_basename)
-        self.savedSim  = pathnames.join(p.sim_path, p.sim_pickle_basename)
+        self.savedInit = pathnames.join(p.init_pickle_dirname, p.init_pickle_basename)
+        self.savedSim  = pathnames.join(p.sim_pickle_dirname, p.sim_pickle_basename)
 
     def baseInit_all(self, cells, p):
         """
@@ -1679,11 +1679,11 @@ class Simulator(object):
         if p.run_sim is False:
             datadump = [self, cells, p]
             fh.saveSim(self.savedInit, datadump)
-            logs.log_info('Initialization saved to "%s".', p.init_path)
+            logs.log_info('Initialization saved to "%s".', p.init_pickle_dirname)
         else:
             datadump = [self, cells, p]
             fh.saveSim(self.savedSim, datadump)
-            logs.log_info('Simulation saved to "%s".', p.sim_path)
+            logs.log_info('Simulation saved to "%s".', p.sim_pickle_dirname)
 
         # Report final output to the user.
         for i in range(0, len(self.ionlabel)):

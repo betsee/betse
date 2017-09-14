@@ -540,7 +540,7 @@ class SimRunner(object):
         #FIXME: Shift everything below into a new seed-specific pipeline -- say,
         #betse.science.export.exppipe.pipeline_seed().
         if p.autosave:
-            savedImg = pathnames.join(p.init_results, 'fig_')
+            savedImg = pathnames.join(p.init_export_dirname, 'fig_')
 
         if p.plot_cell_cluster:
             fig_tiss, ax_tiss, cb_tiss = viz.clusterPlot(
