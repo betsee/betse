@@ -4,8 +4,9 @@
 # See "LICENSE" for further details.
 
 '''
-Low-level **type testers** (i.e., functions testing the types of passed
-objects).
+Core **type** (i.e., class) functionality, enumerating a variety of core types
+and :func:`instanceof`\ -friendly tuples of such types *and* the pivotal
+:func:`type_check` decorator validating callable parameters to be of such types.
 '''
 
 # ....................{ IMPORTS                            }....................
@@ -380,7 +381,7 @@ Tuple of all numeric types *and* all container base classes conforming to (but
 
 NoneTypes = (NoneType,)
 '''
-Tuple of only the type of the singleton `None` object.
+Tuple of only the type of the singleton ``None`` object.
 
 This tuple is principally intended for use in efficiently constructing other
 tuples of types containing this type.

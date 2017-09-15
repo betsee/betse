@@ -292,6 +292,8 @@ class Parameters(YamlFileABC):
         self.cell_height = float(self._conf['world options']['cell height'])  # the height of a cell in the z-direction
         self.lattice_type = self._conf['world options']['lattice type']  # hex or rect lattice base
         self.cell_space = float(self._conf['world options']['cell spacing'])  # the true cell-cell spacing
+
+        #FIXME: Rename to "cell_lattice_disorder".
         self.nl = float(self._conf['world options']['lattice disorder'])  # noise level for the lattice
 
         volmult = float(self._conf['internal parameters']['environment volume multiplier'])
