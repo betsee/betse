@@ -365,7 +365,7 @@ class Cells(object):
         '''
 
         logs.log_info('Creating Voronoi geometry... ')
-        self.makeSeeds(p, seed_type=p.lattice_type)  # Create the grid for the system (irregular)
+        self.makeSeeds(p, seed_type=p.cell_lattice_type)  # Create the grid for the system (irregular)
         self.makeVoronoi(p)  # Make, close, and clip the Voronoi diagram
 
         logs.log_info('Cleaning Voronoi geometry... ')
@@ -635,7 +635,7 @@ class Cells(object):
         * `clust_xy`, the list of `(x, y)` Cartesian coordinates of seed
           points.
 
-        The amount of deviation from a square grid is specified by `p.nl`,
+        The amount of deviation from a square grid is specified by `p.cell_lattice_disorder`,
         defined from 0 (perfect square grid) to 1 (full noise).
 
         Parameters
@@ -645,7 +645,7 @@ class Cells(object):
         seed_type : str
             'hex' produces a hexagonal lattice seed, while 'rect' produces a
             rectangular grid. Both are perturbed by the lattice noise option
-            :attr:`p.nl`.
+            :attr:`p.cell_lattice_disorder`.
         '''
 
         if seed_type == 'rect': # prepare a standard rectangular grid of points
@@ -658,8 +658,8 @@ class Cells(object):
             x_2d, y_2d = np.meshgrid(x_v, y_v)  # create 2D array of lattice points
 
             # now create a matrix of points that will add a +/- deviation to each point centre
-            x_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
-            y_rnd = p.nl * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
+            x_rnd = p.cell_lattice_disorder * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
+            y_rnd = p.cell_lattice_disorder * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
 
             # add the noise effect to the world point matrices and redefine the results
             x_2d = x_2d + x_rnd
@@ -721,8 +721,8 @@ class Cells(object):
             y_2d = np.hstack((y_2d_blue.ravel(), y_2d_red.ravel()))
 
             # now create a matrix of points that will add a +/- deviation to each point centre
-            x_rnd = p.nl * p.d_cell * (np.random.rand(len(x_2d)) - 0.5)  # create a mix of random deltas x dir
-            y_rnd = p.nl * p.d_cell * (np.random.rand(len(y_2d)) - 0.5)  # create a mix of random deltas x dir
+            x_rnd = p.cell_lattice_disorder * p.d_cell * (np.random.rand(len(x_2d)) - 0.5)  # create a mix of random deltas x dir
+            y_rnd = p.cell_lattice_disorder * p.d_cell * (np.random.rand(len(y_2d)) - 0.5)  # create a mix of random deltas x dir
 
             # # add the noise effect to the world point matrices and redefine the results
             x_2d = x_2d + x_rnd

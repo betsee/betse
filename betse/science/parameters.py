@@ -21,6 +21,27 @@ from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 from collections import OrderedDict
+from enum import Enum
+
+# ....................{ ENUMS                              }....................
+#FIXME: Refactor the "cell_lattice_type" variable from a raw string into a
+#member of this enumeration.
+#FIXME: Rename "RECT" to "SQUARE", which less ambiguously describes the actual
+#lattice produced in that case. Doing so will require applying a configuration
+#file compatibility patch, of course, implicitly converting "lattice type"
+#values of "rect" to "square". *sigh*
+CellLatticeType = Enum('CellLatticeType', ('HEX', 'RECT',))
+'''
+Enumeration of all supported types of **base cell lattices** (i.e., uniform grid
+to which cells are situated *before* random lattice disorder is applied).
+
+Attributes
+----------
+HEX : enum
+    Hexagonal base cell lattice, situating cells along a hexagonal grid.
+RECT : enum
+    Rectilinear base cell lattice, situating cells along a square grid.
+'''
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
@@ -76,11 +97,24 @@ class Parameters(YamlFileABC):
         recent simulation run, relative to the absolute path of the directory
         containing this simulation configuration's YAML file.
 
-    Attributes (Space: Cluster)
+    Attributes (Space: Cell)
     ----------
     cell_radius : float
         Radius in meters of each cell in this cluster. This should typically be
         within an order of magnitude of the recommended default of ``5.0e-6``.
+
+    Attributes (Space: Cell Cluster)
+    ----------
+    cell_lattice_disorder : float
+        Degree to which cell boundaries spatially deviate from the base cell
+        lattice. If 0.0, cells rigidly conform to this lattice; else, cells
+        randomly deviate from this lattice. Increasing this increases the
+        entropy (i.e., randomness) of these deviations, producing an
+        increasingly chaotic arrangement of cells. This should typically reside
+        in the range ``[0.0, 0.8]``.
+    cell_lattice_type : CellLatticeType
+        Type of **base cell lattice** (i.e., uniform grid to which cells are
+        situated *before* random lattice disorder is applied).
 
     Attributes (Space: Environment)
     ----------
@@ -225,6 +259,10 @@ class Parameters(YamlFileABC):
     # ..................{ ALIASES ~ space : cell             }..................
     cell_radius = yaml_alias("['world options']['cell radius']", float)
 
+    # ..................{ ALIASES ~ space : cell cluster     }..................
+    cell_lattice_disorder = yaml_alias(
+        "['world options']['lattice disorder']", float)
+
     # ..................{ ALIASES ~ space : env              }..................
     grid_size = yaml_alias("['general options']['comp grid size']", int)
     is_ecm = yaml_alias(
@@ -290,11 +328,8 @@ class Parameters(YamlFileABC):
         self.wsx = self.world_len  # the x-dimension of the world space [m]
         self.wsy = self.world_len  # the y-dimension of the world space [m]
         self.cell_height = float(self._conf['world options']['cell height'])  # the height of a cell in the z-direction
-        self.lattice_type = self._conf['world options']['lattice type']  # hex or rect lattice base
+        self.cell_lattice_type = self._conf['world options']['lattice type']  # hex or rect lattice base
         self.cell_space = float(self._conf['world options']['cell spacing'])  # the true cell-cell spacing
-
-        #FIXME: Rename to "cell_lattice_disorder".
-        self.nl = float(self._conf['world options']['lattice disorder'])  # noise level for the lattice
 
         volmult = float(self._conf['internal parameters']['environment volume multiplier'])
 
@@ -946,8 +981,8 @@ class Parameters(YamlFileABC):
         self.d_cell = self.cell_radius * 2  # diameter of single cell
         self.nx = int(self.wsx / self.d_cell)  # number of lattice sites in world x index
         self.ny = int(self.wsy / self.d_cell)  # number of lattice sites in world y index
-        self.wsx = self.wsx + 5 * self.nl * self.d_cell  # readjust the world size for noise
-        self.wsy = self.wsy + 5 * self.nl * self.d_cell
+        self.wsx = self.wsx + 5 * self.cell_lattice_disorder * self.d_cell  # readjust the world size for noise
+        self.wsy = self.wsy + 5 * self.cell_lattice_disorder * self.d_cell
 
         self.gjl = 2*self.tm + self.cell_space     # gap junction length
         self.gj_radius = 1.0e-9              # effective radius of gap junctions connecting cells [m] (range 0 to 5.0 e-9 m)

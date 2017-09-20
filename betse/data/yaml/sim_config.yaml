@@ -152,7 +152,7 @@ world options:
 
 
   lattice type: hex           # form of the base lattice (before adding lattice disorder)
-                              # options: 'hex' for hegagonal or 'rect' for rectilinear
+                              # options: 'hex' for hexagonal or 'rect' for rectilinear
 
   lattice disorder: 0.4       # noise level for the lattice
                               # recommended range 0 to 0.8

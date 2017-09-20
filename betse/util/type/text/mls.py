@@ -134,3 +134,23 @@ def escape_ml(text: str) -> str:
 
     # Praise be the stdlib.
     return html.escape(text)
+
+# ....................{ TAGIFIERS                          }....................
+@type_check
+def tagify_newlines(text: str) -> str:
+    '''
+    Convert each newline in the passed string into a ``<br/>`` tag.
+
+    Parameters
+    ----------
+    text : str
+        String to convert all newlines of.
+
+    Returns
+    ----------
+    str
+        String with all newlines converted to corresponding tags.
+    '''
+
+    # Sometimes, it really is just that easy.
+    return text.replace('\n', '<br/>')
