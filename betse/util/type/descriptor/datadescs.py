@@ -38,8 +38,8 @@ class DataDescriptorBound(object):
     ----------
     Instances of this class access descriptors outside of class scope. Doing so
     is technically feasible but circumvents Python's default
-    :meth:`object.__getattribute__` implementation transforming every attribute access
-    ``b.x`` where ``x`` is a data descriptor declared at class scope into
+    :meth:`object.__getattribute__` implementation transforming every attribute
+    access ``b.x`` where ``x`` is a data descriptor declared at class scope into
     ``type(b).__dict__['x'].__get__(b, type(b))``. Circumventing this machinery
     typically defeats the purpose of instantiating a descriptor, but is
     warranted in this case.
@@ -64,8 +64,8 @@ class DataDescriptorBound(object):
     :func:`betse.util.descriptor.expralias.expr_alias`
         Lower-level function creating data descriptors encapsulated by this
         higher-level class, intended to be used where declaring a descriptor at
-        class scope is appropriate (e.g., where the data descriptor to be aliased is
-        known at class definition time).
+        class scope is appropriate (e.g., where the data descriptor to be
+        aliased is known at class definition time).
     '''
 
     # ..................{ INITIALIZERS                       }..................

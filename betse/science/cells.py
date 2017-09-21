@@ -12,6 +12,7 @@ from scipy import ndimage
 from betse.exceptions import BetseSequenceException, BetseSimConfigException
 from betse.lib.numpy import arrays
 from betse.science import filehandling as fh
+from betse.science.config.confenum import CellLatticeType
 from betse.science.math import finitediff as fd
 from betse.science.math import toolbox as tb
 from betse.science.tissue.bitmapper import BitMapper
@@ -43,8 +44,6 @@ class Cells(object):
     -------
     seed()                       Create a cell cluster for simulation purposes
     deformWorld(p, ecm_verts)         Modifies Cells object under a deformation
-    makeSeeds()                       Create a 2D random scatter of points which will serve as cell centres
-    makeVoronoi()                     Make and clip/close a Voronoi diagram from the seed points
     cell_index()                      Returns a list of [x,y] points defining the cell centres in order
     cellVerts()                       Copy & scale in points from the ecm matrix to create unique polygonal cells
     quickVerts()                      Reformulates an exisitng cell world
@@ -364,12 +363,16 @@ class Cells(object):
         Setup the cell cluster.
         '''
 
-        logs.log_info('Creating Voronoi geometry... ')
-        self.makeSeeds(p, seed_type=p.cell_lattice_type)  # Create the grid for the system (irregular)
-        self.makeVoronoi(p)  # Make, close, and clip the Voronoi diagram
+        # Create the cell lattice, which serves as the seed grid underlying all
+        # subsequent data structures.
+        self._make_cell_lattice(p)
 
+        # Create the Voronoi diagram *AFTER* the cell lattice.
+        self._make_voronoi(p)
+
+        # clean the Voronoi diagram of empty data structures
         logs.log_info('Cleaning Voronoi geometry... ')
-        self.cleanVoronoi(p)  # clean the Voronoi diagram of empty data structures
+        self.cleanVoronoi(p)
 
         logs.log_info('Defining cell-specific geometric properties... ')
         self.cell_index(p)  # Calculate the correct centre and index for each cell
@@ -616,41 +619,39 @@ class Cells(object):
             self.ymax = ymax
 
 
-    # Avoid circular import dependencies.
     @type_check
-    def makeSeeds(
-        self,
-        p: 'betse.science.parameters.Parameters',
-        seed_type: str = 'rect',
-    ) -> None:
+    def _make_cell_lattice(
+        # Avoid circular import dependencies.
+        self, p: 'betse.science.parameters.Parameters') -> None:
         '''
-        Create the irregular scatter lattice of seed points defined on a 2D
-        world space, with dimensions supplied by :attr:`p.wsx` in [m].
+        Create the randomly scattered lattice of **cell seed points** (i.e.,
+        cell centres) defined on a 2D world space, with dimensions supplied by
+        the :attr:`wsx` variable in meters.
 
         Specifically, this method defines the following object attributes:
 
-        * `xmin`, `xmax`, `ymin`, `ymax`, the minimum and maximum points of the
-          global world space.
-        * `centre`, the centre of the global world space.
-        * `clust_xy`, the list of `(x, y)` Cartesian coordinates of seed
+        * ``xmin``, ``xmax``, ``ymin``, ``ymax``, the minimum and maximum points
+          of the global world space.
+        * ``centre``, the centre of the global world space.
+        * ``clust_xy``, the list of `(x, y)` Cartesian coordinates of seed
           points.
 
-        The amount of deviation from a square grid is specified by `p.cell_lattice_disorder`,
-        defined from 0 (perfect square grid) to 1 (full noise).
+        The amount of deviation from a square grid is specified by the
+        :attr:`cell_lattice_disorder` variable, defined from 0 (perfect square
+        grid) to 1 (full noise).
 
         Parameters
         -----------
         p : Parameters
             Current simulation configuration.
-        seed_type : str
-            'hex' produces a hexagonal lattice seed, while 'rect' produces a
-            rectangular grid. Both are perturbed by the lattice noise option
-            :attr:`p.cell_lattice_disorder`.
         '''
 
-        if seed_type == 'rect': # prepare a standard rectangular grid of points
+        # If a standard square cell lattice is requested, create this lattice.
+        if p.cell_lattice_type is CellLatticeType.SQUARE:
+            # Log this creation.
+            logs.log_info('Creating square cell lattice...')
 
-            # first begin with linear vectors which are the "ticks" of the x and y dimensions
+            # Linear vectors which are the "ticks" of the X and Y dimensions.
             x_v = np.linspace(0, (p.nx - 1) * (p.d_cell + p.ac), p.nx)  # create lattice vector x
             y_v = np.linspace(0, (p.ny - 1) * (p.d_cell + p.ac), p.ny)  # create lattice vector y
 
@@ -661,26 +662,26 @@ class Cells(object):
             x_rnd = p.cell_lattice_disorder * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
             y_rnd = p.cell_lattice_disorder * p.d_cell * (np.random.rand(p.ny, p.nx) - 0.5)  # create a mix of random deltas x dir
 
-            # add the noise effect to the world point matrices and redefine the results
+            # Add the noise effect to the world point matrices.
             x_2d = x_2d + x_rnd
             y_2d = y_2d + y_rnd
 
+            # Redefine the results.
             xypts = np.vstack((x_2d.ravel(), y_2d.ravel())).T
 
-        elif seed_type == 'hex': # prepare a hexagonal grid of points
+        # If a hexagonal square cell lattice is requested, create this lattice.
+        elif p.cell_lattice_type is CellLatticeType.HEXAGONAL:
+            # Log this creation.
+            logs.log_info('Creating hexagonal cell lattice...')
 
-            # recalculate the number of lattice sites
-
+            # Recalculate the number of lattice sites.
             # r = (p.d_cell/2)*np.sqrt(3)
             r = p.d_cell/2
 
-            # blue and red simply refer to the different seed point arrays used to
-            # create the hexagonal lattice.
-
+            # "Blue" and "red" simply refer to the different seed point arrays
+            # used to create the hexagonal lattice.
             a_hex = np.sqrt(3) * r  # distance flat radius (y-axis hex radius)
             b_hex = 3 * r  # x-spacing between midpoint of blue and red grids
-
-            p.wsy = p.wsx
 
             blue_y_start = a_hex / 2
             blue_y_end = p.wsx - a_hex / 2
@@ -730,14 +731,14 @@ class Cells(object):
 
             xypts = np.vstack((x_2d, y_2d)).T
 
+        # Else, this lattice type is unrecognized. Raise us up an exception!
         else:
             raise BetseSimConfigException(
-                "You have chosen a world option lattice type that is "
-                "not available. Options are 'hex' and 'rect'. "
-                "Please check your config file and try again.")
+                'Cell lattice type "{}" unrecognized.'.format(
+                    p.cell_lattice_type))
 
-        # define a data structure that holds [x,y] coordinate points of each 2d grid-matrix entry
-
+        # Define a data structure that holds [x,y] coordinate points of each 2d
+        # grid-matrix entry.
 
         # define geometric limits and centre for the cluster of points
         self.xmin = np.min(xypts[:,0])
@@ -768,18 +769,26 @@ class Cells(object):
         self.xmax = self.xmax + p.cell_radius
         self.ymax = self.ymax + p.cell_radius
 
-    def makeVoronoi(self, p):
-        """
-        Calculates the Voronoi diagram from cell seed points.
 
-        The Voronoi diagram is then closed at the square boundaries of the
-        global environment. Finally, the cells of the Voronoi diagram are
-        removed to define a cluster shape.
+    @type_check
+    def _make_voronoi(
+        # Avoid circular import dependencies.
+        self, p: 'betse.science.parameters.Parameters') -> None:
+        '''
+        Calculate, close, and clip the Voronoi diagram from the cell lattice
+        previously created by the :func:`_make_cell_lattice` method.
+
+        Specifically, this method (in order):
+
+        #. Calculates this diagram.
+        #. Closes this diagram at the square boundaries of the global
+           environment.
+        #. Removes all cells from this diagram to define a cluster shape.
 
         Parameters
         ----------
         p : Parameters
-            An instance of the Parameters object.
+            Current simulation configuration.
 
         Creates
         ---------
@@ -789,8 +798,10 @@ class Cells(object):
                                     (nulled at world creation endpoint)
         self.cluster_mask           Matrix of booleans defining masked shape of cell cluster
         self.msize                  Size of bitmap (side pixel number)
-        """
+        '''
 
+        # Log this creation.
+        logs.log_info('Creating Voronoi geometry... ')
 
         # Load the bitmap used to clip the cell cluster and create a clipping function:
         self.bitmasker = BitMapper(

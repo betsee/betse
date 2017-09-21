@@ -151,8 +151,11 @@ world options:
                               # recommended 26.0e-9 m for animal cells
 
 
-  lattice type: hex           # form of the base lattice (before adding lattice disorder)
-                              # options: 'hex' for hexagonal or 'rect' for rectilinear
+  lattice type: hex           # Type of base cell lattice (i.e., uniform grid to
+                              # which cells are situated before random lattice
+                              # disorder is applied), as any following string:
+                              # * "hexagonal" for hexagonal cells.
+                              # * "square" for square cells.
 
   lattice disorder: 0.4       # noise level for the lattice
                               # recommended range 0 to 0.8
@@ -863,24 +866,24 @@ results options:
                               # steps. Ignored if "show" and "save" are False.
         # Example single-cell average transmembrane voltage (Vmem) plot.
         - type: voltage_membrane   # Plot type, as any following string:
-          # currents_membrane  ->  Single-cell transmembrane current density
-          # deform_total  ->  Total cellular deformation = osmotic + galvanotropic
+          # * "currents_membrane" for single-cell transmembrane current density.
+          # * "deform_total" for total cellular deformation = osmotic + galvanotropic.
           #   Ignored if deformation disabled.
-          # ion_calcium  ->  Single-cell calcium ion concentration
+          # * "ion_calcium" for single-cell calcium ion concentration.
           #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # ion_m_anion  ->  Single-cell M anion concentration
+          # * "ion_m_anion" for single-cell M anion concentration.
           #   Ignored if M anion ions (M-) disabled by ion profile.
-          # ion_potassium  ->  Single-cell potassium ion concentration
+          # * "ion_potassium" for single-cell potassium ion concentration.
           #   Ignored if potassium ions (K+) disabled by ion profile.
-          # ion_sodium  ->  Single-cell sodium ion concentration
+          # * "ion_sodium" for single-cell sodium ion concentration.
           #   Ignored if sodium ions (Na+) disabled by ion profile.
-          # pressure_osmotic  ->  Single-cell osmotic pressure
+          # * "pressure_osmotic" for single-cell osmotic pressure.
           #   Ignored if osmotic pressure disabled.
-          # pressure_total  ->  Single-cell total pressure = osmotic + mechanical
+          # * "pressure_total" for single-cell total pressure = osmotic + mechanical.
           #   Ignored if osmotic pressure or mechanical pressure event disabled.
-          # pump_nakatpase  ->  Single-cell Na-K-ATPase pump rate
-          # voltage_membrane  ->  Single-cell transmembrane voltage (Vmem) average
-          # voltage_membrane_fft  ->  Single-cell transmembrane voltage (Vmem) Fourier transform (FFT)
+          # * "pump_nakatpase" for single-cell Na-K-ATPase pump rate.
+          # * "voltage_membrane" for single-cell transmembrane voltage (Vmem) average.
+          # * "voltage_membrane_fft" for single-cell transmembrane voltage (Vmem) Fourier transform (FFT).
           enabled: True   # Enable this plot?
         # Example single-cell transmembrane current density plot.
         - type: currents_membrane
@@ -891,42 +894,44 @@ results options:
                                # "save" are False.
         # Example final cell cluster transmembrane voltage (Vmem) plot.
         - type: voltage_membrane   # Plot type, as any following string:
-          # channel_density  ->  Final cell cluster cell membrane ion channel density factor
+          # * "channel_density" for final all-cells cell membrane ion channel density factor.
           #   Ignored if channel electroosmosis disabled.
-          # currents_intra  ->  Final cell cluster intracellular current density
-          # currents_extra  ->  Final cell cluster extracellular current density
+          # * "currents_intra" for final all-cells intracellular current density.
+          # * "currents_extra" for final all-cells extracellular current density.
           #   Ignored if extracellular spaces disabled.
-          # deform_total  ->  Final cell cluster total cellular deformation = osmotic + galvanotropic
+          # * "deform_total" for final all-cells total cellular deformation = osmotic + galvanotropic.
           #   Ignored if deformation disabled.
-          # electric_intra  ->  Final cell cluster intracellular electric field
-          # electric_extra  ->  Final cell cluster extracellular electric field
+          # * "electric_intra" for final all-cells intracellular electric field.
+          # * "electric_extra" for final all-cells extracellular electric field.
           #   Ignored if extracellular spaces disabled.
-          # fluid_intra  ->  Final cell cluster intracellular fluid flow
+          # * "fluid_intra" for final all-cells intracellular fluid flow.
           #   Ignored if fluid flow disabled.
-          # fluid_extra  ->  Final cell cluster extracellular fluid flow
+          # * "fluid_extra" for final all-cells extracellular fluid flow.
           #   Ignored if fluid flow or extracellular spaces disabled.
-          # ion_calcium_intra  ->  Final cell cluster intracellular calcium ion concentration
+          # * "ion_calcium_intra" for final all-cells intracellular calcium ion concentration.
           #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # ion_calcium_extra  ->  Final cell cluster extracellular calcium ion concentration
+          # * "ion_calcium_extra" for final all-cells extracellular calcium ion concentration.
           #   Ignored if calcium ions (Ca2+) disabled by ion profile or extracellular spaces
           #   disabled.
-          # ion_hydrogen_intra  ->  Final cell cluster intracellular hydrogen ion concentration
+          # * "ion_hydrogen_intra" for final all-cells intracellular hydrogen ion concentration.
           #   Ignored if hydrogen ions (H+) disabled by ion profile.
-          # junction_state  ->  Final cell cluster gap junction connectivity state
-          # microtubule  ->  Final cell cluster microtubule orientation
-          # pressure_total  ->  Final cell cluster total pressure = osmotic + mechanical
+          # * "junction_state" for final all-cells gap junction connectivity state.
+          # * "microtubule" for final all-cells microtubule orientation.
+          # * "pressure_total" for final all-cells total pressure = osmotic + mechanical.
           #   Ignored if osmotic pressure or mechanical pressure event disabled.
-          # pump_density  ->  Final cell cluster cell membrane ion pump density factor
+          # * "pump_density" for final all-cells cell membrane ion pump density factor.
           #   Ignored if channel electroosmosis disabled.
-          # pump_nakatpase  ->  Final cell cluster cell membrane Na-K-ATPase pump rate
-          # voltage_membrane  ->  Final cell cluster transmembrane voltage (Vmem)
-          # voltage_membrane_average  ->  Final cell cluster transmembrane voltage (Vmem) average
-          # voltage_membrane_ghk  ->  Final cell cluster transmembrane voltage (Vmem) calculated
-          #                           by Goldman-Hodgkin-Katz (GHK) equation
+          # * "pump_nakatpase" for final all-cells cell membrane Na-K-ATPase
+          #   pump rate.
+          # * "voltage_membrane" for final all-cells transmembrane voltage (Vmem).
+          # * "voltage_membrane_average" for final all-cells transmembrane
+          #   voltage (Vmem) average.
+          # * "voltage_membrane_ghk" for final all-cells transmembrane voltage
+          #   (Vmem) calculated by Goldman-Hodgkin-Katz (GHK) equation.
           #   Ignored if GHK calculation disabled.
-          # voltage_extra  ->  Final cell cluster extracellular voltage
+          # * "voltage_extra" for final all-cells extracellular voltage.
           #   Ignored if extracellular spaces disabled.
-          # voltage_polarity  ->  Final cell cluster cellular voltage polarization
+          # * "voltage_polarity" for final all-cells cellular voltage polarization.
           #   Ignored if cell polarizability disabled.
           enabled: True       # Enable this plot?
           colorbar:           # Plot colorbar settings.
@@ -936,7 +941,7 @@ results options:
                               # "autoscale" is True.
             maximum:  10.0    # Maximum fixed colorbar value. Ignored if
                               # "autoscale" is True.
-        # Example final cell cluster intracellular electric field plot.
+        # Example final all-cells intracellular electric field plot.
         - type: electric_intra
           enabled: True
           colorbar:
@@ -952,34 +957,34 @@ results options:
       pipeline:      # List of all animations. Ignored if "show" and "save" are False.
         # Example transmembrane voltage (Vmem) animation.
         - type: voltage_membrane  # Animation type, including any following string:
-          # currents_intra  ->  Intracellular current density
-          # currents_extra  ->  Extracellular current density
+          # * "currents_intra" for intracellular current density.
+          # * "currents_extra" for extracellular current density.
           #   Ignored if extracellular spaces disabled.
-          # deform_total  ->  Total cellular deformation = osmotic + galvanotropic
+          # * "deform_total" for total cellular deformation = osmotic + galvanotropic.
           #   Ignored if deformation disabled.
-          # electric_intra  ->  Intracellular electric field
-          # electric_extra  ->  Extracellular electric field
+          # * "electric_intra" for intracellular electric field.
+          # * "electric_extra" for extracellular electric field.
           #   Ignored if extracellular spaces disabled.
-          # fluid_intra  ->  Intracellular fluid flow
+          # * "fluid_intra" for intracellular fluid flow.
           #   Ignored if fluid flow disabled.
-          # fluid_extra  ->  Extracellular fluid flow
+          # * "fluid_extra" for extracellular fluid flow.
           #   Ignored if fluid flow or extracellular spaces disabled.
-          # ion_calcium_intra  ->  Intracellular calcium ion concentration
+          # * "ion_calcium_intra" for intracellular calcium ion concentration.
           #   Ignored if calcium ions (Ca2+) disabled by ion profile.
-          # ion_hydrogen_intra  ->  Intracellular hydrogen ion concentration == pH
+          # * "ion_hydrogen_intra" for intracellular hydrogen ion concentration == pH.
           #   Ignored if hydrogen ions (H+) disabled by ion profile.
-          # junction_state  ->  Gap junction connectivity state
-          # microtubule  ->  Microtubule orientation
-          # pressure_osmotic  ->  Cellular osmotic pressure
+          # * "junction_state" for gap junction connectivity state.
+          # * "microtubule" for microtubule orientation.
+          # * "pressure_osmotic" for cellular osmotic pressure.
           #   Ignored if osmotic pressure disabled.
-          # pressure_total  ->  Cellular total pressure = osmotic + mechanical
+          # * "pressure_total" for cellular total pressure = osmotic + mechanical.
           #   Ignored if osmotic pressure or mechanical pressure event disabled.
-          # pump_density  ->  Cell membrane ion pump density factor
+          # * "pump_density" for cell membrane ion pump density factor.
           #   Ignored if channel electroosmosis disabled.
-          # voltage_membrane  ->  Transmembrane voltage (Vmem)
-          # voltage_extra  ->  Extracellular voltage
+          # * "voltage_membrane" for transmembrane voltage (Vmem).
+          # * "voltage_extra" for extracellular voltage.
           #   Ignored if extracellular spaces disabled.
-          # voltage_polarity  ->  Cellular voltage polarization
+          # * "voltage_polarity" for cellular voltage polarization.
           #   Ignored if cell polarizability disabled.
           enabled: True       # Enable this animation?
           colorbar:           # Animation colorbar settings.

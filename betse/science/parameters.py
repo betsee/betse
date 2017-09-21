@@ -7,8 +7,9 @@ import numpy as np
 from betse import pathtree
 from betse.exceptions import BetseSimConfigException, BetseSimPhaseException
 from betse.lib.matplotlib import mplutil
-from betse.lib.yaml.yamlalias import yaml_alias
+from betse.lib.yaml.yamlalias import yaml_alias, yaml_enum_alias
 from betse.lib.yaml.yamlabc import YamlFileABC
+from betse.science.config.confenum import CellLatticeType
 from betse.science.config.event import eventcut
 from betse.science.config.event import eventvoltage
 from betse.science.config.export.confanim import SimConfAnimAll
@@ -21,27 +22,6 @@ from betse.util.path import dirs, pathnames
 # from betse.util.type.call.memoizers import property_cached
 from betse.util.type.types import type_check, IterableTypes, SequenceTypes
 from collections import OrderedDict
-from enum import Enum
-
-# ....................{ ENUMS                              }....................
-#FIXME: Refactor the "cell_lattice_type" variable from a raw string into a
-#member of this enumeration.
-#FIXME: Rename "RECT" to "SQUARE", which less ambiguously describes the actual
-#lattice produced in that case. Doing so will require applying a configuration
-#file compatibility patch, of course, implicitly converting "lattice type"
-#values of "rect" to "square". *sigh*
-CellLatticeType = Enum('CellLatticeType', ('HEX', 'RECT',))
-'''
-Enumeration of all supported types of **base cell lattices** (i.e., uniform grid
-to which cells are situated *before* random lattice disorder is applied).
-
-Attributes
-----------
-HEX : enum
-    Hexagonal base cell lattice, situating cells along a hexagonal grid.
-RECT : enum
-    Rectilinear base cell lattice, situating cells along a square grid.
-'''
 
 # ....................{ CLASSES                            }....................
 #FIXME: Rename the "I_overlay" attribute to "is_plot_current_overlay".
@@ -262,6 +242,8 @@ class Parameters(YamlFileABC):
     # ..................{ ALIASES ~ space : cell cluster     }..................
     cell_lattice_disorder = yaml_alias(
         "['world options']['lattice disorder']", float)
+    cell_lattice_type = yaml_enum_alias(
+        "['world options']['lattice type']", CellLatticeType)
 
     # ..................{ ALIASES ~ space : env              }..................
     grid_size = yaml_alias("['general options']['comp grid size']", int)
@@ -328,7 +310,6 @@ class Parameters(YamlFileABC):
         self.wsx = self.world_len  # the x-dimension of the world space [m]
         self.wsy = self.world_len  # the y-dimension of the world space [m]
         self.cell_height = float(self._conf['world options']['cell height'])  # the height of a cell in the z-direction
-        self.cell_lattice_type = self._conf['world options']['lattice type']  # hex or rect lattice base
         self.cell_space = float(self._conf['world options']['cell spacing'])  # the true cell-cell spacing
 
         volmult = float(self._conf['internal parameters']['environment volume multiplier'])
@@ -1295,14 +1276,15 @@ class Parameters(YamlFileABC):
         self.config = self._conf
 
         # For convenience, localize configuration subdictionaries.
-        results = self._conf['results options']
+        results_dict = self._conf['results options']
+        world_dict = self._conf['world options']
 
         # For backward compatibility, convert the prior into the current
         # configuration format.
         if not (
-            'while solving' in results and
-            'after solving' in results and
-            'save' in results
+            'while solving' in results_dict and
+            'after solving' in results_dict and
+            'save' in results_dict
         ):
             # Log a non-fatal warning.
             logs.log_warning(
@@ -1313,36 +1295,36 @@ class Parameters(YamlFileABC):
             )
 
             # For convenience, localize configuration subdictionaries.
-            anim_save = results['save animations']
+            anim_save = results_dict['save animations']
             anim_save_frames = anim_save['frames']
 
             # Convert the prior into the current configuration format.
-            results['while solving'] = {
+            results_dict['while solving'] = {
                 'animations': {
                     'enabled': (
-                               results['plot while solving'] or
-                               results['save solving plot']
+                               results_dict['plot while solving'] or
+                               results_dict['save solving plot']
                     ),
-                    'show':    results['plot while solving'],
-                    'save':    results['save solving plot'],
+                    'show':    results_dict['plot while solving'],
+                    'save':    results_dict['save solving plot'],
                 },
             }
-            results['after solving'] = {
+            results_dict['after solving'] = {
                 'plots': {
                     'enabled': (
-                               results['display plots'] or
-                               results['automatically save plots']
+                               results_dict['display plots'] or
+                               results_dict['automatically save plots']
                     ),
-                    'show':    results['display plots'],
-                    'save':    results['automatically save plots'],
+                    'show':    results_dict['display plots'],
+                    'save':    results_dict['automatically save plots'],
                 },
                 'animations': {
-                    'enabled': results['create all animations'],
-                    'show':    results['display plots'],
+                    'enabled': results_dict['create all animations'],
+                    'show':    results_dict['display plots'],
                     'save':    anim_save_frames['enabled'],
                 },
             }
-            results['save'] = {
+            results_dict['save'] = {
                 'plots': {
                     'filetype': anim_save_frames['filetype'],
                     'dpi':      anim_save_frames['dpi'],
@@ -1372,18 +1354,18 @@ class Parameters(YamlFileABC):
                 },
                 'data': {
                     'all': {
-                        'enabled': results['export data to file'],
+                        'enabled': results_dict['export data to file'],
                         'filetype': 'csv',
                     },
                     'vmem': {
-                        'enabled': results['export 2D data to file'],
+                        'enabled': results_dict['export 2D data to file'],
                         'filetype': 'csv',
                     },
                 }
             }
 
-        after_solving_anims = results['after solving']['animations']
-        after_solving_plots = results['after solving']['plots']
+        after_solving_anims = results_dict['after solving']['animations']
+        after_solving_plots = results_dict['after solving']['plots']
 
         if 'pipeline' not in after_solving_anims:
             # Log a non-fatal warning.
@@ -1397,7 +1379,7 @@ class Parameters(YamlFileABC):
             # Default the value for this dictionary key to the empty list.
             after_solving_anims['pipeline'] = []
 
-        while_solving_anims = results['while solving']['animations']
+        while_solving_anims = results_dict['while solving']['animations']
 
         if 'colorbar' not in while_solving_anims:
             # Log a non-fatal warning.
@@ -1444,7 +1426,7 @@ class Parameters(YamlFileABC):
                 after_solving_plots['cell cluster']['pipeline']
                 if 'cell cluster' in after_solving_plots else [])
 
-        if 'plot networks single cell' not in results:
+        if 'plot networks single cell' not in results_dict:
             # Log a non-fatal warning.
             logs.log_warning(
                 'Config file setting "results options" -> '
@@ -1454,8 +1436,14 @@ class Parameters(YamlFileABC):
             )
 
             # Default the value for this dictionary key to the empty list.
-            results['plot networks single cell'] = results[
+            results_dict['plot networks single cell'] = results_dict[
                 'plot single cell graphs']
+
+        # Patch old- to new-style cell lattice types.
+        if world_dict['lattice type'] == 'hex':
+            world_dict['lattice type'] = 'hexagonal'
+        elif world_dict['lattice type'] == 'rect':
+            world_dict['lattice type'] = 'square'
 
     # ..................{ INITIALIZERS ~ path                }..................
     def _init_paths(self) -> None:

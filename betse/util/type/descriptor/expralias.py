@@ -8,6 +8,65 @@ Low-level **expression alias** (i.e., objects satisfying the data descriptor
 protocol dynamically defined at class scope) facilities.
 '''
 
+#FIXME: Cache the values to which expressions evaluate in the data descriptor
+#classes dynamically created by the following functions *AFTER* either:
+#
+#* The first call to the special __get__() method successfully validates the
+#  expression associated with the passed instance to be valid.
+#* Any call to the special __set__() method successfully validates the passed
+#  new value associated with the passed instance to be valid.
+#
+#This is quite critical, as these method bodies are becoming increasingly
+#lengthy and hence computationally expensive. Maybe you are now thinking to
+#yourself: "If it's so critical, why haven't you done this already?" Because
+#data descriptors are per-*CLASS* whereas expression values are per-*OBJECT*.
+#Mapping between the two requires heavy lifting, which (because the whole point
+#of caching is efficiency) must necessarily be as speedy as feasible.
+#
+#Two approaches present themselves:
+#
+#* Define the special __set_name__() method in these data descriptor classes to
+#  something resembling:
+#
+#    def __set_name__(self_descriptor, self, var_name)
+#        cache_var_name = '__betsee_cache_' + var_name
+#
+#        if hasattr(self, cache_var_name):
+#            raise SomeBetseException(
+#                'Expression alias cache variable "{}" already defined.'.format(
+#                    cache_var_name)
+#
+#  *wAIT.* That actually fails to help us at all (and, in any case, is only
+#  supported under Python 3.6), implying that the only remaining option is the
+#  following general-purpose approach.
+#* Alternately, define a new "__expr_alias_cache" dictionary in *EVERY* object
+#  defining one or more expression aliases, mapping from the string value of the
+#  "expr" parameter for that alias to the currently cached value of that alias.
+#  This in turn implies that the string value of the "expr" parameter for that
+#  alias will now need to be passed to the __init__() method defined for that
+#  alias and then classified as an instance variable of that alias... *WAIT.*
+#  Nope. Since the "expr" parameter never changes for a given alias, the lookup
+#  into the "__expr_alias_cache" dictionary can simply be hard-coded into the
+#  class definition at expression alias creation time: e.g.,
+#
+#      '''
+#      # Cache this expression's current value.
+#      self.__expr_alias_cache[{expr_gettable!r}] = value
+#      '''
+#
+#  The only critical point is the usage of the "!r" flag to ensure this
+#  expression's expansion as a proper string. Otherwise, this is dead simple.
+#
+#O.K., the latter approach is clearly superior in every possible way, so that's
+#the way forward. Naturally, we'll need to *EXTENSIVELY* test such caching once
+#implemented -- but that should pose no significant burden.
+#FIXME: Note that not all expressions are safely cachable -- only those for
+#which the underlying expression is guaranteed *NOT* to change between calls to
+#the __get__() method. Equivalently, the only safely cachable expression aliases
+#are those for which the underlying expression is *NEVER* modified directly but
+#only ever through those aliases. To support this concept of safety, a new
+#"is_cachable" parameter will need to be accepted by the following methods.
+
 #FIXME: If optimizations are enabled (i.e., "if not __debug__:"), avoid
 #embedding type validation in the data descriptor classes defined below.
 
@@ -525,8 +584,8 @@ def expr_enum_alias(
     case-insensitive manner. To facilitate this conversion, the caller *must*
     guarantee the following two invariants:
 
-    #. This expression *must* evaluate to a string value. Where not the case, an
-       exception will be explicitly raised.
+    #. This expression *must* evaluate to a strictly lowercase string value.
+       where not the case, an exception will be explicitly raised.
     #. The names of all members of this enumeration type *must* be strictly
        uppercase. Where not the case (i.e., where members have either lowercase
        or mixed case names), an exception will be explicitly raised.
@@ -610,7 +669,7 @@ def __get__(self_descriptor, self, cls):
     if self is None:
         return self_descriptor
 
-    # Name of the corresponding enumeration member to be returned.
+    # Lowercase name of the corresponding enumeration member to be returned.
     enum_member_name = {expr}
 
     # If this expression failed to evaluate to a string, raise an exception.
@@ -619,17 +678,22 @@ def __get__(self_descriptor, self, cls):
             'Expression alias value {{!r}} not a string.'.format(
                 enum_member_name))
 
-    # To ignore case, uppercase this name.
+    # If this member name is *NOT* strictly lowercase, raise an exception.
+    if not enum_member_name.islower():
+        raise BetseTypeException(
+            'Expression alias string {{!r}} not strictly lowercase.'.format(
+                enum_member_name))
+
+    # Uppercase member name.
     enum_member_name = enum_member_name.upper()
 
-    # If this uppercase name is *NOT* that of a member of this enumeration,
-    # raise an exception. For both efficiency and readability, this logic
-    # duplicates that of the enums.is_member_name() function.
+    # If this member is unrecognized, raise an exception. For efficiency and
+    # readability, this test duplicates the enums.is_member_name() tester.
     if enum_member_name not in (
         self_descriptor.__expr_enum_alias_type.__members__):
         raise BetseEnumException(
-            'Expression alias value {{!r}} unrecognized (i.e., not the name of '
-            'an enumeration member of {{!r}}).'.format(
+            'Expression alias string {{!r}} unrecognized (i.e., '
+            'not the name of an enumeration member of {{!r}}).'.format(
                 enum_member_name.lower(),
                 self_descriptor.__expr_enum_alias_type))
 
