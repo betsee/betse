@@ -60,12 +60,45 @@ iterables of insufficient length).
 
 # ....................{ TESTERS                            }....................
 @type_check
+def is_items_unique(iterable: IterableTypes) -> bool:
+    '''
+    ``True`` only if *all* items of the passed iterable are **unique** (i.e.,
+    no two distinct items are equal).
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/5281641/2809027
+        StackOverflow post strongly inspiring this implementation.
+
+    Returns
+    ----------
+    bool
+        ``True`` only if *all* items of this iterable are unique.
+    '''
+
+    # Set of all unique items of this iterable previously visited below.
+    items_unique = set()
+
+    # Return True only if no items in this iterable are duplicates (i.e., have
+    # already been visited by a prior iteration of this test).
+    return not any(
+        # If this item is unique, add this item to this set as a side effect.
+        item in items_unique or items_unique.add(item)
+        for item in iterable)
+
+
+@type_check
 def is_reversible(iterable: IterableTypes) -> bool:
     '''
     `True` only if the passed iterable is **reversible** (i.e., successfully
     passable to the :func:`reversed` builtin).
 
-    This function returns `True` if this iterable either:
+    Specifically, this function returns `True` if this iterable either:
 
     * Defines the `__reversed__()` special method.
     * Defines the `__len__()` and `__getitem__()` special methods, satisfying
@@ -151,12 +184,52 @@ def is_item_instance_of(
     return is_item_satisfying(
         iterable=iterable, predicate=lambda item: isinstance(item, cls))
 
+# ....................{ GETTERS                            }....................
+@type_check
+def get_items_duplicate(iterable: IterableTypes) -> set:
+    '''
+    Set of all duplicate items in the passed iterable.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Iterable to be inspected.
+
+    Returns
+    ----------
+    set
+        Set of all duplicate items in this iterable.
+
+    See Also
+    ----------
+    https://stackoverflow.com/a/9835819/2809027
+        Stackoverflow answer strongly inspiring this implementation.
+    '''
+
+    # Set of all unique items of this iterable previously visited below.
+    items_unique = set()
+
+    # Set of all duplicate items of this iterable to be returned.
+    items_duplicate = set()
+
+    # For each item of this iterable...
+    for item in iterable:
+        # If this item has been previously visited, this item is a duplicate.
+        if item in items_unique:
+            items_duplicate.add(item)
+        # Else, this item is unique.
+        else:
+            items_unique.add(item)
+
+    # Return this set of all duplicate items.
+    return items_duplicate
+
 # ....................{ GETTERS ~ first                    }....................
 @type_check
 def get_item_first(iterable: IterableTypes) -> object:
     '''
     First element non-destructively retrieved from the passed iterable if this
-    iterable is non-empty _or_ raise an exception otherwise (i.e., if this
+    iterable is non-empty *or* raise an exception otherwise (i.e., if this
     iterable is empty).
 
     If the passed iterable is a:
@@ -185,8 +258,8 @@ def get_item_first(iterable: IterableTypes) -> object:
     See Also
     ----------
     https://stackoverflow.com/a/40054478/2809027
-        Cecil's Stackoverflow answer strongly inspiring this function, complete
-        with detailed timings of all alternative solutions.
+        Cecil's Stackoverflow answer strongly inspiring this implementation,
+        complete with detailed timings of all alternative solutions.
     '''
 
     # If this iterable is empty, raise an exception. Since iteration of empty

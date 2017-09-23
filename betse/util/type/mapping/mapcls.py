@@ -373,33 +373,37 @@ class OrderedArgsDict(OrderedDict):
         super().__init__(key_value_pairs_nested)
 
 # ....................{ CLASSES ~ reversible               }....................
-#FIXME: Unit test this.
+#FIXME: Define an analogous "OneToOneDict" subclass of the "dict" superclass,
+#mandating that no values ambiguously map to by two or more keys of the original
+#dictionary. In theory, the implementation should be even more concise.
+#FIXME: Unit test us up.
 class ReversibleDict(dict):
     '''
     Bidirectional dictionary.
 
-    This dictionary subclass provides a public `reverse` attribute, whose value
-    is a dictionary providing both safe and efficient **reverse lookup** (i.e.,
-    lookup by values rather than keys) of the key-value pairs of the original
-    dictionary.
+    This dictionary subclass provides a public :attr:``reverse`` instance
+    variable, whose value is a dictionary providing both safe and efficient
+    **reverse lookup** (i.e., lookup by values rather than keys) of the
+    key-value pairs of the original dictionary.
 
-    The `reverse` dictionary explicitly supports reverse lookup of values
-    ambiguously mapped to by two or more keys of the original dictionary. To
-    disambiguate between these mappings, each key of the `reverse` dictionary
-    (signifying a value of the original dictionary) maps to a list
+    This dictionary explicitly supports reverse lookup of values ambiguously
+    mapped to by two or more keys of the original dictionary. To disambiguate
+    between these mappings, each key of the :attr:``reverse`` dictionary
+    (signifying a value of the original dictionary) maps to a sequence
     containing all keys of the original dictionary mapping to that value.
 
     Caveats
     ----------
-    **The `reverse` dictionary is _not_ safely modifiable.** Attempting to do so
-    breaks the contractual semantics of this class in an unsupported manner. For
-    safety, the `reverse` dictionary is silently synchronized with _all_
-    modifications to the original dictionary -- including additions of new keys,
-    modifications of the values of existing keys, and deletions of existing
-    keys. However, the reverse is _not_ the case; the original dictionary is
-    _not_ silently synchronized with any modifications to the `reverse`
-    dictionary. (Doing so is technically feasible but beyond the scope of this
-    class' use, currently.)
+    **The :attr:``reverse`` dictionary is not safely modifiable.**
+
+    Attempting to do so breaks the contractual semantics of this class in an
+    unsupported manner. For safety, this dictionary is silently synchronized
+    with *all* modifications to the original dictionary -- including additions
+    of new keys, modifications of the values of existing keys, and deletions of
+    existing keys. However, the reverse is *not* the case; the original
+    dictionary is *not* silently synchronized with any modifications to the
+    :attr:``reverse`` dictionary. (Doing so is technically feasible but beyond
+    the scope of current use cases.)
 
     Attributes
     ----------

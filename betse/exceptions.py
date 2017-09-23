@@ -279,13 +279,6 @@ class BetseTypeException(BetseException):
     pass
 
 
-class BetseMappingException(BetseTypeException):
-    '''
-    Dictionary-specific type or value exception.
-    '''
-    pass
-
-
 class BetseEnumException(BetseTypeException):
     '''
     Enumeration-specific type or value exception.
@@ -303,6 +296,13 @@ class BetseNumericException(BetseTypeException):
 class BetseIntException(BetseTypeException):
     '''
     Integer-specific type or value exception.
+    '''
+    pass
+
+
+class BetseMappingException(BetseTypeException):
+    '''
+    Dictionary-specific type or value exception.
     '''
     pass
 

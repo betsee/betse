@@ -179,7 +179,7 @@ def expr_alias(
     Class
     ----------
     The returned class is a dynamically synthesized subclass of all passed
-    subclasses if any *or* of :class:`object` otherwise. This subclass provides
+    subclasses if any *or* of :class:`object` otherwise. This subclass exposes
     the following public instance variables:
 
     expr_alias_cls : ClassOrNoneTypes
@@ -590,8 +590,6 @@ def expr_enum_alias(
        uppercase. Where not the case (i.e., where members have either lowercase
        or mixed case names), an exception will be explicitly raised.
 
-    Usage
-    ----------
     If these invariants hold, then:
 
     * Getting the value of this data descriptor implicitly converts the string
@@ -600,6 +598,19 @@ def expr_enum_alias(
     * Setting the value of this data descriptor to a member of this enumeration
       implicitly sets the string to which this expression evaluates to the
       lowercased name of this member.
+
+    Class
+    ----------
+    The returned class is a dynamically synthesized subclass of all passed
+    subclasses if any *or* of :class:`object` otherwise. This subclass exposes
+    the following public instance variables:
+
+    expr_alias_cls : EnumType
+        Value of the ``enum_type`` parameter passed to this method (i.e., the
+        enumeration constraining this expression). For duck typing between
+        subclasses dynamically synthesized by this and the similar
+        :func:`expr_alias` function, this variable shares the same name as that
+        defined by those subclasses.
 
     Parameters
     ----------
@@ -614,9 +625,9 @@ def expr_enum_alias(
           the same dictionary (e.g.,
           ``['variable settings']['noise']['dynamic noise']``).
     enum_type : EnumType
-        Enumeration that the value of this variable *must* be a member of.
-        Setting this variable to a value *not* a member of this enumeration will
-        raise an exception.
+        Enumeration constraining this expression. Specifically, the uppercased
+        string value of this expression *must* always be the name of a member of
+        this enumeration. If this is *not* the case, an exception is raised.
     base_classes : optional[SequenceTypes]
         Sequence of all base classes of the class dynamically synthesized by
         this function for the returned expression alias data descriptor, usually
@@ -658,7 +669,7 @@ def expr_enum_alias(
     # expr_alias() function for further details.
     expr_alias_class_method_defs = '''
 def __init__(self_descriptor, __expr_enum_alias_type=__expr_enum_alias_type):
-    self_descriptor.__expr_enum_alias_type = __expr_enum_alias_type
+    self_descriptor.expr_alias_cls = __expr_enum_alias_type
 
 
 # Convert this variable's low-level string into a high-level enumeration member.
@@ -690,15 +701,15 @@ def __get__(self_descriptor, self, cls):
     # If this member is unrecognized, raise an exception. For efficiency and
     # readability, this test duplicates the enums.is_member_name() tester.
     if enum_member_name not in (
-        self_descriptor.__expr_enum_alias_type.__members__):
+        self_descriptor.expr_alias_cls.__members__):
         raise BetseEnumException(
             'Expression alias string {{!r}} unrecognized (i.e., '
             'not the name of an enumeration member of {{!r}}).'.format(
                 enum_member_name.lower(),
-                self_descriptor.__expr_enum_alias_type))
+                self_descriptor.expr_alias_cls))
 
-    # Get the enumeration member with this name.
-    return self_descriptor.__expr_enum_alias_type[enum_member_name]
+    # Return the enumeration member with this name.
+    return self_descriptor.expr_alias_cls[enum_member_name]
 
 
 # Convert the passed high-level enumeration member into a low-level string.
@@ -706,11 +717,11 @@ def __set__(self_descriptor, self, enum_member):
     # If the passed value is *NOT* a member of this enumeration, raise an
     # exception. For both efficiency and readability, this logic duplicates that
     # of the enums.is_member() function.
-    if enum_member not in self_descriptor.__expr_enum_alias_type:
+    if enum_member not in self_descriptor.expr_alias_cls:
         raise BetseEnumException(
             'Expression alias value {{!r}} unrecognized (i.e., not an '
             'enumeration member of {{!r}}).'.format(
-                enum_member, self_descriptor.__expr_enum_alias_type))
+                enum_member, self_descriptor.expr_alias_cls))
 
     # Set this expression to the lowercased name of this enumeration member.
     {expr} = enum_member.name.lower()
