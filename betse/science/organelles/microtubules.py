@@ -182,8 +182,6 @@ class Mtubes(object):
         # microtubule rotational diffusion constant:
         self.Dr = ((p.kb*p.T)/self.drag_r)
 
-
-
     def update_mtubes(self, cells, sim, p):
 
         # microtubule radial vectors:
@@ -193,17 +191,17 @@ class Mtubes(object):
         ui_hat = self.mtubes_x
         vi_hat = self.mtubes_y
 
-        Jx = sim.J_env_x*1
-        Jy = sim.J_env_y*1
+        # Jx = sim.J_env_x*1
+        # Jy = sim.J_env_y*1
+        #
+        # Exo = Jx.ravel()[cells.map_mem2ecm]*(1/(sim.sigma*0.1 + 1.0e-6))
+        # Eyo = Jy.ravel()[cells.map_mem2ecm]*(1/(sim.sigma*0.1 + 1.0e-6))
+        #
+        # Ex = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
+        # Ey = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
 
-        Exo = Jx.ravel()[cells.map_mem2ecm]*(1/(sim.sigma*0.1 + 1.0e-6))
-        Eyo = Jy.ravel()[cells.map_mem2ecm]*(1/(sim.sigma*0.1 + 1.0e-6))
-
-        Ex = (np.dot(cells.M_sum_mems, Exo*cells.mem_sa)/cells.cell_sa)[cells.mem_to_cells]
-        Ey = (np.dot(cells.M_sum_mems, Eyo*cells.mem_sa) / cells.cell_sa)[cells.mem_to_cells]
-
-        # Ex = sim.E_cell_x[cells.mem_to_cells]
-        # Ey = sim.E_cell_y[cells.mem_to_cells]
+        Ex = sim.E_cell_x[cells.mem_to_cells]
+        Ey = sim.E_cell_y[cells.mem_to_cells]
 
         gEx = (Ex[cells.nn_i] - Ex[cells.mem_i]) / (cells.nn_len)
 
