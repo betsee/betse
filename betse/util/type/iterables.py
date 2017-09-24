@@ -23,6 +23,7 @@ from betse.util.type.types import (
     ClassType,
     GeneratorType,
     IterableTypes,
+    MappingType,
     SizedType,
     TestableTypes,
 )
@@ -57,6 +58,33 @@ This object is internally leveraged by various utility functions (e.g.,
 :func:`zip_isometric`) to identify erroneous and edge-case input (e.g.,
 iterables of insufficient length).
 '''
+
+# ....................{ EXCEPTIONS                         }....................
+@type_check
+def die_unless_items_unique(iterable: IterableTypes) -> None:
+    '''
+    Raise an exception unless *all* items of the passed iterable are **unique**
+    (i.e., no two distinct items are equal).
+
+    Parameters
+    ----------
+    iterable: IterableTypes
+        Iterable to be inspected.
+
+    Raises
+    ----------
+    BetseIterableException
+        If at least one item of this iterable is a duplicate.
+    '''
+
+    # If one or more items of this iterable are duplicates...
+    if not is_items_unique(iterable):
+        # Set of all such duplicates.
+        items_duplicate = get_items_duplicate(iterable)
+
+        # Raise an exception embedding this set.
+        raise BetseIterableException(
+            'Iterable items {} duplicate.'.format(items_duplicate))
 
 # ....................{ TESTERS                            }....................
 @type_check
@@ -751,6 +779,40 @@ def exhaust(iterable: IterableTypes) -> object:
     # Else, this iterable was already exhausted. Return nothing.
     else:
         return None
+
+# ....................{ INVERTERS                          }....................
+@type_check
+def invert_iterable_unique(iterable: IterableTypes) -> MappingType:
+    '''
+    Dictionary inverted from the passed iterable if internally unique (i.e.,
+    containing no duplicate items) *or* raise an exception otherwise.
+
+    Specifically, this dictionary maps from each item of this iterable to the
+    0-based index of that item in this iterable. Since this dictionary's values
+    are guaranteed to be integers rather than containers of integers, all
+    iterable items *must* be strictly unique.
+
+    Parameters
+    ----------
+    iterable : IterableTypes
+        Internally unique iterable to be inverted.
+
+    Returns
+    ----------
+    MappingType
+        Dictionary inverted from this iterable as detailed above.
+
+    Raises
+    ----------
+    BetseIterableException
+        If at least one item of this iterable is a duplicate.
+    '''
+
+    # If one or more items of this iterable are duplicates, raise an exception.
+    die_unless_items_unique(iterable)
+
+    # One-liners for Great Glory.
+    return {item: item_index for item_index, item in enumerate(iterable)}
 
 # ....................{ REVERSERS                          }....................
 @type_check

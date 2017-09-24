@@ -11,7 +11,8 @@ types and instances).
 # ....................{ IMPORTS                            }....................
 import pprint
 from betse.exceptions import BetseMappingException
-from betse.util.type.types import type_check, MappingType, HashableType
+from betse.util.type.types import (
+    type_check, MappingType, HashableType,)
 
 # ....................{ EXCEPTIONS                         }....................
 @type_check
@@ -27,8 +28,8 @@ def die_unless_values_unique(mapping: MappingType) -> None:
 
     Raises
     ----------
-    BetseStrException
-        If this string is empty.
+    BetseMappingException
+        If at least one value of this dictionary is a duplicate.
     '''
 
     # If one or more values of this dictionary are duplicates...
@@ -37,11 +38,11 @@ def die_unless_values_unique(mapping: MappingType) -> None:
         from betse.util.type import iterables
 
         # Set of all duplicate values in this dictionary.
-        values_duplicates = iterables.get_items_duplicate(mapping.values())
+        values_duplicate = iterables.get_items_duplicate(mapping.values())
 
         # Raise an exception embedding this set.
         raise BetseMappingException(
-            'Dictionary values {} duplicate.'.format(values_duplicates))
+            'Dictionary values {} duplicate.'.format(values_duplicate))
 
 # ....................{ TESTERS                            }....................
 @type_check

@@ -8,8 +8,6 @@ Low-level **mapping classes** (i.e., classes implementing dictionary-like
 functionality, typically by subclassing :class:`dict` or an analogue thereof).
 '''
 
-from collections import OrderedDict
-
 # ....................{ IMPORTS                            }....................
 from betse.exceptions import (
     BetseMappingException, BetseMethodUnimplementedException)
@@ -22,6 +20,7 @@ from betse.util.type.types import (
     MappingType,
     MutableMappingType,
 )
+from collections import OrderedDict
 
 # ....................{ GLOBALS                            }....................
 _DEFAULT_DICT_ID = 0
