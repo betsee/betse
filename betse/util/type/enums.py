@@ -15,13 +15,13 @@ from betse.util.type.types import (
     CallableTypes,
     EnumMemberType,
     EnumType,
+    EnumClassType,
     GeneratorType,
     SequenceTypes,
 )
-from enum import Enum
 
-# ....................{ CLASSES                            }....................
-class EnumOrdered(Enum):
+# ....................{ SUBCLASSES                         }....................
+class EnumOrdered(EnumClassType):
     '''
     Enumeration whose members are comparable according to their assigned values.
 
@@ -111,6 +111,48 @@ class EnumOrdered(Enum):
         return (
             self.value < other.value if self.__class__ is other.__class__ else
             NotImplemented)
+
+# ....................{ MAKERS                             }....................
+@type_check
+def make_enum(class_name: str, member_names: SequenceTypes) -> EnumType:
+    '''
+    **Enumeration type** (i.e., :class:`EnumType` instance or, equivalently,
+    :class:`EnumClassType` subclass) dynamically synthesized to have the passed
+    class name and contain exactly the members with the passed names.
+
+    This factory function is a convenience wrapper for the
+    :class:`EnumClassType` subclass, whose non-standard semantics are arguably
+    more obfuscatory than helpful.
+
+    Parameters
+    ----------
+    class_name : str
+        Class name of this enumeration type, ideally unique across all
+        attributes of the module calling this function.
+    member_names : SequenceTypes
+        Sequence of the names of all members of this enumeration type, required
+        to be valid Python identifiers (i.e., contain only alphanumeric
+        characters and the underscore)
+
+    Returns
+    ----------
+    EnumType
+        Enumeration type dynamically synthesized as defined as above.
+    '''
+
+    # Avoid circular import dependencies.
+    from betse.util.type.call import callers
+
+    # Fully-qualified name of the module defining this enumeration type.
+    module_name = callers.get_caller_module_name()
+
+    # Dynamically synthesize and return this enumeration type.
+    return EnumClassType(
+        value=class_name,
+        names=member_names,
+        module=module_name,
+        qualname='{}.{}'.format(module_name, class_name),
+    )
 
 # ....................{ EXCEPTIONS                         }....................
 def die_unless_member(

@@ -192,11 +192,52 @@ permitting callers to avoid importing that private class.
 
 EnumType = EnumMeta
 '''
-Abstract base class of all **enumerations** (i.e., classes containing all
-enumeration members comprising those enumerations).
+Metaclass of all **enumeration types** (i.e., classes containing all enumeration
+members comprising those enumerations).
 
 This class is a synonym of the :class:`enum.EnumMeta` class, permitting callers
 to avoid importing that class.
+
+Motivation
+----------
+This type is widely used throughout the codebase to validate callable parameters
+to be enumerations. In recognition of its popularity, this type is intentionally
+named ``EnumType`` rather than ``EnumMetaType``. While the latter *would*
+technically be less ambiguous, the former has the advantage of inviting
+correctness throughout the codebase -- a less abundant resource.
+
+Why? Because *all* enumeration types are instances of this type rather than the
+:class:`Enum` class despite being superficially defined as instances of the
+:class:`Enum` class. Thanks to metaclass abuse, enumeration types do *not*
+adhere to standard Pythonic semantics. Notably, the following non-standard
+invariants hold across *all* enumerations:
+
+    >>> from betse.util.type.types import EnumType, EnumClassType, ClassType
+    >>> enum_type = EnumClassType(
+    ...     'Gyre', ('The', 'falcon', 'cannot', 'hear', 'the', 'falconer'))
+    >>> isinstance(enum_type, EnumClassType)
+    False
+    >>> issubclass(enum_type, EnumClassType)
+    True
+    >>> isinstance(enum_type, EnumType)
+    True
+    >>> isinstance(enum_type, ClassType)
+    True
+'''
+
+
+EnumClassType = Enum
+'''
+Abstract base class of all **enumeration types** (i.e., classes containing all
+enumeration members comprising those enumerations).
+
+This class is a synonym of the :class:`enum.Enum` class, permitting callers to
+avoid importing that class.
+
+See Also
+----------
+:class:`EnumType`
+    Further details.
 '''
 
 

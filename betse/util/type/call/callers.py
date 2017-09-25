@@ -86,9 +86,10 @@ def get_caller_basename(call_stack_index: int = 2) -> str:
     # Call stack, including the call to this function.
     call_stack = inspect.stack()
 
-    # Caller stack frame nullified to avoid exceptions on attempting to delete
-    # this attribute in the "finally" block below in edge cases.
+    # Caller stack frame and frame metadata, nullified to avoid exceptions on
+    # deleting these locals in the "finally" block below.
     caller_frame = None
+    caller_frame_metadata = None
 
     # Attempt to...
     try:
@@ -126,12 +127,11 @@ def get_caller_basename(call_stack_index: int = 2) -> str:
     # Failing to do so invites memory leaks due to circular references. See:
     #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack
     finally:
-        del call_stack, caller_frame
+        del call_stack, caller_frame_metadata, caller_frame
 
 
-#FIXME: For disambiguity, rename to get_caller_basename_first_matching().
 @type_check
-def get_caller_basename_matching(predicate: CallableTypes) -> str:
+def get_caller_basename_first_matching(predicate: CallableTypes) -> str:
     '''
     Basename of the first callable whose basename matches the passed predicate
     in the call stack if any *or* raise an exception otherwise.
@@ -162,9 +162,10 @@ def get_caller_basename_matching(predicate: CallableTypes) -> str:
     # Call stack, including the call to this function.
     call_stack = inspect.stack()
 
-    # Caller stack frame nullified to avoid exceptions on attempting to delete
-    # this attribute in the "finally" block below in edge cases.
+    # Caller stack frame and frame metadata, nullified to avoid exceptions on
+    # deleting these locals in the "finally" block below.
     caller_frame = None
+    caller_frame_metadata = None
 
     # Attempt to...
     try:
@@ -206,4 +207,72 @@ def get_caller_basename_matching(predicate: CallableTypes) -> str:
     # Failing to do so invites memory leaks due to circular references. See:
     #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack
     finally:
-        del call_stack, caller_frame
+        del call_stack, caller_frame_metadata, caller_frame
+
+# ....................{ GETTERS ~ caller : module name     }....................
+@type_check
+def get_caller_module_name(call_stack_index: int = 2) -> str:
+    '''
+    Fully-qualified name of the parent module of the callable with the passed
+    index on the call stack if any *or* raise an exception otherwise.
+
+    Parameters
+    ----------
+    call_stack_index : optional[int]
+        0-based index of the call stack frame to be inspected. Equivalently, the
+        1-based number of leading (most recent) stack frames to be ignored
+        including the call to this function. Defaults to an index inspecting the
+        **caller's caller** (i.e., the function or method calling the function
+        or method calling this function).
+
+    Returns
+    ----------
+    str
+        Fully-qualified name of the parent module of this callable, equivalent
+        to the callable after ignoring the passed number of leading stack frames
+        on the call stack. As example, if passed 2, this is the name of the
+        parent module of the second callable on the call stack corresponding to
+        that of the caller's caller.
+
+    Raises
+    ----------
+    BetseCallableException
+        If this index exceeds the length of the call stack.
+
+    See Also
+    ----------
+    https://www.calazan.com/how-to-retrieve-the-name-of-the-calling-module-in-python
+        Article strongly inspiring this implementation.
+    '''
+
+    # Call stack, including the call to this function.
+    call_stack = inspect.stack()
+
+    # Caller stack frame metadata, nullified to avoid exceptions on deleting
+    # these locals in the "finally" block below.
+    caller_frame_metadata = None
+
+    # Attempt to...
+    try:
+        # Last valid index into the call stack.
+        call_stack_index_max = len(call_stack) - 1
+
+        # If no such callable exists, raise an exception.
+        if call_stack_index > call_stack_index_max:
+            raise BetseCallableException(
+                'Call stack frame {} not found '
+                '(i.e., not in range [0, {}]).'.format(
+                    call_stack_index, call_stack_index_max))
+
+        # Caller stack frame metadata as an instance of the 5-tuple
+        # "(frame, filename, lineno, function, code_context, index)".
+        caller_frame_metadata = call_stack[call_stack_index]
+
+        # Return the fully-qualified name of the parent module of the callable
+        # associated with this frame.
+        return inspect.getmodulename(caller_frame_metadata[1])
+    # For safety, explicitly release *ALL* call stack frames obtained above.
+    # Failing to do so invites memory leaks due to circular references. See:
+    #     https://docs.python.org/3/library/inspect.html#the-interpreter-stack
+    finally:
+        del call_stack, caller_frame_metadata

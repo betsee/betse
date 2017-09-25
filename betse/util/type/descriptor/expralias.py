@@ -724,6 +724,8 @@ def __set__(self_descriptor, self, enum_member):
                 enum_member, self_descriptor.expr_alias_cls))
 
     # Set this expression to the lowercased name of this enumeration member.
+    #from betse.util.io.log import logs
+    #logs.log_info('Setting enumeration to: {{}}'.format(enum_member.name.lower()))
     {expr} = enum_member.name.lower()
 '''.format(expr=expr)
     # print('expr_alias code:\n' + expr_alias_class_method_defs)

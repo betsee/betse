@@ -295,16 +295,17 @@ class OrderedArgsDict(OrderedDict):
     '''
     Ordered dictionary initialized by a sequence of key-value pairs.
 
-    The canonical :class:`OrderedDict` class implements ordered dictionaries in
-    Python. As is common practice throughout the stdlib, this class is
-    initialized with a sequence of 2-sequences (e.g., tuple of 2-tuples) whose
-    first elements comprise the keys and whose second elements comprise the
-    values of all key-value pairs of this dictionary.
+    Motivation
+    ----------
+    This :class:`OrderedDict` subclass simplifies the definition of ordered
+    dictionaries. As is common practice throughout the stdlib, the standard
+    :class:`OrderedDict` class is defined by a sequence of 2-sequences
+    ``(key, value)`` (e.g., tuple of 2-tuples) where each ``key`` and ``value``
+    comprises one key-value pair of this dictionary.
 
-    This :class:`OrderedDict` subclass simplifies this initializing burden.
-    Specifically, this class is initialized with a flat sequence of keys and
-    values rather than a nested sequence of 2-sequences. In all other respects,
-    this class is identical to the :class:`OrderedDict` class.
+    This :class:`OrderedDict` subclass is instead defined by a flat sequence of
+    keys and values rather than a nested sequence of 2-sequences. In all other
+    respects, this subclass is identical to the :class:`OrderedDict` class.
 
     Examples
     ----------
